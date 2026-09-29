@@ -1,11 +1,13 @@
 {
   "name": "orc-alchemy",
-  "module": "index.ts",
+  "private": true,
   "type": "module",
+  "packageManager": "bun@1.0.14",
+  "workspaces": [
+    "packages/*",
+    "tools/*"
+  ],
   "devDependencies": {
-    "bun-types": "latest"
-  },
-  "peerDependencies": {
     "typescript": "^5.0.0"
   }
 }
