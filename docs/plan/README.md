@@ -9,6 +9,13 @@
 > Milestones, issues with acceptance criteria, the risk register, and
 > condensed copies of these documents are there. These files remain the
 > technical reference that Linear points back to.
+>
+> Location: these documents were written in the fork `ecfidler/orcpub` and
+> moved to `ecfidler/orc-alchemy` on 2026-09-29 (ORC-44, ORC-101), from the
+> fork's `pubdoor` branch at `26f57e07`. In them, "this fork", "this
+> repository", and "here" mean the fork, and paths such as `src/`,
+> `engine-js/`, `scripts/`, and `CLAUDE.md` are fork paths at that commit.
+> Paths under `docs/plan/` and `fixtures/` are in orc-alchemy.
 
 This plan builds a new web application: a new TypeScript and React UI and,
 in time, its own backend. Its rules engine is the existing `.cljc` core,
@@ -17,7 +24,7 @@ approach "Option 2A". A user of the old app, Dungeon Master's Vault
 (orcpub), can carry their own data into the new one with files they export
 themselves.
 
-This plan set builds on Plan Set 1 (`docs/ts-frontend-plan/`), which
+This plan set builds on Plan Set 1 (`docs/plan/plan-set-1/`), which
 describes the compiled-engine facade and the UI scaffold. Where a Plan Set 1
 document applies verbatim, this set references it rather than repeating it.
 The difference between the two sets is scope. Plan Set 1 replaces the
@@ -48,7 +55,7 @@ only the engine.
   the new app writes still carries its rules edition, `"rules": "2014"`,
   and `evaluate` takes a `rules` option. 2024 rules (SRD 5.2) come later
   from a separate TypeScript engine, and 2014 moves onto that engine last.
-  That is option E in `docs/reports/2024-rules-support.md`, decided on
+  That is option E in [`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) in the fork, decided on
   2026-09-23 (ORC-94) and tracked in Linear project *2024 engine*.
 
 ## What the investigation established, and why it matters here

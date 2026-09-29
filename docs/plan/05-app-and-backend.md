@@ -6,7 +6,7 @@ then covers the new backend, which is designed independently of orcpub.
 
 ## Reuse from Plan Set 1
 
-- **Stack and scaffold.** `docs/ts-frontend-plan/04-app-scaffold.md`: Vite,
+- **Stack and scaffold.** `docs/plan/plan-set-1/04-app-scaffold.md`: Vite,
   React, TypeScript, TanStack Query, Zustand or Redux Toolkit, vitest, and
   Playwright. Unchanged, except that there is no dev proxy to an old
   server.
@@ -16,12 +16,12 @@ then covers the new backend, which is designed independently of orcpub.
   renders from an app-owned sheet type that one adapter module maps from
   `evaluate().built`. No component reads `built` directly, so a later 2024
   engine needs only a second adapter (ORC-48).
-- **Page rebuild order.** `docs/ts-frontend-plan/05-page-rebuild.md`. The
+- **Page rebuild order.** `docs/plan/plan-set-1/05-page-rebuild.md`. The
   tiers and the six builder sub-milestones hold. Drop 4.4 (PDF). The
   homebrew builders are doc 04 here.
-- **Engine facade.** `docs/ts-frontend-plan/03-engine-package.md` is the
+- **Engine facade.** `docs/plan/plan-set-1/03-engine-package.md` is the
   base. Doc 02 here is the delta.
-- **Reference capture.** `docs/ts-frontend-plan/01-reference-app.md` covers
+- **Reference capture.** `docs/plan/plan-set-1/01-reference-app.md` covers
   running the old app and collecting fixtures.
 
 ## What differs

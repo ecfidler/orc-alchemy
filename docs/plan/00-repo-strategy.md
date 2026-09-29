@@ -20,7 +20,7 @@ So the split is:
 | Phase | Where | What |
 |---|---|---|
 | A | This fork (`ecfidler/orcpub`), on the `engine` branch | M0 fixtures and the built-value dump script. The engine library at `engine-js/`: shadow-cljs build, facade, `.d.ts`, and golden tests. The engine patches as ordinary commits. Publishing `@pubdoor/dmv` |
-| B | A new repository, working name `dmv-next` | Everything from M2 onward: the app, local-first storage, homebrew UI, import tooling, and backend. It consumes `@pubdoor/dmv` from a package registry and never has a Clojure toolchain |
+| B | `ecfidler/orc-alchemy`, a Bun-workspaces monorepo that owns all the TypeScript projects | Everything from M2 onward: the app, local-first storage, homebrew UI, import tooling, and backend. It consumes `@pubdoor/dmv` from a package registry and never has a Clojure toolchain |
 
 The engine package is the boundary because it is a build artifact with a
 typed interface. The app repo depends on it exactly as it would on any npm
@@ -72,31 +72,46 @@ tests on every push to `engine`.
 Fixtures are generated here and copied to the app repo because generating
 them needs the old app and consuming them does not. The app repo's tests
 must stay self-contained, so it carries a snapshot under its own
-`fixtures/` and a note of which fork commit produced it.
+`fixtures/` and a note of which fork commit produced it, and which
+`@pubdoor/dmv` version that commit publishes. Refresh the snapshot in the
+same change that bumps the engine pin.
 
-## Phase B: the app repository
+## Phase B: the orc-alchemy monorepo
+
+Phase B happens in `ecfidler/orc-alchemy`, a Bun-workspaces monorepo that
+owns all the TypeScript projects. Alchemy 5e, the app, is one workspace
+package. Other TypeScript packages, such as the exporter bookmarklet and
+later the 2024 engine, are sibling workspaces. The plan itself lives here
+too: it moved from the fork (ORC-101), which keeps only a stub pointing
+here.
 
 Create the app repository once `@pubdoor/dmv@0.1.x` exists with `evaluate`,
 the mutations, `importCharacter`, and `parseOrcbrew`, that is, after M1 and
 the engine half of M3. Its initial contents:
 
 ```
-dmv-next/
+orc-alchemy/
+  package.json             ; private root; workspaces: packages/*, tools/*
+  tsconfig.base.json       ; shared compiler options that each package extends
   CLAUDE.md                ; see below
-  docs/plan/               ; a copy of docs/ts-rewrite-plan/ and the Plan Set 1 docs it references
+  docs/plan/               ; this plan set; Plan Set 1 under docs/plan/plan-set-1/
   fixtures/                ; snapshot from the fork, with the source commit recorded
-  packages/app/            ; Vite + React + TypeScript (Plan Set 1 doc 04 scaffold)
+  packages/app/            ; Alchemy 5e: Vite + React + TypeScript (Plan Set 1 doc 04 scaffold)
   packages/backend/        ; later (doc 05)
-  tools/exporter-bookmarklet/  ; doc 03
+  tools/exporter-bookmarklet/  ; doc 03, M5
 ```
 
-`CLAUDE.md` in the app repo states four things:
+Each workspace package owns its dependencies and scripts; the root holds
+only what every package shares. `bun install` runs once from the root.
+
+`CLAUDE.md` in the monorepo states five things:
 
 - The plan is `docs/plan/`, and Plan Set 2 is active.
 - The engine comes from `@pubdoor/dmv`, built in the `ecfidler/orcpub` fork
   under `engine-js/`, which is also the test oracle.
 - The current milestone.
 - The app never imports Clojure or the engine source.
+- Linear project Alchemy 5e is the tracker.
 
 Update the current-milestone line as work progresses. "Implement the plan"
 is too large a prompt for one session. "We're on M2" is the right size.
@@ -104,8 +119,8 @@ is too large a prompt for one session. "We're on M2" is the right size.
 ## Working with agents across the two repos
 
 - The repo an agent edits must contain the spec it is implementing. That is
-  why the app repo carries a copy of the plan in `docs/plan/` rather than a
-  link to this fork.
+  why the plan lives in the monorepo's `docs/plan/` rather than behind a
+  link to the fork.
 - When a golden value is in doubt, regenerate it in the fork with the Phase
   A tooling and copy the fixture across. Do not hand-edit expected outputs
   in the app repo.
@@ -113,7 +128,7 @@ is too large a prompt for one session. "We're on M2" is the right size.
   to add a facade function and use it. Most sessions need only one.
 - Once Projects are available, one project that spans both repositories,
   with the plan in its instructions, fits this split: engine threads in the
-  fork, app threads in `dmv-next`.
+  fork, app threads in `orc-alchemy`.
 
 ## Alternatives considered
 

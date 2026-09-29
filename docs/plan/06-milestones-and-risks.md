@@ -51,7 +51,7 @@ project *2024 engine* (ORC-95 to ORC-97). See the decision record below.
   something a user can evaluate, it makes the whole app testable without
   infrastructure, and it leaves the backend design unconstrained.
 - **Why 2024 support is a later TypeScript engine (option E).** Decided on
-  2026-09-23 (ORC-94) from `docs/reports/2024-rules-support.md`. Building a
+  2026-09-23 (ORC-94) from [`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) in the fork. Building a
   dual-edition engine first would put the 6 to 9 month re-authoring back
   on the critical path. Writing 2024 in ClojureScript would grow a
   codebase the owner wants to leave. So the compiled engine serves 2014,

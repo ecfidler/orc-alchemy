@@ -1,6 +1,6 @@
 # Phase A handoff: start here
 
-You are picking up Phase A of the active plan (`docs/ts-rewrite-plan/`,
+You are picking up Phase A of the active plan (`docs/plan/`,
 Plan Set 2): the compiled engine package `@pubdoor/dmv`, built in this fork
 so that a new TypeScript app can use the existing rules engine as a
 library. All 24 Phase A decisions were reviewed and approved on 2026-09-20.
@@ -14,15 +14,15 @@ for detail rather than repeating it.
 In order:
 
 1. `CLAUDE.md`: the architecture facts you must not contradict.
-2. `docs/ts-rewrite-plan/00-repo-strategy.md`: why Phase A is here and
+2. `docs/plan/00-repo-strategy.md`: why Phase A is here and
    Phase B is elsewhere, and the directory layout you will create.
-3. `docs/ts-rewrite-plan/02-engine-library.md`: the build scope, the facade
+3. `docs/plan/02-engine-library.md`: the build scope, the facade
    API, the eight engine wrinkles, and the four permitted patches.
-4. `docs/ts-rewrite-plan/01-compatibility-contract.md`: the character
+4. `docs/plan/01-compatibility-contract.md`: the character
    quirks (R1 to R10) and the content-identity rule.
-5. `docs/ts-frontend-plan/03-engine-package.md`: the base facade design
+5. `docs/plan/plan-set-1/03-engine-package.md`: the base facade design
    (Plan Set 1). Doc 02 above is the delta on top of it.
-6. `docs/ts-frontend-plan/01-reference-app.md`: how to run the old app and
+6. `docs/plan/plan-set-1/01-reference-app.md`: how to run the old app and
    capture fixtures.
 7. `fixtures/README.md`: what M0 produced, the exact conversion rules
    `evaluate().built` must reproduce, and nine findings that correct the
@@ -31,7 +31,7 @@ In order:
 Skim later: `06-milestones-and-risks.md` (the M0 and M1 rows),
 `03-character-import-and-storage.md` (what `importCharacter` must do),
 `04-homebrew.md` (what `parseOrcbrew` must expose), and
-`docs/reports/2024-rules-support.md` §Decision (why `evaluate` takes a
+[`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) §Decision in the fork (why `evaluate` takes a
 `rules` option).
 
 ## 2. State of the repository when you arrive
@@ -228,5 +228,5 @@ amounts to:
 Post the M1 exit report as a comment on ORC-26: the published package
 version, the fixture counts, the golden-test pass count, and anything in
 the plan that turned out to be wrong, with the file and line. Phase B
-starts by creating the app repository (Alchemy 5e, ORC-44) and copying
-`fixtures/` and `docs/ts-rewrite-plan/` into it. See doc 00 §Phase B.
+starts by creating the app repository (Alchemy 5e, ORC-44), copying
+`fixtures/` into it, and moving the plan there. See doc 00 §Phase B.

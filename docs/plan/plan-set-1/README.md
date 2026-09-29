@@ -1,10 +1,15 @@
 # Plan Set 1: a TypeScript frontend on the compiled engine (Option A)
 
 > Status: reference. The plan under consideration is
-> `docs/ts-rewrite-plan/` (Plan Set 2), which builds on this one. Read this
+> `docs/plan/` (Plan Set 2), which builds on this one. Read this
 > set for the engine facade, app scaffold, and API details that Plan Set 2
 > references. Linear tracks the work itself, in the projects PubDoor and
 > Alchemy 5e.
+>
+> Location: moved here from the fork `ecfidler/orcpub` with Plan Set 2. In
+> this set, "this repo" means the fork, and paths are fork paths at
+> `26f57e07`. `web-ts/` was never created; the app is `packages/app/` in
+> orc-alchemy (Plan Set 2 doc 00).
 
 This plan replaces the ClojureScript and re-frame frontend with a
 TypeScript and React frontend. It reuses the existing rules engine as a
@@ -40,7 +45,7 @@ rewrite on your own schedule, without a single risky cutover.
 
 ## Plan documents
 
-See also `docs/ts-rewrite-plan/` (Plan Set 2): a new application built on
+See also `docs/plan/` (Plan Set 2): a new application built on
 this same compiled-engine approach, with its own backend and user-level
 import of `.orcbrew` files and characters from the old app. It references
 these documents where they apply.

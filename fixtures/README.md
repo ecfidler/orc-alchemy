@@ -1,5 +1,17 @@
 # Fixtures: Phase A, M0
 
+> **Snapshot provenance.** This directory is a verbatim snapshot of the
+> fork's `fixtures/`, copied with `git archive` from `ecfidler/orcpub`
+> branch `pubdoor` at commit **`26f57e07dfe068235260bb9fdcafaef70bc2ab98`** (tag `pubdoor-v0.1.0`), which
+> publishes **`@pubdoor/dmv@0.1.0`**. Only this note was added. Paths in the
+> rest of this file (`docs/ts-rewrite-plan/`, `scripts/`, `src/`,
+> `engine-js/`) are fork paths; the plan is now `docs/plan/` in this repo.
+>
+> Do not edit the fixtures here. To refresh, regenerate in the fork (see
+> *Regenerating*), then replace this directory from the fork commit that
+> publishes the engine version the app pins, and update the commit, tag, and
+> version above in the same change as the pin.
+
 Real inputs and oracle-produced expected outputs for the engine package
 (`@pubdoor/dmv`, M1) and the homebrew engine path (M3). The plan is
 `docs/ts-rewrite-plan/`; the milestone is `HANDOFF-phase-a.md` §4.

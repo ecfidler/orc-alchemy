@@ -59,7 +59,7 @@ log, conflicts, skipped }`, `validateForExport(plugins)`,
   multi-plugin map, exactly like the old app's `:plugins`. Each pack record
   carries `"rules": "2014"` (ORC-53). `.orcbrew` is the 2014 homebrew
   format only. 2024 homebrew uses a new format that the later 2024 engine
-  defines (ORC-96, `docs/reports/2024-rules-support.md`).
+  defines (ORC-96, [`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) in the fork).
 - **The "My Content" page.** Per pack: enable, disable, export, and delete.
   Per type: the 13 lists, with enable, edit, and delete per item (the
   `views.cljs:7485-7759` behavior).

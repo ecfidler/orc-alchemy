@@ -91,7 +91,7 @@ Wrap it in an envelope the app owns:
 passes it to `evaluate`. It is always `"2014"` in this plan. Import reads a
 missing `rules` as `"2014"`, and every character from the old app or the
 bookmarklet bundle is 2014. The tag exists so that a later 2024 engine can
-share the format (option E, `docs/reports/2024-rules-support.md`, ORC-50).
+share the format (option E, [`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) in the fork, ORC-50).
 
 Export from the new app is this envelope for a single character or the
 `dmv-export` bundle above for all characters plus homebrew. These are
