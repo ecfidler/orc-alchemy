@@ -34,3 +34,17 @@ tools/exporter-bookmarklet/  M5
 
 Run `bun install` once from the root. Each package owns its dependencies
 and scripts.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in Linear, team "Orc Alchemy", accessed via the Linear MCP tools. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary; the labels already exist in Linear. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
