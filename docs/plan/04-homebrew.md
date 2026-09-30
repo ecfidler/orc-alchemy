@@ -4,7 +4,7 @@ This document covers `.orcbrew` import and export through the engine
 library, and the homebrew features around it. It implements contract C1.
 The source of truth for the old behavior is the homebrew investigation:
 `import_validation.cljs`, `spell_subs.cljs`, `events.cljs:3601-4000`,
-`docs/ORCBREW_FILE_VALIDATION.md`, and `docs/CONFLICT_RESOLUTION.md`.
+[`docs/ORCBREW_FILE_VALIDATION.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/ORCBREW_FILE_VALIDATION.md), and [`docs/CONFLICT_RESOLUTION.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/CONFLICT_RESOLUTION.md).
 
 ## What is inherited, compiled into the library
 
@@ -45,7 +45,7 @@ log, conflicts, skipped }`, `validateForExport(plugins)`,
   panel showing changes, errors, and skipped items, in the old
   `:import-log` shape. Progressive validation by default, with a strict
   option.
-- **Conflict resolution UI** (`docs/CONFLICT_RESOLUTION.md`). Per conflict,
+- **Conflict resolution UI** ([`docs/CONFLICT_RESOLUTION.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/CONFLICT_RESOLUTION.md)). Per conflict,
   the user can rename and import (the suggested key is the key plus the
   slugified source, for example `:artificer-kibbles-tasty`, from
   `generate-new-key`), skip, or replace, and there is a "rename all"
@@ -59,7 +59,7 @@ log, conflicts, skipped }`, `validateForExport(plugins)`,
   multi-plugin map, exactly like the old app's `:plugins`. Each pack record
   carries `"rules": "2014"` (ORC-53). `.orcbrew` is the 2014 homebrew
   format only. 2024 homebrew uses a new format that the later 2024 engine
-  defines (ORC-96, [`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) in the fork).
+  defines (ORC-96, [`docs/reports/2024-rules-support.md`](../reports/2024-rules-support.md)).
 - **The "My Content" page.** Per pack: enable, disable, export, and delete.
   Per type: the 13 lists, with enable, edit, and delete per item (the
   `views.cljs:7485-7759` behavior).
@@ -69,7 +69,7 @@ log, conflicts, skipped }`, `validateForExport(plugins)`,
   `spells.cljc:45`, `selections.cljc:25`, and the other content
   namespaces). Expose those specs through the facade as validation
   functions, and build the forms against the field tables in
-  `docs/HOMEBREW_REQUIRED_FIELDS.md`. Ship them in usage order: spell,
+  [`docs/HOMEBREW_REQUIRED_FIELDS.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/HOMEBREW_REQUIRED_FIELDS.md). Ship them in usage order: spell,
   monster, race and subrace, class and subclass, then the rest.
 - **Magic items.** A homebrew content type in the new app. The old app
   keeps them server-side. They arrive through the exporter bundle (doc 03)

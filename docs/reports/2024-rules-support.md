@@ -3,7 +3,13 @@
 > Status: decided 2026-09-23. The owner chose option E (ORC-94). The
 > *Decision* section records the answers and what follows from them. The
 > analysis below it is kept as written on 2026-09-22, before M1 (ORC-15 to
-> ORC-26) started. The plan itself is Plan Set 2, `docs/ts-rewrite-plan/`.
+> ORC-26) started. The plan itself is Plan Set 2, `docs/plan/`.
+>
+> Location: this report was written in the fork `ecfidler/orcpub` and
+> moved here on 2026-09-29 (ORC-101), from the fork's `pubdoor` branch at
+> `26f57e07`. In it, "this repository" means the fork, and source paths
+> such as `entity.cljc` and `classes.cljc` are fork paths at the commit
+> named below. Paths under `docs/` and `fixtures/` are in orc-alchemy.
 
 This report asks two things. Could a future engine library support both
 D&D 5e 2014 (SRD 5.1, what orcpub implements) and D&D 5e 2024 (SRD 5.2)?
@@ -556,7 +562,7 @@ These smaller decisions follow from the answers:
   licensing, the backward-compatibility guidance, and how Foundry VTT
   `dnd5e`, 5e-bits, Open5e, and Charnik handle both editions, with
   primary-source citations.
-- `docs/ts-rewrite-plan/`: the active plan, in particular
+- `docs/plan/`: the active plan, in particular
   `02-engine-library.md`, `06-milestones-and-risks.md`, and
   `HANDOFF-phase-a.md`.
 - `fixtures/README.md` and `fixtures/orcbrew/private/all-content3.summary.json`.

@@ -55,7 +55,7 @@ Clojure.
 
 The facade names the rules edition although only one exists, so that a
 later 2024 engine can implement the same interface (option E in
-[`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) in the fork, ORC-94).
+[`docs/reports/2024-rules-support.md`](../reports/2024-rules-support.md), ORC-94).
 
 - `evaluate` takes `rules` in its options. It defaults to `"2014"`, the
   only value 0.1 accepts, and any other value throws an error that names

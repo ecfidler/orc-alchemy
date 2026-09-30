@@ -15,7 +15,8 @@
 > fork's `pubdoor` branch at `26f57e07`. In them, "this fork", "this
 > repository", and "here" mean the fork, and paths such as `src/`,
 > `engine-js/`, `scripts/`, and `CLAUDE.md` are fork paths at that commit.
-> Paths under `docs/plan/` and `fixtures/` are in orc-alchemy.
+> Paths under `docs/plan/`, `docs/reports/`, `docs/kb/`, and `fixtures/`
+> are in orc-alchemy. Links to other fork files are pinned to `26f57e07`.
 
 This plan builds a new web application: a new TypeScript and React UI and,
 in time, its own backend. Its rules engine is the existing `.cljc` core,
@@ -55,7 +56,7 @@ only the engine.
   the new app writes still carries its rules edition, `"rules": "2014"`,
   and `evaluate` takes a `rules` option. 2024 rules (SRD 5.2) come later
   from a separate TypeScript engine, and 2014 moves onto that engine last.
-  That is option E in [`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) in the fork, decided on
+  That is option E in [`docs/reports/2024-rules-support.md`](../reports/2024-rules-support.md), decided on
   2026-09-23 (ORC-94) and tracked in Linear project *2024 engine*.
 
 ## What the investigation established, and why it matters here

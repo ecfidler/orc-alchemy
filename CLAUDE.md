@@ -8,6 +8,11 @@ package; the exporter bookmarklet and later the 2024 engine are siblings.
   active; Plan Set 1 (`docs/plan/plan-set-1/`) is reference material it
   builds on. The docs were written in the fork, so "this fork" in them means
   `ecfidler/orcpub`. Doc 00 §Phase B describes this repo.
+- **2024 rules come later, from a separate TypeScript engine.**
+  `docs/reports/2024-rules-support.md` §Decision records option E:
+  `@pubdoor/dmv` serves 2014 only. Read it before any work on rules
+  editions, the `rules` tag, or 2024 content. `docs/kb/srd-5.2-rules-delta.md`
+  holds the rules facts it relies on.
 - **The engine is `@pubdoor/dmv`**, built and published from the
   `ecfidler/orcpub` fork under `engine-js/`. The fork is also the test
   oracle: expected values come from it, via `fixtures/`.
