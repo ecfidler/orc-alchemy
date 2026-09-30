@@ -1,15 +1,15 @@
 # orc-alchemy
 
-To install dependencies:
+Bun-workspaces monorepo for Alchemy 5e and the other TypeScript projects
+built on the [`@pubdoor/dmv`](https://www.npmjs.com/package/@pubdoor/dmv)
+rules engine.
 
 ```bash
 bun install
 ```
 
-To run:
+- `docs/plan/`: the plan
+- `fixtures/`: engine fixtures snapshot from `ecfidler/orcpub`
+- `packages/`, `tools/`: workspace packages
 
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.0.14. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+See `CLAUDE.md` for the working rules.
