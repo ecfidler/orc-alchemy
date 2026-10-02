@@ -49,3 +49,6 @@ coverage/
 Thumbs.db
 
 *.local.md
+# Playwright output
+test-results/
+playwright-report/

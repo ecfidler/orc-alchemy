@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Base UI popups portal to the body; isolating the app root keeps them above it. */
+#root {
+  isolation: isolate;
+}
