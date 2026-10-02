@@ -47,3 +47,5 @@ coverage/
 # System Files
 .DS_Store
 Thumbs.db
+
+*.local.md
