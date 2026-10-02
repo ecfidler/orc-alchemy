@@ -2,8 +2,9 @@
 // the engine through here and treats the strict entity as an opaque value.
 import { useMemo } from "react";
 import type * as Dmv from "@pubdoor/dmv";
+import type { Evaluation, StrictEntity } from "@pubdoor/dmv";
 
-export type { AvailableSelection, Built2014, BuiltCharacter, Evaluation, StrictEntity } from "@pubdoor/dmv";
+export type { StrictEntity };
 
 export type Engine = typeof Dmv;
 
@@ -22,7 +23,7 @@ export function engine(): Engine {
   return loaded;
 }
 
-/** Builds the entity. The engine memoizes on the entity's JSON text, so this is cheap to repeat. */
-export function useEvaluation(entity: Dmv.StrictEntity): Dmv.Evaluation {
-  return useMemo(() => engine().evaluate(entity), [entity]);
+/** Builds the entity, or null without one. The engine memoizes on the entity's JSON text, so this is cheap to repeat. */
+export function useEvaluation(entity: StrictEntity | null): Evaluation | null {
+  return useMemo(() => (entity === null ? null : engine().evaluate(entity)), [entity]);
 }

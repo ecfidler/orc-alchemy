@@ -7,14 +7,14 @@ import { EngineGate } from "./EngineGate.tsx";
 
 afterEach(cleanup);
 
-const characters = join(import.meta.dirname, "../../../../fixtures/characters");
-const read = (file: string) => JSON.parse(readFileSync(join(characters, file), "utf8"));
+const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
+const readFixture = (file: string) => JSON.parse(readFileSync(join(charactersDir, file), "utf8"));
 
 // The golden characters that need no homebrew pack; the rest wait for M3.
-const srdGolden = readdirSync(characters)
+const srdGolden = readdirSync(charactersDir)
   .filter((file) => file.endsWith(".meta.json"))
   .map((file) => file.slice(0, -".meta.json".length))
-  .filter((name) => read(`${name}.meta.json`).orcbrew.length === 0);
+  .filter((name) => readFixture(`${name}.meta.json`).orcbrew.length === 0);
 
 beforeAll(() => loadEngine());
 
@@ -23,7 +23,7 @@ test("finds the SRD golden characters", () => {
 });
 
 test.each(srdGolden)("evaluate(%s).built matches expected.json", (name) => {
-  expect(engine().evaluate(read(`${name}.strict.json`)).built).toEqual(read(`${name}.expected.json`));
+  expect(engine().evaluate(readFixture(`${name}.strict.json`)).built).toEqual(readFixture(`${name}.expected.json`));
 });
 
 test("EngineGate renders its children once the engine has loaded", async () => {

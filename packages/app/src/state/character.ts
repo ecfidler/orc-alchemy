@@ -1,7 +1,7 @@
 // The open character (Plan Set 1 doc 04): the entity is the single source of
 // truth; built and selections are derived from it with useEvaluation.
 import { create } from "zustand";
-import type { StrictEntity } from "../engine/engine.ts";
+import { useEvaluation, type StrictEntity } from "../engine/engine.ts";
 
 interface CharacterState {
   entity: StrictEntity | null;
@@ -22,3 +22,11 @@ export const useCharacter = create<CharacterState>()((set, get) => ({
     set({ entity: mutate(entity), dirty: true });
   },
 }));
+
+/** The open character as { entity, built, selections, dirty }; built and selections are null with no character open. */
+export function useOpenCharacter() {
+  const entity = useCharacter((state) => state.entity);
+  const dirty = useCharacter((state) => state.dirty);
+  const evaluation = useEvaluation(entity);
+  return { entity, built: evaluation?.built ?? null, selections: evaluation?.selections ?? null, dirty };
+}
