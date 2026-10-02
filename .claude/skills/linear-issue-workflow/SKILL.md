@@ -9,7 +9,7 @@ version: "1.0.0"
 
 - Your role is the orchestrator, it is your responsibility to understand the scope, acceptance criteria, and ambiguities of the issue.
 - You will be tracking its progress in Linear and delegating tasks for subagents.
-- The work should be in a new branch from up to date `master` formatted `<ISSUE-ID>-<kebab-case-description>` (ex. `ORC-44-setup-alchemy-monorepo`)
+- The work should be in a new branch from up to date `main` formatted `<ISSUE-ID>-<kebab-case-description>` (ex. `ORC-44-setup-alchemy-monorepo`)
 
 ### Subagents
 
