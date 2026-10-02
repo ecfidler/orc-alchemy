@@ -38,11 +38,11 @@ PDFs from Phase 0.
 `.orcbrew` files are EDN, Clojure's data literal syntax, and contain
 homebrew content such as classes, races, spells, and monsters. The current
 app parses and validates them client-side in `import_validation.cljs`
-(67 KB). `docs/ORCBREW_FILE_VALIDATION.md` and
-`docs/HOMEBREW_REQUIRED_FIELDS.md` document the validation rules. The app
+(67 KB). [`docs/ORCBREW_FILE_VALIDATION.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/ORCBREW_FILE_VALIDATION.md) and
+[`docs/HOMEBREW_REQUIRED_FIELDS.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/HOMEBREW_REQUIRED_FIELDS.md) document the validation rules. The app
 then merges the content into the template and keeps it in localStorage.
 There is also a conflict-resolution UI for duplicate content
-(`docs/CONFLICT_RESOLUTION.md`, `views/conflict_resolution.cljs`).
+([`docs/CONFLICT_RESOLUTION.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/CONFLICT_RESOLUTION.md), `views/conflict_resolution.cljs`).
 
 The plan, in increasing ambition:
 
@@ -57,10 +57,10 @@ The plan, in increasing ambition:
    functions can be lifted into the facade. They are ClojureScript in the
    same compilation unit, so check for UI coupling. Otherwise, reimplement
    the required-fields checks in TypeScript from
-   `docs/HOMEBREW_REQUIRED_FIELDS.md` and show an import log like
+   [`docs/HOMEBREW_REQUIRED_FIELDS.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/HOMEBREW_REQUIRED_FIELDS.md) and show an import log like
    `views/import_log.cljs`.
 3. **Conflict resolution.** Port the duplicate detection and merge UX
-   described in `docs/CONFLICT_RESOLUTION.md`. This is UI work over
+   described in [`docs/CONFLICT_RESOLUTION.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/CONFLICT_RESOLUTION.md). This is UI work over
    engine-provided diffing. Defer it until real users hit the problem.
 
 Export writes homebrew content back out as `.orcbrew`, which is EDN

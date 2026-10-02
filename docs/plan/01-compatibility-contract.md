@@ -20,7 +20,7 @@ mechanics fidelity and for C2 changes. Every character must import and
 evaluate, and a difference report against `@pubdoor/dmv` lists every sheet
 value that changed. Identical values are not required then. C3 does not
 change: engine keys stay as they are, and the app qualifies the keys it
-stores or routes by rules edition. See [`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) in the fork
+stores or routes by rules edition. See [`docs/reports/2024-rules-support.md`](../reports/2024-rules-support.md)
 §Decision.
 
 ## C1. Homebrew: `.orcbrew` files in both directions

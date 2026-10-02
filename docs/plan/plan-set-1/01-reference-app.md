@@ -8,9 +8,9 @@ traffic and saved characters.
 
 Follow the existing docs. They cover this phase entirely:
 
-- `docs/GETTING-STARTED.md` for the devcontainer or a local setup.
+- [`docs/GETTING-STARTED.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/GETTING-STARTED.md) for the devcontainer or a local setup.
 - The Quick Start in `README.md`: `./scripts/dev-setup.sh`, then `./menu`.
-- Or Docker: `docker-compose up` (see `docs/DOCKER.md`).
+- Or Docker: `docker-compose up` (see [`docs/DOCKER.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/DOCKER.md)).
 
 You need the Datomic transactor, the backend (port 8890 in dev, see
 `src/clj/orcpub/system.clj`), and the figwheel ClojureScript build. Create

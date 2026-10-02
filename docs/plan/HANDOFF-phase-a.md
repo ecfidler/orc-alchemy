@@ -31,7 +31,7 @@ In order:
 Skim later: `06-milestones-and-risks.md` (the M0 and M1 rows),
 `03-character-import-and-storage.md` (what `importCharacter` must do),
 `04-homebrew.md` (what `parseOrcbrew` must expose), and
-[`docs/reports/2024-rules-support.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/reports/2024-rules-support.md) §Decision in the fork (why `evaluate` takes a
+[`docs/reports/2024-rules-support.md`](../reports/2024-rules-support.md) §Decision (why `evaluate` takes a
 `rules` option).
 
 ## 2. State of the repository when you arrive
@@ -63,7 +63,7 @@ Skim later: `06-milestones-and-risks.md` (the M0 and M1 rows),
 
 ## 3. Environment
 
-The devcontainer is the supported setup (`docs/GETTING-STARTED.md`). Once
+The devcontainer is the supported setup ([`docs/GETTING-STARTED.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/GETTING-STARTED.md)). Once
 inside it, run:
 
 ```sh
@@ -75,7 +75,7 @@ inside it, run:
 Then open `http://localhost:8890` and log in as `test@test.com` with the
 password `testpass`. The dev-setup script creates that user, and
 `./menu add <user> <pass>` adds more. The Docker alternative is
-`./run --auto && docker compose up --build -d` (`docs/DOCKER.md`).
+`./run --auto && docker compose up --build -d` ([`docs/DOCKER.md`](https://github.com/ecfidler/orcpub/blob/26f57e07/docs/DOCKER.md)).
 
 You will run these verification commands constantly:
 
