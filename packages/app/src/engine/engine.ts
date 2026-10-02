@@ -1,0 +1,28 @@
+// The only module that touches @pubdoor/dmv. The rest of the app imports
+// the engine through here and treats the strict entity as an opaque value.
+import { useMemo } from "react";
+import type * as Dmv from "@pubdoor/dmv";
+
+export type { AvailableSelection, Built2014, BuiltCharacter, Evaluation, StrictEntity } from "@pubdoor/dmv";
+
+export type Engine = typeof Dmv;
+
+let loading: Promise<Engine> | undefined;
+let loaded: Engine | undefined;
+
+/** Loads the engine chunk once; later calls return the same promise. */
+export function loadEngine(): Promise<Engine> {
+  loading ??= import("@pubdoor/dmv").then((mod) => (loaded = mod));
+  return loading;
+}
+
+/** The loaded engine. Throws before loadEngine resolves; EngineGate guarantees it below the gate. */
+export function engine(): Engine {
+  if (!loaded) throw new Error("The engine is not loaded yet");
+  return loaded;
+}
+
+/** Builds the entity. The engine memoizes on the entity's JSON text, so this is cheap to repeat. */
+export function useEvaluation(entity: Dmv.StrictEntity): Dmv.Evaluation {
+  return useMemo(() => engine().evaluate(entity), [entity]);
+}
