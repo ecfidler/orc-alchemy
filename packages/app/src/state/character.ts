@@ -2,9 +2,9 @@
 // truth; built and selections are derived from it with useEvaluation.
 import { useMemo } from "react";
 import { create } from "zustand";
-import { engine, useEvaluation, type StrictEntity } from "../engine/engine.ts";
+import { engine, useEvaluation, type Rules, type StrictEntity } from "../engine/engine.ts";
 import { toSheet } from "../engine/sheet.ts";
-import { deleteDraft, getCharacter, getDraft, saveCharacter, saveDraft } from "../storage/characters.ts";
+import { deleteDraft, getCharacter, getDraft, saveCharacter, saveDraft, type CharacterRecord } from "../storage/characters.ts";
 
 interface CharacterState {
   /** The open character's storage id. */
@@ -40,20 +40,26 @@ export function useOpenCharacter() {
 }
 
 /** Stores a new character and returns its id. Needs the engine loaded. */
-export async function addCharacter(entity: StrictEntity, legacyId: string | null): Promise<string> {
+export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId: string | null): Promise<string> {
   const id = crypto.randomUUID();
-  const sheet = toSheet(engine().evaluate(entity).built);
-  const record = { format: "dmv-character", version: 1, rules: "2014", id, name: sheet.name, updatedAt: now(), legacyId, entity } as const;
-  await saveCharacter(record, sheet);
+  await save({ format: "dmv-character", version: 1, rules, id, legacyId }, entity);
   return id;
 }
 
-/** Opens a stored character, recovering its draft if it has one. False when there is no such character. */
-export async function openCharacter(id: string): Promise<boolean> {
+/** Saves a record with entity, its name, and the time; and its summary. */
+function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, entity: StrictEntity) {
+  const sheet = toSheet(engine().evaluate(entity).built);
+  return saveCharacter({ ...record, name: sheet.name, updatedAt: now(), entity }, sheet);
+}
+
+/**
+ * Reads a stored character to open with load: its draft, which is dirty, if
+ * it has one, or else its record. Null when there is no such character.
+ */
+export async function readCharacter(id: string): Promise<{ entity: StrictEntity; dirty: boolean } | null> {
   const [record, draft] = await Promise.all([getCharacter(id), getDraft(id)]);
-  if (record === undefined) return false;
-  useCharacter.getState().load(id, draft?.entity ?? record.entity, draft !== undefined);
-  return true;
+  if (record === undefined) return null;
+  return draft === undefined ? { entity: record.entity, dirty: false } : { entity: draft.entity, dirty: true };
 }
 
 // Autosave, as the old app's autosave_fx.cljs: each change is kept as a draft
@@ -66,28 +72,29 @@ let pending: { id: string; entity: StrictEntity; timer: ReturnType<typeof setTim
 
 useCharacter.subscribe((state, previous) => {
   // Opening another character saves the last one's pending changes now.
-  if (pending !== null && pending.id !== state.id) void flushAutosave();
+  if (pending !== null && pending.id !== state.id) flushAutosave().catch(console.error);
   if (!state.dirty || state.id === null || state.entity === null || state.entity === previous.entity) return;
 
   const { id, entity } = state;
-  void saveDraft({ id, entity, updatedAt: now() });
+  saveDraft({ id, entity, updatedAt: now() }).catch(console.error);
   if (pending === null) window.addEventListener("beforeunload", confirmLeave);
   else clearTimeout(pending.timer);
-  pending = { id, entity, timer: setTimeout(() => void flushAutosave(), AUTOSAVE_DELAY_MS) };
+  pending = { id, entity, timer: setTimeout(() => void flushAutosave().catch(console.error), AUTOSAVE_DELAY_MS) };
 });
 
-/** Saves the pending changes now, if there are any. */
+/**
+ * Saves the pending changes now, if there are any. If the save fails, the
+ * changes stay in their draft and leaving the page still asks first.
+ */
 export async function flushAutosave(): Promise<void> {
   if (pending === null) return;
   const { id, entity, timer } = pending;
   clearTimeout(timer);
   pending = null;
-  window.removeEventListener("beforeunload", confirmLeave);
 
   const record = await getCharacter(id);
-  if (record === undefined) return; // deleted since
-  const sheet = toSheet(engine().evaluate(entity).built);
-  await saveCharacter({ ...record, name: sheet.name, updatedAt: now(), entity }, sheet);
+  if (record !== undefined) await save(record, entity); // undefined: deleted since
+  if (pending === null) window.removeEventListener("beforeunload", confirmLeave);
   // Changes made while saving stay dirty, with their draft.
   const state = useCharacter.getState();
   if (state.id !== id || state.entity === entity) await deleteDraft(id);
@@ -96,6 +103,7 @@ export async function flushAutosave(): Promise<void> {
 
 function confirmLeave(event: BeforeUnloadEvent) {
   event.preventDefault();
+  event.returnValue = ""; // older browsers ask only when this is set
 }
 
 const now = () => new Date().toISOString();

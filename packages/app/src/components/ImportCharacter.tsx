@@ -32,7 +32,7 @@ export function ImportCharacter() {
       await loadEngine();
       const read = readCharacterFile(text);
       const characters = await Promise.all(
-        read.characters.map(async (c) => ({ id: await addCharacter(c.entity, c.legacyId), name: c.name })),
+        read.characters.map(async (c) => ({ id: await addCharacter(c.entity, c.rules, c.legacyId), name: c.name })),
       );
       if (characters.length === 1 && read.failures.length === 0) navigate(`/sheet/${characters[0].id}`);
       else setImported({ characters, failures: read.failures });

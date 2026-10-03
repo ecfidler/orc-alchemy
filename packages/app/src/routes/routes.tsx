@@ -5,23 +5,37 @@ import { AppShell } from "../components/AppShell.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ImportCharacter } from "../components/ImportCharacter.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
-import { openCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
+import { readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 
 function SheetPage() {
   const { id } = useParams() as { id: string };
   const openId = useCharacter((state) => state.id);
   const { sheet } = useOpenCharacter();
-  const [missing, setMissing] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
 
   useEffect(() => {
-    setMissing(false);
-    if (id !== useCharacter.getState().id) openCharacter(id).then((found) => setMissing(!found));
+    let current = true;
+    setProblem(null);
+    if (id !== useCharacter.getState().id) {
+      // A slow open for a page already left must not replace this one's character.
+      readCharacter(id).then(
+        (found) => {
+          if (!current) return;
+          if (found) useCharacter.getState().load(id, found.entity, found.dirty);
+          else setProblem("Character not found");
+        },
+        () => current && setProblem("The character could not be read from this browser"),
+      );
+    }
+    return () => {
+      current = false;
+    };
   }, [id]);
 
-  if (missing) {
+  if (problem !== null) {
     return (
       <>
-        <h1 className="text-xl">Character not found</h1>
+        <h1 className="text-xl">{problem}</h1>
         <Link to="/" className="underline">
           Back to characters
         </Link>

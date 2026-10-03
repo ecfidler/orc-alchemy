@@ -2,13 +2,11 @@
 // character holding its dmv-character envelope, a summaries index for the
 // list page, and drafts of unsaved changes. When IndexedDB is unavailable or
 // fails, as in some private windows, storage moves to memory for the rest of
-// the session and useStorage says so.
+// the session and useStorage says so. A request that fails after that is
+// thrown to the caller, and useStorage says so too.
 import { create } from "zustand";
-import type { StrictEntity } from "../engine/engine.ts";
+import type { Rules, StrictEntity } from "../engine/engine.ts";
 import type { Sheet } from "../engine/sheet.ts";
-
-/** The rules edition. Every character is 2014 until a second engine exists (option E). */
-export type Rules = "2014";
 
 /** The dmv-character envelope (doc 03), as stored. */
 export interface CharacterRecord {
@@ -41,9 +39,9 @@ export interface Draft {
   updatedAt: string;
 }
 
-export const useStorage = create<{ inMemory: boolean }>(() => ({ inMemory: false }));
+export const useStorage = create<{ inMemory: boolean; failed: boolean }>(() => ({ inMemory: false, failed: false }));
 
-export function toSummary(record: CharacterRecord, sheet: Sheet): CharacterSummary {
+function toSummary(record: CharacterRecord, sheet: Sheet): CharacterSummary {
   return {
     id: record.id,
     rules: record.rules,
@@ -109,17 +107,14 @@ interface Backend {
 
 let backend: Promise<Backend> | undefined;
 
-/** Runs op on IndexedDB, or on memory once IndexedDB has failed. */
+/** Runs op on IndexedDB, or on memory if IndexedDB does not open. */
 async function run<T>(op: (db: Backend) => Promise<T>): Promise<T> {
   backend ??= openIndexedDb().catch(toMemory);
-  const db = await backend;
   try {
-    return await op(db);
+    return await op(await backend);
   } catch (e) {
-    if (useStorage.getState().inMemory) throw e;
-    const memory = toMemory(e);
-    backend = Promise.resolve(memory);
-    return op(memory);
+    useStorage.setState({ failed: true });
+    throw e;
   }
 }
 

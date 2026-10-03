@@ -1,10 +1,11 @@
 // Character files (doc 03): a strict entity saved from the old app, the app's
 // dmv-character envelope, or a dmv-export bundle. Each character goes through
 // the engine's importCharacter.
-import { engine, type StrictEntity } from "./engine.ts";
+import { engine, type Rules, type StrictEntity } from "./engine.ts";
 
 export interface CharacterFileEntry {
   entity: StrictEntity;
+  rules: Rules;
   /** The old app's id, or null. */
   legacyId: string | null;
   name: string | null;
@@ -39,7 +40,7 @@ export function readCharacterFile(text: string): CharacterFile {
       if ((data.rules ?? "2014") !== "2014") {
         throw new Error(`This character uses the ${String(data.rules)} rules, which this app does not support yet`);
       }
-      return { characters: [importOne(data.entity)], failures: [] };
+      return { characters: [importOne(data.entity, "2014")], failures: [] };
     case "dmv-export": {
       checkVersion(data);
       // magicItems become homebrew, which arrives in M3.
@@ -60,7 +61,8 @@ export function readCharacterFile(text: string): CharacterFile {
   }
 }
 
-function importOne(entity: unknown): CharacterFileEntry {
+/** Characters from the old app and in bundles are 2014. */
+function importOne(entity: unknown, rules: Rules = "2014"): CharacterFileEntry {
   // importCharacter accepts any object, and gives an empty character for one
   // that is not verbose Transit-JSON, so check for a strict entity first.
   if (!isObject(entity) || !("~:orcpub.entity.strict/selections" in entity)) {
@@ -68,7 +70,7 @@ function importOne(entity: unknown): CharacterFileEntry {
   }
   const imported = engine().importCharacter(entity);
   const name = engine().evaluate(imported.entity).built["character-name"];
-  return { ...imported, name: name || null };
+  return { ...imported, rules, name: name || null };
 }
 
 function checkVersion(data: Record<string, unknown>) {

@@ -2,9 +2,9 @@
 // app loads the engine through here and treats the strict entity as opaque.
 import { useMemo } from "react";
 import type * as Dmv from "@pubdoor/dmv";
-import type { Evaluation, StrictEntity } from "@pubdoor/dmv";
+import type { Evaluation, Rules, StrictEntity } from "@pubdoor/dmv";
 
-export type { StrictEntity };
+export type { Rules, StrictEntity };
 
 export type Engine = typeof Dmv;
 

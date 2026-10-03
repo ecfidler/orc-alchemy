@@ -76,6 +76,19 @@ test("drafts are kept until deleted", async () => {
   expect(await getDraft("c")).toBeUndefined();
 });
 
+test("a failed request is thrown and reported, and storage stays on IndexedDB", async () => {
+  const sheet = sheetOf("wizard-5");
+  await saveCharacter(record("d", sheet.name), sheet);
+
+  // A function cannot be stored, so IndexedDB refuses this draft.
+  await expect(saveDraft({ id: "d", entity: { notData: () => {} }, updatedAt: "" })).rejects.toThrow();
+  expect(useStorage.getState()).toEqual({ inMemory: false, failed: true });
+  expect((await getCharacter("d"))?.name).toBe("Fimble Nackle");
+
+  useStorage.setState({ failed: false });
+  await deleteCharacter("d");
+});
+
 test("without IndexedDB, storage works in memory and says so", async () => {
   vi.resetModules();
   vi.stubGlobal("indexedDB", undefined);

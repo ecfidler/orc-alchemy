@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft } from "../storage/characters.ts";
-import { addCharacter, AUTOSAVE_DELAY_MS, flushAutosave, openCharacter, useCharacter, useOpenCharacter } from "./character.ts";
+import { addCharacter, AUTOSAVE_DELAY_MS, flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "./character.ts";
 
 beforeAll(() => loadEngine());
 
@@ -12,6 +12,13 @@ afterEach(async () => {
   vi.useRealTimers();
   useCharacter.setState({ id: null, entity: null, dirty: false });
 });
+
+/** Opens a stored character as the sheet page does. */
+async function openCharacter(id: string) {
+  const found = await readCharacter(id);
+  if (found) useCharacter.getState().load(id, found.entity, found.dirty);
+  return found !== null;
+}
 
 const rename = (name: string) => useCharacter.getState().update((entity) => engine().setValue(entity, "character-name", name));
 
@@ -32,7 +39,7 @@ test("built, sheet and selections follow the entity; a mutation marks it dirty",
 });
 
 test("an added character is stored with its summary and opens as stored", async () => {
-  const id = await addCharacter(engine().setValue(engine().emptyCharacter(), "character-name", "Pike"), "17");
+  const id = await addCharacter(engine().setValue(engine().emptyCharacter(), "character-name", "Pike"), "2014", "17");
 
   expect(await getCharacter(id)).toMatchObject({ format: "dmv-character", version: 1, rules: "2014", name: "Pike", legacyId: "17" });
   expect((await listSummaries()).find((s) => s.id === id)).toMatchObject({ rules: "2014", name: "Pike", classes: [{ key: "2014/barbarian" }] });
@@ -44,7 +51,7 @@ test("an added character is stored with its summary and opens as stored", async 
 });
 
 test("autosave keeps a draft at once and saves the record once changes stop", async () => {
-  const id = await addCharacter(engine().emptyCharacter(), null);
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
   await openCharacter(id);
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 
@@ -63,7 +70,7 @@ test("autosave keeps a draft at once and saves the record once changes stop", as
 });
 
 test("opening a character recovers its draft", async () => {
-  const id = await addCharacter(engine().emptyCharacter(), null);
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
   // As after a reload mid-edit: the draft is stored, the record not yet saved.
   const entity = engine().setValue(engine().emptyCharacter(), "character-name", "Scanlan");
   await saveDraft({ id, entity, updatedAt: "2026-10-03T00:00:00.000Z" });
