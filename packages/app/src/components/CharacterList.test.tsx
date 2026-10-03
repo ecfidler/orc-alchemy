@@ -40,7 +40,7 @@ test("the list follows the summaries index, and delete asks first", async () => 
   const corvin = await screen.findByRole("listitem", { name: "Corvin Half-Elven" });
   expect(within(corvin).getByRole("link", { name: "Corvin Half-Elven" }).getAttribute("href")).toBe("/sheet/a");
   expect(within(corvin).getByText("Half-Elf · Fighter 3 / Wizard 2")).toBeTruthy();
-  expect(within(corvin).queryByRole("img", { hidden: true })).toBeNull();
+  expect(corvin.querySelector("img")).toBeNull();
   expect(screen.getByRole("listitem", { name: "Fimble Nackle" }).querySelector("img")?.getAttribute("src")).toBe("https://example.com/fimble.png");
   expect(screen.getAllByRole("listitem").map((item) => item.getAttribute("aria-label"))).toEqual(["Corvin Half-Elven", "Fimble Nackle"]);
 
