@@ -6,7 +6,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
 import { toSheet } from "../engine/sheet.ts";
-import { getCharacter, listSummaries, saveCharacter } from "../storage/characters.ts";
+import { getCharacter, listSummaries, saveCharacter, useStorage } from "../storage/characters.ts";
 import { CharacterList } from "./CharacterList.tsx";
 
 afterEach(() => {
@@ -56,4 +56,24 @@ test("the list follows the summaries index, and delete asks first", async () => 
   expect((await listSummaries()).map((s) => s.id)).toEqual(["b"]);
   expect(screen.getByRole("listitem", { name: "Fimble Nackle" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Export Fimble Nackle" })).toBeTruthy();
+  // Focus stays in the list rather than falling to the page.
+  expect(document.activeElement).toBe(screen.getByRole("list", { name: "Characters" }).parentElement);
+});
+
+test("a failed read says so, without reporting a failed save, and Try again re-reads", async () => {
+  await store("e", "barbarian-5");
+  vi.spyOn(IDBObjectStore.prototype, "getAll").mockImplementationOnce(() => {
+    throw new DOMException("Read failed", "UnknownError");
+  });
+  render(
+    <MemoryRouter>
+      <CharacterList />
+    </MemoryRouter>,
+  );
+  expect((await screen.findByRole("alert")).textContent).toBe("The characters could not be read from this browser");
+  expect(useStorage.getState().failed).toBe(false);
+
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(await screen.findByRole("listitem", { name: "Korga Stormhide" })).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
 });

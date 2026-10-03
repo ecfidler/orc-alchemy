@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { create } from "zustand";
 import { engine, useEvaluation, type Rules, type StrictEntity } from "../engine/engine.ts";
 import { toSheet } from "../engine/sheet.ts";
-import { deleteCharacter, deleteDraft, getCharacter, getDraft, saveCharacter, saveDraft, type CharacterRecord } from "../storage/characters.ts";
+import { deleteCharacter, deleteDraft, getCharacter, getDraft, saveCharacter, saveDraft, useStorage, type CharacterRecord } from "../storage/characters.ts";
 
 interface CharacterState {
   /** The open character's storage id. */
@@ -109,7 +109,11 @@ export async function flushAutosave(): Promise<void> {
         saving.delete(running);
         if (pending === null && saving.size === 0) window.removeEventListener("beforeunload", confirmLeave);
       },
-      () => saving.delete(running),
+      () => {
+        saving.delete(running);
+        // Storage reports failed writes; a failed read before the save is a failed save too.
+        useStorage.setState({ failed: true });
+      },
     );
   }
   await Promise.all(saving);
