@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { create } from "zustand";
 import { engine, useEvaluation, type Rules, type StrictEntity } from "../engine/engine.ts";
 import { toSheet } from "../engine/sheet.ts";
-import { deleteDraft, getCharacter, getDraft, saveCharacter, saveDraft, type CharacterRecord } from "../storage/characters.ts";
+import { deleteCharacter, deleteDraft, getCharacter, getDraft, saveCharacter, saveDraft, type CharacterRecord } from "../storage/characters.ts";
 
 interface CharacterState {
   /** The open character's storage id. */
@@ -60,6 +60,14 @@ export async function readCharacter(id: string): Promise<{ entity: StrictEntity;
   const [record, draft] = await Promise.all([getCharacter(id), getDraft(id)]);
   if (record === undefined) return null;
   return draft === undefined ? { entity: record.entity, dirty: false } : { entity: draft.entity, dirty: true };
+}
+
+/** Deletes a stored character, and closes it if it is open. */
+export async function removeCharacter(id: string): Promise<void> {
+  // A pending save that ran after the delete would store the character again.
+  await flushAutosave().catch(console.error);
+  await deleteCharacter(id);
+  if (useCharacter.getState().id === id) useCharacter.setState({ id: null, entity: null, dirty: false });
 }
 
 // Autosave, as the old app's autosave_fx.cljs: each change is kept as a draft
