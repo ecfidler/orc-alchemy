@@ -34,7 +34,7 @@ test("a raw entity keeps its name and the old app's id", () => {
   ]);
 });
 
-/** A dmv-character envelope as doc 03 describes it. */
+/** A dmv-character envelope (doc 03), its entity from exportCharacter: verbose Transit-JSON, which importCharacter needs. */
 function envelope(file: string, fields: object = {}) {
   const { entity } = engine().importCharacter(readText(file));
   return { format: "dmv-character", version: 1, rules: "2014", id: "x", name: "n", entity: engine().exportCharacter(entity), ...fields };
