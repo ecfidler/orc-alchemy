@@ -48,7 +48,10 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# Local markdown files
+
 *.local.md
+
 # Playwright output
 test-results/
 playwright-report/
