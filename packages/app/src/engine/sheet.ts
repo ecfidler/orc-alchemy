@@ -3,7 +3,7 @@
 // adapter from the 2014 engine. A later engine needs a second adapter, not a
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
-import type { Amount, Built2014, Feature, Inventory } from "@pubdoor/dmv";
+import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
 
@@ -79,6 +79,8 @@ export interface KnownSpell extends Named {
   /** The class or race name it is known through. */
   source: string;
   ability: Ability;
+  /** In the entity's prepared spells, for a class that prepares; never for a cantrip. */
+  prepared: boolean;
 }
 
 export interface Spellcasting {
@@ -333,10 +335,33 @@ function toSpecialAttack(attack: NonNullable<Built2014["attacks"]>[number]): She
   return { name: a.name, text: sentence(text) };
 }
 
-function toSpellcasting(built: Built2014): Spellcasting | null {
+/**
+ * The entity's prepared-spells-by-class, as class name to spell keys. built
+ * has it as null, so this reads the strict entity's verbose Transit-JSON:
+ * [{ "~:…/class-name": "Wizard", "~:…/prepared-spells": { "~#set": ["~:alarm", …] } }].
+ */
+function preparedSpells(entity: StrictEntity | undefined): Record<string, Set<string>> {
+  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as
+    | { "~:orcpub.entity.strict/values"?: Record<string, unknown> }
+    | undefined;
+  const byClass = (strict?.["~:orcpub.entity.strict/values"]?.["~:orcpub.dnd.e5.character/prepared-spells-by-class"] ??
+    []) as Record<string, unknown>[];
+  return Object.fromEntries(
+    byClass.map((entry) => {
+      const spells = entry["~:orcpub.dnd.e5.character/prepared-spells"] as { "~#set"?: string[] } | undefined;
+      return [
+        entry["~:orcpub.dnd.e5.character/class-name"] as string,
+        new Set((spells?.["~#set"] ?? []).map((key) => key.replace(/^~:/, ""))),
+      ];
+    }),
+  );
+}
+
+function toSpellcasting(built: Built2014, entity: StrictEntity | undefined): Spellcasting | null {
   const known = Object.entries(built["spells-known"] ?? {});
   if (known.length === 0) return null;
   const prepares = built["prepares-spells"] ?? {};
+  const prepared = preparedSpells(entity);
   return {
     slots: Object.entries(built["spell-slots"] ?? {})
       .map(([level, count]) => ({ level: Number(level), count }))
@@ -352,18 +377,25 @@ function toSpellcasting(built: Built2014): Spellcasting | null {
       .map(([level, spells]) => ({
         level: Number(level),
         spells: (spells?.__entries ?? [])
-          .map(([[source, key], spell]) => ({
-            ...named(key),
-            source: spell.class ?? source,
-            ability: abilityOf(spell.ability),
-          }))
+          .map(([[source, key], spell]) => {
+            const caster = spell.class ?? source;
+            return {
+              ...named(key),
+              source: caster,
+              ability: abilityOf(spell.ability),
+              // As the old sheet, less its always-prepared? half (such as domain
+              // spells): engine 0.1.0's built does not say which spells those are.
+              prepared: Number(level) > 0 && prepares[caster] === true && (prepared[caster]?.has(key) ?? false),
+            };
+          })
           .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
       }))
       .sort((a, b) => a.level - b.level),
   };
 }
 
-export function toSheet(built: Built2014): Sheet {
+/** The entity gives the prepared spells; without it, no spell is marked prepared. */
+export function toSheet(built: Built2014, entity?: StrictEntity): Sheet {
   const abilityKey = (ability: Ability) => `orcpub.dnd.e5.character/${ability}` as const;
   const skillProfs = built["skill-profs"] ?? {};
   const expertise = built["skill-expertise"] ?? [];
@@ -458,7 +490,7 @@ export function toSheet(built: Built2014): Sheet {
     weaponProficiencies: (built["weapon-profs"] ?? []).map(keyToName),
     armorProficiencies: (built["armor-profs"] ?? []).map(keyToName),
 
-    spellcasting: toSpellcasting(built),
+    spellcasting: toSpellcasting(built, entity),
 
     features: {
       actions: toFeatures(built.actions),

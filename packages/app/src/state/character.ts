@@ -35,7 +35,7 @@ export function useOpenCharacter() {
   const dirty = useCharacter((state) => state.dirty);
   const evaluation = useEvaluation(entity);
   const built = evaluation?.built ?? null;
-  const sheet = useMemo(() => (built === null ? null : toSheet(built)), [built]);
+  const sheet = useMemo(() => (built === null ? null : toSheet(built, entity!)), [built, entity]);
   return { entity, built, sheet, selections: evaluation?.selections ?? null, dirty };
 }
 
@@ -48,7 +48,7 @@ export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId:
 
 /** Saves a record with entity, its name, and the time; and its summary. */
 function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, entity: StrictEntity) {
-  const sheet = toSheet(engine().evaluate(entity).built);
+  const sheet = toSheet(engine().evaluate(entity).built, entity);
   return saveCharacter({ ...record, name: sheet.name, updatedAt: now(), entity }, sheet);
 }
 

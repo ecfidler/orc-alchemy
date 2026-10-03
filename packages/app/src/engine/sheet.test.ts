@@ -106,7 +106,13 @@ test("wizard-20 spellcasting", () => {
   expect(spellcasting.byLevel.map((l) => [l.level, l.spells.length])).toEqual(
     Object.entries(built["spells-known"]).map(([level, spells]) => [Number(level), spells.__entries.length]),
   );
-  expect(spellcasting.byLevel[0]!.spells[0]).toEqual({ key: "acid-splash", name: "Acid Splash", source: "Wizard", ability: "int" });
+  expect(spellcasting.byLevel[0]!.spells[0]).toEqual({
+    key: "acid-splash",
+    name: "Acid Splash",
+    source: "Wizard",
+    ability: "int",
+    prepared: false,
+  });
   for (const { spells } of spellcasting.byLevel) {
     expect(spells.map((s) => s.key)).toEqual(spells.map((s) => s.key).sort());
   }
@@ -182,4 +188,63 @@ test("a special attack without damage dice or type prints only what it has", () 
     ],
   };
   expect(toSheet(built).specialAttacks[0].text).toBe("Frighten a creature, melee, DC12 wis save.");
+});
+
+// Prepared spells come from the strict entity (ORC-104).
+const VALUES = "~:orcpub.entity.strict/values";
+const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
+const CLASS_NAME = "~:orcpub.dnd.e5.character/class-name";
+const SPELLS = "~:orcpub.dnd.e5.character/prepared-spells";
+type PreparedEntry = { [CLASS_NAME]: string; [SPELLS]: { "~#set": string[] } };
+const strictOf = (name: string) => readFixture(`${name}.strict.json`);
+/** The spells the sheet marks prepared, as "Class/spell-key", sorted. */
+const markedPrepared = (sheet: ReturnType<typeof toSheet>) =>
+  (sheet.spellcasting?.byLevel ?? [])
+    .flatMap(({ spells }) => spells.filter((s) => s.prepared).map((s) => `${s.source}/${s.key}`))
+    .sort();
+/** The entity with its prepared spells replaced by these keys for one class. */
+const preparing = (entity: Record<string, object>, className: string, keys: string[]) => ({
+  ...entity,
+  [VALUES]: { ...entity[VALUES], [BY_CLASS]: [{ [CLASS_NAME]: className, [SPELLS]: { "~#set": keys.map((key) => `~:${key}`) } }] },
+});
+
+const withPrepared = srdGolden.filter((name) => BY_CLASS in strictOf(name)[VALUES]);
+
+test("the SRD golden characters with prepared spells are the wizards", () => {
+  expect(withPrepared).toEqual(["fighter-3-wizard-2", "wizard-1", "wizard-11", "wizard-20", "wizard-5"]);
+});
+
+test.each(withPrepared)("%s marks exactly the entity's prepared spells, and no cantrip", (name) => {
+  const entity = strictOf(name);
+  const fromEntity = (entity[VALUES][BY_CLASS] as PreparedEntry[])
+    .flatMap((entry) => entry[SPELLS]["~#set"].map((key) => `${entry[CLASS_NAME]}/${key.slice(2)}`))
+    .sort();
+  const sheet = toSheet(builtOf(name), entity);
+  expect(markedPrepared(sheet)).toEqual(fromEntity);
+  expect(sheet.spellcasting!.byLevel[0]!.spells.some((s) => s.prepared)).toBe(false);
+  // The entity as JSON text, which StrictEntity also allows, reads the same.
+  expect(markedPrepared(toSheet(builtOf(name), JSON.stringify(entity)))).toEqual(fromEntity);
+});
+
+test("wizard-1 marks its four prepared spells, and none without the entity", () => {
+  expect(markedPrepared(toSheet(builtOf("wizard-1"), strictOf("wizard-1")))).toEqual([
+    "Wizard/alarm",
+    "Wizard/burning-hands",
+    "Wizard/charm-person",
+    "Wizard/color-spray",
+  ]);
+  expect(markedPrepared(toSheet(builtOf("wizard-1")))).toEqual([]);
+});
+
+test("a cantrip in the prepared spells is not marked", () => {
+  const sheet = toSheet(builtOf("wizard-1"), preparing(strictOf("wizard-1"), "Wizard", ["acid-splash", "alarm"]));
+  expect(markedPrepared(sheet)).toEqual(["Wizard/alarm"]);
+});
+
+test("a class that does not prepare never marks a spell", () => {
+  // The warlock knows its spells. Its pack does not matter: expected.json needs no engine.
+  const built = builtOf("warlock-10-drow");
+  expect(built["prepares-spells"]).toBeNull();
+  const keys = Object.values(built["spells-known"]).flatMap((level) => level.__entries.map(([[, key]]) => key));
+  expect(markedPrepared(toSheet(built, preparing(strictOf("warlock-10-drow"), "Warlock", keys)))).toEqual([]);
 });

@@ -49,6 +49,16 @@ for (const name of srdGolden) {
   });
 }
 
+test("wizard-1 marks its prepared spells", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "wizard-1.strict.json"));
+
+  const first = page.getByRole("table", { name: "1st Level" });
+  await expect(first.getByRole("row", { name: /^Alarm / })).toContainText("Yes");
+  await expect(first.getByRole("row", { name: /^Detect Magic / })).toContainText("—");
+  await expect(first.getByRole("cell", { name: "Yes" })).toHaveCount(4);
+});
+
 test("without IndexedDB, import still opens the sheet and a notice says nothing is saved", async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(window, "indexedDB", { value: undefined }));
   await page.goto("/");

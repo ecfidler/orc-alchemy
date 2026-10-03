@@ -51,6 +51,8 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
     ["Flaws", details.flaws],
     ["Description", details.description],
   ];
+  // The leveled spell tables get a Prepared column when a class prepares spells.
+  const prepares = spellcasting?.casters.some((caster) => caster.canPrepare !== null) ?? false;
 
   return (
     <article className="mx-auto max-w-4xl space-y-6">
@@ -195,13 +197,14 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
               <Table
                 key={level}
                 caption={level === 0 ? "Cantrips" : `${ordinal(level)} Level`}
-                headers={["Name", "Source", "Ability"]}
+                headers={["Name", "Source", "Ability", ...(level > 0 && prepares ? ["Prepared"] : [])]}
               >
                 {spells.map((spell) => (
                   <tr key={`${spell.source}/${spell.key}`}>
                     <Td>{spell.name}</Td>
                     <Td>{spell.source}</Td>
                     <Td>{abbr(spell.ability)}</Td>
+                    {level > 0 && prepares && <Td>{spell.prepared ? "Yes" : "—"}</Td>}
                   </tr>
                 ))}
               </Table>

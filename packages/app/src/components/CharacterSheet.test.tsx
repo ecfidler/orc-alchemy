@@ -65,7 +65,7 @@ const sheet: Sheet = {
   spellcasting: {
     slots: [],
     casters: [{ name: "Hill Dwarf", ability: "wis", saveDc: 11, attackBonus: 3, canPrepare: null }],
-    byLevel: [{ level: 0, spells: [{ key: "guidance", name: "Guidance", source: "Hill Dwarf", ability: "wis" }] }],
+    byLevel: [{ level: 0, spells: [{ key: "guidance", name: "Guidance", source: "Hill Dwarf", ability: "wis", prepared: false }] }],
   },
   features: {
     actions: [{ name: "Second Wind", text: "Regain 1d10 + 3 hit points (1/rest)." }],
@@ -160,4 +160,16 @@ test("wizard-20 shows its slots and every known spell", () => {
     .filter((table) => /Cantrips|Level/.test(table.querySelector("caption")?.textContent ?? ""))
     .flatMap((table) => within(table).getAllByRole("row").slice(1));
   expect(spellRows).toHaveLength(knownCount);
+});
+
+test("wizard-1 marks its prepared spells in a Prepared column, which cantrips do not have", () => {
+  const strict = JSON.parse(readFileSync(join(import.meta.dirname, "../../../../fixtures/characters/wizard-1.strict.json"), "utf8"));
+  render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strict)} />);
+  const first = screen.getByRole("table", { name: "1st Level" });
+  expect(within(first).getByRole("columnheader", { name: "Prepared" })).toBeTruthy();
+  const preparedOf = (name: string) => within(first).getByRole("cell", { name }).closest("tr")!.lastElementChild!.textContent;
+  expect(preparedOf("Alarm")).toBe("Yes");
+  expect(preparedOf("Detect Magic")).toBe("—");
+  const cantrips = screen.getByRole("table", { name: "Cantrips" });
+  expect(within(cantrips).queryByRole("columnheader", { name: "Prepared" })).toBeNull();
 });
