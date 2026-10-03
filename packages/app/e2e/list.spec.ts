@@ -44,7 +44,7 @@ test("a character exports from the list", async ({ page }) => {
   await page.getByRole("link", { name: "Alchemy 5e" }).click();
 
   const downloading = page.waitForEvent("download");
-  await page.getByRole("listitem", { name: "Fimble Nackle" }).getByRole("button", { name: "Export" }).click();
+  await page.getByRole("listitem", { name: "Fimble Nackle" }).getByRole("button", { name: "Export Fimble Nackle" }).click();
   expect((await downloading).suggestedFilename()).toBe("Fimble Nackle.json");
 });
 
@@ -56,15 +56,17 @@ test("deleting a character asks first, and it stays deleted after reload", async
   const brannor = page.getByRole("listitem", { name: "Brannor Ironfist" });
 
   page.once("dialog", (dialog) => void dialog.dismiss());
-  await brannor.getByRole("button", { name: "Delete" }).click();
+  await brannor.getByRole("button", { name: "Delete Brannor Ironfist" }).click();
   await expect(brannor).toBeVisible();
 
+  let message = "";
   page.once("dialog", (dialog) => {
-    expect(dialog.message()).toBe("Delete Brannor Ironfist? This cannot be undone.");
+    message = dialog.message();
     void dialog.accept();
   });
-  await brannor.getByRole("button", { name: "Delete" }).click();
+  await brannor.getByRole("button", { name: "Delete Brannor Ironfist" }).click();
   await expect(page.getByText("No characters yet. Import a character file to add one.")).toBeVisible();
+  expect(message).toBe("Delete Brannor Ironfist? This cannot be undone.");
 
   await page.reload();
   await expect(page.getByText("No characters yet. Import a character file to add one.")).toBeVisible();

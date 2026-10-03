@@ -37,7 +37,7 @@ test("a dmv-export bundle lists its characters to open", async ({ page }) => {
     buffer: Buffer.from(JSON.stringify(bundle)),
   });
   await expect(page.getByRole("heading", { name: "Imported 2 characters" })).toBeVisible();
-  await page.getByRole("button", { name: "Fimble Nackle" }).click();
+  await page.getByRole("button", { name: "Fimble Nackle", exact: true }).click();
 
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Fimble Nackle" })).toBeVisible();
@@ -68,7 +68,7 @@ test("a bundle lists the characters that import and the ones that fail", async (
   });
 
   await expect(page.getByRole("heading", { name: "Imported 1 character" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Brannor Ironfist" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Brannor Ironfist", exact: true })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveText("Character 2 of 2: This is not a character file");
 });
 

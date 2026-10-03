@@ -61,9 +61,9 @@ function CharacterRow({ summary }: { summary: CharacterSummary }) {
         </Link>
         <p>{[summary.race, summary.classes.map((c) => `${c.name} ${c.level}`).join(" / ")].filter(Boolean).join(" · ")}</p>
       </div>
-      <ExportCharacter id={summary.id} label="Export" />
+      <ExportCharacter id={summary.id} label={<>Export <span className="sr-only">{name}</span></>} />
       <button type="button" onClick={onDelete} className="underline">
-        Delete
+        Delete <span className="sr-only">{name}</span>
       </button>
       {error && <p role="alert">{error}</p>}
     </li>
