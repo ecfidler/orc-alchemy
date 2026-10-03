@@ -18,7 +18,7 @@ afterEach(() => {
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 
 function store(id: string, fixture: string, portrait: string | null = null) {
-  const sheet = toSheet(JSON.parse(readFileSync(join(charactersDir, `${fixture}.expected.json`), "utf8")) as Built2014);
+  const sheet = toSheet(JSON.parse(readFileSync(join(charactersDir, `${fixture}.expected.json`), "utf8")) as Built2014, {});
   const entity = { "~:orcpub.entity.strict/selections": [] };
   sheet.portrait = portrait;
   return saveCharacter(

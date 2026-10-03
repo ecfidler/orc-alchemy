@@ -15,14 +15,14 @@ const srdGolden = readdirSync(charactersDir)
   .filter((name) => readFixture(`${name}.meta.json`).orcbrew.length === 0);
 
 test.each(srdGolden)("toSheet(%s) maps without throwing", (name) => {
-  const sheet = toSheet(builtOf(name));
+  const sheet = toSheet(builtOf(name), {});
   expect(sheet.abilities).toHaveLength(6);
   expect(sheet.skills).toHaveLength(18);
 });
 
 test("fighter-20", () => {
   const built = builtOf("fighter-20");
-  const sheet = toSheet(built);
+  const sheet = toSheet(built, {});
 
   expect(sheet.name).toBe(built["character-name"]);
   expect(sheet.classes).toEqual([{ key: "fighter", name: "Fighter", level: 20, hitDie: 10, subclass: "Champion" }]);
@@ -96,7 +96,7 @@ test("fighter-20", () => {
 
 test("wizard-20 spellcasting", () => {
   const built = builtOf("wizard-20");
-  const sheet = toSheet(built);
+  const sheet = toSheet(built, {});
   const spellcasting = sheet.spellcasting!;
 
   expect(spellcasting.slots).toEqual(
@@ -106,7 +106,13 @@ test("wizard-20 spellcasting", () => {
   expect(spellcasting.byLevel.map((l) => [l.level, l.spells.length])).toEqual(
     Object.entries(built["spells-known"]).map(([level, spells]) => [Number(level), spells.__entries.length]),
   );
-  expect(spellcasting.byLevel[0]!.spells[0]).toEqual({ key: "acid-splash", name: "Acid Splash", source: "Wizard", ability: "int" });
+  expect(spellcasting.byLevel[0]!.spells[0]).toEqual({
+    key: "acid-splash",
+    name: "Acid Splash",
+    source: "Wizard",
+    ability: "int",
+    prepared: false,
+  });
   for (const { spells } of spellcasting.byLevel) {
     expect(spells.map((s) => s.key)).toEqual(spells.map((s) => s.key).sort());
   }
@@ -124,12 +130,12 @@ test("wizard-20 spellcasting", () => {
 });
 
 test("wizard-1 knows spells through its race, which does not prepare", () => {
-  const casters = toSheet(builtOf("wizard-1")).spellcasting!.casters;
+  const casters = toSheet(builtOf("wizard-1"), {}).spellcasting!.casters;
   expect(casters.find((c) => c.name === "High Elf")).toMatchObject({ ability: "int", canPrepare: null });
 });
 
 test("barbarian-5 speed depends on armor", () => {
-  expect(toSheet(builtOf("barbarian-5")).speeds).toEqual([
+  expect(toSheet(builtOf("barbarian-5"), {}).speeds).toEqual([
     { feet: 40, label: "unarmored" },
     { feet: 30, label: "Chain Mail armor" },
     { feet: 40, label: "Hide armor" },
@@ -137,19 +143,19 @@ test("barbarian-5 speed depends on armor", () => {
 });
 
 test("fighter-1 armor class and hit points", () => {
-  const sheet = toSheet(builtOf("fighter-1"));
+  const sheet = toSheet(builtOf("fighter-1"), {});
   expect(sheet.armorClass).toBe(19);
   expect(sheet.maxHitPoints).toBe(12);
 });
 
 test("resistances and immunities become display strings", () => {
-  expect(toSheet(builtOf("fighter-5")).resistances).toEqual(["Poison"]);
-  expect(toSheet(builtOf("wizard-1")).immunities).toEqual(["Magical Sleep"]);
+  expect(toSheet(builtOf("fighter-5"), {}).resistances).toEqual(["Poison"]);
+  expect(toSheet(builtOf("wizard-1"), {}).immunities).toEqual(["Magical Sleep"]);
 });
 
 test("with nothing worn or wielded, AC is the best combination, as in the old app", () => {
   const built = { ...builtOf("fighter-1"), "worn-armor": null, "wielded-shield": null };
-  expect(toSheet(built).armorClass).toBe(19);
+  expect(toSheet(built, {}).armorClass).toBe(19);
 });
 
 test("special attacks read like the old display's attack-description", () => {
@@ -169,7 +175,7 @@ test("special attacks read like the old display's attack-description", () => {
       } as NonNullable<Built2014["attacks"]>[number],
     ],
   };
-  expect(toSheet(built).specialAttacks).toEqual([
+  expect(toSheet(built, {}).specialAttacks).toEqual([
     { name: "Breath Weapon", text: "15 ft. cone, 2d6 fire damage, DC13 dex save." },
   ]);
 });
@@ -181,5 +187,64 @@ test("a special attack without damage dice or type prints only what it has", () 
       { name: "Frightful Glare", summary: "frighten a creature", save: "orcpub.dnd.e5.character/wis", "save-dc": 12 },
     ],
   };
-  expect(toSheet(built).specialAttacks[0].text).toBe("Frighten a creature, melee, DC12 wis save.");
+  expect(toSheet(built, {}).specialAttacks[0].text).toBe("Frighten a creature, melee, DC12 wis save.");
+});
+
+// Prepared spells come from the strict entity (ORC-104).
+const VALUES = "~:orcpub.entity.strict/values";
+const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
+const CLASS_NAME = "~:orcpub.dnd.e5.character/class-name";
+const SPELLS = "~:orcpub.dnd.e5.character/prepared-spells";
+type PreparedEntry = { [CLASS_NAME]: string; [SPELLS]: { "~#set": string[] } };
+const strictOf = (name: string) => readFixture(`${name}.strict.json`);
+/** The spells the sheet marks prepared, as "Class/spell-key", sorted. */
+const markedPrepared = (sheet: ReturnType<typeof toSheet>) =>
+  (sheet.spellcasting?.byLevel ?? [])
+    .flatMap(({ spells }) => spells.filter((s) => s.prepared).map((s) => `${s.source}/${s.key}`))
+    .sort();
+/** The entity with its prepared spells replaced by these keys for one class. */
+const preparing = (entity: Record<string, object>, className: string, keys: string[]) => ({
+  ...entity,
+  [VALUES]: { ...entity[VALUES], [BY_CLASS]: [{ [CLASS_NAME]: className, [SPELLS]: { "~#set": keys.map((key) => `~:${key}`) } }] },
+});
+
+const withPrepared = srdGolden.filter((name) => BY_CLASS in strictOf(name)[VALUES]);
+
+test("the SRD golden characters with prepared spells are the wizards", () => {
+  expect(withPrepared).toEqual(["fighter-3-wizard-2", "wizard-1", "wizard-11", "wizard-20", "wizard-5"]);
+});
+
+test.each(withPrepared)("%s marks exactly the entity's prepared spells, and no cantrip", (name) => {
+  const entity = strictOf(name);
+  const fromEntity = (entity[VALUES][BY_CLASS] as PreparedEntry[])
+    .flatMap((entry) => entry[SPELLS]["~#set"].map((key) => `${entry[CLASS_NAME]}/${key.slice(2)}`))
+    .sort();
+  const sheet = toSheet(builtOf(name), entity);
+  expect(markedPrepared(sheet)).toEqual(fromEntity);
+  expect(sheet.spellcasting!.byLevel[0]!.spells.some((s) => s.prepared)).toBe(false);
+  // The entity as JSON text, which StrictEntity also allows, reads the same.
+  expect(markedPrepared(toSheet(builtOf(name), JSON.stringify(entity)))).toEqual(fromEntity);
+});
+
+test("wizard-1 marks its four prepared spells, and none for an entity without prepared spells", () => {
+  expect(markedPrepared(toSheet(builtOf("wizard-1"), strictOf("wizard-1")))).toEqual([
+    "Wizard/alarm",
+    "Wizard/burning-hands",
+    "Wizard/charm-person",
+    "Wizard/color-spray",
+  ]);
+  expect(markedPrepared(toSheet(builtOf("wizard-1"), {}))).toEqual([]);
+});
+
+test("a cantrip in the prepared spells is not marked", () => {
+  const sheet = toSheet(builtOf("wizard-1"), preparing(strictOf("wizard-1"), "Wizard", ["acid-splash", "alarm"]));
+  expect(markedPrepared(sheet)).toEqual(["Wizard/alarm"]);
+});
+
+test("a class that does not prepare never marks a spell", () => {
+  // The warlock knows its spells. Its pack does not matter: expected.json needs no engine.
+  const built = builtOf("warlock-10-drow");
+  expect(built["prepares-spells"]).toBeNull();
+  const keys = Object.values(built["spells-known"]).flatMap((level) => level.__entries.map(([[, key]]) => key));
+  expect(markedPrepared(toSheet(built, preparing(strictOf("warlock-10-drow"), "Warlock", keys)))).toEqual([]);
 });

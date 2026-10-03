@@ -18,7 +18,7 @@ import {
 
 // expected.json is evaluate(strict).built, so these tests need no engine.
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
-const sheetOf = (name: string) => toSheet(JSON.parse(readFileSync(join(charactersDir, `${name}.expected.json`), "utf8")) as Built2014);
+const sheetOf = (name: string) => toSheet(JSON.parse(readFileSync(join(charactersDir, `${name}.expected.json`), "utf8")) as Built2014, {});
 
 const record = (id: string, name: string | null): CharacterRecord => ({
   format: "dmv-character",
