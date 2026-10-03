@@ -86,9 +86,13 @@ Wrap it in an envelope the app owns:
 
 ```json
 { "format": "dmv-character", "version": 1, "rules": "2014",
-  "id": "…", "name": "Fizban", "updatedAt": "…",
+  "id": "…", "name": "Fizban", "updatedAt": "…", "legacyId": "…",
   "entity": { "~:orcpub.entity.strict/selections": [...], "~:orcpub.entity.strict/values": {...} } }
 ```
+
+`legacyId` is the old app's id, or `null`. It is optional on import. The
+`dmv-export` bundle holds bare entities, so it keeps neither `legacyId` nor
+the app's `id`.
 
 `rules` is the rules edition the character is built with, and the app
 passes it to `evaluate`. It is always `"2014"` in this plan. Import reads a

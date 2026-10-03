@@ -60,8 +60,9 @@ function download(name: string, data: unknown) {
   link.href = url;
   link.download = name;
   link.click();
-  setTimeout(() => URL.revokeObjectURL(url));
+  // Some browsers read the blob after click() returns, so keep it a while.
+  setTimeout(() => URL.revokeObjectURL(url), 40_000);
 }
 
-/** A file name from a character name, without characters file systems refuse. */
-const fileName = (name: string | null) => name?.replace(/[\\/:*?"<>|]+/g, "").trim() || "character";
+/** The browser replaces any characters a file system refuses. */
+const fileName = (name: string | null) => name?.trim() || "character";

@@ -64,12 +64,19 @@ export function readCharacterFile(text: string): CharacterFile {
   }
 }
 
-/** A stored character as a dmv-character file: the record, with its entity through exportCharacter. */
+/**
+ * A stored character as a dmv-character file: the record, with its entity
+ * through exportCharacter. Generic over the record so that src/engine needs
+ * no storage type.
+ */
 export function characterFile<T extends { entity: StrictEntity }>(record: T): T {
   return { ...record, entity: engine().exportCharacter(record.entity) };
 }
 
-/** A dmv-export bundle of these characters. Homebrew joins it in M3. */
+/**
+ * A dmv-export bundle of these characters (doc 03): bare entities, so each
+ * character's id, rules and legacyId are not kept. Homebrew joins it in M3.
+ */
 export function exportBundle(entities: StrictEntity[], exportedFrom: string) {
   return {
     format: "dmv-export",

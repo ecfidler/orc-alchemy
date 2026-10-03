@@ -69,7 +69,8 @@ export async function readCharacter(id: string): Promise<{ entity: StrictEntity;
 export const AUTOSAVE_DELAY_MS = 7500;
 
 let pending: { id: string; entity: StrictEntity; timer: ReturnType<typeof setTimeout> } | null = null;
-let saving = 0;
+/** Saves under way, so a flush can wait for one the timer started. */
+const saving = new Set<Promise<void>>();
 
 useCharacter.subscribe((state, previous) => {
   // Opening another character saves the last one's pending changes now.
@@ -84,23 +85,31 @@ useCharacter.subscribe((state, previous) => {
 });
 
 /**
- * Saves the pending changes now, if there are any. If the save fails, the
- * changes stay in their draft and leaving the page still asks first.
+ * Saves the pending changes now, if there are any, and waits for every save
+ * under way. If a save fails, its changes stay in their draft, leaving the
+ * page still asks first, and this throws.
  */
 export async function flushAutosave(): Promise<void> {
-  if (pending === null) return;
-  const { id, entity, timer } = pending;
-  clearTimeout(timer);
-  pending = null;
-
-  saving++;
-  try {
-    const record = await getCharacter(id);
-    if (record !== undefined) await save(record, entity); // undefined: deleted since
-  } finally {
-    saving--;
+  if (pending !== null) {
+    const { id, entity, timer } = pending;
+    clearTimeout(timer);
+    pending = null;
+    const running = saveChanges(id, entity);
+    saving.add(running);
+    running.then(
+      () => {
+        saving.delete(running);
+        if (pending === null && saving.size === 0) window.removeEventListener("beforeunload", confirmLeave);
+      },
+      () => saving.delete(running),
+    );
   }
-  if (pending === null && saving === 0) window.removeEventListener("beforeunload", confirmLeave);
+  await Promise.all(saving);
+}
+
+async function saveChanges(id: string, entity: StrictEntity) {
+  const record = await getCharacter(id);
+  if (record !== undefined) await save(record, entity); // undefined: deleted since
   // Changes made while saving stay dirty, with their draft.
   const state = useCharacter.getState();
   if (state.id !== id || state.entity === entity) await deleteDraft(id);

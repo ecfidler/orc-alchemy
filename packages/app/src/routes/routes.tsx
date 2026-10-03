@@ -3,7 +3,7 @@ import type { RouteObject } from "react-router";
 import { Link, useParams } from "react-router";
 import { AppShell } from "../components/AppShell.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
-import { ExportCharacter, ExportEverything } from "../components/ExportCharacter.tsx";
+import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { ImportCharacter } from "../components/ImportCharacter.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";

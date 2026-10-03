@@ -69,6 +69,18 @@ test("autosave keeps a draft at once and saves the record once changes stop", as
   await deleteCharacter(id);
 });
 
+test("a flush waits for a save the timer already started", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+  rename("Keyleth");
+  vi.advanceTimersByTime(AUTOSAVE_DELAY_MS); // starts the save without waiting for it
+  await flushAutosave();
+  expect((await getCharacter(id))?.name).toBe("Keyleth");
+  await deleteCharacter(id);
+});
+
 test("opening a character recovers its draft", async () => {
   const id = await addCharacter(engine().emptyCharacter(), "2014", null);
   // As after a reload mid-edit: the draft is stored, the record not yet saved.
