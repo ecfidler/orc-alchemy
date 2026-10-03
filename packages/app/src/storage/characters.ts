@@ -78,6 +78,10 @@ export function deleteCharacter(id: string): Promise<void> {
   );
 }
 
+export function listCharacters(): Promise<CharacterRecord[]> {
+  return run((db) => db.getAll("characters") as Promise<CharacterRecord[]>);
+}
+
 export function listSummaries(): Promise<CharacterSummary[]> {
   return run((db) => db.getAll("summaries") as Promise<CharacterSummary[]>);
 }
