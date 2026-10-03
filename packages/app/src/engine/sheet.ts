@@ -90,6 +90,8 @@ export interface Spellcasting {
 
 export interface Sheet {
   name: string | null;
+  /** The portrait's image URL. */
+  portrait: string | null;
   race: string | null;
   subrace: string | null;
   background: string | null;
@@ -378,6 +380,7 @@ export function toSheet(built: Built2014): Sheet {
 
   return {
     name: blankToNull(built["character-name"]),
+    portrait: text("image-url"),
     race: built.race,
     subrace: built.subrace,
     background: built.background,

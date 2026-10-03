@@ -1,23 +1,24 @@
 import { useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
-import { readCharacterFile, type CharacterFile, type CharacterFileEntry } from "../engine/import.ts";
-import { useCharacter } from "../state/character.ts";
+import { readCharacterFile } from "../engine/import.ts";
+import { addCharacter } from "../state/character.ts";
+
+interface Imported {
+  characters: { id: string; name: string | null }[];
+  failures: string[];
+}
 
 /**
- * Opens a character file: one saved from the old app, a dmv-character file, or
- * a dmv-export bundle. One character opens its sheet; a bundle lists its
- * characters to open, and any that failed. Loads the engine on demand.
+ * Imports a character file: one saved from the old app, a dmv-character file,
+ * or a dmv-export bundle. Each character is stored. One character opens its
+ * sheet; a bundle lists its characters to open, and any that failed. Loads
+ * the engine on demand.
  */
 export function ImportCharacter() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [imported, setImported] = useState<CharacterFile | null>(null);
-
-  function open(character: CharacterFileEntry) {
-    useCharacter.getState().load(character.entity);
-    navigate("/sheet");
-  }
+  const [imported, setImported] = useState<Imported | null>(null);
 
   async function onChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.target;
@@ -30,8 +31,11 @@ export function ImportCharacter() {
       const text = await file.text();
       await loadEngine();
       const read = readCharacterFile(text);
-      if (read.characters.length === 1 && read.failures.length === 0) open(read.characters[0]);
-      else setImported(read);
+      const characters = await Promise.all(
+        read.characters.map(async (c) => ({ id: await addCharacter(c.entity, c.rules, c.legacyId), name: c.name })),
+      );
+      if (characters.length === 1 && read.failures.length === 0) navigate(`/sheet/${characters[0].id}`);
+      else setImported({ characters, failures: read.failures });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -50,9 +54,9 @@ export function ImportCharacter() {
             Imported {imported.characters.length} {imported.characters.length === 1 ? "character" : "characters"}
           </h2>
           <ul>
-            {imported.characters.map((character, i) => (
-              <li key={i}>
-                <button type="button" onClick={() => open(character)} className="underline">
+            {imported.characters.map((character) => (
+              <li key={character.id}>
+                <button type="button" onClick={() => navigate(`/sheet/${character.id}`)} className="underline">
                   {character.name ?? "Unnamed character"}
                 </button>
               </li>

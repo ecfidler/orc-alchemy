@@ -1,10 +1,11 @@
 // Character files (doc 03): a strict entity saved from the old app, the app's
 // dmv-character envelope, or a dmv-export bundle. Each character goes through
 // the engine's importCharacter.
-import { engine, type StrictEntity } from "./engine.ts";
+import { engine, type Rules, type StrictEntity } from "./engine.ts";
 
 export interface CharacterFileEntry {
   entity: StrictEntity;
+  rules: Rules;
   /** The old app's id, or null. */
   legacyId: string | null;
   name: string | null;
@@ -68,7 +69,8 @@ function importOne(entity: unknown): CharacterFileEntry {
   }
   const imported = engine().importCharacter(entity);
   const name = engine().evaluate(imported.entity).built["character-name"];
-  return { ...imported, name: name || null };
+  // Every importable character is 2014: old-app files are, and readCharacterFile refuses other envelopes.
+  return { ...imported, rules: "2014", name: name || null };
 }
 
 function checkVersion(data: Record<string, unknown>) {

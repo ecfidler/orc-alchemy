@@ -1,23 +1,48 @@
+import { useEffect, useState } from "react";
 import type { RouteObject } from "react-router";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { AppShell } from "../components/AppShell.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ImportCharacter } from "../components/ImportCharacter.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
-import { useOpenCharacter } from "../state/character.ts";
+import { readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 
 function SheetPage() {
+  const { id } = useParams() as { id: string };
+  const openId = useCharacter((state) => state.id);
   const { sheet } = useOpenCharacter();
-  if (sheet === null) {
+  const [problem, setProblem] = useState<string | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    setProblem(null);
+    if (id !== useCharacter.getState().id) {
+      // A slow open for a page already left must not replace this one's character.
+      readCharacter(id).then(
+        (found) => {
+          if (!current) return;
+          if (found) useCharacter.getState().load(id, found.entity, found.dirty);
+          else setProblem("Character not found");
+        },
+        () => current && setProblem("The character could not be read from this browser"),
+      );
+    }
+    return () => {
+      current = false;
+    };
+  }, [id]);
+
+  if (problem !== null) {
     return (
       <>
-        <h1 className="text-xl">No character is open</h1>
+        <h1 className="text-xl">{problem}</h1>
         <Link to="/" className="underline">
           Back to characters
         </Link>
       </>
     );
   }
+  if (openId !== id || sheet === null) return <p role="status">Opening the character…</p>;
   return <CharacterSheet sheet={sheet} />;
 }
 
@@ -35,7 +60,7 @@ export const routes: RouteObject[] = [
         ),
       },
       {
-        path: "sheet",
+        path: "sheet/:id",
         element: (
           <EngineGate>
             <SheetPage />

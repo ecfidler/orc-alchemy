@@ -17,6 +17,7 @@ const abilities = (["str", "dex", "con", "int", "wis", "cha"] as const).map((abi
 
 const sheet: Sheet = {
   name: "Brannor Ironfist",
+  portrait: null,
   race: "Dwarf",
   subrace: "Hill Dwarf",
   background: "Soldier",
