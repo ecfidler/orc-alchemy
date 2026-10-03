@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { toSheet, type Sheet } from "../engine/sheet.ts";
+import { bonusStr, toSheet, type Sheet } from "../engine/sheet.ts";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 
 afterEach(cleanup);
@@ -122,7 +122,6 @@ const expectedOf = (name: string) =>
 test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (name) => {
   const built = expectedOf(name);
   render(<CharacterSheet sheet={toSheet(built)} />);
-  const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
   expect(screen.getByRole("heading", { level: 1, name: built["character-name"] })).toBeTruthy();
   expect(screen.getByLabelText("Hit Points").textContent).toBe(`${built["max-hit-points"]} / ${built["max-hit-points"]}`);
@@ -135,9 +134,15 @@ test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (nam
     );
   }
   expect(screen.getByText(`${bonusStr(built["skill-bonuses"].perception)} Perception`)).toBeTruthy();
-  for (const { ac } of built["armor-class-with-armor"]) {
-    expect(screen.getAllByText(String(ac)).length).toBeGreaterThan(0);
-  }
+  const worn = built["armor-class-with-armor"].find(
+    (o: { armor: string | null; shield: string | null }) =>
+      o.armor === built["worn-armor"] && o.shield === built["wielded-shield"],
+  );
+  expect(screen.getByLabelText("Armor Class").textContent).toBe(String(worn.ac));
+  const acRows = within(screen.getByRole("table", { name: "Armor class options" })).getAllByRole("row").slice(1);
+  expect(acRows.map((row) => Number(row.lastElementChild?.textContent))).toEqual(
+    built["armor-class-with-armor"].map((o: { ac: number }) => o.ac),
+  );
 });
 
 test("wizard-20 shows its slots and every known spell", () => {

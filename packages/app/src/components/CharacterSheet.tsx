@@ -1,12 +1,8 @@
 // The read-only character sheet: one scrolling page that renders a Sheet,
 // following the old app's content and formatting.
 import { useId, type ReactNode } from "react";
-import type { Ability, Sheet, SheetFeature, SheetItem } from "../engine/sheet.ts";
+import { bonusStr, modStr, type Ability, type Sheet, type SheetFeature, type SheetItem } from "../engine/sheet.ts";
 
-/** The old app's bonus-str, for ability, save, skill and other bonuses: "+3", "-1", and "0" for zero. */
-const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
-/** The old app's mod-str, for initiative and attack and damage rolls: "+0" for zero. */
-const modStr = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 const abbr = (ability: Ability) => ability.toUpperCase();
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 const paragraphs = (text: string) => text.split("\n").map((line, i) => <p key={i}>{line}</p>);

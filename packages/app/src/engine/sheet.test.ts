@@ -173,3 +173,13 @@ test("special attacks read like the old display's attack-description", () => {
     { name: "Breath Weapon", text: "15 ft. cone, 2d6 fire damage, DC13 dex save." },
   ]);
 });
+
+test("a special attack without damage dice or type prints only what it has", () => {
+  const built: Built2014 = {
+    ...builtOf("fighter-1"),
+    attacks: [
+      { name: "Frightful Glare", summary: "frighten a creature", save: "orcpub.dnd.e5.character/wis", "save-dc": 12 },
+    ],
+  };
+  expect(toSheet(built).specialAttacks[0].text).toBe("Frighten a creature, melee, DC12 wis save.");
+});

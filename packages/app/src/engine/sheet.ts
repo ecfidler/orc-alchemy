@@ -215,17 +215,20 @@ const sentence = (text: string) => {
 const byName = <T extends { name: string }>(items: T[]) =>
   items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
-/** The old app's bonus-str ("0" for zero) and mod-str ("+0"), for the ready-to-print attack text. */
-const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
-const modStr = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+/** The old app's bonus-str, for ability, save, skill and other bonuses: "+3", "-1", and "0" for zero. */
+export const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+/** The old app's mod-str, for initiative and attack and damage rolls: "+0" for zero. */
+export const modStr = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 
 const blankToNull = (value: unknown) =>
   (typeof value === "string" && value.trim() !== "") || typeof value === "number" ? String(value) : null;
 
 /** The old display's unit-amount-description: "1 minute", "60 feet", "2 rounds". */
-const unitAmount = ({ amount = 1, units }: Amount) => {
-  const unit = unqualify(units).replace(/-/g, " ");
-  return `${amount} ${amount === 1 || unit === "feet" ? unit : `${unit}s`}`;
+const unitAmount = (value: Amount) => {
+  const { amount = 1, units, singular, plural } = value as Amount & { singular?: string; plural?: string };
+  const unit = unqualify(units);
+  if (amount === 1) return `${amount} ${singular ? unqualify(singular) : unit}`;
+  return `${amount} ${plural ? unqualify(plural) : unit === "feet" ? unit : `${unit}s`}`;
 };
 
 const timesWord = (amount: number) => (amount === 1 ? "once" : amount === 2 ? "twice" : `${amount} times`);
@@ -307,18 +310,24 @@ function toSpecialAttack(attack: NonNullable<Built2014["attacks"]>[number]): She
         ? `${a["line-width"]} x ${a["line-length"]} ft. line`
         : area === "cone"
           ? `${a.length} ft. cone`
-          : ""
+          : null
       : type === "ranged"
         ? "ranged"
         : "melee";
-  const toHit = type !== "area" && a["attack-modifier"] != null ? `${bonusStr(a["attack-modifier"])} to hit, ` : "";
-  const modifier = a["damage-modifier"] != null ? modStr(a["damage-modifier"]) : "";
-  const damageType = a["damage-type"] ? unqualify(a["damage-type"]) : "";
-  const save = a.save ? `, DC${a["save-dc"]} ${unqualify(a.save)} save` : "";
-  const summary = a.summary ?? a.description;
-  const text =
-    `${summary ? `${summary}, ` : ""}${shape}, ${toHit}` +
-    `${a["damage-die-count"]}d${a["damage-die"]}${modifier} ${damageType} damage${save}`;
+  const toHit = type !== "area" && a["attack-modifier"] != null ? `${bonusStr(a["attack-modifier"])} to hit` : null;
+  const die = a["damage-die"];
+  const damage =
+    die != null
+      ? [
+          `${a["damage-die-count"] ?? 1}d${die}${a["damage-modifier"] != null ? modStr(a["damage-modifier"]) : ""}`,
+          a["damage-type"] && unqualify(a["damage-type"]),
+          "damage",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : null;
+  const save = a.save ? `DC${a["save-dc"]} ${unqualify(a.save)} save` : null;
+  const text = [a.summary ?? a.description, shape, toHit, damage, save].filter(Boolean).join(", ");
   return { name: a.name, text: sentence(text) };
 }
 
