@@ -1,20 +1,20 @@
 import { useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
-import { readCharacterFile, type ImportedCharacter } from "../engine/import.ts";
+import { readCharacterFile, type CharacterFile, type CharacterFileEntry } from "../engine/import.ts";
 import { useCharacter } from "../state/character.ts";
 
 /**
  * Opens a character file: one saved from the old app, a dmv-character file, or
  * a dmv-export bundle. One character opens its sheet; a bundle lists its
- * characters to open. Loads the engine on demand.
+ * characters to open, and any that failed. Loads the engine on demand.
  */
 export function ImportCharacter() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [imported, setImported] = useState<ImportedCharacter[]>([]);
+  const [imported, setImported] = useState<CharacterFile | null>(null);
 
-  function open(character: ImportedCharacter) {
+  function open(character: CharacterFileEntry) {
     useCharacter.getState().load(character.entity);
     navigate("/sheet");
   }
@@ -25,13 +25,13 @@ export function ImportCharacter() {
     if (!file) return;
     input.value = ""; // so choosing the same file again fires onChange
     setError(null);
-    setImported([]);
+    setImported(null);
     try {
       const text = await file.text();
       await loadEngine();
-      const characters = readCharacterFile(text);
-      if (characters.length === 1) open(characters[0]);
-      else setImported(characters);
+      const read = readCharacterFile(text);
+      if (read.characters.length === 1 && read.failures.length === 0) open(read.characters[0]);
+      else setImported(read);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -44,11 +44,13 @@ export function ImportCharacter() {
         <input type="file" accept=".json,application/json" onChange={onChange} className="block" />
       </label>
       {error && <p role="alert">{error}</p>}
-      {imported.length > 0 && (
+      {imported && (
         <section aria-label="Imported characters">
-          <h2 className="text-lg">Imported {imported.length} characters</h2>
+          <h2 className="text-lg">
+            Imported {imported.characters.length} {imported.characters.length === 1 ? "character" : "characters"}
+          </h2>
           <ul>
-            {imported.map((character, i) => (
+            {imported.characters.map((character, i) => (
               <li key={i}>
                 <button type="button" onClick={() => open(character)} className="underline">
                   {character.name ?? "Unnamed character"}
@@ -56,6 +58,13 @@ export function ImportCharacter() {
               </li>
             ))}
           </ul>
+          {imported.failures.length > 0 && (
+            <ul role="alert">
+              {imported.failures.map((failure, i) => (
+                <li key={i}>{failure}</li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
     </div>

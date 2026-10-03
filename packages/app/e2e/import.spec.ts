@@ -43,6 +43,35 @@ test("a dmv-export bundle lists its characters to open", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Fimble Nackle" })).toBeVisible();
 });
 
+test("a dmv-character envelope opens its sheet", async ({ page }) => {
+  const envelope = { format: "dmv-character", version: 1, rules: "2014", entity: readJson("characters/wizard-5.strict.json") };
+
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles({
+    name: "fimble.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(envelope)),
+  });
+
+  await expect(page).toHaveURL("/sheet");
+  await expect(page.getByRole("heading", { level: 1, name: "Fimble Nackle" })).toBeVisible();
+});
+
+test("a bundle lists the characters that import and the ones that fail", async ({ page }) => {
+  const bundle = { format: "dmv-export", version: 1, characters: [readJson("characters/fighter-1.strict.json"), {}] };
+
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles({
+    name: "dmv-export.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(bundle)),
+  });
+
+  await expect(page.getByRole("heading", { name: "Imported 1 character" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Brannor Ironfist" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Character 2 of 2: This is not a character file");
+});
+
 test("a file that is not a character says why", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Import character file").setInputFiles({

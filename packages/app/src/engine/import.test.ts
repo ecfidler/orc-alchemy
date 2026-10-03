@@ -19,16 +19,17 @@ test("finds every character and legacy fixture", () => {
 });
 
 test.each(strictFiles)("%s imports and builds", (file) => {
-  const [character] = readCharacterFile(readText(file));
+  const { characters: [character], failures } = readCharacterFile(readText(file));
+  expect(failures).toEqual([]);
   expect(character.entity).toEqual(engine().importCharacter(readText(file)).entity);
   expect(() => engine().evaluate(character.entity)).not.toThrow();
 });
 
 test("a raw entity keeps its name and the old app's id", () => {
-  expect(readCharacterFile(readText("characters/fighter-1.strict.json"))).toMatchObject([
+  expect(readCharacterFile(readText("characters/fighter-1.strict.json")).characters).toMatchObject([
     { name: "Brannor Ironfist", legacyId: null },
   ]);
-  expect(readCharacterFile(readText("legacy/character-test-2.strict.json"))).toMatchObject([
+  expect(readCharacterFile(readText("legacy/character-test-2.strict.json")).characters).toMatchObject([
     { name: null, legacyId: "17592186056344" },
   ]);
 });
@@ -41,14 +42,14 @@ function envelope(file: string, fields: object = {}) {
 
 test("a dmv-character envelope imports to the same entity as the raw file", () => {
   const file = "characters/wizard-5.strict.json";
-  const [character] = readCharacterFile(JSON.stringify(envelope(file)));
-  expect(character.entity).toEqual(readCharacterFile(readText(file))[0].entity);
+  const [character] = readCharacterFile(JSON.stringify(envelope(file))).characters;
+  expect(character.entity).toEqual(readCharacterFile(readText(file)).characters[0].entity);
   expect(character.name).toBe("Fimble Nackle");
 });
 
 test("an envelope without rules is 2014", () => {
   const { rules: _, ...noRules } = envelope("characters/fighter-1.strict.json");
-  expect(readCharacterFile(JSON.stringify(noRules))).toHaveLength(1);
+  expect(readCharacterFile(JSON.stringify(noRules)).characters).toHaveLength(1);
 });
 
 test("an envelope for other rules is refused", () => {
@@ -68,12 +69,16 @@ test("a dmv-export bundle imports every character, raw Transit or exported", () 
     ],
     magicItems: [],
   };
-  expect(readCharacterFile(JSON.stringify(bundle)).map((c) => c.name)).toEqual(["Brannor Ironfist", "Fimble Nackle"]);
+  const file = readCharacterFile(JSON.stringify(bundle));
+  expect(file.characters.map((c) => c.name)).toEqual(["Brannor Ironfist", "Fimble Nackle"]);
+  expect(file.failures).toEqual([]);
 });
 
-test("a bundle names the character that fails", () => {
+test("a bundle keeps the characters that import and names the one that fails", () => {
   const bundle = { format: "dmv-export", version: 1, characters: [JSON.parse(readText("characters/fighter-1.strict.json")), {}] };
-  expect(() => readCharacterFile(JSON.stringify(bundle))).toThrow("Character 2 of 2: This is not a character file");
+  const file = readCharacterFile(JSON.stringify(bundle));
+  expect(file.characters.map((c) => c.name)).toEqual(["Brannor Ironfist"]);
+  expect(file.failures).toEqual(["Character 2 of 2: This is not a character file"]);
 });
 
 test.each([

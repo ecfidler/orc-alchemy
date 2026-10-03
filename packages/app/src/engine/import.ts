@@ -3,18 +3,25 @@
 // the engine's importCharacter.
 import { engine, type StrictEntity } from "./engine.ts";
 
-export interface ImportedCharacter {
+export interface CharacterFileEntry {
   entity: StrictEntity;
   /** The old app's id, or null. */
   legacyId: string | null;
   name: string | null;
 }
 
+export interface CharacterFile {
+  characters: CharacterFileEntry[];
+  /** Why each bundle character that did not import failed. */
+  failures: string[];
+}
+
 /**
  * Reads a character file's text and imports every character in it. Throws
  * with a reason the user can read for anything that is not a character file.
+ * A bundle character that fails is reported in failures, not thrown.
  */
-export function readCharacterFile(text: string): ImportedCharacter[] {
+export function readCharacterFile(text: string): CharacterFile {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -25,34 +32,37 @@ export function readCharacterFile(text: string): ImportedCharacter[] {
 
   switch (data.format) {
     case undefined:
-      return [importOne(data)];
+      return { characters: [importOne(data)], failures: [] };
     case "dmv-character":
       checkVersion(data);
       // A missing rules is 2014: every file written so far is.
       if ((data.rules ?? "2014") !== "2014") {
         throw new Error(`This character uses the ${String(data.rules)} rules, which this app does not support yet`);
       }
-      return [importOne(data.entity)];
+      return { characters: [importOne(data.entity)], failures: [] };
     case "dmv-export": {
       checkVersion(data);
       // magicItems become homebrew, which arrives in M3.
       const characters = Array.isArray(data.characters) ? data.characters : [];
       if (characters.length === 0) throw new Error("This export has no characters");
-      return characters.map((character, i) => {
+      const file: CharacterFile = { characters: [], failures: [] };
+      characters.forEach((character, i) => {
         try {
-          return importOne(character);
+          file.characters.push(importOne(character));
         } catch (e) {
-          throw new Error(`Character ${i + 1} of ${characters.length}: ${e instanceof Error ? e.message : String(e)}`);
+          file.failures.push(`Character ${i + 1} of ${characters.length}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
+      return file;
     }
     default:
       throw new Error(`Unsupported file format: ${String(data.format)}`);
   }
 }
 
-function importOne(entity: unknown): ImportedCharacter {
-  // importCharacter accepts any object, so check for a strict entity first.
+function importOne(entity: unknown): CharacterFileEntry {
+  // importCharacter accepts any object, and gives an empty character for one
+  // that is not verbose Transit-JSON, so check for a strict entity first.
   if (!isObject(entity) || !("~:orcpub.entity.strict/selections" in entity)) {
     throw new Error("This is not a character file");
   }
