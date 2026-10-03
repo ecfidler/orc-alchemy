@@ -341,8 +341,9 @@ function toSpecialAttack(attack: NonNullable<Built2014["attacks"]>[number]): She
  * [{ "~:…/class-name": "Wizard", "~:…/prepared-spells": { "~#set": ["~:alarm", …] } }].
  */
 function preparedSpells(entity: StrictEntity): Record<string, Set<string>> {
-  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as
-    | { "~:orcpub.entity.strict/values"?: Record<string, unknown> };
+  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as {
+    "~:orcpub.entity.strict/values"?: Record<string, unknown>;
+  };
   const byClass = (strict["~:orcpub.entity.strict/values"]?.["~:orcpub.dnd.e5.character/prepared-spells-by-class"] ??
     []) as Record<string, unknown>[];
   return Object.fromEntries(
