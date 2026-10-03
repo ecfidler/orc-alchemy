@@ -1,3 +1,4 @@
+import "fake-indexeddb/auto";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, expect, test } from "vitest";
@@ -16,9 +17,9 @@ test("index route renders inside the shell", () => {
   expect(screen.getByLabelText("Import character file")).toBeTruthy();
 });
 
-test("the sheet route with no open character says so once the engine loads", async () => {
-  renderAt("/sheet");
-  expect(await screen.findByRole("heading", { name: "No character is open" })).toBeTruthy();
+test("the sheet route for an unknown character says so once the engine loads", async () => {
+  renderAt("/sheet/no-such-id");
+  expect(await screen.findByRole("heading", { name: "Character not found" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Back to characters" })).toBeTruthy();
 });
 

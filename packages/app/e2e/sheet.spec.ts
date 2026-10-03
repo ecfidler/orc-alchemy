@@ -14,10 +14,21 @@ test("importing fighter-1 opens its sheet", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
 
-  await expect(page).toHaveURL("/sheet");
+  await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
   await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText("19");
   await expect(page.getByLabel("Hit Points", { exact: true })).toHaveText("12 / 12");
+});
+
+test("an imported character survives reload", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
+  await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
+  await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText("19");
+  await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
 for (const name of srdGolden) {
@@ -37,3 +48,12 @@ for (const name of srdGolden) {
     await expect(page.getByLabel("Hit Points", { exact: true })).toHaveText(`${built["current-hit-points"] ?? hp} / ${hp}`);
   });
 }
+
+test("without IndexedDB, import still opens the sheet and a notice says nothing is saved", async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(window, "indexedDB", { value: undefined }));
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
+
+  await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText(/kept only until you close this tab/);
+});

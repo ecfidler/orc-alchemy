@@ -17,7 +17,7 @@ for (const file of strictFiles) {
     await page.goto("/");
     await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, file));
 
-    await expect(page).toHaveURL("/sheet");
+    await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { level: 1, name: name || "Unnamed character" })).toBeVisible();
   });
 }
@@ -39,7 +39,7 @@ test("a dmv-export bundle lists its characters to open", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Imported 2 characters" })).toBeVisible();
   await page.getByRole("button", { name: "Fimble Nackle" }).click();
 
-  await expect(page).toHaveURL("/sheet");
+  await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Fimble Nackle" })).toBeVisible();
 });
 
@@ -53,7 +53,7 @@ test("a dmv-character envelope opens its sheet", async ({ page }) => {
     buffer: Buffer.from(JSON.stringify(envelope)),
   });
 
-  await expect(page).toHaveURL("/sheet");
+  await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Fimble Nackle" })).toBeVisible();
 });
 
