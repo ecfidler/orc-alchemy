@@ -57,7 +57,7 @@ test("the list follows the summaries index, and delete asks first", async () => 
   expect(screen.getByRole("listitem", { name: "Fimble Nackle" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Export Fimble Nackle" })).toBeTruthy();
   // Focus stays in the list rather than falling to the page.
-  expect(document.activeElement?.contains(screen.getByRole("list", { name: "Characters" }))).toBe(true);
+  expect(document.activeElement).toBe(screen.getByRole("list", { name: "Characters" }).parentElement);
 });
 
 test("a failed read says so, without reporting a failed save, and Try again re-reads", async () => {

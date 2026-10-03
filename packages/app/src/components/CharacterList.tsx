@@ -11,7 +11,7 @@ export function CharacterList() {
   const [summaries, setSummaries] = useState<CharacterSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Keeps keyboard focus in the list when a deleted row goes.
-  const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // A slow read must not replace a later one.
@@ -30,7 +30,7 @@ export function CharacterList() {
   }, [version, attempt]);
 
   return (
-    <div ref={ref} tabIndex={-1}>
+    <div ref={listRef} tabIndex={-1} className="outline-none">
       {error !== null ? (
         <>
           <p role="alert">{error}</p>
@@ -52,7 +52,7 @@ export function CharacterList() {
       ) : (
         <ul aria-label="Characters" className="divide-y divide-black">
           {summaries.map((summary) => (
-            <CharacterRow key={summary.id} summary={summary} onDeleted={() => ref.current?.focus()} />
+            <CharacterRow key={summary.id} summary={summary} onDeleted={() => listRef.current?.focus()} />
           ))}
         </ul>
       )}

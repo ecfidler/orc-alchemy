@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
-import { deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft } from "../storage/characters.ts";
+import { deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft, useStorage } from "../storage/characters.ts";
 import { addCharacter, AUTOSAVE_DELAY_MS, flushAutosave, readCharacter, removeCharacter, useCharacter, useOpenCharacter } from "./character.ts";
 
 beforeAll(() => loadEngine());
@@ -78,6 +78,25 @@ test("a flush waits for a save the timer already started", async () => {
   vi.advanceTimersByTime(AUTOSAVE_DELAY_MS); // starts the save without waiting for it
   await flushAutosave();
   expect((await getCharacter(id))?.name).toBe("Keyleth");
+  await deleteCharacter(id);
+});
+
+test("an autosave that fails reading the stored character reports a failed save and keeps its draft", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+
+  rename("Percy");
+  await vi.waitFor(async () => expect(await getDraft(id)).toBeDefined());
+  vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
+    throw new DOMException("Read failed", "UnknownError");
+  });
+  await expect(flushAutosave()).rejects.toThrow("Read failed");
+  expect(useStorage.getState().failed).toBe(true);
+  expect(await getDraft(id)).toBeDefined();
+  expect(useCharacter.getState().dirty).toBe(true);
+
+  vi.restoreAllMocks();
+  useStorage.setState({ failed: false });
   await deleteCharacter(id);
 });
 
