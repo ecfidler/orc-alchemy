@@ -1,8 +1,11 @@
+import "fake-indexeddb/auto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
-import { engine, loadEngine } from "./engine.ts";
-import { readCharacterFile } from "./import.ts";
+import { addCharacter } from "../state/character.ts";
+import { getCharacter } from "../storage/characters.ts";
+import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { characterFile, exportBundle, readCharacterFile } from "./import.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const strictFiles = ["characters", "legacy"].flatMap((dir) =>
@@ -90,4 +93,66 @@ test.each([
   ["an empty bundle", '{"format":"dmv-export","version":1,"characters":[]}', "This export has no characters"],
 ])("refuses %s", (_, text, message) => {
   expect(() => readCharacterFile(text)).toThrow(message);
+});
+
+/** Reads a written file back, as the import picker does. */
+const reimport = (file: unknown) => readCharacterFile(JSON.stringify(file));
+
+test.each(strictFiles)("%s, stored, exports to a dmv-character file that imports back to the same entity", async (file) => {
+  const [imported] = readCharacterFile(readText(file)).characters;
+  const record = (await getCharacter(await addCharacter(imported.entity, imported.rules, imported.legacyId)))!;
+
+  const exported = characterFile(record);
+  expect(exported).toMatchObject({ format: "dmv-character", version: 1, rules: "2014", id: record.id, name: record.name });
+  const { characters, failures } = reimport(exported);
+  expect(failures).toEqual([]);
+  expect(characters).toEqual([{ entity: record.entity, rules: "2014", legacyId: record.legacyId, name: imported.name }]);
+});
+
+test("every stored character exports to one dmv-export bundle that imports back", () => {
+  const entities = strictFiles.map((file) => readCharacterFile(readText(file)).characters[0].entity);
+  const bundle = exportBundle(entities, "https://alchemy.example");
+
+  expect(bundle).toMatchObject({ format: "dmv-export", version: 1, exportedFrom: "https://alchemy.example", magicItems: [] });
+  const { characters, failures } = reimport(bundle);
+  expect(failures).toEqual([]);
+  expect(characters.map((c) => c.entity)).toEqual(entities);
+});
+
+// Selection order drives modifier order (doc 02, wrinkle 3), so the files must keep it.
+const SELECTIONS = "~:orcpub.entity.strict/selections";
+type Selection = Record<string, unknown>;
+const selectionsOf = (entity: StrictEntity) => (entity as Record<string, Selection[]>)[SELECTIONS];
+
+test.each([
+  ["fighter-1, top-level selections reversed", "characters/fighter-1.strict.json", (s: Selection[]) => [...s].reverse()],
+  [
+    "fighter-3-wizard-2, classes reversed",
+    "characters/fighter-3-wizard-2.strict.json",
+    (s: Selection[]) =>
+      s.map((selection) =>
+        selection["~:orcpub.entity.strict/key"] === "~:class"
+          ? { ...selection, "~:orcpub.entity.strict/options": [...(selection["~:orcpub.entity.strict/options"] as unknown[])].reverse() }
+          : selection,
+      ),
+  ],
+])("a reordered entity still builds differently after export and import: %s", (_, file, reorder) => {
+  const entity = readCharacterFile(readText(file)).characters[0].entity;
+  const reordered = { ...(entity as object), [SELECTIONS]: reorder(selectionsOf(entity)) };
+  const roundTrip = (e: StrictEntity) => reimport(characterFile({ format: "dmv-character", version: 1, entity: e })).characters[0].entity;
+
+  const built = engine().evaluate(roundTrip(entity)).built;
+  const reorderedBuilt = engine().evaluate(roundTrip(reordered)).built;
+  expect(reorderedBuilt).not.toEqual(built);
+  expect(built).toEqual(engine().evaluate(entity).built);
+  expect(reorderedBuilt).toEqual(engine().evaluate(reordered).built);
+});
+
+test("an envelope without rules is stored as 2014, and its legacyId is kept", async () => {
+  const { rules: _, ...noRules } = envelope("legacy/character-test-2.strict.json", { legacyId: "17592186056344" });
+  const [character] = reimport(noRules).characters;
+  expect(character.legacyId).toBe("17592186056344");
+
+  const stored = await getCharacter(await addCharacter(character.entity, character.rules, character.legacyId));
+  expect(stored).toMatchObject({ rules: "2014", legacyId: "17592186056344" });
 });

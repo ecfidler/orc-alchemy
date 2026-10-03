@@ -1,6 +1,7 @@
 // Character files (doc 03): a strict entity saved from the old app, the app's
-// dmv-character envelope, or a dmv-export bundle. Each character goes through
-// the engine's importCharacter.
+// dmv-character envelope, or a dmv-export bundle. Each character read goes
+// through the engine's importCharacter, and each one written through its
+// exportCharacter.
 import { engine, type Rules, type StrictEntity } from "./engine.ts";
 
 export interface CharacterFileEntry {
@@ -40,7 +41,9 @@ export function readCharacterFile(text: string): CharacterFile {
       if ((data.rules ?? "2014") !== "2014") {
         throw new Error(`This character uses the ${String(data.rules)} rules, which this app does not support yet`);
       }
-      return { characters: [importOne(data.entity)], failures: [] };
+      const character = importOne(data.entity);
+      if (typeof data.legacyId === "string") character.legacyId = data.legacyId;
+      return { characters: [character], failures: [] };
     case "dmv-export": {
       checkVersion(data);
       // magicItems become homebrew, which arrives in M3.
@@ -59,6 +62,22 @@ export function readCharacterFile(text: string): CharacterFile {
     default:
       throw new Error(`Unsupported file format: ${String(data.format)}`);
   }
+}
+
+/** A stored character as a dmv-character file: the record, with its entity through exportCharacter. */
+export function characterFile<T extends { entity: StrictEntity }>(record: T): T {
+  return { ...record, entity: engine().exportCharacter(record.entity) };
+}
+
+/** A dmv-export bundle of these characters. Homebrew joins it in M3. */
+export function exportBundle(entities: StrictEntity[], exportedFrom: string) {
+  return {
+    format: "dmv-export",
+    version: 1,
+    exportedFrom,
+    characters: entities.map((entity) => engine().exportCharacter(entity)),
+    magicItems: [],
+  };
 }
 
 function importOne(entity: unknown): CharacterFileEntry {

@@ -3,6 +3,7 @@ import type { RouteObject } from "react-router";
 import { Link, useParams } from "react-router";
 import { AppShell } from "../components/AppShell.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
+import { ExportCharacter, ExportEverything } from "../components/ExportCharacter.tsx";
 import { ImportCharacter } from "../components/ImportCharacter.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -43,7 +44,12 @@ function SheetPage() {
     );
   }
   if (openId !== id || sheet === null) return <p role="status">Opening the character…</p>;
-  return <CharacterSheet sheet={sheet} />;
+  return (
+    <>
+      <ExportCharacter id={id} />
+      <CharacterSheet sheet={sheet} />
+    </>
+  );
 }
 
 export const routes: RouteObject[] = [
@@ -56,6 +62,7 @@ export const routes: RouteObject[] = [
           <>
             <h1 className="text-xl">Characters</h1>
             <ImportCharacter />
+            <ExportEverything />
           </>
         ),
       },
