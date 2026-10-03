@@ -13,6 +13,13 @@ test("index route renders inside the shell", () => {
   renderAt("/");
   expect(screen.getByRole("link", { name: "Alchemy 5e" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Characters" })).toBeTruthy();
+  expect(screen.getByLabelText("Import character file")).toBeTruthy();
+});
+
+test("the sheet route with no open character says so once the engine loads", async () => {
+  renderAt("/sheet");
+  expect(await screen.findByRole("heading", { name: "No character is open" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to characters" })).toBeTruthy();
 });
 
 test("unknown paths render the not-found page", () => {
