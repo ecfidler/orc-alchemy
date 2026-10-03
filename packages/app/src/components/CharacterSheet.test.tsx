@@ -1,6 +1,8 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
-import type { Sheet } from "../engine/sheet.ts";
+import { toSheet, type Sheet } from "../engine/sheet.ts";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 
 afterEach(cleanup);
@@ -111,4 +113,45 @@ test("omits empty sections", () => {
   expect(screen.queryByRole("heading", { name: "Spells" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "Equipment" })).toBeNull();
   expect(screen.queryByLabelText("Darkvision")).toBeNull();
+});
+
+// On-screen spot checks against the oracle's built values (ORC-48 done-when).
+const expectedOf = (name: string) =>
+  JSON.parse(readFileSync(join(import.meta.dirname, `../../../../fixtures/characters/${name}.expected.json`), "utf8"));
+
+test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (name) => {
+  const built = expectedOf(name);
+  render(<CharacterSheet sheet={toSheet(built)} />);
+  const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+
+  expect(screen.getByRole("heading", { level: 1, name: built["character-name"] })).toBeTruthy();
+  expect(screen.getByLabelText("Hit Points").textContent).toBe(`${built["max-hit-points"]} / ${built["max-hit-points"]}`);
+  expect(screen.getByLabelText("Proficiency Bonus").textContent).toBe(bonusStr(built["proficiency-bonus"]));
+  expect(screen.getByLabelText("Passive Perception").textContent).toBe(String(built["passive-perception"]));
+  for (const ability of ["str", "dex", "con", "int", "wis", "cha"]) {
+    const key = `orcpub.dnd.e5.character/${ability}`;
+    expect(screen.getByLabelText(ability.toUpperCase()).textContent).toBe(
+      `${built.abilities[key]}${bonusStr(built["ability-bonuses"][key])}`,
+    );
+  }
+  expect(screen.getByText(`${bonusStr(built["skill-bonuses"].perception)} Perception`)).toBeTruthy();
+  for (const { ac } of built["armor-class-with-armor"]) {
+    expect(screen.getAllByText(String(ac)).length).toBeGreaterThan(0);
+  }
+});
+
+test("wizard-20 shows its slots and every known spell", () => {
+  const built = expectedOf("wizard-20");
+  render(<CharacterSheet sheet={toSheet(built)} />);
+  const slots = within(screen.getByRole("table", { name: "Spell Slots" })).getAllByRole("cell");
+  expect(slots.map((cell) => Number(cell.textContent))).toEqual(Object.values(built["spell-slots"]));
+  const knownCount = Object.values(built["spells-known"] as Record<string, { __entries: unknown[] }>).reduce(
+    (n, level) => n + level.__entries.length,
+    0,
+  );
+  const spellRows = screen
+    .getAllByRole("table")
+    .filter((table) => /Cantrips|Level/.test(table.querySelector("caption")?.textContent ?? ""))
+    .flatMap((table) => within(table).getAllByRole("row").slice(1));
+  expect(spellRows).toHaveLength(knownCount);
 });

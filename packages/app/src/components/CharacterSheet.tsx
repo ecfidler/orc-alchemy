@@ -3,10 +3,10 @@
 import { useId, type ReactNode } from "react";
 import type { Ability, Sheet, SheetFeature, SheetItem } from "../engine/sheet.ts";
 
-/** The old sheet's bonus style: "+3", "-1", and "0" for zero. */
-const bonus = (n: number) => (n > 0 ? `+${n}` : `${n}`);
-/** Always signed: "+0" for zero. */
-const signed = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+/** The old app's bonus-str, for ability, save, skill and other bonuses: "+3", "-1", and "0" for zero. */
+const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+/** The old app's mod-str, for initiative and attack and damage rolls: "+0" for zero. */
+const modStr = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 const abbr = (ability: Ability) => ability.toUpperCase();
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 const paragraphs = (text: string) => text.split("\n").map((line, i) => <p key={i}>{line}</p>);
@@ -23,7 +23,7 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
   ];
   const proficiencies: [string, string[]][] = [
     ["Languages", sheet.languages],
-    ["Tools", sheet.tools.map((tool) => `${tool.name} (${bonus(tool.bonus)})`)],
+    ["Tools", sheet.tools.map((tool) => `${tool.name} (${bonusStr(tool.bonus)})`)],
     ["Weapon", sheet.weaponProficiencies],
     ["Armor", sheet.armorProficiencies],
   ];
@@ -83,8 +83,8 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
               </div>
             ))}
           </Stat>
-          <Stat label="Initiative">{signed(sheet.initiative)}</Stat>
-          <Stat label="Proficiency Bonus">{bonus(sheet.proficiencyBonus)}</Stat>
+          <Stat label="Initiative">{modStr(sheet.initiative)}</Stat>
+          <Stat label="Proficiency Bonus">{bonusStr(sheet.proficiencyBonus)}</Stat>
           <Stat label="Passive Perception">{sheet.passivePerception}</Stat>
           {sheet.darkvision > 0 && <Stat label="Darkvision">{sheet.darkvision} ft.</Stat>}
           {sheet.numberOfAttacks > 1 && <Stat label="Number of Attacks">{sheet.numberOfAttacks}</Stat>}
@@ -96,7 +96,7 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
           {sheet.abilities.map((a) => (
             <Stat key={a.ability} label={abbr(a.ability)}>
               <div>{a.score}</div>
-              <div className="text-base font-normal">{bonus(a.modifier)}</div>
+              <div className="text-base font-normal">{bonusStr(a.modifier)}</div>
             </Stat>
           ))}
         </dl>
@@ -104,7 +104,7 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
         <ul className="flex flex-wrap gap-x-4">
           {sheet.abilities.map((a) => (
             <li key={a.ability} className={a.saveProficient ? "font-bold" : "text-gray-500"}>
-              {abbr(a.ability)} {bonus(a.save)}
+              {abbr(a.ability)} {bonusStr(a.save)}
             </li>
           ))}
         </ul>
@@ -114,7 +114,7 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
         <ul className="columns-2 sm:columns-3">
           {sheet.skills.map((skill) => (
             <li key={skill.key} className={skill.proficient ? "font-bold" : "text-gray-500"}>
-              {bonus(skill.bonus)} {skill.name} <span className="text-sm">({abbr(skill.ability)})</span>
+              {bonusStr(skill.bonus)} {skill.name} <span className="text-sm">({abbr(skill.ability)})</span>
               {skill.expertise && <span className="text-sm"> (expertise)</span>}
             </li>
           ))}
@@ -145,10 +145,10 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
                   <tr key={weapon.key}>
                     <Td>{weapon.name}</Td>
                     <Td>{weapon.proficient ? "Yes" : "No"}</Td>
-                    <Td>{bonus(weapon.attackBonus)} to hit</Td>
+                    <Td>{modStr(weapon.attackBonus)} to hit</Td>
                     <Td>
-                      {signed(weapon.damageModifier)}
-                      {weapon.offHandDamageModifier !== null && ` (off-hand ${signed(weapon.offHandDamageModifier)})`}
+                      {modStr(weapon.damageModifier)}
+                      {weapon.offHandDamageModifier !== null && ` (off-hand ${modStr(weapon.offHandDamageModifier)})`}
                     </Td>
                   </tr>
                 ))}
@@ -190,7 +190,7 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
                   <Td>{caster.name}</Td>
                   <Td>{abbr(caster.ability)}</Td>
                   <Td>{caster.saveDc}</Td>
-                  <Td>{bonus(caster.attackBonus)}</Td>
+                  <Td>{bonusStr(caster.attackBonus)}</Td>
                   <Td>{caster.canPrepare === null ? "—" : `${caster.canPrepare}/day`}</Td>
                 </tr>
               ))}

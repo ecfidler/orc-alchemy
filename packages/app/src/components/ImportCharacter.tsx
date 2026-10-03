@@ -9,8 +9,10 @@ export function ImportCharacter() {
   const [error, setError] = useState<string | null>(null);
 
   async function onChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const input = event.target;
+    const file = input.files?.[0];
     if (!file) return;
+    input.value = ""; // so choosing the same file again fires onChange
     setError(null);
     try {
       const text = await file.text();

@@ -1,8 +1,9 @@
 // The app-owned character sheet (ORC-48, rules option E). Components render
 // a Sheet and never read the engine's built character; toSheet is the one
 // adapter from the 2014 engine. A later engine needs a second adapter, not a
-// second sheet. Numbers stay numbers: components format signs and units.
-import type { Built2014, Feature, Inventory } from "@pubdoor/dmv";
+// second sheet. Numbers stay numbers and components format them; only the
+// ready-to-print feature and attack text is formatted here.
+import type { Amount, Built2014, Feature, Inventory } from "@pubdoor/dmv";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
 
@@ -105,7 +106,7 @@ export interface Sheet {
   /** All 18 skills, sorted by name. */
   skills: SheetSkill[];
 
-  /** The worn armor and wielded shield's AC, else the best combination. */
+  /** The worn armor and wielded shield's AC; with neither, or no match, the best combination. */
   armorClass: number;
   armorClassOptions: ArmorClassOption[];
   maxHitPoints: number;
@@ -214,15 +215,35 @@ const sentence = (text: string) => {
 const byName = <T extends { name: string }>(items: T[]) =>
   items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
+/** The old app's bonus-str ("0" for zero) and mod-str ("+0"), for the ready-to-print attack text. */
+const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+const modStr = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+
 const blankToNull = (value: unknown) =>
   (typeof value === "string" && value.trim() !== "") || typeof value === "number" ? String(value) : null;
 
+/** The old display's unit-amount-description: "1 minute", "60 feet", "2 rounds". */
+const unitAmount = ({ amount = 1, units }: Amount) => {
+  const unit = unqualify(units).replace(/-/g, " ");
+  return `${amount} ${amount === 1 || unit === "feet" ? unit : `${unit}s`}`;
+};
+
 const timesWord = (amount: number) => (amount === 1 ? "once" : amount === 2 ? "twice" : `${amount} times`);
 
-function toFeature({ name, summary, description, frequency }: Feature): SheetFeature {
+/** The old display's action-description: text, then "(qualifier, range …, lasts …, use twice/long rest)". */
+function toFeature(feature: Feature): SheetFeature {
+  const { name, summary, description, frequency, duration } = feature;
+  const { range, qualifier } = feature as Feature & { range?: Amount; qualifier?: string | null };
   let text = summary ?? description ?? "";
-  if (frequency?.amount != null && frequency.units) {
-    text += ` (use ${timesWord(frequency.amount)} per ${unqualify(frequency.units).replace(/-/g, " ")})`;
+  if (range || duration || frequency) {
+    const concentration = (duration as { concentration?: boolean } | undefined)?.concentration ? "conc. " : "";
+    const parts = [
+      qualifier,
+      range && `range ${unitAmount(range)}`,
+      duration && `lasts ${concentration}${unitAmount(duration)}`,
+      frequency && `use ${timesWord(frequency.amount ?? 1)}/${unqualify(frequency.units).replace(/-/g, " ")}`,
+    ];
+    text += ` (${parts.filter(Boolean).join(", ")})`;
   }
   return { name, text: sentence(text) };
 }
@@ -268,16 +289,37 @@ function toSpeeds(built: Built2014): Speed[] {
   return speeds;
 }
 
-/** The old display's attack-description, simplified: "Melee, DC13 dex save, 2d6 fire damage." */
+/** The old display's attack-description: "Melee, +5 to hit, 1d12+3 slashing damage, DC13 dex save." */
 function toSpecialAttack(attack: NonNullable<Built2014["attacks"]>[number]): SheetFeature {
-  const parts = [attack.summary, attack["attack-type"] ?? "melee"];
-  if (attack.save) parts.push(`DC${attack["save-dc"]} ${unqualify(attack.save)} save`);
-  if (attack["damage-die"] != null) {
-    const modifier = attack["damage-modifier"] ? (attack["damage-modifier"] > 0 ? "+" : "") + attack["damage-modifier"] : "";
-    const type = attack["damage-type"] ? `${unqualify(attack["damage-type"])} ` : "";
-    parts.push(`${attack["damage-die-count"] ?? 1}d${attack["damage-die"]}${modifier} ${type}damage`);
-  }
-  return { name: attack.name, text: sentence(parts.filter(Boolean).join(", ")) };
+  const a = attack as typeof attack & {
+    "area-type"?: string;
+    length?: number;
+    "line-width"?: number;
+    "line-length"?: number;
+    "attack-modifier"?: number;
+    description?: string;
+  };
+  const type = unqualify(a["attack-type"] ?? "melee");
+  const area = unqualify(a["area-type"] ?? "");
+  const shape =
+    type === "area"
+      ? area === "line"
+        ? `${a["line-width"]} x ${a["line-length"]} ft. line`
+        : area === "cone"
+          ? `${a.length} ft. cone`
+          : ""
+      : type === "ranged"
+        ? "ranged"
+        : "melee";
+  const toHit = type !== "area" && a["attack-modifier"] != null ? `${bonusStr(a["attack-modifier"])} to hit, ` : "";
+  const modifier = a["damage-modifier"] != null ? modStr(a["damage-modifier"]) : "";
+  const damageType = a["damage-type"] ? unqualify(a["damage-type"]) : "";
+  const save = a.save ? `, DC${a["save-dc"]} ${unqualify(a.save)} save` : "";
+  const summary = a.summary ?? a.description;
+  const text =
+    `${summary ? `${summary}, ` : ""}${shape}, ${toHit}` +
+    `${a["damage-die-count"]}d${a["damage-die"]}${modifier} ${damageType} damage${save}`;
+  return { name: a.name, text: sentence(text) };
 }
 
 function toSpellcasting(built: Built2014): Spellcasting | null {
@@ -317,7 +359,12 @@ export function toSheet(built: Built2014): Sheet {
   const acOptions = built["armor-class-with-armor"] ?? [];
   const wornArmor = (built["worn-armor"] as string | null | undefined) ?? null;
   const wieldedShield = (built["wielded-shield"] as string | null | undefined) ?? null;
-  const worn = acOptions.find((option) => option.armor === wornArmor && option.shield === wieldedShield);
+  const bestAc = Math.max(built["armor-class"], ...acOptions.map((option) => option.ac));
+  // As the old app: with nothing worn or wielded, the best combination; otherwise the worn one.
+  const worn =
+    wornArmor === null && wieldedShield === null
+      ? undefined
+      : acOptions.find((option) => option.armor === wornArmor && option.shield === wieldedShield);
   const text = (key: string) => blankToNull(built[key]);
 
   return {
@@ -358,7 +405,7 @@ export function toSheet(built: Built2014): Sheet {
       expertise: expertise.includes(key),
     })),
 
-    armorClass: worn?.ac ?? Math.max(built["armor-class"], ...acOptions.map((option) => option.ac)),
+    armorClass: worn?.ac ?? bestAc,
     armorClassOptions: acOptions.map(({ armor, shield, ac }) => ({
       armor: armor === null ? null : named(armor),
       shield: shield === null ? null : named(shield),

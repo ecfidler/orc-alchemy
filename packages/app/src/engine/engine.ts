@@ -1,5 +1,5 @@
-// The only module that touches @pubdoor/dmv. The rest of the app imports
-// the engine through here and treats the strict entity as an opaque value.
+// The engine boundary: only src/engine/ touches @pubdoor/dmv. The rest of the
+// app loads the engine through here and treats the strict entity as opaque.
 import { useMemo } from "react";
 import type * as Dmv from "@pubdoor/dmv";
 import type { Evaluation, StrictEntity } from "@pubdoor/dmv";

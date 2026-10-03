@@ -14,7 +14,7 @@ export function EngineGate({ children }: { children: ReactNode }) {
 
   if (state === "ready") return children;
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white text-black">
+    <div className="py-8 text-center">
       <p role="status">
         {state === "loading" ? "Loading the rules engine…" : "The rules engine failed to load. Reload the page to try again."}
       </p>

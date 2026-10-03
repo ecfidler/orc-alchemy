@@ -74,7 +74,7 @@ test("fighter-20", () => {
   expect(sheet.numberOfAttacks).toBe(4);
 
   expect(sheet.features.actions).toEqual([
-    { name: "Action Surge", text: "Take an extra action (use twice per rest)." },
+    { name: "Action Surge", text: "Take an extra action (use twice/rest)." },
     { name: "Grappler", text: "Restrain a creature you are grappling." },
   ]);
   expect(sheet.features.bonusActions.map((f) => f.name)).toEqual(["Second Wind"]);
@@ -145,4 +145,31 @@ test("fighter-1 armor class and hit points", () => {
 test("resistances and immunities become display strings", () => {
   expect(toSheet(builtOf("fighter-5")).resistances).toEqual(["Poison"]);
   expect(toSheet(builtOf("wizard-1")).immunities).toEqual(["Magical Sleep"]);
+});
+
+test("with nothing worn or wielded, AC is the best combination, as in the old app", () => {
+  const built = { ...builtOf("fighter-1"), "worn-armor": null, "wielded-shield": null };
+  expect(toSheet(built).armorClass).toBe(19);
+});
+
+test("special attacks read like the old display's attack-description", () => {
+  const built: Built2014 = {
+    ...builtOf("fighter-1"),
+    attacks: [
+      {
+        name: "Breath Weapon",
+        "attack-type": "area",
+        "area-type": "cone",
+        length: 15,
+        "damage-type": "fire",
+        "damage-die": 6,
+        "damage-die-count": 2,
+        save: "orcpub.dnd.e5.character/dex",
+        "save-dc": 13,
+      } as NonNullable<Built2014["attacks"]>[number],
+    ],
+  };
+  expect(toSheet(built).specialAttacks).toEqual([
+    { name: "Breath Weapon", text: "15 ft. cone, 2d6 fire damage, DC13 dex save." },
+  ]);
 });
