@@ -122,7 +122,7 @@ const expectedOf = (name: string) =>
 
 test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (name) => {
   const built = expectedOf(name);
-  render(<CharacterSheet sheet={toSheet(built)} />);
+  render(<CharacterSheet sheet={toSheet(built, {})} />);
 
   expect(screen.getByRole("heading", { level: 1, name: built["character-name"] })).toBeTruthy();
   expect(screen.getByLabelText("Hit Points").textContent).toBe(`${built["max-hit-points"]} / ${built["max-hit-points"]}`);
@@ -148,7 +148,7 @@ test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (nam
 
 test("wizard-20 shows its slots and every known spell", () => {
   const built = expectedOf("wizard-20");
-  render(<CharacterSheet sheet={toSheet(built)} />);
+  render(<CharacterSheet sheet={toSheet(built, {})} />);
   const slots = within(screen.getByRole("table", { name: "Spell Slots" })).getAllByRole("cell");
   expect(slots.map((cell) => Number(cell.textContent))).toEqual(Object.values(built["spell-slots"]));
   const knownCount = Object.values(built["spells-known"] as Record<string, { __entries: unknown[] }>).reduce(

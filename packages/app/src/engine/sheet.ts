@@ -340,11 +340,10 @@ function toSpecialAttack(attack: NonNullable<Built2014["attacks"]>[number]): She
  * has it as null, so this reads the strict entity's verbose Transit-JSON:
  * [{ "~:…/class-name": "Wizard", "~:…/prepared-spells": { "~#set": ["~:alarm", …] } }].
  */
-function preparedSpells(entity: StrictEntity | undefined): Record<string, Set<string>> {
+function preparedSpells(entity: StrictEntity): Record<string, Set<string>> {
   const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as
-    | { "~:orcpub.entity.strict/values"?: Record<string, unknown> }
-    | undefined;
-  const byClass = (strict?.["~:orcpub.entity.strict/values"]?.["~:orcpub.dnd.e5.character/prepared-spells-by-class"] ??
+    | { "~:orcpub.entity.strict/values"?: Record<string, unknown> };
+  const byClass = (strict["~:orcpub.entity.strict/values"]?.["~:orcpub.dnd.e5.character/prepared-spells-by-class"] ??
     []) as Record<string, unknown>[];
   return Object.fromEntries(
     byClass.map((entry) => {
@@ -357,7 +356,7 @@ function preparedSpells(entity: StrictEntity | undefined): Record<string, Set<st
   );
 }
 
-function toSpellcasting(built: Built2014, entity: StrictEntity | undefined): Spellcasting | null {
+function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | null {
   const known = Object.entries(built["spells-known"] ?? {});
   if (known.length === 0) return null;
   const prepares = built["prepares-spells"] ?? {};
@@ -383,8 +382,8 @@ function toSpellcasting(built: Built2014, entity: StrictEntity | undefined): Spe
               ...named(key),
               source: caster,
               ability: abilityOf(spell.ability),
-              // As the old sheet, less its always-prepared? half (such as domain
-              // spells): engine 0.1.0's built does not say which spells those are.
+              // The old sheet also marks always-prepared spells, such as domain
+              // spells; engine 0.1.0's built does not say which spells those are.
               prepared: Number(level) > 0 && prepares[caster] === true && (prepared[caster]?.has(key) ?? false),
             };
           })
@@ -394,8 +393,8 @@ function toSpellcasting(built: Built2014, entity: StrictEntity | undefined): Spe
   };
 }
 
-/** The entity gives the prepared spells; without it, no spell is marked prepared. */
-export function toSheet(built: Built2014, entity?: StrictEntity): Sheet {
+/** The built character as a Sheet; the entity it was built from gives the prepared spells, which built lacks. */
+export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
   const abilityKey = (ability: Ability) => `orcpub.dnd.e5.character/${ability}` as const;
   const skillProfs = built["skill-profs"] ?? {};
   const expertise = built["skill-expertise"] ?? [];
