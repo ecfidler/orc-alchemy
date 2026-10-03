@@ -69,6 +69,7 @@ export async function readCharacter(id: string): Promise<{ entity: StrictEntity;
 export const AUTOSAVE_DELAY_MS = 7500;
 
 let pending: { id: string; entity: StrictEntity; timer: ReturnType<typeof setTimeout> } | null = null;
+let saving = 0;
 
 useCharacter.subscribe((state, previous) => {
   // Opening another character saves the last one's pending changes now.
@@ -92,9 +93,14 @@ export async function flushAutosave(): Promise<void> {
   clearTimeout(timer);
   pending = null;
 
-  const record = await getCharacter(id);
-  if (record !== undefined) await save(record, entity); // undefined: deleted since
-  if (pending === null) window.removeEventListener("beforeunload", confirmLeave);
+  saving++;
+  try {
+    const record = await getCharacter(id);
+    if (record !== undefined) await save(record, entity); // undefined: deleted since
+  } finally {
+    saving--;
+  }
+  if (pending === null && saving === 0) window.removeEventListener("beforeunload", confirmLeave);
   // Changes made while saving stay dirty, with their draft.
   const state = useCharacter.getState();
   if (state.id !== id || state.entity === entity) await deleteDraft(id);

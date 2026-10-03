@@ -40,7 +40,7 @@ export function readCharacterFile(text: string): CharacterFile {
       if ((data.rules ?? "2014") !== "2014") {
         throw new Error(`This character uses the ${String(data.rules)} rules, which this app does not support yet`);
       }
-      return { characters: [importOne(data.entity, "2014")], failures: [] };
+      return { characters: [importOne(data.entity)], failures: [] };
     case "dmv-export": {
       checkVersion(data);
       // magicItems become homebrew, which arrives in M3.
@@ -61,8 +61,7 @@ export function readCharacterFile(text: string): CharacterFile {
   }
 }
 
-/** Characters from the old app and in bundles are 2014. */
-function importOne(entity: unknown, rules: Rules = "2014"): CharacterFileEntry {
+function importOne(entity: unknown): CharacterFileEntry {
   // importCharacter accepts any object, and gives an empty character for one
   // that is not verbose Transit-JSON, so check for a strict entity first.
   if (!isObject(entity) || !("~:orcpub.entity.strict/selections" in entity)) {
@@ -70,7 +69,8 @@ function importOne(entity: unknown, rules: Rules = "2014"): CharacterFileEntry {
   }
   const imported = engine().importCharacter(entity);
   const name = engine().evaluate(imported.entity).built["character-name"];
-  return { ...imported, rules, name: name || null };
+  // Every importable character is 2014: old-app files are, and readCharacterFile refuses other envelopes.
+  return { ...imported, rules: "2014", name: name || null };
 }
 
 function checkVersion(data: Record<string, unknown>) {

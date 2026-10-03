@@ -161,7 +161,8 @@ function openIndexedDb(): Promise<Backend> {
               else tx.objectStore(w.store).delete(w.delete);
             }
             tx.oncomplete = () => resolve();
-            tx.onerror = tx.onabort = () => reject(tx.error);
+            // A failed request aborts the transaction; tx.error is set by then.
+            tx.onabort = () => reject(tx.error);
           }),
       });
     };
