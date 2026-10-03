@@ -76,7 +76,7 @@ test("drafts are kept until deleted", async () => {
   expect(await getDraft("c")).toBeUndefined();
 });
 
-test("a failed request is thrown and reported, and storage stays on IndexedDB", async () => {
+test("a failed write is thrown and reported, and storage stays on IndexedDB", async () => {
   const sheet = sheetOf("wizard-5");
   await saveCharacter(record("d", sheet.name), sheet);
 
@@ -87,6 +87,12 @@ test("a failed request is thrown and reported, and storage stays on IndexedDB", 
 
   useStorage.setState({ failed: false });
   await deleteCharacter("d");
+});
+
+test("a failed read is thrown but not reported as a failed save", async () => {
+  // null is not an IndexedDB key, so the read is refused.
+  await expect(getCharacter(null as unknown as string)).rejects.toThrow();
+  expect(useStorage.getState()).toEqual({ inMemory: false, failed: false });
 });
 
 test("without IndexedDB, storage works in memory and says so", async () => {

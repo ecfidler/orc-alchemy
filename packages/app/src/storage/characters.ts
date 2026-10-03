@@ -3,7 +3,8 @@
 // list page, and drafts of unsaved changes. When IndexedDB is unavailable or
 // fails, as in some private windows, storage moves to memory for the rest of
 // the session and useStorage says so. A request that fails after that is
-// thrown to the caller, and useStorage says so too.
+// thrown to the caller. useStorage reports a failed write; a failed read is
+// for its caller to report, since nothing unsaved is at risk.
 import { create } from "zustand";
 import type { Rules, StrictEntity } from "../engine/engine.ts";
 import type { Sheet } from "../engine/sheet.ts";
@@ -59,12 +60,10 @@ function toSummary(record: CharacterRecord, sheet: Sheet): CharacterSummary {
 
 /** Writes a character's record and its summary together. */
 export function saveCharacter(record: CharacterRecord, sheet: Sheet): Promise<void> {
-  return run((db) =>
-    db.write([
-      { store: "characters", put: record },
-      { store: "summaries", put: toSummary(record, sheet) },
-    ]),
-  ).then(summariesChanged);
+  return write([
+    { store: "characters", put: record },
+    { store: "summaries", put: toSummary(record, sheet) },
+  ]).then(summariesChanged);
 }
 
 export function getCharacter(id: string): Promise<CharacterRecord | undefined> {
@@ -73,13 +72,11 @@ export function getCharacter(id: string): Promise<CharacterRecord | undefined> {
 
 /** Deletes a character's record, summary and draft. */
 export function deleteCharacter(id: string): Promise<void> {
-  return run((db) =>
-    db.write([
-      { store: "characters", delete: id },
-      { store: "summaries", delete: id },
-      { store: "drafts", delete: id },
-    ]),
-  ).then(summariesChanged);
+  return write([
+    { store: "characters", delete: id },
+    { store: "summaries", delete: id },
+    { store: "drafts", delete: id },
+  ]).then(summariesChanged);
 }
 
 export function listCharacters(): Promise<CharacterRecord[]> {
@@ -91,7 +88,7 @@ export function listSummaries(): Promise<CharacterSummary[]> {
 }
 
 export function saveDraft(draft: Draft): Promise<void> {
-  return run((db) => db.write([{ store: "drafts", put: draft }]));
+  return write([{ store: "drafts", put: draft }]);
 }
 
 export function getDraft(id: string): Promise<Draft | undefined> {
@@ -99,7 +96,7 @@ export function getDraft(id: string): Promise<Draft | undefined> {
 }
 
 export function deleteDraft(id: string): Promise<void> {
-  return run((db) => db.write([{ store: "drafts", delete: id }]));
+  return write([{ store: "drafts", delete: id }]);
 }
 
 type StoreName = "characters" | "summaries" | "drafts";
@@ -118,8 +115,13 @@ let backend: Promise<Backend> | undefined;
 /** Runs op on IndexedDB, or on memory if IndexedDB does not open. */
 async function run<T>(op: (db: Backend) => Promise<T>): Promise<T> {
   backend ??= openIndexedDb().catch(toMemory);
+  return op(await backend);
+}
+
+/** Applies the writes in one transaction, and reports in useStorage if they fail. */
+async function write(writes: Write[]): Promise<void> {
   try {
-    return await op(await backend);
+    await run((db) => db.write(writes));
   } catch (e) {
     useStorage.setState({ failed: true });
     throw e;
