@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft } from "../storage/characters.ts";
-import { addCharacter, AUTOSAVE_DELAY_MS, flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "./character.ts";
+import { addCharacter, AUTOSAVE_DELAY_MS, flushAutosave, readCharacter, removeCharacter, useCharacter, useOpenCharacter } from "./character.ts";
 
 beforeAll(() => loadEngine());
 
@@ -79,6 +79,20 @@ test("a flush waits for a save the timer already started", async () => {
   await flushAutosave();
   expect((await getCharacter(id))?.name).toBe("Keyleth");
   await deleteCharacter(id);
+});
+
+test("removing the open character closes it, and its pending save does not store it again", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+  rename("Grog");
+  await removeCharacter(id);
+  expect(useCharacter.getState()).toMatchObject({ id: null, entity: null, dirty: false });
+  await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS);
+  expect(await getCharacter(id)).toBeUndefined();
+  expect(await getDraft(id)).toBeUndefined();
+  expect((await listSummaries()).find((s) => s.id === id)).toBeUndefined();
 });
 
 test("opening a character recovers its draft", async () => {

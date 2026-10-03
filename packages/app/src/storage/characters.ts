@@ -41,6 +41,10 @@ export interface Draft {
 
 export const useStorage = create<{ inMemory: boolean; failed: boolean }>(() => ({ inMemory: false, failed: false }));
 
+/** Counts writes to the summaries index, so the list page can re-read it when it changes. */
+export const useSummariesVersion = create<number>(() => 0);
+const summariesChanged = () => useSummariesVersion.setState((version) => version + 1, true);
+
 function toSummary(record: CharacterRecord, sheet: Sheet): CharacterSummary {
   return {
     id: record.id,
@@ -60,7 +64,7 @@ export function saveCharacter(record: CharacterRecord, sheet: Sheet): Promise<vo
       { store: "characters", put: record },
       { store: "summaries", put: toSummary(record, sheet) },
     ]),
-  );
+  ).then(summariesChanged);
 }
 
 export function getCharacter(id: string): Promise<CharacterRecord | undefined> {
@@ -75,7 +79,7 @@ export function deleteCharacter(id: string): Promise<void> {
       { store: "summaries", delete: id },
       { store: "drafts", delete: id },
     ]),
-  );
+  ).then(summariesChanged);
 }
 
 export function listCharacters(): Promise<CharacterRecord[]> {

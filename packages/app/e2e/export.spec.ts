@@ -43,8 +43,8 @@ test("export everything downloads a dmv-export bundle that imports back", async 
 
   await page.getByLabel("Import character file").setInputFiles(await download.path());
   await expect(page.getByRole("heading", { name: "Imported 2 characters" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Brannor Ironfist" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Fimble Nackle" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Brannor Ironfist", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Fimble Nackle", exact: true })).toBeVisible();
 });
 
 test("export everything with nothing stored says so", async ({ page }) => {

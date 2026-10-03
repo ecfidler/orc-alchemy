@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useParams } from "react-router";
 import { AppShell } from "../components/AppShell.tsx";
+import { CharacterList } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { ImportCharacter } from "../components/ImportCharacter.tsx";
@@ -63,6 +64,9 @@ export const routes: RouteObject[] = [
             <h1 className="text-xl">Characters</h1>
             <ImportCharacter />
             <ExportEverything />
+            <div className="mt-4">
+              <CharacterList />
+            </div>
           </>
         ),
       },

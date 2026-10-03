@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { loadEngine } from "../engine/engine.ts";
 import { characterFile, exportBundle } from "../engine/import.ts";
 import { flushAutosave } from "../state/character.ts";
 import { getCharacter, listCharacters } from "../storage/characters.ts";
 
-/** Downloads a stored character as a dmv-character file, after saving any pending changes. */
-export function ExportCharacter({ id }: { id: string }) {
+/** Downloads a stored character as a dmv-character file, after saving any pending changes. Loads the engine on demand. */
+export function ExportCharacter({ id, label = "Export this character" }: { id: string; label?: ReactNode }) {
   return (
     <ExportButton
-      label="Export this character"
+      label={label}
       onExport={async () => {
-        await flushAutosave();
+        await Promise.all([loadEngine(), flushAutosave()]);
         const record = await getCharacter(id);
         if (record === undefined) throw new Error("The character is no longer stored");
         download(`${fileName(record.name)}.json`, characterFile(record));
@@ -34,7 +34,7 @@ export function ExportEverything() {
   );
 }
 
-function ExportButton({ label, onExport }: { label: string; onExport: () => Promise<void> }) {
+function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => Promise<void> }) {
   const [error, setError] = useState<string | null>(null);
   async function onClick() {
     setError(null);
