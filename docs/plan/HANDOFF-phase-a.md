@@ -1,3 +1,12 @@
+---
+type: Handoff
+title: "Phase A handoff: start here"
+description: "The starting point for Phase A work on @pubdoor/dmv: environment, repository state, the M1 sequence, and the rules."
+tags: [plan, phase-a, engine, handoff]
+status: stable
+generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+---
+
 # Phase A handoff: start here
 
 You are picking up Phase A of the active plan (`docs/plan/`,

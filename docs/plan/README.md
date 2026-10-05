@@ -1,3 +1,12 @@
+---
+type: Plan Overview
+title: Plan Set 2
+description: "The active plan: a new app on the compiled cljc engine library, with user-level content compatibility."
+tags: [plan]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-30T00:56:17Z }
+---
+
 # Plan Set 2: a new app on the cljc engine library, with user-level content compatibility
 
 > Status: active. This is the plan under consideration for implementation.

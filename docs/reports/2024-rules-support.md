@@ -1,3 +1,12 @@
+---
+type: Report
+title: Supporting the 2024 rules
+description: "Options for 2024 rules (SRD 5.2) support in the engine library, and the decision: option E, a separate later engine."
+tags: [rules-2024, engine, decision]
+status: stable
+generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+---
+
 # Supporting the 2024 rules: options for the engine library
 
 > Status: decided 2026-09-23. The owner chose option E (ORC-94). The

@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "04: Homebrew"
+description: ".orcbrew import and export through the engine library: validation, conflicts, storage, and old bugs to fix."
+tags: [plan, homebrew, orcbrew]
+status: stable
+generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+---
+
 # 04: Homebrew
 
 This document covers `.orcbrew` import and export through the engine

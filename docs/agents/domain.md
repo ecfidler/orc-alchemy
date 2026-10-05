@@ -1,3 +1,12 @@
+---
+type: Agent Guide
+title: Domain docs for agents
+description: How engineering skills find and read CONTEXT.md and the ADRs in this repository.
+tags: [agents, domain]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-30T01:20:04Z }
+---
+
 # Domain Docs
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.

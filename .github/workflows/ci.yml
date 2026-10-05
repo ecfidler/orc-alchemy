@@ -28,6 +28,9 @@ jobs:
 
             - run: bun install --frozen-lockfile
 
+            - name: Docs bundle check
+              run: bun run docs:check
+
             - name: Typecheck
               working-directory: packages/app
               run: bun run typecheck

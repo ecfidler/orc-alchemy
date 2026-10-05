@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "00: Repository strategy"
+description: "Where the work happens: the engine is built and published from the fork, and the app is its own repository."
+tags: [plan, repositories]
+status: stable
+generated: { by: claude-code/agent, at: 2026-10-05T02:18:10Z }
+---
+
 # 00: Repository strategy
 
 This document says where the work happens and how the pieces are split

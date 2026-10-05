@@ -1,3 +1,12 @@
+---
+type: Notes
+title: Human notes
+description: "Notes, ideas, and to-do items that human developers write about the project."
+tags: [notes]
+status: draft
+generated: { by: human:ecfidler, at: 2026-10-02T20:19:52Z }
+---
+
 # Human Notes
 
 Notes written by human developers about the project. could be todo lists or in-progress features.

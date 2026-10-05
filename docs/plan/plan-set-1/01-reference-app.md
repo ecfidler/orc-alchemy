@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "Phase 0: Run the reference app"
+description: Run the existing app and capture reference behavior to test against.
+tags: [plan-set-1, reference-app]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-30T00:56:17Z }
+---
+
 # Phase 0: Run the reference app
 
 The goal is a running instance of the current app, the reference app, that

@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "Milestones, sequencing, and risks"
+description: "Plan Set 1 milestone sequencing, definitions of done, and the risk register."
+tags: [plan-set-1, milestones]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-29T23:45:58Z }
+---
+
 # Milestones, sequencing, and risks
 
 ## Milestone sequence

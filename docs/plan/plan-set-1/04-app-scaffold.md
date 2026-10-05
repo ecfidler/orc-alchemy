@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "Phase 3: Scaffold the TypeScript app"
+description: "Scaffold the Vite, React, and TypeScript app, the API client, and state management."
+tags: [plan-set-1, app]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-29T23:45:58Z }
+---
+
 # Phase 3: Scaffold the TypeScript app
 
 The goal is a running `web-ts/` app with routing, auth, the API client,

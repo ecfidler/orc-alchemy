@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "02: The engine library"
+description: "What the compiled engine package exposes beyond the Plan Set 1 facade, the build scope, the engine wrinkles, and the golden tests."
+tags: [plan, engine, phase-a]
+status: stable
+generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+---
+
 # 02: The engine library
 
 Plan Set 1 doc 03 (`docs/plan/plan-set-1/03-engine-package.md`) describes

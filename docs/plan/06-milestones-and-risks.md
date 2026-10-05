@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "06: Milestones, decisions, and risks"
+description: "The milestone sequence, the decision record, and the definition of done. Linear has the status and the risk register."
+tags: [plan, milestones, decisions]
+status: stable
+generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+---
+
 # 06: Milestones, decisions, and risks
 
 > Status and sequencing are in Linear, workspace *Orc Alchemy*. Milestones

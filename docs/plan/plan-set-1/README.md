@@ -1,3 +1,12 @@
+---
+type: Plan Overview
+title: Plan Set 1
+description: "Reference plan: a TypeScript frontend on the compiled engine (Option A). Plan Set 2 builds on it."
+tags: [plan-set-1]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-29T23:48:02Z }
+---
+
 # Plan Set 1: a TypeScript frontend on the compiled engine (Option A)
 
 > Status: reference. The plan under consideration is
