@@ -203,7 +203,7 @@ amounts to:
 - [ ] For every M0 golden character, `evaluate().built` equals `expected.json`
 - [ ] The ported warlock, character round-trip, and event-handler tests are green
 - [ ] The legacy fixtures for R1 to R9 import, with R5 and R7 covered explicitly
-- [ ] Patches D1 and D2 are committed with tests. D3 and D4 are deferred to M3 with `parseOrcbrew`
+- [ ] Patches D1 and D2 are committed with tests. D3 to D5 are deferred to M3 with `parseOrcbrew`
 - [ ] CI is green on `engine`
 
 ## 6. Rules

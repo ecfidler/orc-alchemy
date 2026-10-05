@@ -46,12 +46,18 @@ Clojure.
 | `exportCharacter(entity)`, returning JSON | `char5e/to-strict` | The new app's own file format (doc 03) |
 | `buildTemplate(homebrew)` | The `spell_subs.cljs` chain, lifted to functions | See §De-re-framing below |
 | `parseOrcbrew(text, { name?, existing?, strict? })`, returning `{ success, data, log, conflicts, skipped }` | `import_validation/validate-import` and its helpers | Pure. See doc 04 |
-| `validateForExport(homebrew, { pack? })`, returning `{ valid, packs, filled }` | `import_validation/validate-before-export`, plus the facade's own item checks | Checks one pack, or all packs without `pack`. Each entry in `packs` lists the old check's errors and the facade's `itemProblems`: a `:key` that is not the map key, a blank `:option-pack`, or a `nil` the importer would change. `filled` is the homebrew with those items repaired and the old "export anyway" placeholders added. See doc 01 §Export |
+| `validateForExport(homebrew, { pack? })`, returning `{ valid, packs, filled }` | `import_validation/validate-before-export`, plus the facade's own item checks | Export. The paragraph after this table describes the result |
 | `orcbrewToEdn(homebrew, { pack?, pretty? })`, returning text | `pr-str`, or `pprint` with `pretty` | Export. With `pack`, one pack as a single-plugin map. Without it, all packs as the multi-plugin map. It validates nothing, so run `validateForExport` first |
 | `renameKey(homebrew, { pack, contentType, from, to })` | `import_validation/rename-key-in-plugin` | Applies a conflict rename in one pack and rewrites the pack's references (patch D4) |
 | `reconcileMissingContent(entity, homebrew)` | `content_reconciliation.cljs` | Suggestions for unresolved keys |
 | The content lists, `@pubdoor/dmv/content/<name>.json` | The data namespaces plus the `magic-items` expansion, dumped to JSON at build time | 13 JSON files for the browse pages, such as `spells.json` and `magic-items.json`. A page that imports them never loads the engine chunk |
 | `keys.selectionKeys()` and `optionKeys()` | A walk of the built template | For the C3 identity test |
+
+`validateForExport` checks one pack, or all packs without `pack`. Each
+entry in `packs` holds the old check's errors and the facade's
+`itemProblems`, and `filled` is the homebrew with each problem repaired
+and the old "export anyway" placeholders added. Doc 01 §Export lists the
+item checks.
 
 ## Rules edition
 
@@ -159,7 +165,7 @@ fork (doc 00) and bumps the published package version.
 | D2 | Take the Dueling reads from the entity instead of `app-db`. Fix the `(fn [weapon _] …)` arity, which fails only on the JVM, and document that the bonus applies only with a one-handed melee weapon in the main hand and a non-weapon such as a shield in the off hand (`fixtures/README.md` finding 2). Done in ORC-22, which also moved the Dual Wielder and `<none>` prerequisite reads, as wrinkle 1 describes | Wrinkle 1 |
 | D3 | Add `:boons` to `required-fields` and `content-type-names` in `import_validation.cljs` | Doc 01 §Known quirks |
 | D4 | Extend `key-reference-map` to every key reference in a pack: spells' `:spell-lists`, the `:type` of each `level-selections` entry in a class or subclass, a class's or subclass's `[:spellcasting :spell-list-kw]`, a subclass's `[:spellcasting :spell-list]`, and a feat's `[:path-prereqs :race]`. `rename-key-in-plugin` also sets the renamed item's `:key`, and renaming a key that the pack lacks changes nothing. Done in ORC-35 | Doc 01 §Known quirks |
-| D5 | On import, rewrite two homebrew forms that the old engine mishandled (`import_validation.cljs`). `normalize-ability-keys-in-import` rewrites bare ability keys as qualified keys (`normalized-ability-key`), and `default-skill-choose-in-import` gives a skill choice without `:choose` the value 1 (`defaulted-choose`). Done in ORC-40 and ORC-39 | Doc 01 §C1 |
+| D5 | On import, rewrite two homebrew forms that the old engine mishandled (`import_validation.cljs`). `normalize-ability-keys-in-import` rewrites bare ability keys such as `:con` as qualified keys in races, feats, classes, and subclasses (`normalized-ability-key`). Monsters keep their bare keys, and doc 01 §C1 lists every place. `default-skill-choose-in-import` gives a skill choice without `:choose` the value 1 (`defaulted-choose`). Done in ORC-40 and ORC-39 | Doc 01 §C1 |
 
 Anything else is a facade concern, not an engine patch.
 

@@ -47,7 +47,8 @@ is compiled into the library (doc 04). The contract is therefore to call
 that pipeline rather than bypass it, and to cover each form with a fixture
 so that a library upgrade cannot regress it (`fixtures/orcbrew/drift-01` to
 `drift-10`). `drift-11` and `drift-12` cover the two rewrites described
-below.
+below. They are in the fork's `fixtures/` on `pubdoor` and arrive here when
+the snapshot is refreshed with the 0.2.0 pin.
 
 M0 corrected two points (`fixtures/README.md` §Findings). First, the old
 importer accepted form 10 without effect: `{:con 2}` added nothing to
@@ -59,7 +60,7 @@ these places:
 
 - `:abilities` of a race or subrace.
 - `:ability-increases` and `:prereqs` of a feat.
-- `[:profs :save]` of a class.
+- `[:profs :save]` of a class or subclass.
 - `[:spellcasting :ability]` of a class or subclass.
 - `[:value :ability]` of a `:spell` level-modifier.
 
@@ -166,9 +167,10 @@ therefore about not breaking that identity:
   (`name-to-kw subclass-title`), or `ref` paths.
 - The proof is a CI test that loads every golden character and every
   fixture `.orcbrew` and asserts zero unresolved option keys.
-- Four fixtures pin their unresolved keys instead (`fixtures/README.md`
-  finding 17). Each lists them under `unresolved` in its `.meta.json`, and
-  the test asserts exactly those. The legacy fixture `r8-unresolved-keys`
+- Four fixtures pin their unresolved keys instead (finding 17 in the
+  fork's `fixtures/README.md` on `pubdoor`, which reaches this repo's
+  snapshot with the 0.2.0 pin). Each lists them under `unresolved` in its
+  `.meta.json`, and the test asserts exactly those. The legacy fixture `r8-unresolved-keys`
   is unresolved by design. The legacy fixtures `character-test-2` and
   `character-test-3` are real saved characters whose non-SRD content does
   not resolve against the SRD. The golden character `warlock-10-drow` is
@@ -182,7 +184,7 @@ therefore about not breaking that identity:
 | Multi-plugin import skips per-item validation (`import_validation.cljs:782-794`) | Validate uniformly, in the TypeScript layer around the library call | Leniency comes from the automatic cleaning, not from skipping validation |
 | A single invalid entry in localStorage wipes all homebrew on reload (`db.cljs:244-265`) | Not applicable, because storage is the new app's (doc 04). Quarantine invalid entries | Data-loss bug |
 | Homebrew rename rewrites only `:class` and `:race` references (`key-reference-map`, `:1382`) | Rewrite all references, including spells' `:spell-lists`, the spell list a class or subclass uses, feats' race prerequisites, and `level-selections` types (patch D4) | Strictly better, and old files are unaffected |
-| Bare ability keys such as `:con` in homebrew have no effect, and a skill choice without `:choose` has no maximum | Rewrite them on import and log each rewrite (patch D5, ORC-40, ORC-39) | An author who writes `{:con 2}` means +2 CON, and the old builder shows 1 when `:choose` is unset |
+| Bare ability keys such as `:con` in homebrew have no effect, and a skill choice without `:choose` has no maximum | Rewrite them on import and log each rewrite (patch D5, ORC-40, ORC-39) | An author who writes `{:con 2}` means +2 CON. The old builder writes `:choose` only when the author changes it from its displayed default of 1, so a missing `:choose` means one skill |
 | `:boons` is missing from the import required-fields and content-type names | Add them | Half-supported type |
 | The importer ignores a background's `:key` in the file and re-derives it from the name | Honor the key when it equals `name-to-kw(name)`, and warn otherwise | Preserve keys |
 | The Forgotten Realms name tables in `character/random.cljc` are non-SRD | Exclude that namespace from the bundle. Provide original name lists or none | Licensing |

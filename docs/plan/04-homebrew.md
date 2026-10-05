@@ -20,7 +20,7 @@ The source of truth for the old behavior is the homebrew investigation:
   5. Required-field placeholders.
   6. Selection-option deduplication.
   7. The bare ability-key rewrite and the skill-choice default, added by
-     patch D5 (doc 02, doc 01 §C1).
+     patch D5. Doc 01 §C1 lists where each applies.
   8. Duplicate-key detection, internal and external.
   9. Structure validation, progressive or strict.
 - **The conversion to template options.** The `spell_subs.cljs` chain,
@@ -110,7 +110,7 @@ The facade exposes these as follows:
 
 - `:boons` is half-supported.
 - Multi-plugin import skips per-item validation.
-- Rename rewrites only `:class` and `:race` references.
+- Rename rewrites only `:class` and `:race` references. Patch D4 fixed it.
 - One bad entry wipes all homebrew.
 - The background `:key` in the file is ignored.
 - Bare ability keys have no effect, and a skill choice without `:choose`

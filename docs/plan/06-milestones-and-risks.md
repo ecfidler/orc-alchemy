@@ -35,9 +35,11 @@ project *2024 engine* (ORC-95 to ORC-97). See the decision record below.
   constructors with level gating inside macro bodies, and the shipped
   content is 12 classes, 9 races, 319 spells, 337 magic items, and more.
   The magic items become 805 in the content list, which lists each magic
-  weapon and armor once per base item. Re-expressing that as data and
-  re-authoring it is a 6 to 9 month critical path on its own. Compiling it
-  is weeks. Content identity (contract C3) also becomes automatic.
+  weapon and armor once per base item. The fork's
+  `engine-js/test/content.test.ts` asserts these counts. Re-expressing that
+  as data and re-authoring it is a 6 to 9 month critical path on its own.
+  Compiling it is weeks. Content identity (contract C3) also becomes
+  automatic.
 - **Why build the engine in this fork rather than vendor it** (doc 00). The
   fork already has the Clojure toolchain and the running old app. The new
   app needs five small engine patches, which are ordinary commits here. And
@@ -70,7 +72,9 @@ project *2024 engine* (ORC-95 to ORC-97). See the decision record below.
   pack, except the keys that four fixtures record (doc 01 §C3).
 - A user of the old app can follow the published guide to export
   `all-content.orcbrew`, run the exporter bookmarklet, import both into the
-  new app, and see every character evaluate to the same sheet values.
+  new app, and see every character evaluate to the same sheet values. The
+  exception is a character whose homebrew patch D5 rewrites on import
+  (doc 01 §Mechanics fidelity).
 
 The same sheet values are required while `@pubdoor/dmv` evaluates 2014
 characters. When the later engine takes over 2014 (ORC-97), the bar
