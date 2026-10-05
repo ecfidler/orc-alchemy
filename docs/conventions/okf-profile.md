@@ -4,12 +4,11 @@ title: How this project uses the Open Knowledge Format
 description: The project rules for OKF v0.2 bundles, frontmatter, types, actors, links, indexes, and logs in orc-alchemy and the orcpub fork.
 tags: [docs, okf, conventions]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-05T22:30:00Z }
+generated: { by: claude-code/agent, at: 2026-10-05T22:20:14Z }
 sources:
   - id: okf-spec
     resource: https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md
     title: Open Knowledge Format specification, version 0.2
-    author: team:GoogleCloudPlatform
 ---
 
 # Purpose
@@ -30,8 +29,8 @@ applies.
 | `ecfidler/orc-alchemy` | `docs/` | All project knowledge: the plan, reports, the knowledge base, conventions, and agent guides. |
 | `ecfidler/orcpub` | `docs/pubdoor/` | Fork-owned knowledge about the engine package and the fork. |
 
-orc-alchemy is the home of project knowledge. Put a new document there
-unless it describes only the fork.
+orc-alchemy is the home of project knowledge. If a new document describes
+only the fork, put it in the fork bundle. Otherwise, put it in orc-alchemy.
 
 ## Files outside a bundle
 
@@ -67,7 +66,7 @@ generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
 | Key | Rule |
 |---|---|
 | `type` | Required. Use a value from the type list below. |
-| `title` | Required. The display name. Use the document's H1 text. |
+| `title` | Required. The display name. Use the H1 text or a short form of it. |
 | `description` | Required. One sentence. Index files copy it. |
 | `tags` | Recommended. Lowercase words joined by hyphens. Use an existing tag before you make a new one. |
 | `status` | Required. `draft`, `stable`, or `deprecated`. |
@@ -78,7 +77,10 @@ generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
 | `resource` | Optional. A URL for the thing that the document describes, for example a Linear project. |
 
 Write every time in UTC with a `Z` suffix, for example
-`2026-10-05T22:30:00Z`.
+`2026-10-05T22:30:00Z`. Write `generated` on one line, as above.
+
+The `title` key is the page title. Body sections can use `#` headings, as
+the OKF spec examples do.
 
 ## When you edit a document
 
@@ -87,13 +89,13 @@ Write every time in UTC with a `Z` suffix, for example
 2. If you only fix a typo or a link, do not change `generated`.
 3. Do not add `verified` for another person. Merging a pull request is not
    verification.
-4. If the document is no longer current, set `status: deprecated`. Do not
-   delete it while other documents link to it.
+4. If the document is no longer current, set `status: deprecated`.
+5. If other documents link to a deprecated document, do not delete it.
 
 # Types
 
-Use one of these values for `type`. Add a new type only when no value fits.
-Then add it to this table in the same change.
+Use one of these values for `type`. If no value fits, add a new type to
+this table in the same change.
 
 | Type | Use it for | Diátaxis mode |
 |---|---|---|
@@ -114,7 +116,9 @@ Then add it to this table in the same change.
 
 - A person: `human:<github-login>`, for example `human:ecfidler`.
 - A Claude Code agent: `claude-code/agent`. Do not put a model name in the
-  actor.
+  actor. The repositories do not record model names, so the version part
+  of the actor is `agent`. This is a deliberate difference from the spec
+  example, which puts a model version there.
 - An automated process: `process:<name>`, for example `process:ci`.
 
 # Links
@@ -167,5 +171,8 @@ The check runs in CI. It fails when:
   link to each document and subdirectory in its directory.
 - A `log.md` heading is not an ISO date.
 - A relative link points to a file that does not exist.
+
+The spec tells consumers to accept broken links. The check is stricter on
+purpose: in this project, a broken link is a mistake.
 
 [^okf-spec]: Open Knowledge Format specification, version 0.2

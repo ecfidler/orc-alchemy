@@ -4,12 +4,11 @@ title: Writing standard
 description: "The project writing standard: ASD-STE100 Simplified Technical English at about 80 percent, with the rules we keep and the rules we relax."
 tags: [docs, writing, ste, conventions]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-05T22:30:00Z }
+generated: { by: claude-code/agent, at: 2026-10-05T22:20:14Z }
 sources:
   - id: ste100
     resource: https://www.asd-ste100.org/
     title: ASD-STE100 Simplified Technical English, Issue 9
-    author: team:asd-ste100
   - id: technical-writing-skill
     resource: https://github.com/ecfidler/orcpub/blob/pubdoor/.claude/skills/technical-writing/SKILL.md
     title: technical-writing skill
@@ -72,8 +71,8 @@ Always apply these rules.
 
 # Rules we relax
 
-These rules are the other 20 percent. Follow them when you can. Break them
-when the sentence becomes clearer.
+Follow these rules when you can. If a rule makes a sentence less clear,
+break the rule.
 
 | STE rule | What this project permits |
 |---|---|
@@ -86,12 +85,15 @@ when the sentence becomes clearer.
 
 # How to measure 80 percent
 
-Read the document and count the sentences that break a rule.
+The target is that at least four sentences in five obey all the STE rules,
+the relaxed rules included. Read the document and count.
 
 1. If a sentence breaks a rule that we keep, fix it.
 2. If more than one sentence in five breaks a relaxed rule, rewrite the
-   longest sentences first.
+   longest of those sentences first.
 3. If a fix makes a sentence less clear, keep the original sentence.
+
+The STE dictionary is not part of the count.
 
 The CI check does not measure STE. The reviewer measures it.
 

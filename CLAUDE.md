@@ -25,9 +25,9 @@ package; the exporter bookmarklet and later the 2024 engine are siblings.
   [Alchemy 5e](https://linear.app/orc-alchemy/project/alchemy-5e-9db66f3ef51e).
   Name the issue (`ORC-nn`) in each commit or PR.
 - **`docs/` is an Open Knowledge Format (OKF) v0.2 bundle.** Each document
-  has YAML frontmatter, and each directory has an `index.md`. Read
-  `docs/conventions/okf-profile.md` before you add, move, or change a
-  document, and run `bun run docs:check` after. CI runs the same check.
+  has YAML frontmatter, and each directory has an `index.md`. Before you
+  add, move, or change a document, read `docs/conventions/okf-profile.md`.
+  After the change, run `bun run docs:check`. CI runs the same check.
 - **Write to the project writing standard**, `docs/conventions/writing-standard.md`:
   ASD-STE100 Simplified Technical English at about 80 percent. Apply it to
   docs, PR bodies, commit messages, and Linear issues.
