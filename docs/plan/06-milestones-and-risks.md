@@ -33,13 +33,14 @@ project *2024 engine* (ORC-95 to ORC-97). See the decision record below.
 - **Why Option 2A over a from-scratch engine.** The investigation showed
   that the rules are about 110 lazy attributes plus about 100 modifier
   constructors with level gating inside macro bodies, and the shipped
-  content is 12 classes, 9 races, 268 spells, 288 magic items, and more.
-  Re-expressing that as data and re-authoring it is a 6 to 9 month critical
-  path on its own. Compiling it is weeks. Content identity (contract C3)
-  also becomes automatic.
+  content is 12 classes, 9 races, 319 spells, 337 magic items, and more.
+  The magic items become 805 in the content list, which lists each magic
+  weapon and armor once per base item. Re-expressing that as data and
+  re-authoring it is a 6 to 9 month critical path on its own. Compiling it
+  is weeks. Content identity (contract C3) also becomes automatic.
 - **Why build the engine in this fork rather than vendor it** (doc 00). The
   fork already has the Clojure toolchain and the running old app. The new
-  app needs four small engine patches, which are ordinary commits here. And
+  app needs five small engine patches, which are ordinary commits here. And
   the app repo then never carries Leiningen, shadow-cljs, or the re-frame
   UI.
 - **Why the strict entity is the native format.** The engine consumes it,
@@ -66,7 +67,7 @@ project *2024 engine* (ORC-95 to ORC-97). See the decision record below.
 
 - All three contracts in doc 01 have green CI suites.
 - Zero unresolved content keys across every golden character and fixture
-  pack.
+  pack, except the keys that four fixtures record (doc 01 §C3).
 - A user of the old app can follow the published guide to export
   `all-content.orcbrew`, run the exporter bookmarklet, import both into the
   new app, and see every character evaluate to the same sheet values.
