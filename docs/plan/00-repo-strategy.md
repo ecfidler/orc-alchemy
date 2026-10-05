@@ -9,7 +9,7 @@ the "vendor the engine source" arrangement that doc 02 originally described.
 The plan has two kinds of work with different toolchains:
 
 - **Clojure work.** Capturing fixtures from the running old app, building
-  the engine library with shadow-cljs, and the four small engine patches.
+  the engine library with shadow-cljs, and the five small engine patches.
   This work needs a JVM, Leiningen, the Datomic transactor, and the old app
   itself.
 - **TypeScript work.** The new application, its tests, and its backend.
@@ -32,7 +32,7 @@ dependency, and the fork is the only place that can build it.
   now "Where the engine is built". The engine source is not copied into the
   app repo. `engine-js/` sits in this fork beside `src/` and compiles
   against `../src/cljc` and the named `src/cljs` namespaces in place. The
-  four patches are commits to this fork's own source. It is the user's
+  five patches are commits to this fork's own source. It is the user's
   fork, so there is no upstream copy to track a diff against. The exclusion
   list (`pdf_spec.cljc`, `character/random.cljc`, `char_decision_tree.cljc`,
   `templates/`) becomes shadow-cljs build configuration rather than a copy

@@ -19,8 +19,10 @@ The source of truth for the old behavior is the homebrew investigation:
      per field class.
   5. Required-field placeholders.
   6. Selection-option deduplication.
-  7. Duplicate-key detection, internal and external.
-  8. Structure validation, progressive or strict.
+  7. The bare ability-key rewrite and the skill-choice default, added by
+     patch D5. Doc 01 §C1 lists where each applies.
+  8. Duplicate-key detection, internal and external.
+  9. Structure validation, progressive or strict.
 - **The conversion to template options.** The `spell_subs.cljs` chain,
   lifted to `buildTemplate(homebrew)` (doc 02). It handles `:props` through
   `plugin-modifiers`, `:level-modifiers` through `level-modifier`,
@@ -30,14 +32,27 @@ The source of truth for the old behavior is the homebrew investigation:
   Same code, same results.
 - **Export.** `pr-str` of the plugin map, single-plugin for one pack and
   multi-plugin for all. Also the pre-export validation
-  (`validate-before-export`) with the "export anyway" placeholder fill.
+  (`validate-before-export`) with the "export anyway" placeholder fill. The
+  facade adds three item checks that the old spec lacks (doc 01 §Export).
 - **Missing-content reconciliation** for loaded characters
   (`content_reconciliation.cljs`).
 
-The facade exposes these as `parseOrcbrew(text)`, which returns `{ data,
-log, conflicts, skipped }`, `validateForExport(plugins)`,
-`orcbrewToEdn(plugins, {pretty})`, `buildTemplate(plugins)`, and
-`reconcileMissingContent(entity, plugins)`.
+The facade exposes these as follows:
+
+- `parseOrcbrew(text, { name?, existing?, strict? })` returns
+  `{ success, data, log, conflicts, skipped }`.
+- `validateForExport(homebrew, { pack? })` returns
+  `{ valid, packs, filled }`. It checks one pack, or all packs without
+  `pack`. `filled` is the homebrew with each problem repaired, ready to
+  export anyway.
+- `orcbrewToEdn(homebrew, { pack?, pretty? })` returns the `.orcbrew` text.
+  With `pack`, it writes that pack as a single-plugin map. Without it, it
+  writes all packs as the multi-plugin map. `pretty` pretty-prints the text
+  with `pprint`.
+- `renameKey(homebrew, { pack, contentType, from, to })` applies a conflict
+  rename (patch D4).
+- `buildTemplate(homebrew)` builds the template, and
+  `reconcileMissingContent(entity, homebrew)` reports unresolved keys.
 
 ## What the new app builds in TypeScript
 
@@ -95,9 +110,11 @@ log, conflicts, skipped }`, `validateForExport(plugins)`,
 
 - `:boons` is half-supported.
 - Multi-plugin import skips per-item validation.
-- Rename rewrites only `:class` and `:race` references.
+- Rename rewrites only `:class` and `:race` references. Patch D4 fixed it.
 - One bad entry wipes all homebrew.
 - The background `:key` in the file is ignored.
+- Bare ability keys have no effect, and a skill choice without `:choose`
+  has no maximum. Patch D5 fixed both.
 
 ## Tests
 
@@ -107,10 +124,12 @@ log, conflicts, skipped }`, `validateForExport(plugins)`,
   produces, captured once.
 - Lossless: import, export, and import again yield an identical
   multi-plugin map.
-- Old-app acceptance: every export passes the old `::e5/plugins` spec in a
-  REPL, as a CI job in this repo.
+- Old-app acceptance: every export passes the old `::e5/plugins` spec and
+  imports through the old importer unchanged.
+  `scripts/check-orcbrew-exports.clj` checks it as a step in the fork's
+  engine CI workflow (doc 01 §Export).
 - Mechanics: golden characters that use homebrew content evaluate
-  identically.
+  identically, except where patch D5 rewrites the pack (doc 01 §C1).
 
 ## Deliverables
 

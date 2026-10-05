@@ -17,7 +17,7 @@ In order:
 2. `docs/plan/00-repo-strategy.md`: why Phase A is here and
    Phase B is elsewhere, and the directory layout you will create.
 3. `docs/plan/02-engine-library.md`: the build scope, the facade
-   API, the eight engine wrinkles, and the four permitted patches.
+   API, the eight engine wrinkles, and the five permitted patches.
 4. `docs/plan/01-compatibility-contract.md`: the character
    quirks (R1 to R10) and the content-identity rule.
 5. `docs/plan/plan-set-1/03-engine-package.md`: the base facade design
@@ -46,7 +46,7 @@ Skim later: `06-milestones-and-risks.md` (the M0 and M1 rows),
   on the `engine` branch, recreated from `develop`. The earlier `engine`
   branch is merged.
 - The engine you are packaging is unmodified upstream code. The only
-  intended source changes are the four patches in doc 02 §Patches.
+  intended source changes are the five patches in doc 02 §Patches.
 - These decisions are already made. Do not reopen them without the user:
   the package name `@dmv/pubdoor` (renamed `@pubdoor/dmv` in ORC-26),
   shadow-cljs with `:esm` and `:advanced`, the build scope and exclusions,
@@ -203,7 +203,7 @@ amounts to:
 - [ ] For every M0 golden character, `evaluate().built` equals `expected.json`
 - [ ] The ported warlock, character round-trip, and event-handler tests are green
 - [ ] The legacy fixtures for R1 to R9 import, with R5 and R7 covered explicitly
-- [ ] Patches D1 and D2 are committed with tests. D3 and D4 are deferred to M3 with `parseOrcbrew`
+- [ ] Patches D1 and D2 are committed with tests. D3 to D5 are deferred to M3 with `parseOrcbrew`
 - [ ] CI is green on `engine`
 
 ## 6. Rules
@@ -214,7 +214,7 @@ amounts to:
   `templates/`.
 - Do not include `pdf_spec.cljc` or `character/random.cljc` in the build.
   There is no PDF feature and there are no non-SRD name tables.
-- Engine source changes are limited to patches D1 to D4. Anything else you
+- Engine source changes are limited to patches D1 to D5. Anything else you
   think the engine needs is a facade concern. Write it in `facade.cljs` and
   note it in the PR.
 - Keep `lein test` green throughout. The old app must keep working.

@@ -46,17 +46,36 @@ The old pipeline (`import_validation.cljs:1266-1376`) handles all ten and
 is compiled into the library (doc 04). The contract is therefore to call
 that pipeline rather than bypass it, and to cover each form with a fixture
 so that a library upgrade cannot regress it (`fixtures/orcbrew/drift-01` to
-`drift-10`).
+`drift-10`). `drift-11` and `drift-12` cover the two rewrites described
+below. They are in the fork's `fixtures/` on `pubdoor` and arrive here when
+the snapshot is refreshed with the 0.2.0 pin.
 
-M0 corrected two points (`fixtures/README.md` §Findings). First, form 10 is
-accepted without effect, not normalized: `{:con 2}` adds nothing to
-Constitution, while `race-ability-increases` still reports it (finding 4).
-Whether the new importer normalizes it is Linear decision ORC-40. Second,
-real exports start with a UTF-8 byte-order mark, so strip `﻿` before
-parsing. They also carry internal key conflicts, pack names that disagree
-with `:option-pack`, subclasses attached to homebrew or absent classes, and
-`:skill-options` without `:choose` (finding 9). The old importer accepts all
-of it.
+M0 corrected two points (`fixtures/README.md` §Findings). First, the old
+importer accepted form 10 without effect: `{:con 2}` added nothing to
+Constitution, while `race-ability-increases` still reported it (finding 4).
+Linear decision ORC-40 chose to normalize on import, and patch D5 (doc 02)
+does it. `normalize-ability-keys-in-import` in `import_validation.cljs`
+rewrites a bare key such as `:con` as `:orcpub.dnd.e5.character/con` in
+these places:
+
+- `:abilities` of a race or subrace.
+- `:ability-increases` and `:prereqs` of a feat.
+- `[:profs :save]` of a class or subclass.
+- `[:spellcasting :ability]` of a class or subclass.
+- `[:value :ability]` of a `:spell` level-modifier.
+
+Each rewrite is a `normalized-ability-key` change in the import log.
+Monsters keep their bare keys.
+
+Second, real exports start with a UTF-8 byte-order mark, so strip
+`﻿` before parsing. They also carry internal key conflicts, pack names
+that disagree with `:option-pack`, subclasses attached to homebrew or
+absent classes, and `:skill-options` without `:choose` (finding 9). The old
+importer accepts all of it. A skill choice without `:choose` let a
+character pick any number of skills in the old app. Patch D5 also adds
+`default-skill-choose-in-import`, which gives `:choose 1` to a
+`:skill-options` or `:multiclass-skill-options` that lacks it and logs a
+`defaulted-choose` change. The old builder shows 1 when `:choose` is unset.
 
 **Mechanics fidelity.** A homebrew race, class, feat, or subclass evaluates
 to the same character in both apps. This is inherited: the conversion from
@@ -64,12 +83,33 @@ orcbrew records to template options is the same code (`opt5e/race-option`,
 `class-option`, `plugin-modifiers`, `level-modifier`, and the rest). Golden
 characters that use homebrew content prove it (doc 02 §Golden tests).
 
-**Export.** Per-pack and all-content export produce EDN that the old app's
-`::e5/plugins` spec accepts: `:key` is present and equal to the map key,
-`:option-pack` is non-empty, and numeric fields contain no `nil`. This is
-inherited from the `::e5/export-plugin` and `export-all-plugins` logic if
-the facade exposes it (`pr-str` of the plugin map). Feeding the exports to
-the old validator in a REPL proves it, as a one-off CI job in this repo.
+The patch D5 rewrites are the exception. A character that uses a pack with
+bare ability keys evaluates differently from the old app, because the old
+engine ignored those keys and the new importer rewrites them. The golden
+character `ironwrought-artificer-3` uses `duplicate-external-b`, whose race
+has `:abilities {:con 2}`. It has CON 17 instead of 15, 27 maximum hit
+points instead of 24, and a CON-keyed spell save DC of 13 instead of 12. In
+the same way, a skill choice without `:choose` now allows one pick.
+
+**Export.** Per-pack and all-content export produce EDN that the old app
+imports without changes. The old `::e5/plugins` spec checks little of an
+item: `::e5/homebrew-item` requires only that `:option-pack` is present. The
+facade enforces three more rules itself:
+
+- An item's `:key` equals its map key.
+- An item's `:option-pack` is not blank.
+- An item has no `nil` that the importer would remove or replace.
+
+`validateForExport` reports each failure in the pack's `itemProblems`, and
+its `filled` result repairs each one. `orcbrewToEdn` writes the homebrew as
+given, so the app runs `validateForExport` first. The proof is a step in
+the fork's engine CI workflow (`.github/workflows/engine.yml`).
+`engine-js/scripts/write-orcbrew-exports.mjs` writes `orcbrewToEdn`'s
+exports of every fixture pack, and `scripts/check-orcbrew-exports.clj`
+checks each file. An all-packs export must be a valid `::e5/plugins`, and a
+one-pack export a valid `::e5/plugin`. The old importer must then import
+the file with no changes, skipped items, errors, or key conflicts, and must
+leave the data unchanged.
 
 **Not covered by the format.** Magic items are not an orcbrew content type
 in the old app. They are stored server-side, per user. Doc 03 §Magic items
@@ -127,6 +167,15 @@ therefore about not breaking that identity:
   (`name-to-kw subclass-title`), or `ref` paths.
 - The proof is a CI test that loads every golden character and every
   fixture `.orcbrew` and asserts zero unresolved option keys.
+- Four fixtures pin their unresolved keys instead (finding 17 in the
+  fork's `fixtures/README.md` on `pubdoor`, which reaches this repo's
+  snapshot with the 0.2.0 pin). Each lists them under `unresolved` in its
+  `.meta.json`, and the test asserts exactly those. The legacy fixture `r8-unresolved-keys`
+  is unresolved by design. The legacy fixtures `character-test-2` and
+  `character-test-3` are real saved characters whose non-SRD content does
+  not resolve against the SRD. The golden character `warlock-10-drow` is
+  the `warlock_test.clj` entity. It uses non-SRD Archfey content and an old
+  starting-equipment key, `:any-simple-weapon`.
 
 ## Known quirks: which side wins
 
@@ -134,8 +183,9 @@ therefore about not breaking that identity:
 |---|---|---|
 | Multi-plugin import skips per-item validation (`import_validation.cljs:782-794`) | Validate uniformly, in the TypeScript layer around the library call | Leniency comes from the automatic cleaning, not from skipping validation |
 | A single invalid entry in localStorage wipes all homebrew on reload (`db.cljs:244-265`) | Not applicable, because storage is the new app's (doc 04). Quarantine invalid entries | Data-loss bug |
-| Homebrew rename rewrites only `:class` and `:race` references (`key-reference-map`, `:1382`) | Rewrite all references, including spells' `:spell-lists` and `level-selections` types | Strictly better, and old files are unaffected |
+| Homebrew rename rewrites only `:class` and `:race` references (`key-reference-map`, `:1382`) | Rewrite all references, including spells' `:spell-lists`, the spell list a class or subclass uses, feats' race prerequisites, and `level-selections` types (patch D4) | Strictly better, and old files are unaffected |
+| Bare ability keys such as `:con` in homebrew have no effect, and a skill choice without `:choose` has no maximum | Rewrite them on import and log each rewrite (patch D5, ORC-40, ORC-39) | An author who writes `{:con 2}` means +2 CON. The old builder writes `:choose` only when the author changes it from its displayed default of 1, so a missing `:choose` means one skill |
 | `:boons` is missing from the import required-fields and content-type names | Add them | Half-supported type |
 | The importer ignores a background's `:key` in the file and re-derives it from the name | Honor the key when it equals `name-to-kw(name)`, and warn otherwise | Preserve keys |
 | The Forgotten Realms name tables in `character/random.cljc` are non-SRD | Exclude that namespace from the bundle. Provide original name lists or none | Licensing |
-| Anything that affects computed values | Match the old app exactly. It is the same code | That is the point of Option 2A |
+| Anything else that affects computed values | Match the old app exactly. It is the same code | That is the point of Option 2A |

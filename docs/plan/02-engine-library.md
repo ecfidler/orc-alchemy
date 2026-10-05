@@ -32,7 +32,7 @@ The build excludes these on purpose:
 - Everything under `templates/`: unreferenced and non-SRD.
 - All of `src/clj`.
 
-The four patches listed below are ordinary commits to this fork's source.
+The five patches listed below are ordinary commits to this fork's source.
 The app repo consumes the published `@pubdoor/dmv` package and never sees
 Clojure.
 
@@ -45,11 +45,19 @@ Clojure.
 | `importCharacter(transitOrEdn)`, returning an entity | `char5e/from-strict` plus the R5 and R7 additions from doc 01 | See doc 03 |
 | `exportCharacter(entity)`, returning JSON | `char5e/to-strict` | The new app's own file format (doc 03) |
 | `buildTemplate(homebrew)` | The `spell_subs.cljs` chain, lifted to functions | See §De-re-framing below |
-| `parseOrcbrew(text)`, returning `{ data, log, conflicts }` | `import_validation/validate-import` and its helpers | Pure. See doc 04 |
-| `orcbrewToEdn(plugins)` and `prettyEdn` | `pr-str` and `pprint` | Export |
+| `parseOrcbrew(text, { name?, existing?, strict? })`, returning `{ success, data, log, conflicts, skipped }` | `import_validation/validate-import` and its helpers | Pure. See doc 04 |
+| `validateForExport(homebrew, { pack? })`, returning `{ valid, packs, filled }` | `import_validation/validate-before-export`, plus the facade's own item checks | Export. The paragraph after this table describes the result |
+| `orcbrewToEdn(homebrew, { pack?, pretty? })`, returning text | `pr-str`, or `pprint` with `pretty` | Export. With `pack`, one pack as a single-plugin map. Without it, all packs as the multi-plugin map. It validates nothing, so run `validateForExport` first |
+| `renameKey(homebrew, { pack, contentType, from, to })` | `import_validation/rename-key-in-plugin` | Applies a conflict rename in one pack and rewrites the pack's references (patch D4) |
 | `reconcileMissingContent(entity, homebrew)` | `content_reconciliation.cljs` | Suggestions for unresolved keys |
-| `content.spells()`, `monsters()`, `magicItems()`, `weapons()`, and the rest | The data namespaces plus the `magic-items` expansion | Plain JS lists for the browse pages. Consider a build-time JSON dump instead, so those pages can be split away from the engine chunk |
+| The content lists, `@pubdoor/dmv/content/<name>.json` | The data namespaces plus the `magic-items` expansion, dumped to JSON at build time | 13 JSON files for the browse pages, such as `spells.json` and `magic-items.json`. A page that imports them never loads the engine chunk |
 | `keys.selectionKeys()` and `optionKeys()` | A walk of the built template | For the C3 identity test |
+
+`validateForExport` checks one pack, or all packs without `pack`. Each
+entry in `packs` holds the old check's errors and the facade's
+`itemProblems`, and `filled` is the homebrew with each problem repaired
+and the old "export anyway" placeholders added. Doc 01 §Export lists the
+item checks.
 
 ## Rules edition
 
@@ -156,7 +164,8 @@ fork (doc 00) and bumps the published package version.
 | D1 | Re-enable the legacy unnamespaced-key migration (`character.cljc:121-178`, formerly disabled with `#_`) inside `importCharacter`. Done in ORC-20, which also fixed `add-custom-equipment-namespaces` and made the ability-score step conditional, to match `orcpub.oracle/legacy-normalize` | Quirk R7 |
 | D2 | Take the Dueling reads from the entity instead of `app-db`. Fix the `(fn [weapon _] …)` arity, which fails only on the JVM, and document that the bonus applies only with a one-handed melee weapon in the main hand and a non-weapon such as a shield in the off hand (`fixtures/README.md` finding 2). Done in ORC-22, which also moved the Dual Wielder and `<none>` prerequisite reads, as wrinkle 1 describes | Wrinkle 1 |
 | D3 | Add `:boons` to `required-fields` and `content-type-names` in `import_validation.cljs` | Doc 01 §Known quirks |
-| D4 | Extend `key-reference-map` to spells' `:spell-lists` and `level-selections` | Doc 01 §Known quirks |
+| D4 | Extend `key-reference-map` to every key reference in a pack: spells' `:spell-lists`, the `:type` of each `level-selections` entry in a class or subclass, a class's or subclass's `[:spellcasting :spell-list-kw]`, a subclass's `[:spellcasting :spell-list]`, and a feat's `[:path-prereqs :race]`. `rename-key-in-plugin` also sets the renamed item's `:key`, and renaming a key that the pack lacks changes nothing. Done in ORC-35 | Doc 01 §Known quirks |
+| D5 | On import, rewrite two homebrew forms that the old engine mishandled (`import_validation.cljs`). `normalize-ability-keys-in-import` rewrites bare ability keys such as `:con` as qualified keys in races, feats, classes, and subclasses (`normalized-ability-key`). Monsters keep their bare keys, and doc 01 §C1 lists every place. `default-skill-choose-in-import` gives a skill choice without `:choose` the value 1 (`defaulted-choose`). Done in ORC-40 and ORC-39 | Doc 01 §C1 |
 
 Anything else is a facade concern, not an engine patch.
 
@@ -171,7 +180,8 @@ The strategy is the same as Plan Set 1 doc 03, extended for the new scope:
    from the old app.
 3. `buildTemplate` over each fixture `.orcbrew` matches the old
    subscription output, captured once from a REPL.
-4. The C3 identity test: zero unresolved keys across all fixtures.
+4. The C3 identity test: zero unresolved keys across all fixtures, except
+   the keys that four fixtures record (doc 01 §C3).
 5. The differential corpus: characters generated with the mutations and
    `autofill`, dumped with their built values under `fixtures/corpus/`
    (ORC-98). It is not an M1 deliverable. It is the acceptance suite for
@@ -183,5 +193,5 @@ Linear project PubDoor tracks the deliverables in two milestones. M1
 (ORC-15 to ORC-26) covers the scaffold, `evaluate`, the golden tests, the
 mutations, `importCharacter`, patches D1 and D2, `autofill`, the types, CI,
 and publishing 0.1.0. M3 (ORC-27 to ORC-43) covers `buildTemplate`,
-`parseOrcbrew`, export, reconciliation, patches D3 and D4, the content
+`parseOrcbrew`, export, reconciliation, patches D3 to D5, the content
 lists, the C3 identity test, bundle size, and publishing 0.2.0.

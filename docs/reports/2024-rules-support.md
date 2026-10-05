@@ -366,7 +366,7 @@ rules edition, and `@pubdoor/dmv` ships both templates, one per chunk.
 - **Costs.** It needs several thousand lines of new Clojure in the macro
   style above. It reverses the plan's premise that Clojure is only
   mechanical glue (Plan Set 1 doc 03) and the Phase A rule that limits
-  engine changes to patches D1 to D4 (`HANDOFF-phase-a.md` §6). The fork
+  engine changes to patches D1 to D5 (`HANDOFF-phase-a.md` §6). The fork
   becomes the permanent home of a growing Clojure codebase. The wrinkles stay: lazy
   attributes with no caching, the re-frame dependency, and bundle size.
 - **Compatibility.** C1 to C3 are unaffected for 2014, because the 2014
