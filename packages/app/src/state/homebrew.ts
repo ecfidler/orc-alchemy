@@ -18,6 +18,12 @@ interface HomebrewState {
    * packs changes.
    */
   homebrew: Record<string, object> | undefined;
+  /**
+   * Names the homebrew: the enabled packs with the times they last changed,
+   * or "" with none. A character summary stores it, so the list page can
+   * find summaries built with other homebrew.
+   */
+  fingerprint: string;
   /** The last file's import, kept raw: the UI shows its log, which lists skipped items, and its conflicts. */
   lastImport: Omit<ParsedOrcbrew, "data"> | null;
   /**
@@ -108,6 +114,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     packs: [],
     quarantined: [],
     homebrew: undefined,
+    fingerprint: "",
     lastImport: null,
     load: (fileName, text) => queued(() => merge(text, fileName.replace(/\.orcbrew$/i, ""), {})),
     // Through .orcbrew text, so the bundle's packs get the same checks as a file's.
@@ -204,11 +211,16 @@ function buildProblem(homebrew: Record<string, object>): string | null {
   }
 }
 
-/** packs, sorted by name so the homebrew is the same after a reload, and the homebrew built from them. */
-function withPacks(packs: PackRecord[]): Pick<HomebrewState, "packs" | "homebrew"> {
+/** packs, sorted by name so the homebrew is the same after a reload, and the homebrew built from them, with its fingerprint. */
+function withPacks(packs: PackRecord[]): Pick<HomebrewState, "packs" | "homebrew" | "fingerprint"> {
   const sorted = [...packs].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const enabled = sorted.filter((p) => p.enabled);
-  return { packs: sorted, homebrew: enabled.length === 0 ? undefined : Object.fromEntries(enabled.map((p) => [p.id, withoutDisabled(p)])) };
+  return {
+    packs: sorted,
+    homebrew: enabled.length === 0 ? undefined : Object.fromEntries(enabled.map((p) => [p.id, withoutDisabled(p)])),
+    // Every change to a pack, its flags included, sets its updatedAt.
+    fingerprint: enabled.length === 0 ? "" : JSON.stringify(enabled.map((p) => [p.id, p.updatedAt])),
+  };
 }
 
 function withoutDisabled({ plugin, disabledItems }: PackRecord): object {

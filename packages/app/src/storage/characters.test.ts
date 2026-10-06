@@ -12,6 +12,7 @@ import {
   listSummaries,
   saveCharacter,
   saveDraft,
+  saveSummaries,
   useStorage,
   type CharacterRecord,
 } from "./characters.ts";
@@ -33,9 +34,9 @@ const record = (id: string, name: string | null): CharacterRecord => ({
 
 test("create, update, delete and list characters and their summaries", async () => {
   const fighter = sheetOf("fighter-3-wizard-2");
-  await saveCharacter(record("a", fighter.name), fighter);
+  await saveCharacter(record("a", fighter.name), fighter, "");
   const wizard = sheetOf("wizard-5");
-  await saveCharacter(record("b", wizard.name), wizard);
+  await saveCharacter(record("b", wizard.name), wizard, "");
 
   expect(await getCharacter("a")).toEqual(record("a", "Corvin Half-Elven"));
   expect(await listSummaries()).toEqual([
@@ -50,12 +51,13 @@ test("create, update, delete and list characters and their summaries", async () 
       ],
       portrait: null,
       updatedAt: "2026-10-03T00:00:00.000Z",
+      fingerprint: "",
     },
     expect.objectContaining({ id: "b", rules: "2014", name: "Fimble Nackle" }),
   ]);
 
   // Saving again replaces the record and refreshes its summary.
-  await saveCharacter({ ...record("a", "Corvin"), updatedAt: "2026-10-04T00:00:00.000Z" }, { ...fighter, name: "Corvin" });
+  await saveCharacter({ ...record("a", "Corvin"), updatedAt: "2026-10-04T00:00:00.000Z" }, { ...fighter, name: "Corvin" }, "");
   expect((await getCharacter("a"))?.name).toBe("Corvin");
   expect((await listSummaries()).find((s) => s.id === "a")).toMatchObject({ name: "Corvin", updatedAt: "2026-10-04T00:00:00.000Z" });
 
@@ -68,6 +70,23 @@ test("create, update, delete and list characters and their summaries", async () 
   expect(useStorage.getState().inMemory).toBe(false);
 });
 
+test("rebuilt summaries are written only for records stored as they were built from", async () => {
+  const fighter = sheetOf("fighter-3-wizard-2");
+  for (const id of ["g", "h", "i"]) await saveCharacter(record(id, fighter.name), fighter, "old");
+  // h is saved again and i is deleted after their rebuilds read them.
+  await saveCharacter({ ...record("h", "Corvin"), updatedAt: "2026-10-04T00:00:00.000Z" }, { ...fighter, name: "Corvin" }, "old");
+  await deleteCharacter("i");
+
+  const wizard = sheetOf("wizard-5");
+  await saveSummaries(["g", "h", "i"].map((id) => ({ record: record(id, wizard.name), sheet: wizard, fingerprint: "new" })));
+  const summaries = await listSummaries();
+  expect(summaries.find((s) => s.id === "g")).toMatchObject({ name: "Fimble Nackle", fingerprint: "new" });
+  expect(summaries.find((s) => s.id === "h")).toMatchObject({ name: "Corvin", fingerprint: "old" });
+  expect(summaries.find((s) => s.id === "i")).toBeUndefined();
+  await deleteCharacter("g");
+  await deleteCharacter("h");
+});
+
 test("drafts are kept until deleted", async () => {
   const draft = { id: "c", entity: { draft: true }, updatedAt: "2026-10-03T00:00:00.000Z" };
   await saveDraft(draft);
@@ -78,7 +97,7 @@ test("drafts are kept until deleted", async () => {
 
 test("a failed write is thrown and reported, and storage stays on IndexedDB", async () => {
   const sheet = sheetOf("wizard-5");
-  await saveCharacter(record("d", sheet.name), sheet);
+  await saveCharacter(record("d", sheet.name), sheet, "");
 
   // A function cannot be stored, so IndexedDB refuses this draft.
   await expect(saveDraft({ id: "d", entity: { notData: () => {} }, updatedAt: "" })).rejects.toThrow();
@@ -102,7 +121,7 @@ test("without IndexedDB, storage works in memory and says so", async () => {
   try {
     const storage = await import("./characters.ts");
     const sheet = sheetOf("wizard-5");
-    await storage.saveCharacter(record("m", sheet.name), sheet);
+    await storage.saveCharacter(record("m", sheet.name), sheet, "");
 
     expect(await storage.getCharacter("m")).toEqual(record("m", "Fimble Nackle"));
     expect((await storage.listSummaries()).map((s) => s.id)).toEqual(["m"]);

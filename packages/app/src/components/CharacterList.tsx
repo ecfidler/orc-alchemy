@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { removeCharacter } from "../state/character.ts";
+import { refreshSummaries, removeCharacter } from "../state/character.ts";
+import { useHomebrew } from "../state/homebrew.ts";
 import { listSummaries, useSummariesVersion, type CharacterSummary } from "../storage/characters.ts";
 import { ExportCharacter } from "./Export.tsx";
 
-/** The stored characters, from the summaries index, re-read whenever a summary is written or deleted, or on Try again. */
+/**
+ * The stored characters, from the summaries index, re-read whenever a
+ * summary is written or deleted, the packs change, or on Try again. Summaries
+ * built with other homebrew are rebuilt in the background.
+ */
 export function CharacterList() {
   const version = useSummariesVersion();
+  const fingerprint = useHomebrew((state) => state.fingerprint);
   const [attempt, setAttempt] = useState(0);
   const [summaries, setSummaries] = useState<CharacterSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -21,13 +27,15 @@ export function CharacterList() {
         if (!current) return;
         setSummaries(list.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "")));
         setError(null);
+        // Its write changes useSummariesVersion, so the list is read again and finds nothing stale.
+        refreshSummaries(list, () => current).catch(console.error);
       },
       () => current && setError("The characters could not be read from this browser"),
     );
     return () => {
       current = false;
     };
-  }, [version, attempt]);
+  }, [version, attempt, fingerprint]);
 
   return (
     <div ref={listRef} tabIndex={-1} className="outline-none">

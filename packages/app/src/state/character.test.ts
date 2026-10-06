@@ -5,7 +5,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft, useStorage } from "../storage/characters.ts";
-import { addCharacter, AUTOSAVE_DELAY_MS, flushAutosave, readCharacter, removeCharacter, useCharacter, useOpenCharacter } from "./character.ts";
+import { addCharacter, AUTOSAVE_DELAY_MS, flushAutosave, readCharacter, refreshSummaries, removeCharacter, useCharacter, useOpenCharacter } from "./character.ts";
 import { useHomebrew } from "./homebrew.ts";
 
 beforeAll(() => loadEngine());
@@ -199,5 +199,31 @@ test("a character's summary is built with the loaded homebrew", async () => {
   await loadPack("duplicate-external-b");
   const id = await addCharacter(readFixture("ironwrought-artificer-3.strict.json"), "2014", null);
   expect((await listSummaries()).find((s) => s.id === id)).toMatchObject({ race: "Ironwrought", classes: [{ name: "Artificer (Alternate) (duplicate-external-b)", level: 3 }] });
+  await deleteCharacter(id);
+});
+
+test("refreshSummaries rebuilds the summaries built with other homebrew, unless it is no longer current", async () => {
+  await loadPack("duplicate-external-b");
+  const id = await addCharacter(readFixture("ironwrought-artificer-3.strict.json"), "2014", null);
+  const summary = async () => (await listSummaries()).find((s) => s.id === id);
+  const withPack = { race: "Ironwrought", fingerprint: useHomebrew.getState().fingerprint };
+  expect(await summary()).toMatchObject(withPack);
+
+  // Removing the pack leaves the summary as it was built.
+  await removePack("duplicate-external-b");
+  expect(await summary()).toMatchObject(withPack);
+
+  await refreshSummaries(await listSummaries(), () => false);
+  expect(await summary()).toMatchObject(withPack);
+
+  await refreshSummaries(await listSummaries(), () => true);
+  const rebuilt = await summary();
+  expect(rebuilt).toMatchObject({ fingerprint: "" });
+  expect(rebuilt?.race).not.toBe("Ironwrought");
+
+  // Loading the pack again brings the homebrew race back.
+  await loadPack("duplicate-external-b");
+  await refreshSummaries(await listSummaries(), () => true);
+  expect(await summary()).toMatchObject({ race: "Ironwrought", fingerprint: useHomebrew.getState().fingerprint });
   await deleteCharacter(id);
 });

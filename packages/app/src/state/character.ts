@@ -2,10 +2,21 @@
 // truth; built and selections are derived from it with useEvaluation.
 import { useMemo } from "react";
 import { create } from "zustand";
-import { engine, useEvaluation, type Rules, type StrictEntity } from "../engine/engine.ts";
+import { engine, loadEngine, useEvaluation, type Homebrew, type Rules, type StrictEntity } from "../engine/engine.ts";
 import { toSheet } from "../engine/sheet.ts";
-import { deleteCharacter, deleteDraft, getCharacter, getDraft, saveCharacter, saveDraft, useStorage, type CharacterRecord } from "../storage/characters.ts";
-import { useHomebrew } from "./homebrew.ts";
+import {
+  deleteCharacter,
+  deleteDraft,
+  getCharacter,
+  getDraft,
+  saveCharacter,
+  saveDraft,
+  saveSummaries,
+  useStorage,
+  type CharacterRecord,
+  type CharacterSummary,
+} from "../storage/characters.ts";
+import { restorePacks, useHomebrew } from "./homebrew.ts";
 
 interface CharacterState {
   /** The open character's storage id. */
@@ -54,9 +65,45 @@ export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId:
 
 /** Saves a record with entity, its name, and the time; and its summary, built with the loaded homebrew. */
 function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, entity: StrictEntity) {
-  const sheet = toSheet(engine().evaluate(entity, { homebrew: useHomebrew.getState().homebrew }).built, entity);
-  return saveCharacter({ ...record, name: sheet.name, updatedAt: now(), entity }, sheet);
+  const { homebrew, fingerprint } = useHomebrew.getState();
+  const sheet = buildSheet(entity, homebrew);
+  return saveCharacter({ ...record, name: sheet.name, updatedAt: now(), entity }, sheet, fingerprint);
 }
+
+/**
+ * Rebuilds, with the loaded homebrew, the summaries built with other
+ * homebrew (ORC-115), and writes them together. A pack change does not
+ * rebuild them, since each build takes tens of milliseconds; the list page
+ * calls this instead. Restores the packs first, and loads the engine only if
+ * a summary needs it. Builds one character at a time, so the page does not
+ * stop. Stops, and writes nothing, as soon as isCurrent returns false, or if
+ * the packs change. A character that does not build keeps its summary.
+ */
+export async function refreshSummaries(summaries: CharacterSummary[], isCurrent: () => boolean): Promise<void> {
+  await restorePacks();
+  const { homebrew, fingerprint } = useHomebrew.getState();
+  const stale = summaries.filter((s) => s.fingerprint !== fingerprint);
+  if (stale.length === 0) return;
+  await loadEngine();
+  // A pending autosave would write its own summary; saving it now keeps a rebuild from replacing that one.
+  await flushAutosave().catch(console.error);
+  const live = () => isCurrent() && useHomebrew.getState().fingerprint === fingerprint;
+  const rebuilt = [];
+  for (const { id } of stale) {
+    await new Promise((resolve) => setTimeout(resolve));
+    if (!live()) return;
+    const record = await getCharacter(id);
+    if (record === undefined) continue; // deleted since
+    try {
+      rebuilt.push({ record, sheet: buildSheet(record.entity, homebrew), fingerprint });
+    } catch (e) {
+      console.error(`The summary of character ${id} could not be rebuilt:`, e);
+    }
+  }
+  if (rebuilt.length > 0 && live()) await saveSummaries(rebuilt);
+}
+
+const buildSheet = (entity: StrictEntity, homebrew: Homebrew | undefined) => toSheet(engine().evaluate(entity, { homebrew }).built, entity);
 
 /**
  * Reads a stored character to open with load: its draft, which is dirty, if
