@@ -8,16 +8,18 @@ import type { PackRecord } from "../storage/packs.ts";
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const readPack = (name: string) => readFileSync(join(fixturesDir, "orcbrew", `${name}.orcbrew`), "utf8");
 const readFixture = (file: string) => JSON.parse(readFileSync(join(fixturesDir, "characters", file), "utf8"));
+const readText = (file: string) => readFileSync(join(fixturesDir, file), "utf8");
 
 /** The app's modules as a new page load has them: nothing read from storage yet, and the engine loaded. */
 async function reload() {
   vi.resetModules();
   const { engine, loadEngine } = await import("../engine/engine.ts");
   await loadEngine();
-  const { restorePacks, useHomebrew } = await import("./homebrew.ts");
+  const { bundleHomebrew, restorePacks, useHomebrew } = await import("./homebrew.ts");
   const storage = await import("../storage/packs.ts");
   const load = (name: string) => useHomebrew.getState().load(`${name}.orcbrew`, readPack(name));
-  return { engine, restorePacks, useHomebrew, load, ...storage };
+  const imports = await import("../engine/import.ts");
+  return { engine, bundleHomebrew, restorePacks, useHomebrew, load, ...imports, ...storage };
 }
 
 // Each test starts with an empty database.
@@ -238,4 +240,72 @@ test("version 1 characters survive the upgrade that adds the packs store", async
   const { getCharacter } = await import("../storage/characters.ts");
   expect(await getCharacter("old")).toEqual({ id: "old", name: "Kept" });
   expect(await listPacks()).toEqual([]);
+});
+
+/** The packs without updatedAt, which a load sets. */
+const withoutTimes = (packs: PackRecord[]) => packs.map(({ updatedAt: _, ...rest }) => rest);
+
+test("a bundle's packs and flags round-trip through an empty database, with its characters", async () => {
+  let app = await reload();
+  await app.load("warlock-test-content");
+  await app.load("community-mezzoloth-race");
+  await app.useHomebrew.getState().setPackEnabled("community-mezzoloth-race", false);
+  await app.useHomebrew.getState().setItemEnabled("warlock-test-content", "~:orcpub.dnd.e5/feats", "~:keen-mind", false);
+  const before = app.useHomebrew.getState();
+  const [character] = app.readCharacterFile(readText("characters/warlock-10-drow.strict.json"), before.homebrew).characters;
+  const { homebrew, flags } = app.bundleHomebrew();
+  expect(Object.keys(homebrew)).toEqual(["community-mezzoloth-race", "warlock-test-content"]);
+  expect(flags["community-mezzoloth-race"]).toEqual({ enabled: false, disabledItems: [] });
+  const text = JSON.stringify(app.exportBundle([character.entity], "https://alchemy.example", { homebrew, flags }));
+
+  vi.stubGlobal("indexedDB", new IDBFactory());
+  app = await reload();
+  const bundle = app.readBundleHomebrew(text);
+  expect(bundle).toEqual({ homebrew, flags });
+  await app.useHomebrew.getState().loadBundle(bundle!);
+  const after = app.useHomebrew.getState();
+  expect(withoutTimes(after.packs)).toEqual(withoutTimes(before.packs));
+  expect(after.homebrew).toEqual(before.homebrew);
+  expect(withoutTimes((await app.listPacks()) as PackRecord[])).toEqual(withoutTimes(before.packs));
+
+  const { characters, failures } = app.readCharacterFile(text, after.homebrew);
+  expect(failures).toEqual([]);
+  expect(characters).toEqual([{ ...character, name: null }]);
+});
+
+test("a bundle pack without flags keeps its stored flags, or is enabled when new", async () => {
+  const app = await reload();
+  await app.load("warlock-test-content");
+  await app.useHomebrew.getState().setPackEnabled("warlock-test-content", false);
+  const homebrew = app.engine().parseOrcbrew(readPack("community-mezzoloth-race"), {
+    name: "community-mezzoloth-race",
+    existing: { "warlock-test-content": app.useHomebrew.getState().packs[0].plugin },
+  }).data!;
+
+  await app.useHomebrew.getState().loadBundle({ homebrew, flags: {} });
+  expect(app.useHomebrew.getState().packs.map(({ id, enabled }) => [id, enabled])).toEqual([
+    ["community-mezzoloth-race", true],
+    ["warlock-test-content", false],
+  ]);
+});
+
+test("a bundle with a pack named as a quarantined record is refused", async () => {
+  let app = await reload();
+  await app.savePacks([{ ...breaks, id: "warlock-test-content" }]);
+  const homebrew = app.engine().parseOrcbrew(readPack("warlock-test-content"), { name: "warlock-test-content" }).data!;
+
+  app = await reload();
+  await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} })).rejects.toThrow(
+    "A stored pack named warlock-test-content could not be read",
+  );
+  expect(app.useHomebrew.getState().packs).toEqual([]);
+});
+
+test("a bundle with an item that is not a map is refused, and keeps the loaded packs", async () => {
+  const app = await reload();
+  await app.load("warlock-test-content");
+  const { packs } = app.useHomebrew.getState();
+  const homebrew = { bad: { "~:orcpub.dnd.e5/spells": { "~:x": 5 } } };
+  await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} })).rejects.toThrow("The homebrew could not be read: ");
+  expect(app.useHomebrew.getState().packs).toBe(packs);
 });

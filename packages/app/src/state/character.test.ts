@@ -167,6 +167,17 @@ test("a homebrew-only character has its pack's selections while the pack is load
   expect(specialization()).toBeUndefined();
 });
 
+// The homebrew golden characters (ORC-54): with the fixture's pack loaded, the build is the oracle's.
+test.each([
+  ["duplicate-external-b", "ironwrought-artificer-3"],
+  ["warlock-test-content", "warlock-10-drow"],
+])("with %s loaded, %s builds to its expected.json", async (pack, fixture) => {
+  const { result } = renderHook(() => useOpenCharacter());
+  await act(() => loadPack(pack));
+  act(() => useCharacter.getState().load("g", readFixture(`${fixture}.strict.json`)));
+  expect(result.current.built).toEqual(readFixture(`${fixture}.expected.json`));
+});
+
 test.each([
   ["duplicate-external-a", () => readFixture("fighter-1.strict.json"), "class", 12, 14],
   ["community-mezzoloth-race", () => readFixture("fighter-1.strict.json"), "race", 10, 11],

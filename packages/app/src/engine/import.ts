@@ -59,9 +59,9 @@ export function readCharacterFile(text: string, homebrew?: Homebrew): CharacterF
       return { characters: [character], failures: [] };
     case "dmv-export": {
       checkVersion(data);
-      // magicItems become homebrew, which arrives in M3.
+      // magicItems become homebrew in the item builder (M5). The homebrew is read by readBundleHomebrew.
       const characters = Array.isArray(data.characters) ? data.characters : [];
-      if (characters.length === 0) throw new Error("This export has no characters");
+      if (characters.length === 0 && bundlePacks(data) === null) throw new Error("This export has no characters");
       const file: CharacterFile = { characters: [], failures: [] };
       characters.forEach((character, i) => {
         try {
@@ -86,18 +86,86 @@ export function characterFile<T extends { entity: StrictEntity }>(record: T): T 
   return { ...record, entity: engine().exportCharacter(record.entity) };
 }
 
+/** A pack's flags, which only this app has: the old app and .orcbrew files do not. */
+export interface PackFlags {
+  enabled: boolean;
+  /** Items left out of the homebrew, as [content type, key], such as ["~:orcpub.dnd.e5/spells", "~:fireball"]. */
+  disabledItems: [contentType: string, key: string][];
+}
+
+/** The homebrew of a dmv-export bundle: the multi-plugin map, and the flags of each pack in it. */
+export interface BundleHomebrew {
+  homebrew: Record<string, object>;
+  /** Only for the packs that have flags; a pack without flags loads enabled. */
+  flags: Record<string, PackFlags>;
+}
+
 /**
- * A dmv-export bundle of these characters (doc 03): bare entities, so each
- * character's id, rules and legacyId are not kept. Homebrew joins it in M3.
+ * A dmv-export bundle of these characters and packs (doc 03): bare entities,
+ * so each character's id, rules and legacyId are not kept. homebrew is the
+ * multi-plugin map, as the old app's :plugins; homebrewFlags is this app's
+ * own. Both are left out with no packs.
  */
-export function exportBundle(entities: StrictEntity[], exportedFrom: string) {
+export function exportBundle(entities: StrictEntity[], exportedFrom: string, packs?: BundleHomebrew) {
+  const hasPacks = packs !== undefined && Object.keys(packs.homebrew).length > 0;
   return {
     format: "dmv-export",
     version: 1,
     exportedFrom,
     characters: entities.map((entity) => engine().exportCharacter(entity)),
     magicItems: [],
+    ...(hasPacks && { homebrew: packs.homebrew, homebrewFlags: packs.flags }),
   };
+}
+
+/**
+ * The homebrew of a dmv-export bundle's text, or null for any other file or a
+ * bundle with no packs. Throws when a pack is not a map. Flags that are not
+ * well formed are dropped, so their pack keeps its stored flags. The packs'
+ * content is checked when they are loaded.
+ */
+export function readBundleHomebrew(text: string): BundleHomebrew | null {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!isObject(data) || data.format !== "dmv-export") return null;
+  checkVersion(data);
+  const homebrew = bundlePacks(data);
+  if (homebrew === null) return null;
+  // parseOrcbrew throws on a pack that is not a map, with a message that does not help the user.
+  const notPack = Object.keys(homebrew).find((pack) => !isObject(homebrew[pack]));
+  if (notPack !== undefined) throw new Error(`The export's homebrew pack ${notPack} is not a pack`);
+  const flags: Record<string, PackFlags> = {};
+  if (isObject(data.homebrewFlags)) {
+    for (const [pack, value] of Object.entries(data.homebrewFlags)) {
+      if (pack in homebrew && isFlags(value)) flags[pack] = { enabled: value.enabled, disabledItems: value.disabledItems };
+    }
+  }
+  return { homebrew, flags };
+}
+
+/**
+ * The packs as the old app's all-content.orcbrew, or the names of the packs
+ * that fail validateForExport: the old app would refuse them.
+ */
+export function oldAppOrcbrew(homebrew: Record<string, object>): { text: string } | { invalid: string[] } {
+  const check = engine().validateForExport(homebrew);
+  if (!check.valid) return { invalid: Object.keys(check.packs).filter((pack) => !check.packs[pack].valid) };
+  return { text: engine().orcbrewToEdn(homebrew, { pretty: true }) };
+}
+
+function bundlePacks(data: Record<string, unknown>): Record<string, object> | null {
+  const { homebrew } = data;
+  if (!isObject(homebrew) || Object.keys(homebrew).length === 0) return null;
+  return homebrew as Record<string, object>; // readBundleHomebrew checks each pack
+}
+
+function isFlags(value: unknown): value is PackFlags {
+  const isItem = (item: unknown) => Array.isArray(item) && item.length === 2 && item.every((s) => typeof s === "string");
+  return isObject(value) && typeof value.enabled === "boolean" && Array.isArray(value.disabledItems) && value.disabledItems.every(isItem);
 }
 
 function importOne(entity: unknown, homebrew: Homebrew | undefined): CharacterFileEntry {

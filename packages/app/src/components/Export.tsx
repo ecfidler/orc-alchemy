@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { loadEngine } from "../engine/engine.ts";
-import { characterFile, exportBundle } from "../engine/import.ts";
+import { characterFile, exportBundle, oldAppOrcbrew } from "../engine/import.ts";
 import { flushAutosave } from "../state/character.ts";
+import { bundleHomebrew, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { getCharacter, listCharacters } from "../storage/characters.ts";
 
 /** Downloads a stored character as a dmv-character file, after saving any pending changes. Loads the engine on demand. */
@@ -19,29 +20,52 @@ export function ExportCharacter({ id, label = "Export this character" }: { id: s
   );
 }
 
-/** Downloads every stored character as a dmv-export bundle. Loads the engine on demand. */
+/**
+ * Downloads every stored character and pack as a dmv-export bundle, and the
+ * packs as all-content.orcbrew for the old app. The packs go in as stored,
+ * disabled ones too; the bundle keeps their flags, and the .orcbrew file
+ * cannot. A pack that fails validateForExport stops the .orcbrew file, not
+ * the bundle. Quarantined records are left out, with a notice. Loads the
+ * engine on demand.
+ */
 export function ExportEverything() {
   return (
     <ExportButton
       label="Export everything"
       onExport={async () => {
-        await Promise.all([loadEngine(), flushAutosave()]);
+        await Promise.all([loadEngine(), flushAutosave(), restorePacks()]);
         const records = await listCharacters();
-        if (records.length === 0) throw new Error("There are no characters to export");
-        download("dmv-export.json", exportBundle(records.map((r) => r.entity), window.location.origin));
+        const packs = bundleHomebrew();
+        const hasPacks = Object.keys(packs.homebrew).length > 0;
+        if (records.length === 0 && !hasPacks) throw new Error("There are no characters or homebrew to export");
+        download("dmv-export.json", exportBundle(records.map((r) => r.entity), window.location.origin, packs));
+        const notices: string[] = [];
+        const { quarantined } = useHomebrew.getState();
+        if (quarantined.length > 0) {
+          notices.push(`These stored packs could not be read and are not in the export: ${quarantined.map((q) => q.id).join(", ")}.`);
+        }
+        if (hasPacks) {
+          // The full export UI, with "export anyway", is ORC-73.
+          const orcbrew = oldAppOrcbrew(packs.homebrew);
+          if ("invalid" in orcbrew) notices.push(`all-content.orcbrew was not written: the old app would refuse ${orcbrew.invalid.join(", ")}.`);
+          else downloadText("all-content.orcbrew", orcbrew.text, "application/edn");
+        }
+        return notices.join(" ") || undefined;
       }}
     />
   );
 }
 
-function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => Promise<void> }) {
-  const [error, setError] = useState<string | null>(null);
+/** onExport returns a notice to show when the export is only partly done. */
+function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => Promise<string | void> }) {
+  /** Why the export failed, or the notice of a partial export. */
+  const [message, setMessage] = useState<string | null>(null);
   async function onClick() {
-    setError(null);
+    setMessage(null);
     try {
-      await onExport();
+      setMessage((await onExport()) ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setMessage(e instanceof Error ? e.message : String(e));
     }
   }
   return (
@@ -49,13 +73,17 @@ function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => P
       <button type="button" onClick={onClick} className="underline">
         {label}
       </button>
-      {error && <p role="alert">{error}</p>}
+      {message && <p role="alert">{message}</p>}
     </div>
   );
 }
 
 function download(name: string, data: unknown) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  downloadText(name, JSON.stringify(data, null, 2), "application/json");
+}
+
+function downloadText(name: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement("a");
   link.href = url;
   link.download = name;

@@ -4,6 +4,7 @@
 // in storage as it is, is not used, and the UI warns about it.
 import { create } from "zustand";
 import { engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
+import type { BundleHomebrew } from "../engine/import.ts";
 import { deletePack, listPacks, savePacks, type PackRecord } from "../storage/packs.ts";
 
 interface HomebrewState {
@@ -23,10 +24,19 @@ interface HomebrewState {
    * Merges an .orcbrew file's text into the stored packs, skipping invalid
    * items. A single-plugin file loads as a pack named for the file. New packs
    * are enabled. A failed import leaves the packs as they were. Throws, and
-   * changes nothing, if the file has a pack named as a quarantined record.
+   * changes nothing, if the file has a pack named as a quarantined record,
+   * or if the importer throws.
    * Needs the engine loaded.
    */
   load: (fileName: string, text: string) => Promise<void>;
+  /**
+   * Merges a dmv-export bundle's packs into the stored packs, as load merges
+   * a multi-plugin file, and gives each bundle pack its flags from the
+   * bundle. A bundle pack without flags keeps its stored flags, or is
+   * enabled when new. Throws, and changes nothing, as load does. Needs the
+   * engine loaded.
+   */
+  loadBundle: (bundle: BundleHomebrew) => Promise<void>;
   /** Removes a pack from storage. */
   remove: (pack: string) => Promise<void>;
   setPackEnabled: (pack: string, enabled: boolean) => Promise<void>;
@@ -54,30 +64,54 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       set(withPacks(get().packs.map((p) => (p.id === pack ? changed : p))));
     });
 
+  /**
+   * Parses .orcbrew text over the stored packs and stores the packs it
+   * changes. A changed pack takes its flags from flags, or keeps its stored
+   * ones, or is enabled when new. Runs inside queued.
+   */
+  async function merge(text: string, name: string, flags: BundleHomebrew["flags"]) {
+    await restorePacks();
+    const { packs, quarantined } = get();
+    const existing = packs.length === 0 ? undefined : pluginMap(packs);
+    let parsed: ParsedOrcbrew;
+    try {
+      parsed = engine().parseOrcbrew(text, { name, existing });
+    } catch (e) {
+      // The importer throws on some malformed items, such as an item that is not a map, with an engine message.
+      throw new Error(`The homebrew could not be read: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    const { data, ...lastImport } = parsed;
+    if (data === null) return set({ lastImport });
+    const blocked = quarantined.find((q) => q.id in data);
+    if (blocked) {
+      throw new Error(`A stored pack named ${blocked.id} could not be read; it is kept as it is, so a pack of that name cannot be loaded.`);
+    }
+    const changed = Object.entries(data).flatMap(([id, plugin]): PackRecord[] => {
+      const stored = packs.find((p) => p.id === id);
+      const { enabled, disabledItems } = flags[id] ?? stored ?? { enabled: true, disabledItems: [] };
+      if (
+        stored !== undefined &&
+        JSON.stringify(stored.plugin) === JSON.stringify(plugin) &&
+        stored.enabled === enabled &&
+        JSON.stringify(stored.disabledItems) === JSON.stringify(disabledItems)
+      ) {
+        return [];
+      }
+      return [{ id, rules: "2014", enabled, disabledItems, plugin, updatedAt: now() }];
+    });
+    if (changed.length === 0) return set({ lastImport });
+    await savePacks(changed);
+    set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport });
+  }
+
   return {
     packs: [],
     quarantined: [],
     homebrew: undefined,
     lastImport: null,
-    load: (fileName, text) => queued(async () => {
-      await restorePacks();
-      const { packs, quarantined } = get();
-      const existing = packs.length === 0 ? undefined : Object.fromEntries(packs.map((p) => [p.id, p.plugin]));
-      const { data, ...lastImport } = engine().parseOrcbrew(text, { name: fileName.replace(/\.orcbrew$/i, ""), existing });
-      if (data === null) return set({ lastImport });
-      const blocked = quarantined.find((q) => q.id in data);
-      if (blocked) {
-        throw new Error(`A stored pack named ${blocked.id} could not be read; it is kept as it is, so a pack of that name cannot be loaded.`);
-      }
-      const changed = Object.entries(data).flatMap(([id, plugin]): PackRecord[] => {
-        const stored = packs.find((p) => p.id === id);
-        if (stored !== undefined && JSON.stringify(stored.plugin) === JSON.stringify(plugin)) return [];
-        return [{ id, rules: "2014", enabled: stored?.enabled ?? true, disabledItems: stored?.disabledItems ?? [], plugin, updatedAt: now() }];
-      });
-      if (changed.length === 0) return set({ lastImport });
-      await savePacks(changed);
-      set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport });
-    }),
+    load: (fileName, text) => queued(() => merge(text, fileName.replace(/\.orcbrew$/i, ""), {})),
+    // Through .orcbrew text, so the bundle's packs get the same checks as a file's.
+    loadBundle: ({ homebrew, flags }) => queued(() => merge(engine().orcbrewToEdn(homebrew), "dmv-export", flags)),
     remove: (pack) => queued(async () => {
       await deletePack(pack);
       set(withPacks(get().packs.filter((p) => p.id !== pack)));
@@ -114,12 +148,11 @@ export function restorePacks(): Promise<void> {
       }
       // One build checks them all. If it fails, the packs are added one at a time in
       // name order, and each that does not build with the ones before it is quarantined.
-      const toMap = (packs: PackRecord[]) => Object.fromEntries(packs.map((p) => [p.id, p.plugin]));
       let packs = shaped;
-      if (shaped.length > 0 && buildProblem(toMap(shaped)) !== null) {
+      if (shaped.length > 0 && buildProblem(pluginMap(shaped)) !== null) {
         packs = [];
         for (const pack of shaped) {
-          const reason = buildProblem(toMap([...packs, pack]));
+          const reason = buildProblem(pluginMap([...packs, pack]));
           if (reason === null) packs.push(pack);
           else quarantined.push({ id: pack.id, reason: `The engine could not build it: ${reason}` });
         }
@@ -132,6 +165,18 @@ export function restorePacks(): Promise<void> {
     });
   return restoring;
 }
+
+/** The loaded packs as stored, disabled ones too, with their flags: the homebrew of a dmv-export bundle. */
+export function bundleHomebrew(): BundleHomebrew {
+  const { packs } = useHomebrew.getState();
+  return {
+    homebrew: pluginMap(packs),
+    flags: Object.fromEntries(packs.map(({ id, enabled, disabledItems }) => [id, { enabled, disabledItems }])),
+  };
+}
+
+/** The multi-plugin map of these packs, as stored. */
+const pluginMap = (packs: PackRecord[]) => Object.fromEntries(packs.map((p) => [p.id, p.plugin]));
 
 function shapeProblem(record: unknown): string | null {
   const isMap = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
