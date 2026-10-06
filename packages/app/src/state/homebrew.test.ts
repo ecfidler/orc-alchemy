@@ -15,11 +15,11 @@ async function reload() {
   vi.resetModules();
   const { engine, loadEngine } = await import("../engine/engine.ts");
   await loadEngine();
-  const { restorePacks, useHomebrew } = await import("./homebrew.ts");
+  const { bundleHomebrew, restorePacks, useHomebrew } = await import("./homebrew.ts");
   const storage = await import("../storage/packs.ts");
   const load = (name: string) => useHomebrew.getState().load(`${name}.orcbrew`, readPack(name));
   const imports = await import("../engine/import.ts");
-  return { engine, restorePacks, useHomebrew, load, ...imports, ...storage };
+  return { engine, bundleHomebrew, restorePacks, useHomebrew, load, ...imports, ...storage };
 }
 
 // Each test starts with an empty database.
@@ -253,8 +253,9 @@ test("a bundle's packs and flags round-trip through an empty database, with its 
   await app.useHomebrew.getState().setItemEnabled("warlock-test-content", "~:orcpub.dnd.e5/feats", "~:keen-mind", false);
   const before = app.useHomebrew.getState();
   const [character] = app.readCharacterFile(readText("characters/warlock-10-drow.strict.json"), before.homebrew).characters;
-  const flags = Object.fromEntries(before.packs.map(({ id, enabled, disabledItems }) => [id, { enabled, disabledItems }]));
-  const homebrew = Object.fromEntries(before.packs.map((p) => [p.id, p.plugin]));
+  const { homebrew, flags } = app.bundleHomebrew();
+  expect(Object.keys(homebrew)).toEqual(["community-mezzoloth-race", "warlock-test-content"]);
+  expect(flags["community-mezzoloth-race"]).toEqual({ enabled: false, disabledItems: [] });
   const text = JSON.stringify(app.exportBundle([character.entity], "https://alchemy.example", { homebrew, flags }));
 
   vi.stubGlobal("indexedDB", new IDBFactory());
@@ -298,4 +299,13 @@ test("a bundle with a pack named as a quarantined record is refused", async () =
     "A stored pack named warlock-test-content could not be read",
   );
   expect(app.useHomebrew.getState().packs).toEqual([]);
+});
+
+test("a bundle with an item that is not a map is refused, and keeps the loaded packs", async () => {
+  const app = await reload();
+  await app.load("warlock-test-content");
+  const { packs } = app.useHomebrew.getState();
+  const homebrew = { bad: { "~:orcpub.dnd.e5/spells": { "~:x": 5 } } };
+  await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} })).rejects.toThrow("The homebrew could not be read: ");
+  expect(app.useHomebrew.getState().packs).toBe(packs);
 });

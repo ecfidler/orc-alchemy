@@ -4,7 +4,7 @@ title: "03: Character import and storage"
 description: "How characters leave an old instance through the exporter bookmarklet, how the new app imports them, and the native character format."
 tags: [plan, characters, import]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-03T05:08:20Z }
+generated: { by: claude-code/agent, at: 2026-10-06T13:45:00Z }
 ---
 
 # 03: Character import and storage
@@ -116,7 +116,8 @@ new-app formats. The old app cannot read them and does not need to.
 The bundle from the new app adds two fields when packs are stored (ORC-54):
 
 - `homebrew` is the multi-plugin map of all stored packs, as stored. It
-  includes disabled packs and disabled items.
+  includes disabled packs and disabled items. It does not include
+  quarantined records. The export names them in a notice.
 - `homebrewFlags` holds the `enabled` and `disabledItems` flags of each
   pack. Only the new app has these flags. A pack without flags keeps its
   stored flags, or is enabled when it is new.
