@@ -384,7 +384,7 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
               source: caster,
               ability: abilityOf(spell.ability),
               // The old sheet also marks always-prepared spells, such as domain
-              // spells; engine 0.1.0's built does not say which spells those are.
+              // spells; the engine's built does not say which spells those are.
               prepared: Number(level) > 0 && prepares[caster] === true && (prepared[caster]?.has(key) ?? false),
             };
           })

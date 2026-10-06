@@ -1,3 +1,12 @@
+---
+type: Report
+title: "Review of the linear-issue-workflow skill: M2 sessions, 2026-10-02"
+description: How the linear-issue-workflow skill behaved on the M2 issues, what worked and what did not, and the proposed changes to the skill.
+tags: [agents, linear, workflow]
+status: stable
+generated: { by: claude-code/agent, at: 2026-10-06T01:41:18Z }
+---
+
 # Review of the `linear-issue-workflow` skill: M2 sessions, 2026-10-02
 
 This report looks at how `.claude/skills/linear-issue-workflow/SKILL.md`

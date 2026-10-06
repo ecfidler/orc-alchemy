@@ -2,10 +2,9 @@
 
 > **Snapshot provenance.** This directory is a verbatim snapshot of the
 > fork's `fixtures/`, copied with `git archive` from `ecfidler/orcpub`
-> branch `pubdoor` at commit **`26f57e07dfe068235260bb9fdcafaef70bc2ab98`** (tag `pubdoor-v0.1.0`), which
-> publishes **`@pubdoor/dmv@0.1.0`**. Only this note was added. Paths in the
-> rest of this file (`docs/ts-rewrite-plan/`, `scripts/`, `src/`,
-> `engine-js/`) are fork paths; the plan is now `docs/plan/` in this repo.
+> branch `pubdoor` at commit **`c6068766983a24319358642f83f3c90fc5256256`** (tag `pubdoor-v0.2.0`), which
+> publishes **`@pubdoor/dmv@0.2.0`**. Only this note was added. Paths in the
+> rest of this file (`scripts/`, `src/`, `test/`, `engine-js/`) are fork paths.
 >
 > Do not edit the fixtures here. To refresh, regenerate in the fork (see
 > *Regenerating*), then replace this directory from the fork commit that
@@ -14,7 +13,8 @@
 
 Real inputs and oracle-produced expected outputs for the engine package
 (`@pubdoor/dmv`, M1) and the homebrew engine path (M3). The plan is
-`docs/ts-rewrite-plan/`; the milestone is `HANDOFF-phase-a.md` §4.
+`docs/plan/` in `ecfidler/orc-alchemy`; the milestone is
+`HANDOFF-phase-a.md` §4.
 
 The oracle is the **old app's own code** running on the JVM, unmodified:
 `entity/build` and the `character.cljc` accessors for characters, and the
@@ -25,13 +25,19 @@ raw entities of the golden characters, the synthetic `.orcbrew` packs, and
 the browser values that an `overrides` entry in `.meta.json` records in place
 of the JVM's (finding 13).
 
-Produced from engine source at commit **`bcd9d68`** (branch `engine`; the
-engine source is unchanged from `develop` at that point). Regenerate whenever
-`src/cljc` or one of the three `src/cljs` files the engine reads changes (see
-*Regenerating*): `orcpub/dnd/e5.cljc`, `spell_subs.cljs` and
-`equipment_subs.cljs`, the last copied into `engine-js/src/orcpub/facade/template.cljs`.
-`import_validation.cljs` and `content_reconciliation.cljs` join them when the
-facade takes on the homebrew path in M3.
+First produced from engine source at commit **`bcd9d68`** (branch
+`engine`; the engine source is unchanged from `develop` at that point).
+Last regenerated for ORC-39 and ORC-40, after the importer gained two
+normalizations (findings 4 and 9), with `scripts/golden-characters.clj` and
+`scripts/dump-template.clj` for every pack. `ironwrought-artificer-3`, the
+`import` and `templateDelta` of `drift-10-ability-key-forms`, and the
+`import` of `duplicate-external-b` changed, and `drift-11` and `drift-12`
+are new. The SRD
+baseline was not regenerated. Regenerate whenever
+`src/cljc` or one of the files the engine reads from `src/cljs` changes (see
+*Regenerating*): `orcpub/dnd/e5.cljc`, `spell_subs.cljs`,
+`equipment_subs.cljs` (copied into `engine-js/src/orcpub/facade/template.cljs`),
+`import_validation.cljs` and `content_reconciliation.cljs`.
 
 ## Layout
 
@@ -46,7 +52,7 @@ fixtures/
     character-test-{1,2,3}.*  the three real Datomic entities from character_test.clj
     r{3..9}-*.*               one synthetic strict entity per import quirk (doc 01 §C2)
   orcbrew/
-    <pack>.orcbrew            2 real packs, 1 ported test pack, 10 drift-form packs, 3 community packs
+    <pack>.orcbrew            2 real packs, 1 ported test pack, 12 drift-form packs, 3 community packs
     <pack>.template.json      the old template chain's output for that pack alone
     _srd-baseline.template.json.gz  the SRD-only template shape (gzipped, ~6 MB raw)
   README.md
@@ -56,7 +62,7 @@ fixtures/
 |---|---|
 | Golden characters | 12 (`characters/`) |
 | Legacy entities | 3 real + 8 synthetic (`legacy/`) |
-| `.orcbrew` packs | 16, each with a `.template.json`, plus the baseline |
+| `.orcbrew` packs | 18, each with a `.template.json`, plus the baseline |
 
 ## Formats
 
@@ -136,6 +142,12 @@ the legacy set. `overrides`, when present, lists the values in
 `expected.json` that record the browser's result instead of the JVM
 oracle's. Each entry names the `key`, the entry `name`, and the `field`, and
 gives the `jvm` and `browser` values and the `reason` (finding 13).
+`unresolved`, when present, lists the option keys that do not resolve
+against the character's template, exactly as `reconcileMissingContent`
+reports them: `items` (`{contentType, key, path}`) and `unresolvedOptions`
+(`{key, path}`), with the `reason`. Every other fixture resolves fully.
+`engine-js/test/content-identity.test.ts` checks both (contract C3,
+finding 17).
 
 ### `<pack>.template.json`
 
@@ -252,6 +264,8 @@ behaviour; every other fixture is built exactly as `char5e/from-strict` +
 | `drift-08-multi-plugin` | synthetic | EPL-2.0 | two named packs in one file; a subrace in pack two extending a race in pack one |
 | `drift-09-size-forms` | synthetic | EPL-2.0 | `:size "Medium"`, `:size :medium`, a subrace with `:size "Small"` |
 | `drift-10-ability-key-forms` | synthetic | EPL-2.0 | `:abilities {:con 2}` vs `{:orcpub.dnd.e5.character/con 2}`; feats with `#{:con}` vs namespaced |
+| `drift-11-skill-options-without-choose` | synthetic | EPL-2.0 | a subclass with `:profs {:skill-options {:options {...}}}` and no `:choose`, as in the owner's export (finding 9), and one with `:choose 2` |
+| `drift-12-ability-key-places` | synthetic | EPL-2.0 | bare ability keys in a class's `[:profs :save]` and `[:spellcasting :ability]`, a subclass's `:spell` level-modifier, and a feat's `:prereqs` and `:ability-increases`; a race and a feat with both the bare and the qualified key; `:multiclass-skill-options` without `:choose` |
 | `community-mezzoloth-race.orcbrew` | the repo owner's own homebrew, taken verbatim (pack `"me"`) from their old-app `all-content` export | EPL-2.0 (author's own work, contributed here) | a race authored in the old UI: racial spells with `:value`/`:level`, `:languages` as a set, pack-level `:disabled? false` |
 | `community-dandwiki-star-elf.orcbrew` | D&D Wiki (dandwiki.com), as recorded in the pack name; transcribed into the old app by the repo owner | GNU FDL 1.3 (D&D Wiki's license). **Verify the page before relying on it** | a subrace attached to the built-in Elf with `:props` weapon/skill proficiencies and level-gated racial spells |
 | `community-gmbinder-homebrew.orcbrew` | the repo owner's own homebrew, published as four GM Binder documents (Divine Domain: Waves, Sorcerous Origin: Divergent Soul, Sorcerous Origin: Ethereal Soul, and a spell compendium), converted to the old builder's save format for ORC-12 | EPL-2.0 (author's own work, contributed here) | 7 homebrew spells with `:spell-lists` in the builder's all-classes form (unticked classes are `false`), `:attack-roll?`, and material components; a cleric subclass with `:cleric-spells`; two sorcerer subclasses with `:spell` level-modifiers; a `:swimming-speed` level-modifier; level-gated traits with `:type`; two plugin selections used through `:level-selections`; 9 spell keys that are not in the SRD (finding 12) |
@@ -295,6 +309,12 @@ rules text.
 | Summary | Export | Notes |
 |---|---|---|
 | `private/all-content3.summary.json` | the repo owner's export, 2,275,607 bytes, 29 packs, 1412 items | finding 9 describes it; the byte-order mark was stripped before import |
+
+`engine-js/test/private-export.test.ts` checks the engine against this
+summary when `private/all-content3.orcbrew` is present, and is skipped when
+it is not. The summary was written before the ORC-39 and ORC-40
+normalizations, so the test leaves their change types out of the comparison
+on both sides; it passes before and after the summary is regenerated.
 
 ## Regenerating
 
@@ -415,16 +435,30 @@ Line numbers are for commit `bcd9d68`.
    keeps `0` and `""` (truthy in Clojure and ClojureScript). A hit-point roll
    of 0 counts as 0 and an empty name stays `""`; nothing reads back as nil.
    Fixture: `legacy/r4-zero-int-value`.
-4. **Drift form 10 is accepted, not normalized.** The old importer does not
+4. **Drift form 10 was accepted, not normalized.** The old importer did not
    rewrite `:con`-style ability keys; `race-option` passes them to
-   `modifiers/race-ability` verbatim, so `{:con 2}` adds nothing to
+   `modifiers/race-ability` verbatim, so `{:con 2}` added nothing to
    Constitution (`?abilities` sums only the namespaced keys) while
-   `race-ability-increases` reports `{"con": 2}`. Feats intersect
-   `:ability-increases` with the namespaced keys, so `#{:con}` adds nothing
-   either. Fixtures: `ironwrought-artificer-3` (CON stays 15),
-   `drift-10-ability-key-forms`. Doc 01 §C1 should list this as "accepted
-   without effect", and the new importer may want to normalize it (a
-   behaviour change to decide deliberately).
+   `race-ability-increases` reported `{"con": 2}`. Feats intersect
+   `:ability-increases` with the namespaced keys, so `#{:con}` added nothing
+   either. Linear ORC-40 decided to normalize on import:
+   `import_validation.cljs` `normalize-ability-keys-in-import` now rewrites
+   the six bare keys wherever the engine compares ability keys with the
+   namespaced ones: `:abilities`, `:ability-increases`, a feat's `:prereqs`
+   (where a bare `:str` became an armor prerequisite), `[:profs :save]`,
+   `[:spellcasting :ability]`, and the `:ability` of a `:spell`
+   level-modifier. Monsters are skipped, and racial `:spells` need nothing,
+   because `spell-modifiers` qualifies their `:ability` itself. Plugin
+   `:selections` options hold only names and descriptions. Each rewrite is a
+   `normalized-ability-key` change. When both forms are present, the
+   namespaced entry wins and the change records `dropped` and, for a map,
+   both values (`drift-12-ability-key-places`). A subclass's
+   `[:profs :save]` is rewritten too, though `subclass-option` never reads
+   it. Regenerating with it gave
+   `ironwrought-artificer-3` CON 17 instead of 15 (modifier +3, 27 hit
+   points instead of 24) and `race-ability-increases`
+   `{"orcpub.dnd.e5.character/con": 2}`, and gave the `drift-10` feat
+   Ox Heart its CON +1. `engine-js/test/normalize.test.ts` checks it.
 5. **re-frame handlers rely on JS arity.** Many subscription handlers in
    `spell_subs.cljs` / `equipment_subs.cljs` declare one parameter and are
    called with two (`re-frame` passes `input-values query-vec`). Irrelevant in
@@ -474,7 +508,17 @@ Line numbers are for commit `bcd9d68`.
      `:choose`. `options.cljc:848` `(> nil 1)` throws on the JVM (JS: false),
      and only when the level options are realized. The subscription chain
      itself never realizes them, so this surfaces the first time a template
-     shape or a character at that class is built. Shimmed in the oracle.
+     shape or a character at that class is built. Shimmed in the oracle
+     (`install-js-semantics!`, which only fixes the help text). In both
+     runtimes the selection gets `min 1` and `max nil`, so the old app let a
+     character pick any number of those skills. The builder shows `:choose`
+     as 1 when it is unset and writes it only when the author changes it
+     (`views.cljs` `option-proficiency-choice`), so since ORC-39 the importer
+     sets `:choose 1` and logs a `defaulted-choose` change
+     (`default-skill-choose-in-import`). A class's
+     `:multiclass-skill-options` goes through the same
+     `class-skill-selection` and gets the same default. Fixtures:
+     `drift-11-skill-options-without-choose`, `drift-12-ability-key-places`.
    - 206 keys end in `-` (parenthesised names through `name-to-kw`);
      `:prereqs #{}` and `:languages` as sets; `:equipment-choices ()` as an
      empty list; `?` in place of apostrophes (mojibake from a copy/paste);
@@ -550,3 +594,41 @@ Line numbers are for commit `bcd9d68`.
     still pick Common, and `ironwrought-artificer-3` picks it for a
     homebrew race. They still build as the old engine builds them, but the
     builder could not have produced them.
+15. **Some template option lists come from hash iteration.** The JVM and
+    browser difference from finding 13 also affects the template. Three
+    kinds of selection build their options by iterating a hash map or set:
+    each class's spells-known selections (`select-keys` over the class
+    spell list, `options.cljc:655`), the half-elf's ability increases
+    (`(disj (set ...))`, `spell_subs.cljs:831`), and Bard Magical Secrets.
+    Their option order in `_srd-baseline.template.json.gz` and the
+    `.template.json` deltas is the JVM's. Magical Secrets also changes
+    content: it takes the highest spell level as
+    `(key (last (total-slots level 1)))` (`options.cljc:592`), and
+    `total-slots` at level 18 has nine keys, so it is a hash map. The
+    browser iterates small integers in order and offers spells up to 9th
+    level. The JVM's last key is 8, so its 18th-level selection lacks the
+    15 9th-level spells. The browser is the old app, and its result is also
+    what the rules give a level 18 bard. The JVM oracle cannot reproduce
+    browser hash order, so the fixtures stay as generated.
+    `engine-js/test/template.test.ts` compares only the option sets of these
+    selections, and it checks the 9th-level spells separately. ORC-28 found
+    this.
+16. **`barbarian-5` picked an option key that does not exist.** Its
+    simple-weapon choice was `:handaxe`, but the barbarian's option is
+    "Handaxe (2)", whose key is `:handaxe-2-`. `entity/build` skips an
+    option it cannot find, so the character silently had no handaxes.
+    ORC-37 found this with the content-identity test. The generator now
+    picks `:handaxe-2-`, and regenerating added the two handaxes to
+    `weapons` and `weapon-modifiers`.
+17. **Four fixtures do not resolve fully, and only one of them is meant
+    to.** The content-identity test (ORC-37) checks every fixture's option
+    keys against its template. `r8-unresolved-keys` is unresolved by
+    design. `character-test-2` and `character-test-3` are real saved
+    characters built against the SRD alone, so their non-SRD content
+    does not resolve. `warlock-10-drow` is the `warlock_test.clj` entity,
+    written against content that is not in the SRD (the Archfey and its
+    expanded spells, three non-SRD cantrips, Crown of Madness) and with an
+    old starting-equipment key, `:any-simple-weapon`. Each records its
+    keys under `unresolved` in its `.meta.json`. Plan doc 01 §C3 asks for
+    zero unresolved keys across every golden character, which these
+    fixtures cannot give without changing what they test.
