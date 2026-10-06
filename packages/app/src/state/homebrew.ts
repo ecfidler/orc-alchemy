@@ -111,7 +111,6 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     lastImport: null,
     load: (fileName, text) => queued(() => merge(text, fileName.replace(/\.orcbrew$/i, ""), {})),
     // Through .orcbrew text, so the bundle's packs get the same checks as a file's.
-    // Through .orcbrew text, so the bundle's packs get the same checks as a file's.
     loadBundle: ({ homebrew, flags }) => queued(() => merge(engine().orcbrewToEdn(homebrew), "dmv-export", flags)),
     remove: (pack) => queued(async () => {
       await deletePack(pack);
