@@ -32,6 +32,11 @@ export interface CharacterSummary {
   classes: { key: string; name: string; level: number }[];
   portrait: string | null;
   updatedAt: string;
+  /**
+   * The homebrew fingerprint the summary was built with (homebrew.ts). A
+   * summary written before ORC-115 has none.
+   */
+  homebrew?: string;
 }
 
 /** Unsaved changes to a character, kept until autosave writes its record. */
@@ -52,7 +57,7 @@ export const useStorage = create<{ inMemory: boolean; failed: boolean; outdated:
 export const useSummariesVersion = create<number>(() => 0);
 const summariesChanged = () => useSummariesVersion.setState((version) => version + 1, true);
 
-function toSummary(record: CharacterRecord, sheet: Sheet): CharacterSummary {
+function toSummary(record: CharacterRecord, sheet: Sheet, homebrew: string): CharacterSummary {
   return {
     id: record.id,
     rules: record.rules,
@@ -61,15 +66,23 @@ function toSummary(record: CharacterRecord, sheet: Sheet): CharacterSummary {
     classes: sheet.classes.map((c) => ({ key: `${record.rules}/${c.key}`, name: c.name, level: c.level })),
     portrait: sheet.portrait,
     updatedAt: record.updatedAt,
+    homebrew,
   };
 }
 
-/** Writes a character's record and its summary together. */
-export function saveCharacter(record: CharacterRecord, sheet: Sheet): Promise<void> {
+/** Writes a character's record and its summary together; homebrew is the fingerprint of the homebrew the sheet was built with. */
+export function saveCharacter(record: CharacterRecord, sheet: Sheet, homebrew: string): Promise<void> {
   return write([
     { store: "characters", put: record },
-    { store: "summaries", put: toSummary(record, sheet) },
+    { store: "summaries", put: toSummary(record, sheet, homebrew) },
   ]).then(summariesChanged);
+}
+
+/** Writes summaries in one transaction, and leaves the records as they are. */
+export function saveSummaries(summaries: { record: CharacterRecord; sheet: Sheet; homebrew: string }[]): Promise<void> {
+  return write(summaries.map(({ record, sheet, homebrew }) => ({ store: "summaries" as const, put: toSummary(record, sheet, homebrew) }))).then(
+    summariesChanged,
+  );
 }
 
 export function getCharacter(id: string): Promise<CharacterRecord | undefined> {
