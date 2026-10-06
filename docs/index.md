@@ -17,6 +17,7 @@ before you add or change a document.
 * [Knowledge base](kb/index.md) - External facts that the plan and the reports rely on.
 * [Conventions](conventions/index.md) - The documentation format and the writing standard.
 * [Agent guides](agents/index.md) - Files that skills and agents read.
+* [Handoffs](handoffs/index.md) - Start points for an agent or a person who takes over a milestone.
 
 # History
 

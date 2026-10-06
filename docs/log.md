@@ -2,6 +2,7 @@
 
 ## 2026-10-06
 
+* **Creation**: Added the `handoffs/` directory and the [M3 handoff: homebrew in the app](handoffs/m3-homebrew-in-the-app.md) (ORC-54).
 * **Creation**: Added [Review of the linear-issue-workflow skill](reports/linear-issue-workflow-review-2026-10-02.md) to the bundle (ORC-112).
 
 ## 2026-10-05
