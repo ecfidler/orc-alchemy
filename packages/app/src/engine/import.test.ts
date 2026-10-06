@@ -6,7 +6,7 @@ import { beforeAll, expect, test } from "vitest";
 import { addCharacter } from "../state/character.ts";
 import { getCharacter } from "../storage/characters.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { characterFile, exportBundle, readCharacterFile, type CharacterFileEntry } from "./import.ts";
+import { characterFile, exportBundle, readBundleHomebrew, readCharacterFile, type CharacterFileEntry } from "./import.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const strictFiles = ["characters", "legacy"].flatMap((dir) =>
@@ -172,6 +172,7 @@ test("every stored character exports to one dmv-export bundle that imports back"
   const bundle = exportBundle(entities, "https://alchemy.example");
 
   expect(bundle).toMatchObject({ format: "dmv-export", version: 1, exportedFrom: "https://alchemy.example", magicItems: [] });
+  expect(bundle).not.toHaveProperty("homebrew");
   const { characters, failures } = reimport(bundle);
   expect(failures).toEqual([]);
   expect(characters.map((c) => c.entity)).toEqual(entities);
@@ -213,4 +214,45 @@ test("an envelope without rules is stored as 2014, and its legacyId is kept", as
 
   const stored = await getCharacter(await addCharacter(character.entity, character.rules, character.legacyId));
   expect(stored).toMatchObject({ rules: "2014", legacyId: "17592186056344" });
+});
+
+const warlockPack = () => engine().parseOrcbrew(readText("orcbrew/warlock-test-content.orcbrew"), { name: "warlock-test-content" }).data!;
+
+test("a bundle with packs keeps them and their flags, as the multi-plugin map", () => {
+  const homebrew = warlockPack();
+  const flags = { "warlock-test-content": { enabled: false, disabledItems: [["~:orcpub.dnd.e5/feats", "~:keen-mind"]] as [string, string][] } };
+  const bundle = exportBundle([], "https://alchemy.example", { homebrew, flags });
+  expect(bundle).toMatchObject({ homebrew, homebrewFlags: flags, characters: [] });
+  expect(readBundleHomebrew(JSON.stringify(bundle))).toEqual({ homebrew, flags });
+});
+
+test("a bundle with packs and no characters is not refused", () => {
+  const text = JSON.stringify(exportBundle([], "https://alchemy.example", { homebrew: warlockPack(), flags: {} }));
+  expect(readCharacterFile(text)).toEqual({ characters: [], failures: [] });
+});
+
+test("bundle flags that are not well formed, or name no bundle pack, are dropped", () => {
+  const homebrew = warlockPack();
+  const bundle = {
+    format: "dmv-export",
+    version: 1,
+    characters: [],
+    homebrew,
+    homebrewFlags: { "warlock-test-content": { enabled: "yes", disabledItems: [] }, other: { enabled: true, disabledItems: [] } },
+  };
+  expect(readBundleHomebrew(JSON.stringify(bundle))).toEqual({ homebrew, flags: {} });
+});
+
+test("a bundle pack that is not a map is refused", () => {
+  const text = JSON.stringify({ format: "dmv-export", version: 1, characters: [], homebrew: { bad: "text" } });
+  expect(() => readBundleHomebrew(text)).toThrow("The export's homebrew pack bad is not a pack");
+});
+
+test.each([
+  ["not JSON", "nope"],
+  ["a raw entity", readText("characters/fighter-1.strict.json")],
+  ["a bundle without homebrew", '{"format":"dmv-export","version":1,"characters":[]}'],
+  ["a bundle with empty homebrew", '{"format":"dmv-export","version":1,"characters":[],"homebrew":{}}'],
+])("%s has no bundle homebrew", (_, text) => {
+  expect(readBundleHomebrew(text)).toBeNull();
 });

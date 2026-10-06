@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
-import { loadEngine } from "../engine/engine.ts";
+import { engine, loadEngine } from "../engine/engine.ts";
 import { characterFile, exportBundle } from "../engine/import.ts";
 import { flushAutosave } from "../state/character.ts";
+import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { getCharacter, listCharacters } from "../storage/characters.ts";
 
 /** Downloads a stored character as a dmv-character file, after saving any pending changes. Loads the engine on demand. */
@@ -19,27 +20,46 @@ export function ExportCharacter({ id, label = "Export this character" }: { id: s
   );
 }
 
-/** Downloads every stored character as a dmv-export bundle. Loads the engine on demand. */
+/**
+ * Downloads every stored character and pack as a dmv-export bundle, and the
+ * packs as all-content.orcbrew for the old app. The packs go in as stored,
+ * disabled ones too; the bundle keeps their flags, and the .orcbrew file
+ * cannot. A pack that fails validateForExport stops the .orcbrew file, not
+ * the bundle. Loads the engine on demand.
+ */
 export function ExportEverything() {
   return (
     <ExportButton
       label="Export everything"
       onExport={async () => {
-        await Promise.all([loadEngine(), flushAutosave()]);
+        await Promise.all([loadEngine(), flushAutosave(), restorePacks()]);
         const records = await listCharacters();
-        if (records.length === 0) throw new Error("There are no characters to export");
-        download("dmv-export.json", exportBundle(records.map((r) => r.entity), window.location.origin));
+        const { packs } = useHomebrew.getState();
+        if (records.length === 0 && packs.length === 0) throw new Error("There are no characters or homebrew to export");
+        const homebrew = Object.fromEntries(packs.map((p) => [p.id, p.plugin]));
+        const flags = Object.fromEntries(packs.map(({ id, enabled, disabledItems }) => [id, { enabled, disabledItems }]));
+        download("dmv-export.json", exportBundle(records.map((r) => r.entity), window.location.origin, { homebrew, flags }));
+        if (packs.length === 0) return;
+        // The full export UI, with "export anyway", is ORC-73.
+        const check = engine().validateForExport(homebrew);
+        if (!check.valid) {
+          const invalid = Object.keys(check.packs).filter((pack) => !check.packs[pack].valid);
+          return `all-content.orcbrew was not written: the old app would refuse ${invalid.join(", ")}.`;
+        }
+        downloadText("all-content.orcbrew", engine().orcbrewToEdn(homebrew, { pretty: true }), "application/edn");
       }}
     />
   );
 }
 
-function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => Promise<void> }) {
+/** onExport returns a notice to show when the export is only partly done. */
+function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => Promise<string | void> }) {
   const [error, setError] = useState<string | null>(null);
   async function onClick() {
     setError(null);
     try {
-      await onExport();
+      const notice = await onExport();
+      if (notice) setError(notice);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -55,7 +75,11 @@ function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => P
 }
 
 function download(name: string, data: unknown) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  downloadText(name, JSON.stringify(data, null, 2), "application/json");
+}
+
+function downloadText(name: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
