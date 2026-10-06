@@ -48,7 +48,7 @@ const metaKeys = (file: string) => {
   return unresolved ? sortedKeys([...unresolved.items, ...unresolved.unresolvedOptions]) : [];
 };
 const keysOf = (character: CharacterFileEntry) => sortedKeys(character.unresolved);
-const importFixture =(file: string, homebrew?: Homebrew) => readCharacterFile(readText(file), homebrew).characters[0];
+const importFixture = (file: string, homebrew?: Homebrew) => readCharacterFile(readText(file), homebrew).characters[0];
 
 test.each(strictFiles)("%s reports the unresolved keys its meta file records, with its packs loaded", (file) => {
   let homebrew: Homebrew | undefined;
@@ -67,7 +67,6 @@ test("without homebrew, only the fixtures with non-SRD content report unresolved
     "legacy/character-test-3.strict.json",
     "legacy/r8-unresolved-keys.strict.json",
   ]);
-  expect(importFixture("characters/fighter-1.strict.json").unresolved).toEqual([]);
 });
 
 test("without its pack, ironwrought-artificer-3 reports the keys r8-unresolved-keys records", () => {

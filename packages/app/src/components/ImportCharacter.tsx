@@ -42,7 +42,9 @@ export function ImportCharacter() {
       );
       if (characters.length === 1 && read.failures.length === 0 && characters[0].unresolved.length === 0) {
         navigate(`/sheet/${characters[0].id}`);
-      } else setImported({ characters, failures: read.failures });
+      } else {
+        setImported({ characters, failures: read.failures });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -67,13 +69,16 @@ export function ImportCharacter() {
                   {character.name ?? "Unnamed character"}
                 </button>
                 {character.unresolved.length > 0 && (
-                  <ul aria-label={`Unresolved content for ${character.name ?? "Unnamed character"}`} className="ml-4 list-disc">
-                    {character.unresolved.map(({ label, key, path }, i) => (
-                      <li key={i}>
-                        {label}: {key} ({path.join(" / ")})
-                      </li>
-                    ))}
-                  </ul>
+                  <>
+                    <p className="ml-4">Unresolved content, left out of the sheet:</p>
+                    <ul aria-label={`Unresolved content for ${character.name ?? "Unnamed character"}`} className="ml-8 list-disc">
+                      {character.unresolved.map(({ label, key, path }, i) => (
+                        <li key={i}>
+                          {label}: {key} ({path.join(" / ")})
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
               </li>
             ))}
