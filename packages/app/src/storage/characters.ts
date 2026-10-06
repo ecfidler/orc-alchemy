@@ -41,7 +41,12 @@ export interface Draft {
   updatedAt: string;
 }
 
-export const useStorage = create<{ inMemory: boolean; failed: boolean }>(() => ({ inMemory: false, failed: false }));
+/** outdated: another tab upgraded the database, so this tab can no longer use it until it reloads. */
+export const useStorage = create<{ inMemory: boolean; failed: boolean; outdated: boolean }>(() => ({
+  inMemory: false,
+  failed: false,
+  outdated: false,
+}));
 
 /** Counts writes to the summaries index, so the list page can re-read it when it changes. */
 export const useSummariesVersion = create<number>(() => 0);
@@ -113,9 +118,7 @@ interface Backend {
 
 let backend: Promise<Backend> | undefined;
 
-// run and write are exported for packs.ts.
-
-/** Runs op on IndexedDB, or on memory if IndexedDB does not open. */
+/** Runs op on IndexedDB, or on memory if IndexedDB does not open. Exported, with write, for packs.ts. */
 export async function run<T>(op: (db: Backend) => Promise<T>): Promise<T> {
   backend ??= openIndexedDb().catch(toMemory);
   return op(await backend);
@@ -161,7 +164,10 @@ function openIndexedDb(): Promise<Backend> {
     request.onsuccess = () => {
       const db = request.result;
       // Closes this connection when another tab opens a later version, so its upgrade is not blocked.
-      db.onversionchange = () => db.close();
+      db.onversionchange = () => {
+        db.close();
+        useStorage.setState({ outdated: true });
+      };
       const read = (store: StoreName, query: (s: IDBObjectStore) => IDBRequest) =>
         new Promise<unknown>((resolve, reject) => {
           const r = query(db.transaction(store).objectStore(store));

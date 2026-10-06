@@ -86,7 +86,8 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     setItemEnabled: (pack, contentType, key, enabled) =>
       update(pack, ({ disabledItems }) => {
         const others = disabledItems.filter(([t, k]) => t !== contentType || k !== key);
-        if ((others.length < disabledItems.length) === !enabled) return null;
+        const disabled = others.length < disabledItems.length;
+        if (disabled !== enabled) return null;
         return { disabledItems: enabled ? others : [...others, [contentType, key]] };
       }),
   };
