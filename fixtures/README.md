@@ -4,7 +4,7 @@
 > fork's `fixtures/`, copied with `git archive` from `ecfidler/orcpub`
 > branch `pubdoor` at commit **`c6068766983a24319358642f83f3c90fc5256256`** (tag `pubdoor-v0.2.0`), which
 > publishes **`@pubdoor/dmv@0.2.0`**. Only this note was added. Paths in the
-> rest of this file (`scripts/`, `src/`, `engine-js/`) are fork paths.
+> rest of this file (`scripts/`, `src/`, `test/`, `engine-js/`) are fork paths.
 >
 > Do not edit the fixtures here. To refresh, regenerate in the fork (see
 > *Regenerating*), then replace this directory from the fork commit that
