@@ -14,3 +14,19 @@ test("a chosen homebrew pack is listed until it is removed", async ({ page }) =>
   await pack.getByRole("button", { name: "Remove warlock-test-content" }).click();
   await expect(pack).toHaveCount(0);
 });
+
+test("a loaded pack and its enabled flag survive a reload", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "warlock-test-content.orcbrew"));
+  const enabled = page.getByRole("listitem", { name: "warlock-test-content" }).getByRole("checkbox", { name: "warlock-test-content" });
+  await expect(enabled).toBeChecked();
+
+  await page.reload();
+  await expect(enabled).toBeChecked();
+  // The checkbox changes once the flag is stored, so check it after the click.
+  await enabled.click();
+  await expect(enabled).not.toBeChecked();
+
+  await page.reload();
+  await expect(enabled).not.toBeChecked();
+});

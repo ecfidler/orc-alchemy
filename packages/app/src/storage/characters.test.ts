@@ -82,7 +82,7 @@ test("a failed write is thrown and reported, and storage stays on IndexedDB", as
 
   // A function cannot be stored, so IndexedDB refuses this draft.
   await expect(saveDraft({ id: "d", entity: { notData: () => {} }, updatedAt: "" })).rejects.toThrow();
-  expect(useStorage.getState()).toEqual({ inMemory: false, failed: true });
+  expect(useStorage.getState()).toEqual({ inMemory: false, failed: true, outdated: false });
   expect((await getCharacter("d"))?.name).toBe("Fimble Nackle");
 
   useStorage.setState({ failed: false });
@@ -92,7 +92,7 @@ test("a failed write is thrown and reported, and storage stays on IndexedDB", as
 test("a failed read is thrown but not reported as a failed save", async () => {
   // null is not an IndexedDB key, so the read is refused.
   await expect(getCharacter(null as unknown as string)).rejects.toThrow();
-  expect(useStorage.getState()).toEqual({ inMemory: false, failed: false });
+  expect(useStorage.getState()).toEqual({ inMemory: false, failed: false, outdated: false });
 });
 
 test("without IndexedDB, storage works in memory and says so", async () => {
@@ -111,4 +111,16 @@ test("without IndexedDB, storage works in memory and says so", async () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   }
+});
+
+test("an upgrade in another tab closes this tab's database and says to reload", async () => {
+  await getCharacter("any"); // opens this tab's connection
+  const later = indexedDB.open("alchemy-5e", 99);
+  await new Promise((resolve, reject) => {
+    later.onsuccess = () => resolve(later.result.close());
+    later.onerror = () => reject(later.error);
+  });
+  expect(useStorage.getState().outdated).toBe(true);
+  await expect(getCharacter("any")).rejects.toThrow();
+  useStorage.setState({ outdated: false });
 });

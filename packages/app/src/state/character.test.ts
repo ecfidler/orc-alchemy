@@ -14,7 +14,8 @@ afterEach(async () => {
   await flushAutosave();
   vi.useRealTimers();
   useCharacter.setState({ id: null, entity: null, dirty: false });
-  useHomebrew.setState({ homebrew: undefined, lastImport: null });
+  for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
+  useHomebrew.setState({ lastImport: null });
 });
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
@@ -135,7 +136,7 @@ test("opening a character recovers its draft", async () => {
   await deleteCharacter(id);
 });
 
-test("the open character builds with the loaded homebrew, and without it once the pack is removed", () => {
+test("the open character builds with the loaded homebrew, and without it once the pack is removed", async () => {
   const { result } = renderHook(() => useOpenCharacter());
   act(() => useCharacter.getState().load("w", readFixture("warlock-10-drow.strict.json")));
   const paths = ["race/elf/subrace", "background", "feats"];
@@ -143,26 +144,26 @@ test("the open character builds with the loaded homebrew, and without it once th
   expect(optionCounts()).toEqual([2, 2, 1]);
 
   // The pack adds the Drow subrace, the Spy background and the Keen Mind feat.
-  act(() => loadPack("warlock-test-content"));
+  await act(() => loadPack("warlock-test-content"));
   expect(optionCounts()).toEqual([3, 3, 2]);
   expect(result.current.built).toEqual(readFixture("warlock-10-drow.expected.json"));
 
-  act(() => removePack("warlock-test-content"));
+  await act(() => removePack("warlock-test-content"));
   expect(optionCounts()).toEqual([2, 2, 1]);
 });
 
-test("a homebrew-only character has its pack's selections while the pack is loaded", () => {
+test("a homebrew-only character has its pack's selections while the pack is loaded", async () => {
   const { result } = renderHook(() => useOpenCharacter());
   act(() => useCharacter.getState().load("i", readFixture("ironwrought-artificer-3.strict.json")));
   const specialization = () => result.current.selections!.find((s) => s.key === "artificer-specialization");
   expect(specialization()).toBeUndefined();
 
-  act(() => loadPack("duplicate-external-b"));
+  await act(() => loadPack("duplicate-external-b"));
   expect(specialization()?.selected).toEqual(["alchemist"]);
   expect(result.current.selections!.find((s) => s.key === "subrace")?.selected).toEqual(["envoy"]);
   expect(result.current.built).toEqual(readFixture("ironwrought-artificer-3.expected.json"));
 
-  act(() => removePack("duplicate-external-b"));
+  await act(() => removePack("duplicate-external-b"));
   expect(specialization()).toBeUndefined();
 });
 
@@ -171,20 +172,20 @@ test.each([
   ["community-mezzoloth-race", () => readFixture("fighter-1.strict.json"), "race", 10, 11],
   ["community-dandwiki-star-elf", () => readFixture("warlock-10-drow.strict.json"), "race/elf/subrace", 2, 3],
   ["community-gmbinder-homebrew", () => engine().setClass(engine().emptyCharacter(), 0, "cleric"), "class/cleric/levels/level-1/divine-domain", 2, 3],
-])("%s adds its options while it is loaded", (pack, entity, path, without, withPack) => {
+])("%s adds its options while it is loaded", async (pack, entity, path, without, withPack) => {
   const { result } = renderHook(() => useOpenCharacter());
   act(() => useCharacter.getState().load("p", entity()));
   const optionCount = () => result.current.selections!.find((s) => s.path.join("/") === path)?.optionCount;
   expect(optionCount()).toBe(without);
 
-  act(() => loadPack(pack));
+  await act(() => loadPack(pack));
   expect(optionCount()).toBe(withPack);
-  act(() => removePack(pack));
+  await act(() => removePack(pack));
   expect(optionCount()).toBe(without);
 });
 
 test("a character's summary is built with the loaded homebrew", async () => {
-  loadPack("duplicate-external-b");
+  await loadPack("duplicate-external-b");
   const id = await addCharacter(readFixture("ironwrought-artificer-3.strict.json"), "2014", null);
   expect((await listSummaries()).find((s) => s.id === id)).toMatchObject({ race: "Ironwrought", classes: [{ name: "Artificer (Alternate) (duplicate-external-b)", level: 3 }] });
   await deleteCharacter(id);
