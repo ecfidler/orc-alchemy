@@ -2,6 +2,7 @@
 // dmv-character envelope, or a dmv-export bundle. Each character read goes
 // through the engine's importCharacter, and each one written through its
 // exportCharacter.
+import type { Homebrew } from "@pubdoor/dmv";
 import { engine, type Rules, type StrictEntity } from "./engine.ts";
 
 export interface CharacterFileEntry {
@@ -10,6 +11,16 @@ export interface CharacterFileEntry {
   /** The old app's id, or null. */
   legacyId: string | null;
   name: string | null;
+  /** The option keys that do not resolve against the homebrew (quirk R8). Not stored. */
+  unresolved: UnresolvedKey[];
+}
+
+export interface UnresolvedKey {
+  /** The content type, such as "Subclass", or "Option" for any other option. */
+  label: string;
+  key: string;
+  /** The option's path of keys, such as ["background", "noble"]. */
+  path: string[];
 }
 
 export interface CharacterFile {
@@ -21,9 +32,11 @@ export interface CharacterFile {
 /**
  * Reads a character file's text and imports every character in it. Throws
  * with a reason the user can read for anything that is not a character file.
- * A bundle character that fails is reported in failures, not thrown.
+ * A bundle character that fails is reported in failures, not thrown. Each
+ * character's keys are checked against the homebrew, or against the SRD
+ * alone without it.
  */
-export function readCharacterFile(text: string): CharacterFile {
+export function readCharacterFile(text: string, homebrew?: Homebrew): CharacterFile {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -34,14 +47,14 @@ export function readCharacterFile(text: string): CharacterFile {
 
   switch (data.format) {
     case undefined:
-      return { characters: [importOne(data)], failures: [] };
+      return { characters: [importOne(data, homebrew)], failures: [] };
     case "dmv-character":
       checkVersion(data);
       // A missing rules is 2014: every file written so far is.
       if ((data.rules ?? "2014") !== "2014") {
         throw new Error(`This character uses the ${String(data.rules)} rules, which this app does not support yet`);
       }
-      const character = importOne(data.entity);
+      const character = importOne(data.entity, homebrew);
       if (typeof data.legacyId === "string") character.legacyId = data.legacyId;
       return { characters: [character], failures: [] };
     case "dmv-export": {
@@ -52,7 +65,7 @@ export function readCharacterFile(text: string): CharacterFile {
       const file: CharacterFile = { characters: [], failures: [] };
       characters.forEach((character, i) => {
         try {
-          file.characters.push(importOne(character));
+          file.characters.push(importOne(character, homebrew));
         } catch (e) {
           file.failures.push(`Character ${i + 1} of ${characters.length}: ${e instanceof Error ? e.message : String(e)}`);
         }
@@ -87,16 +100,21 @@ export function exportBundle(entities: StrictEntity[], exportedFrom: string) {
   };
 }
 
-function importOne(entity: unknown): CharacterFileEntry {
+function importOne(entity: unknown, homebrew: Homebrew | undefined): CharacterFileEntry {
   // importCharacter accepts any object, and gives an empty character for one
   // that is not verbose Transit-JSON, so check for a strict entity first.
   if (!isObject(entity) || !("~:orcpub.entity.strict/selections" in entity)) {
     throw new Error("This is not a character file");
   }
   const imported = engine().importCharacter(entity);
-  const name = engine().evaluate(imported.entity).built["character-name"];
+  const name = engine().evaluate(imported.entity, { homebrew }).built["character-name"];
+  const report = engine().reconcileMissingContent(imported.entity, homebrew);
+  const unresolved = [
+    ...report.items.map(({ label, key, path }) => ({ label, key, path })),
+    ...report.unresolvedOptions.map(({ key, path }) => ({ label: "Option", key, path })),
+  ];
   // Every importable character is 2014: old-app files are, and readCharacterFile refuses other envelopes.
-  return { ...imported, rules: "2014", name: name || null };
+  return { ...imported, rules: "2014", name: name || null, unresolved };
 }
 
 function checkVersion(data: Record<string, unknown>) {
