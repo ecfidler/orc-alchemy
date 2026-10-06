@@ -26,6 +26,11 @@ test.each([
   expect(Object.keys(homebrew!)).toEqual([name]);
 });
 
+test("the pack name drops the extension in any case", () => {
+  useHomebrew.getState().load("warlock-test-content.ORCBREW", readPack("warlock-test-content"));
+  expect(Object.keys(useHomebrew.getState().homebrew!)).toEqual(["warlock-test-content"]);
+});
+
 test("a second file merges in and reports its key conflicts; removing a pack keeps the others", () => {
   useHomebrew.getState().load("duplicate-external-a.orcbrew", readPack("duplicate-external-a"));
   useHomebrew.getState().load("duplicate-external-b.orcbrew", readPack("duplicate-external-b"));
