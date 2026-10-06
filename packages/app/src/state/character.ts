@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { engine, useEvaluation, type Rules, type StrictEntity } from "../engine/engine.ts";
 import { toSheet } from "../engine/sheet.ts";
 import { deleteCharacter, deleteDraft, getCharacter, getDraft, saveCharacter, saveDraft, useStorage, type CharacterRecord } from "../storage/characters.ts";
+import { useHomebrew } from "./homebrew.ts";
 
 interface CharacterState {
   /** The open character's storage id. */
@@ -29,11 +30,16 @@ export const useCharacter = create<CharacterState>()((set, get) => ({
   },
 }));
 
-/** The open character as { entity, built, sheet, selections, dirty }; built, sheet and selections are null with no character open. */
+/**
+ * The open character, built with the loaded homebrew, as { entity, built,
+ * sheet, selections, dirty }; built, sheet and selections are null with no
+ * character open.
+ */
 export function useOpenCharacter() {
   const entity = useCharacter((state) => state.entity);
   const dirty = useCharacter((state) => state.dirty);
-  const evaluation = useEvaluation(entity);
+  const homebrew = useHomebrew((state) => state.homebrew);
+  const evaluation = useEvaluation(entity, homebrew);
   const built = evaluation?.built ?? null;
   const sheet = useMemo(() => (built === null ? null : toSheet(built, entity!)), [built, entity]);
   return { entity, built, sheet, selections: evaluation?.selections ?? null, dirty };
@@ -46,9 +52,9 @@ export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId:
   return id;
 }
 
-/** Saves a record with entity, its name, and the time; and its summary. */
+/** Saves a record with entity, its name, and the time; and its summary, built with the loaded homebrew. */
 function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, entity: StrictEntity) {
-  const sheet = toSheet(engine().evaluate(entity).built, entity);
+  const sheet = toSheet(engine().evaluate(entity, { homebrew: useHomebrew.getState().homebrew }).built, entity);
   return saveCharacter({ ...record, name: sheet.name, updatedAt: now(), entity }, sheet);
 }
 

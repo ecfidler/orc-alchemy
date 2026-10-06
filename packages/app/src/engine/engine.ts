@@ -2,9 +2,9 @@
 // app loads the engine through here and treats the strict entity as opaque.
 import { useMemo } from "react";
 import type * as Dmv from "@pubdoor/dmv";
-import type { Evaluation, Rules, StrictEntity } from "@pubdoor/dmv";
+import type { Evaluation, Homebrew, ParsedOrcbrew, Rules, StrictEntity } from "@pubdoor/dmv";
 
-export type { Rules, StrictEntity };
+export type { Homebrew, ParsedOrcbrew, Rules, StrictEntity };
 
 export type Engine = typeof Dmv;
 
@@ -23,7 +23,11 @@ export function engine(): Engine {
   return loaded;
 }
 
-/** Builds the entity, or null without one. The engine memoizes on the entity's JSON text, so this is cheap to repeat. */
-export function useEvaluation(entity: StrictEntity | null): Evaluation | null {
-  return useMemo(() => (entity === null ? null : engine().evaluate(entity)), [entity]);
+/**
+ * Builds the entity against the homebrew, or the SRD alone without it; null
+ * without an entity. The engine memoizes on the JSON text of both, so this
+ * is cheap to repeat.
+ */
+export function useEvaluation(entity: StrictEntity | null, homebrew?: Homebrew): Evaluation | null {
+  return useMemo(() => (entity === null ? null : engine().evaluate(entity, { homebrew })), [entity, homebrew]);
 }

@@ -6,6 +6,7 @@ import { CharacterList } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { ImportCharacter } from "../components/ImportCharacter.tsx";
+import { LoadHomebrew } from "../components/LoadHomebrew.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 
@@ -63,6 +64,7 @@ export const routes: RouteObject[] = [
           <>
             <h1 className="text-xl">Characters</h1>
             <ImportCharacter />
+            <LoadHomebrew />
             <ExportEverything />
             <div className="mt-4">
               <CharacterList />

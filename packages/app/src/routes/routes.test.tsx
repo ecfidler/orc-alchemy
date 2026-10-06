@@ -15,6 +15,7 @@ test("index route renders inside the shell", () => {
   expect(screen.getByRole("link", { name: "Alchemy 5e" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Characters" })).toBeTruthy();
   expect(screen.getByLabelText("Import character file")).toBeTruthy();
+  expect(screen.getByLabelText("Load homebrew file")).toBeTruthy();
 });
 
 test("the sheet route for an unknown character says so once the engine loads", async () => {
