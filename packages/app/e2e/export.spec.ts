@@ -50,5 +50,5 @@ test("export everything downloads a dmv-export bundle that imports back", async 
 test("export everything with nothing stored says so", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Export everything" }).click();
-  await expect(page.getByRole("alert")).toHaveText("There are no characters to export");
+  await expect(page.getByRole("alert")).toHaveText("There are no characters or homebrew to export");
 });

@@ -6,8 +6,10 @@ import { CharacterList } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { ImportCharacter } from "../components/ImportCharacter.tsx";
+import { LoadHomebrew } from "../components/LoadHomebrew.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
+import { restorePacks } from "../state/homebrew.ts";
 
 function SheetPage() {
   const { id } = useParams() as { id: string };
@@ -20,8 +22,9 @@ function SheetPage() {
     setProblem(null);
     if (id !== useCharacter.getState().id) {
       // A slow open for a page already left must not replace this one's character.
-      readCharacter(id).then(
-        (found) => {
+      // The character opens once the stored packs are back, so it never builds or saves without them.
+      Promise.all([readCharacter(id), restorePacks()]).then(
+        ([found]) => {
           if (!current) return;
           if (found) useCharacter.getState().load(id, found.entity, found.dirty);
           else setProblem("Character not found");
@@ -63,6 +66,7 @@ export const routes: RouteObject[] = [
           <>
             <h1 className="text-xl">Characters</h1>
             <ImportCharacter />
+            <LoadHomebrew />
             <ExportEverything />
             <div className="mt-4">
               <CharacterList />

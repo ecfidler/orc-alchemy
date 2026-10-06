@@ -4,7 +4,7 @@ title: "03: Character import and storage"
 description: "How characters leave an old instance through the exporter bookmarklet, how the new app imports them, and the native character format."
 tags: [plan, characters, import]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-03T05:08:20Z }
+generated: { by: claude-code/agent, at: 2026-10-06T13:45:00Z }
 ---
 
 # 03: Character import and storage
@@ -112,6 +112,21 @@ share the format (option E, [`docs/reports/2024-rules-support.md`](../reports/20
 Export from the new app is this envelope for a single character or the
 `dmv-export` bundle above for all characters plus homebrew. These are
 new-app formats. The old app cannot read them and does not need to.
+
+The bundle from the new app adds two fields when packs are stored (ORC-54):
+
+- `homebrew` is the multi-plugin map of all stored packs, as stored. It
+  includes disabled packs and disabled items. It does not include
+  quarantined records. The export names them in a notice.
+- `homebrewFlags` holds the `enabled` and `disabledItems` flags of each
+  pack. Only the new app has these flags. A pack without flags keeps its
+  stored flags, or is enabled when it is new.
+
+On import, the app loads the packs first, through `orcbrewToEdn` and the
+same `parseOrcbrew` path as a pack file. Then it imports the characters
+against the loaded packs. A bundle with packs and no characters is valid.
+"Export everything" also writes the packs as `all-content.orcbrew` for the
+old app, if `validateForExport` passes. That file cannot keep the flags.
 
 One ordering rule (doc 02 wrinkle 3): serialize selections as arrays, never
 as key-ordered objects, so that selection order, which affects modifier

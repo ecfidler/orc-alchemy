@@ -1,11 +1,12 @@
 import "fake-indexeddb/auto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Homebrew } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { addCharacter } from "../state/character.ts";
 import { getCharacter } from "../storage/characters.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { characterFile, exportBundle, readCharacterFile } from "./import.ts";
+import { characterFile, exportBundle, readBundleHomebrew, readCharacterFile, type CharacterFileEntry } from "./import.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const strictFiles = ["characters", "legacy"].flatMap((dir) =>
@@ -34,6 +35,61 @@ test("a raw entity keeps its name and the old app's id", () => {
   ]);
   expect(readCharacterFile(readText("legacy/character-test-2.strict.json")).characters).toMatchObject([
     { name: null, legacyId: "17592186056344" },
+  ]);
+});
+
+// A meta file's unresolved lists the keys that do not resolve with its packs loaded (fixtures/README.md).
+// The order can differ, so compare the keys sorted by path.
+const readMeta = (file: string) => JSON.parse(readText(file.replace(".strict.json", ".meta.json")));
+const sortedKeys = (keys: { key: string; path: string[] }[]) =>
+  keys.map(({ key, path }) => ({ key, path })).sort((a, b) => a.path.join("/").localeCompare(b.path.join("/")));
+const metaKeys = (file: string) => {
+  const unresolved = readMeta(file).unresolved;
+  return unresolved ? sortedKeys([...unresolved.items, ...unresolved.unresolvedOptions]) : [];
+};
+const keysOf = (character: CharacterFileEntry) => sortedKeys(character.unresolved);
+const importFixture = (file: string, homebrew?: Homebrew) => readCharacterFile(readText(file), homebrew).characters[0];
+
+test.each(strictFiles)("%s reports the unresolved keys its meta file records, with its packs loaded", (file) => {
+  let homebrew: Homebrew | undefined;
+  for (const pack of readMeta(file).orcbrew as string[]) {
+    homebrew = engine().parseOrcbrew(readText(`orcbrew/${pack}`), { name: pack.replace(".orcbrew", ""), existing: homebrew }).data!;
+  }
+  expect(keysOf(importFixture(file, homebrew))).toEqual(metaKeys(file));
+});
+
+test("without homebrew, only the fixtures with non-SRD content report unresolved keys", () => {
+  const unresolved = strictFiles.filter((file) => importFixture(file).unresolved.length > 0);
+  expect(unresolved).toEqual([
+    "characters/ironwrought-artificer-3.strict.json",
+    "characters/warlock-10-drow.strict.json",
+    "legacy/character-test-2.strict.json",
+    "legacy/character-test-3.strict.json",
+    "legacy/r8-unresolved-keys.strict.json",
+  ]);
+});
+
+test("without its pack, ironwrought-artificer-3 reports the keys r8-unresolved-keys records", () => {
+  expect(keysOf(importFixture("characters/ironwrought-artificer-3.strict.json"))).toEqual(
+    metaKeys("legacy/r8-unresolved-keys.strict.json"),
+  );
+});
+
+test("without its pack, warlock-10-drow also reports the pack's subrace, background and feat", () => {
+  const keys = keysOf(importFixture("characters/warlock-10-drow.strict.json"));
+  expect(keys).toEqual(expect.arrayContaining(metaKeys("characters/warlock-10-drow.strict.json")));
+  expect(keys.map((k) => k.key)).toEqual(expect.arrayContaining(["dark-elf-drow-", "spy", "keen-mind"]));
+});
+
+test("each unresolved key has its content type's label, or Option", () => {
+  const { unresolved } = importFixture("legacy/character-test-2.strict.json");
+  expect(unresolved.map(({ label, key }) => `${label}: ${key}`).sort()).toEqual([
+    "Background: noble",
+    "Feat: ritual-caster",
+    "Option: animal-handling",
+    "Option: armor-of-resistance-half-plate",
+    "Option: intimidation",
+    "Subclass: eldritch-knight",
   ]);
 });
 
@@ -106,7 +162,9 @@ test.each(strictFiles)("%s, stored, exports to a dmv-character file that imports
   expect(exported).toMatchObject({ format: "dmv-character", version: 1, rules: "2014", id: record.id, name: record.name });
   const { characters, failures } = reimport(exported);
   expect(failures).toEqual([]);
-  expect(characters).toEqual([{ entity: record.entity, rules: "2014", legacyId: record.legacyId, name: imported.name }]);
+  expect(characters).toEqual([
+    { entity: record.entity, rules: "2014", legacyId: record.legacyId, name: imported.name, unresolved: imported.unresolved },
+  ]);
 });
 
 test("every stored character exports to one dmv-export bundle that imports back", () => {
@@ -114,6 +172,7 @@ test("every stored character exports to one dmv-export bundle that imports back"
   const bundle = exportBundle(entities, "https://alchemy.example");
 
   expect(bundle).toMatchObject({ format: "dmv-export", version: 1, exportedFrom: "https://alchemy.example", magicItems: [] });
+  expect(bundle).not.toHaveProperty("homebrew");
   const { characters, failures } = reimport(bundle);
   expect(failures).toEqual([]);
   expect(characters.map((c) => c.entity)).toEqual(entities);
@@ -155,4 +214,45 @@ test("an envelope without rules is stored as 2014, and its legacyId is kept", as
 
   const stored = await getCharacter(await addCharacter(character.entity, character.rules, character.legacyId));
   expect(stored).toMatchObject({ rules: "2014", legacyId: "17592186056344" });
+});
+
+const warlockPack = () => engine().parseOrcbrew(readText("orcbrew/warlock-test-content.orcbrew"), { name: "warlock-test-content" }).data!;
+
+test("a bundle with packs keeps them and their flags, as the multi-plugin map", () => {
+  const homebrew = warlockPack();
+  const flags = { "warlock-test-content": { enabled: false, disabledItems: [["~:orcpub.dnd.e5/feats", "~:keen-mind"]] as [string, string][] } };
+  const bundle = exportBundle([], "https://alchemy.example", { homebrew, flags });
+  expect(bundle).toMatchObject({ homebrew, homebrewFlags: flags, characters: [] });
+  expect(readBundleHomebrew(JSON.stringify(bundle))).toEqual({ homebrew, flags });
+});
+
+test("a bundle with packs and no characters is not refused", () => {
+  const text = JSON.stringify(exportBundle([], "https://alchemy.example", { homebrew: warlockPack(), flags: {} }));
+  expect(readCharacterFile(text)).toEqual({ characters: [], failures: [] });
+});
+
+test("bundle flags that are not well formed, or name no bundle pack, are dropped", () => {
+  const homebrew = warlockPack();
+  const bundle = {
+    format: "dmv-export",
+    version: 1,
+    characters: [],
+    homebrew,
+    homebrewFlags: { "warlock-test-content": { enabled: "yes", disabledItems: [] }, other: { enabled: true, disabledItems: [] } },
+  };
+  expect(readBundleHomebrew(JSON.stringify(bundle))).toEqual({ homebrew, flags: {} });
+});
+
+test("a bundle pack that is not a map is refused", () => {
+  const text = JSON.stringify({ format: "dmv-export", version: 1, characters: [], homebrew: { bad: "text" } });
+  expect(() => readBundleHomebrew(text)).toThrow("The export's homebrew pack bad is not a pack");
+});
+
+test.each([
+  ["not JSON", "nope"],
+  ["a raw entity", readText("characters/fighter-1.strict.json")],
+  ["a bundle without homebrew", '{"format":"dmv-export","version":1,"characters":[]}'],
+  ["a bundle with empty homebrew", '{"format":"dmv-export","version":1,"characters":[],"homebrew":{}}'],
+])("%s has no bundle homebrew", (_, text) => {
+  expect(readBundleHomebrew(text)).toBeNull();
 });
