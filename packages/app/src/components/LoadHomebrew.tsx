@@ -7,7 +7,7 @@ import { useHomebrew } from "../state/homebrew.ts";
  * last import's log and conflicts show raw; the import panels are M5. Loads
  * the engine on demand.
  */
-export function Homebrew() {
+export function LoadHomebrew() {
   const homebrew = useHomebrew((state) => state.homebrew);
   const lastImport = useHomebrew((state) => state.lastImport);
   const [error, setError] = useState<string | null>(null);

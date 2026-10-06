@@ -166,6 +166,23 @@ test("a homebrew-only character has its pack's selections while the pack is load
   expect(specialization()).toBeUndefined();
 });
 
+test.each([
+  ["duplicate-external-a", () => readFixture("fighter-1.strict.json"), "class", 12, 14],
+  ["community-mezzoloth-race", () => readFixture("fighter-1.strict.json"), "race", 10, 11],
+  ["community-dandwiki-star-elf", () => readFixture("warlock-10-drow.strict.json"), "race/elf/subrace", 2, 3],
+  ["community-gmbinder-homebrew", () => engine().setClass(engine().emptyCharacter(), 0, "cleric"), "class/cleric/levels/level-1/divine-domain", 2, 3],
+])("%s adds its options while it is loaded", (pack, entity, path, without, withPack) => {
+  const { result } = renderHook(() => useOpenCharacter());
+  act(() => useCharacter.getState().load("p", entity()));
+  const optionCount = () => result.current.selections!.find((s) => s.path.join("/") === path)?.optionCount;
+  expect(optionCount()).toBe(without);
+
+  act(() => loadPack(pack));
+  expect(optionCount()).toBe(withPack);
+  act(() => removePack(pack));
+  expect(optionCount()).toBe(without);
+});
+
 test("a character's summary is built with the loaded homebrew", async () => {
   loadPack("duplicate-external-b");
   const id = await addCharacter(readFixture("ironwrought-artificer-3.strict.json"), "2014", null);

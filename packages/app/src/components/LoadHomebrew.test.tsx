@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { useHomebrew } from "../state/homebrew.ts";
-import { Homebrew } from "./Homebrew.tsx";
+import { LoadHomebrew } from "./LoadHomebrew.tsx";
 
 afterEach(() => {
   cleanup();
@@ -17,7 +17,7 @@ function choose(name: string, text: string) {
 }
 
 test("a chosen pack is listed with its import log, and Remove takes it out", async () => {
-  render(<Homebrew />);
+  render(<LoadHomebrew />);
   choose("warlock-test-content.orcbrew", readFileSync(join(orcbrewDir, "warlock-test-content.orcbrew"), "utf8"));
 
   const pack = await screen.findByRole("listitem", { name: "warlock-test-content" });
@@ -30,7 +30,7 @@ test("a chosen pack is listed with its import log, and Remove takes it out", asy
 });
 
 test("a file that does not parse lists no pack and its log says why", async () => {
-  render(<Homebrew />);
+  render(<LoadHomebrew />);
   choose("broken.orcbrew", "{:orcpub.dnd.e5/spells {:fireball");
 
   const log = await screen.findByRole("region", { name: "Last homebrew import" });
