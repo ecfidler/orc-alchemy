@@ -7,6 +7,9 @@
     "packages/*",
     "tools/*"
   ],
+  "scripts": {
+    "docs:check": "bun scripts/okf-check.ts docs"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
   }

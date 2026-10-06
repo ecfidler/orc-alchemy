@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "03: Character import and storage"
+description: "How characters leave an old instance through the exporter bookmarklet, how the new app imports them, and the native character format."
+tags: [plan, characters, import]
+status: stable
+generated: { by: claude-code/agent, at: 2026-10-03T05:08:20Z }
+---
+
 # 03: Character import and storage
 
 This document covers how a user gets their characters out of an old

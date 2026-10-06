@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "Phase 2: Package the rules engine for npm"
+description: Compile the rules engine to an npm package with a typed facade.
+tags: [plan-set-1, engine]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-29T23:45:58Z }
+---
+
 # Phase 2: Package the rules engine for npm
 
 The goal is `@pubdoor/dmv`, an npm package compiled from the existing

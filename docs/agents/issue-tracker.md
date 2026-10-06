@@ -1,3 +1,12 @@
+---
+type: Agent Guide
+title: "Issue tracker: Linear"
+description: "How agents create, read, and update issues in the Linear team Orc Alchemy."
+tags: [agents, linear]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-30T01:20:04Z }
+---
+
 # Issue tracker: Linear
 
 Issues and specs for this repo live in Linear, team **Orc Alchemy**. Use the Linear MCP tools (`mcp__claude_ai_Linear__*`) for all operations; never the `gh` CLI.

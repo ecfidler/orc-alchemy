@@ -1,3 +1,12 @@
+---
+type: Reference
+title: SRD 5.2 rules delta for a character builder
+description: "What changed from SRD 5.1 to SRD 5.2.1 in the rules a character builder computes or offers, with primary sources."
+tags: [rules-2024, srd, rules]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-30T00:55:21Z }
+---
+
 # SRD 5.2 rules delta for a character builder
 
 **Analyzed:** 2026-09-22

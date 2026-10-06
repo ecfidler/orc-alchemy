@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "Phase 5: PDF export and .orcbrew homebrew import"
+description: PDF export and .orcbrew homebrew import.
+tags: [plan-set-1, pdf, homebrew]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-30T00:56:17Z }
+---
+
 # Phase 5: PDF export and `.orcbrew` homebrew import
 
 These two features look large but need little new code, because the hard

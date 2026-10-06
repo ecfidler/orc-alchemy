@@ -1,3 +1,12 @@
+---
+type: Agent Guide
+title: Triage labels
+description: The map from the five canonical triage roles to the Linear label names.
+tags: [agents, linear, triage]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-30T01:20:04Z }
+---
+
 # Triage Labels
 
 The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.

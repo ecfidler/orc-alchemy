@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "Phase 4: Rebuild the pages one by one"
+description: "Rebuild pages in dependency order, mapped to their ClojureScript sources."
+tags: [plan-set-1, app, pages]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-29T23:45:58Z }
+---
+
 # Phase 4: Rebuild the pages one by one
 
 The goal is feature parity with the pages that matter, built in dependency

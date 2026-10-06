@@ -1,3 +1,12 @@
+---
+type: Plan
+title: "05: Application and backend"
+description: "The application layer by reference to Plan Set 1, the local-first mode, and the new backend."
+tags: [plan, app, backend, phase-b]
+status: stable
+generated: { by: claude-code/agent, at: 2026-09-29T23:48:02Z }
+---
+
 # 05: Application and backend
 
 The application layer is mostly the same work as Plan Set 1, so this
