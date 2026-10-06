@@ -1,9 +1,12 @@
 import "fake-indexeddb/auto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft, useStorage } from "../storage/characters.ts";
 import { addCharacter, AUTOSAVE_DELAY_MS, flushAutosave, readCharacter, removeCharacter, useCharacter, useOpenCharacter } from "./character.ts";
+import { useHomebrew } from "./homebrew.ts";
 
 beforeAll(() => loadEngine());
 
@@ -11,7 +14,13 @@ afterEach(async () => {
   await flushAutosave();
   vi.useRealTimers();
   useCharacter.setState({ id: null, entity: null, dirty: false });
+  useHomebrew.setState({ homebrew: undefined, lastImport: null });
 });
+
+const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
+const readFixture = (file: string) => JSON.parse(readFileSync(join(fixturesDir, "characters", file), "utf8"));
+const loadPack = (name: string) => useHomebrew.getState().load(`${name}.orcbrew`, readFileSync(join(fixturesDir, "orcbrew", `${name}.orcbrew`), "utf8"));
+const removePack = (name: string) => useHomebrew.getState().remove(name);
 
 /** Opens a stored character as the sheet page does. */
 async function openCharacter(id: string) {
@@ -123,5 +132,43 @@ test("opening a character recovers its draft", async () => {
   expect(await openCharacter(id)).toBe(true);
   expect(useCharacter.getState().dirty).toBe(true);
   expect(engine().evaluate(useCharacter.getState().entity!).built["character-name"]).toBe("Scanlan");
+  await deleteCharacter(id);
+});
+
+test("the open character builds with the loaded homebrew, and without it once the pack is removed", () => {
+  const { result } = renderHook(() => useOpenCharacter());
+  act(() => useCharacter.getState().load("w", readFixture("warlock-10-drow.strict.json")));
+  const paths = ["race/elf/subrace", "background", "feats"];
+  const optionCounts = () => result.current.selections!.filter((s) => paths.includes(s.path.join("/"))).map((s) => s.optionCount);
+  expect(optionCounts()).toEqual([2, 2, 1]);
+
+  // The pack adds the Drow subrace, the Spy background and the Keen Mind feat.
+  act(() => loadPack("warlock-test-content"));
+  expect(optionCounts()).toEqual([3, 3, 2]);
+  expect(result.current.built).toEqual(readFixture("warlock-10-drow.expected.json"));
+
+  act(() => removePack("warlock-test-content"));
+  expect(optionCounts()).toEqual([2, 2, 1]);
+});
+
+test("a homebrew-only character has its pack's selections while the pack is loaded", () => {
+  const { result } = renderHook(() => useOpenCharacter());
+  act(() => useCharacter.getState().load("i", readFixture("ironwrought-artificer-3.strict.json")));
+  const specialization = () => result.current.selections!.find((s) => s.key === "artificer-specialization");
+  expect(specialization()).toBeUndefined();
+
+  act(() => loadPack("duplicate-external-b"));
+  expect(specialization()?.selected).toEqual(["alchemist"]);
+  expect(result.current.selections!.find((s) => s.key === "subrace")?.selected).toEqual(["envoy"]);
+  expect(result.current.built).toEqual(readFixture("ironwrought-artificer-3.expected.json"));
+
+  act(() => removePack("duplicate-external-b"));
+  expect(specialization()).toBeUndefined();
+});
+
+test("a character's summary is built with the loaded homebrew", async () => {
+  loadPack("duplicate-external-b");
+  const id = await addCharacter(readFixture("ironwrought-artificer-3.strict.json"), "2014", null);
+  expect((await listSummaries()).find((s) => s.id === id)).toMatchObject({ race: "Ironwrought", classes: [{ name: "Artificer (Alternate) (duplicate-external-b)", level: 3 }] });
   await deleteCharacter(id);
 });
