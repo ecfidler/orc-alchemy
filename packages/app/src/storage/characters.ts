@@ -1,6 +1,7 @@
 // Local-first character storage (doc 03 §Storage): one IndexedDB record per
 // character holding its dmv-character envelope, a summaries index for the
-// list page, and drafts of unsaved changes. When IndexedDB is unavailable or
+// list page, and drafts of unsaved changes. The same database holds the
+// homebrew packs (packs.ts). When IndexedDB is unavailable or
 // fails, as in some private windows, storage moves to memory for the rest of
 // the session and useStorage says so. A request that fails after that is
 // thrown to the caller. useStorage reports a failed write; a failed read is
@@ -99,8 +100,8 @@ export function deleteDraft(id: string): Promise<void> {
   return write([{ store: "drafts", delete: id }]);
 }
 
-type StoreName = "characters" | "summaries" | "drafts";
-const storeNames: StoreName[] = ["characters", "summaries", "drafts"];
+type StoreName = "characters" | "summaries" | "drafts" | "packs";
+const storeNames: StoreName[] = ["characters", "summaries", "drafts", "packs"];
 type Write = { store: StoreName; put: { id: string } } | { store: StoreName; delete: string };
 
 interface Backend {
@@ -113,13 +114,13 @@ interface Backend {
 let backend: Promise<Backend> | undefined;
 
 /** Runs op on IndexedDB, or on memory if IndexedDB does not open. */
-async function run<T>(op: (db: Backend) => Promise<T>): Promise<T> {
+export async function run<T>(op: (db: Backend) => Promise<T>): Promise<T> {
   backend ??= openIndexedDb().catch(toMemory);
   return op(await backend);
 }
 
 /** Applies the writes in one transaction, and reports in useStorage if they fail. */
-async function write(writes: Write[]): Promise<void> {
+export async function write(writes: Write[]): Promise<void> {
   try {
     await run((db) => db.write(writes));
   } catch (e) {
@@ -146,9 +147,12 @@ function toMemory(reason: unknown): Backend {
 
 function openIndexedDb(): Promise<Backend> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("alchemy-5e", 1);
+    // Version 2 adds packs. An upgrade creates only the stores not there yet, so it keeps the others' records.
+    const request = indexedDB.open("alchemy-5e", 2);
     request.onupgradeneeded = () => {
-      for (const name of storeNames) request.result.createObjectStore(name, { keyPath: "id" });
+      for (const name of storeNames) {
+        if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name, { keyPath: "id" });
+      }
     };
     request.onerror = () => reject(request.error);
     request.onblocked = () => reject(new Error("IndexedDB is blocked"));

@@ -1,16 +1,27 @@
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { loadEngine } from "../engine/engine.ts";
-import { useHomebrew } from "../state/homebrew.ts";
+import { restorePacks, useHomebrew } from "../state/homebrew.ts";
+
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
- * Loads .orcbrew homebrew files and lists the loaded packs to remove. The
- * last import's log and conflicts show raw; the import panels are M5. Loads
- * the engine on demand.
+ * Loads .orcbrew homebrew files and lists the stored packs to enable, disable
+ * or remove, and warns about stored records that could not be read. The last
+ * import's log and conflicts show raw; the import panels are M5. Loads the
+ * engine on demand.
  */
 export function LoadHomebrew() {
-  const homebrew = useHomebrew((state) => state.homebrew);
+  const packs = useHomebrew((state) => state.packs);
+  const quarantined = useHomebrew((state) => state.quarantined);
   const lastImport = useHomebrew((state) => state.lastImport);
+  const [restored, setRestored] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    restorePacks()
+      .catch((e) => setError(`The stored homebrew could not be read from this browser: ${message(e)}`))
+      .finally(() => setRestored(true));
+  }, []);
 
   async function onChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.target;
@@ -21,25 +32,41 @@ export function LoadHomebrew() {
     try {
       const text = await file.text();
       await loadEngine();
-      useHomebrew.getState().load(file.name, text);
+      await useHomebrew.getState().load(file.name, text);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(message(e));
     }
   }
 
-  const packs = Object.keys(homebrew ?? {});
+  function change(action: Promise<void>) {
+    setError(null);
+    action.catch((e) => setError(message(e)));
+  }
+
   return (
     <section aria-label="Homebrew" className="mt-4 space-y-2">
       <label className="block">
         Load homebrew file <input type="file" accept=".orcbrew" onChange={onChange} className="block" />
       </label>
       {error && <p role="alert">{error}</p>}
+      {!restored && <p role="status">Reading the stored homebrew…</p>}
+      {quarantined.length > 0 && (
+        <ul role="alert" aria-label="Unreadable homebrew packs">
+          {quarantined.map(({ id, reason }) => (
+            <li key={id}>
+              The stored pack {id} could not be read, so it is not used. It is kept in this browser as it is. {reason}
+            </li>
+          ))}
+        </ul>
+      )}
       {packs.length > 0 && (
         <ul aria-label="Homebrew packs">
-          {packs.map((pack) => (
-            <li key={pack} aria-label={pack}>
-              {pack}{" "}
-              <button type="button" onClick={() => useHomebrew.getState().remove(pack)} aria-label={`Remove ${pack}`} className="underline">
+          {packs.map(({ id, enabled }) => (
+            <li key={id} aria-label={id}>
+              <label>
+                <input type="checkbox" checked={enabled} onChange={(e) => change(useHomebrew.getState().setPackEnabled(id, e.target.checked))} /> {id}
+              </label>{" "}
+              <button type="button" onClick={() => change(useHomebrew.getState().remove(id))} aria-label={`Remove ${id}`} className="underline">
                 Remove
               </button>
             </li>

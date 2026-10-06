@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
 import { readCharacterFile, type UnresolvedKey } from "../engine/import.ts";
 import { addCharacter } from "../state/character.ts";
+import { restorePacks } from "../state/homebrew.ts";
 
 interface Imported {
   characters: { id: string; name: string | null; unresolved: UnresolvedKey[] }[];
@@ -31,6 +32,7 @@ export function ImportCharacter() {
     try {
       const text = await file.text();
       await loadEngine();
+      await restorePacks(); // so each summary builds with the stored packs
       // No homebrew yet: ORC-54 passes the loaded packs.
       const read = readCharacterFile(text);
       const characters = await Promise.all(
