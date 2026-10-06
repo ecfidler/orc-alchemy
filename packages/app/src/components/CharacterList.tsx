@@ -27,7 +27,7 @@ export function CharacterList() {
         if (!current) return;
         setSummaries(list.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "")));
         setError(null);
-        // Its write re-reads the list, as any summary write does.
+        // Its write changes useSummariesVersion, so the list is read again and finds nothing stale.
         refreshSummaries(list, () => current).catch(console.error);
       },
       () => current && setError("The characters could not be read from this browser"),

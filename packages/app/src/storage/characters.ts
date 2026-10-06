@@ -33,10 +33,10 @@ export interface CharacterSummary {
   portrait: string | null;
   updatedAt: string;
   /**
-   * The homebrew fingerprint the summary was built with (homebrew.ts). A
-   * summary written before ORC-115 has none.
+   * The fingerprint of the homebrew the summary was built with (homebrew.ts).
+   * A summary written before ORC-115 has none.
    */
-  homebrew?: string;
+  fingerprint?: string;
 }
 
 /** Unsaved changes to a character, kept until autosave writes its record. */
@@ -57,7 +57,7 @@ export const useStorage = create<{ inMemory: boolean; failed: boolean; outdated:
 export const useSummariesVersion = create<number>(() => 0);
 const summariesChanged = () => useSummariesVersion.setState((version) => version + 1, true);
 
-function toSummary(record: CharacterRecord, sheet: Sheet, homebrew: string): CharacterSummary {
+function toSummary(record: CharacterRecord, sheet: Sheet, fingerprint: string): CharacterSummary {
   return {
     id: record.id,
     rules: record.rules,
@@ -66,21 +66,27 @@ function toSummary(record: CharacterRecord, sheet: Sheet, homebrew: string): Cha
     classes: sheet.classes.map((c) => ({ key: `${record.rules}/${c.key}`, name: c.name, level: c.level })),
     portrait: sheet.portrait,
     updatedAt: record.updatedAt,
-    homebrew,
+    fingerprint,
   };
 }
 
-/** Writes a character's record and its summary together; homebrew is the fingerprint of the homebrew the sheet was built with. */
-export function saveCharacter(record: CharacterRecord, sheet: Sheet, homebrew: string): Promise<void> {
+/** Writes a character's record and its summary together; fingerprint names the homebrew the sheet was built with. */
+export function saveCharacter(record: CharacterRecord, sheet: Sheet, fingerprint: string): Promise<void> {
   return write([
     { store: "characters", put: record },
-    { store: "summaries", put: toSummary(record, sheet, homebrew) },
+    { store: "summaries", put: toSummary(record, sheet, fingerprint) },
   ]).then(summariesChanged);
 }
 
-/** Writes summaries in one transaction, and leaves the records as they are. */
-export function saveSummaries(summaries: { record: CharacterRecord; sheet: Sheet; homebrew: string }[]): Promise<void> {
-  return write(summaries.map(({ record, sheet, homebrew }) => ({ store: "summaries" as const, put: toSummary(record, sheet, homebrew) }))).then(
+/**
+ * Writes rebuilt summaries in one transaction, and leaves the records as they
+ * are. A summary is written only if its record is still stored as it was
+ * built, so a character deleted or saved since keeps what that wrote. A
+ * failed write is thrown, but not reported in useStorage: no character is
+ * lost.
+ */
+export function saveSummaries(summaries: { record: CharacterRecord; sheet: Sheet; fingerprint: string }[]): Promise<void> {
+  return run((db) => db.putSummaries(summaries.map(({ record, sheet, fingerprint }) => toSummary(record, sheet, fingerprint)))).then(
     summariesChanged,
   );
 }
@@ -127,7 +133,11 @@ interface Backend {
   getAll(store: StoreName): Promise<unknown[]>;
   /** Applies the writes in one transaction. */
   write(writes: Write[]): Promise<void>;
+  /** In one transaction, puts each summary whose record is stored with the summary's updatedAt. */
+  putSummaries(summaries: CharacterSummary[]): Promise<void>;
 }
+
+const builtFrom = (summary: CharacterSummary, record: unknown) => (record as CharacterRecord | undefined)?.updatedAt === summary.updatedAt;
 
 let backend: Promise<Backend> | undefined;
 
@@ -159,6 +169,9 @@ function toMemory(reason: unknown): Backend {
         if ("put" in w) stores.get(w.store)!.set(w.put.id, w.put);
         else stores.get(w.store)!.delete(w.delete);
       }
+    },
+    putSummaries: async (summaries) => {
+      for (const s of summaries) if (builtFrom(s, stores.get("characters")!.get(s.id))) stores.get("summaries")!.set(s.id, s);
     },
   };
 }
@@ -199,6 +212,18 @@ function openIndexedDb(): Promise<Backend> {
             }
             tx.oncomplete = () => resolve();
             // A failed request aborts the transaction; tx.error is set by then.
+            tx.onabort = () => reject(tx.error);
+          }),
+        putSummaries: (summaries) =>
+          new Promise((resolve, reject) => {
+            const tx = db.transaction(["characters", "summaries"], "readwrite");
+            for (const summary of summaries) {
+              const r = tx.objectStore("characters").get(summary.id);
+              r.onsuccess = () => {
+                if (builtFrom(summary, r.result)) tx.objectStore("summaries").put(summary);
+              };
+            }
+            tx.oncomplete = () => resolve();
             tx.onabort = () => reject(tx.error);
           }),
       });

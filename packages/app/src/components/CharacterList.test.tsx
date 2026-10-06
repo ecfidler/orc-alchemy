@@ -17,14 +17,14 @@ afterEach(() => {
 // expected.json is evaluate(strict).built, so these tests need no engine.
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 
-function store(id: string, fixture: string, portrait: string | null = null, homebrew = "") {
+function store(id: string, fixture: string, portrait: string | null = null, fingerprint = "") {
   const sheet = toSheet(JSON.parse(readFileSync(join(charactersDir, `${fixture}.expected.json`), "utf8")) as Built2014, {});
   const entity = { "~:orcpub.entity.strict/selections": [] };
   sheet.portrait = portrait;
   return saveCharacter(
     { format: "dmv-character", version: 1, rules: "2014", id, name: sheet.name, updatedAt: "2026-10-03T00:00:00.000Z", legacyId: null, entity },
     sheet,
-    homebrew,
+    fingerprint,
   );
 }
 
@@ -81,7 +81,7 @@ test("a failed read says so, without reporting a failed save, and Try again re-r
 
 test("a summary built with other homebrew is rebuilt with the loaded homebrew", async () => {
   // Built with a pack since removed: the stored summary is Korga's, but the record's entity has no selections.
-  await store("f", "barbarian-5", null, "[[\"removed-pack\",\"2026-10-03T00:00:00.000Z\"]]");
+  await store("f", "barbarian-5", null, "stale");
   render(
     <MemoryRouter>
       <CharacterList />
@@ -89,5 +89,5 @@ test("a summary built with other homebrew is rebuilt with the loaded homebrew", 
   );
   expect(await screen.findByRole("listitem", { name: "Korga Stormhide" })).toBeTruthy();
   expect(await screen.findByRole("listitem", { name: "Unnamed character" }, { timeout: 10000 })).toBeTruthy();
-  expect((await listSummaries()).find((s) => s.id === "f")).toMatchObject({ name: null, homebrew: "" });
+  expect((await listSummaries()).find((s) => s.id === "f")).toMatchObject({ name: null, fingerprint: "" });
 }, 20000);

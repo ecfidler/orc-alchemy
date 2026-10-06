@@ -206,7 +206,7 @@ test("refreshSummaries rebuilds the summaries built with other homebrew, unless 
   await loadPack("duplicate-external-b");
   const id = await addCharacter(readFixture("ironwrought-artificer-3.strict.json"), "2014", null);
   const summary = async () => (await listSummaries()).find((s) => s.id === id);
-  const withPack = { race: "Ironwrought", homebrew: useHomebrew.getState().fingerprint };
+  const withPack = { race: "Ironwrought", fingerprint: useHomebrew.getState().fingerprint };
   expect(await summary()).toMatchObject(withPack);
 
   // Removing the pack leaves the summary as it was built.
@@ -218,12 +218,12 @@ test("refreshSummaries rebuilds the summaries built with other homebrew, unless 
 
   await refreshSummaries(await listSummaries(), () => true);
   const rebuilt = await summary();
-  expect(rebuilt).toMatchObject({ homebrew: "" });
+  expect(rebuilt).toMatchObject({ fingerprint: "" });
   expect(rebuilt?.race).not.toBe("Ironwrought");
 
   // Loading the pack again brings the homebrew race back.
   await loadPack("duplicate-external-b");
   await refreshSummaries(await listSummaries(), () => true);
-  expect(await summary()).toMatchObject({ race: "Ironwrought", homebrew: useHomebrew.getState().fingerprint });
+  expect(await summary()).toMatchObject({ race: "Ironwrought", fingerprint: useHomebrew.getState().fingerprint });
   await deleteCharacter(id);
 });

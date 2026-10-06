@@ -12,6 +12,7 @@ import {
   listSummaries,
   saveCharacter,
   saveDraft,
+  saveSummaries,
   useStorage,
   type CharacterRecord,
 } from "./characters.ts";
@@ -50,7 +51,7 @@ test("create, update, delete and list characters and their summaries", async () 
       ],
       portrait: null,
       updatedAt: "2026-10-03T00:00:00.000Z",
-      homebrew: "",
+      fingerprint: "",
     },
     expect.objectContaining({ id: "b", rules: "2014", name: "Fimble Nackle" }),
   ]);
@@ -67,6 +68,23 @@ test("create, update, delete and list characters and their summaries", async () 
   expect((await listSummaries()).map((s) => s.id)).toEqual(["b"]);
   await deleteCharacter("b");
   expect(useStorage.getState().inMemory).toBe(false);
+});
+
+test("rebuilt summaries are written only for records stored as they were built from", async () => {
+  const fighter = sheetOf("fighter-3-wizard-2");
+  for (const id of ["g", "h", "i"]) await saveCharacter(record(id, fighter.name), fighter, "old");
+  // h is saved again and i is deleted after their rebuilds read them.
+  await saveCharacter({ ...record("h", "Corvin"), updatedAt: "2026-10-04T00:00:00.000Z" }, { ...fighter, name: "Corvin" }, "old");
+  await deleteCharacter("i");
+
+  const wizard = sheetOf("wizard-5");
+  await saveSummaries(["g", "h", "i"].map((id) => ({ record: record(id, wizard.name), sheet: wizard, fingerprint: "new" })));
+  const summaries = await listSummaries();
+  expect(summaries.find((s) => s.id === "g")).toMatchObject({ name: "Fimble Nackle", fingerprint: "new" });
+  expect(summaries.find((s) => s.id === "h")).toMatchObject({ name: "Corvin", fingerprint: "old" });
+  expect(summaries.find((s) => s.id === "i")).toBeUndefined();
+  await deleteCharacter("g");
+  await deleteCharacter("h");
 });
 
 test("drafts are kept until deleted", async () => {
