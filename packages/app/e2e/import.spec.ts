@@ -10,17 +10,54 @@ const strictFiles = ["characters", "legacy"].flatMap((dir) =>
 );
 const readJson = (file: string) => JSON.parse(readFileSync(join(fixturesDir, file), "utf8"));
 
+// With no homebrew loaded, a fixture has unresolved keys when its meta file lists some or names a pack.
+const hasUnresolved = (file: string) => {
+  const meta = readJson(file.replace(".strict.json", ".meta.json"));
+  return meta.unresolved !== undefined || meta.orcbrew.length > 0;
+};
+
 for (const file of strictFiles) {
   test(`${file} imports and opens its sheet`, async ({ page }) => {
-    const name = readJson(file.replace(".strict.json", ".expected.json"))["character-name"];
+    const name = readJson(file.replace(".strict.json", ".expected.json"))["character-name"] || "Unnamed character";
 
     await page.goto("/");
     await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, file));
 
+    if (hasUnresolved(file)) {
+      await expect(page.getByRole("list", { name: `Unresolved content for ${name}` })).toBeVisible();
+      await page.getByRole("button", { name, exact: true }).click();
+    }
     await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
-    await expect(page.getByRole("heading", { level: 1, name: name || "Unnamed character" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   });
 }
+
+for (const [file, keys] of [
+  ["characters/ironwrought-artificer-3.strict.json", ["Race: ironwrought", "Subrace: envoy", "Class: artificer", "Subclass: alchemist"]],
+  ["characters/warlock-10-drow.strict.json", ["Subrace: dark-elf-drow-", "Background: spy", "Feat: keen-mind", "Subclass: the-archfey"]],
+  ["legacy/r8-unresolved-keys.strict.json", ["Race: ironwrought", "Subrace: envoy", "Class: artificer", "Subclass: alchemist"]],
+  ["legacy/character-test-2.strict.json", ["Subclass: eldritch-knight", "Background: noble", "Feat: ritual-caster"]],
+] as const) {
+  test(`${file} lists its unresolved keys`, async ({ page }) => {
+    const name = readJson(file.replace(".strict.json", ".expected.json"))["character-name"] || "Unnamed character";
+
+    await page.goto("/");
+    await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, file));
+
+    const list = page.getByRole("list", { name: `Unresolved content for ${name}` });
+    for (const key of keys) await expect(list.getByRole("listitem").filter({ hasText: `${key} (` })).toHaveCount(1);
+    await expect(page).toHaveURL("/");
+  });
+}
+
+test("an SRD character opens its sheet with no unresolved content", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, "characters/fighter-1.strict.json"));
+
+  await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
+  await expect(page.getByRole("list", { name: /^Unresolved content/ })).toHaveCount(0);
+});
 
 test("a dmv-export bundle lists its characters to open", async ({ page }) => {
   const bundle = {

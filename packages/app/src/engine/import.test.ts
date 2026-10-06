@@ -1,11 +1,12 @@
 import "fake-indexeddb/auto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Homebrew } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { addCharacter } from "../state/character.ts";
 import { getCharacter } from "../storage/characters.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { characterFile, exportBundle, readCharacterFile } from "./import.ts";
+import { characterFile, exportBundle, readCharacterFile, type CharacterFileEntry } from "./import.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const strictFiles = ["characters", "legacy"].flatMap((dir) =>
@@ -34,6 +35,61 @@ test("a raw entity keeps its name and the old app's id", () => {
   ]);
   expect(readCharacterFile(readText("legacy/character-test-2.strict.json")).characters).toMatchObject([
     { name: null, legacyId: "17592186056344" },
+  ]);
+});
+
+// A meta file's unresolved lists the keys that do not resolve with its packs loaded (fixtures/README.md).
+// The order can differ, so compare the keys sorted by path.
+const readMeta = (file: string) => JSON.parse(readText(file.replace(".strict.json", ".meta.json")));
+const sortedKeys = (keys: { key: string; path: string[] }[]) =>
+  keys.map(({ key, path }) => ({ key, path })).sort((a, b) => a.path.join("/").localeCompare(b.path.join("/")));
+const metaKeys = (file: string) => {
+  const unresolved = readMeta(file).unresolved;
+  return unresolved ? sortedKeys([...unresolved.items, ...unresolved.unresolvedOptions]) : [];
+};
+const keysOf = (character: CharacterFileEntry) => sortedKeys(character.unresolved);
+const importFixture = (file: string, homebrew?: Homebrew) => readCharacterFile(readText(file), homebrew).characters[0];
+
+test.each(strictFiles)("%s reports the unresolved keys its meta file records, with its packs loaded", (file) => {
+  let homebrew: Homebrew | undefined;
+  for (const pack of readMeta(file).orcbrew as string[]) {
+    homebrew = engine().parseOrcbrew(readText(`orcbrew/${pack}`), { name: pack.replace(".orcbrew", ""), existing: homebrew }).data!;
+  }
+  expect(keysOf(importFixture(file, homebrew))).toEqual(metaKeys(file));
+});
+
+test("without homebrew, only the fixtures with non-SRD content report unresolved keys", () => {
+  const unresolved = strictFiles.filter((file) => importFixture(file).unresolved.length > 0);
+  expect(unresolved).toEqual([
+    "characters/ironwrought-artificer-3.strict.json",
+    "characters/warlock-10-drow.strict.json",
+    "legacy/character-test-2.strict.json",
+    "legacy/character-test-3.strict.json",
+    "legacy/r8-unresolved-keys.strict.json",
+  ]);
+});
+
+test("without its pack, ironwrought-artificer-3 reports the keys r8-unresolved-keys records", () => {
+  expect(keysOf(importFixture("characters/ironwrought-artificer-3.strict.json"))).toEqual(
+    metaKeys("legacy/r8-unresolved-keys.strict.json"),
+  );
+});
+
+test("without its pack, warlock-10-drow also reports the pack's subrace, background and feat", () => {
+  const keys = keysOf(importFixture("characters/warlock-10-drow.strict.json"));
+  expect(keys).toEqual(expect.arrayContaining(metaKeys("characters/warlock-10-drow.strict.json")));
+  expect(keys.map((k) => k.key)).toEqual(expect.arrayContaining(["dark-elf-drow-", "spy", "keen-mind"]));
+});
+
+test("each unresolved key has its content type's label, or Option", () => {
+  const { unresolved } = importFixture("legacy/character-test-2.strict.json");
+  expect(unresolved.map(({ label, key }) => `${label}: ${key}`).sort()).toEqual([
+    "Background: noble",
+    "Feat: ritual-caster",
+    "Option: animal-handling",
+    "Option: armor-of-resistance-half-plate",
+    "Option: intimidation",
+    "Subclass: eldritch-knight",
   ]);
 });
 
@@ -106,7 +162,9 @@ test.each(strictFiles)("%s, stored, exports to a dmv-character file that imports
   expect(exported).toMatchObject({ format: "dmv-character", version: 1, rules: "2014", id: record.id, name: record.name });
   const { characters, failures } = reimport(exported);
   expect(failures).toEqual([]);
-  expect(characters).toEqual([{ entity: record.entity, rules: "2014", legacyId: record.legacyId, name: imported.name }]);
+  expect(characters).toEqual([
+    { entity: record.entity, rules: "2014", legacyId: record.legacyId, name: imported.name, unresolved: imported.unresolved },
+  ]);
 });
 
 test("every stored character exports to one dmv-export bundle that imports back", () => {

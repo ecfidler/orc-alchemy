@@ -1,18 +1,19 @@
 import { useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
-import { readCharacterFile } from "../engine/import.ts";
+import { readCharacterFile, type UnresolvedKey } from "../engine/import.ts";
 import { addCharacter } from "../state/character.ts";
 
 interface Imported {
-  characters: { id: string; name: string | null }[];
+  characters: { id: string; name: string | null; unresolved: UnresolvedKey[] }[];
   failures: string[];
 }
 
 /**
  * Imports a character file: one saved from the old app, a dmv-character file,
  * or a dmv-export bundle. Each character is stored. One character opens its
- * sheet; a bundle lists its characters to open, and any that failed. Loads
+ * sheet; a bundle, or one character with keys that do not resolve, lists its
+ * characters to open, with their unresolved keys and any that failed. Loads
  * the engine on demand.
  */
 export function ImportCharacter() {
@@ -30,12 +31,20 @@ export function ImportCharacter() {
     try {
       const text = await file.text();
       await loadEngine();
+      // No homebrew yet: ORC-54 passes the loaded packs.
       const read = readCharacterFile(text);
       const characters = await Promise.all(
-        read.characters.map(async (c) => ({ id: await addCharacter(c.entity, c.rules, c.legacyId), name: c.name })),
+        read.characters.map(async (c) => ({
+          id: await addCharacter(c.entity, c.rules, c.legacyId),
+          name: c.name,
+          unresolved: c.unresolved,
+        })),
       );
-      if (characters.length === 1 && read.failures.length === 0) navigate(`/sheet/${characters[0].id}`);
-      else setImported({ characters, failures: read.failures });
+      if (characters.length === 1 && read.failures.length === 0 && characters[0].unresolved.length === 0) {
+        navigate(`/sheet/${characters[0].id}`);
+      } else {
+        setImported({ characters, failures: read.failures });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -59,6 +68,18 @@ export function ImportCharacter() {
                 <button type="button" onClick={() => navigate(`/sheet/${character.id}`)} className="underline">
                   {character.name ?? "Unnamed character"}
                 </button>
+                {character.unresolved.length > 0 && (
+                  <>
+                    <p className="ml-4">Unresolved content, left out of the sheet:</p>
+                    <ul aria-label={`Unresolved content for ${character.name ?? "Unnamed character"}`} className="ml-8 list-disc">
+                      {character.unresolved.map(({ label, key, path }, i) => (
+                        <li key={i}>
+                          {label}: {key} ({path.join(" / ")})
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </li>
             ))}
           </ul>
