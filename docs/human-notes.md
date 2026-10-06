@@ -9,16 +9,16 @@ generated: { by: human:ecfidler, at: 2026-10-02T20:19:52Z }
 
 # Human Notes
 
-Notes written by human developers about the project. could be todo lists or in-progress features.
+Notes written by human developers about the project. could be todo lists or in-progress feature ideas.
 
 ## Todo
 
 - what sub-skills are needed?
 - tweak monorepo setup?
-- add playwright support?
 
 - Skill for analysing a milestone.
 - secondary skill that starts work on the milestone.
+- wayfinder and grilling are for brainstorming.
 
 - add a session review that asks an agent about their step by step high level workflow for completing the issue
 - when it decided to spawn subagents or not.
