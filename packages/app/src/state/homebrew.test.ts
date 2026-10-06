@@ -128,6 +128,37 @@ test("a disabled item is left out of the homebrew and its selections", async () 
   expect(featOptions()).toBe(2);
 });
 
+test("changes started together each start from the last one's packs, and a failed one does not stop the next", async () => {
+  const { useHomebrew, load, listPacks } = await reload();
+  await Promise.all([load("warlock-test-content"), load("community-mezzoloth-race")]);
+  expect(useHomebrew.getState().packs.map((p) => p.id)).toEqual(["community-mezzoloth-race", "warlock-test-content"]);
+  expect((await listPacks()).map((r) => (r as PackRecord).id)).toEqual(["community-mezzoloth-race", "warlock-test-content"]);
+
+  const { setPackEnabled, setItemEnabled } = useHomebrew.getState();
+  const results = await Promise.allSettled([
+    setPackEnabled("missing", false),
+    setPackEnabled("warlock-test-content", false),
+    setItemEnabled("warlock-test-content", "~:orcpub.dnd.e5/feats", "~:keen-mind", false),
+  ]);
+  expect(results.map((r) => r.status)).toEqual(["rejected", "fulfilled", "fulfilled"]);
+  const expected = { enabled: false, disabledItems: [["~:orcpub.dnd.e5/feats", "~:keen-mind"]] };
+  expect(useHomebrew.getState().packs[1]).toMatchObject(expected);
+  expect((await listPacks())[1]).toMatchObject(expected);
+});
+
+test("a change that changes nothing keeps the same homebrew", async () => {
+  const { useHomebrew, load } = await reload();
+  await load("warlock-test-content");
+  const { homebrew, packs } = useHomebrew.getState();
+
+  await load("warlock-test-content");
+  await useHomebrew.getState().setPackEnabled("warlock-test-content", true);
+  await useHomebrew.getState().setItemEnabled("warlock-test-content", "~:orcpub.dnd.e5/feats", "~:keen-mind", true);
+  expect(useHomebrew.getState().homebrew).toBe(homebrew);
+  expect(useHomebrew.getState().packs).toBe(packs);
+  expect(useHomebrew.getState().lastImport?.success).toBe(true);
+});
+
 // A feat name must be a string; the engine throws on a number.
 const breaks: PackRecord = {
   id: "breaks",
@@ -143,6 +174,9 @@ const corrupted = [
   { ...breaks, id: "for-2024", rules: "2024", plugin: {} },
 ] as PackRecord[];
 
+// The packs are built one at a time in name order once the build of all of them fails:
+// "breaks" sorts before "warlock-test-content", which still builds after it is quarantined.
+// No pair of packs was found that builds alone but not together, so no test has one.
 test("a stored record that does not read or build is quarantined and kept, and the other packs load", async () => {
   let app = await reload();
   await app.load("warlock-test-content");

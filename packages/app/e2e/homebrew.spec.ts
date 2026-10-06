@@ -23,7 +23,9 @@ test("a loaded pack and its enabled flag survive a reload", async ({ page }) => 
 
   await page.reload();
   await expect(enabled).toBeChecked();
-  await enabled.uncheck();
+  // The checkbox changes once the flag is stored, so check it after the click.
+  await enabled.click();
+  await expect(enabled).not.toBeChecked();
 
   await page.reload();
   await expect(enabled).not.toBeChecked();

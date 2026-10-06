@@ -34,21 +34,32 @@ interface HomebrewState {
 }
 
 export const useHomebrew = create<HomebrewState>()((set, get) => {
-  /** Stores a changed pack and puts it in the state. */
-  async function update(pack: string, change: (record: PackRecord) => Partial<PackRecord>) {
-    const record = get().packs.find((p) => p.id === pack);
-    if (record === undefined) throw new Error(`No pack named ${pack}`);
-    const changed = { ...record, ...change(record), updatedAt: now() };
-    await savePacks([changed]);
-    set(withPacks(get().packs.map((p) => (p.id === pack ? changed : p))));
+  let queue: Promise<unknown> = Promise.resolve();
+  /** Runs a change after the ones before it, so each starts from the packs the last one left. */
+  function queued<T>(change: () => Promise<T>): Promise<T> {
+    const running = queue.then(change);
+    queue = running.catch(() => {}); // a failed change does not stop the next
+    return running;
   }
+
+  /** Stores a changed pack and puts it in the state; change returns null when the pack is already as asked. */
+  const update = (pack: string, change: (record: PackRecord) => Partial<PackRecord> | null) =>
+    queued(async () => {
+      const record = get().packs.find((p) => p.id === pack);
+      if (record === undefined) throw new Error(`No pack named ${pack}`);
+      const fields = change(record);
+      if (fields === null) return;
+      const changed = { ...record, ...fields, updatedAt: now() };
+      await savePacks([changed]);
+      set(withPacks(get().packs.map((p) => (p.id === pack ? changed : p))));
+    });
 
   return {
     packs: [],
     quarantined: [],
     homebrew: undefined,
     lastImport: null,
-    load: async (fileName, text) => {
+    load: (fileName, text) => queued(async () => {
       await restorePacks();
       const { packs, quarantined } = get();
       const existing = packs.length === 0 ? undefined : Object.fromEntries(packs.map((p) => [p.id, p.plugin]));
@@ -63,17 +74,19 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
         if (stored !== undefined && JSON.stringify(stored.plugin) === JSON.stringify(plugin)) return [];
         return [{ id, rules: "2014", enabled: stored?.enabled ?? true, disabledItems: stored?.disabledItems ?? [], plugin, updatedAt: now() }];
       });
-      if (changed.length > 0) await savePacks(changed);
+      if (changed.length === 0) return set({ lastImport });
+      await savePacks(changed);
       set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport });
-    },
-    remove: async (pack) => {
+    }),
+    remove: (pack) => queued(async () => {
       await deletePack(pack);
       set(withPacks(get().packs.filter((p) => p.id !== pack)));
-    },
-    setPackEnabled: (pack, enabled) => update(pack, () => ({ enabled })),
+    }),
+    setPackEnabled: (pack, enabled) => update(pack, (record) => (record.enabled === enabled ? null : { enabled })),
     setItemEnabled: (pack, contentType, key, enabled) =>
       update(pack, ({ disabledItems }) => {
         const others = disabledItems.filter(([t, k]) => t !== contentType || k !== key);
+        if ((others.length < disabledItems.length) === !enabled) return null;
         return { disabledItems: enabled ? others : [...others, [contentType, key]] };
       }),
   };
@@ -91,20 +104,23 @@ export function restorePacks(): Promise<void> {
     .then(async (records) => {
       if (records.length === 0) return;
       await loadEngine();
-      const packs: PackRecord[] = [];
+      const shaped: PackRecord[] = [];
       const quarantined: HomebrewState["quarantined"] = [];
       for (const record of records) {
         const reason = shapeProblem(record);
-        if (reason === null) packs.push(record as PackRecord);
+        if (reason === null) shaped.push(record as PackRecord);
         else quarantined.push({ id: String((record as { id?: unknown } | null)?.id), reason });
       }
-      // One build checks them all; only if it fails is each pack built alone to find which.
-      if (packs.length > 0 && buildProblem(Object.fromEntries(packs.map((p) => [p.id, p.plugin]))) !== null) {
-        for (const pack of [...packs]) {
-          const reason = buildProblem({ [pack.id]: pack.plugin });
-          if (reason === null) continue;
-          packs.splice(packs.indexOf(pack), 1);
-          quarantined.push({ id: pack.id, reason: `The engine could not build it: ${reason}` });
+      // One build checks them all. If it fails, the packs are added one at a time in
+      // name order, and each that does not build with the ones before it is quarantined.
+      const toMap = (packs: PackRecord[]) => Object.fromEntries(packs.map((p) => [p.id, p.plugin]));
+      let packs = shaped;
+      if (shaped.length > 0 && buildProblem(toMap(shaped)) !== null) {
+        packs = [];
+        for (const pack of shaped) {
+          const reason = buildProblem(toMap([...packs, pack]));
+          if (reason === null) packs.push(pack);
+          else quarantined.push({ id: pack.id, reason: `The engine could not build it: ${reason}` });
         }
       }
       useHomebrew.setState({ ...withPacks(packs), quarantined });

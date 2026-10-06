@@ -38,7 +38,8 @@ export function LoadHomebrew() {
     }
   }
 
-  function change(action: Promise<void>) {
+  /** Shows the error if the action fails. */
+  function report(action: Promise<void>) {
     setError(null);
     action.catch((e) => setError(message(e)));
   }
@@ -51,22 +52,24 @@ export function LoadHomebrew() {
       {error && <p role="alert">{error}</p>}
       {!restored && <p role="status">Reading the stored homebrew…</p>}
       {quarantined.length > 0 && (
-        <ul role="alert" aria-label="Unreadable homebrew packs">
-          {quarantined.map(({ id, reason }) => (
-            <li key={id}>
-              The stored pack {id} could not be read, so it is not used. It is kept in this browser as it is. {reason}
-            </li>
-          ))}
-        </ul>
+        <div role="alert" aria-label="Unreadable homebrew packs">
+          <ul>
+            {quarantined.map(({ id, reason }) => (
+              <li key={id}>
+                The stored pack {id} could not be read, so it is not used. It is kept in this browser as it is. {reason}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {packs.length > 0 && (
         <ul aria-label="Homebrew packs">
           {packs.map(({ id, enabled }) => (
             <li key={id} aria-label={id}>
               <label>
-                <input type="checkbox" checked={enabled} onChange={(e) => change(useHomebrew.getState().setPackEnabled(id, e.target.checked))} /> {id}
+                <input type="checkbox" checked={enabled} onChange={(e) => report(useHomebrew.getState().setPackEnabled(id, e.target.checked))} /> {id}
               </label>{" "}
-              <button type="button" onClick={() => change(useHomebrew.getState().remove(id))} aria-label={`Remove ${id}`} className="underline">
+              <button type="button" onClick={() => report(useHomebrew.getState().remove(id))} aria-label={`Remove ${id}`} className="underline">
                 Remove
               </button>
             </li>

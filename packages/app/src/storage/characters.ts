@@ -113,6 +113,8 @@ interface Backend {
 
 let backend: Promise<Backend> | undefined;
 
+// run and write are exported for packs.ts.
+
 /** Runs op on IndexedDB, or on memory if IndexedDB does not open. */
 export async function run<T>(op: (db: Backend) => Promise<T>): Promise<T> {
   backend ??= openIndexedDb().catch(toMemory);
@@ -158,6 +160,8 @@ function openIndexedDb(): Promise<Backend> {
     request.onblocked = () => reject(new Error("IndexedDB is blocked"));
     request.onsuccess = () => {
       const db = request.result;
+      // Closes this connection when another tab opens a later version, so its upgrade is not blocked.
+      db.onversionchange = () => db.close();
       const read = (store: StoreName, query: (s: IDBObjectStore) => IDBRequest) =>
         new Promise<unknown>((resolve, reject) => {
           const r = query(db.transaction(store).objectStore(store));
