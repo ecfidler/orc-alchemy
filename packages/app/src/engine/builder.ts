@@ -121,9 +121,9 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     }
   }
 
-  // Sorted as the old builder, once the tree is whole, since a merge adds
-  // options to a node: options by order, no order first, then by name;
-  // selections by order, 1000 without one, then by name.
+  // Sort once the tree is whole, because a merge adds options to a node.
+  // Sort as the old builder: options by order, no order first, then by
+  // name. Selections by order, 1000 without one, then by name.
   const byOrder = (missing: number) => (a: BuilderOption | BuilderSelection, b: BuilderOption | BuilderSelection) =>
     (orders.get(a) ?? missing) - (orders.get(b) ?? missing) || a.name.localeCompare(b.name);
   const sorted = new Set<BuilderSelection>();
