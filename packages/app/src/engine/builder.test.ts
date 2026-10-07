@@ -5,7 +5,8 @@ import { beforeAll, expect, test } from "vitest";
 import { builderSteps, remainingOf, stepRemaining, unfilled, type BuilderSelection } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 
-const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
+const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
+const charactersDir = join(fixturesDir, "characters");
 const readFixture = (name: string): StrictEntity => JSON.parse(readFileSync(join(charactersDir, `${name}.strict.json`), "utf8"));
 
 beforeAll(() => loadEngine());
@@ -165,13 +166,21 @@ test("a selection an option of a ref selection opens nests under that option", (
   ]);
 });
 
-const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const metaFixtures = ["legacy", "characters"].flatMap((dir) =>
   readdirSync(join(fixturesDir, dir))
     .filter((f) => f.endsWith(".meta.json"))
     .map((f) => `${dir}/${f.slice(0, -".meta.json".length)}`),
 );
 const readJson = (file: string) => JSON.parse(readFileSync(join(fixturesDir, file), "utf8"));
+/** The packs in fixtures/orcbrew, loaded as the app loads them. */
+function loadPacks(packs: string[]): Homebrew | undefined {
+  let homebrew: Homebrew | undefined;
+  for (const pack of packs) {
+    const text = readFileSync(join(fixturesDir, "orcbrew", pack), "utf8");
+    homebrew = engine().parseOrcbrew(text, { name: pack.replace(".orcbrew", ""), existing: homebrew }).data!;
+  }
+  return homebrew;
+}
 
 // The meta files count each position of a ref selection alone, and list
 // only picks to make. The old builder merges the positions, and also flags
@@ -186,18 +195,14 @@ const KNOWN_UNFILLED: Record<string, string[]> = {
   "characters/warlock-10-drow": ["feats 1"],
   // Common and Elvish are picked in the half-elf's choice of 1, which a half-elf knows anyway.
   "characters/fighter-3-wizard-2": ["languages -1"],
-  // Real data: one language too many. Not a golden character, so it stays.
+  // Real data, so it stays. Noble is not in the SRD, so its language choice is missing,
+  // and the two languages picked are one too many for the human's choice of 1.
   "legacy/character-test-2": ["class/fighter/skill-proficiency 2", "languages -1"],
 };
 
 test.each(metaFixtures)("%s has the picks its meta file records, with its packs loaded", (name) => {
   const meta = readJson(`${name}.meta.json`);
-  // Each pack in the meta file, loaded as the app loads it.
-  let homebrew: Homebrew | undefined;
-  for (const pack of meta.orcbrew as string[]) {
-    const text = readFileSync(join(fixturesDir, "orcbrew", pack), "utf8");
-    homebrew = engine().parseOrcbrew(text, { name: pack.replace(".orcbrew", ""), existing: homebrew }).data!;
-  }
+  const homebrew = loadPacks(meta.orcbrew);
   const entity = engine().importCharacter(readJson(`${name}.strict.json`)).entity;
   const steps = builderSteps(engine().evaluate(entity, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
   const actual = unfilled(steps).map((s) => `${s.actualPath.join("/")} ${s.remaining}`);
@@ -218,11 +223,19 @@ test("unfilled and stepRemaining count a merged selection once", () => {
   const steps = stepsOf(entity);
   expect(unfilled(steps).filter((s) => s.key === "languages")).toEqual([expect.objectContaining({ remaining: 3 })]);
   // Race: languages 3, subrace 1 and variant 1. Background: alignment 1,
-  // languages 3, and the holy symbol and prayer book 1 each.
-  expect(steps.map(stepRemaining)).toEqual([5, 6, 4, 0]);
+  // and the holy symbol and prayer book 1 each; its languages count under Race.
+  expect(stepRemaining(steps)).toEqual([5, 3, 4, 0]);
 });
 
 test.each(Array.from({ length: 20 }, (_, i) => i + 1))("autofill with seed %i leaves nothing unfilled", (seed) => {
-  const entity = engine().autofill(engine().emptyCharacter(), { seed }) as StrictEntity;
+  const entity = engine().autofill(engine().emptyCharacter(), { seed });
   expect(unfilled(stepsOf(entity))).toEqual([]);
+});
+
+test.each([1, 2, 3, 4, 5])("autofill with a pack loaded, with seed %i, leaves nothing unfilled", (seed) => {
+  // The app passes the stored packs to autofill, so a random character can take homebrew options.
+  const homebrew = loadPacks(["duplicate-external-b.orcbrew"]);
+  const entity = engine().autofill(engine().emptyCharacter(), { seed, homebrew });
+  const steps = builderSteps(engine().evaluate(entity, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
+  expect(unfilled(steps)).toEqual([]);
 });

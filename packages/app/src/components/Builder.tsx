@@ -14,18 +14,19 @@ export function Builder() {
   const steps = useBuilderSteps(selections, homebrew);
   const [stepName, setStepName] = useState("Race");
   const step = steps.find((s) => s.name === stepName) ?? steps[0];
+  const counts = stepRemaining(steps);
   // As the old validate-selections: starting equipment is not flagged.
   const messages = unfilled(steps)
     .filter((s) => !s.tags.includes("starting-equipment"))
     .map(({ name, remaining: n }) => {
-      const selections = Math.abs(n) === 1 ? "selection" : "selections";
-      return n > 0 ? `You have ${n} more '${name}' ${selections} to make.` : `You must remove ${-n} '${name}' ${selections}.`;
+      const noun = Math.abs(n) === 1 ? "selection" : "selections";
+      return n > 0 ? `You have ${n} more '${name}' ${noun} to make.` : `You must remove ${-n} '${name}' ${noun}.`;
     });
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section aria-label="Builder" className="space-y-4">
-        <section aria-label="Still to choose">
+        <section aria-label="Still to do">
           {messages.length === 0 ? (
             <p>Every choice is made.</p>
           ) : (
@@ -38,8 +39,8 @@ export function Builder() {
         </section>
         <nav aria-label="Steps">
           <ol className="flex flex-wrap gap-2">
-            {steps.map((s) => {
-              const remaining = stepRemaining(s);
+            {steps.map((s, i) => {
+              const remaining = counts[i];
               return (
                 <li key={s.name}>
                   <button

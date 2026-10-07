@@ -157,9 +157,14 @@ export function unfilled(steps: BuilderStep[]): BuilderSelection[] {
   return nodes(steps.flatMap((step) => step.selections)).filter((node) => node.remaining !== 0);
 }
 
-/** The picks to make or remove in a step, as the old sum-remaining. */
-export function stepRemaining(step: BuilderStep): number {
-  return nodes(step.selections).reduce((sum, node) => sum + Math.abs(node.remaining), 0);
+/**
+ * The picks to make or remove in each step, as the old sum-remaining. A
+ * merged selection counts only in the first step that shows it. Unlike the
+ * summary, this counts starting equipment, as the old section headings do.
+ */
+export function stepRemaining(steps: BuilderStep[]): number[] {
+  const seen = new Set<BuilderSelection>();
+  return steps.map((step) => nodes(step.selections, seen).reduce((sum, node) => sum + Math.abs(node.remaining), 0));
 }
 
 /** The builder steps for the open character's selections; the template is built once per homebrew. */

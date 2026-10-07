@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
-// A step button's name ends with its count of picks to make, when it has some.
+// A step button's name ends with its count of picks to do, when it has some.
 const stepButton = (page: Page, name: string) =>
   page.getByRole("navigation", { name: "Steps" }).getByRole("button", { name: new RegExp(`^${name}( \\(\\d+ to do\\))?$`) });
 
@@ -95,16 +95,19 @@ test("Random character opens a complete character in the builder", async ({ page
   await page.goto("/");
   await page.getByRole("button", { name: "Random character" }).click();
   await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
-  await expect(page.getByRole("region", { name: "Still to choose" })).toHaveText("Every choice is made.");
+  await expect(page.getByRole("region", { name: "Still to do" })).toHaveText("Every choice is made.");
   await expect(page.getByRole("region", { name: "Preview" }).getByLabel("Class", { exact: true })).toHaveText(/^\w.* \d+/);
 });
 
 test("the builder lists the picks still to make, and a pick removes its message", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "New character" }).click();
-  const summary = page.getByRole("region", { name: "Still to choose" });
+  const summary = page.getByRole("region", { name: "Still to do" });
   await expect(summary).toContainText("You have 1 more 'Race' selection to make.");
   await expect(summary).toContainText("You have 2 more 'Skill Proficiency' selections to make.");
+  // Starting equipment counts on the Class step but is not in the summary, as in the old builder.
+  await expect(summary).not.toContainText("Starting Equipment");
+  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class (4 to do)");
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race (1 to do)");
 
   await page.getByRole("region", { name: "Builder" }).getByRole("button", { name: "Human", exact: true }).click();

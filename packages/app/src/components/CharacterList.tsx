@@ -7,9 +7,9 @@ import { listSummaries, useSummariesVersion, type CharacterSummary } from "../st
 import { ExportCharacter } from "./Export.tsx";
 
 /**
- * Stores a new character and opens it in the builder: the engine's new
- * character, a level 1 barbarian, or a random one that autofill completes,
- * without a name. Loads the engine on demand.
+ * Stores a new character and opens it in the builder. New character stores
+ * the engine's new character, a level 1 barbarian. Random character stores
+ * one that autofill completes, with no name. Loads the engine on demand.
  */
 export function NewCharacter() {
   const navigate = useNavigate();
