@@ -6,17 +6,22 @@ import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { listSummaries, useSummariesVersion, type CharacterSummary } from "../storage/characters.ts";
 import { ExportCharacter } from "./Export.tsx";
 
-/** Stores the engine's new character, a level 1 barbarian, and opens it in the builder. Loads the engine on demand. */
+/**
+ * Stores a new character and opens it in the builder: the engine's new
+ * character, a level 1 barbarian, or a random one that autofill completes,
+ * without a name. Loads the engine on demand.
+ */
 export function NewCharacter() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
-  async function onClick() {
+  async function create(random: boolean) {
     setError(null);
     try {
-      const { emptyCharacter } = await loadEngine();
+      const { emptyCharacter, autofill } = await loadEngine();
       await restorePacks(); // so its summary builds with the stored packs
-      navigate(`/build/${await addCharacter(emptyCharacter(), "2014", null)}`);
+      const entity = random ? autofill(emptyCharacter(), { homebrew: useHomebrew.getState().homebrew }) : emptyCharacter();
+      navigate(`/build/${await addCharacter(entity, "2014", null)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -24,9 +29,14 @@ export function NewCharacter() {
 
   return (
     <div className="mt-4">
-      <button type="button" onClick={onClick} className="border border-black px-3 py-1">
-        New character
-      </button>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => create(false)} className="border border-black px-3 py-1">
+          New character
+        </button>
+        <button type="button" onClick={() => create(true)} className="border border-black px-3 py-1">
+          Random character
+        </button>
+      </div>
       {error && <p role="alert">{error}</p>}
     </div>
   );

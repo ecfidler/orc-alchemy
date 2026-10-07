@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { AvailableSelection, TemplateSelection } from "@pubdoor/dmv";
+import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { builderSteps, remainingOf, type BuilderSelection } from "./builder.ts";
+import { builderSteps, remainingOf, stepRemaining, unfilled, type BuilderSelection } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -163,4 +163,66 @@ test("a selection an option of a ref selection opens nests under that option", (
     "detect-poison-and-disease",
     "illusory-script",
   ]);
+});
+
+const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
+const metaFixtures = ["legacy", "characters"].flatMap((dir) =>
+  readdirSync(join(fixturesDir, dir))
+    .filter((f) => f.endsWith(".meta.json"))
+    .map((f) => `${dir}/${f.slice(0, -".meta.json".length)}`),
+);
+const readJson = (file: string) => JSON.parse(readFileSync(join(fixturesDir, file), "utf8"));
+
+// The meta files count each position of a ref selection alone, and list
+// only picks to make. The old builder merges the positions, and also flags
+// picks to remove. These characters differ, as "actualPath remaining".
+// ORC-118 fixes the golden ones in the fork and records picks to remove.
+// Remove their entries then.
+const KNOWN_UNFILLED: Record<string, string[]> = {
+  // A Champion above level 10 has two fighting styles; these have one.
+  "characters/fighter-11": ["class/fighter/fighting-style 1"],
+  "characters/fighter-20": ["class/fighter/fighting-style 1"],
+  // The feat option at levels 4 and 8, but only Keen Mind.
+  "characters/warlock-10-drow": ["feats 1"],
+  // Common and Elvish are picked in the half-elf's choice of 1, which a half-elf knows anyway.
+  "characters/fighter-3-wizard-2": ["languages -1"],
+  // Real data: one language too many. Not a golden character, so it stays.
+  "legacy/character-test-2": ["class/fighter/skill-proficiency 2", "languages -1"],
+};
+
+test.each(metaFixtures)("%s has the picks its meta file records, with its packs loaded", (name) => {
+  const meta = readJson(`${name}.meta.json`);
+  // Each pack in the meta file, loaded as the app loads it.
+  let homebrew: Homebrew | undefined;
+  for (const pack of meta.orcbrew as string[]) {
+    const text = readFileSync(join(fixturesDir, "orcbrew", pack), "utf8");
+    homebrew = engine().parseOrcbrew(text, { name: pack.replace(".orcbrew", ""), existing: homebrew }).data!;
+  }
+  const entity = engine().importCharacter(readJson(`${name}.strict.json`)).entity;
+  const steps = builderSteps(engine().evaluate(entity, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
+  const actual = unfilled(steps).map((s) => `${s.actualPath.join("/")} ${s.remaining}`);
+  if (name in KNOWN_UNFILLED) {
+    expect(actual.sort()).toEqual([...KNOWN_UNFILLED[name]].sort());
+  } else {
+    // The meta files give paths only, and only picks to make, so there must be no picks to remove.
+    const expected = (meta.unfilledSelections as string[][]).map((p) => p.join("/"));
+    expect(unfilled(steps).filter((s) => s.remaining < 0)).toEqual([]);
+    expect(unfilled(steps).map((s) => s.actualPath.join("/")).sort()).toEqual(expected.sort());
+  }
+});
+
+test("unfilled and stepRemaining count a merged selection once", () => {
+  // Human gives 1 language and acolyte 2: one selection with 3 to choose.
+  let entity = engine().select(engine().emptyCharacter(), ["race"], "human");
+  entity = engine().select(entity, ["background"], "acolyte");
+  const steps = stepsOf(entity);
+  expect(unfilled(steps).filter((s) => s.key === "languages")).toEqual([expect.objectContaining({ remaining: 3 })]);
+  // Race: languages 3, subrace 1 and variant 1. Background: alignment 1,
+  // languages 3, and the holy symbol and prayer book 1 each.
+  expect(steps.map(stepRemaining)).toEqual([5, 6, 4, 0]);
+});
+
+test.each(Array.from({ length: 20 }, (_, i) => i + 1))("autofill with seed %i leaves nothing unfilled", (seed) => {
+  const entity = engine().autofill(engine().emptyCharacter(), { seed }) as StrictEntity;
+  expect(unfilled(stepsOf(entity))).toEqual([]);
 });
