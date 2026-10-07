@@ -162,7 +162,7 @@ export function unfilled(steps: BuilderStep[]): BuilderSelection[] {
  * merged selection counts only in the first step that shows it. Unlike the
  * summary, this counts starting equipment, as the old section headings do.
  */
-export function stepRemaining(steps: BuilderStep[]): number[] {
+export function remainingByStep(steps: BuilderStep[]): number[] {
   const seen = new Set<BuilderSelection>();
   return steps.map((step) => nodes(step.selections, seen).reduce((sum, node) => sum + Math.abs(node.remaining), 0));
 }

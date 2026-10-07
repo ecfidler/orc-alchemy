@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { builderSteps, remainingOf, stepRemaining, unfilled, type BuilderSelection } from "./builder.ts";
+import { builderSteps, remainingOf, remainingByStep, unfilled, type BuilderSelection } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
@@ -11,7 +11,8 @@ const readFixture = (name: string): StrictEntity => JSON.parse(readFileSync(join
 
 beforeAll(() => loadEngine());
 
-const stepsOf = (entity: StrictEntity) => builderSteps(engine().evaluate(entity).selections, engine().buildTemplate().shape);
+const stepsOf = (entity: StrictEntity, homebrew?: Homebrew) =>
+  builderSteps(engine().evaluate(entity, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
 const step = (entity: StrictEntity, name: string) => stepsOf(entity).find((s) => s.name === name)!;
 /** The selection keyed key under the selected option keyed option. */
 const child = (selection: BuilderSelection, option: string, key: string) =>
@@ -204,7 +205,7 @@ test.each(metaFixtures)("%s has the picks its meta file records, with its packs 
   const meta = readJson(`${name}.meta.json`);
   const homebrew = loadPacks(meta.orcbrew);
   const entity = engine().importCharacter(readJson(`${name}.strict.json`)).entity;
-  const steps = builderSteps(engine().evaluate(entity, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
+  const steps = stepsOf(entity, homebrew);
   const actual = unfilled(steps).map((s) => `${s.actualPath.join("/")} ${s.remaining}`);
   if (name in KNOWN_UNFILLED) {
     expect(actual.sort()).toEqual([...KNOWN_UNFILLED[name]].sort());
@@ -216,7 +217,7 @@ test.each(metaFixtures)("%s has the picks its meta file records, with its packs 
   }
 });
 
-test("unfilled and stepRemaining count a merged selection once", () => {
+test("unfilled and remainingByStep count a merged selection once", () => {
   // Human gives 1 language and acolyte 2: one selection with 3 to choose.
   let entity = engine().select(engine().emptyCharacter(), ["race"], "human");
   entity = engine().select(entity, ["background"], "acolyte");
@@ -224,7 +225,7 @@ test("unfilled and stepRemaining count a merged selection once", () => {
   expect(unfilled(steps).filter((s) => s.key === "languages")).toEqual([expect.objectContaining({ remaining: 3 })]);
   // Race: languages 3, subrace 1 and variant 1. Background: alignment 1,
   // and the holy symbol and prayer book 1 each; its languages count under Race.
-  expect(stepRemaining(steps)).toEqual([5, 3, 4, 0]);
+  expect(remainingByStep(steps)).toEqual([5, 3, 4, 0]);
 });
 
 test.each(Array.from({ length: 20 }, (_, i) => i + 1))("autofill with seed %i leaves nothing unfilled", (seed) => {
@@ -236,6 +237,6 @@ test.each([1, 2, 3, 4, 5])("autofill with a pack loaded, with seed %i, leaves no
   // The app passes the stored packs to autofill, so a random character can take homebrew options.
   const homebrew = loadPacks(["duplicate-external-b.orcbrew"]);
   const entity = engine().autofill(engine().emptyCharacter(), { seed, homebrew });
-  const steps = builderSteps(engine().evaluate(entity, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
+  const steps = stepsOf(entity, homebrew);
   expect(unfilled(steps)).toEqual([]);
 });

@@ -2,7 +2,7 @@
 // cards, beside its sheet as a live preview. Each pick is an engine mutation
 // through useCharacter's update, so it autosaves.
 import { useId, useState } from "react";
-import { stepRemaining, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
+import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
 import { engine } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
@@ -14,7 +14,7 @@ export function Builder() {
   const steps = useBuilderSteps(selections, homebrew);
   const [stepName, setStepName] = useState("Race");
   const step = steps.find((s) => s.name === stepName) ?? steps[0];
-  const counts = stepRemaining(steps);
+  const counts = remainingByStep(steps);
   // As the old validate-selections: starting equipment is not flagged.
   const messages = unfilled(steps)
     .filter((s) => !s.tags.includes("starting-equipment"))
