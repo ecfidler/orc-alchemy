@@ -41,6 +41,8 @@ test("a new character becomes a dwarf acolyte fighter 1, and the preview follows
   // The builder links to the sheet, which shows the same character.
   await page.getByRole("link", { name: "Sheet" }).click();
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
+  // The URL changes before the page does, and the builder has a Class region too.
+  await expect(page.getByRole("region", { name: "Builder" })).toHaveCount(0);
   await expect(page.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await expect(page.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
   await page.getByRole("link", { name: "Build" }).click();
