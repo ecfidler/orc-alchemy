@@ -61,6 +61,19 @@ function Selection({ selection }: { selection: BuilderSelection }) {
 
   function pick(option: BuilderOption) {
     if (option.selected && (isClass || !selection.multiselect)) return;
+    if (isClass) {
+      // Until slice 3 manages levels, a class pick drops the first class's levels; ask first when there is more to lose than level 1.
+      const first = selection.options.find((o) => o.key === selection.selected[0]);
+      const levels = first?.selections.find((s) => s.key === "levels")?.selected.length ?? 1;
+      if (
+        first &&
+        (levels > 1 || selection.selected.length > 1) &&
+        !window.confirm(
+          `Replace ${first.name} with ${option.name}? ${first.name}'s ${levels} ${levels === 1 ? "level" : "levels"} and their choices are removed, and ${option.name} starts at level 1. This cannot be undone.`,
+        )
+      )
+        return;
+    }
     setError(null);
     try {
       useCharacter.getState().update((e) => {

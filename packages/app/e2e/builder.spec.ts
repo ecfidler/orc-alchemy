@@ -1,4 +1,7 @@
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+
+const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 
 test("a new character becomes a dwarf acolyte fighter 1, and the preview follows each pick", async ({ page }) => {
   await page.goto("/");
@@ -58,4 +61,29 @@ test("a pick the engine refuses shows its reason at the selection", async ({ pag
   await builder.getByRole("button", { name: "Grappler" }).click();
   await expect(builder.getByRole("alert")).toHaveText(/no selections remain/);
   await expect(page.getByRole("region", { name: "Preview" }).getByLabel("Class", { exact: true })).toHaveText("Barbarian 1");
+});
+
+test("replacing a class with more than level 1 asks first", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-5.strict.json"));
+  await page.getByRole("link", { name: "Build", exact: true }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const klass = page.getByRole("region", { name: "Preview" }).getByLabel("Class", { exact: true });
+  await expect(klass).toHaveText("Fighter 5 (Champion)");
+  await builder.getByRole("button", { name: "Class", exact: true }).click();
+
+  let message = "";
+  page.once("dialog", (dialog) => {
+    message = dialog.message();
+    return dialog.dismiss();
+  });
+  await builder.getByRole("button", { name: "Wizard", exact: true }).click();
+  await expect.poll(() => message).toBe(
+    "Replace Fighter with Wizard? Fighter's 5 levels and their choices are removed, and Wizard starts at level 1. This cannot be undone.",
+  );
+  await expect(klass).toHaveText("Fighter 5 (Champion)");
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await builder.getByRole("button", { name: "Wizard", exact: true }).click();
+  await expect(klass).toHaveText("Wizard 1");
 });
