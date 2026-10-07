@@ -80,14 +80,15 @@ test("a failed read says so, without reporting a failed save, and Try again re-r
 });
 
 test("a summary built with other homebrew is rebuilt with the loaded homebrew", async () => {
-  // Built with a pack since removed: the stored summary is Korga's, but the record's entity has no selections.
-  await store("f", "barbarian-5", null, "stale");
+  // Built with a pack since removed: the stored summary is Brannor's, but the record's entity has no selections.
+  // Not Korga, whom the test before leaves stored.
+  await store("f", "fighter-1", null, "stale");
   render(
     <MemoryRouter>
       <CharacterList />
     </MemoryRouter>,
   );
-  expect(await screen.findByRole("listitem", { name: "Korga Stormhide" })).toBeTruthy();
+  expect(await screen.findByRole("listitem", { name: "Brannor Ironfist" })).toBeTruthy();
   expect(await screen.findByRole("listitem", { name: "Unnamed character" }, { timeout: 10000 })).toBeTruthy();
   expect((await listSummaries()).find((s) => s.id === "f")).toMatchObject({ name: null, fingerprint: "" });
 }, 20000);

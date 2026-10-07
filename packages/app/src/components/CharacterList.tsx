@@ -1,9 +1,36 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
-import { refreshSummaries, removeCharacter } from "../state/character.ts";
-import { useHomebrew } from "../state/homebrew.ts";
+import { Link, useNavigate } from "react-router";
+import { loadEngine } from "../engine/engine.ts";
+import { addCharacter, refreshSummaries, removeCharacter } from "../state/character.ts";
+import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { listSummaries, useSummariesVersion, type CharacterSummary } from "../storage/characters.ts";
 import { ExportCharacter } from "./Export.tsx";
+
+/** Stores the engine's new character, a level 1 barbarian, and opens it in the builder. Loads the engine on demand. */
+export function NewCharacter() {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+
+  async function onClick() {
+    setError(null);
+    try {
+      const { emptyCharacter } = await loadEngine();
+      await restorePacks(); // so its summary builds with the stored packs
+      navigate(`/build/${await addCharacter(emptyCharacter(), "2014", null)}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  return (
+    <div className="mt-4">
+      <button type="button" onClick={onClick} className="border border-black px-3 py-1">
+        New character
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </div>
+  );
+}
 
 /**
  * The stored characters, from the summaries index, re-read whenever a
