@@ -1,0 +1,113 @@
+// The builder (ORC-55): the open character's selections as steps of option
+// cards, beside its sheet as a live preview. Each pick is an engine mutation
+// through useCharacter's update, so it autosaves.
+import { useId, useState } from "react";
+import { useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
+import { engine } from "../engine/engine.ts";
+import { useCharacter, useOpenCharacter } from "../state/character.ts";
+import { useHomebrew } from "../state/homebrew.ts";
+import { CharacterSheet } from "./CharacterSheet.tsx";
+
+export function Builder() {
+  const { selections, sheet } = useOpenCharacter();
+  const homebrew = useHomebrew((state) => state.homebrew);
+  const steps = useBuilderSteps(selections, homebrew);
+  const [stepName, setStepName] = useState("Race");
+  const step = steps.find((s) => s.name === stepName) ?? steps[0];
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <section aria-label="Builder" className="space-y-4">
+        <nav aria-label="Steps">
+          <ol className="flex flex-wrap gap-2">
+            {steps.map((s) => (
+              <li key={s.name}>
+                <button
+                  type="button"
+                  aria-current={s === step ? "step" : undefined}
+                  onClick={() => setStepName(s.name)}
+                  className={`border border-black px-3 py-1 ${s === step ? "bg-black text-white" : ""}`}
+                >
+                  {s.name}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+        {step && (
+          <>
+            <h2 className="text-xl font-bold">{step.name}</h2>
+            {step.selections.map((selection) => (
+              <Selection key={selection.key} selection={selection} />
+            ))}
+          </>
+        )}
+      </section>
+      <section aria-label="Preview" className="border-t border-black pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        {sheet && <CharacterSheet sheet={sheet} />}
+      </section>
+    </div>
+  );
+}
+
+/** A selection's option cards, then the selections its selected options open. A sequential one, such as levels, shows only the latter. */
+function Selection({ selection }: { selection: BuilderSelection }) {
+  const id = useId();
+  const homebrew = useHomebrew((state) => state.homebrew);
+  const [error, setError] = useState<string | null>(null);
+  const { actualPath, remaining } = selection;
+  // Picking a class replaces the first class; adding classes is multiclassing (slice 3).
+  const isClass = actualPath.length === 1 && actualPath[0] === "class";
+
+  function pick(option: BuilderOption) {
+    if (option.selected && (isClass || !selection.multiselect)) return;
+    setError(null);
+    try {
+      useCharacter.getState().update((e) => {
+        const opts = { homebrew };
+        if (option.selected) return engine().deselect(e, actualPath, option.key, opts);
+        if (isClass) return engine().setClass(e, 0, option.key, opts);
+        return engine().select(e, actualPath, option.key, opts);
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  const opened = selection.options.filter((o) => o.selected && o.selections.length > 0);
+  return (
+    <section aria-labelledby={id} className="space-y-2">
+      <h3 id={id} className="font-bold">
+        {selection.name}
+        {remaining !== 0 && (
+          <span className="ml-2 font-normal">{remaining > 0 ? `(${remaining} to choose)` : `(${-remaining} too many)`}</span>
+        )}
+      </h3>
+      {error && <p role="alert">{error}</p>}
+      {!selection.sequential && (
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {selection.options.map((option) => (
+            <li key={option.key}>
+              <button
+                type="button"
+                aria-pressed={option.selected}
+                onClick={() => pick(option)}
+                className={`h-full w-full border border-black p-2 text-left ${option.selected ? "bg-black text-white" : "hover:bg-gray-100"}`}
+              >
+                {option.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {opened.map((option) => (
+        <div key={option.key} className="ml-2 space-y-4 border-l border-black pl-4">
+          <h4 className="italic">{option.name}</h4>
+          {option.selections.map((child) => (
+            <Selection key={JSON.stringify(child.actualPath)} selection={child} />
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}

@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useParams } from "react-router";
 import { AppShell } from "../components/AppShell.tsx";
-import { CharacterList } from "../components/CharacterList.tsx";
+import { Builder } from "../components/Builder.tsx";
+import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { ImportCharacter } from "../components/ImportCharacter.tsx";
 import { LoadHomebrew } from "../components/LoadHomebrew.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
+import type { Sheet } from "../engine/sheet.ts";
 import { readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
 
-function SheetPage() {
+/** Opens the character at the route's :id, and renders children once it is open and built. */
+function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => ReactNode }) {
   const { id } = useParams() as { id: string };
   const openId = useCharacter((state) => state.id);
   const { sheet } = useOpenCharacter();
@@ -48,11 +51,39 @@ function SheetPage() {
     );
   }
   if (openId !== id || sheet === null) return <p role="status">Opening the character…</p>;
+  return children(id, sheet);
+}
+
+function SheetPage() {
   return (
-    <>
-      <ExportCharacter id={id} />
-      <CharacterSheet sheet={sheet} />
-    </>
+    <OpenCharacter>
+      {(id, sheet) => (
+        <>
+          <div className="flex flex-wrap gap-3">
+            <Link to={`/build/${id}`} className="underline">
+              Build
+            </Link>
+            <ExportCharacter id={id} />
+          </div>
+          <CharacterSheet sheet={sheet} />
+        </>
+      )}
+    </OpenCharacter>
+  );
+}
+
+function BuildPage() {
+  return (
+    <OpenCharacter>
+      {(id) => (
+        <>
+          <Link to={`/sheet/${id}`} className="underline">
+            Sheet
+          </Link>
+          <Builder />
+        </>
+      )}
+    </OpenCharacter>
   );
 }
 
@@ -65,6 +96,7 @@ export const routes: RouteObject[] = [
         element: (
           <>
             <h1 className="text-xl">Characters</h1>
+            <NewCharacter />
             <ImportCharacter />
             <LoadHomebrew />
             <ExportEverything />
@@ -79,6 +111,14 @@ export const routes: RouteObject[] = [
         element: (
           <EngineGate>
             <SheetPage />
+          </EngineGate>
+        ),
+      },
+      {
+        path: "build/:id",
+        element: (
+          <EngineGate>
+            <BuildPage />
           </EngineGate>
         ),
       },
