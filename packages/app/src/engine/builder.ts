@@ -44,7 +44,7 @@ const STEPS: [name: string, tag: string][] = [
 ];
 
 /** Remaining picks as the engine counts them: up to min, or down to max. */
-function remainingOf(min: number | null, max: number | null, count: number) {
+export function remainingOf(min: number | null, max: number | null, count: number) {
   if (count < (min ?? 0)) return (min ?? 0) - count;
   if (max !== null && count > max) return max - count;
   return 0;
@@ -52,16 +52,19 @@ function remainingOf(min: number | null, max: number | null, count: number) {
 
 /**
  * Builds the steps from evaluate's selections and the template shape. A ref
- * selection that appears at several tree positions, such as languages from
- * race and background, is one selection at each of them, as the old
- * entity/combine-selections: its min and max are the sums, and its options
- * the union. Top-level selections whose tags match no step are left out,
- * and so are selections the template does not have.
+ * selection can appear at several tree positions, such as languages from
+ * race and background. It is then one selection at each of them, as the old
+ * entity/combine-selections makes it. Its min and max are the sums, and its
+ * options are the union. Top-level selections whose tags match no step are
+ * left out, and so are selections the template does not have.
  */
 export function builderSteps(selections: AvailableSelection[], shape: TemplateSelection[]): BuilderStep[] {
   const byPath = new Map<string, BuilderSelection>();
   const byRef = new Map<string, BuilderSelection>();
-  const templates = new Map<BuilderSelection, TemplateSelection>();
+  // A merged ref selection has the template of each of its positions.
+  const templates = new Map<BuilderSelection, TemplateSelection[]>();
+  // The template order of each option and selection, to sort by.
+  const orders = new Map<BuilderOption | BuilderSelection, number | undefined>();
   const steps = STEPS.map(([name]) => ({ name, selections: [] as BuilderSelection[] }));
 
   for (const s of selections) {
@@ -70,22 +73,27 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     // evaluate lists a parent before its children.
     const parentKey = JSON.stringify(s.path.slice(0, -2));
     const parent = byPath.get(parentKey) ?? byRef.get(parentKey);
-    const siblings = s.path.length === 1 ? shape : parent && templates.get(parent)!.options.find((o) => o.key === s.path.at(-2))?.selections;
+    const siblings =
+      s.path.length === 1
+        ? shape
+        : parent && templates.get(parent)!.flatMap((t) => t.options.find((o) => o.key === s.path.at(-2))?.selections ?? []);
     const template = siblings?.find((t) => t.key === s.key);
     // Not in the template, or under a selection that is not: nowhere to show it.
     if (template === undefined) continue;
-    // Sorted as the old builder: by order, no order first, then by name.
-    const options = template.options
-      .toSorted((a, b) => (a.order ?? -Infinity) - (b.order ?? -Infinity) || a.name.localeCompare(b.name))
-      .map((o) => ({ key: o.key, name: o.name, selected: s.selected.includes(o.key), selections: [] }));
+    const options = template.options.map((o) => {
+      const option: BuilderOption = { key: o.key, name: o.name, selected: s.selected.includes(o.key), selections: [] };
+      orders.set(option, o.order);
+      return option;
+    });
     const shared = s.ref && byRef.get(JSON.stringify(s.actualPath));
     let node: BuilderSelection;
     if (shared) {
       node = shared;
-      node.min = (node.min ?? 0) + (s.min ?? 0);
+      node.min = node.min === null && s.min === null ? null : (node.min ?? 0) + (s.min ?? 0);
       node.max = node.max === null || s.max === null ? null : node.max + s.max;
       node.remaining = remainingOf(node.min, node.max, node.selected.length);
       for (const o of options) if (!node.options.some((n) => n.key === o.key)) node.options.push(o);
+      templates.get(node)!.push(template);
     } else {
       node = {
         key: s.key,
@@ -99,8 +107,9 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
         sequential: s.sequential === true,
         options,
       };
+      orders.set(node, template.order);
       if (s.ref) byRef.set(JSON.stringify(s.actualPath), node);
-      templates.set(node, template);
+      templates.set(node, [template]);
     }
     byPath.set(JSON.stringify(s.path), node);
 
@@ -112,6 +121,22 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     }
   }
 
+  // Sorted as the old builder, once the tree is whole, since a merge adds
+  // options to a node: options by order, no order first, then by name;
+  // selections by order, 1000 without one, then by name.
+  const byOrder = (missing: number) => (a: BuilderOption | BuilderSelection, b: BuilderOption | BuilderSelection) =>
+    (orders.get(a) ?? missing) - (orders.get(b) ?? missing) || a.name.localeCompare(b.name);
+  const sorted = new Set<BuilderSelection>();
+  const sortSelections = (list: BuilderSelection[]) => {
+    list.sort(byOrder(1000));
+    for (const node of list) {
+      if (sorted.has(node)) continue;
+      sorted.add(node);
+      node.options.sort(byOrder(-Infinity));
+      for (const o of node.options) sortSelections(o.selections);
+    }
+  };
+  for (const step of steps) sortSelections(step.selections);
   return steps.filter((step) => step.selections.length > 0);
 }
 

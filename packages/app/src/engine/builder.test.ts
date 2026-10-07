@@ -1,7 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { AvailableSelection, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { builderSteps, type BuilderSelection } from "./builder.ts";
+import { builderSteps, remainingOf, type BuilderSelection } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -71,7 +72,59 @@ test("a merged ref selection counts every pick once", () => {
   expect(languages().remaining).toBe(2);
 });
 
-test("a ref selection at one position keeps the engine's remaining", () => {
+test("a merged ref selection sorts the union of its options and finds children in any position's template", () => {
+  // Languages at two positions; only the second offers Giant, which opens a selection.
+  const languages = (options: TemplateSelection["options"]) => ({ key: "languages", name: "Languages", min: 1, max: 1, ref: ["languages"], options });
+  const shape: TemplateSelection[] = [
+    { key: "race", name: "Race", min: 1, max: 1, tags: ["race"], options: [{ key: "x", name: "X", selections: [languages([{ key: "common", name: "Common" }])] }] },
+    {
+      key: "background",
+      name: "Background",
+      min: 1,
+      max: 1,
+      tags: ["background"],
+      options: [
+        {
+          key: "y",
+          name: "Y",
+          selections: [
+            languages([
+              { key: "giant", name: "Giant", selections: [{ key: "rune", name: "Rune", min: 1, max: 1, options: [{ key: "dwarf-rune", name: "Dwarf Rune" }] }] },
+              { key: "abyssal", name: "Abyssal" },
+            ]),
+          ],
+        },
+      ],
+    },
+  ];
+  const selection = (path: string[], actualPath = path, selected: string[] = [], ref = false): AvailableSelection => ({
+    key: path.at(-1)!,
+    name: path.at(-1)!,
+    path,
+    actualPath,
+    min: 1,
+    max: 1,
+    remaining: 0,
+    optionCount: 0,
+    selected,
+    ...(ref && { ref: ["languages"] }),
+  });
+  const steps = builderSteps(
+    [
+      selection(["race"], ["race"], ["x"]),
+      selection(["race", "x", "languages"], ["languages"], ["giant"], true),
+      selection(["background"], ["background"], ["y"]),
+      selection(["background", "y", "languages"], ["languages"], ["giant"], true),
+      selection(["languages", "giant", "rune"]),
+    ],
+    shape,
+  );
+  const merged = child(steps[0].selections[0], "x", "languages");
+  expect(merged.options.map((o) => o.key)).toEqual(["abyssal", "common", "giant"]);
+  expect(child(merged, "giant", "rune").options.map((o) => o.key)).toEqual(["dwarf-rune"]);
+});
+
+test("remainingOf counts a ref selection at one position as the engine does", () => {
   let checked = 0;
   for (const name of ["fighter-3-wizard-2", "warlock-10-drow", "wizard-20"]) {
     const entity = readFixture(name);
@@ -81,9 +134,7 @@ test("a ref selection at one position keeps the engine's remaining", () => {
     const single = selections.filter((s) => counts.get(s.actualPath.join("\0")) === 1);
     for (const s of single) {
       checked++;
-      const count = s.selected.length;
-      const min = s.min ?? 0;
-      expect(count < min ? min - count : s.max !== null && count > s.max ? s.max - count : 0).toBe(s.remaining);
+      expect(remainingOf(s.min, s.max, s.selected.length)).toBe(s.remaining);
     }
   }
   expect(checked).toBeGreaterThan(0);
