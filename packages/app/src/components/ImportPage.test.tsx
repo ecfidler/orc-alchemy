@@ -199,6 +199,26 @@ test("the bundle step refuses a single character, and points to step 3", async (
   expect((await within(step).findByRole("alert")).textContent).toBe("This is not a dmv-export bundle. To import one character, use step 3.");
 });
 
+test("the character step refuses a bundle, and points to step 2", async () => {
+  renderPage();
+  choose("Import character file", "dmv-export.json", JSON.stringify({ format: "dmv-export", version: 1, characters: [JSON.parse(fighter())] }));
+
+  const step = screen.getByRole("region", { name: "One character" });
+  expect((await within(step).findByRole("alert")).textContent).toBe("This is a dmv-export bundle. Import it in step 2.");
+});
+
+test("a file the engine cannot read says so in words, and the earlier file's log goes away", async () => {
+  renderPage();
+  choose("Load homebrew file", "warlock-test-content.orcbrew", orcbrew("warlock-test-content.orcbrew"));
+  await screen.findByRole("region", { name: "Import log" });
+
+  // Engine 0.2.0 throws on an item that is not a map (ORC-116).
+  choose("Load homebrew file", "bad.orcbrew", "{:orcpub.dnd.e5/spells {:a 5}}");
+  const step = screen.getByRole("region", { name: "Homebrew" });
+  expect((await within(step).findByRole("alert")).textContent).toMatch(/^The homebrew could not be read\. An item or pack in the file may not be a map\./);
+  expect(screen.queryByRole("region", { name: "Import log" })).toBeNull();
+});
+
 test("a bundle lists its characters, and its packs' log shows under step 1", async () => {
   await loadEngine();
   const { data } = engine().parseOrcbrew(orcbrew("warlock-test-content.orcbrew"), { name: "warlock-test-content" });

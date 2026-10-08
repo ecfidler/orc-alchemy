@@ -1,7 +1,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
-import { readBundleHomebrew, readCharacterFile, type UnresolvedKey } from "../engine/import.ts";
+import { isBundleText, readBundleHomebrew, readCharacterFile, type UnresolvedKey } from "../engine/import.ts";
 import { addCharacter } from "../state/character.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { ImportLog } from "./ImportLog.tsx";
@@ -113,6 +113,9 @@ function HomebrewImport() {
   );
 }
 
+/** The character steps of the page: 2, a bundle, or 3, one character. */
+type Step = "bundle" | "character";
+
 interface Imported {
   characters: { id: string; name: string | null; unresolved: UnresolvedKey[] }[];
   failures: string[];
@@ -123,7 +126,8 @@ interface Imported {
 /**
  * Steps 2 and 3: a dmv-export bundle, or one character as a file saved from
  * the old app, a dmv-character file, or the text of the old app's public
- * character URL pasted in. A bundle's packs are loaded first, so its
+ * character URL pasted in. Each step refuses the other step's files. A
+ * bundle's packs are loaded first, so its
  * characters resolve against them. Each character is stored and checked
  * against the loaded packs. One character opens its sheet; a bundle, or one
  * character with keys that do not resolve, lists its characters to open, with
@@ -132,22 +136,27 @@ interface Imported {
 function CharacterImport() {
   const navigate = useNavigate();
   const [pasted, setPasted] = useState("");
-  const [error, setError] = useState<{ step: "bundle" | "character"; text: string } | null>(null);
+  const [error, setError] = useState<{ step: Step; text: string } | null>(null);
   const [imported, setImported] = useState<Imported | null>(null);
 
-  async function importText(step: "bundle" | "character", read: () => Promise<string | null>) {
+  /** Imports the text that read gives, or nothing when it gives null; the file name is for the import log. */
+  async function importText(step: Step, read: () => Promise<{ name: string; text: string } | null>) {
     setError(null);
     setImported(null);
     try {
-      const text = await read();
-      if (text === null) return;
+      const chosen = await read();
+      if (chosen === null) return;
+      const { name, text } = chosen;
+      if (step === "bundle" && !isBundleText(text)) {
+        throw new Error("This is not a dmv-export bundle. To import one character, use step 3.");
+      }
+      if (step === "character" && isBundleText(text)) {
+        throw new Error("This is a dmv-export bundle. Import it in step 2.");
+      }
       await loadEngine();
       await restorePacks(); // so each summary builds with the stored packs
       const bundle = readBundleHomebrew(text);
-      if (step === "bundle" && !isBundle(text)) {
-        throw new Error("This is not a dmv-export bundle. To import one character, use step 3.");
-      }
-      if (bundle !== null) await useHomebrew.getState().loadBundle(bundle);
+      if (bundle !== null) await useHomebrew.getState().loadBundle(bundle, name);
       const file = readCharacterFile(text, useHomebrew.getState().homebrew);
       const characters = await Promise.all(
         file.characters.map(async (c) => ({
@@ -166,7 +175,7 @@ function CharacterImport() {
     }
   }
 
-  const errorFor = (step: "bundle" | "character") => error?.step === step && <p role="alert">{error.text}</p>;
+  const errorFor = (step: Step) => error?.step === step && <p role="alert">{error.text}</p>;
 
   return (
     <>
@@ -178,7 +187,7 @@ function CharacterImport() {
           <input
             type="file"
             accept=".json,application/json"
-            onChange={(e) => importText("bundle", async () => (await chosenText(e))?.text ?? null)}
+            onChange={(e) => importText("bundle", () => chosenText(e))}
             className="block"
           />
         </label>
@@ -192,7 +201,7 @@ function CharacterImport() {
           <input
             type="file"
             accept=".json,application/json"
-            onChange={(e) => importText("character", async () => (await chosenText(e))?.text ?? null)}
+            onChange={(e) => importText("character", () => chosenText(e))}
             className="block"
           />
         </label>
@@ -203,7 +212,7 @@ function CharacterImport() {
         <button
           type="button"
           disabled={pasted.trim() === ""}
-          onClick={() => importText("character", async () => pasted)}
+          onClick={() => importText("character", async () => ({ name: "pasted text", text: pasted }))}
           className="border border-black px-3 py-1 disabled:opacity-50"
         >
           Import pasted character
@@ -252,14 +261,4 @@ function CharacterImport() {
       )}
     </>
   );
-}
-
-/** Whether the text is a dmv-export bundle, with or without homebrew. */
-function isBundle(text: string): boolean {
-  try {
-    const data: unknown = JSON.parse(text);
-    return typeof data === "object" && data !== null && (data as { format?: unknown }).format === "dmv-export";
-  } catch {
-    return false;
-  }
 }

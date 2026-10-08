@@ -23,7 +23,7 @@ test("an imported character appears in the list and opens its sheet", async ({ p
 
 test("a bundle's characters appear in the list", async ({ page }) => {
   await page.goto("/import");
-  await page.getByLabel("Import character file").setInputFiles({
+  await page.getByLabel("Import dmv-export bundle").setInputFiles({
     name: "dmv-export.json",
     mimeType: "application/json",
     buffer: Buffer.from(

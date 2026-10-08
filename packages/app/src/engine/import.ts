@@ -118,6 +118,16 @@ export function exportBundle(entities: StrictEntity[], exportedFrom: string, pac
   };
 }
 
+/** Whether the text is a dmv-export bundle, with or without homebrew. */
+export function isBundleText(text: string): boolean {
+  try {
+    const data: unknown = JSON.parse(text);
+    return isObject(data) && data.format === "dmv-export";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The homebrew of a dmv-export bundle's text, or null for any other file or a
  * bundle with no packs. Throws when a pack is not a map. Flags that are not

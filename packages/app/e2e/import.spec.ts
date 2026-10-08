@@ -68,7 +68,7 @@ test("a dmv-export bundle lists its characters to open", async ({ page }) => {
   };
 
   await page.goto("/import");
-  await page.getByLabel("Import character file").setInputFiles({
+  await page.getByLabel("Import dmv-export bundle").setInputFiles({
     name: "dmv-export.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(bundle)),
@@ -98,7 +98,7 @@ test("a bundle lists the characters that import and the ones that fail", async (
   const bundle = { format: "dmv-export", version: 1, characters: [readJson("characters/fighter-1.strict.json"), {}] };
 
   await page.goto("/import");
-  await page.getByLabel("Import character file").setInputFiles({
+  await page.getByLabel("Import dmv-export bundle").setInputFiles({
     name: "dmv-export.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(bundle)),

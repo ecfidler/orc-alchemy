@@ -113,8 +113,8 @@ export function ImportLog({ result }: { result: LastImport }) {
   const { log, conflicts, skipped, fileName } = result;
   const changes = log.changes as Change[];
   const advanced = changes.filter((c) => !USER_TYPES.has(c.type ?? ""));
-  // A parse error can give its line; its hint is already in the message.
-  const errors = log.errors.map((error) => (log.line != null ? `Line ${log.line}: ${error}` : error));
+  // A parse error's line and hint, when the engine has them, are in log.message, which shows above.
+  const errors = log.errors;
   const clean = errors.length === 0 && skipped.length === 0 && changes.length === 0 && conflicts.length === 0;
 
   return (
@@ -179,7 +179,7 @@ export function ImportLog({ result }: { result: LastImport }) {
               <li key={c.id}>
                 {c["content-type-name"]} <Code>{c.key}</Code>:{" "}
                 {c.type === "internal"
-                  ? `used by more than one pack in this file`
+                  ? "used by more than one pack in this file"
                   : `${c["import-name"] ?? c.key} from ${c["import-source"]} has the key of ${c["existing-name"] ?? c.key} from ${c["existing-source"]}`}
               </li>
             ))}

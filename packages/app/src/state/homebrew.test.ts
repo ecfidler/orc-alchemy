@@ -262,7 +262,7 @@ test("a bundle's packs and flags round-trip through an empty database, with its 
   app = await reload();
   const bundle = app.readBundleHomebrew(text);
   expect(bundle).toEqual({ homebrew, flags });
-  await app.useHomebrew.getState().loadBundle(bundle!);
+  await app.useHomebrew.getState().loadBundle(bundle!, "dmv-export.json");
   const after = app.useHomebrew.getState();
   expect(withoutTimes(after.packs)).toEqual(withoutTimes(before.packs));
   expect(after.homebrew).toEqual(before.homebrew);
@@ -282,7 +282,7 @@ test("a bundle pack without flags keeps its stored flags, or is enabled when new
     existing: { "warlock-test-content": app.useHomebrew.getState().packs[0].plugin },
   }).data!;
 
-  await app.useHomebrew.getState().loadBundle({ homebrew, flags: {} });
+  await app.useHomebrew.getState().loadBundle({ homebrew, flags: {} }, "dmv-export.json");
   expect(app.useHomebrew.getState().packs.map(({ id, enabled }) => [id, enabled])).toEqual([
     ["community-mezzoloth-race", true],
     ["warlock-test-content", false],
@@ -295,7 +295,7 @@ test("a bundle with a pack named as a quarantined record is refused", async () =
   const homebrew = app.engine().parseOrcbrew(readPack("warlock-test-content"), { name: "warlock-test-content" }).data!;
 
   app = await reload();
-  await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} })).rejects.toThrow(
+  await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} }, "dmv-export.json")).rejects.toThrow(
     "A stored pack named warlock-test-content could not be read",
   );
   expect(app.useHomebrew.getState().packs).toEqual([]);
@@ -306,6 +306,6 @@ test("a bundle with an item that is not a map is refused, and keeps the loaded p
   await app.load("warlock-test-content");
   const { packs } = app.useHomebrew.getState();
   const homebrew = { bad: { "~:orcpub.dnd.e5/spells": { "~:x": 5 } } };
-  await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} })).rejects.toThrow("The homebrew could not be read: ");
+  await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} }, "dmv-export.json")).rejects.toThrow("The homebrew could not be read. An item or pack in the file may not be a map.");
   expect(app.useHomebrew.getState().packs).toBe(packs);
 });
