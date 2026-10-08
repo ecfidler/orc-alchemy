@@ -47,7 +47,8 @@ type Entity = { [SELECTIONS]: Selection[]; [VALUES]?: Record<string, unknown> };
  *   (ORC-123). The entity comparison strips them from the golden, and
  *   the built comparison skips the built keys of the same name.
  */
-const GAPS: Record<string, { refused?: string[]; removed?: string[]; values?: string[]; reason: string }> = {
+type Gaps = { refused?: string[]; removed?: string[]; values?: string[]; reason?: string };
+const GAPS: Record<string, Gaps> = {
   "fighter-1": {
     values: ["off-hand-weapon"],
     reason: "The off hand holds the shield. The Off hand list offers only dual-wield weapons, and the Main hand control sets the off hand to none.",
@@ -175,7 +176,8 @@ function rebuild(golden: Entity, homebrew?: Homebrew) {
   for (const hand of HANDS) {
     if (!(hand in values)) continue;
     const item = unkeyword(values[hand] as string);
-    // The Off hand list offers only the weapons that can be dual-wielded.
+    // The Off hand list offers only the weapons that can be dual-wielded, as
+    // Hands in Equipment.tsx reads them from the sheet's weaponAttacks.
     const offHandOk = () => e.evaluate(entity, opts).built["weapon-modifiers"]?.[item]?.["dual-wield?"] === true;
     if (hand === "off-hand-weapon" && !offHandOk()) skipped.push(hand);
     else set(wield(e, entity, hand, item));
@@ -243,7 +245,7 @@ test.each(goldens)("%s rebuilt by the builder's mutations equals the golden", (n
     homebrew = parsed.data!;
   }
   const golden = readJson(`characters/${name}.strict.json`) as Entity;
-  const gaps = GAPS[name] ?? { reason: "" };
+  const gaps: Gaps = GAPS[name] ?? {};
   const { entity, refused, removed, skipped } = rebuild(golden, homebrew);
 
   expect(refused.sort()).toEqual([...(gaps.refused ?? [])].sort());
