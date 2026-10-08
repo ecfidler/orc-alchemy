@@ -3,11 +3,9 @@
 // Enter in a one-line field. A write evaluates the whole character, so a
 // keystroke does not write.
 import { useId, useState } from "react";
-import { DESCRIPTION_FIELDS, setDescription, storedValue, type DescriptionField } from "../engine/description.ts";
+import { DESCRIPTION_FIELDS, normalized, setDescription, storedValue, type DescriptionField } from "../engine/description.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useMutation } from "./Classes.tsx";
-
-const IMAGE_ALT: Record<string, string> = { "image-url": "Portrait", "faction-image-url": "Faction image" };
 
 export function Description() {
   const { entity } = useOpenCharacter();
@@ -37,7 +35,9 @@ function TextField({ field, stored, onCommit }: { field: DescriptionField; store
     setSeen(stored);
     setText(stored);
   }
+  // The field shows the text as stored, so "12.9" becomes "12" for XP.
   const commit = () => {
+    setText(normalized(field.key, text));
     if (text !== stored) onCommit(text);
   };
   const props = {
@@ -57,7 +57,7 @@ function TextField({ field, stored, onCommit }: { field: DescriptionField; store
       ) : (
         <input type={field.kind} {...props} onKeyDown={(event) => event.key === "Enter" && commit()} />
       )}
-      {field.kind === "url" && stored.trim() !== "" && <img src={stored} alt={IMAGE_ALT[field.key]} className="h-24 w-24 object-cover" />}
+      {field.alt && stored.trim() !== "" && <img src={stored} alt={field.alt} className="h-24 w-24 object-cover" />}
     </div>
   );
 }

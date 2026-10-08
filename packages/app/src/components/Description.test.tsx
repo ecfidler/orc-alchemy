@@ -37,11 +37,19 @@ test("XP is written on Enter, as an int", () => {
   fireEvent.keyDown(field("Experience Points"), { key: "Enter" });
   expect(engine().evaluate(useCharacter.getState().entity!).built.xps).toBe(900);
   expect(preview().getByLabelText("XP").textContent).toBe("900");
+  // A decimal is stored as its int, and the field shows what is stored.
+  fireEvent.change(field("Experience Points"), { target: { value: "900.9" } });
+  fireEvent.blur(field("Experience Points"));
+  expect(stored("xps")).toBe("900");
+  expect(field("Experience Points").value).toBe("900");
 });
 
 test("a field cleared is stored as an empty string", () => {
   open("description-clear");
   fireEvent.change(field("Bonds"), { target: { value: "My ship" } });
+  // Enter in a textarea is a new line, not a commit.
+  fireEvent.keyDown(field("Bonds"), { key: "Enter" });
+  expect(stored("bonds")).toBe("");
   fireEvent.blur(field("Bonds"));
   expect(stored("bonds")).toBe("My ship");
   fireEvent.change(field("Bonds"), { target: { value: "" } });
@@ -57,4 +65,7 @@ test("the portrait shows under its URL when set", () => {
   fireEvent.keyDown(field("Image URL"), { key: "Enter" });
   expect(builder().getByAltText("Portrait").getAttribute("src")).toBe("https://example.com/p.png");
   expect(preview().getByAltText("Portrait").getAttribute("src")).toBe("https://example.com/p.png");
+  fireEvent.change(field("Faction Image URL"), { target: { value: "https://example.com/f.png" } });
+  fireEvent.keyDown(field("Faction Image URL"), { key: "Enter" });
+  expect(builder().getByAltText("Faction image").getAttribute("src")).toBe("https://example.com/f.png");
 });

@@ -1,7 +1,8 @@
 // The Description step (ORC-61): the free-form character values, as the old
 // builder's Description tab. Each one is a value of the strict entity, and
-// setValue writes it. Text is stored as typed, so "" stays "" (quirk R4).
-// XP is an int (quirk R5).
+// setValue writes it. Text is stored as typed, so "" stays "". XP is an
+// int, and a blank XP removes the value. (The import rule R5 differs: there
+// a blank XP becomes 0.)
 import type { Engine, StrictEntity } from "./engine.ts";
 
 export interface DescriptionField {
@@ -9,6 +10,8 @@ export interface DescriptionField {
   key: string;
   label: string;
   kind: "text" | "number" | "textarea" | "url";
+  /** The alt text of the image a url field shows. */
+  alt?: string;
 }
 
 /** The fields in the old builder's order. */
@@ -28,9 +31,9 @@ export const DESCRIPTION_FIELDS: DescriptionField[] = [
   { key: "ideals", label: "Ideals", kind: "textarea" },
   { key: "bonds", label: "Bonds", kind: "textarea" },
   { key: "flaws", label: "Flaws", kind: "textarea" },
-  { key: "image-url", label: "Image URL", kind: "url" },
+  { key: "image-url", label: "Image URL", kind: "url", alt: "Portrait" },
   { key: "faction-name", label: "Faction Name", kind: "text" },
-  { key: "faction-image-url", label: "Faction Image URL", kind: "url" },
+  { key: "faction-image-url", label: "Faction Image URL", kind: "url", alt: "Faction image" },
   { key: "description", label: "Description/Backstory", kind: "textarea" },
 ];
 
@@ -43,12 +46,15 @@ export function storedValue(entity: StrictEntity, key: string): string {
   return typeof stored === "string" || typeof stored === "number" ? String(stored) : "";
 }
 
-/**
- * Writes a value as typed. For XP, a blank or non-numeric text removes the
- * value, and a number is stored as an int.
- */
-export function setDescription(e: Engine, entity: StrictEntity, key: string, text: string) {
-  if (key !== "xps") return e.setValue(entity, key, text);
+/** The text as it is stored: as typed, but XP as its int, or "" when blank or not a number. */
+export function normalized(key: string, text: string): string {
+  if (key !== "xps") return text;
   const n = Number(text);
-  return e.setValue(entity, key, text.trim() === "" || !Number.isFinite(n) ? null : Math.trunc(n));
+  return text.trim() === "" || !Number.isFinite(n) ? "" : String(Math.trunc(n));
+}
+
+/** Writes a value as typed. For XP, a blank or non-numeric text removes the value, and a number is stored as an int. */
+export function setDescription(e: Engine, entity: StrictEntity, key: string, text: string) {
+  const value = normalized(key, text);
+  return e.setValue(entity, key, key === "xps" ? (value === "" ? null : Number(value)) : value);
 }
