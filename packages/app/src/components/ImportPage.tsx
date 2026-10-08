@@ -127,11 +127,11 @@ interface Imported {
  * Steps 2 and 3: a dmv-export bundle, or one character as a file saved from
  * the old app, a dmv-character file, or the text of the old app's public
  * character URL pasted in. Each step refuses the other step's files. A
- * bundle's packs are loaded first, so its
- * characters resolve against them. Each character is stored and checked
- * against the loaded packs. One character opens its sheet; a bundle, or one
- * character with keys that do not resolve, lists its characters to open, with
- * their unresolved keys and any that failed.
+ * bundle's packs are loaded first, so its characters resolve against them.
+ * Each character is stored and checked against the loaded packs. One
+ * character opens its sheet; a bundle, or one character with keys that do
+ * not resolve, lists its characters to open, with their unresolved keys and
+ * any that failed.
  */
 function CharacterImport() {
   const navigate = useNavigate();

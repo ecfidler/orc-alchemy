@@ -30,9 +30,9 @@ interface HomebrewState {
    * Merges an .orcbrew file's text into the stored packs, skipping invalid
    * items, or, with strict, refusing the whole file if an item is invalid. A
    * single-plugin file loads as a pack named for the file. New packs are
-   * enabled. A failed import leaves the packs as they were. Throws, and
-   * changes nothing, if the file has a pack named as a quarantined record,
-   * or if the importer throws.
+   * enabled. A failed import leaves the packs as they were. Throws, leaving
+   * the packs as they were and lastImport null, if the file has a pack named
+   * as a quarantined record, or if the importer throws.
    * Needs the engine loaded.
    */
   load: (fileName: string, text: string, options?: { strict?: boolean }) => Promise<void>;
@@ -40,8 +40,7 @@ interface HomebrewState {
    * Merges a dmv-export bundle's packs into the stored packs, as load merges
    * a multi-plugin file, and gives each bundle pack its flags from the
    * bundle. A bundle pack without flags keeps its stored flags, or is
-   * enabled when new. Throws, and changes nothing, as load does. Needs the
-   * engine loaded.
+   * enabled when new. Throws as load does. Needs the engine loaded.
    */
   loadBundle: (bundle: BundleHomebrew, fileName: string) => Promise<void>;
   /** Removes a pack from storage. */
@@ -90,8 +89,8 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
    * becomes lastImport; an import that throws clears it. Runs inside queued.
    */
   async function merge(text: string, { fileName, name, flags, strict = false }: MergeOptions) {
-    await restorePacks();
     set({ lastImport: null }); // so an error is not shown under an earlier file's log
+    await restorePacks();
     const { packs, quarantined } = get();
     const existing = packs.length === 0 ? undefined : pluginMap(packs);
     let parsed: ParsedOrcbrew;
