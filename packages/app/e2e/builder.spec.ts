@@ -152,6 +152,42 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await expect(builder.getByLabel("Class 2", { exact: true })).toHaveCount(0);
 });
 
+test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepares the spell", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Barbarian 1");
+
+  // A barbarian has no spells, so the step appears with the wizard: 3 cantrips and 6 spells.
+  await expect(stepButton(page, "Spells")).toHaveCount(0);
+  await stepButton(page, "Class").click();
+  await builder.getByLabel("Class 1", { exact: true }).selectOption("Wizard");
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Wizard 1");
+  await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells (9 to do)");
+  await stepButton(page, "Spells").click();
+
+  const cantrips = builder.getByRole("region", { name: /^Wizard Cantrips Known/ });
+  await cantrips.getByRole("button", { name: "Fire Bolt", exact: true }).click();
+  await expect(cantrips.getByRole("button", { name: "Fire Bolt", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const spells = builder.getByRole("region", { name: /^Wizard Spells Known/ });
+  await spells.getByLabel("Search: Wizard Spells Known").fill("magic missile");
+  await spells.getByRole("button", { name: "1 - Magic Missile", exact: true }).click();
+  await expect(spells.getByRole("list", { name: "Chosen: Wizard Spells Known" })).toHaveText("1 - Magic Missile");
+  await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells (7 to do)");
+
+  // emptyCharacter has Int 12: a wizard 1 prepares 2 spells.
+  const prepared = builder.getByRole("region", { name: "Prepared spells: Wizard" });
+  await expect(prepared).toContainText("0 of 2 prepared");
+  await prepared.getByLabel("Prepared: Magic Missile").check();
+  await expect(prepared).toContainText("1 of 2 prepared");
+
+  const firstLevel = preview.getByRole("table", { name: "1st Level" });
+  await expect(firstLevel.getByRole("columnheader", { name: "Prepared" })).toBeVisible();
+  await expect(firstLevel.getByRole("row", { name: /^Magic Missile/ }).getByRole("cell").last()).toHaveText("Yes");
+  await expect(preview.getByRole("table", { name: "Cantrips" })).toContainText("Fire Bolt");
+});
+
 test("Random character opens a complete character in the builder", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Random character" }).click();

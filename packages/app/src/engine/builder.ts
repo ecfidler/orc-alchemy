@@ -38,15 +38,25 @@ export interface BuilderStep {
   selections: BuilderSelection[];
 }
 
-// The steps and the template tags of their top-level selections. Equipment
-// also gets the starting equipment choices (ORC-59).
+// The steps and the template tags of their top-level selections. Spells
+// and Equipment also get nested selections, as MOVED_TO_STEP shows.
 const STEPS: [name: string, tag: string][] = [
   ["Race", "race"],
   ["Background", "background"],
   ["Class", "class"],
   ["Abilities", "ability-scores"],
   ["Feats", "feats"],
+  ["Spells", "spells"],
   ["Equipment", "equipment"],
+];
+
+// As the old builder, a nested selection with one of these tags shows on
+// the step with the second tag, not under its option. Examples are a
+// class's starting equipment (ORC-59), and a class's or a subrace's spells
+// (ORC-60). A selection under a selection with the same tag stays there.
+const MOVED_TO_STEP: [tag: string, step: string][] = [
+  ["starting-equipment", "equipment"],
+  ["spells", "spells"],
 ];
 
 /** Remaining picks as the engine counts them: up to min, or down to max. */
@@ -121,14 +131,14 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     }
     byPath.set(JSON.stringify(s.path), node);
 
-    // As the old builder, a class or background's starting equipment shows on
-    // the Equipment step, not under its option. Its own choices nest under it.
-    const starting = template.tags?.includes("starting-equipment") && !parent?.tags.includes("starting-equipment");
-    if (parent && !starting) {
+    // A merged ref selection, such as Wizard Spells Known, moves from each
+    // of its positions, but shows on its step once.
+    const moved = parent && MOVED_TO_STEP.find(([tag]) => template.tags?.includes(tag) && !parent.tags.includes(tag));
+    if (parent && !moved) {
       parent.options.find((o) => o.key === s.path.at(-2))?.selections.push(node);
     } else {
-      const step = STEPS.findIndex(([, tag]) => (starting ? tag === "equipment" : template.tags?.includes(tag)));
-      if (step !== -1) steps[step].selections.push(node);
+      const step = STEPS.findIndex(([, tag]) => (moved ? tag === moved[1] : template.tags?.includes(tag)));
+      if (step !== -1 && !steps[step].selections.includes(node)) steps[step].selections.push(node);
     }
   }
 
@@ -169,6 +179,7 @@ export function unfilled(steps: BuilderStep[]): BuilderSelection[] {
  * The picks to make or remove in each step, as the old sum-remaining. A
  * merged selection counts only in the first step that shows it. Unlike the
  * summary, this counts starting equipment, as the old section headings do.
+ * The spells of a class or a subrace count on the Spells step, which shows them.
  */
 export function remainingByStep(steps: BuilderStep[]): number[] {
   const seen = new Set<BuilderSelection>();

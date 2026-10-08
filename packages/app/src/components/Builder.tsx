@@ -9,6 +9,7 @@ import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
+import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 
 export function Builder() {
   const { selections, sheet } = useOpenCharacter();
@@ -74,8 +75,10 @@ export function Builder() {
               const key = JSON.stringify(selection.actualPath);
               if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
               if (isList(selection)) return <Inventory key={key} selection={selection} />;
+              if (step.name === "Spells") return <SpellSelection key={key} selection={selection} />;
               return <Selection key={key} selection={selection} />;
             })}
+            {step.name === "Spells" && <PreparedSpells />}
             {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
           </>
         )}
@@ -95,7 +98,7 @@ const isList = (selection: BuilderSelection) => selection.actualPath.length === 
  * A sequential one, such as levels, shows only the latter. The classes, hit
  * points and ability score improvements have their own controls.
  */
-function Selection({ selection }: { selection: BuilderSelection }) {
+export function Selection({ selection }: { selection: BuilderSelection }) {
   if (selection.key === "hit-points" && selection.requireValue) return <HitPoints selection={selection} />;
   if (selection.key === "asi") return <Improvements selection={selection} />;
   return <Options selection={selection} />;
