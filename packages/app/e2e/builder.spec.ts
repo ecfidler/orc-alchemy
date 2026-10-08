@@ -114,3 +114,70 @@ test("the builder lists the picks still to make, and a pick removes its message"
   await expect(page.getByRole("region", { name: "Preview" }).getByLabel("Race", { exact: true })).toHaveText("Human");
   await expect(summary).not.toContainText("'Race'");
 });
+
+/** The count of drafts stored, read from IndexedDB: a change is kept as a draft at once. */
+const draftCount = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<number>((resolve, reject) => {
+        const open = indexedDB.open("alchemy-5e");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const count = open.result.transaction("drafts").objectStore("drafts").count();
+          count.onerror = () => reject(count.error);
+          count.onsuccess = () => {
+            open.result.close();
+            resolve(count.result);
+          };
+        };
+      }),
+  );
+
+test("a reload mid-edit asks first, then recovers the draft", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const race = page.getByRole("region", { name: "Preview" }).getByLabel("Race", { exact: true });
+  await expect(page.getByRole("status")).toHaveText("Saved");
+  await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
+  await expect(race).toHaveText("Dwarf");
+  await expect(page.getByRole("status")).toHaveText("Unsaved changes");
+  await expect.poll(() => draftCount(page)).toBe(1);
+
+  // Autosave has not run yet, so leaving asks first.
+  let dialogType = "";
+  page.once("dialog", (dialog) => {
+    dialogType = dialog.type();
+    return dialog.accept();
+  });
+  await page.reload();
+  expect(dialogType).toBe("beforeunload");
+  await expect(page.getByText("Unsaved changes from your last visit were recovered.")).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("Unsaved changes");
+  await expect(race).toHaveText("Dwarf");
+});
+
+test("Save stores the changes now, and leaving the builder saves them too", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const race = page.getByRole("region", { name: "Preview" }).getByLabel("Race", { exact: true });
+  await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Unsaved changes");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("status")).toHaveText("Saved");
+  await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
+
+  // Nothing is pending, so a reload does not ask (Playwright would dismiss the prompt and stay).
+  await page.reload();
+  await expect(race).toHaveText("Dwarf");
+  await expect(page.getByRole("status")).toHaveText("Saved");
+  await expect(page.getByText(/were recovered/)).toHaveCount(0);
+
+  // A move to the list saves at once: the list shows the change before autosave would have run.
+  await builder.getByRole("button", { name: "Elf", exact: true }).click();
+  await expect(race).toHaveText("Elf");
+  await page.getByRole("link", { name: "Alchemy 5e" }).click();
+  await expect(page.getByRole("listitem", { name: "Unnamed character" })).toContainText("Elf · Barbarian 1", { timeout: 3000 });
+  await expect.poll(() => draftCount(page)).toBe(0);
+});

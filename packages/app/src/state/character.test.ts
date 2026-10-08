@@ -105,9 +105,83 @@ test("an autosave that fails reading the stored character reports a failed save 
   expect(await getDraft(id)).toBeDefined();
   expect(useCharacter.getState().dirty).toBe(true);
 
+  // The changes are pending again, so the next flush saves them and clears the notice.
   vi.restoreAllMocks();
-  useStorage.setState({ failed: false });
+  await flushAutosave();
+  expect((await getCharacter(id))?.name).toBe("Percy");
+  expect(useStorage.getState().failed).toBe(false);
+  expect(useCharacter.getState().dirty).toBe(false);
+  expect(await getDraft(id)).toBeUndefined();
   await deleteCharacter(id);
+});
+
+test("a save that fails while newer changes are pending does not replace them", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+  rename("Trinket");
+  vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
+    throw new DOMException("Read failed", "UnknownError");
+  });
+  const failing = flushAutosave();
+  rename("Trinket the bear"); // while the first save is under way
+  await expect(failing).rejects.toThrow("Read failed");
+  vi.restoreAllMocks();
+
+  vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+  await flushAutosave(); // waits for the save the timer started
+  expect((await getCharacter(id))?.name).toBe("Trinket the bear");
+  expect(useStorage.getState().failed).toBe(false);
+  await deleteCharacter(id);
+});
+
+test("a save that fails after a newer save of the character does not replace it", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+  rename("Vax");
+  vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
+    throw new DOMException("Read failed", "UnknownError");
+  });
+  const failing = flushAutosave();
+  rename("Vex");
+  const newer = flushAutosave(); // under way when the first save fails; it waits for both
+  await expect(failing).rejects.toThrow("Read failed");
+  await expect(newer).rejects.toThrow("Read failed");
+  vi.restoreAllMocks();
+
+  await flushAutosave(); // nothing is pending: the failed save is not retried over the newer one
+  expect((await getCharacter(id))?.name).toBe("Vex");
+  expect(useCharacter.getState().dirty).toBe(false);
+  expect(await getDraft(id)).toBeUndefined();
+  expect(useStorage.getState().failed).toBe(false);
+  await deleteCharacter(id);
+});
+
+test("a save that fails when another character is opened is retried by the next flush", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  const other = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  rename("Keyleth");
+
+  const found = (await readCharacter(other))!;
+  vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
+    throw new DOMException("Read failed", "UnknownError");
+  });
+  useCharacter.getState().load(other, found.entity); // saves the pending changes of the first, and that fails
+  await expect(flushAutosave()).rejects.toThrow("Read failed");
+  expect(useStorage.getState().failed).toBe(true);
+  vi.restoreAllMocks();
+
+  await flushAutosave();
+  expect((await getCharacter(id))?.name).toBe("Keyleth");
+  expect(await getDraft(id)).toBeUndefined();
+  expect(useStorage.getState().failed).toBe(false);
+  await deleteCharacter(id);
+  await deleteCharacter(other);
 });
 
 test("removing the open character closes it, and its pending save does not store it again", async () => {
