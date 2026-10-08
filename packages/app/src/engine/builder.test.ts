@@ -87,11 +87,43 @@ test("a ref selection at several positions is one merged selection", () => {
   expect(fromRace.selected).toEqual(["common", "elvish", "dwarvish", "orc"]);
   expect(fromRace.options).toHaveLength(16);
 
-  // Spells known at wizard levels 1 and 2: 6 + 2, with no maximum.
-  const levels = child(klass[0], "wizard", "levels");
-  const spells = child(levels, "level-1", "wizard-spells-known");
-  expect(child(levels, "level-2", "wizard-spells-known")).toBe(spells);
-  expect(spells).toMatchObject({ actualPath: ["class", "wizard", "wizard-spells-known"], min: 8, max: null, remaining: 0 });
+  // Spells known at wizard levels 1 and 2: 6 + 2, with no maximum. It shows once, on the Spells step.
+  const spells = step(readFixture("fighter-3-wizard-2"), "Spells").selections.filter((s) => s.key === "wizard-spells-known");
+  expect(spells).toEqual([expect.objectContaining({ actualPath: ["class", "wizard", "wizard-spells-known"], min: 8, max: null, remaining: 0 })]);
+  expect(child(child(klass[0], "wizard", "levels"), "level-1", "wizard-spells-known")).toBeUndefined();
+});
+
+test("wizard-20's spell selections are on the Spells step, not under the wizard's levels", () => {
+  const steps = stepsOf(readFixture("wizard-20"));
+  const spells = steps.find((s) => s.name === "Spells")!.selections;
+  // In template order: the class's selections, then those of the levels.
+  expect(spells.map((s) => [s.name, s.min, s.max, s.selected.length])).toEqual([
+    ["Wizard Cantrips Known", 5, 5, 5],
+    ["Wizard Spells Known", 44, null, 44],
+    ["Signature Spells", 2, 2, 2],
+    ["Spell Mastery Level 1 Spell", 1, 1, 1],
+    ["Spell Mastery Level 2 Spell", 1, 1, 1],
+  ]);
+  const [klass] = steps.find((s) => s.name === "Class")!.selections;
+  const levels = child(klass, "wizard", "levels");
+  const underLevels = levels.options.flatMap((o) => o.selections);
+  expect(underLevels.filter((s) => s.tags.includes("spells"))).toEqual([]);
+  expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Abilities", "Feats", "Spells", "Equipment"]);
+  expect(remainingByStep(steps)[5]).toBe(0);
+});
+
+test("a subrace's cantrips are on the Spells step too", () => {
+  // wizard-1 is a high elf.
+  const spells = step(readFixture("wizard-1"), "Spells").selections;
+  expect(spells.map((s) => [s.name, s.selected.length])).toContainEqual(["High Elf Cantrips Known", 1]);
+});
+
+test("the Spells step counts the picks it shows", () => {
+  // A wizard 1 picks 3 cantrips and 6 spells.
+  const entity = engine().setClass(engine().emptyCharacter(), 0, "wizard");
+  const steps = stepsOf(entity);
+  expect(steps.find((s) => s.name === "Spells")!.selections.map((s) => s.remaining)).toEqual([3, 6]);
+  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Spells")]).toBe(9);
 });
 
 test("a merged ref selection counts every pick once", () => {
@@ -188,8 +220,8 @@ test.each(readdirSync(charactersDir).filter((f) => f.endsWith(".strict.json")))(
 
 test("a selection an option of a ref selection opens nests under that option", () => {
   // Children of an invocation have paths under the ref path, not the levels.
-  const [klass] = step(readFixture("warlock-10-drow"), "Class").selections;
-  const invocations = child(child(klass, "warlock", "levels"), "level-2", "eldritch-invocations");
+  // Invocations are tagged spells, so they are on the Spells step, and the rituals stay under them.
+  const invocations = step(readFixture("warlock-10-drow"), "Spells").selections.find((s) => s.key === "eldritch-invocations")!;
   expect(child(invocations, "book-of-ancient-secrets", "book-of-ancient-secrets-rituals").selected).toEqual([
     "detect-poison-and-disease",
     "illusory-script",

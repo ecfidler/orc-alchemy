@@ -65,7 +65,8 @@ const sheet: Sheet = {
   spellcasting: {
     slots: [],
     casters: [{ name: "Hill Dwarf", ability: "wis", saveDc: 11, attackBonus: 3, canPrepare: null }],
-    byLevel: [{ level: 0, spells: [{ key: "guidance", name: "Guidance", source: "Hill Dwarf", ability: "wis", prepared: false }] }],
+    byLevel: [{ level: 0, spells: [{ key: "guidance", name: "Guidance", source: "Hill Dwarf", ability: "wis", alwaysPrepared: false, prepared: false }] }],
+    knownModes: {},
   },
   features: {
     actions: [{ name: "Second Wind", text: "Regain 1d10 + 3 hit points (1/rest)." }],
