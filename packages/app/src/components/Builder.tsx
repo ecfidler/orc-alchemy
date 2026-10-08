@@ -6,6 +6,7 @@ import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type Bu
 import { engine } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
+import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 
 export function Builder() {
@@ -67,9 +68,13 @@ export function Builder() {
         {step && (
           <>
             <h2 className="text-xl font-bold">{step.name}</h2>
-            {step.selections.map((selection) => (
-              <Selection key={selection.key} selection={selection} />
-            ))}
+            {step.selections.map((selection) =>
+              selection.key === "ability-scores" ? (
+                <AbilityScores key={selection.key} selection={selection} />
+              ) : (
+                <Selection key={selection.key} selection={selection} />
+              ),
+            )}
           </>
         )}
       </section>

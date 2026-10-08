@@ -36,12 +36,13 @@ export interface BuilderStep {
   selections: BuilderSelection[];
 }
 
-// The steps and the template tags of their top-level selections. Ability
-// scores and equipment get their own steps later (ORC-55 slices 2 and 4).
+// The steps and the template tags of their top-level selections. Equipment
+// gets its own step later (ORC-55 slice 4).
 const STEPS: [name: string, tag: string][] = [
   ["Race", "race"],
   ["Background", "background"],
   ["Class", "class"],
+  ["Abilities", "ability-scores"],
   ["Feats", "feats"],
 ];
 
