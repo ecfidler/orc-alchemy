@@ -99,6 +99,10 @@ export interface Sheet {
   name: string | null;
   /** The portrait's image URL. */
   portrait: string | null;
+  playerName: string | null;
+  factionName: string | null;
+  /** The faction's image URL. */
+  factionImage: string | null;
   race: string | null;
   subrace: string | null;
   background: string | null;
@@ -402,6 +406,9 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
   return {
     name: blankToNull(built["character-name"]),
     portrait: text("image-url"),
+    playerName: text("player-name"),
+    factionName: text("faction-name"),
+    factionImage: text("faction-image-url"),
     race: built.race,
     subrace: built.subrace,
     background: built.background,
