@@ -50,7 +50,7 @@ function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => R
   }, [id]);
 
   // Leaving the character's pages saves its pending changes at once; its draft keeps them until then,
-  // so nothing is lost. As beforeunload does, it asks first only when a save has failed.
+  // so nothing is lost. It asks first only when a save has failed (beforeunload asks while one is pending too).
   useBlocker(({ nextLocation }) => {
     const open = useCharacter.getState();
     if (!open.dirty || open.id !== id || [`/sheet/${id}`, `/build/${id}`].includes(nextLocation.pathname)) return false;
@@ -81,7 +81,7 @@ function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => R
           </button>
         )}
         <span role="status">{dirty ? "Unsaved changes" : "Saved"}</span>
-        {recovered && <span>Unsaved changes from your last visit were recovered.</span>}
+        {recovered && dirty && <span>Unsaved changes from your last visit were recovered.</span>}
       </div>
       {children(id, sheet)}
     </>

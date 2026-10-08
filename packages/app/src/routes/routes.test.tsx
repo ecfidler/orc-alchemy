@@ -1,10 +1,10 @@
 import "fake-indexeddb/auto";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { addCharacter, flushAutosave, useCharacter } from "../state/character.ts";
-import { getCharacter, getDraft, saveDraft } from "../storage/characters.ts";
+import { getCharacter, getDraft, saveDraft, useStorage } from "../storage/characters.ts";
 import { routes } from "./routes.tsx";
 
 beforeAll(() => loadEngine());
@@ -67,6 +67,24 @@ test("Save stores the changes now, and the status says when they are saved", asy
   const id = useCharacter.getState().id!;
   expect(engine().evaluate((await getCharacter(id))!.entity).built.race).toBe("Halfling");
   expect(await getDraft(id)).toBeUndefined();
+});
+
+test("leaving the character after a failed save asks first", async () => {
+  renderAt("/");
+  fireEvent.click(screen.getByRole("button", { name: "New character" }));
+  const preview = await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
+  fireEvent.click(within(screen.getByRole("region", { name: /^Race/ })).getByRole("button", { name: "Elf" }));
+  useStorage.setState({ failed: true });
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+
+  fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
+  expect(confirm).toHaveBeenCalledWith("Saving your changes to this browser failed. Leave anyway?");
+  expect(screen.getByRole("region", { name: "Preview" })).toBe(preview);
+
+  confirm.mockReturnValue(true);
+  fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
+  expect(await screen.findByRole("heading", { name: "Characters" })).toBeTruthy();
+  useStorage.setState({ failed: false });
 });
 
 test("opening a character with a draft recovers it and says so", async () => {
