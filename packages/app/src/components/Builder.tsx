@@ -8,6 +8,7 @@ import { useHomebrew } from "../state/homebrew.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
+import { Hands, Inventory } from "./Equipment.tsx";
 
 export function Builder() {
   const { selections, sheet } = useOpenCharacter();
@@ -68,13 +69,14 @@ export function Builder() {
         {step && (
           <>
             <h2 className="text-xl font-bold">{step.name}</h2>
-            {step.selections.map((selection) =>
-              selection.key === "ability-scores" ? (
-                <AbilityScores key={selection.key} selection={selection} />
-              ) : (
-                <Selection key={selection.key} selection={selection} />
-              ),
-            )}
+            {step.selections.map((selection) => {
+              // A class and a background can have starting equipment with the same key.
+              const key = JSON.stringify(selection.actualPath);
+              if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
+              if (isList(selection)) return <Inventory key={key} selection={selection} />;
+              return <Selection key={key} selection={selection} />;
+            })}
+            {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
           </>
         )}
       </section>
@@ -84,6 +86,9 @@ export function Builder() {
     </div>
   );
 }
+
+/** An inventory list, such as Armor: top-level equipment, not a starting equipment choice. */
+const isList = (selection: BuilderSelection) => selection.actualPath.length === 1 && selection.tags.includes("equipment");
 
 /**
  * A selection's option cards, then the selections its selected options open.
