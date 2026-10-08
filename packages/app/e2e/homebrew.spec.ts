@@ -5,19 +5,19 @@ import { expect, test, type Download } from "@playwright/test";
 const orcbrewDir = join(import.meta.dirname, "../../../fixtures/orcbrew");
 
 test("a chosen homebrew pack is listed until it is removed", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "warlock-test-content.orcbrew"));
 
   const pack = page.getByRole("listitem", { name: "warlock-test-content" });
   await expect(pack).toBeVisible();
-  await expect(page.getByRole("region", { name: "Last homebrew import" })).toContainText("Import successful");
+  await expect(page.getByRole("region", { name: "Import log" })).toContainText("Import successful");
 
   await pack.getByRole("button", { name: "Remove warlock-test-content" }).click();
   await expect(pack).toHaveCount(0);
 });
 
 test("a loaded pack and its enabled flag survive a reload", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "warlock-test-content.orcbrew"));
   const enabled = page.getByRole("listitem", { name: "warlock-test-content" }).getByRole("checkbox", { name: "warlock-test-content" });
   await expect(enabled).toBeChecked();
@@ -39,7 +39,7 @@ const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 // ORC-54: a character whose content is all in its pack opens its sheet, which shows the oracle's values.
 test("a homebrew golden character, imported after its pack, shows its expected.json values", async ({ page }) => {
   const built = readJson("characters/ironwrought-artificer-3.expected.json");
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "duplicate-external-b.orcbrew"));
   await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toBeVisible();
   await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, "characters/ironwrought-artificer-3.strict.json"));
@@ -58,7 +58,7 @@ test("a homebrew golden character, imported after its pack, shows its expected.j
 });
 
 test("Export everything writes the packs, and its bundle restores them and the characters in an empty browser", async ({ page, browser }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "warlock-test-content.orcbrew"));
   const enabled = page.getByRole("listitem", { name: "warlock-test-content" }).getByRole("checkbox", { name: "warlock-test-content" });
   await enabled.click();
@@ -75,8 +75,8 @@ test("Export everything writes the packs, and its bundle restores them and the c
   const orcbrewPath = await downloads.find((d) => d.suggestedFilename() === "all-content.orcbrew")!.path();
 
   const empty = await (await browser.newContext()).newPage();
-  await empty.goto("/");
-  await empty.getByLabel("Import character file").setInputFiles({ name: "dmv-export.json", mimeType: "application/json", buffer: readFileSync(bundlePath) });
+  await empty.goto("/import");
+  await empty.getByLabel("Import dmv-export bundle").setInputFiles({ name: "dmv-export.json", mimeType: "application/json", buffer: readFileSync(bundlePath) });
   await expect(empty.getByText("Loaded 1 homebrew pack")).toBeVisible();
   const imported = empty.getByRole("region", { name: "Imported characters" });
   await expect(imported.getByRole("button", { name: "Brannor Ironfist", exact: true })).toBeVisible();
@@ -85,7 +85,7 @@ test("Export everything writes the packs, and its bundle restores them and the c
 
   // The .orcbrew file is the old app's all-content export: it loads as a pack file.
   const other = await (await browser.newContext()).newPage();
-  await other.goto("/");
+  await other.goto("/import");
   await other.getByLabel("Load homebrew file").setInputFiles({ name: "all-content.orcbrew", mimeType: "application/edn", buffer: readFileSync(orcbrewPath) });
   await expect(other.getByRole("listitem", { name: "warlock-test-content" })).toBeVisible();
 });

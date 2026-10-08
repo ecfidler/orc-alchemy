@@ -24,17 +24,18 @@ interface HomebrewState {
    * find summaries built with other homebrew.
    */
   fingerprint: string;
-  /** The last file's import, kept raw: the UI shows its log, which lists skipped items, and its conflicts. */
-  lastImport: Omit<ParsedOrcbrew, "data"> | null;
+  /** The last import, kept raw, with the name of its file: the UI shows its log and its conflicts. */
+  lastImport: LastImport | null;
   /**
    * Merges an .orcbrew file's text into the stored packs, skipping invalid
-   * items. A single-plugin file loads as a pack named for the file. New packs
-   * are enabled. A failed import leaves the packs as they were. Throws, and
+   * items, or, with strict, refusing the whole file if an item is invalid. A
+   * single-plugin file loads as a pack named for the file. New packs are
+   * enabled. A failed import leaves the packs as they were. Throws, and
    * changes nothing, if the file has a pack named as a quarantined record,
    * or if the importer throws.
    * Needs the engine loaded.
    */
-  load: (fileName: string, text: string) => Promise<void>;
+  load: (fileName: string, text: string, options?: { strict?: boolean }) => Promise<void>;
   /**
    * Merges a dmv-export bundle's packs into the stored packs, as load merges
    * a multi-plugin file, and gives each bundle pack its flags from the
@@ -48,6 +49,8 @@ interface HomebrewState {
   setPackEnabled: (pack: string, enabled: boolean) => Promise<void>;
   setItemEnabled: (pack: string, contentType: string, key: string, enabled: boolean) => Promise<void>;
 }
+
+export type LastImport = Omit<ParsedOrcbrew, "data"> & { fileName: string };
 
 export const useHomebrew = create<HomebrewState>()((set, get) => {
   let queue: Promise<unknown> = Promise.resolve();
@@ -75,18 +78,19 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
    * changes. A changed pack takes its flags from flags, or keeps its stored
    * ones, or is enabled when new. Runs inside queued.
    */
-  async function merge(text: string, name: string, flags: BundleHomebrew["flags"]) {
+  async function merge(fileName: string, text: string, name: string, flags: BundleHomebrew["flags"], strict = false) {
     await restorePacks();
     const { packs, quarantined } = get();
     const existing = packs.length === 0 ? undefined : pluginMap(packs);
     let parsed: ParsedOrcbrew;
     try {
-      parsed = engine().parseOrcbrew(text, { name, existing });
+      parsed = engine().parseOrcbrew(text, { name, existing, strict });
     } catch (e) {
       // The importer throws on some malformed items, such as an item that is not a map, with an engine message.
       throw new Error(`The homebrew could not be read: ${e instanceof Error ? e.message : String(e)}`);
     }
-    const { data, ...lastImport } = parsed;
+    const { data, ...rest } = parsed;
+    const lastImport = { ...rest, fileName };
     if (data === null) return set({ lastImport });
     const blocked = quarantined.find((q) => q.id in data);
     if (blocked) {
@@ -116,9 +120,9 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     homebrew: undefined,
     fingerprint: "",
     lastImport: null,
-    load: (fileName, text) => queued(() => merge(text, fileName.replace(/\.orcbrew$/i, ""), {})),
+    load: (fileName, text, { strict } = {}) => queued(() => merge(fileName, text, fileName.replace(/\.orcbrew$/i, ""), {}, strict)),
     // Through .orcbrew text, so the bundle's packs get the same checks as a file's.
-    loadBundle: ({ homebrew, flags }) => queued(() => merge(engine().orcbrewToEdn(homebrew), "dmv-export", flags)),
+    loadBundle: ({ homebrew, flags }) => queued(() => merge("dmv-export.json", engine().orcbrewToEdn(homebrew), "dmv-export", flags)),
     remove: (pack) => queued(async () => {
       await deletePack(pack);
       set(withPacks(get().packs.filter((p) => p.id !== pack)));

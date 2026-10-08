@@ -11,7 +11,7 @@ const srdGolden = readdirSync(charactersDir)
   .filter((name) => readFixture(`${name}.meta.json`).orcbrew.length === 0);
 
 test("importing fighter-1 opens its sheet", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
 
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
@@ -21,7 +21,7 @@ test("importing fighter-1 opens its sheet", async ({ page }) => {
 });
 
 test("an imported character survives reload", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
 
@@ -39,7 +39,7 @@ for (const name of srdGolden) {
         o.armor === built["worn-armor"] && o.shield === built["wielded-shield"],
     );
 
-    await page.goto("/");
+    await page.goto("/import");
     await page.getByLabel("Import character file").setInputFiles(join(charactersDir, `${name}.strict.json`));
 
     await expect(page.getByRole("heading", { level: 1, name: built["character-name"] })).toBeVisible();
@@ -50,7 +50,7 @@ for (const name of srdGolden) {
 }
 
 test("wizard-1 marks its prepared spells", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "wizard-1.strict.json"));
 
   const first = page.getByRole("table", { name: "1st Level" });
@@ -61,7 +61,7 @@ test("wizard-1 marks its prepared spells", async ({ page }) => {
 
 test("without IndexedDB, import still opens the sheet and a notice says nothing is saved", async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(window, "indexedDB", { value: undefined }));
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
 
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
