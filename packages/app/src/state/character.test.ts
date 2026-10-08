@@ -160,6 +160,30 @@ test("a save that fails after a newer save of the character does not replace it"
   await deleteCharacter(id);
 });
 
+test("a save that fails when another character is opened is retried by the next flush", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  const other = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  rename("Keyleth");
+
+  const found = (await readCharacter(other))!;
+  vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
+    throw new DOMException("Read failed", "UnknownError");
+  });
+  useCharacter.getState().load(other, found.entity); // saves the pending changes of the first, and that fails
+  await expect(flushAutosave()).rejects.toThrow("Read failed");
+  expect(useStorage.getState().failed).toBe(true);
+  vi.restoreAllMocks();
+
+  await flushAutosave();
+  expect((await getCharacter(id))?.name).toBe("Keyleth");
+  expect(await getDraft(id)).toBeUndefined();
+  expect(useStorage.getState().failed).toBe(false);
+  await deleteCharacter(id);
+  await deleteCharacter(other);
+});
+
 test("removing the open character closes it, and its pending save does not store it again", async () => {
   const id = await addCharacter(engine().emptyCharacter(), "2014", null);
   await openCharacter(id);

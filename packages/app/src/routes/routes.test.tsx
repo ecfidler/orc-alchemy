@@ -11,8 +11,10 @@ beforeAll(() => loadEngine());
 
 afterEach(async () => {
   cleanup();
+  vi.restoreAllMocks();
   await flushAutosave();
   useCharacter.setState({ id: null, entity: null, dirty: false });
+  useStorage.setState({ failed: false });
 });
 
 function renderAt(path: string) {
@@ -84,7 +86,6 @@ test("leaving the character after a failed save asks first", async () => {
   confirm.mockReturnValue(true);
   fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
   expect(await screen.findByRole("heading", { name: "Characters" })).toBeTruthy();
-  useStorage.setState({ failed: false });
 });
 
 test("opening a character with a draft recovers it and says so", async () => {

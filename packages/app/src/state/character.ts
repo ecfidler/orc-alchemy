@@ -146,21 +146,24 @@ useCharacter.subscribe((state, previous) => {
   pending = { id, entity, timer: setTimeout(() => void flushAutosave().catch(console.error), AUTOSAVE_DELAY_MS) };
 });
 
+/** The entity of the last save started for each character, so an older save that fails does not replace a newer one. */
+const latest = new Map<string, StrictEntity>();
 /** Whether the failed-write notice comes from a save here, so a save that succeeds may clear it. */
 let saveFailed = false;
 
 /**
  * Saves the pending changes now, if there are any, and waits for every save
  * under way. If a save fails, its changes stay in their draft, and this
- * throws. They become pending again, with no timer, unless the open character
- * has newer changes. Leaving the page still asks first. A save that succeeds
- * clears the notice of a failed save.
+ * throws. They become pending again, with no timer, unless newer changes are
+ * pending or a newer save of the character has started. Leaving the page
+ * still asks first. A save that succeeds clears the notice of a failed save.
  */
 export async function flushAutosave(): Promise<void> {
   if (pending !== null) {
     const { id, entity, timer } = pending;
     clearTimeout(timer);
     pending = null;
+    latest.set(id, entity);
     const running = saveChanges(id, entity);
     saving.add(running);
     running.then(
@@ -174,12 +177,15 @@ export async function flushAutosave(): Promise<void> {
       },
       () => {
         saving.delete(running);
+        if (latest.get(id) !== entity) {
+          // A newer save of the character, under way or done, reports for itself.
+          if (pending === null && saving.size === 0) window.removeEventListener("beforeunload", confirmLeave);
+          return;
+        }
         // Storage reports failed writes; a failed read before the save is a failed save too.
         saveFailed = true;
         useStorage.setState({ failed: true });
-        // A newer save of the character, under way or done, must not be replaced by this one.
-        const state = useCharacter.getState();
-        if (pending === null && state.id === id && state.entity === entity) pending = { id, entity };
+        if (pending === null) pending = { id, entity };
       },
     );
   }
