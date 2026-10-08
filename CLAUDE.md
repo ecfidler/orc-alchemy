@@ -31,7 +31,7 @@ package; the exporter bookmarklet and later the 2024 engine are siblings.
 - **Write to the project writing standard**, `docs/conventions/writing-standard.md`:
   ASD-STE100 Simplified Technical English at about 80 percent. Apply it to
   docs, PR bodies, commit messages, and Linear issues.
-- **Current milestone: M4 — Builder.**
+- **Current milestone: M5 — Import tooling and homebrew UI.**
 
 ## Layout
 
