@@ -94,7 +94,12 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                 score={item.quantity}
                 onCommit={(n) => run((e, entity, opts) => setQuantity(e, entity, list, item.key, n, opts))}
               />
-              <button type="button" onClick={() => run((e, entity) => e.removeInventoryItem(entity, list, item.key))} className={button}>
+              <button
+                type="button"
+                // An item removed is no longer attuned.
+                onClick={() => run((e, entity) => setAttuned(e, e.removeInventoryItem(entity, list, item.key), item.key, false))}
+                className={button}
+              >
                 Remove {name}
               </button>
             </li>

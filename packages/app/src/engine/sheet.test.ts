@@ -158,6 +158,17 @@ test("with nothing worn or wielded, AC is the best combination, as in the old ap
   expect(toSheet(built, {}).armorClass).toBe(19);
 });
 
+test("armor or a shield set to none counts as none, as in the old app", () => {
+  const built = builtOf("fighter-1");
+  const ac = (worn: string | null, shield: string | null) => toSheet({ ...built, "worn-armor": worn, "wielded-shield": shield }, {}).armorClass;
+  const option = (armor: string | null, shield: string | null) =>
+    built["armor-class-with-armor"].find((o) => o.armor === armor && o.shield === shield)!.ac;
+  expect(ac("none", "shield")).toBe(option(null, "shield"));
+  expect(ac("chain-mail", "none")).toBe(option("chain-mail", null));
+  expect(ac("none", "none")).toBe(option(null, null));
+  expect(ac("none", "none")).toBeLessThan(ac(null, null));
+});
+
 test("special attacks read like the old display's attack-description", () => {
   const built: Built2014 = {
     ...builtOf("fighter-1"),

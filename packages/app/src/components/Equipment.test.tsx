@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { customItems } from "../engine/equipment.ts";
+import { attunedItems, customItems } from "../engine/equipment.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { toSheet } from "../engine/sheet.ts";
 import { useCharacter } from "../state/character.ts";
@@ -53,7 +53,7 @@ test("fighter-20 equipped through the Equipment step has its AC, hit points and 
   choose("Wielded shield", "shield");
   choose("Main hand", "longsword-1");
   // A longsword +1 is not a dual-wield weapon, so the off hand is not offered.
-  expect(labelled("Off hand")).toBeNull();
+  expect(document.querySelector('[aria-label="Off hand"]')).toBeNull();
   fireEvent.click(labelled("Attuned: Amulet of Health"));
 
   const built = engine().evaluate(entity()).built;
@@ -95,4 +95,10 @@ test("no more than 3 magic items are attuned at once", () => {
   expect(bag.disabled).toBe(true);
   fireEvent.click(labelled("Attuned: Ring of Protection"));
   expect(bag.disabled).toBe(false);
+  // A removed item is no longer attuned, so it frees its place.
+  fireEvent.click(labelled("Attuned: Ring of Protection"));
+  expect(labelled("Attuned: Bag of Holding").disabled).toBe(true);
+  fireEvent.click(screen.getByText("Remove Amulet of Health"));
+  expect(attunedItems(entity())).toEqual(["cloak-of-protection", "ring-of-protection"]);
+  expect(labelled("Attuned: Bag of Holding").disabled).toBe(false);
 });

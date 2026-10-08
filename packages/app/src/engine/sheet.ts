@@ -404,10 +404,12 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
   const wieldedShield = (built["wielded-shield"] as string | null | undefined) ?? null;
   const bestAc = Math.max(built["armor-class"], ...acOptions.map((option) => option.ac));
   // As the old app: with nothing worn or wielded, the best combination; otherwise the worn one.
+  // "none", which the builder's <none> stores, is no armor or no shield.
+  const noneToNull = (key: string | null) => (key === "none" ? null : key);
   const worn =
     wornArmor === null && wieldedShield === null
       ? undefined
-      : acOptions.find((option) => option.armor === wornArmor && option.shield === wieldedShield);
+      : acOptions.find((option) => option.armor === noneToNull(wornArmor) && option.shield === noneToNull(wieldedShield));
   const text = (key: string) => blankToNull(built[key]);
 
   return {
