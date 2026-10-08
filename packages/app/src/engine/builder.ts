@@ -26,6 +26,8 @@ export interface BuilderSelection {
   multiselect: boolean;
   /** Levels: picked in order, one at a time. */
   sequential: boolean;
+  /** Takes a number with its pick, such as hit points. */
+  requireValue: boolean;
   /** The template's tags, such as starting-equipment; a merged selection has its first position's. */
   tags: string[];
   options: BuilderOption[];
@@ -108,6 +110,7 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
         selected: s.selected,
         multiselect: s.multiselect === true,
         sequential: s.sequential === true,
+        requireValue: s.requireValue === true,
         tags: template.tags ?? [],
         options,
       };
