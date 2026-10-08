@@ -152,7 +152,7 @@ test("a reload mid-edit asks first, then recovers the draft", async ({ page }) =
   });
   await page.reload();
   expect(dialogType).toBe("beforeunload");
-  await expect(page.getByText("Changes from your last visit that were not saved yet were recovered.")).toBeVisible();
+  await expect(page.getByText("Unsaved changes from your last visit were recovered.")).toBeVisible();
   await expect(page.getByRole("status")).toHaveText("Unsaved changes");
   await expect(race).toHaveText("Dwarf");
 });

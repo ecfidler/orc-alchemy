@@ -73,7 +73,7 @@ test("opening a character with a draft recovers it and says so", async () => {
   const id = await addCharacter(engine().emptyCharacter(), "2014", null);
   await saveDraft({ id, entity: engine().select(engine().emptyCharacter(), ["race"], "gnome"), updatedAt: "2026-10-08T00:00:00.000Z" });
   renderAt(`/sheet/${id}`);
-  expect(await screen.findByText("Changes from your last visit that were not saved yet were recovered.", {}, { timeout: 5000 })).toBeTruthy();
+  expect(await screen.findByText("Unsaved changes from your last visit were recovered.", {}, { timeout: 5000 })).toBeTruthy();
   expect(screen.getByRole("status").textContent).toBe("Unsaved changes");
   expect(screen.getByLabelText("Race").textContent).toBe("Gnome");
 });
