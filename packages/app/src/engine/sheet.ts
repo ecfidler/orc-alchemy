@@ -4,6 +4,7 @@
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
+import { preparedSpells } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
 
@@ -79,7 +80,9 @@ export interface KnownSpell extends Named {
   /** The class or race name it is known through. */
   source: string;
   ability: Ability;
-  /** In the entity's prepared spells, for a class that prepares; never for a cantrip. */
+  /** Always prepared, such as a domain spell: it takes no place in the prepared count. */
+  alwaysPrepared: boolean;
+  /** Always prepared, or in the entity's prepared spells, for a class that prepares; never for a cantrip. */
   prepared: boolean;
 }
 
@@ -88,12 +91,18 @@ export interface Spellcasting {
   casters: Spellcaster[];
   /** Level 0 is cantrips. Spells sorted by key within a level. */
   byLevel: { level: number; spells: KnownSpell[] }[];
+  /** Class name to how it gets known spells; "all" when it knows its whole spell list, as a cleric. */
+  knownModes: Record<string, string>;
 }
 
 export interface Sheet {
   name: string | null;
   /** The portrait's image URL. */
   portrait: string | null;
+  playerName: string | null;
+  factionName: string | null;
+  /** The faction's image URL. */
+  factionImage: string | null;
   race: string | null;
   subrace: string | null;
   background: string | null;
@@ -335,28 +344,6 @@ function toSpecialAttack(attack: NonNullable<Built2014["attacks"]>[number]): She
   return { name: a.name, text: sentence(text) };
 }
 
-/**
- * The entity's prepared-spells-by-class, as class name to spell keys. built
- * has it as null, so this reads the strict entity's verbose Transit-JSON:
- * [{ "~:…/class-name": "Wizard", "~:…/prepared-spells": { "~#set": ["~:alarm", …] } }].
- */
-function preparedSpells(entity: StrictEntity): Record<string, Set<string>> {
-  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as {
-    "~:orcpub.entity.strict/values"?: Record<string, unknown>;
-  };
-  const byClass = (strict["~:orcpub.entity.strict/values"]?.["~:orcpub.dnd.e5.character/prepared-spells-by-class"] ??
-    []) as Record<string, unknown>[];
-  return Object.fromEntries(
-    byClass.map((entry) => {
-      const spells = entry["~:orcpub.dnd.e5.character/prepared-spells"] as { "~#set"?: string[] } | undefined;
-      return [
-        entry["~:orcpub.dnd.e5.character/class-name"] as string,
-        new Set((spells?.["~#set"] ?? []).map((key) => key.replace(/^~:/, ""))),
-      ];
-    }),
-  );
-}
-
 function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | null {
   const known = Object.entries(built["spells-known"] ?? {});
   if (known.length === 0) return null;
@@ -379,18 +366,22 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
         spells: (spells?.__entries ?? [])
           .map(([[source, key], spell]) => {
             const caster = spell.class ?? source;
+            // built marks a domain or oath spell always-prepared?, and the
+            // old sheet shows it prepared.
+            const preparer = Number(level) > 0 && prepares[caster] === true;
+            const always = preparer && (spell as { "always-prepared?"?: boolean })["always-prepared?"] === true;
             return {
               ...named(key),
               source: caster,
               ability: abilityOf(spell.ability),
-              // The old sheet also marks always-prepared spells, such as domain
-              // spells; the engine's built does not say which spells those are.
-              prepared: Number(level) > 0 && prepares[caster] === true && (prepared[caster]?.has(key) ?? false),
+              alwaysPrepared: always,
+              prepared: always || (preparer && (prepared[caster]?.has(key) ?? false)),
             };
           })
           .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
       }))
       .sort((a, b) => a.level - b.level),
+    knownModes: built["spells-known-modes"] ?? {},
   };
 }
 
@@ -404,15 +395,20 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
   const wieldedShield = (built["wielded-shield"] as string | null | undefined) ?? null;
   const bestAc = Math.max(built["armor-class"], ...acOptions.map((option) => option.ac));
   // As the old app: with nothing worn or wielded, the best combination; otherwise the worn one.
+  // "none", which the builder's <none> stores, is no armor or no shield.
+  const noneToNull = (key: string | null) => (key === "none" ? null : key);
   const worn =
     wornArmor === null && wieldedShield === null
       ? undefined
-      : acOptions.find((option) => option.armor === wornArmor && option.shield === wieldedShield);
+      : acOptions.find((option) => option.armor === noneToNull(wornArmor) && option.shield === noneToNull(wieldedShield));
   const text = (key: string) => blankToNull(built[key]);
 
   return {
     name: blankToNull(built["character-name"]),
     portrait: text("image-url"),
+    playerName: text("player-name"),
+    factionName: text("faction-name"),
+    factionImage: text("faction-image-url"),
     race: built.race,
     subrace: built.subrace,
     background: built.background,

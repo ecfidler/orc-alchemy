@@ -18,6 +18,9 @@ const abilities = (["str", "dex", "con", "int", "wis", "cha"] as const).map((abi
 const sheet: Sheet = {
   name: "Brannor Ironfist",
   portrait: null,
+  playerName: null,
+  factionName: null,
+  factionImage: null,
   race: "Dwarf",
   subrace: "Hill Dwarf",
   background: "Soldier",
@@ -65,7 +68,8 @@ const sheet: Sheet = {
   spellcasting: {
     slots: [],
     casters: [{ name: "Hill Dwarf", ability: "wis", saveDc: 11, attackBonus: 3, canPrepare: null }],
-    byLevel: [{ level: 0, spells: [{ key: "guidance", name: "Guidance", source: "Hill Dwarf", ability: "wis", prepared: false }] }],
+    byLevel: [{ level: 0, spells: [{ key: "guidance", name: "Guidance", source: "Hill Dwarf", ability: "wis", alwaysPrepared: false, prepared: false }] }],
+    knownModes: {},
   },
   features: {
     actions: [{ name: "Second Wind", text: "Regain 1d10 + 3 hit points (1/rest)." }],
@@ -114,6 +118,23 @@ test("omits empty sections", () => {
   expect(screen.queryByRole("heading", { name: "Spells" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "Equipment" })).toBeNull();
   expect(screen.queryByLabelText("Darkvision")).toBeNull();
+});
+
+test("shows the player, the faction and the images only when set", () => {
+  render(
+    <CharacterSheet
+      sheet={{ ...sheet, playerName: "Ana", factionName: "Harpers", portrait: "https://example.com/p.png", factionImage: "https://example.com/f.png" }}
+    />,
+  );
+  expect(screen.getByLabelText("Player").textContent).toBe("Ana");
+  expect(screen.getByLabelText("Faction").textContent).toBe("Harpers");
+  expect(screen.getByAltText("Portrait").getAttribute("src")).toBe("https://example.com/p.png");
+  expect(screen.getByAltText("Faction image").getAttribute("src")).toBe("https://example.com/f.png");
+  cleanup();
+  render(<CharacterSheet sheet={sheet} />);
+  expect(screen.queryByLabelText("Player")).toBeNull();
+  expect(screen.queryByLabelText("Faction")).toBeNull();
+  expect(screen.queryByRole("img")).toBeNull();
 });
 
 // On-screen spot checks against the oracle's built values (ORC-48 done-when).

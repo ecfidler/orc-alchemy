@@ -89,7 +89,8 @@ test("fighter-3-wizard-2 by the builder's calls builds as the fixture, and remov
   entity = e.removeLevel(entity, "wizard");
   entity = e.removeClass(entity, "wizard");
   expect(JSON.parse(JSON.stringify(entity))).toEqual(fighter3);
-});
+  // Alone it takes about 1 second; with the whole suite in parallel, it takes about 5.
+}, 20_000);
 
 test("storedHitPoints reads the method and value at a hit-points path", () => {
   const entity = readJson("fighter-3-wizard-2.strict.json");

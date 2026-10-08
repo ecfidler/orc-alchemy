@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -151,6 +152,42 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await expect(builder.getByLabel("Class 2", { exact: true })).toHaveCount(0);
 });
 
+test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepares the spell", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Barbarian 1");
+
+  // A barbarian has no spells, so the step appears with the wizard: 3 cantrips and 6 spells.
+  await expect(stepButton(page, "Spells")).toHaveCount(0);
+  await stepButton(page, "Class").click();
+  await builder.getByLabel("Class 1", { exact: true }).selectOption("Wizard");
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Wizard 1");
+  await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells (9 to do)");
+  await stepButton(page, "Spells").click();
+
+  const cantrips = builder.getByRole("region", { name: /^Wizard Cantrips Known/ });
+  await cantrips.getByRole("button", { name: "Fire Bolt", exact: true }).click();
+  await expect(cantrips.getByRole("button", { name: "Fire Bolt", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const spells = builder.getByRole("region", { name: /^Wizard Spells Known/ });
+  await spells.getByLabel("Search: Wizard Spells Known").fill("magic missile");
+  await spells.getByRole("button", { name: "1 - Magic Missile", exact: true }).click();
+  await expect(spells.getByRole("list", { name: "Chosen: Wizard Spells Known" })).toHaveText("1 - Magic Missile");
+  await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells (7 to do)");
+
+  // emptyCharacter has Int 12: a wizard 1 prepares 2 spells.
+  const prepared = builder.getByRole("region", { name: "Prepared spells: Wizard" });
+  await expect(prepared).toContainText("0 of 2 prepared");
+  await prepared.getByLabel("Prepared: Magic Missile").check();
+  await expect(prepared).toContainText("1 of 2 prepared");
+
+  const firstLevel = preview.getByRole("table", { name: "1st Level" });
+  await expect(firstLevel.getByRole("columnheader", { name: "Prepared" })).toBeVisible();
+  await expect(firstLevel.getByRole("row", { name: /^Magic Missile/ }).getByRole("cell").last()).toHaveText("Yes");
+  await expect(preview.getByRole("table", { name: "Cantrips" })).toContainText("Fire Bolt");
+});
+
 test("Random character opens a complete character in the builder", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Random character" }).click();
@@ -165,9 +202,10 @@ test("the builder lists the picks still to make, and a pick removes its message"
   const summary = page.getByRole("region", { name: "Still to do" });
   await expect(summary).toContainText("You have 1 more 'Race' selection to make.");
   await expect(summary).toContainText("You have 2 more 'Skill Proficiency' selections to make.");
-  // Starting equipment counts on the Class step but is not in the summary, as in the old builder.
+  // Starting equipment counts on the Equipment step but is not in the summary, as in the old builder.
   await expect(summary).not.toContainText("Starting Equipment");
-  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class (4 to do)");
+  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class (2 to do)");
+  await expect(stepButton(page, "Equipment")).toHaveAccessibleName("Equipment (2 to do)");
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race (1 to do)");
 
   await page.getByRole("region", { name: "Builder" }).getByRole("button", { name: "Human", exact: true }).click();
@@ -272,4 +310,115 @@ test("fighter-1's scores by hand: a standard human with the standard scores, the
   await builder.getByRole("button", { name: "Increase CON" }).click();
   await expect(total).toHaveText(["9", "9", "10", "9", "9", "9"]);
   await expect(builder.getByText("Points left: 26 of 27")).toBeVisible();
+});
+
+test("fighter-20 without armor or magic items is equipped on the Equipment step", async ({ page }, testInfo) => {
+  // fighter-20 ("Ser Aldric") without its armor, magic items, hands and attunement.
+  const strict = JSON.parse(readFileSync(join(charactersDir, "fighter-20.strict.json"), "utf8"));
+  const lists = ["~:armor", "~:magic-weapons", "~:other-magic-items"];
+  strict["~:orcpub.entity.strict/selections"] = strict["~:orcpub.entity.strict/selections"].filter(
+    (s: Record<string, string>) => !lists.includes(s["~:orcpub.entity.strict/key"]),
+  );
+  for (const key of ["worn-armor", "wielded-shield", "main-hand-weapon", "attuned-magic-items"]) {
+    delete strict["~:orcpub.entity.strict/values"][`~:orcpub.dnd.e5.character/${key}`];
+  }
+  const file = testInfo.outputPath("fighter-20-unequipped.json");
+  writeFileSync(file, JSON.stringify(strict));
+
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles(file);
+  await page.getByRole("link", { name: "Build", exact: true }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  const ac = preview.getByLabel("Armor Class", { exact: true });
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 20 (Champion)");
+  await expect(ac).toHaveText("18");
+  await stepButton(page, "Equipment").click();
+
+  await builder.getByLabel("Add an item to Armor").selectOption("Plate");
+  await expect(builder.getByLabel("Carried: Plate")).toBeChecked();
+  await builder.getByLabel("Add an item to Magic Weapons").selectOption("Longsword +1");
+  await builder.getByLabel("Add an item to Other Magic Items").selectOption("Amulet of Health");
+  await builder.getByLabel("Worn armor").selectOption("Plate");
+  await builder.getByLabel("Wielded shield").selectOption("Shield");
+  await builder.getByLabel("Main hand").selectOption("Longsword +1");
+  await builder.getByLabel("Attuned: Amulet of Health").check();
+
+  await expect(ac).toHaveText("20");
+  await expect(preview.getByLabel("Hit Points", { exact: true })).toHaveText("204 / 204");
+  const longsword = preview.getByRole("table", { name: "Weapon attacks" }).getByRole("row", { name: /^Longsword 1 / });
+  await expect(longsword.getByRole("cell")).toHaveText(["Longsword 1", "Yes", "+12 to hit", "+6"]);
+});
+
+test("the Description step writes a name on Enter and XP on blur, and the preview shows them", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  await expect(preview.getByRole("heading", { level: 1 })).toBeVisible();
+
+  // Description is the last step, and it has nothing to do.
+  const description = page.getByRole("navigation", { name: "Steps" }).getByRole("button").last();
+  await expect(description).toHaveAccessibleName("Description");
+  await description.click();
+
+  const name = builder.getByLabel("Character Name");
+  await name.fill("Brannor Ironfist");
+  await name.press("Enter");
+  await expect(preview.getByRole("heading", { level: 1 })).toHaveText("Brannor Ironfist");
+
+  await builder.getByLabel("Experience Points").fill("900");
+  await builder.getByRole("heading", { name: "Description" }).click();
+  await expect(preview.getByLabel("XP", { exact: true })).toHaveText("900");
+});
+
+test("fighter-1 built from New character through the steps matches its expected values", async ({ page }) => {
+  // The picks of fighter-1.strict.json. The golden test (parity.test.ts) checks the whole entity.
+  const expected = JSON.parse(readFileSync(join(charactersDir, "fighter-1.expected.json"), "utf8"));
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  const card = (name: string) => builder.getByRole("button", { name, exact: true });
+  const pick = async (...names: string[]) => {
+    for (const name of names) {
+      await card(name).click();
+      await expect(card(name)).toHaveAttribute("aria-pressed", "true");
+    }
+  };
+
+  // The human knows one language more; the acolyte opens two more.
+  await pick("Human", "Damaran", "Standard Human", "Dwarvish");
+  await stepButton(page, "Background").click();
+  await pick("Lawful Good", "Acolyte", "Elvish", "Giant");
+  await stepButton(page, "Class").click();
+  await builder.getByLabel("Class 1", { exact: true }).selectOption("Fighter");
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
+  await pick("Defense", "Athletics", "Perception");
+  // The standard scores are the default.
+  await stepButton(page, "Abilities").click();
+  await expect(builder.getByRole("button", { name: "Standard Scores" })).toHaveAttribute("aria-pressed", "true");
+  await stepButton(page, "Equipment").click();
+  // The starting equipment of the class and the background is on this step.
+  await pick("Amulet", "Prayer Book", "Chain Mail", "Martial Weapon and Shield", "Longsword", "Two Handaxes", "Dungeoneer's Pack");
+  await builder.getByLabel("Worn armor").selectOption("Chain mail");
+  await builder.getByLabel("Wielded shield").selectOption("Shield");
+  // The main hand sets the off hand to none. The golden has the shield there, but the
+  // off-hand list offers only dual-wield weapons. The values below do not change.
+  await builder.getByLabel("Main hand").selectOption("Longsword");
+  await stepButton(page, "Description").click();
+  const name = builder.getByLabel("Character Name");
+  await name.fill(expected["character-name"]);
+  await name.press("Enter");
+
+  await expect(preview.getByRole("heading", { level: 1 })).toHaveText(expected["character-name"]);
+  // The worn chain mail and the wielded shield: 19.
+  const worn = expected["armor-class-with-armor"].find((o: { armor: string; shield: string }) => o.armor === "chain-mail" && o.shield === "shield");
+  await expect(preview.getByLabel("Armor Class", { exact: true })).toHaveText(String(worn.ac));
+  const hp = expected["max-hit-points"];
+  await expect(preview.getByLabel("Hit Points", { exact: true })).toHaveText(`${hp} / ${hp}`);
+  const longsword = expected["weapon-modifiers"].longsword;
+  const row = preview.getByRole("table", { name: "Weapon attacks" }).getByRole("row", { name: /^Longsword / });
+  await expect(row.getByRole("cell")).toHaveText(["Longsword", "Yes", `+${longsword["best-attack"]} to hit`, `+${longsword["best-damage"]}`]);
 });

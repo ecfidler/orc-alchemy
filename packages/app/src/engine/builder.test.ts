@@ -18,10 +18,40 @@ const step = (entity: StrictEntity, name: string) => stepsOf(entity).find((s) =>
 const child = (selection: BuilderSelection, option: string, key: string) =>
   selection.options.find((o) => o.key === option)!.selections.find((s) => s.key === key)!;
 
-test("emptyCharacter has the Race, Background, Class, Abilities and Feats steps, without equipment", () => {
+const LISTS = ["armor", "equipment", "magic-armor", "magic-weapons", "other-magic-items", "treasure", "weapons"];
+
+test("emptyCharacter has the Race, Background, Class, Abilities, Feats and Equipment steps", () => {
   const steps = stepsOf(engine().emptyCharacter());
-  expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Abilities", "Feats"]);
-  expect(steps.map((s) => s.selections.map((x) => x.key))).toEqual([["race"], ["alignment", "background"], ["class"], ["ability-scores"], ["feats"]]);
+  expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Abilities", "Feats", "Equipment"]);
+  expect(steps.map((s) => s.selections.map((x) => x.key))).toEqual([
+    ["race"],
+    ["alignment", "background"],
+    ["class"],
+    ["ability-scores"],
+    ["feats"],
+    // The barbarian's starting equipment has an order, so it goes first.
+    ["starting-equipment-martial-weapon", "starting-equipment-simple-weapon", ...LISTS],
+  ]);
+});
+
+test("fighter-3-wizard-2's starting equipment is in the Equipment step, not under its class and background", () => {
+  const steps = stepsOf(readFixture("fighter-3-wizard-2"));
+  const equipment = steps.find((s) => s.name === "Equipment")!.selections;
+  expect(equipment.map((s) => s.actualPath.join("/")).sort()).toEqual(
+    [
+      "background/acolyte/starting-equipment-holy-symbol",
+      "background/acolyte/starting-equipment-prayer-book-wheel",
+      "class/fighter/starting-equipment-additional-weapons",
+      "class/fighter/starting-equipment-armor",
+      "class/fighter/starting-equipment-equipment-pack",
+      "class/fighter/starting-equipment-weapons",
+      ...LISTS,
+    ].sort(),
+  );
+  const [klass] = steps.find((s) => s.name === "Class")!.selections;
+  expect(klass.options.find((o) => o.key === "fighter")!.selections.some((s) => s.tags.includes("starting-equipment"))).toBe(false);
+  const background = steps.find((s) => s.name === "Background")!.selections.find((s) => s.key === "background")!;
+  expect(background.options.find((o) => o.key === "acolyte")!.selections.some((s) => s.tags.includes("starting-equipment"))).toBe(false);
 });
 
 test("each option comes from the template, with its selected state", () => {
@@ -43,7 +73,7 @@ test("fighter-3-wizard-2 nests subclasses under the levels of each class", () =>
   expect(child(levels, "level-3", "martial-archetype").selected).toEqual(["champion"]);
   expect(child(child(klass, "wizard", "levels"), "level-2", "arcane-tradition").selected).toEqual(["school-of-evocation"]);
   // A starting equipment choice opens its own selection.
-  const weapons = child(klass, "fighter", "starting-equipment-weapons");
+  const weapons = step(readFixture("fighter-3-wizard-2"), "Equipment").selections.find((s) => s.key === "starting-equipment-weapons")!;
   expect(child(weapons, "martial-weapon-and-shield", "starting-equipment-martial-weapon").selected).toEqual(["longsword"]);
 });
 
@@ -57,11 +87,43 @@ test("a ref selection at several positions is one merged selection", () => {
   expect(fromRace.selected).toEqual(["common", "elvish", "dwarvish", "orc"]);
   expect(fromRace.options).toHaveLength(16);
 
-  // Spells known at wizard levels 1 and 2: 6 + 2, with no maximum.
-  const levels = child(klass[0], "wizard", "levels");
-  const spells = child(levels, "level-1", "wizard-spells-known");
-  expect(child(levels, "level-2", "wizard-spells-known")).toBe(spells);
-  expect(spells).toMatchObject({ actualPath: ["class", "wizard", "wizard-spells-known"], min: 8, max: null, remaining: 0 });
+  // Spells known at wizard levels 1 and 2: 6 + 2, with no maximum. It shows once, on the Spells step.
+  const spells = step(readFixture("fighter-3-wizard-2"), "Spells").selections.filter((s) => s.key === "wizard-spells-known");
+  expect(spells).toEqual([expect.objectContaining({ actualPath: ["class", "wizard", "wizard-spells-known"], min: 8, max: null, remaining: 0 })]);
+  expect(child(child(klass[0], "wizard", "levels"), "level-1", "wizard-spells-known")).toBeUndefined();
+});
+
+test("wizard-20's spell selections are on the Spells step, not under the wizard's levels", () => {
+  const steps = stepsOf(readFixture("wizard-20"));
+  const spells = steps.find((s) => s.name === "Spells")!.selections;
+  // In template order: the class's selections, then those of the levels.
+  expect(spells.map((s) => [s.name, s.min, s.max, s.selected.length])).toEqual([
+    ["Wizard Cantrips Known", 5, 5, 5],
+    ["Wizard Spells Known", 44, null, 44],
+    ["Signature Spells", 2, 2, 2],
+    ["Spell Mastery Level 1 Spell", 1, 1, 1],
+    ["Spell Mastery Level 2 Spell", 1, 1, 1],
+  ]);
+  const [klass] = steps.find((s) => s.name === "Class")!.selections;
+  const levels = child(klass, "wizard", "levels");
+  const underLevels = levels.options.flatMap((o) => o.selections);
+  expect(underLevels.filter((s) => s.tags.includes("spells"))).toEqual([]);
+  expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Abilities", "Feats", "Spells", "Equipment"]);
+  expect(remainingByStep(steps)[5]).toBe(0);
+});
+
+test("a subrace's cantrips are on the Spells step too", () => {
+  // wizard-1 is a high elf.
+  const spells = step(readFixture("wizard-1"), "Spells").selections;
+  expect(spells.map((s) => [s.name, s.selected.length])).toContainEqual(["High Elf Cantrips Known", 1]);
+});
+
+test("the Spells step counts the picks it shows", () => {
+  // A wizard 1 picks 3 cantrips and 6 spells.
+  const entity = engine().setClass(engine().emptyCharacter(), 0, "wizard");
+  const steps = stepsOf(entity);
+  expect(steps.find((s) => s.name === "Spells")!.selections.map((s) => s.remaining)).toEqual([3, 6]);
+  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Spells")]).toBe(9);
 });
 
 test("a merged ref selection counts every pick once", () => {
@@ -152,15 +214,14 @@ test.each(readdirSync(charactersDir).filter((f) => f.endsWith(".strict.json")))(
     for (const o of s.options) o.selections.forEach(walk);
   };
   builderSteps(selections, engine().buildTemplate().shape).forEach((step) => step.selections.forEach(walk));
-  const outside = ["treasure", "weapons", "magic-weapons", "armor", "magic-armor", "equipment", "other-magic-items"];
-  const expected = selections.filter((s) => !outside.includes(s.path[0])).map((s) => JSON.stringify(s.actualPath));
+  const expected = selections.map((s) => JSON.stringify(s.actualPath));
   expect([...shown].sort()).toEqual([...new Set(expected)].sort());
 });
 
 test("a selection an option of a ref selection opens nests under that option", () => {
   // Children of an invocation have paths under the ref path, not the levels.
-  const [klass] = step(readFixture("warlock-10-drow"), "Class").selections;
-  const invocations = child(child(klass, "warlock", "levels"), "level-2", "eldritch-invocations");
+  // Invocations are tagged spells, so they are on the Spells step, and the rituals stay under them.
+  const invocations = step(readFixture("warlock-10-drow"), "Spells").selections.find((s) => s.key === "eldritch-invocations")!;
   expect(child(invocations, "book-of-ancient-secrets", "book-of-ancient-secrets-rituals").selected).toEqual([
     "detect-poison-and-disease",
     "illusory-script",
@@ -223,9 +284,10 @@ test("unfilled and remainingByStep count a merged selection once", () => {
   entity = engine().select(entity, ["background"], "acolyte");
   const steps = stepsOf(entity);
   expect(unfilled(steps).filter((s) => s.key === "languages")).toEqual([expect.objectContaining({ remaining: 3 })]);
-  // Race: languages 3, subrace 1 and variant 1. Background: alignment 1,
-  // and the holy symbol and prayer book 1 each; its languages count under Race.
-  expect(remainingByStep(steps)).toEqual([5, 3, 4, 0, 0]);
+  // Race: languages 3, subrace 1 and variant 1. Background: alignment 1; its
+  // languages count under Race. Class: the barbarian's 2 skills. Equipment:
+  // the barbarian's 2 weapons, and the acolyte's holy symbol and prayer book.
+  expect(remainingByStep(steps)).toEqual([5, 1, 2, 0, 0, 4]);
 });
 
 test.each(Array.from({ length: 20 }, (_, i) => i + 1))("autofill with seed %i leaves nothing unfilled", (seed) => {
