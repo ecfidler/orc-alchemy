@@ -87,6 +87,9 @@ test("a custom item is added, renamed, counted and removed", () => {
 
 test("no more than 3 magic items are attuned at once", () => {
   open(engine().emptyCharacter());
+  // Removing an item that is not attuned does not store the attuned items.
+  fireEvent.click(screen.getByText("Remove Explorer's Pack"));
+  expect(JSON.stringify(entity())).not.toContain("attuned-magic-items");
   for (const key of ["amulet-of-health", "cloak-of-protection", "ring-of-protection", "bag-of-holding"]) {
     choose("Add an item to Other Magic Items", key);
   }
