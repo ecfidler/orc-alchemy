@@ -7,5 +7,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
+    // The builder tests evaluate whole characters; under parallel load some take over 5 s.
+    testTimeout: 20_000,
   },
 });

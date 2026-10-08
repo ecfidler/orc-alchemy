@@ -57,14 +57,20 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
   return (
     <article className="mx-auto max-w-4xl space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold">{sheet.name ?? "Unnamed character"}</h1>
+        <div className="flex items-center gap-4">
+          {sheet.portrait && <img src={sheet.portrait} alt="Portrait" className="h-24 w-24 object-cover" />}
+          <h1 className="text-2xl font-bold">{sheet.name ?? "Unnamed character"}</h1>
+          {sheet.factionImage && <img src={sheet.factionImage} alt="Faction image" className="h-16 w-16 object-cover" />}
+        </div>
         <dl className="flex flex-wrap gap-x-6 gap-y-1">
+          {sheet.playerName && <Field label="Player">{sheet.playerName}</Field>}
           {race && <Field label="Race">{race}</Field>}
           {sheet.background && <Field label="Background">{sheet.background}</Field>}
           {sheet.alignment && <Field label="Alignment">{sheet.alignment}</Field>}
           {classes && <Field label="Class">{classes}</Field>}
           <Field label="Level">{sheet.totalLevel}</Field>
           {sheet.xp !== null && <Field label="XP">{sheet.xp}</Field>}
+          {sheet.factionName && <Field label="Faction">{sheet.factionName}</Field>}
         </dl>
       </header>
 

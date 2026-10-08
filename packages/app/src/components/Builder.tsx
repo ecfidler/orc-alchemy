@@ -8,13 +8,17 @@ import { useHomebrew } from "../state/homebrew.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
+import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 
 export function Builder() {
   const { selections, sheet } = useOpenCharacter();
   const homebrew = useHomebrew((state) => state.homebrew);
-  const steps = useBuilderSteps(selections, homebrew);
+  // The Description step has no selections, so builderSteps does not give
+  // it. Before the character loads there are no steps at all.
+  const engineSteps = useBuilderSteps(selections, homebrew);
+  const steps = engineSteps.length === 0 ? engineSteps : [...engineSteps, { name: "Description", selections: [] }];
   const [stepName, setStepName] = useState("Race");
   const step = steps.find((s) => s.name === stepName) ?? steps[0];
   const counts = remainingByStep(steps);
@@ -80,6 +84,7 @@ export function Builder() {
             })}
             {step.name === "Spells" && <PreparedSpells />}
             {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
+            {step.name === "Description" && <Description />}
           </>
         )}
       </section>

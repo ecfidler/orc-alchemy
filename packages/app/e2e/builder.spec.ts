@@ -349,3 +349,25 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
   const longsword = preview.getByRole("table", { name: "Weapon attacks" }).getByRole("row", { name: /^Longsword 1 / });
   await expect(longsword.getByRole("cell")).toHaveText(["Longsword 1", "Yes", "+12 to hit", "+6"]);
 });
+
+test("the Description step writes a name on Enter and XP on blur, and the preview shows them", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  await expect(preview.getByRole("heading", { level: 1 })).toBeVisible();
+
+  // Description is the last step, and it has nothing to do.
+  const description = page.getByRole("navigation", { name: "Steps" }).getByRole("button").last();
+  await expect(description).toHaveAccessibleName("Description");
+  await description.click();
+
+  const name = builder.getByLabel("Character Name");
+  await name.fill("Brannor Ironfist");
+  await name.press("Enter");
+  await expect(preview.getByRole("heading", { level: 1 })).toHaveText("Brannor Ironfist");
+
+  await builder.getByLabel("Experience Points").fill("900");
+  await builder.getByRole("heading", { name: "Description" }).click();
+  await expect(preview.getByLabel("XP", { exact: true })).toHaveText("900");
+});
