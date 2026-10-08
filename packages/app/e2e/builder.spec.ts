@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -165,9 +166,10 @@ test("the builder lists the picks still to make, and a pick removes its message"
   const summary = page.getByRole("region", { name: "Still to do" });
   await expect(summary).toContainText("You have 1 more 'Race' selection to make.");
   await expect(summary).toContainText("You have 2 more 'Skill Proficiency' selections to make.");
-  // Starting equipment counts on the Class step but is not in the summary, as in the old builder.
+  // Starting equipment counts on the Equipment step but is not in the summary, as in the old builder.
   await expect(summary).not.toContainText("Starting Equipment");
-  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class (4 to do)");
+  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class (2 to do)");
+  await expect(stepButton(page, "Equipment")).toHaveAccessibleName("Equipment (2 to do)");
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race (1 to do)");
 
   await page.getByRole("region", { name: "Builder" }).getByRole("button", { name: "Human", exact: true }).click();
@@ -272,4 +274,42 @@ test("fighter-1's scores by hand: a standard human with the standard scores, the
   await builder.getByRole("button", { name: "Increase CON" }).click();
   await expect(total).toHaveText(["9", "9", "10", "9", "9", "9"]);
   await expect(builder.getByText("Points left: 26 of 27")).toBeVisible();
+});
+
+test("fighter-20 without armor or magic items is equipped on the Equipment step", async ({ page }, testInfo) => {
+  // fighter-20 ("Ser Aldric") without its armor, magic items, hands and attunement.
+  const strict = JSON.parse(readFileSync(join(charactersDir, "fighter-20.strict.json"), "utf8"));
+  const lists = ["~:armor", "~:magic-weapons", "~:other-magic-items"];
+  strict["~:orcpub.entity.strict/selections"] = strict["~:orcpub.entity.strict/selections"].filter(
+    (s: Record<string, string>) => !lists.includes(s["~:orcpub.entity.strict/key"]),
+  );
+  for (const key of ["worn-armor", "wielded-shield", "main-hand-weapon", "attuned-magic-items"]) {
+    delete strict["~:orcpub.entity.strict/values"][`~:orcpub.dnd.e5.character/${key}`];
+  }
+  const file = testInfo.outputPath("fighter-20-unequipped.json");
+  writeFileSync(file, JSON.stringify(strict));
+
+  await page.goto("/");
+  await page.getByLabel("Import character file").setInputFiles(file);
+  await page.getByRole("link", { name: "Build", exact: true }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  const ac = preview.getByLabel("Armor Class", { exact: true });
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 20 (Champion)");
+  await expect(ac).toHaveText("18");
+  await stepButton(page, "Equipment").click();
+
+  await builder.getByLabel("Add an item to Armor").selectOption("Plate");
+  await expect(builder.getByLabel("Carried: Plate")).toBeChecked();
+  await builder.getByLabel("Add an item to Magic Weapons").selectOption("Longsword +1");
+  await builder.getByLabel("Add an item to Other Magic Items").selectOption("Amulet of Health");
+  await builder.getByLabel("Worn armor").selectOption("Plate");
+  await builder.getByLabel("Wielded shield").selectOption("Shield");
+  await builder.getByLabel("Main hand").selectOption("Longsword +1");
+  await builder.getByLabel("Attuned: Amulet of Health").check();
+
+  await expect(ac).toHaveText("20");
+  await expect(preview.getByLabel("Hit Points", { exact: true })).toHaveText("204 / 204");
+  const longsword = preview.getByRole("table", { name: "Weapon attacks" }).getByRole("row", { name: /^Longsword 1 / });
+  await expect(longsword.getByRole("cell")).toHaveText(["Longsword 1", "Yes", "+12 to hit", "+6"]);
 });

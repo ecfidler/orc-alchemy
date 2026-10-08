@@ -39,13 +39,14 @@ export interface BuilderStep {
 }
 
 // The steps and the template tags of their top-level selections. Equipment
-// gets its own step later (ORC-55 slice 4).
+// also gets the starting equipment choices (ORC-59).
 const STEPS: [name: string, tag: string][] = [
   ["Race", "race"],
   ["Background", "background"],
   ["Class", "class"],
   ["Abilities", "ability-scores"],
   ["Feats", "feats"],
+  ["Equipment", "equipment"],
 ];
 
 /** Remaining picks as the engine counts them: up to min, or down to max. */
@@ -120,10 +121,13 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     }
     byPath.set(JSON.stringify(s.path), node);
 
-    if (parent) {
+    // As the old builder, a class or background's starting equipment shows on
+    // the Equipment step, not under its option. Its own choices nest under it.
+    const starting = template.tags?.includes("starting-equipment") && !parent?.tags.includes("starting-equipment");
+    if (parent && !starting) {
       parent.options.find((o) => o.key === s.path.at(-2))?.selections.push(node);
     } else {
-      const step = STEPS.findIndex(([, tag]) => template.tags?.includes(tag));
+      const step = STEPS.findIndex(([, tag]) => (starting ? tag === "equipment" : template.tags?.includes(tag)));
       if (step !== -1) steps[step].selections.push(node);
     }
   }
