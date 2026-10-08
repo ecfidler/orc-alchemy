@@ -38,4 +38,4 @@ Done when every item is Done in Linear.
 
 ## Stopping Mid-Milestone
 
-Write a handoff at `docs/handoffs/<milestone-branch>.md`, modeled on `docs/handoffs/m3-homebrew-in-the-app.md`, and add it to `docs/handoffs/index.md`.
+Write a handoff at `docs/handoffs/<milestone-branch>.md`, modeled on `docs/handoffs/m3-homebrew-in-the-app.md`, and add it to `docs/handoffs/index.md`. Run `bun run docs:check`, then commit and push it straight to the base branch. A handoff needs no PR.
