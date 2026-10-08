@@ -364,13 +364,14 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
             const caster = spell.class ?? source;
             // built marks a domain or oath spell always-prepared?, and the
             // old sheet shows it prepared.
-            const always = (spell as { "always-prepared?"?: boolean })["always-prepared?"] === true;
+            const preparer = Number(level) > 0 && prepares[caster] === true;
+            const always = preparer && (spell as { "always-prepared?"?: boolean })["always-prepared?"] === true;
             return {
               ...named(key),
               source: caster,
               ability: abilityOf(spell.ability),
               alwaysPrepared: always,
-              prepared: Number(level) > 0 && prepares[caster] === true && (always || (prepared[caster]?.has(key) ?? false)),
+              prepared: always || (preparer && (prepared[caster]?.has(key) ?? false)),
             };
           })
           .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
