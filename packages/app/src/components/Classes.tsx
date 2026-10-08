@@ -1,6 +1,7 @@
 // The Class step (ORC-58): the classes and their levels, as the old builder's
 // class rows, and the hit points and ability score improvements each level
-// asks for. Each change is an engine mutation, as in Selection.
+// asks for. Each change is an engine mutation, as in Selection. It also holds
+// useMutation and Heading, which Options in Builder.tsx uses for each selection.
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, rollHitPoints, storedHitPoints, type HitPointsMethod } from "../engine/classes.ts";
