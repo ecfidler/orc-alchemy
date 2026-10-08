@@ -371,3 +371,54 @@ test("the Description step writes a name on Enter and XP on blur, and the previe
   await builder.getByRole("heading", { name: "Description" }).click();
   await expect(preview.getByLabel("XP", { exact: true })).toHaveText("900");
 });
+
+test("fighter-1 built from New character through the steps matches its expected values", async ({ page }) => {
+  // The picks of fighter-1.strict.json. The golden test (parity.test.ts) checks the whole entity.
+  const expected = JSON.parse(readFileSync(join(charactersDir, "fighter-1.expected.json"), "utf8"));
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  const card = (name: string) => builder.getByRole("button", { name, exact: true });
+  const pick = async (...names: string[]) => {
+    for (const name of names) {
+      await card(name).click();
+      await expect(card(name)).toHaveAttribute("aria-pressed", "true");
+    }
+  };
+
+  // The human knows one language more; the acolyte opens two more.
+  await pick("Human", "Damaran", "Standard Human", "Dwarvish");
+  await stepButton(page, "Background").click();
+  await pick("Lawful Good", "Acolyte", "Elvish", "Giant");
+  await stepButton(page, "Class").click();
+  await builder.getByLabel("Class 1", { exact: true }).selectOption("Fighter");
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
+  await pick("Defense", "Athletics", "Perception");
+  // The standard scores are the default.
+  await stepButton(page, "Abilities").click();
+  await expect(builder.getByRole("button", { name: "Standard Scores" })).toHaveAttribute("aria-pressed", "true");
+  await stepButton(page, "Equipment").click();
+  // The starting equipment of the class and the background is on this step.
+  await pick("Amulet", "Prayer Book", "Chain Mail", "Martial Weapon and Shield", "Longsword", "Two Handaxes", "Dungeoneer's Pack");
+  await builder.getByLabel("Worn armor").selectOption("Chain mail");
+  await builder.getByLabel("Wielded shield").selectOption("Shield");
+  // The main hand sets the off hand to none. The golden has the shield there, but the
+  // off-hand list offers only dual-wield weapons. The values below do not change.
+  await builder.getByLabel("Main hand").selectOption("Longsword");
+  await stepButton(page, "Description").click();
+  const name = builder.getByLabel("Character Name");
+  await name.fill(expected["character-name"]);
+  await name.press("Enter");
+
+  await expect(preview.getByRole("heading", { level: 1 })).toHaveText(expected["character-name"]);
+  // The worn chain mail and the wielded shield: 19.
+  const worn = expected["armor-class-with-armor"].find((o: { armor: string; shield: string }) => o.armor === "chain-mail" && o.shield === "shield");
+  await expect(preview.getByLabel("Armor Class", { exact: true })).toHaveText(String(worn.ac));
+  const hp = expected["max-hit-points"];
+  await expect(preview.getByLabel("Hit Points", { exact: true })).toHaveText(`${hp} / ${hp}`);
+  const longsword = expected["weapon-modifiers"].longsword;
+  const row = preview.getByRole("table", { name: "Weapon attacks" }).getByRole("row", { name: /^Longsword / });
+  await expect(row.getByRole("cell")).toHaveText(["Longsword", "Yes", `+${longsword["best-attack"]} to hit`, `+${longsword["best-damage"]}`]);
+});
