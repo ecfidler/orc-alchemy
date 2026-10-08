@@ -35,10 +35,12 @@ function TextField({ field, stored, onCommit }: { field: DescriptionField; store
     setSeen(stored);
     setText(stored);
   }
-  // The field shows the text as stored, so "12.9" becomes "12" for XP.
+  // The field shows the text as stored, so "12.9" becomes "12" for XP, and
+  // a text that stores the same value does not write.
   const commit = () => {
-    setText(normalized(field.key, text));
-    if (text !== stored) onCommit(text);
+    const value = normalized(field.key, text);
+    setText(value);
+    if (value !== stored) onCommit(text);
   };
   const props = {
     id,

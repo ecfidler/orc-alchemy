@@ -37,11 +37,13 @@ test("XP is written on Enter, as an int", () => {
   fireEvent.keyDown(field("Experience Points"), { key: "Enter" });
   expect(engine().evaluate(useCharacter.getState().entity!).built.xps).toBe(900);
   expect(preview().getByLabelText("XP").textContent).toBe("900");
-  // A decimal is stored as its int, and the field shows what is stored.
+  // A decimal is stored as its int, and the field shows what is stored. The same value does not write again.
+  const before = useCharacter.getState().entity;
   fireEvent.change(field("Experience Points"), { target: { value: "900.9" } });
   fireEvent.blur(field("Experience Points"));
   expect(stored("xps")).toBe("900");
   expect(field("Experience Points").value).toBe("900");
+  expect(useCharacter.getState().entity).toBe(before);
 });
 
 test("a field cleared is stored as an empty string", () => {

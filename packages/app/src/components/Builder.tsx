@@ -15,7 +15,8 @@ import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 export function Builder() {
   const { selections, sheet } = useOpenCharacter();
   const homebrew = useHomebrew((state) => state.homebrew);
-  // The Description step has no selections, so builderSteps does not give it. Before the character loads there are no steps.
+  // The Description step has no selections, so builderSteps does not give
+  // it. Before the character loads there are no steps at all.
   const engineSteps = useBuilderSteps(selections, homebrew);
   const steps = engineSteps.length === 0 ? engineSteps : [...engineSteps, { name: "Description", selections: [] }];
   const [stepName, setStepName] = useState("Race");
