@@ -101,8 +101,8 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       const detail = e instanceof Error ? e.message : String(e);
       throw new Error(`The homebrew could not be read. An item or pack in the file may not be a map. (Engine message: ${detail})`);
     }
-    const { data, ...rest } = parsed;
-    const lastImport = { ...rest, fileName };
+    const { data, ...withoutData } = parsed;
+    const lastImport = { ...withoutData, fileName };
     if (data === null) return set({ lastImport });
     const blocked = quarantined.find((q) => q.id in data);
     if (blocked) {

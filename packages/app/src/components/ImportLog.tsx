@@ -94,6 +94,18 @@ function ChangeText({ change }: { change: Change }) {
   }
 }
 
+function ChangeList({ changes }: { changes: Change[] }) {
+  return (
+    <ul className="ml-6 list-disc">
+      {changes.map((change, i) => (
+        <li key={i}>
+          <ChangeText change={change} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Section({ title, open = true, children }: { title: string; open?: boolean; children: ReactNode }) {
   return (
     <details open={open} className="border-l-4 border-black pl-2">
@@ -150,25 +162,13 @@ export function ImportLog({ result }: { result: LastImport }) {
         if (items.length === 0) return null;
         return (
           <Section key={types[0]} title={title(items)}>
-            <ul className="ml-6 list-disc">
-              {items.map((change, i) => (
-                <li key={i}>
-                  <ChangeText change={change} />
-                </li>
-              ))}
-            </ul>
+            <ChangeList changes={items} />
           </Section>
         );
       })}
       {advanced.length > 0 && (
         <Section title={`Advanced details (${advanced.length})`} open={false}>
-          <ul className="ml-6 list-disc">
-            {advanced.map((change, i) => (
-              <li key={i}>
-                <ChangeText change={change} />
-              </li>
-            ))}
-          </ul>
+          <ChangeList changes={advanced} />
         </Section>
       )}
       {conflicts.length > 0 && (

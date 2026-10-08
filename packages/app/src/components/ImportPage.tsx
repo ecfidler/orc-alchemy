@@ -8,8 +8,14 @@ import { ImportLog } from "./ImportLog.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+/** A chosen file's name and text. */
+interface ChosenFile {
+  name: string;
+  text: string;
+}
+
 /** The text of the chosen file, or null with none. Clears the input, so choosing the same file again fires onChange. */
-async function chosenText(event: ChangeEvent<HTMLInputElement>): Promise<{ name: string; text: string } | null> {
+async function chosenText(event: ChangeEvent<HTMLInputElement>): Promise<ChosenFile | null> {
   const input = event.target;
   const file = input.files?.[0];
   if (!file) return null;
@@ -140,7 +146,7 @@ function CharacterImport() {
   const [imported, setImported] = useState<Imported | null>(null);
 
   /** Imports the text that read gives, or nothing when it gives null; the file name is for the import log. */
-  async function importText(step: Step, read: () => Promise<{ name: string; text: string } | null>) {
+  async function importText(step: Step, read: () => Promise<ChosenFile | null>) {
     setError(null);
     setImported(null);
     try {
