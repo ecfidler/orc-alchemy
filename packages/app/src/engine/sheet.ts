@@ -169,7 +169,7 @@ export interface Sheet {
   };
 }
 
-const ABILITIES: Ability[] = ["str", "dex", "con", "int", "wis", "cha"];
+export const ABILITIES: Ability[] = ["str", "dex", "con", "int", "wis", "cha"];
 
 /** The 18 skills, in name order. */
 const SKILLS: [key: string, name: string, ability: Ability][] = [
@@ -196,7 +196,7 @@ const SKILLS: [key: string, name: string, ability: Ability][] = [
 const EQUIPMENT_NS = "orcpub.dnd.e5.character.equipment/";
 
 /** The name part of a keyword string: "orcpub.dnd.e5.units/long-rest" → "long-rest". */
-const unqualify = (key: string) => key.slice(key.lastIndexOf("/") + 1);
+export const unqualify = (key: string) => key.slice(key.lastIndexOf("/") + 1);
 
 /** The old app's capitalised kw-to-name: "crossbow-light" → "Crossbow Light". */
 const keyToName = (key: string) =>

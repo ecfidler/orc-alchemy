@@ -18,10 +18,10 @@ const step = (entity: StrictEntity, name: string) => stepsOf(entity).find((s) =>
 const child = (selection: BuilderSelection, option: string, key: string) =>
   selection.options.find((o) => o.key === option)!.selections.find((s) => s.key === key)!;
 
-test("emptyCharacter has the Race, Background, Class and Feats steps, without ability scores or equipment", () => {
+test("emptyCharacter has the Race, Background, Class, Abilities and Feats steps, without equipment", () => {
   const steps = stepsOf(engine().emptyCharacter());
-  expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Feats"]);
-  expect(steps.map((s) => s.selections.map((x) => x.key))).toEqual([["race"], ["alignment", "background"], ["class"], ["feats"]]);
+  expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Abilities", "Feats"]);
+  expect(steps.map((s) => s.selections.map((x) => x.key))).toEqual([["race"], ["alignment", "background"], ["class"], ["ability-scores"], ["feats"]]);
 });
 
 test("each option comes from the template, with its selected state", () => {
@@ -152,7 +152,7 @@ test.each(readdirSync(charactersDir).filter((f) => f.endsWith(".strict.json")))(
     for (const o of s.options) o.selections.forEach(walk);
   };
   builderSteps(selections, engine().buildTemplate().shape).forEach((step) => step.selections.forEach(walk));
-  const outside = ["ability-scores", "treasure", "weapons", "magic-weapons", "armor", "magic-armor", "equipment", "other-magic-items"];
+  const outside = ["treasure", "weapons", "magic-weapons", "armor", "magic-armor", "equipment", "other-magic-items"];
   const expected = selections.filter((s) => !outside.includes(s.path[0])).map((s) => JSON.stringify(s.actualPath));
   expect([...shown].sort()).toEqual([...new Set(expected)].sort());
 });
@@ -225,7 +225,7 @@ test("unfilled and remainingByStep count a merged selection once", () => {
   expect(unfilled(steps).filter((s) => s.key === "languages")).toEqual([expect.objectContaining({ remaining: 3 })]);
   // Race: languages 3, subrace 1 and variant 1. Background: alignment 1,
   // and the holy symbol and prayer book 1 each; its languages count under Race.
-  expect(remainingByStep(steps)).toEqual([5, 3, 4, 0]);
+  expect(remainingByStep(steps)).toEqual([5, 3, 4, 0, 0]);
 });
 
 test.each(Array.from({ length: 20 }, (_, i) => i + 1))("autofill with seed %i leaves nothing unfilled", (seed) => {

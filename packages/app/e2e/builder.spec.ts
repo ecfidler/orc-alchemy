@@ -181,3 +181,35 @@ test("Save stores the changes now, and leaving the builder saves them too", asyn
   await expect(page.getByRole("listitem", { name: "Unnamed character" })).toContainText("Elf · Barbarian 1", { timeout: 3000 });
   await expect.poll(() => draftCount(page)).toBe(0);
 });
+
+test("fighter-1's scores by hand: a standard human with the standard scores, then a swap and point buy", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const str = page.getByRole("region", { name: "Preview" }).getByLabel("STR", { exact: true });
+  await builder.getByRole("button", { name: "Human", exact: true }).click();
+  await builder.getByRole("button", { name: "Damaran", exact: true }).click();
+  await builder.getByRole("button", { name: "Standard Human", exact: true }).click();
+  await expect(builder.getByRole("button", { name: "Standard Human", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+  await stepButton(page, "Abilities").click();
+  await expect(builder.getByRole("button", { name: "Standard Scores" })).toHaveAttribute("aria-pressed", "true");
+  const scores = builder.getByRole("table", { name: "Ability scores" });
+  const total = scores.getByRole("row", { name: /^Total/ }).getByRole("cell");
+  await expect(total).toHaveText(["16", "15", "14", "13", "11", "9"]);
+  await expect(scores.getByRole("row", { name: /^Race/ }).getByRole("cell")).toHaveText(["+1", "+1", "+1", "+1", "+1", "+1"]);
+  await expect(str).toHaveText("16+3");
+
+  // STR and DEX change places.
+  await builder.getByRole("button", { name: "Move STR right" }).click();
+  await expect(total).toHaveText(["15", "16", "14", "13", "11", "9"]);
+  await expect(str).toHaveText("15+2");
+
+  // Point buy starts every score at 8, and an increase spends points.
+  await builder.getByRole("button", { name: "Point Buy" }).click();
+  await expect(total).toHaveText(["9", "9", "9", "9", "9", "9"]);
+  await expect(builder.getByText("Points left: 27 of 27")).toBeVisible();
+  await builder.getByRole("button", { name: "Increase CON" }).click();
+  await expect(total).toHaveText(["9", "9", "10", "9", "9", "9"]);
+  await expect(builder.getByText("Points left: 26 of 27")).toBeVisible();
+});
