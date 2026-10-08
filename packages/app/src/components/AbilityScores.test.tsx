@@ -58,6 +58,8 @@ test("Point Buy starts at 8s and counts points, within the old limits", () => {
   for (let i = 0; i < 7; i++) fireEvent.click(increase);
   expect(built()[0]).toBe(15);
   expect(screen.getByText("Points left: 18 of 27")).toBeTruthy();
+  // As the old point buy, each score shows its cost.
+  expect(row("Base")).toEqual(["−15(9 pts)+", ...Array(5).fill("−8(0 pts)+")]);
   expect(increase.hasAttribute("disabled")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Decrease STR" }));
   expect(screen.getByText("Points left: 20 of 27")).toBeTruthy();

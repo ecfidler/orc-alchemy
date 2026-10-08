@@ -13,10 +13,16 @@ export type Method = "manual-entry" | "point-buy" | "standard-roll" | "standard-
 export const STANDARD_SCORES: Scores = { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 };
 export const POINT_BUY_POINTS = 27;
 /** The point cost of each score from 8 to 15. */
-const POINT_BUY_COSTS: Record<number, number> = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
+export const POINT_BUY_COSTS: Record<number, number> = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
 const scoresOf = (score: (ability: Ability) => number) =>
   Object.fromEntries(ABILITIES.map((ability) => [ability, score(ability)])) as Scores;
+
+/** Point buy starts each score at 8. */
+export const POINT_BUY_START: Scores = scoresOf(() => 8);
+
+/** An ability's key in the strict entity's scores. */
+const scoreKey = (ability: Ability) => `~:orcpub.dnd.e5.character/${ability}`;
 
 /**
  * The entity's method and base scores, from the strict entity's ability-scores
@@ -33,13 +39,13 @@ export function baseScores(entity: StrictEntity): { method: Method | null; score
   const key = option?.["~:orcpub.entity.strict/key"] as string | undefined;
   const method = key === undefined ? null : (key.replace(/^~:/, "") as Method);
   const values = (option?.["~:orcpub.entity.strict/map-value"] ?? {}) as Record<string, number>;
-  const fallback = method === "point-buy" ? scoresOf(() => 8) : STANDARD_SCORES;
-  return { method, scores: scoresOf((a) => values[`~:orcpub.dnd.e5.character/${a}`] ?? fallback[a]) };
+  const fallback = method === "point-buy" ? POINT_BUY_START : STANDARD_SCORES;
+  return { method, scores: scoresOf((a) => values[scoreKey(a)] ?? fallback[a]) };
 }
 
 /** Sets the method and its base scores in one mutation. */
 export function setBaseScores(entity: StrictEntity, method: Method, scores: Scores, homebrew?: Homebrew): StrictEntity {
-  const value = Object.fromEntries(ABILITIES.map((a) => [`~:orcpub.dnd.e5.character/${a}`, scores[a]]));
+  const value = Object.fromEntries(ABILITIES.map((a) => [scoreKey(a), scores[a]]));
   return engine().setField(entity, ["ability-scores", method], value, { homebrew });
 }
 

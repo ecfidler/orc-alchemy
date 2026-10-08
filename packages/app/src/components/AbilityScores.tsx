@@ -2,7 +2,9 @@
 // builder's four methods, and the increases the engine adds, read-only.
 import { useId, useMemo, useState, type ReactNode } from "react";
 import {
+  POINT_BUY_COSTS,
   POINT_BUY_POINTS,
+  POINT_BUY_START,
   STANDARD_SCORES,
   abilityRows,
   baseScores,
@@ -44,7 +46,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
     if (to === method) return;
     // As the old builder: manual entry keeps the scores it has.
     const next = {
-      "point-buy": () => ({ str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 }),
+      "point-buy": () => POINT_BUY_START,
       "standard-roll": () => rollScores(),
       "standard-scores": () => STANDARD_SCORES,
       "manual-entry": () => scores,
@@ -59,57 +61,38 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
     ["Improvements", rows.improvements],
     ["Other", rows.other],
   ];
-  const button = "border border-black px-1 disabled:opacity-30";
-
   function base(ability: Ability): ReactNode {
     const score = scores[ability];
     if (method === "manual-entry")
       return <ManualScore ability={ability} score={score} onCommit={(n) => write(method, { ...scores, [ability]: n })} />;
-    if (method === "point-buy")
+    if (method === "point-buy") {
+      const cost = POINT_BUY_COSTS[score];
       return (
-        <div className="flex items-center justify-center gap-1">
-          <button
-            type="button"
-            aria-label={`Decrease ${abbr(ability)}`}
-            disabled={!canDecrease(scores, ability)}
-            onClick={() => write(method, { ...scores, [ability]: score - 1 })}
-            className={button}
-          >
-            −
-          </button>
-          <span>{score}</span>
-          <button
-            type="button"
-            aria-label={`Increase ${abbr(ability)}`}
-            disabled={!canIncrease(scores, ability, rows.total[ability])}
-            onClick={() => write(method, { ...scores, [ability]: score + 1 })}
-            className={button}
-          >
-            +
-          </button>
-        </div>
+        <Stepper
+          score={score}
+          note={cost === undefined ? undefined : `(${cost} pts)`}
+          left={{
+            label: `Decrease ${abbr(ability)}`,
+            text: "−",
+            disabled: !canDecrease(scores, ability),
+            onClick: () => write(method, { ...scores, [ability]: score - 1 }),
+          }}
+          right={{
+            label: `Increase ${abbr(ability)}`,
+            text: "+",
+            disabled: !canIncrease(scores, ability, rows.total[ability]),
+            onClick: () => write(method, { ...scores, [ability]: score + 1 }),
+          }}
+        />
       );
+    }
     if (method === "standard-scores" || method === "standard-roll")
       return (
-        <div className="flex items-center justify-center gap-1">
-          <button
-            type="button"
-            aria-label={`Move ${abbr(ability)} left`}
-            onClick={() => write(method, swapScores(scores, ability, -1))}
-            className={button}
-          >
-            ‹
-          </button>
-          <span>{score}</span>
-          <button
-            type="button"
-            aria-label={`Move ${abbr(ability)} right`}
-            onClick={() => write(method, swapScores(scores, ability, 1))}
-            className={button}
-          >
-            ›
-          </button>
-        </div>
+        <Stepper
+          score={score}
+          left={{ label: `Move ${abbr(ability)} left`, text: "‹", onClick: () => write(method, swapScores(scores, ability, -1)) }}
+          right={{ label: `Move ${abbr(ability)} right`, text: "›", onClick: () => write(method, swapScores(scores, ability, 1)) }}
+        />
       );
     return score;
   }
@@ -201,6 +184,38 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
         </tbody>
       </table>
     </section>
+  );
+}
+
+interface StepperButton {
+  label: string;
+  text: string;
+  disabled?: boolean;
+  onClick: () => void;
+}
+
+/** A base score between two buttons, such as swap left and right, with an optional note under it. */
+function Stepper({ score, note, left, right }: { score: number; note?: string; left: StepperButton; right: StepperButton }) {
+  const button = (b: StepperButton) => (
+    <button
+      type="button"
+      aria-label={b.label}
+      disabled={b.disabled}
+      onClick={b.onClick}
+      className="border border-black px-1 disabled:opacity-30"
+    >
+      {b.text}
+    </button>
+  );
+  return (
+    <div className="flex items-center justify-center gap-1">
+      {button(left)}
+      <span>
+        {score}
+        {note && <span className="block text-xs">{note}</span>}
+      </span>
+      {button(right)}
+    </div>
   );
 }
 
