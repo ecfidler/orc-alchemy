@@ -26,6 +26,8 @@ export interface BuilderSelection {
   multiselect: boolean;
   /** Levels: picked in order, one at a time. */
   sequential: boolean;
+  /** The template's tags, such as starting-equipment; a merged selection has its first position's. */
+  tags: string[];
   options: BuilderOption[];
 }
 
@@ -105,6 +107,7 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
         selected: s.selected,
         multiselect: s.multiselect === true,
         sequential: s.sequential === true,
+        tags: template.tags ?? [],
         options,
       };
       orders.set(node, template.order);
@@ -138,6 +141,30 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
   };
   for (const step of steps) sortSelections(step.selections);
   return steps.filter((step) => step.selections.length > 0);
+}
+
+/** Each node in the selections and the selections their options open, once, in tree order. */
+function nodes(selections: BuilderSelection[], seen = new Set<BuilderSelection>()): BuilderSelection[] {
+  return selections.flatMap((node) => {
+    if (seen.has(node)) return [];
+    seen.add(node);
+    return [node, ...node.options.flatMap((o) => nodes(o.selections, seen))];
+  });
+}
+
+/** The selections with picks to make or remove, as the old validate-selections: each merged selection once, in tree order. */
+export function unfilled(steps: BuilderStep[]): BuilderSelection[] {
+  return nodes(steps.flatMap((step) => step.selections)).filter((node) => node.remaining !== 0);
+}
+
+/**
+ * The picks to make or remove in each step, as the old sum-remaining. A
+ * merged selection counts only in the first step that shows it. Unlike the
+ * summary, this counts starting equipment, as the old section headings do.
+ */
+export function remainingByStep(steps: BuilderStep[]): number[] {
+  const seen = new Set<BuilderSelection>();
+  return steps.map((step) => nodes(step.selections, seen).reduce((sum, node) => sum + Math.abs(node.remaining), 0));
 }
 
 /** The builder steps for the open character's selections; the template is built once per homebrew. */

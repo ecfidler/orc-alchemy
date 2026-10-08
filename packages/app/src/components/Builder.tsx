@@ -2,7 +2,7 @@
 // cards, beside its sheet as a live preview. Each pick is an engine mutation
 // through useCharacter's update, so it autosaves.
 import { useId, useState } from "react";
-import { useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
+import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
 import { engine } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
@@ -14,24 +14,54 @@ export function Builder() {
   const steps = useBuilderSteps(selections, homebrew);
   const [stepName, setStepName] = useState("Race");
   const step = steps.find((s) => s.name === stepName) ?? steps[0];
+  const counts = remainingByStep(steps);
+  // As the old validate-selections: starting equipment is not flagged.
+  const messages = unfilled(steps)
+    .filter((s) => !s.tags.includes("starting-equipment"))
+    .map(({ name, remaining: n }) => {
+      const noun = Math.abs(n) === 1 ? "selection" : "selections";
+      return n > 0 ? `You have ${n} more '${name}' ${noun} to make.` : `You must remove ${-n} '${name}' ${noun}.`;
+    });
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section aria-label="Builder" className="space-y-4">
+        <section aria-label="Still to do">
+          {messages.length === 0 ? (
+            <p>Every choice is made.</p>
+          ) : (
+            <ul className="list-disc pl-5">
+              {messages.map((message, i) => (
+                <li key={i}>{message}</li>
+              ))}
+            </ul>
+          )}
+        </section>
         <nav aria-label="Steps">
           <ol className="flex flex-wrap gap-2">
-            {steps.map((s) => (
-              <li key={s.name}>
-                <button
-                  type="button"
-                  aria-current={s === step ? "step" : undefined}
-                  onClick={() => setStepName(s.name)}
-                  className={`border border-black px-3 py-1 ${s === step ? "bg-black text-white" : ""}`}
-                >
-                  {s.name}
-                </button>
-              </li>
-            ))}
+            {steps.map((s, i) => {
+              const remaining = counts[i];
+              return (
+                <li key={s.name}>
+                  <button
+                    type="button"
+                    aria-current={s === step ? "step" : undefined}
+                    onClick={() => setStepName(s.name)}
+                    className={`border border-black px-3 py-1 ${s === step ? "bg-black text-white" : ""}`}
+                  >
+                    {s.name}
+                    {remaining > 0 && (
+                      <>
+                        <span className="sr-only"> ({remaining} to do)</span>
+                        <span aria-hidden="true" className="ml-2 inline-block rounded-full bg-red-700 px-2 text-sm text-white">
+                          {remaining}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         </nav>
         {step && (
