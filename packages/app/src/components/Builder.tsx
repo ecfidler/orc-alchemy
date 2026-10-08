@@ -3,11 +3,11 @@
 // through useCharacter's update, so it autosaves.
 import { useId, useState } from "react";
 import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
-import { engine } from "../engine/engine.ts";
-import { useCharacter, useOpenCharacter } from "../state/character.ts";
+import { useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
+import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
 
 export function Builder() {
   const { selections, sheet } = useOpenCharacter();
@@ -85,68 +85,59 @@ export function Builder() {
   );
 }
 
-/** A selection's option cards, then the selections its selected options open. A sequential one, such as levels, shows only the latter. */
+/**
+ * A selection's option cards, then the selections its selected options open.
+ * A sequential one, such as levels, shows only the latter. The classes, hit
+ * points and ability score improvements have their own controls.
+ */
 function Selection({ selection }: { selection: BuilderSelection }) {
+  if (selection.key === "hit-points" && selection.requireValue) return <HitPoints selection={selection} />;
+  if (selection.key === "asi") return <Improvements selection={selection} />;
+  return <Options selection={selection} />;
+}
+
+function Options({ selection }: { selection: BuilderSelection }) {
   const id = useId();
-  const homebrew = useHomebrew((state) => state.homebrew);
-  const [error, setError] = useState<string | null>(null);
-  const { actualPath, remaining } = selection;
-  // Picking a class replaces the first class; adding classes is multiclassing (slice 3).
+  const [error, run] = useMutation();
+  const { actualPath } = selection;
+  // The classes are rows, not cards. They stay here, not in Selection, because
+  // each class's choices open below the rows as any selected option's do.
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
 
   function pick(option: BuilderOption) {
-    if (option.selected && (isClass || !selection.multiselect)) return;
-    if (isClass) {
-      // Until slice 3 manages levels, a class pick drops the first class's levels; ask first when there is more to lose than level 1.
-      const first = selection.options.find((o) => o.key === selection.selected[0]);
-      const levels = first?.selections.find((s) => s.key === "levels")?.selected.length ?? 1;
-      if (
-        first &&
-        (levels > 1 || selection.selected.length > 1) &&
-        !window.confirm(
-          `Replace ${first.name} with ${option.name}? ${first.name}'s ${levels} ${levels === 1 ? "level" : "levels"} and their choices are removed, and ${option.name} starts at level 1. This cannot be undone.`,
-        )
-      )
-        return;
-    }
-    setError(null);
-    try {
-      useCharacter.getState().update((e) => {
-        const opts = { homebrew };
-        if (option.selected) return engine().deselect(e, actualPath, option.key, opts);
-        if (isClass) return engine().setClass(e, 0, option.key, opts);
-        return engine().select(e, actualPath, option.key, opts);
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
+    if (option.selected && !selection.multiselect) return;
+    run((e, entity, opts) =>
+      option.selected ? e.deselect(entity, actualPath, option.key, opts) : e.select(entity, actualPath, option.key, opts),
+    );
   }
 
-  const opened = selection.options.filter((o) => o.selected && o.selections.length > 0);
+  // Classes in the entity's order, as their rows.
+  const opened = (isClass ? selection.selected.map((key) => selection.options.find((o) => o.key === key)!) : selection.options).filter(
+    (o) => o.selected && o.selections.length > 0,
+  );
   return (
     <section aria-labelledby={id} className="space-y-2">
-      <h3 id={id} className="font-bold">
-        {selection.name}
-        {remaining !== 0 && (
-          <span className="ml-2 font-normal">{remaining > 0 ? `(${remaining} to choose)` : `(${-remaining} too many)`}</span>
-        )}
-      </h3>
+      <Heading id={id} selection={selection} />
       {error && <p role="alert">{error}</p>}
-      {!selection.sequential && (
-        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {selection.options.map((option) => (
-            <li key={option.key}>
-              <button
-                type="button"
-                aria-pressed={option.selected}
-                onClick={() => pick(option)}
-                className={`h-full w-full border border-black p-2 text-left ${option.selected ? "bg-black text-white" : "hover:bg-gray-100"}`}
-              >
-                {option.name}
-              </button>
-            </li>
-          ))}
-        </ul>
+      {isClass ? (
+        <Classes selection={selection} />
+      ) : (
+        !selection.sequential && (
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {selection.options.map((option) => (
+              <li key={option.key}>
+                <button
+                  type="button"
+                  aria-pressed={option.selected}
+                  onClick={() => pick(option)}
+                  className={`h-full w-full border border-black p-2 text-left ${option.selected ? "bg-black text-white" : "hover:bg-gray-100"}`}
+                >
+                  {option.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )
       )}
       {opened.map((option) => (
         <div key={option.key} className="ml-2 space-y-4 border-l border-black pl-4">

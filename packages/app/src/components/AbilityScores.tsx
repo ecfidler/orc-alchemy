@@ -64,7 +64,15 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
   function base(ability: Ability): ReactNode {
     const score = scores[ability];
     if (method === "manual-entry")
-      return <ManualScore ability={ability} score={score} onCommit={(n) => write(method, { ...scores, [ability]: n })} />;
+      return (
+        <NumberField
+          label={`${abbr(ability)} base score`}
+          min={1}
+          max={30}
+          score={score}
+          onCommit={(n) => write(method, { ...scores, [ability]: n })}
+        />
+      );
     if (method === "point-buy") {
       const cost = POINT_BUY_COSTS[score];
       return (
@@ -219,27 +227,44 @@ function Stepper({ score, note, left, right }: { score: number; note?: string; l
   );
 }
 
-/** A manual base score: the text can be cleared and retyped, and is written only as a whole number from 1 to 30. */
-function ManualScore({ ability, score, onCommit }: { ability: Ability; score: number; onCommit: (score: number) => void }) {
-  const [text, setText] = useState(String(score));
+/**
+ * A number typed in, such as a manual base score: the text can be cleared and
+ * retyped, and is written only as a whole number from min to max. score is
+ * null when there is none yet.
+ */
+export function NumberField({
+  label,
+  min,
+  max,
+  score,
+  onCommit,
+}: {
+  label: string;
+  min: number;
+  max?: number;
+  score: number | null;
+  onCommit: (score: number) => void;
+}) {
+  const [text, setText] = useState(score === null ? "" : String(score));
   const [seen, setSeen] = useState(score);
   // A score changed from elsewhere replaces the text, unless the text already says it.
   if (score !== seen) {
     setSeen(score);
-    if (Number(text) !== score) setText(String(score));
+    if (score === null) setText("");
+    else if (Number(text) !== score) setText(String(score));
   }
   return (
     <input
       type="number"
-      min={1}
-      max={30}
-      aria-label={`${abbr(ability)} base score`}
+      min={min}
+      max={max}
+      aria-label={label}
       value={text}
       onChange={(event) => {
         const value = event.target.value;
         setText(value);
         const n = Number(value);
-        if (/^\d+$/.test(value) && n >= 1 && n <= 30 && n !== score) onCommit(n);
+        if (/^\d+$/.test(value) && n >= min && (max === undefined || n <= max) && n !== score) onCommit(n);
       }}
       className="w-14 border border-black text-center"
     />

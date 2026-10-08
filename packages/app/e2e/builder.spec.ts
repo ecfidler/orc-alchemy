@@ -38,8 +38,9 @@ test("a new character becomes a dwarf acolyte fighter 1, and the preview follows
 
   // Class: a fighter's hit die is d10, so 10 + Con +2.
   await stepButton(page, "Class").click();
-  await builder.getByRole("button", { name: "Fighter", exact: true }).click();
-  await expect(builder.getByRole("button", { name: "Fighter", exact: true })).toHaveAttribute("aria-pressed", "true");
+  // At level 1 there is nothing to lose, so the change does not ask first.
+  await builder.getByLabel("Class 1", { exact: true }).selectOption("Fighter");
+  await expect(builder.getByLabel("Class 1", { exact: true })).toHaveValue("fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await expect(hp).toHaveText("12 / 12");
   await expect(builder.getByRole("region", { name: /^Fighting Style/ })).toBeVisible();
@@ -80,15 +81,74 @@ test("replacing a class with more than level 1 asks first", async ({ page }) => 
     message = dialog.message();
     return dialog.dismiss();
   });
-  await builder.getByRole("button", { name: "Wizard", exact: true }).click();
+  const class1 = builder.getByLabel("Class 1", { exact: true });
+  await class1.selectOption("Wizard");
   await expect.poll(() => message).toBe(
     "Replace Fighter with Wizard? Fighter's 5 levels and their choices are removed, and Wizard starts at level 1. This cannot be undone.",
   );
   await expect(klass).toHaveText("Fighter 5 (Champion)");
+  await expect(class1).toHaveValue("fighter");
 
   page.once("dialog", (dialog) => dialog.accept());
-  await builder.getByRole("button", { name: "Wizard", exact: true }).click();
+  await class1.selectOption("Wizard");
   await expect(klass).toHaveText("Wizard 1");
+  await expect(class1).toHaveValue("wizard");
+});
+
+test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const preview = page.getByRole("region", { name: "Preview" });
+  const klass = preview.getByLabel("Class", { exact: true });
+  const hp = preview.getByLabel("Hit Points", { exact: true });
+  const region = (name: string) => builder.getByRole("region", { name: new RegExp(`^${name}`) });
+
+  // The half-elf's improvement: INT 12 + 1 is 13, as a wizard needs.
+  await builder.getByRole("button", { name: "Half-Elf", exact: true }).click();
+  const asi = region("Ability Score Improvement");
+  await asi.getByRole("button", { name: "Increase STR" }).click();
+  await asi.getByRole("button", { name: "Increase INT" }).click();
+  await expect(asi.getByRole("button", { name: "Increase DEX" })).toBeDisabled();
+  await expect(preview.getByLabel("INT", { exact: true })).toHaveText("13+1");
+
+  // Con 13 is +1: 10 + 1 at level 1, then the average 6 + 1 for each level after.
+  await stepButton(page, "Class").click();
+  await builder.getByLabel("Class 1", { exact: true }).selectOption("Fighter");
+  await expect(klass).toHaveText("Fighter 1");
+  await expect(builder.getByRole("button", { name: "Remove a Fighter level" })).toBeDisabled();
+  await expect(builder.getByRole("button", { name: "Remove Fighter", exact: true })).toBeDisabled();
+  await builder.getByRole("button", { name: "Add a Fighter level" }).click();
+  await builder.getByRole("button", { name: "Add a Fighter level" }).click();
+  await expect(klass).toHaveText("Fighter 3");
+  for (const level of [2, 3]) {
+    const average = region(`Hit Points: Fighter ${level}`).getByRole("button", { name: "Average (6)" });
+    await average.click();
+    await expect(average).toHaveAttribute("aria-pressed", "true");
+  }
+  await builder.getByRole("button", { name: "Champion", exact: true }).click();
+  await expect(klass).toHaveText("Fighter 3 (Champion)");
+  await expect(hp).toHaveText("25 / 25");
+
+  // A wizard's hit die is d6: the average is 4.
+  await builder.getByLabel("Add a class", { exact: true }).selectOption("Wizard");
+  await builder.getByRole("button", { name: "Add class" }).click();
+  await expect(klass).toHaveText("Fighter 3 (Champion) / Wizard 1");
+  await expect(builder.getByLabel("Class 2", { exact: true })).toHaveValue("wizard");
+  await region("Hit Points: Wizard 1").getByRole("button", { name: "Average (4)" }).click();
+  await builder.getByRole("button", { name: "Add a Wizard level" }).click();
+  await region("Hit Points: Wizard 2").getByRole("button", { name: "Average (4)" }).click();
+  await builder.getByRole("button", { name: "School of Evocation", exact: true }).click();
+  await expect(klass).toHaveText("Fighter 3 (Champion) / Wizard 2 (School of Evocation)");
+  await expect(hp).toHaveText("35 / 35");
+
+  // Removing a level or a class that is not the first does not ask.
+  await builder.getByRole("button", { name: "Remove a Wizard level" }).click();
+  await expect(klass).toHaveText("Fighter 3 (Champion) / Wizard 1");
+  await builder.getByRole("button", { name: "Remove Wizard", exact: true }).click();
+  await expect(klass).toHaveText("Fighter 3 (Champion)");
+  await expect(hp).toHaveText("25 / 25");
+  await expect(builder.getByLabel("Class 2", { exact: true })).toHaveCount(0);
 });
 
 test("Random character opens a complete character in the builder", async ({ page }) => {
