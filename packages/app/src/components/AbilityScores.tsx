@@ -65,7 +65,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
     const score = scores[ability];
     if (method === "manual-entry")
       return (
-        <ManualScore
+        <NumberField
           label={`${abbr(ability)} base score`}
           min={1}
           max={30}
@@ -232,7 +232,7 @@ function Stepper({ score, note, left, right }: { score: number; note?: string; l
  * retyped, and is written only as a whole number from min to max. score is
  * null when there is none yet.
  */
-export function ManualScore({
+export function NumberField({
   label,
   min,
   max,

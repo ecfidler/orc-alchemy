@@ -8,14 +8,14 @@ import { engine, type Engine, type Homebrew, type StrictEntity } from "../engine
 import { ABILITIES, unqualify } from "../engine/sheet.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
-import { ManualScore } from "./AbilityScores.tsx";
+import { NumberField } from "./AbilityScores.tsx";
 
 const MAX_LEVEL = 20;
 
 type Mutation = (e: Engine, entity: StrictEntity, options: { homebrew?: Homebrew }) => StrictEntity;
 
 /** An engine mutation with the loaded homebrew; its error, if it throws, for the alert. */
-function useMutation(): [error: string | null, run: (mutate: Mutation) => void] {
+export function useMutation(): [error: string | null, run: (mutate: Mutation) => void] {
   const homebrew = useHomebrew((state) => state.homebrew);
   const [error, setError] = useState<string | null>(null);
   function run(mutate: Mutation) {
@@ -134,8 +134,8 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
   );
 }
 
-/** A selection's name and its picks to make or remove, as Selection's heading. */
-function Heading({ id, selection }: { id: string; selection: BuilderSelection }) {
+/** A selection's name and its picks to make or remove. */
+export function Heading({ id, selection }: { id: string; selection: BuilderSelection }) {
   const { remaining } = selection;
   return (
     <h3 id={id} className="font-bold">
@@ -174,7 +174,7 @@ export function HitPoints({ selection }: { selection: BuilderSelection }) {
       <div className="flex flex-wrap items-center gap-2">
         {toggle("average", `Average (${averageHitPoints(die)})`, () => averageHitPoints(die))}
         {toggle("roll", `Roll (1d${die})`, () => rollHitPoints(die))}
-        <ManualScore label="Hit points" min={1} score={stored?.value ?? null} onCommit={(n) => write("manual-entry", n)} />
+        <NumberField label="Hit points" min={1} score={stored?.value ?? null} onCommit={(n) => write("manual-entry", n)} />
       </div>
     </section>
   );

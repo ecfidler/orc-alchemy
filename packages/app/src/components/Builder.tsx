@@ -3,12 +3,11 @@
 // through useCharacter's update, so it autosaves.
 import { useId, useState } from "react";
 import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
-import { engine } from "../engine/engine.ts";
-import { useCharacter, useOpenCharacter } from "../state/character.ts";
+import { useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
-import { Classes, HitPoints, Improvements } from "./Classes.tsx";
+import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
 
 export function Builder() {
   const { selections, sheet } = useOpenCharacter();
@@ -99,23 +98,17 @@ function Selection({ selection }: { selection: BuilderSelection }) {
 
 function Options({ selection }: { selection: BuilderSelection }) {
   const id = useId();
-  const homebrew = useHomebrew((state) => state.homebrew);
-  const [error, setError] = useState<string | null>(null);
-  const { actualPath, remaining } = selection;
+  const [error, run] = useMutation();
+  const { actualPath } = selection;
+  // The classes are rows, not cards. They stay here, not in Selection, because
+  // each class's choices open below the rows as any selected option's do.
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
 
   function pick(option: BuilderOption) {
     if (option.selected && !selection.multiselect) return;
-    setError(null);
-    try {
-      useCharacter.getState().update((e) => {
-        const opts = { homebrew };
-        if (option.selected) return engine().deselect(e, actualPath, option.key, opts);
-        return engine().select(e, actualPath, option.key, opts);
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
+    run((e, entity, opts) =>
+      option.selected ? e.deselect(entity, actualPath, option.key, opts) : e.select(entity, actualPath, option.key, opts),
+    );
   }
 
   // Classes in the entity's order, as their rows.
@@ -124,12 +117,7 @@ function Options({ selection }: { selection: BuilderSelection }) {
   );
   return (
     <section aria-labelledby={id} className="space-y-2">
-      <h3 id={id} className="font-bold">
-        {selection.name}
-        {remaining !== 0 && (
-          <span className="ml-2 font-normal">{remaining > 0 ? `(${remaining} to choose)` : `(${-remaining} too many)`}</span>
-        )}
-      </h3>
+      <Heading id={id} selection={selection} />
       {error && <p role="alert">{error}</p>}
       {isClass ? (
         <Classes selection={selection} />
