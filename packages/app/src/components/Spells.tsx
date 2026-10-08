@@ -22,7 +22,7 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   const content = useSpellContent();
   const [level, setLevel] = useState("all");
   const [search, setSearch] = useState("");
-  const { actualPath, name } = selection;
+  const { name } = selection;
   const levelOf = (option: BuilderOption) => spellLevelOf(option.key, option.name, content);
   const levels = [...new Set(selection.options.map(levelOf).filter((n) => n !== null))].sort((a, b) => a - b);
   const text = search.trim().toLowerCase();
