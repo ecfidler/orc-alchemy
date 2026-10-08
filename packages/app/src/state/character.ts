@@ -129,7 +129,8 @@ export async function removeCharacter(id: string): Promise<void> {
 
 export const AUTOSAVE_DELAY_MS = 7500;
 
-let pending: { id: string; entity: StrictEntity; timer: ReturnType<typeof setTimeout> } | null = null;
+/** Changes not saved yet. Those put back after a failed save have no timer: Save, or the next flush, retries them. */
+let pending: { id: string; entity: StrictEntity; timer?: ReturnType<typeof setTimeout> } | null = null;
 /** Saves under way, so a flush can wait for one the timer started. */
 const saving = new Set<Promise<void>>();
 
@@ -147,8 +148,10 @@ useCharacter.subscribe((state, previous) => {
 
 /**
  * Saves the pending changes now, if there are any, and waits for every save
- * under way. If a save fails, its changes stay in their draft, leaving the
- * page still asks first, and this throws.
+ * under way. If a save fails, its changes stay in their draft and go back as
+ * pending unless newer ones are, leaving the page still asks first, and this
+ * throws. A save that succeeds clears the failed-save notice: the changes
+ * are kept.
  */
 export async function flushAutosave(): Promise<void> {
   if (pending !== null) {
@@ -160,12 +163,14 @@ export async function flushAutosave(): Promise<void> {
     running.then(
       () => {
         saving.delete(running);
+        useStorage.setState({ failed: false });
         if (pending === null && saving.size === 0) window.removeEventListener("beforeunload", confirmLeave);
       },
       () => {
         saving.delete(running);
         // Storage reports failed writes; a failed read before the save is a failed save too.
         useStorage.setState({ failed: true });
+        if (pending === null) pending = { id, entity };
       },
     );
   }
