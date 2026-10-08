@@ -111,6 +111,7 @@ test("wizard-20 spellcasting", () => {
     name: "Acid Splash",
     source: "Wizard",
     ability: "int",
+    alwaysPrepared: false,
     prepared: false,
   });
   for (const { spells } of spellcasting.byLevel) {

@@ -4,12 +4,13 @@
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
+import type { Spellcaster } from "../engine/sheet.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { Selection } from "./Builder.tsx";
+import { OptionCards, Selection } from "./Builder.tsx";
+import { ordinal } from "./CharacterSheet.tsx";
 import { Heading, useMutation } from "./Classes.tsx";
 
-const levelName = (n: number) =>
-  n === 0 ? "Cantrips" : `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"} level`;
+const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
 
 /** The old list-print: "A", "A and B", "A, B, and C". */
 const listPrint = (items: string[]) =>
@@ -18,7 +19,6 @@ const listPrint = (items: string[]) =>
 /** A spell selection: its chosen spells, a level filter and a search, then the cards that pass them. */
 export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   const id = useId();
-  const [error, run] = useMutation();
   const content = useSpellContent();
   const [level, setLevel] = useState("all");
   const [search, setSearch] = useState("");
@@ -31,17 +31,9 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   );
   const chosen = selection.options.filter((o) => o.selected);
 
-  function pick(option: BuilderOption) {
-    if (option.selected && !selection.multiselect) return;
-    run((e, entity, opts) =>
-      option.selected ? e.deselect(entity, actualPath, option.key, opts) : e.select(entity, actualPath, option.key, opts),
-    );
-  }
-
   return (
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
-      {error && <p role="alert">{error}</p>}
       {chosen.length > 0 && (
         <ul aria-label={`Chosen: ${name}`} className="flex flex-wrap gap-x-3 text-sm">
           {chosen.map((o) => (
@@ -74,20 +66,7 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
           className="border border-black p-1"
         />
       </div>
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {shown.map((option) => (
-          <li key={option.key}>
-            <button
-              type="button"
-              aria-pressed={option.selected}
-              onClick={() => pick(option)}
-              className={`h-full w-full border border-black p-2 text-left ${option.selected ? "bg-black text-white" : "hover:bg-gray-100"}`}
-            >
-              {option.name}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <OptionCards selection={selection} options={shown} />
       {chosen
         .filter((o) => o.selections.length > 0)
         .map((option) => (
@@ -106,7 +85,7 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   );
 }
 
-/** The leveled spells each class that prepares has prepared, up to its count, as the old builder's prepare checkboxes. */
+/** The leveled spells each class that prepares has prepared, up to its count, as the old sheet's prepare checkboxes. A domain spell is always prepared and takes no place. */
 export function PreparedSpells() {
   const { sheet } = useOpenCharacter();
   const [error, run] = useMutation();
@@ -126,12 +105,12 @@ export function PreparedSpells() {
       )}
       {error && <p role="alert">{error}</p>}
       {spellcasting.casters
-        .filter((caster) => caster.canPrepare !== null)
+        .filter((caster): caster is Spellcaster & { canPrepare: number } => caster.canPrepare !== null)
         .map(({ name, canPrepare }) => {
           const spells = spellcasting.byLevel
             .filter((l) => l.level > 0)
             .flatMap((l) => l.spells.filter((spell) => spell.source === name));
-          const count = spells.filter((spell) => spell.prepared).length;
+          const count = spells.filter((spell) => spell.prepared && !spell.alwaysPrepared).length;
           return (
             <section key={name} aria-label={`Prepared spells: ${name}`} className="space-y-2">
               <h3 className="font-bold">Prepared spells: {name}</h3>
@@ -146,7 +125,7 @@ export function PreparedSpells() {
                         type="checkbox"
                         aria-label={`Prepared: ${spell.name}`}
                         checked={spell.prepared}
-                        disabled={!spell.prepared && count >= canPrepare!}
+                        disabled={spell.alwaysPrepared || (!spell.prepared && count >= canPrepare)}
                         onChange={(event) => run((e, entity) => setPrepared(e, entity, name, spell.key, event.target.checked))}
                       />
                       {spell.name}

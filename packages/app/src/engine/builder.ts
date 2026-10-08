@@ -131,13 +131,13 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     }
     byPath.set(JSON.stringify(s.path), node);
 
-    // A merged ref selection, such as Wizard Spells Known, moves from each
-    // of its positions, but shows on its step once.
     const moved = parent && MOVED_TO_STEP.find(([tag]) => template.tags?.includes(tag) && !parent.tags.includes(tag));
     if (parent && !moved) {
       parent.options.find((o) => o.key === s.path.at(-2))?.selections.push(node);
     } else {
       const step = STEPS.findIndex(([, tag]) => (moved ? tag === moved[1] : template.tags?.includes(tag)));
+      // A merged ref selection, such as Wizard Spells Known, moves from each
+      // of its positions, but shows on its step once.
       if (step !== -1 && !steps[step].selections.includes(node)) steps[step].selections.push(node);
     }
   }

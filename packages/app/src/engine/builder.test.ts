@@ -112,6 +112,12 @@ test("wizard-20's spell selections are on the Spells step, not under the wizard'
   expect(remainingByStep(steps)[5]).toBe(0);
 });
 
+test("a subrace's cantrips are on the Spells step too", () => {
+  // wizard-1 is a high elf.
+  const spells = step(readFixture("wizard-1"), "Spells").selections;
+  expect(spells.map((s) => [s.name, s.selected.length])).toContainEqual(["High Elf Cantrips Known", 1]);
+});
+
 test("the Spells step counts the picks it shows", () => {
   // A wizard 1 picks 3 cantrips and 6 spells.
   const entity = engine().setClass(engine().emptyCharacter(), 0, "wizard");

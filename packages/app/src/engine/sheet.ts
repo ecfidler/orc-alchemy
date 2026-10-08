@@ -80,7 +80,9 @@ export interface KnownSpell extends Named {
   /** The class or race name it is known through. */
   source: string;
   ability: Ability;
-  /** In the entity's prepared spells, for a class that prepares; never for a cantrip. */
+  /** Always prepared, such as a domain spell: it takes no place in the prepared count. */
+  alwaysPrepared: boolean;
+  /** Always prepared, or in the entity's prepared spells, for a class that prepares; never for a cantrip. */
   prepared: boolean;
 }
 
@@ -360,13 +362,15 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
         spells: (spells?.__entries ?? [])
           .map(([[source, key], spell]) => {
             const caster = spell.class ?? source;
+            // built marks a domain or oath spell always-prepared?, and the
+            // old sheet shows it prepared.
+            const always = (spell as { "always-prepared?"?: boolean })["always-prepared?"] === true;
             return {
               ...named(key),
               source: caster,
               ability: abilityOf(spell.ability),
-              // The old sheet also marks always-prepared spells, such as domain
-              // spells; the engine's built does not say which spells those are.
-              prepared: Number(level) > 0 && prepares[caster] === true && (prepared[caster]?.has(key) ?? false),
+              alwaysPrepared: always,
+              prepared: Number(level) > 0 && prepares[caster] === true && (always || (prepared[caster]?.has(key) ?? false)),
             };
           })
           .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),

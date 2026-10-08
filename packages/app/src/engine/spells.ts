@@ -8,15 +8,15 @@ const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
 const CLASS_NAME = "~:orcpub.dnd.e5.character/class-name";
 const PREPARED = "~:orcpub.dnd.e5.character/prepared-spells";
 
-export type SpellContent = Map<string, { level: number; school: string }>;
+export type SpellContent = Map<string, number>;
 
 let loading: Promise<SpellContent> | undefined;
 let loaded: SpellContent | undefined;
 
-/** Loads the SRD spells once, as their own chunk, as spell key to level and school. */
+/** Loads the SRD spells once, as their own chunk, as spell key to level. */
 export function loadSpellContent(): Promise<SpellContent> {
   loading ??= import("@pubdoor/dmv/content/spells.json").then(
-    (mod) => (loaded = new Map(mod.default.map((spell) => [spell.key, { level: spell.level, school: spell.school }]))),
+    (mod) => (loaded = new Map(mod.default.map((spell) => [spell.key, spell.level]))),
   );
   return loading;
 }
@@ -36,7 +36,7 @@ export function useSpellContent(): SpellContent | null {
  * its level is then null.
  */
 export function spellLevelOf(key: string, name: string, content: SpellContent | null): number | null {
-  const level = content?.get(key)?.level;
+  const level = content?.get(key);
   if (level !== undefined) return level;
   const prefix = /^(\d) - /.exec(name);
   return prefix ? Number(prefix[1]) : null;

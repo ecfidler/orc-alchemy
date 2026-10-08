@@ -10,7 +10,7 @@ afterEach(cleanup);
 
 const q = (ability: string) => `~:orcpub.dnd.e5.character/${ability}`;
 
-/** A level 1 character of the class, with Int 10 and Wis 13, as stored before the Spells step. */
+/** A character of the class at the level (1 by default), with Int 10 and Wis 13, as stored before the Spells step. */
 function caster(klass: string, levels = 1): StrictEntity {
   const e = engine();
   const scores = { str: 8, dex: 14, con: 13, int: 10, wis: 13, cha: 15 };
@@ -83,4 +83,16 @@ test("a cleric is told it does not select known spells", () => {
   ).toBeTruthy();
   // Wis 13: a cleric 1 prepares 2 of the spells it knows.
   expect(region("Prepared spells: Cleric").getByText("0 of 2 prepared")).toBeTruthy();
+});
+
+test("a Life cleric's domain spells are always prepared and take no place in its count", () => {
+  const e = engine();
+  open("spells-life-cleric-1", e.select(caster("cleric"), ["class", "cleric", "levels", "level-1", "divine-domain"], "life-domain"));
+  const prepared = region("Prepared spells: Cleric");
+  expect(prepared.getByText("0 of 2 prepared")).toBeTruthy();
+  const bless = prepared.getByLabelText<HTMLInputElement>("Prepared: Bless");
+  expect([bless.checked, bless.disabled]).toEqual([true, true]);
+  fireEvent.click(prepared.getByLabelText("Prepared: Bane"));
+  expect(region("Prepared spells: Cleric").getByText("1 of 2 prepared")).toBeTruthy();
+  expect(preparedSpells(entity())).toEqual({ Cleric: new Set(["bane"]) });
 });

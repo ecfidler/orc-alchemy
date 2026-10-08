@@ -4,7 +4,7 @@ import { useId, type ReactNode } from "react";
 import { bonusStr, modStr, type Ability, type Sheet, type SheetFeature, type SheetItem } from "../engine/sheet.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
-const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
+export const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 const paragraphs = (text: string) => text.split("\n").map((line, i) => <p key={i}>{line}</p>);
 
 export function CharacterSheet({ sheet }: { sheet: Sheet }) {
