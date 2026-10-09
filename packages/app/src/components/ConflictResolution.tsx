@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { internalCopies, resolutionsFor, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
+import { conflictSources, internalCopies, resolutionsFor, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
 import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -30,8 +30,7 @@ function ConflictText({ conflict }: { conflict: KeyConflict }) {
       </p>
     );
   }
-  const sources = (conflict.sources ?? []) as { source: string; name?: string }[];
-  return <p>In more than one pack of the file: {sources.map((s) => (s.name ? `${s.name} in ${s.source}` : s.source)).join("; ")}.</p>;
+  return <p>In more than one pack of the file: {conflictSources(conflict).map((s) => (s.name ? `${s.name} in ${s.source}` : s.source)).join("; ")}.</p>;
 }
 
 /**

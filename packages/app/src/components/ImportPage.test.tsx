@@ -289,6 +289,24 @@ test("Skip all, then Apply, imports the file without its conflicting items", asy
   expect(useHomebrew.getState().homebrew!["duplicate-external-a"]).toHaveProperty(["~:orcpub.dnd.e5/races", "~:custom-lineage"]);
 });
 
+test("choices made one key at a time apply each to its own conflict", async () => {
+  const step = await loadAThenB();
+  fireEvent.click(within(step).getByRole("button", { name: "Skip all" }));
+  const pick = (group: string, radio: string) =>
+    fireEvent.click(within(within(step).getByRole("group", { name: group })).getByRole("radio", { name: radio }));
+  pick("classes: artificer", "Rename the imported one to artificer-duplicate-external-b");
+  pick("races: custom-lineage", "Replace the one from duplicate-external-a with the imported one");
+  fireEvent.click(apply());
+
+  expect(await screen.findByRole("listitem", { name: "duplicate-external-b" })).toBeTruthy();
+  const { homebrew } = useHomebrew.getState();
+  expect(homebrew!["duplicate-external-b"]).toHaveProperty(["~:orcpub.dnd.e5/classes", "~:artificer-duplicate-external-b"]);
+  expect(homebrew!["duplicate-external-b"]).not.toHaveProperty(["~:orcpub.dnd.e5/classes", "~:monster-hunter"]);
+  expect(homebrew!["duplicate-external-b"]).toHaveProperty(["~:orcpub.dnd.e5/races", "~:custom-lineage"]);
+  expect(homebrew!["duplicate-external-a"]).not.toHaveProperty(["~:orcpub.dnd.e5/races", "~:custom-lineage"]);
+  expect(homebrew!["duplicate-external-a"]).toHaveProperty(["~:orcpub.dnd.e5/classes", "~:monster-hunter"]);
+});
+
 test("Cancel import stores nothing of the file", async () => {
   const step = await loadAThenB();
   fireEvent.click(within(step).getByRole("button", { name: "Cancel import" }));

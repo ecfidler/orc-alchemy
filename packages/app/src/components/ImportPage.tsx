@@ -42,7 +42,8 @@ export function ImportPage() {
 
 /**
  * Step 1: loads .orcbrew files, progressive by default or strict on request,
- * and shows the last import's log. Lists the stored packs to enable,
+ * asks for a choice on each key conflict before a file is stored, and shows
+ * the last import's log. Lists the stored packs to enable,
  * disable or remove, and warns about stored records that could not be read.
  */
 function HomebrewImport() {

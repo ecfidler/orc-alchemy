@@ -4,7 +4,7 @@
 // in storage as it is, is not used, and the UI warns about it.
 import { create } from "zustand";
 import { engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
-import { resolveConflicts as applyChoices, type Resolution } from "../engine/conflicts.ts";
+import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
 import type { BundleHomebrew } from "../engine/import.ts";
 import { deletePack, listPacks, savePacks, type PackRecord } from "../storage/packs.ts";
 
@@ -58,7 +58,10 @@ interface HomebrewState {
   resolveConflicts: (choices: Record<string, Resolution>) => Promise<void>;
   /** Drops the pending import. Nothing of it was stored. */
   cancelImport: () => void;
-  /** Removes a pack from storage. */
+  /**
+   * Removes a pack from storage. It also drops a pending import: that import
+   * was read with the pack in it, so applying it would store the pack again.
+   */
   remove: (pack: string) => Promise<void>;
   setPackEnabled: (pack: string, enabled: boolean) => Promise<void>;
   setItemEnabled: (pack: string, contentType: string, key: string, enabled: boolean) => Promise<void>;
@@ -184,7 +187,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
         const pending = get().pending;
         if (pending === null) throw new Error("No import is waiting on its conflicts");
         const { result, homebrew } = pending;
-        const { homebrew: resolved, renames } = applyChoices(homebrew, result.conflicts, choices);
+        const { homebrew: resolved, renames } = applyResolutions(homebrew, result.conflicts, choices);
         const renamed = renames.map(({ pack, contentType, from, to }) => ({ type: "key-renamed", pack, "content-type": contentType, from, to }));
         await store(resolved, {}, { ...result, log: { ...result.log, changes: [...result.log.changes, ...renamed] }, conflicts: [] });
         set({ pending: null });
@@ -192,7 +195,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     cancelImport: () => set({ pending: null }),
     remove: (pack) => queued(async () => {
       await deletePack(pack);
-      set(withPacks(get().packs.filter((p) => p.id !== pack)));
+      set({ ...withPacks(get().packs.filter((p) => p.id !== pack)), pending: null });
     }),
     setPackEnabled: (pack, enabled) => update(pack, (record) => (record.enabled === enabled ? null : { enabled })),
     setItemEnabled: (pack, contentType, key, enabled) =>

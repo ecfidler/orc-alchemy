@@ -330,3 +330,23 @@ test("a missing choice keeps the import pending and stores nothing; cancelImport
   expect(useHomebrew.getState().pending).toBeNull();
   expect((await listPacks()).map((p) => (p as { id: string }).id)).toEqual(["duplicate-external-a"]);
 });
+
+test("removing a pack drops a pending import, so Apply cannot store the removed pack again", async () => {
+  const { useHomebrew, load, listPacks } = await reload();
+  await load("duplicate-external-a");
+  await load("duplicate-external-b");
+  expect(useHomebrew.getState().pending).not.toBeNull();
+
+  await useHomebrew.getState().remove("duplicate-external-a");
+  expect(useHomebrew.getState().pending).toBeNull();
+  await expect(useHomebrew.getState().resolveConflicts({})).rejects.toThrow("No import is waiting on its conflicts");
+  expect(await listPacks()).toEqual([]);
+});
+
+test("loading the same file again is not a key conflict", async () => {
+  const { useHomebrew, load } = await reload();
+  await load("duplicate-external-a");
+  await load("duplicate-external-a");
+  expect(useHomebrew.getState().pending).toBeNull();
+  expect(useHomebrew.getState().lastImport?.conflicts).toEqual([]);
+});

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
-import { resolveConflicts, type KeyConflict, type Resolution } from "./conflicts.ts";
+import { applyResolutions, type KeyConflict, type Resolution } from "./conflicts.ts";
 import { engine, loadEngine } from "./engine.ts";
 
 beforeAll(() => loadEngine());
@@ -35,7 +35,7 @@ test("duplicate-external-b over -a has the four external conflicts, custom-linea
 describe("Rename all on duplicate-external-a then -b", () => {
   test("renames each imported key, keeps both versions, and rewrites the imported subclass's class", () => {
     const { homebrew, conflicts } = aThenB();
-    const { homebrew: resolved, renames } = resolveConflicts(homebrew, conflicts, all(conflicts, "rename"));
+    const { homebrew: resolved, renames } = applyResolutions(homebrew, conflicts, all(conflicts, "rename"));
 
     expect(renames.map((r) => `${r.pack}: ${r.from} -> ${r.to}`)).toEqual([
       "duplicate-external-b: artificer -> artificer-duplicate-external-b",
@@ -54,7 +54,7 @@ describe("Rename all on duplicate-external-a then -b", () => {
 describe("Skip all on duplicate-external-a then -b", () => {
   test("leaves the loaded items and drops the imported ones", () => {
     const { homebrew, conflicts } = aThenB();
-    const { homebrew: resolved, renames } = resolveConflicts(homebrew, conflicts, all(conflicts, "skip"));
+    const { homebrew: resolved, renames } = applyResolutions(homebrew, conflicts, all(conflicts, "skip"));
 
     expect(renames).toEqual([]);
     for (const c of conflicts) {
@@ -71,7 +71,7 @@ test("Replace drops the loaded item and keeps the imported one", () => {
   const { homebrew, conflicts } = aThenB();
   const lineage = conflicts.find((c) => c.key === "custom-lineage")!;
   const choices = { ...all(conflicts, "skip"), [lineage.id]: "replace" as const };
-  const { homebrew: resolved } = resolveConflicts(homebrew, conflicts, choices);
+  const { homebrew: resolved } = applyResolutions(homebrew, conflicts, choices);
 
   expect(item(resolved, "duplicate-external-a", "races", "custom-lineage")).toBeUndefined();
   expect(item(resolved, "duplicate-external-b", "races", "custom-lineage")?.["~:name"]).toBe("Custom Lineage (Variant)");
@@ -80,10 +80,22 @@ test("Replace drops the loaded item and keeps the imported one", () => {
 
 test("a conflict with no choice, or with a choice its type does not offer, throws and names the key", () => {
   const { homebrew, conflicts } = aThenB();
-  expect(() => resolveConflicts(homebrew, conflicts, {})).toThrow("The conflict on artificer has no valid choice");
+  expect(() => applyResolutions(homebrew, conflicts, {})).toThrow("The conflict on artificer has no valid choice");
 
   const internal: KeyConflict = { id: "internal-0", type: "internal", key: "x", "content-type": "orcpub.dnd.e5/spells", "content-type-name": "spells" };
-  expect(() => resolveConflicts(homebrew, [internal], { "internal-0": "replace" })).toThrow("The conflict on x has no valid choice");
+  expect(() => applyResolutions(homebrew, [internal], { "internal-0": "replace" })).toThrow("The conflict on x has no valid choice");
+});
+
+test("a key with both an internal and an external conflict resolves with Rename all", () => {
+  // Two packs that share duplicate-external-a's keys, loaded over duplicate-external-a: as when a multi-pack file is loaded again.
+  const a = engine().parseOrcbrew(orcbrew("duplicate-external-a.orcbrew"), { name: "duplicate-external-a" });
+  const pack = a.data!["duplicate-external-a"];
+  const file = engine().orcbrewToEdn({ x: pack, y: pack });
+  const { data, conflicts } = engine().parseOrcbrew(file, { existing: a.data! });
+  expect(new Set(conflicts.map((c) => c.type))).toEqual(new Set(["internal", "external"]));
+
+  const { homebrew: resolved } = applyResolutions(data!, conflicts, all(conflicts, "rename"));
+  expect(reparse(resolved).conflicts).toEqual([]);
 });
 
 // The owner's real export: 29 packs and 86 internal conflicts. It is private and git-ignored, so this skips without it.
@@ -95,7 +107,7 @@ describe.skipIf(!existsSync(privateExport))("the owner's real export", () => {
     expect(parsed.conflicts).toHaveLength(86);
     expect(parsed.conflicts.every((c) => c.type === "internal")).toBe(true);
 
-    const { homebrew: resolved, renames } = resolveConflicts(parsed.data!, parsed.conflicts, all(parsed.conflicts, "rename"));
+    const { homebrew: resolved, renames } = applyResolutions(parsed.data!, parsed.conflicts, all(parsed.conflicts, "rename"));
     // Each conflict renames every copy but the last: one per conflict, two for a key in three packs, and so on.
     const copies = parsed.conflicts.reduce((n, c) => n + (c.sources?.length ?? 0) - 1, 0);
     expect(renames).toHaveLength(copies);

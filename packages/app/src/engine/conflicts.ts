@@ -1,7 +1,7 @@
 // Key conflicts in an .orcbrew import (docs/CONFLICT_RESOLUTION.md in the
 // fork): the user's choice for each conflict the engine's parseOrcbrew
 // reports, applied to the homebrew it parsed, before anything is stored.
-import type { KeyConflict } from "@pubdoor/dmv";
+import type { ContentType, KeyConflict } from "@pubdoor/dmv";
 import { engine } from "./engine.ts";
 
 export type { KeyConflict };
@@ -29,18 +29,29 @@ export interface AppliedRename {
   to: string;
 }
 
+/** The engine sets the fields a conflict of its type has; a missing one is an engine fault. */
+function field(conflict: KeyConflict, name: "import-source" | "existing-source" | "suggested-new-key"): string {
+  const value = conflict[name];
+  if (value === undefined) throw new Error(`The conflict on ${conflict.key} has no ${name}`);
+  return value;
+}
+
+/** For an internal conflict: the packs that share the key, each with its item's name if it has one. */
+export const conflictSources = (conflict: KeyConflict) => (conflict.sources ?? []) as { source: string; name?: string }[];
+
 /**
  * For an internal conflict: the packs whose copies a choice changes, each
  * with its suggested key, and the pack whose copy keeps the key. The last
  * copy keeps it.
  */
 export function internalCopies(conflict: KeyConflict): { others: { source: string; newKey: string }[]; kept: string } {
-  const sources = (conflict.sources ?? []) as { source: string }[];
+  const sources = conflictSources(conflict);
   const renames = conflict["suggested-renames"] ?? [];
-  const others = sources.slice(0, -1).map(({ source }) => ({
-    source,
-    newKey: renames.find((r) => r.source === source)?.["new-key"] ?? `${conflict.key}-${source}`,
-  }));
+  const others = sources.slice(0, -1).map(({ source }) => {
+    const newKey = renames.find((r) => r.source === source)?.["new-key"];
+    if (newKey === undefined) throw new Error(`The conflict on ${conflict.key} has no suggested key for ${source}`);
+    return { source, newKey };
+  });
   return { others, kept: sources[sources.length - 1]?.source ?? "" };
 }
 
@@ -48,10 +59,10 @@ export function internalCopies(conflict: KeyConflict): { others: { source: strin
  * Applies a choice to every conflict and returns the new homebrew and the
  * renames made. Renames go through the engine's renameKey, which rewrites
  * the references in the same pack. Throws, with the conflict's key, if a
- * conflict has no choice, has a choice its type does not offer, or if a
- * rename fails.
+ * conflict has no choice, has a choice its type does not offer, lacks a
+ * field the engine sets for its type, or if a rename fails.
  */
-export function resolveConflicts(
+export function applyResolutions(
   homebrew: Record<string, object>,
   conflicts: KeyConflict[],
   choices: Record<string, Resolution>,
@@ -62,7 +73,7 @@ export function resolveConflicts(
 
   function rename(c: KeyConflict, pack: string, to: string) {
     try {
-      result = engine().renameKey(result, { pack, contentType: contentType(c) as never, from: c.key, to });
+      result = engine().renameKey(result, { pack, contentType: contentType(c) as ContentType, from: c.key, to });
     } catch (e) {
       throw new Error(`The key ${c.key} in ${pack} could not be renamed to ${to}: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -74,11 +85,19 @@ export function resolveConflicts(
     if (choice === undefined || !resolutionsFor(c).includes(choice)) {
       throw new Error(`The conflict on ${c.key} has no valid choice`);
     }
+  }
+  // Internal conflicts first. A key can have both kinds, for example in a
+  // multi-pack file loaded a second time; an external conflict whose imported
+  // copy an internal choice already renamed or removed has nothing left to do.
+  const ordered = [...conflicts.filter((c) => c.type === "internal"), ...conflicts.filter((c) => c.type === "external")];
+  for (const c of ordered) {
+    const choice = choices[c.id];
     if (c.type === "external") {
-      const imported = c["import-source"] ?? "";
-      if (choice === "rename") rename(c, imported, c["suggested-new-key"] ?? `${c.key}-${imported}`);
+      const imported = field(c, "import-source");
+      if (!hasItem(result, imported, contentType(c), c.key)) continue;
+      if (choice === "rename") rename(c, imported, field(c, "suggested-new-key"));
       else if (choice === "skip") result = withoutItem(result, imported, contentType(c), c.key);
-      else result = withoutItem(result, c["existing-source"] ?? "", contentType(c), c.key);
+      else result = withoutItem(result, field(c, "existing-source"), contentType(c), c.key);
     } else {
       const { others } = internalCopies(c);
       for (const { source, newKey } of others) {
@@ -95,10 +114,15 @@ export function resolveConflicts(
  * a content type such as "orcpub.dnd.e5/races" is "~:orcpub.dnd.e5/races"
  * there, and a key such as "elf" is "~:elf".
  */
+const itemsOf = (homebrew: Record<string, object>, pack: string, contentType: string) =>
+  (homebrew[pack] as Record<string, Record<string, unknown>> | undefined)?.[`~:${contentType}`];
+
+const hasItem = (homebrew: Record<string, object>, pack: string, contentType: string, key: string) =>
+  `~:${key}` in (itemsOf(homebrew, pack, contentType) ?? {});
+
 function withoutItem(homebrew: Record<string, object>, pack: string, contentType: string, key: string): Record<string, object> {
-  const plugin = homebrew[pack] as Record<string, Record<string, unknown>> | undefined;
-  const items = plugin?.[`~:${contentType}`];
+  const items = itemsOf(homebrew, pack, contentType);
   if (items === undefined || !(`~:${key}` in items)) return homebrew;
   const { [`~:${key}`]: _removed, ...rest } = items;
-  return { ...homebrew, [pack]: { ...plugin, [`~:${contentType}`]: rest } };
+  return { ...homebrew, [pack]: { ...homebrew[pack], [`~:${contentType}`]: rest } };
 }
