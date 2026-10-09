@@ -340,10 +340,16 @@ test("Cancel import stores nothing of the file", async () => {
 
 // ORC-71: missing content on character import.
 const r8 = () => readFileSync(join(fixturesDir, "legacy/r8-unresolved-keys.strict.json"), "utf8");
-const unresolvedKeys = () =>
-  within(screen.getByRole("list", { name: "Unresolved content for Unit Seven" }))
+const unresolvedKeys = (name = "Unit Seven") =>
+  within(screen.getByRole("list", { name: `Unresolved content for ${name}` }))
     .getAllByRole("listitem")
     .map((li) => li.textContent!.split(" (")[0]);
+
+/** duplicate-external-b, parsed, with its races and subraces renamed as given. */
+function dupB(renames: { contentType: "orcpub.dnd.e5/races" | "orcpub.dnd.e5/subraces"; from: string; to: string }[]) {
+  const b = engine().parseOrcbrew(orcbrew("duplicate-external-b.orcbrew"), { name: "duplicate-external-b" }).data!;
+  return renames.reduce((h, r) => engine().renameKey(h, { pack: "duplicate-external-b", ...r }), b);
+}
 
 async function importR8() {
   choose("Import character file", "r8-unresolved-keys.json", r8());
@@ -367,8 +373,7 @@ test("a character with unresolved keys lists them; after its pack loads, Check a
 test("Remap gives the option the chosen suggestion, saves the character, and lists what still does not resolve", async () => {
   await loadEngine();
   // duplicate-external-b with its race ironwrought renamed to ironwrought-v2, which the engine suggests for ironwrought.
-  const b = engine().parseOrcbrew(orcbrew("duplicate-external-b.orcbrew"), { name: "duplicate-external-b" }).data!;
-  const renamed = engine().renameKey(b, { pack: "duplicate-external-b", contentType: "orcpub.dnd.e5/races", from: "ironwrought", to: "ironwrought-v2" });
+  const renamed = dupB([{ contentType: "orcpub.dnd.e5/races", from: "ironwrought", to: "ironwrought-v2" }]);
   renderPage();
   choose("Load homebrew file", "b-v2.orcbrew", engine().orcbrewToEdn(renamed));
   await screen.findByRole("listitem", { name: "duplicate-external-b" });
@@ -389,8 +394,8 @@ test("Remap gives the option the chosen suggestion, saves the character, and lis
 test("character-test-2 lists its content keys and its other options", async () => {
   renderPage();
   choose("Import character file", "character-test-2.json", readFileSync(join(fixturesDir, "legacy/character-test-2.strict.json"), "utf8"));
-  const list = await screen.findByRole("list", { name: "Unresolved content for Unnamed character" }, { timeout: 5000 });
-  expect(within(list).getAllByRole("listitem").map((li) => li.textContent!.split(" (")[0])).toEqual([
+  await screen.findByRole("list", { name: "Unresolved content for Unnamed character" }, { timeout: 5000 });
+  expect(unresolvedKeys("Unnamed character")).toEqual([
     "Background: noble",
     "Feat: ritual-caster",
     "Subclass: eldritch-knight",
@@ -403,11 +408,10 @@ test("character-test-2 lists its content keys and its other options", async () =
 test("a key under another unresolved key offers no remap until that one resolves", async () => {
   await loadEngine();
   // duplicate-external-b with its subrace envoy renamed, so envoy has a suggestion while its race ironwrought does not resolve.
-  const b = engine().parseOrcbrew(orcbrew("duplicate-external-b.orcbrew"), { name: "duplicate-external-b" }).data!;
-  const renamed = engine().renameKey(
-    engine().renameKey(b, { pack: "duplicate-external-b", contentType: "orcpub.dnd.e5/races", from: "ironwrought", to: "steelborn" }),
-    { pack: "duplicate-external-b", contentType: "orcpub.dnd.e5/subraces", from: "envoy", to: "envoy-v2" },
-  );
+  const renamed = dupB([
+    { contentType: "orcpub.dnd.e5/races", from: "ironwrought", to: "steelborn" },
+    { contentType: "orcpub.dnd.e5/subraces", from: "envoy", to: "envoy-v2" },
+  ]);
   renderPage();
   choose("Load homebrew file", "b-renamed.orcbrew", engine().orcbrewToEdn(renamed));
   await screen.findByRole("listitem", { name: "duplicate-external-b" });

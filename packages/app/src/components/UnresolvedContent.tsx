@@ -41,7 +41,11 @@ export function UnresolvedContent({
               {onRemap &&
                 u.suggestions.length > 0 &&
                 (parent ? (
-                  <p>To remap it, first remap its {parent.label.toLowerCase()} or load the pack that has it.</p>
+                  <p>
+                    {parent.label === "Option"
+                      ? "To remap it, first load the pack that has the option above it."
+                      : `To remap it, first remap its ${parent.label.toLowerCase()} or load the pack that has it.`}
+                  </p>
                 ) : (
                   <Remap unresolved={u} onRemap={onRemap} />
                 ))}

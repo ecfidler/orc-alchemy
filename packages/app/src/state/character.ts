@@ -82,8 +82,9 @@ export async function checkStoredCharacter(id: string): Promise<UnresolvedKey[] 
 
 /**
  * Gives a stored character's option at path the key to (remapOption), saves
- * it, and returns its keys that still do not resolve. Throws if there is no
- * such character, or as remapOption throws. Needs the engine loaded.
+ * it, and returns its keys that still do not resolve. Throws if the open
+ * character's pending save fails, if there is no such character, or as
+ * remapOption throws. Needs the engine loaded.
  */
 export async function remapStoredCharacter(id: string, path: string[], to: string): Promise<UnresolvedKey[]> {
   // A pending save of the open character would write its entity over this change,
