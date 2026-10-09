@@ -28,9 +28,15 @@ export const DEFAULT_PACK = "Default Option Source";
  */
 export const tag = (name: string) => `~:${name}`;
 
+/** The items of one tagged content type in a plugin. */
+export const itemsAt = (plugin: object, taggedType: string) => (plugin as Record<string, Record<string, object> | undefined>)[taggedType];
+
+/** One item of a plugin, by its tagged type and key. */
+export const itemAt = (plugin: object, taggedType: string, taggedKey: string): object | undefined => itemsAt(plugin, taggedType)?.[taggedKey];
+
 /** The plugin without one item, or the same plugin if it does not have the item. Takes the tagged type and key. */
 export function withoutItem(plugin: object, taggedType: string, taggedKey: string): object {
-  const items = (plugin as Record<string, Record<string, unknown> | undefined>)[taggedType];
+  const items = itemsAt(plugin, taggedType);
   if (items === undefined || !(taggedKey in items)) return plugin;
   const { [taggedKey]: _removed, ...rest } = items;
   return { ...plugin, [taggedType]: rest };

@@ -138,10 +138,10 @@ export function applyResolutions(
  * "~:orcpub.dnd.e5/races" there, and a key such as "elf" is "~:elf".
  */
 const itemsOf = (homebrew: Record<string, object>, pack: string, contentType: string) =>
-  (homebrew[pack] as Record<string, Record<string, unknown>> | undefined)?.[`~:${contentType}`];
+  (homebrew[pack] as Record<string, Record<string, unknown>> | undefined)?.[tag(contentType)];
 
 const hasItem = (homebrew: Record<string, object>, pack: string, contentType: string, key: string) =>
-  `~:${key}` in (itemsOf(homebrew, pack, contentType) ?? {});
+  tag(key) in (itemsOf(homebrew, pack, contentType) ?? {});
 
 /** The homebrew without one item, or the same homebrew if it does not have the item. */
 function withoutPackItem(homebrew: Record<string, object>, pack: string, contentType: string, key: string): Record<string, object> {
