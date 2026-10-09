@@ -4,7 +4,7 @@
 // in storage as it is, is not used, and the UI warns about it.
 import { create } from "zustand";
 import { engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
-import { disabledInFile, itemAt, itemsAt, withoutDisabledFlag, withoutItem } from "../engine/content.ts";
+import { disabledInFile, itemAt, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem } from "../engine/content.ts";
 import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
 import type { BundleHomebrew } from "../engine/import.ts";
 import { deletePack, listPacks, savePacks, type PackRecord } from "../storage/packs.ts";
@@ -223,7 +223,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       update(pack, ({ plugin, disabledItems }) => {
         const removed = withoutItem(plugin, contentType, key);
         if (removed === plugin) return null;
-        return { plugin: removed, disabledItems: disabledItems.filter(([t, k]) => t !== contentType || k !== key) };
+        return { plugin: removed, disabledItems: disabledItems.filter((item) => !sameItem(item, contentType, key)) };
       }),
     setPackEnabled: (pack, enabled) =>
       update(pack, (record) => {
@@ -233,11 +233,11 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     setItemEnabled: (pack, contentType, key, enabled) =>
       update(pack, (record) => {
         if (itemOn(record, contentType, key) === enabled) return null;
-        const others = record.disabledItems.filter(([t, k]) => t !== contentType || k !== key);
+        const others = record.disabledItems.filter((item) => !sameItem(item, contentType, key));
         if (!enabled) return { disabledItems: [...others, [contentType, key]] };
         const item = itemAt(record.plugin, contentType, key);
         if (item === undefined || !disabledInFile(item)) return { disabledItems: others };
-        return { disabledItems: others, plugin: { ...record.plugin, [contentType]: { ...itemsAt(record.plugin, contentType), [key]: withoutDisabledFlag(item) } } };
+        return { disabledItems: others, plugin: withItem(record.plugin, contentType, key, withoutDisabledFlag(item)) };
       }),
   };
 });
@@ -292,8 +292,26 @@ export const packOn = ({ enabled, plugin }: PackRecord) => enabled && !disabledI
  * does not carry the old app's off flag. contentType and key are tagged.
  */
 export const itemOn = ({ plugin, disabledItems }: PackRecord, contentType: string, key: string) =>
-  !disabledItems.some(([t, k]) => t === contentType && k === key) &&
+  !disabledItems.some((item) => sameItem(item, contentType, key)) &&
   !disabledInFile(itemAt(plugin, contentType, key));
+
+const sameItem = ([t, k]: [string, string], contentType: string, key: string) => t === contentType && k === key;
+
+/**
+ * The packs as the old app's .orcbrew export writes them: as stored, with
+ * each pack or item that is off marked with the old app's :disabled? flag.
+ */
+export function orcbrewHomebrew(): Record<string, object> {
+  return Object.fromEntries(
+    useHomebrew.getState().packs.map(({ id, enabled, plugin, disabledItems }) => {
+      const flagged = disabledItems.reduce((result, [contentType, key]) => {
+        const item = itemAt(result, contentType, key);
+        return item === undefined ? result : withItem(result, contentType, key, withDisabledFlag(item));
+      }, plugin);
+      return [id, enabled ? flagged : withDisabledFlag(flagged)];
+    }),
+  );
+}
 
 /** The loaded packs as stored, disabled ones too, with their flags: the homebrew of a dmv-export bundle. */
 export function bundleHomebrew(): BundleHomebrew {

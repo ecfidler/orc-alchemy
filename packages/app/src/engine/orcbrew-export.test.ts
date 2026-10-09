@@ -57,7 +57,7 @@ test("an invalid pack gives its problems, and anyway writes a file that passes t
   expect(refused.invalid).toEqual([
     {
       pack: BROKEN,
-      problems: expect.arrayContaining([expect.stringMatching(/: missing name$/), expect.stringMatching(/: its option source is blank$/)]),
+      problems: expect.arrayContaining([expect.stringMatching(/: missing name$/), expect.stringMatching(/: its pack name \(option-pack\) is blank$/)]),
     },
   ]);
   expect("invalid" in exportOrcbrew(homebrew)).toBe(true);

@@ -145,6 +145,20 @@ test("Export downloads <pack>.orcbrew, and Export all downloads all-content.orcb
   expect(downloads[1].text.split("\n").length).toBeLessThan(downloads[0].text.split("\n").length);
 });
 
+test("Export marks a disabled pack and a disabled item with the old app's off flag", async () => {
+  await load("warlock-test-content.orcbrew");
+  renderPage();
+  const section = await screen.findByRole("region", { name: "warlock-test-content" });
+  fireEvent.click(within(section).getByRole("checkbox", { name: "Keen Mind" }));
+  fireEvent.click(within(section).getByRole("checkbox", { name: "Enabled" }));
+  await waitFor(() => expect(useHomebrew.getState().packs[0].enabled).toBe(false));
+  fireEvent.click(within(section).getByRole("button", { name: "Export" }));
+  await waitFor(() => expect(downloads).toHaveLength(1));
+  const plugin = engine().parseOrcbrew(downloads[0].text, { name: "warlock-test-content" }).data!["warlock-test-content"] as Record<string, unknown>;
+  expect(plugin["~:disabled?"]).toBe(true);
+  expect(plugin["~:orcpub.dnd.e5/feats"]).toMatchObject({ "~:keen-mind": { "~:disabled?": true } });
+});
+
 test("a pack the old app would refuse lists its problems, and Export anyway downloads it filled", async () => {
   await load("duplicate-external-b.orcbrew");
   // Blank one class's option-pack, as a stored pack from elsewhere might have it.
@@ -159,7 +173,7 @@ test("a pack the old app would refuse lists its problems, and Export anyway down
   fireEvent.click(within(await screen.findByRole("region", { name: "duplicate-external-b" })).getByRole("button", { name: "Export" }));
   const problems = await screen.findByRole("alert", { name: "Export problems in duplicate-external-b" });
   expect(within(problems).getAllByRole("listitem").map((li) => li.textContent)).toContain(
-    "duplicate-external-b: Class artificer: its option source is blank",
+    "duplicate-external-b: Class artificer: its pack name (option-pack) is blank",
   );
   expect(downloads).toEqual([]);
 

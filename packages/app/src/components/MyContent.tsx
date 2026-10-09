@@ -6,7 +6,7 @@ import { Link } from "react-router";
 import { CONTENT_TYPES, packItems, tag } from "../engine/content.ts";
 import { loadEngine } from "../engine/engine.ts";
 import { exportOrcbrew, type PackProblems } from "../engine/orcbrew-export.ts";
-import { bundleHomebrew, itemOn, packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
+import { itemOn, orcbrewHomebrew, packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import type { PackRecord } from "../storage/packs.ts";
 import { downloadText } from "./Export.tsx";
 
@@ -148,7 +148,7 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
 
 /**
  * Exports one pack as <pack>.orcbrew, or all packs as all-content.orcbrew,
- * as stored: disabled packs and items too, since .orcbrew has no flags. When
+ * with each disabled pack or item marked as the old app marks it. When
  * the old app would refuse the file, lists why and offers Export anyway.
  */
 function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; pretty: boolean }) {
@@ -160,7 +160,7 @@ function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; 
     setInvalid(null);
     try {
       await loadEngine();
-      const result = exportOrcbrew(bundleHomebrew().homebrew, { pack, pretty, anyway });
+      const result = exportOrcbrew(orcbrewHomebrew(), { pack, pretty, anyway });
       if ("invalid" in result) setInvalid(result.invalid);
       else downloadText(result.fileName, result.text, "application/edn");
     } catch (e) {

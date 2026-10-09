@@ -41,7 +41,7 @@ test("a loaded pack and its enabled flag survive a reload", async ({ page }) => 
 });
 
 // ORC-72, ORC-73: an item turned off on My Content, and a pack exported from it and loaded in an empty browser.
-test("My Content turns an item off, and a pack's export loads back in an empty browser", async ({ page, browser }) => {
+test("My Content disables an item, and a pack's export loads back in an empty browser with the item still disabled", async ({ page, browser }) => {
   await page.goto("/import");
   await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "duplicate-external-b.orcbrew"));
   await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toBeVisible();
@@ -64,9 +64,9 @@ test("My Content turns an item off, and a pack's export loads back in an empty b
     .setInputFiles({ name: "duplicate-external-b.orcbrew", mimeType: "application/edn", buffer: readFileSync(await (await download).path()) });
   await expect(empty.getByRole("region", { name: "Import log" })).toContainText("No issues found");
   await empty.goto("/content");
-  // .orcbrew has no flags: the item turned off here comes back on.
+  // The file marks the item with the old app's off flag, so it stays off.
   await empty.getByRole("region", { name: "duplicate-external-b" }).getByText(/^\d+ classes$/).click();
-  await expect(empty.getByRole("checkbox", { name: "Artificer (Alternate) (duplicate-external-b)" })).toBeChecked();
+  await expect(empty.getByRole("checkbox", { name: "Artificer (Alternate) (duplicate-external-b)" })).not.toBeChecked();
 });
 
 const fixturesDir = join(import.meta.dirname, "../../../fixtures");
@@ -120,7 +120,7 @@ test("Export everything writes the packs, and its bundle restores them and the c
   await expect(empty.getByText("Loaded 1 homebrew pack")).toBeVisible();
   const imported = empty.getByRole("region", { name: "Imported characters" });
   await expect(imported.getByRole("button", { name: "Brannor Ironfist", exact: true })).toBeVisible();
-  await expect(empty.getByRole("listitem", { name: "warlock-test-content" })).toContainText("(turned off)");
+  await expect(empty.getByRole("listitem", { name: "warlock-test-content" })).toContainText("(disabled)");
 
   // The .orcbrew file is the old app's all-content export: it loads as a pack file.
   const other = await (await browser.newContext()).newPage();

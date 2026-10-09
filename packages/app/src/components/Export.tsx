@@ -3,7 +3,7 @@ import { loadEngine } from "../engine/engine.ts";
 import { characterFile, exportBundle } from "../engine/import.ts";
 import { exportOrcbrew } from "../engine/orcbrew-export.ts";
 import { flushAutosave } from "../state/character.ts";
-import { bundleHomebrew, restorePacks, useHomebrew } from "../state/homebrew.ts";
+import { bundleHomebrew, orcbrewHomebrew, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { getCharacter, listCharacters } from "../storage/characters.ts";
 
 /** Downloads a stored character as a dmv-character file, after saving any pending changes. Loads the engine on demand. */
@@ -24,8 +24,8 @@ export function ExportCharacter({ id, label = "Export this character" }: { id: s
 /**
  * Downloads every stored character and pack as a dmv-export bundle, and the
  * packs as all-content.orcbrew for the old app. The packs go in as stored,
- * disabled ones too; the bundle keeps their flags, and the .orcbrew file
- * cannot. A pack that fails validateForExport stops the .orcbrew file, not
+ * disabled ones too: the bundle keeps their flags, and the .orcbrew file
+ * marks them with the old app's :disabled? flag. A pack that fails validateForExport stops the .orcbrew file, not
  * the bundle. Quarantined records are left out, with a notice. Loads the
  * engine on demand.
  */
@@ -47,7 +47,7 @@ export function ExportEverything() {
             notices.push(`These stored packs could not be read and are not in the export: ${quarantined.map((q) => q.id).join(", ")}.`);
           }
           if (hasPacks) {
-            const orcbrew = exportOrcbrew(packs.homebrew, { pretty: true });
+            const orcbrew = exportOrcbrew(orcbrewHomebrew(), { pretty: true });
             if ("invalid" in orcbrew) {
               const names = orcbrew.invalid.map((p) => p.pack).join(", ");
               notices.push(`all-content.orcbrew was not written: the old app would refuse ${names}. To see why, or to export anyway, use My Content.`);

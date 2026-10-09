@@ -34,6 +34,12 @@ export const itemsAt = (plugin: object, taggedType: string) => (plugin as Record
 /** One item of a plugin, by its tagged type and key. */
 export const itemAt = (plugin: object, taggedType: string, taggedKey: string): object | undefined => itemsAt(plugin, taggedType)?.[taggedKey];
 
+/** The plugin with one item replaced, by its tagged type and key. */
+export const withItem = (plugin: object, taggedType: string, taggedKey: string, item: object): object => ({
+  ...plugin,
+  [taggedType]: { ...itemsAt(plugin, taggedType), [taggedKey]: item },
+});
+
 /** The plugin without one item, or the same plugin if it does not have the item. Takes the tagged type and key. */
 export function withoutItem(plugin: object, taggedType: string, taggedKey: string): object {
   const items = itemsAt(plugin, taggedType);
@@ -51,6 +57,9 @@ const DISABLED = "~:disabled?";
 /** True if the pack or item carries the old app's flag that turns it off. */
 export const disabledInFile = (value: unknown): boolean =>
   typeof value === "object" && value !== null && (value as Record<string, unknown>)[DISABLED] === true;
+
+/** The pack or item with the old app's flag that turns it off. */
+export const withDisabledFlag = (value: object): object => ({ ...value, [DISABLED]: true });
 
 /** The pack or item without the old app's flag. */
 export function withoutDisabledFlag(value: object): object {

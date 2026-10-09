@@ -41,7 +41,7 @@ export function exportOrcbrew(homebrew: Record<string, object>, { pack, pretty =
 
 const ITEM_PROBLEM_TEXT: Record<string, string> = {
   key: "its key is not its map key",
-  "option-pack": "its option source is blank",
+  "option-pack": "its pack name (option-pack) is blank",
   nil: "it has an empty value that the importer would remove",
 };
 

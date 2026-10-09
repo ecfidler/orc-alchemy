@@ -104,7 +104,7 @@ function HomebrewImport() {
       {packs.length > 0 && (
         <>
           <p>
-            Loaded packs. To turn them or their items off, export them, or delete them, use{" "}
+            These packs are loaded. To enable or disable packs or items, export them, or delete them, use{" "}
             <Link to="/content" className="underline">
               My Content
             </Link>
@@ -114,7 +114,7 @@ function HomebrewImport() {
             {packs.map((pack) => (
               <li key={pack.id} aria-label={pack.id}>
                 {pack.id}
-                {!packOn(pack) && " (turned off)"}
+                {!packOn(pack) && " (disabled)"}
               </li>
             ))}
           </ul>
