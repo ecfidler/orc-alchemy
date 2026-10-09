@@ -145,9 +145,9 @@ interface Imported {
  * Each character is stored and checked against the loaded packs. One
  * character opens its sheet; a bundle, or one character with keys that do
  * not resolve, lists its characters to open, with their unresolved keys and
- * any that failed. An unresolved key can be remapped to a suggestion, or
- * checked again after its pack is loaded in step 1; the import never waits
- * for either.
+ * any that failed. An unresolved key can be remapped to a suggestion. It
+ * can also be checked again after its pack is loaded in step 1. The import
+ * never waits for either.
  */
 function CharacterImport() {
   const navigate = useNavigate();
@@ -198,14 +198,17 @@ function CharacterImport() {
   async function checkAgain() {
     if (imported === null) return;
     setError(null);
-    try {
-      for (const { id } of imported.characters) {
+    const failed: string[] = [];
+    for (const { id, name } of imported.characters) {
+      try {
         const unresolved = await checkStoredCharacter(id);
         if (unresolved !== null) setUnresolved(id, unresolved);
+      } catch (e) {
+        failed.push(`${name ?? "Unnamed character"}: ${message(e)}`);
       }
-    } catch (e) {
-      setError({ step: "checked", text: message(e) });
     }
+    // One failed check does not stop the others; each is named.
+    if (failed.length > 0) setError({ step: "checked", text: `Could not check again. ${failed.join(" ")}` });
   }
 
   const errorFor = (step: ErrorPlace) => error?.step === step && <p role="alert">{error.text}</p>;

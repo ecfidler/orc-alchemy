@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { missingContent, type ContentSuggestion, type UnresolvedKey } from "../engine/reconcile.ts";
+import { missingContent, OPTION_LABEL, type ContentSuggestion, type UnresolvedKey } from "../engine/reconcile.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 
-type OnRemap = (unresolved: UnresolvedKey, to: string) => Promise<void>;
+type OnRemap = (unresolved: UnresolvedKey, newKey: string) => Promise<void>;
 
 const suggestionLabel = ({ key, name, source, similarity }: ContentSuggestion) =>
   `${name ?? key} (${key}${source ? `, from ${source}` : ""}, ${Math.round(similarity * 100)}% match)`;
@@ -14,10 +14,10 @@ const unresolvedParent = (u: UnresolvedKey, unresolved: UnresolvedKey[]) =>
 
 /**
  * A character's option keys that do not resolve (quirk R8), left out of its
- * sheet. With onRemap, each key with suggestions offers them, and a Remap
- * button that gives the option the chosen key; a key stays unresolved until
- * the user remaps it. A key under another unresolved key offers no remap
- * until that one resolves.
+ * sheet. With onRemap, each key with suggestions offers them and a Remap
+ * button. Remap gives the option the chosen key. A key stays unresolved
+ * until the user remaps it. A key under another unresolved key offers no
+ * remap until that one resolves.
  */
 export function UnresolvedContent({
   characterName,
@@ -42,7 +42,7 @@ export function UnresolvedContent({
                 u.suggestions.length > 0 &&
                 (parent ? (
                   <p>
-                    {parent.label === "Option"
+                    {parent.label === OPTION_LABEL
                       ? "To remap it, first load the pack that has the option above it."
                       : `To remap it, first remap its ${parent.label.toLowerCase()} or load the pack that has it.`}
                   </p>

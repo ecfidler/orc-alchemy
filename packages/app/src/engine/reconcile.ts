@@ -6,13 +6,16 @@ import { engine, type Homebrew, type StrictEntity } from "./engine.ts";
 
 export type { ContentSuggestion };
 
+/** The label of an unresolved option that is not content, such as a skill. */
+export const OPTION_LABEL = "Option";
+
 export interface UnresolvedKey {
-  /** The content type, such as "Subclass", or "Option" for any other option. */
+  /** The content type, such as "Subclass", or OPTION_LABEL for any other option. */
   label: string;
   key: string;
   /** The option's path of keys, such as ["background", "noble"]. */
   path: string[];
-  /** Loaded content that might replace the key, best first. Always empty for an "Option". */
+  /** Loaded content that might replace the key, best first. Always empty for an OPTION_LABEL key. */
   suggestions: ContentSuggestion[];
 }
 
@@ -21,7 +24,7 @@ export function missingContent(entity: StrictEntity, homebrew: Homebrew | undefi
   const report = engine().reconcileMissingContent(entity, homebrew);
   return [
     ...report.items.map(({ label, key, path, suggestions }) => ({ label, key, path, suggestions })),
-    ...report.unresolvedOptions.map(({ key, path }) => ({ label: "Option", key, path, suggestions: [] })),
+    ...report.unresolvedOptions.map(({ key, path }) => ({ label: OPTION_LABEL, key, path, suggestions: [] })),
   ];
 }
 
@@ -36,21 +39,21 @@ type Node = Record<string, unknown>;
 const notFound = (path: string[]) => new Error(`The option ${path.join(" / ")} is not in the character`);
 
 /**
- * The entity with the option at path given the key to. path alternates
- * selection and option keys, as an UnresolvedKey's path does, and ends with
- * the option's key. The option keeps its own selections, so a remapped class
- * keeps its levels; the ones that do not fit the new key show as unresolved.
- * Throws if the path is not in the entity, or if the option's selection
- * already has an option with the key to.
+ * Gives the option at path a new key, and returns the new entity. path
+ * alternates selection and option keys, as an UnresolvedKey's path does. The
+ * option keeps its own selections, so a remapped class keeps its levels.
+ * Selections that do not fit the new key show as unresolved. Throws if the
+ * path is not in the entity, or if the option's selection already has an
+ * option with the new key.
  */
-export function remapOption(entity: StrictEntity, path: string[], to: string): StrictEntity {
-  if (typeof entity !== "object" || path.length < 2 || path.length % 2 !== 0) {
-    throw notFound(path);
-  }
-  return remapIn(entity as Node, path, to, path);
+export function remapOption(entity: StrictEntity, path: string[], newKey: string): StrictEntity {
+  if (path.length < 2 || path.length % 2 !== 0) throw notFound(path);
+  // A stored entity is an object; the engine also takes Transit-JSON text.
+  const root = (typeof entity === "string" ? JSON.parse(entity) : entity) as Node;
+  return remapIn(root, path, newKey, path);
 }
 
-function remapIn(parent: Node, [selectionKey, optionKey, ...rest]: string[], to: string, path: string[]): Node {
+function remapIn(parent: Node, [selectionKey, optionKey, ...rest]: string[], newKey: string, path: string[]): Node {
   const selections = parent[SELECTIONS];
   if (!Array.isArray(selections)) throw notFound(path);
   const index = selections.findIndex((s: Node) => s[KEY] === `~:${selectionKey}`);
@@ -58,7 +61,7 @@ function remapIn(parent: Node, [selectionKey, optionKey, ...rest]: string[], to:
   const selection = selections[index] as Node;
 
   const change = (option: Node): Node =>
-    rest.length === 0 ? { ...option, [KEY]: `~:${to}` } : remapIn(option, rest, to, path);
+    rest.length === 0 ? { ...option, [KEY]: `~:${newKey}` } : remapIn(option, rest, newKey, path);
   let changed: Node;
   const single = selection[OPTION] as Node | undefined;
   if (single?.[KEY] === `~:${optionKey}`) {
@@ -68,8 +71,8 @@ function remapIn(parent: Node, [selectionKey, optionKey, ...rest]: string[], to:
     if (!Array.isArray(options)) throw notFound(path);
     const at = options.findIndex((o: Node) => o[KEY] === `~:${optionKey}`);
     if (at === -1) throw notFound(path);
-    if (rest.length === 0 && options.some((o: Node) => o[KEY] === `~:${to}`)) {
-      throw new Error(`The character already has ${to} under ${selectionKey}`);
+    if (rest.length === 0 && options.some((o: Node) => o[KEY] === `~:${newKey}`)) {
+      throw new Error(`The character already has ${newKey} under ${selectionKey}`);
     }
     changed = { ...selection, [OPTIONS]: options.map((o: Node, i) => (i === at ? change(o) : o)) };
   }

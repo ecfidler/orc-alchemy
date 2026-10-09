@@ -81,21 +81,21 @@ export async function checkStoredCharacter(id: string): Promise<UnresolvedKey[] 
 }
 
 /**
- * Gives a stored character's option at path the key to (remapOption), saves
+ * Gives a stored character's option at path a new key (remapOption), saves
  * it, and returns its keys that still do not resolve. Throws if the open
  * character's pending save fails, if there is no such character, or as
  * remapOption throws. Needs the engine loaded.
  */
-export async function remapStoredCharacter(id: string, path: string[], to: string): Promise<UnresolvedKey[]> {
+export async function remapStoredCharacter(id: string, path: string[], newKey: string): Promise<UnresolvedKey[]> {
   // A pending save of the open character would write its entity over this change,
   // so a failed save stops the remap: the open character keeps its unsaved changes.
   await flushAutosave();
   const record = await getCharacter(id);
   if (record === undefined) throw new Error("The character is no longer stored");
-  const entity = remapOption(record.entity, path, to);
-  const { format, version, rules, legacyId } = record;
-  await save({ format, version, rules, id, legacyId }, entity);
-  if (useCharacter.getState().id === id) useCharacter.getState().load(id, entity);
+  const entity = remapOption(record.entity, path, newKey);
+  await save(record, entity);
+  const open = useCharacter.getState();
+  if (open.id === id) open.load(id, entity);
   return missingContent(entity, useHomebrew.getState().homebrew);
 }
 
