@@ -2,7 +2,7 @@
 name: "linear-issue-workflow"
 description: "Take a Linear issue from Todo to a reviewed, PR-ready branch. Use when asked to work on, implement, or complete a Linear issue (e.g. ORC-44)."
 disable-model-invocation: false
-version: "1.1.0"
+version: "1.2.0"
 ---
 
 ## Orchestrator Introduction
@@ -55,7 +55,7 @@ When I ask for several issues together, run this workflow for each issue.
 
 1. Review Subagents should always be used, even if you decided on no subagents for the initial tasks.
 2. Open a Pull Request as a draft against the base branch if you have not already and update the Linear status to "In Review"
-3. Round 1: spawn a `standards-reviewer` and a `spec-reviewer` in parallel. Each brief gives:
+3. Round 1: spawn a `standards-reviewer` and a `spec-reviewer` in parallel, after every worker has stopped. A worker's test runs and the reviewers' checks share the CPU, and slow tests then time out. Each brief gives:
     - the diff refs (`<base>...<issue-branch>`) and the commit list;
     - the worktree path, if the branch lives in one;
     - the check results from the last step;

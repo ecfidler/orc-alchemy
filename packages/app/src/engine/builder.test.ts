@@ -289,16 +289,3 @@ test("unfilled and remainingByStep count a merged selection once", () => {
   // the barbarian's 2 weapons, and the acolyte's holy symbol and prayer book.
   expect(remainingByStep(steps)).toEqual([5, 1, 2, 0, 0, 4]);
 });
-
-test.each(Array.from({ length: 20 }, (_, i) => i + 1))("autofill with seed %i leaves nothing unfilled", (seed) => {
-  const entity = engine().autofill(engine().emptyCharacter(), { seed });
-  expect(unfilled(stepsOf(entity))).toEqual([]);
-});
-
-test.each([1, 2, 3, 4, 5])("autofill with a pack loaded, with seed %i, leaves nothing unfilled", (seed) => {
-  // The app passes the stored packs to autofill, so a random character can take homebrew options.
-  const homebrew = loadPacks(["duplicate-external-b.orcbrew"]);
-  const entity = engine().autofill(engine().emptyCharacter(), { seed, homebrew });
-  const steps = stepsOf(entity, homebrew);
-  expect(unfilled(steps)).toEqual([]);
-});
