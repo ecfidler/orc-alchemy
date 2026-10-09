@@ -4,7 +4,7 @@ title: "01: The compatibility contract"
 description: "The three user-level contracts: homebrew in both directions, characters from the old app to the new app, and content identity."
 tags: [plan, compatibility, homebrew, characters]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+generated: { by: claude-code/agent, at: 2026-10-09T23:08:47Z }
 ---
 
 # 01: The compatibility contract

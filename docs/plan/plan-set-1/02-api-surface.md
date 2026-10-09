@@ -4,7 +4,7 @@ title: "Phase 1: Map the backend API"
 description: "The complete backend API map: endpoints, auth, and the Transit wire format."
 tags: [plan-set-1, api, backend]
 status: stable
-generated: { by: claude-code/agent, at: 2026-09-29T23:45:58Z }
+generated: { by: claude-code/agent, at: 2026-10-09T23:08:47Z }
 ---
 
 # Phase 1: Map the backend API

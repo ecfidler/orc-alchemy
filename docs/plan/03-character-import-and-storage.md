@@ -4,7 +4,7 @@ title: "03: Character import and storage"
 description: "How characters leave an old instance through the exporter bookmarklet, how the new app imports them, and the native character format."
 tags: [plan, characters, import]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-06T13:45:00Z }
+generated: { by: claude-code/agent, at: 2026-10-09T23:08:47Z }
 ---
 
 # 03: Character import and storage
@@ -20,9 +20,10 @@ neither needs anything from the operator.
 
 **Path A, the public character URL.** Every character has a server route,
 `GET /dnd/5e/characters/<id>` (`routes.clj:1457-1458`), that needs no auth
-and returns the strict entity as EDN, not Transit (fixtures finding 10). The `<id>` is in the
-character's page URL, `/pages/dnd/5e/characters/<id>`. The user opens the
-API URL in a browser tab, saves the response as a file, and imports it.
+and returns the strict entity as EDN, not Transit (fixtures finding 10).
+The `<id>` is in the character's page URL, `/pages/dnd/5e/characters/<id>`.
+The user opens the API URL in a browser tab, saves the response as a file,
+and imports it.
 This works today but is tedious for many characters.
 
 **Path B, an exporter bookmarklet. Ship this.** The new project publishes

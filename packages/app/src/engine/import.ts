@@ -1,5 +1,6 @@
-// Character files (doc 03): a strict entity saved from the old app, the app's
-// dmv-character envelope, or a dmv-export bundle. Each character read goes
+// Character files (doc 03): a strict entity saved from the old app, the old
+// server's EDN for one character or the list, the app's dmv-character
+// envelope, or a dmv-export bundle. Each character read goes
 // through the engine's importCharacter, and each one written through its
 // exportCharacter.
 import type { Homebrew } from "@pubdoor/dmv";
@@ -18,16 +19,16 @@ export interface CharacterFileEntry {
 
 export interface CharacterFile {
   characters: CharacterFileEntry[];
-  /** Why each bundle character that did not import failed. */
+  /** Why each character in a bundle or list that did not import failed. */
   failures: string[];
 }
 
 /**
  * Reads a character file's text and imports every character in it. Throws
  * with a reason the user can read for anything that is not a character file.
- * A bundle character that fails is reported in failures, not thrown. Each
- * character's keys are checked against the homebrew, or against the SRD
- * alone without it.
+ * A character in a bundle or list that fails is reported in failures, not
+ * thrown. Each character's keys are checked against the homebrew, or against
+ * the SRD alone without it.
  */
 export function readCharacterFile(text: string, homebrew?: Homebrew): CharacterFile {
   let data: unknown;

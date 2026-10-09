@@ -142,7 +142,7 @@ test("a bundle keeps the characters that import and names the one that fails", (
   expect(file.failures).toEqual(["Character 2 of 2: This is not a character file"]);
 });
 
-// A real GET /dnd/5e/characters/<id> response, copied from the fork's engine-js/test/fixtures (ORC-11).
+// A real GET /dnd/5e/characters/<id> response, copied from the fork's engine-js/test/fixtures at tag pubdoor-v0.3.0 (ORC-11).
 const serverEdn = readFileSync(join(import.meta.dirname, "fighter-1.server.edn"), "utf8");
 
 test("the old server's EDN for one character imports through importCharacter", () => {
