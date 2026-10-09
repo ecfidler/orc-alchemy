@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
-import { CONTENT_TYPES, packItems } from "./content.ts";
+import { CONTENT_TYPES, DEFAULT_PACK, packItems } from "./content.ts";
 import { engine, loadEngine } from "./engine.ts";
 import { exportOrcbrew } from "./orcbrew-export.ts";
 
@@ -74,7 +74,7 @@ test("packItems lists each type's items by key, and a class's name ends with its
   expect(counts.classes).toBeGreaterThan(0);
   expect(packItems("duplicate-external-b", plugin, "orcpub.dnd.e5/classes")[0].name).toMatch(/ \(duplicate-external-b\)$/);
   const raw = (plugin as Record<string, Record<string, { "~:name": string }>>)["~:orcpub.dnd.e5/classes"];
-  expect(packItems("Default Option Source", plugin, "orcpub.dnd.e5/classes").map((c) => c.name)).toEqual(
+  expect(packItems(DEFAULT_PACK, plugin, "orcpub.dnd.e5/classes").map((c) => c.name)).toEqual(
     Object.keys(raw).sort().map((k) => raw[k]["~:name"]),
   );
 });

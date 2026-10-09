@@ -60,21 +60,47 @@ test("a class shows its pack after its name", async () => {
   for (const li of within(classes).getAllByRole("listitem")) expect(li.textContent).toMatch(/ \(duplicate-external-b\)Delete$/);
 });
 
-test("turning an item off leaves it out of the next build; turning it on brings it back", async () => {
+test("turning an item off leaves it out of the next evaluate; turning it on brings it back", async () => {
   await load("duplicate-external-b.orcbrew");
   renderPage();
   const r8 = engine().importCharacter(readFileSync(join(fixturesDir, "legacy/r8-unresolved-keys.strict.json"), "utf8")).entity;
-  expect(missingContent(r8, useHomebrew.getState().homebrew)).toEqual([]);
+  const classes = () => engine().evaluate(r8, { homebrew: useHomebrew.getState().homebrew }).built.classes;
+  expect(classes()).toEqual(["artificer"]);
 
   const artificer = await screen.findByRole<HTMLInputElement>("checkbox", { name: "Artificer (Alternate) (duplicate-external-b)" });
   fireEvent.click(artificer);
   await waitFor(() => expect(artificer.checked).toBe(false));
-  expect(engine().buildTemplate(useHomebrew.getState().homebrew).content.classes).not.toContain("artificer");
+  expect(classes()).toEqual([]);
   expect(missingContent(r8, useHomebrew.getState().homebrew).map((u) => u.key)).toContain("artificer");
 
   fireEvent.click(artificer);
   await waitFor(() => expect(artificer.checked).toBe(true));
-  expect(engine().buildTemplate(useHomebrew.getState().homebrew).content.classes).toContain("artificer");
+  expect(classes()).toEqual(["artificer"]);
+});
+
+test("the old app's off flag in a file shows as off, and turning the item or pack on removes it", async () => {
+  // As the old app writes it: :disabled? true on an item, and on the pack.
+  const text = orcbrew("warlock-test-content.orcbrew")
+    .replace("{:keen-mind\n  {:key :keen-mind", "{:keen-mind\n  {:disabled? true :key :keen-mind")
+    .replace(/^\{/, "{:disabled? true\n ");
+  await useHomebrew.getState().load("warlock-test-content.orcbrew", text);
+  renderPage();
+  const section = await screen.findByRole("region", { name: "warlock-test-content" });
+  const pack = within(section).getByRole<HTMLInputElement>("checkbox", { name: "Enabled" });
+  const keenMind = within(section).getByRole<HTMLInputElement>("checkbox", { name: "Keen Mind" });
+  expect(pack.checked).toBe(false);
+  expect(keenMind.checked).toBe(false);
+  const feats = () => engine().buildTemplate(useHomebrew.getState().homebrew).content.feats;
+  expect(feats()).not.toContain("keen-mind");
+
+  fireEvent.click(pack);
+  await waitFor(() => expect(pack.checked).toBe(true));
+  expect(feats()).not.toContain("keen-mind");
+  fireEvent.click(keenMind);
+  await waitFor(() => expect(keenMind.checked).toBe(true));
+  expect(feats()).toContain("keen-mind");
+  const [stored] = (await listPacks()) as PackRecord[];
+  expect(JSON.stringify(stored.plugin)).not.toContain("disabled?");
 });
 
 test("a pack's checkbox turns it off, and Delete removes it from storage after a confirmation", async () => {
@@ -103,7 +129,7 @@ test("Delete on an item removes it from the pack and from storage", async () => 
   expect(stored.plugin).not.toHaveProperty(["~:orcpub.dnd.e5/classes", "~:artificer"]);
 });
 
-test("Export downloads <pack>.orcbrew, and Export all downloads all-content.orcbrew, pretty-printed on request", async () => {
+test("Export downloads <pack>.orcbrew, and Export all downloads all-content.orcbrew, pretty-printed unless turned off", async () => {
   await load("warlock-test-content.orcbrew");
   renderPage();
   const section = await screen.findByRole("region", { name: "warlock-test-content" });
@@ -116,7 +142,7 @@ test("Export downloads <pack>.orcbrew, and Export all downloads all-content.orcb
   fireEvent.click(screen.getByRole("checkbox", { name: "Pretty-print exported files" }));
   fireEvent.click(screen.getByRole("button", { name: "Export all" }));
   await waitFor(() => expect(downloads.map((d) => d.name)).toEqual(["warlock-test-content.orcbrew", "all-content.orcbrew"]));
-  expect(downloads[1].text.split("\n").length).toBeGreaterThan(downloads[0].text.split("\n").length);
+  expect(downloads[1].text.split("\n").length).toBeLessThan(downloads[0].text.split("\n").length);
 });
 
 test("a pack the old app would refuse lists its problems, and Export anyway downloads it filled", async () => {

@@ -3,10 +3,10 @@
 // the .orcbrew export of one pack or of all of them.
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { CONTENT_TYPES, packItems } from "../engine/content.ts";
+import { CONTENT_TYPES, packItems, tag } from "../engine/content.ts";
 import { loadEngine } from "../engine/engine.ts";
 import { exportOrcbrew, type PackProblems } from "../engine/orcbrew-export.ts";
-import { restorePacks, useHomebrew } from "../state/homebrew.ts";
+import { bundleHomebrew, itemOn, packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import type { PackRecord } from "../storage/packs.ts";
 import { downloadText } from "./Export.tsx";
 
@@ -22,7 +22,8 @@ export function MyContent() {
   const quarantined = useHomebrew((state) => state.quarantined);
   const [restored, setRestored] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pretty, setPretty] = useState(false);
+  // The old per-pack export pretty-printed.
+  const [pretty, setPretty] = useState(true);
 
   useEffect(() => {
     restorePacks()
@@ -59,7 +60,7 @@ export function MyContent() {
             {quarantined.map(({ id, reason }) => (
               <li key={id}>
                 The stored pack {id} could not be read, so it is not used. It is kept in this browser as it is. {reason}{" "}
-                <button type="button" onClick={() => confirmed(`Delete the unreadable pack ${id}?`) && report(useHomebrew.getState().removeQuarantined(id))} className="underline">
+                <button type="button" onClick={() => window.confirm(`Delete the unreadable pack ${id}?`) && report(useHomebrew.getState().removeQuarantined(id))} className="underline">
                   Delete {id}
                 </button>
               </li>
@@ -89,49 +90,47 @@ export function MyContent() {
   );
 }
 
-const confirmed = (question: string) => window.confirm(question);
-
 /** One pack: its enabled checkbox, Export and Delete, and its content lists. */
 function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; report: (action: Promise<void>) => void }) {
-  const { id, enabled, plugin, disabledItems } = pack;
+  const { id, plugin } = pack;
   return (
     <section aria-label={id} className="border border-black p-2">
       <div className="flex flex-wrap items-center gap-4">
         <h2 className="text-lg font-bold">{id}</h2>
         <label>
-          <input type="checkbox" checked={enabled} onChange={(e) => report(useHomebrew.getState().setPackEnabled(id, e.target.checked))} />{" "}
+          <input type="checkbox" checked={packOn(pack)} onChange={(e) => report(useHomebrew.getState().setPackEnabled(id, e.target.checked))} />{" "}
           Enabled
         </label>
         <OrcbrewExport label="Export" pack={id} pretty={pretty} />
-        <button type="button" onClick={() => confirmed(`Delete the pack ${id} from this browser?`) && report(useHomebrew.getState().remove(id))} className="underline">
+        <button type="button" onClick={() => window.confirm(`Delete the pack ${id} from this browser?`) && report(useHomebrew.getState().remove(id))} className="underline">
           Delete
         </button>
       </div>
       {CONTENT_TYPES.map(({ type, one, many }) => {
         const items = packItems(id, plugin, type);
-        const tagged = `~:${type}`;
+        const taggedType = tag(type);
         return (
           <details key={type} className="ml-4">
             <summary>
               {items.length} {items.length === 1 ? one : many}
             </summary>
             <ul aria-label={`${id} ${many}`} className="ml-4">
-              {items.map(({ key, name }) => {
-                const on = !disabledItems.some(([t, k]) => t === tagged && k === `~:${key}`);
+              {items.map(({ key, tagged, name }) => {
+                const on = itemOn(pack, taggedType, tagged);
                 return (
                   <li key={key} className="flex flex-wrap items-center gap-2">
                     <label>
                       <input
                         type="checkbox"
                         checked={on}
-                        onChange={(e) => report(useHomebrew.getState().setItemEnabled(id, tagged, `~:${key}`, e.target.checked))}
+                        onChange={(e) => report(useHomebrew.getState().setItemEnabled(id, taggedType, tagged, e.target.checked))}
                       />{" "}
                       {name}
                     </label>
                     <button
                       type="button"
                       aria-label={`Delete ${name}`}
-                      onClick={() => confirmed(`Delete ${name} from ${id}?`) && report(useHomebrew.getState().removeItem(id, tagged, `~:${key}`))}
+                      onClick={() => window.confirm(`Delete ${name} from ${id}?`) && report(useHomebrew.getState().removeItem(id, taggedType, tagged))}
                       className="underline"
                     >
                       Delete
@@ -161,8 +160,7 @@ function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; 
     setInvalid(null);
     try {
       await loadEngine();
-      const homebrew = Object.fromEntries(useHomebrew.getState().packs.map((p) => [p.id, p.plugin]));
-      const result = exportOrcbrew(homebrew, { pack, pretty, anyway });
+      const result = exportOrcbrew(bundleHomebrew().homebrew, { pack, pretty, anyway });
       if ("invalid" in result) setInvalid(result.invalid);
       else downloadText(result.fileName, result.text, "application/edn");
     } catch (e) {

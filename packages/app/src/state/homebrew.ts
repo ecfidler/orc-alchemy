@@ -4,6 +4,7 @@
 // in storage as it is, is not used, and the UI warns about it.
 import { create } from "zustand";
 import { engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
+import { disabledInFile, withoutDisabledFlag, withoutItem } from "../engine/content.ts";
 import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
 import type { BundleHomebrew } from "../engine/import.ts";
 import { deletePack, listPacks, savePacks, type PackRecord } from "../storage/packs.ts";
@@ -71,7 +72,15 @@ interface HomebrewState {
    * not stored.
    */
   removeItem: (pack: string, contentType: string, key: string) => Promise<void>;
+  /**
+   * Turns a pack on or off. Turning it on also removes the old app's off flag
+   * from its data, if it has one (see packOn).
+   */
   setPackEnabled: (pack: string, enabled: boolean) => Promise<void>;
+  /**
+   * Turns an item on or off. Turning it on also removes the old app's off
+   * flag from the item, if it has one (see itemOn).
+   */
   setItemEnabled: (pack: string, contentType: string, key: string, enabled: boolean) => Promise<void>;
 }
 
@@ -212,21 +221,24 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       }),
     removeItem: (pack, contentType, key) =>
       update(pack, ({ plugin, disabledItems }) => {
-        const items = (plugin as Record<string, Record<string, unknown> | undefined>)[contentType];
-        if (items === undefined || !(key in items)) return null;
-        const { [key]: _removed, ...rest } = items;
-        return {
-          plugin: { ...plugin, [contentType]: rest },
-          disabledItems: disabledItems.filter(([t, k]) => t !== contentType || k !== key),
-        };
+        const removed = withoutItem(plugin, contentType, key);
+        if (removed === plugin) return null;
+        return { plugin: removed, disabledItems: disabledItems.filter(([t, k]) => t !== contentType || k !== key) };
       }),
-    setPackEnabled: (pack, enabled) => update(pack, (record) => (record.enabled === enabled ? null : { enabled })),
+    setPackEnabled: (pack, enabled) =>
+      update(pack, (record) => {
+        if (packOn(record) === enabled) return null;
+        return enabled ? { enabled, plugin: withoutDisabledFlag(record.plugin) } : { enabled };
+      }),
     setItemEnabled: (pack, contentType, key, enabled) =>
-      update(pack, ({ disabledItems }) => {
-        const others = disabledItems.filter(([t, k]) => t !== contentType || k !== key);
-        const disabled = others.length < disabledItems.length;
-        if (disabled !== enabled) return null;
-        return { disabledItems: enabled ? others : [...others, [contentType, key]] };
+      update(pack, (record) => {
+        if (itemOn(record, contentType, key) === enabled) return null;
+        const others = record.disabledItems.filter(([t, k]) => t !== contentType || k !== key);
+        if (!enabled) return { disabledItems: [...others, [contentType, key]] };
+        const items = (record.plugin as Record<string, Record<string, object> | undefined>)[contentType];
+        const item = items?.[key];
+        if (item === undefined || !disabledInFile(item)) return { disabledItems: others };
+        return { disabledItems: others, plugin: { ...record.plugin, [contentType]: { ...items, [key]: withoutDisabledFlag(item) } } };
       }),
   };
 });
@@ -269,6 +281,20 @@ export function restorePacks(): Promise<void> {
     });
   return restoring;
 }
+
+/**
+ * True if the pack is on: its own flag is on, and its data does not carry
+ * the old app's off flag, which an .orcbrew file can have.
+ */
+export const packOn = ({ enabled, plugin }: PackRecord) => enabled && !disabledInFile(plugin);
+
+/**
+ * True if the item is on: it is not in the pack's disabled items, and it
+ * does not carry the old app's off flag. contentType and key are tagged.
+ */
+export const itemOn = ({ plugin, disabledItems }: PackRecord, contentType: string, key: string) =>
+  !disabledItems.some(([t, k]) => t === contentType && k === key) &&
+  !disabledInFile((plugin as Record<string, Record<string, unknown> | undefined>)[contentType]?.[key]);
 
 /** The loaded packs as stored, disabled ones too, with their flags: the homebrew of a dmv-export bundle. */
 export function bundleHomebrew(): BundleHomebrew {
@@ -320,15 +346,7 @@ function withPacks(packs: PackRecord[]): Pick<HomebrewState, "packs" | "homebrew
   };
 }
 
-function withoutDisabled({ plugin, disabledItems }: PackRecord): object {
-  if (disabledItems.length === 0) return plugin;
-  const copy: Record<string, Record<string, unknown>> = { ...(plugin as Record<string, Record<string, unknown>>) };
-  for (const [contentType, key] of disabledItems) {
-    if (copy[contentType] === undefined) continue;
-    const { [key]: _disabled, ...rest } = copy[contentType];
-    copy[contentType] = rest;
-  }
-  return copy;
-}
+const withoutDisabled = ({ plugin, disabledItems }: PackRecord): object =>
+  disabledItems.reduce((result, [contentType, key]) => withoutItem(result, contentType, key), plugin);
 
 const now = () => new Date().toISOString();

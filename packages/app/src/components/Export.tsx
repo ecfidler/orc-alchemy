@@ -31,30 +31,33 @@ export function ExportCharacter({ id, label = "Export this character" }: { id: s
  */
 export function ExportEverything() {
   return (
-    <ExportButton
-      label="Export everything"
-      onExport={async () => {
-        await Promise.all([loadEngine(), flushAutosave(), restorePacks()]);
-        const records = await listCharacters();
-        const packs = bundleHomebrew();
-        const hasPacks = Object.keys(packs.homebrew).length > 0;
-        if (records.length === 0 && !hasPacks) throw new Error("There are no characters or homebrew to export");
-        download("dmv-export.json", exportBundle(records.map((r) => r.entity), window.location.origin, packs));
-        const notices: string[] = [];
-        const { quarantined } = useHomebrew.getState();
-        if (quarantined.length > 0) {
-          notices.push(`These stored packs could not be read and are not in the export: ${quarantined.map((q) => q.id).join(", ")}.`);
-        }
-        if (hasPacks) {
-          const orcbrew = exportOrcbrew(packs.homebrew, { pretty: true });
-          if ("invalid" in orcbrew) {
-            const names = orcbrew.invalid.map((p) => p.pack).join(", ");
-            notices.push(`all-content.orcbrew was not written: the old app would refuse ${names}. To see why, or to export anyway, use My Content.`);
-          } else downloadText(orcbrew.fileName, orcbrew.text, "application/edn");
-        }
-        return notices.join(" ") || undefined;
-      }}
-    />
+    <div>
+      <ExportButton
+        label="Export everything"
+        onExport={async () => {
+          await Promise.all([loadEngine(), flushAutosave(), restorePacks()]);
+          const records = await listCharacters();
+          const packs = bundleHomebrew();
+          const hasPacks = Object.keys(packs.homebrew).length > 0;
+          if (records.length === 0 && !hasPacks) throw new Error("There are no characters or homebrew to export");
+          download("dmv-export.json", exportBundle(records.map((r) => r.entity), window.location.origin, packs));
+          const notices: string[] = [];
+          const { quarantined } = useHomebrew.getState();
+          if (quarantined.length > 0) {
+            notices.push(`These stored packs could not be read and are not in the export: ${quarantined.map((q) => q.id).join(", ")}.`);
+          }
+          if (hasPacks) {
+            const orcbrew = exportOrcbrew(packs.homebrew, { pretty: true });
+            if ("invalid" in orcbrew) {
+              const names = orcbrew.invalid.map((p) => p.pack).join(", ");
+              notices.push(`all-content.orcbrew was not written: the old app would refuse ${names}. To see why, or to export anyway, use My Content.`);
+            } else downloadText(orcbrew.fileName, orcbrew.text, "application/edn");
+          }
+          return notices.join(" ") || undefined;
+        }}
+      />
+      <p>With homebrew, it also writes all-content.orcbrew for the old app. That file has no magic items, because the old app has no magic-item homebrew.</p>
+    </div>
   );
 }
 

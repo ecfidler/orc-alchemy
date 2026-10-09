@@ -22,14 +22,14 @@ export interface PackProblems {
   problems: string[];
 }
 
-export type OrcbrewExport = { fileName: string; text: string } | { invalid: PackProblems[] };
+export type OrcbrewExportResult = { fileName: string; text: string } | { invalid: PackProblems[] };
 
 /**
  * The .orcbrew file of the packs, or, unless anyway, the problems of each
  * pack that fails validateForExport. The packs are written as given: leave
  * out magic items, which the old app has no content type for.
  */
-export function exportOrcbrew(homebrew: Record<string, object>, { pack, pretty = false, anyway = false }: OrcbrewExportOptions = {}): OrcbrewExport {
+export function exportOrcbrew(homebrew: Record<string, object>, { pack, pretty = false, anyway = false }: OrcbrewExportOptions = {}): OrcbrewExportResult {
   const check = engine().validateForExport(homebrew, { pack });
   if (!check.valid && !anyway) {
     const invalid = Object.entries(check.packs).filter(([, result]) => !result.valid);
@@ -39,7 +39,7 @@ export function exportOrcbrew(homebrew: Record<string, object>, { pack, pretty =
   return { fileName: pack === undefined ? "all-content.orcbrew" : `${pack}.orcbrew`, text };
 }
 
-const RULES: Record<string, string> = {
+const ITEM_PROBLEM_TEXT: Record<string, string> = {
   key: "its key is not its map key",
   "option-pack": "its option source is blank",
   nil: "it has an empty value that the importer would remove",
@@ -53,7 +53,7 @@ function problemsOf(result: PackExportCheck): string[] {
       return `${typeName(type)} ${item.name ?? item.key}: missing ${fields.join(", ")}`;
     }),
   );
-  const items = result.itemProblems.map(({ "content-type": type, key, rule }) => `${typeName(type)} ${key}: ${RULES[rule] ?? rule}`);
+  const items = result.itemProblems.map(({ "content-type": type, key, rule }) => `${typeName(type)} ${key}: ${ITEM_PROBLEM_TEXT[rule] ?? rule}`);
   return [...missing, ...items, ...result.errors];
 }
 

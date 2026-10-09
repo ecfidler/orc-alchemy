@@ -4,7 +4,7 @@ import { loadEngine } from "../engine/engine.ts";
 import { isBundleText, readBundleHomebrew, readCharacterFile } from "../engine/import.ts";
 import type { UnresolvedKey } from "../engine/reconcile.ts";
 import { addCharacter, checkStoredCharacter, remapStoredCharacter } from "../state/character.ts";
-import { restorePacks, useHomebrew } from "../state/homebrew.ts";
+import { packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { ConflictResolution } from "./ConflictResolution.tsx";
 import { ImportLog } from "./ImportLog.tsx";
 import { UnresolvedContent } from "./UnresolvedContent.tsx";
@@ -111,10 +111,10 @@ function HomebrewImport() {
             .
           </p>
           <ul aria-label="Homebrew packs" className="ml-4 list-disc">
-            {packs.map(({ id, enabled }) => (
-              <li key={id} aria-label={id}>
-                {id}
-                {!enabled && " (turned off)"}
+            {packs.map((pack) => (
+              <li key={pack.id} aria-label={pack.id}>
+                {pack.id}
+                {!packOn(pack) && " (turned off)"}
               </li>
             ))}
           </ul>
