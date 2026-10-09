@@ -69,7 +69,7 @@ test("a pick the engine refuses shows its reason at the selection", async ({ pag
 });
 
 test("replacing a class with more than level 1 asks first", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-5.strict.json"));
   await page.getByRole("link", { name: "Build", exact: true }).click();
   const builder = page.getByRole("region", { name: "Builder" });
@@ -325,7 +325,7 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
   const file = testInfo.outputPath("fighter-20-unequipped.json");
   writeFileSync(file, JSON.stringify(strict));
 
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(file);
   await page.getByRole("link", { name: "Build", exact: true }).click();
   const builder = page.getByRole("region", { name: "Builder" });

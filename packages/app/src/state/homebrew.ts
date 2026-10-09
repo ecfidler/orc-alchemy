@@ -24,29 +24,41 @@ interface HomebrewState {
    * find summaries built with other homebrew.
    */
   fingerprint: string;
-  /** The last file's import, kept raw: the UI shows its log, which lists skipped items, and its conflicts. */
-  lastImport: Omit<ParsedOrcbrew, "data"> | null;
+  /** The last import, kept raw, with the name of its file: the UI shows its log and its conflicts. */
+  lastImport: LastImport | null;
   /**
    * Merges an .orcbrew file's text into the stored packs, skipping invalid
-   * items. A single-plugin file loads as a pack named for the file. New packs
-   * are enabled. A failed import leaves the packs as they were. Throws, and
-   * changes nothing, if the file has a pack named as a quarantined record,
-   * or if the importer throws.
+   * items, or, with strict, refusing the whole file if an item is invalid. A
+   * single-plugin file loads as a pack named for the file. New packs are
+   * enabled. A failed import leaves the packs as they were. Throws, leaving
+   * the packs as they were and lastImport null, if the file has a pack named
+   * as a quarantined record, or if the importer throws.
    * Needs the engine loaded.
    */
-  load: (fileName: string, text: string) => Promise<void>;
+  load: (fileName: string, text: string, options?: { strict?: boolean }) => Promise<void>;
   /**
    * Merges a dmv-export bundle's packs into the stored packs, as load merges
    * a multi-plugin file, and gives each bundle pack its flags from the
    * bundle. A bundle pack without flags keeps its stored flags, or is
-   * enabled when new. Throws, and changes nothing, as load does. Needs the
-   * engine loaded.
+   * enabled when new. Throws as load does. Needs the engine loaded.
    */
-  loadBundle: (bundle: BundleHomebrew) => Promise<void>;
+  loadBundle: (bundle: BundleHomebrew, fileName: string) => Promise<void>;
   /** Removes a pack from storage. */
   remove: (pack: string) => Promise<void>;
   setPackEnabled: (pack: string, enabled: boolean) => Promise<void>;
   setItemEnabled: (pack: string, contentType: string, key: string, enabled: boolean) => Promise<void>;
+}
+
+/** One import's result without its data, and the name of the file it read. */
+export type LastImport = Omit<ParsedOrcbrew, "data"> & { fileName: string };
+
+interface MergeOptions {
+  /** The file the text came from, for the import log. */
+  fileName: string;
+  /** The pack name for a single-plugin file. */
+  name: string;
+  flags: BundleHomebrew["flags"];
+  strict?: boolean;
 }
 
 export const useHomebrew = create<HomebrewState>()((set, get) => {
@@ -71,22 +83,26 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     });
 
   /**
-   * Parses .orcbrew text over the stored packs and stores the packs it
-   * changes. A changed pack takes its flags from flags, or keeps its stored
-   * ones, or is enabled when new. Runs inside queued.
+   * Parses .orcbrew text over the stored packs, strictly if asked, and
+   * stores the packs it changes. A changed pack takes its flags from flags,
+   * or keeps its stored ones, or is enabled when new. The import's log
+   * becomes lastImport; an import that throws clears it. Runs inside queued.
    */
-  async function merge(text: string, name: string, flags: BundleHomebrew["flags"]) {
+  async function merge(text: string, { fileName, name, flags, strict = false }: MergeOptions) {
+    set({ lastImport: null }); // so an error is not shown under an earlier file's log
     await restorePacks();
     const { packs, quarantined } = get();
     const existing = packs.length === 0 ? undefined : pluginMap(packs);
     let parsed: ParsedOrcbrew;
     try {
-      parsed = engine().parseOrcbrew(text, { name, existing });
+      parsed = engine().parseOrcbrew(text, { name, existing, strict });
     } catch (e) {
-      // The importer throws on some malformed items, such as an item that is not a map, with an engine message.
-      throw new Error(`The homebrew could not be read: ${e instanceof Error ? e.message : String(e)}`);
+      // Engine 0.2.0 throws on an item or pack that is not a map (ORC-116), with a ClojureScript message.
+      const detail = e instanceof Error ? e.message : String(e);
+      throw new Error(`The homebrew could not be read. An item or pack in the file may not be a map. (Engine message: ${detail})`);
     }
-    const { data, ...lastImport } = parsed;
+    const { data, ...withoutData } = parsed;
+    const lastImport = { ...withoutData, fileName };
     if (data === null) return set({ lastImport });
     const blocked = quarantined.find((q) => q.id in data);
     if (blocked) {
@@ -116,9 +132,11 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     homebrew: undefined,
     fingerprint: "",
     lastImport: null,
-    load: (fileName, text) => queued(() => merge(text, fileName.replace(/\.orcbrew$/i, ""), {})),
+    load: (fileName, text, { strict } = {}) =>
+      queued(() => merge(text, { fileName, name: fileName.replace(/\.orcbrew$/i, ""), flags: {}, strict })),
     // Through .orcbrew text, so the bundle's packs get the same checks as a file's.
-    loadBundle: ({ homebrew, flags }) => queued(() => merge(engine().orcbrewToEdn(homebrew), "dmv-export", flags)),
+    loadBundle: ({ homebrew, flags }, fileName) =>
+      queued(() => merge(engine().orcbrewToEdn(homebrew), { fileName, name: "dmv-export", flags })),
     remove: (pack) => queued(async () => {
       await deletePack(pack);
       set(withPacks(get().packs.filter((p) => p.id !== pack)));

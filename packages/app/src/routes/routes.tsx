@@ -6,8 +6,7 @@ import { Builder } from "../components/Builder.tsx";
 import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
-import { ImportCharacter } from "../components/ImportCharacter.tsx";
-import { LoadHomebrew } from "../components/LoadHomebrew.tsx";
+import { ImportPage } from "../components/ImportPage.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import type { Sheet } from "../engine/sheet.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -131,8 +130,11 @@ export const routes: RouteObject[] = [
           <>
             <h1 className="text-xl">Characters</h1>
             <NewCharacter />
-            <ImportCharacter />
-            <LoadHomebrew />
+            <p className="mt-4">
+              <Link to="/import" className="underline">
+                Import homebrew and characters
+              </Link>
+            </p>
             <ExportEverything />
             <div className="mt-4">
               <CharacterList />
@@ -140,6 +142,7 @@ export const routes: RouteObject[] = [
           </>
         ),
       },
+      { path: "import", element: <ImportPage /> },
       {
         path: "sheet/:id",
         element: (

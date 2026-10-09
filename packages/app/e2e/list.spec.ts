@@ -7,6 +7,7 @@ const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 test("an imported character appears in the list and opens its sheet", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("No characters yet. Import a character file to add one.")).toBeVisible();
+  await page.getByRole("link", { name: "Import homebrew and characters" }).click();
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-3-wizard-2.strict.json"));
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   const sheetUrl = page.url();
@@ -20,9 +21,9 @@ test("an imported character appears in the list and opens its sheet", async ({ p
   await expect(page.getByRole("heading", { level: 1, name: "Corvin Half-Elven" })).toBeVisible();
 });
 
-test("a bundle's characters appear in the list as it imports", async ({ page }) => {
-  await page.goto("/");
-  await page.getByLabel("Import character file").setInputFiles({
+test("a bundle's characters appear in the list", async ({ page }) => {
+  await page.goto("/import");
+  await page.getByLabel("Import dmv-export bundle").setInputFiles({
     name: "dmv-export.json",
     mimeType: "application/json",
     buffer: Buffer.from(
@@ -33,12 +34,14 @@ test("a bundle's characters appear in the list as it imports", async ({ page }) 
       }),
     ),
   });
+  await expect(page.getByRole("heading", { name: "Imported 2 characters" })).toBeVisible();
 
+  await page.getByRole("link", { name: "Alchemy 5e" }).click();
   await expect(page.getByRole("list", { name: "Characters" }).getByRole("listitem")).toHaveText([/Brannor Ironfist/, /Fimble Nackle/]);
 });
 
 test("a character exports from the list", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "wizard-5.strict.json"));
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await page.getByRole("link", { name: "Alchemy 5e" }).click();
@@ -49,7 +52,7 @@ test("a character exports from the list", async ({ page }) => {
 });
 
 test("deleting a character asks first, and it stays deleted after reload", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await page.getByRole("link", { name: "Alchemy 5e" }).click();

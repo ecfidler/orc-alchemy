@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 
 async function importFixture(page: Page, name: string, heading: string) {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, `${name}.strict.json`));
   await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
 }
@@ -21,7 +21,7 @@ test("a character exports as a dmv-character file that imports back", async ({ p
   const file = JSON.parse(readFileSync(await download.path(), "utf8"));
   expect(file).toMatchObject({ format: "dmv-character", version: 1, rules: "2014", name: "Brannor Ironfist" });
 
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(await download.path());
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
   await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText("19");
@@ -41,7 +41,8 @@ test("export everything downloads a dmv-export bundle that imports back", async 
   expect(bundle).toMatchObject({ format: "dmv-export", version: 1, magicItems: [] });
   expect(bundle.characters).toHaveLength(2);
 
-  await page.getByLabel("Import character file").setInputFiles(await download.path());
+  await page.goto("/import");
+  await page.getByLabel("Import dmv-export bundle").setInputFiles(await download.path());
   await expect(page.getByRole("heading", { name: "Imported 2 characters" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Brannor Ironfist", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Fimble Nackle", exact: true })).toBeVisible();

@@ -20,7 +20,7 @@ for (const file of strictFiles) {
   test(`${file} imports and opens its sheet`, async ({ page }) => {
     const name = readJson(file.replace(".strict.json", ".expected.json"))["character-name"] || "Unnamed character";
 
-    await page.goto("/");
+    await page.goto("/import");
     await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, file));
 
     if (hasUnresolved(file)) {
@@ -41,17 +41,17 @@ for (const [file, keys] of [
   test(`${file} lists its unresolved keys`, async ({ page }) => {
     const name = readJson(file.replace(".strict.json", ".expected.json"))["character-name"] || "Unnamed character";
 
-    await page.goto("/");
+    await page.goto("/import");
     await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, file));
 
     const list = page.getByRole("list", { name: `Unresolved content for ${name}` });
     for (const key of keys) await expect(list.getByRole("listitem").filter({ hasText: `${key} (` })).toHaveCount(1);
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/import");
   });
 }
 
 test("an SRD character opens its sheet with no unresolved content", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, "characters/fighter-1.strict.json"));
 
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
@@ -67,8 +67,8 @@ test("a dmv-export bundle lists its characters to open", async ({ page }) => {
     magicItems: [],
   };
 
-  await page.goto("/");
-  await page.getByLabel("Import character file").setInputFiles({
+  await page.goto("/import");
+  await page.getByLabel("Import dmv-export bundle").setInputFiles({
     name: "dmv-export.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(bundle)),
@@ -83,7 +83,7 @@ test("a dmv-export bundle lists its characters to open", async ({ page }) => {
 test("a dmv-character envelope opens its sheet", async ({ page }) => {
   const envelope = { format: "dmv-character", version: 1, rules: "2014", entity: readJson("characters/wizard-5.strict.json") };
 
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles({
     name: "fimble.json",
     mimeType: "application/json",
@@ -97,8 +97,8 @@ test("a dmv-character envelope opens its sheet", async ({ page }) => {
 test("a bundle lists the characters that import and the ones that fail", async ({ page }) => {
   const bundle = { format: "dmv-export", version: 1, characters: [readJson("characters/fighter-1.strict.json"), {}] };
 
-  await page.goto("/");
-  await page.getByLabel("Import character file").setInputFiles({
+  await page.goto("/import");
+  await page.getByLabel("Import dmv-export bundle").setInputFiles({
     name: "dmv-export.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(bundle)),
@@ -110,7 +110,7 @@ test("a bundle lists the characters that import and the ones that fail", async (
 });
 
 test("a file that is not a character says why", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles({
     name: "other.json",
     mimeType: "application/json",
@@ -118,5 +118,5 @@ test("a file that is not a character says why", async ({ page }) => {
   });
 
   await expect(page.getByRole("alert")).toHaveText("This is not a character file");
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/import");
 });

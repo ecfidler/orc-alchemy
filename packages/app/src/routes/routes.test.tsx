@@ -25,8 +25,16 @@ test("index route renders inside the shell", () => {
   renderAt("/");
   expect(screen.getByRole("link", { name: "Alchemy 5e" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Characters" })).toBeTruthy();
-  expect(screen.getByLabelText("Import character file")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Import" }).getAttribute("href")).toBe("/import");
+  expect(screen.getByRole("link", { name: "Import homebrew and characters" }).getAttribute("href")).toBe("/import");
+});
+
+test("the import route shows the import steps", () => {
+  renderAt("/import");
+  expect(screen.getByRole("heading", { level: 1, name: "Import" })).toBeTruthy();
   expect(screen.getByLabelText("Load homebrew file")).toBeTruthy();
+  expect(screen.getByLabelText("Import dmv-export bundle")).toBeTruthy();
+  expect(screen.getByLabelText("Import character file")).toBeTruthy();
 });
 
 test("the sheet route for an unknown character says so once the engine loads", async () => {

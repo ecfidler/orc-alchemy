@@ -5,9 +5,12 @@ export function AppShell() {
   const { inMemory, failed, outdated } = useStorage();
   return (
     <div className="min-h-screen bg-white text-black">
-      <header className="border-b border-black px-4 py-3">
+      <header className="flex gap-4 border-b border-black px-4 py-3">
         <Link to="/" className="font-bold">
           Alchemy 5e
+        </Link>
+        <Link to="/import" className="underline">
+          Import
         </Link>
       </header>
       {inMemory && (
