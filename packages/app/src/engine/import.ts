@@ -6,8 +6,6 @@ import type { Homebrew } from "@pubdoor/dmv";
 import { engine, type Rules, type StrictEntity } from "./engine.ts";
 import { missingContent, type UnresolvedKey } from "./reconcile.ts";
 
-export type { UnresolvedKey };
-
 export interface CharacterFileEntry {
   entity: StrictEntity;
   rules: Rules;

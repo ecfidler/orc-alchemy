@@ -385,3 +385,37 @@ test("Remap gives the option the chosen suggestion, saves the character, and lis
   expect(JSON.stringify(record.entity)).toContain("~:ironwrought-v2");
   expect(engine().reconcileMissingContent(record.entity, useHomebrew.getState().homebrew).hasMissing).toBe(false);
 });
+
+test("character-test-2 lists its content keys and its other options", async () => {
+  renderPage();
+  choose("Import character file", "character-test-2.json", readFileSync(join(fixturesDir, "legacy/character-test-2.strict.json"), "utf8"));
+  const list = await screen.findByRole("list", { name: "Unresolved content for Unnamed character" }, { timeout: 5000 });
+  expect(within(list).getAllByRole("listitem").map((li) => li.textContent!.split(" (")[0])).toEqual([
+    "Background: noble",
+    "Feat: ritual-caster",
+    "Subclass: eldritch-knight",
+    "Option: armor-of-resistance-half-plate",
+    "Option: animal-handling",
+    "Option: intimidation",
+  ]);
+});
+
+test("a key under another unresolved key offers no remap until that one resolves", async () => {
+  await loadEngine();
+  // duplicate-external-b with its subrace envoy renamed, so envoy has a suggestion while its race ironwrought does not resolve.
+  const b = engine().parseOrcbrew(orcbrew("duplicate-external-b.orcbrew"), { name: "duplicate-external-b" }).data!;
+  const renamed = engine().renameKey(
+    engine().renameKey(b, { pack: "duplicate-external-b", contentType: "orcpub.dnd.e5/races", from: "ironwrought", to: "steelborn" }),
+    { pack: "duplicate-external-b", contentType: "orcpub.dnd.e5/subraces", from: "envoy", to: "envoy-v2" },
+  );
+  renderPage();
+  choose("Load homebrew file", "b-renamed.orcbrew", engine().orcbrewToEdn(renamed));
+  await screen.findByRole("listitem", { name: "duplicate-external-b" });
+  await importR8();
+
+  const envoy = within(screen.getByRole("list", { name: "Unresolved content for Unit Seven" }))
+    .getAllByRole("listitem")
+    .find((li) => li.textContent!.startsWith("Subrace: envoy"))!;
+  expect(within(envoy).queryByRole("button", { name: "Remap envoy" })).toBeNull();
+  expect(envoy.textContent).toContain("To remap it, first remap its race or load the pack that has it.");
+});

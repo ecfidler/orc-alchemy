@@ -33,6 +33,8 @@ const OPTIONS = "~:orcpub.entity.strict/options";
 
 type Node = Record<string, unknown>;
 
+const notFound = (path: string[]) => new Error(`The option ${path.join(" / ")} is not in the character`);
+
 /**
  * The entity with the option at path given the key to. path alternates
  * selection and option keys, as an UnresolvedKey's path does, and ends with
@@ -43,17 +45,16 @@ type Node = Record<string, unknown>;
  */
 export function remapOption(entity: StrictEntity, path: string[], to: string): StrictEntity {
   if (typeof entity !== "object" || path.length < 2 || path.length % 2 !== 0) {
-    throw new Error(`The option ${path.join(" / ")} is not in the character`);
+    throw notFound(path);
   }
   return remapIn(entity as Node, path, to, path);
 }
 
 function remapIn(parent: Node, [selectionKey, optionKey, ...rest]: string[], to: string, path: string[]): Node {
-  const notFound = () => new Error(`The option ${path.join(" / ")} is not in the character`);
   const selections = parent[SELECTIONS];
-  if (!Array.isArray(selections)) throw notFound();
+  if (!Array.isArray(selections)) throw notFound(path);
   const index = selections.findIndex((s: Node) => s[KEY] === `~:${selectionKey}`);
-  if (index === -1) throw notFound();
+  if (index === -1) throw notFound(path);
   const selection = selections[index] as Node;
 
   const change = (option: Node): Node =>
@@ -64,9 +65,9 @@ function remapIn(parent: Node, [selectionKey, optionKey, ...rest]: string[], to:
     changed = { ...selection, [OPTION]: change(single) };
   } else {
     const options = selection[OPTIONS];
-    if (!Array.isArray(options)) throw notFound();
+    if (!Array.isArray(options)) throw notFound(path);
     const at = options.findIndex((o: Node) => o[KEY] === `~:${optionKey}`);
-    if (at === -1) throw notFound();
+    if (at === -1) throw notFound(path);
     if (rest.length === 0 && options.some((o: Node) => o[KEY] === `~:${to}`)) {
       throw new Error(`The character already has ${to} under ${selectionKey}`);
     }

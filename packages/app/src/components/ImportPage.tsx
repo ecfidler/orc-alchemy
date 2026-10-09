@@ -1,12 +1,13 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
-import { isBundleText, readBundleHomebrew, readCharacterFile, type UnresolvedKey } from "../engine/import.ts";
-import { UnresolvedContent } from "./UnresolvedContent.tsx";
+import { isBundleText, readBundleHomebrew, readCharacterFile } from "../engine/import.ts";
+import type { UnresolvedKey } from "../engine/reconcile.ts";
 import { addCharacter, checkStoredCharacter, remapStoredCharacter } from "../state/character.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { ConflictResolution } from "./ConflictResolution.tsx";
 import { ImportLog } from "./ImportLog.tsx";
+import { UnresolvedContent } from "./UnresolvedContent.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -126,6 +127,8 @@ function HomebrewImport() {
 
 /** The character steps of the page: 2, a bundle, or 3, one character. */
 type Step = "bundle" | "character";
+/** Where an error shows: under a step, or under Check again. */
+type ErrorPlace = Step | "checked";
 
 interface Imported {
   characters: { id: string; name: string | null; unresolved: UnresolvedKey[] }[];
@@ -149,7 +152,7 @@ interface Imported {
 function CharacterImport() {
   const navigate = useNavigate();
   const [pasted, setPasted] = useState("");
-  const [error, setError] = useState<{ step: Step | "checked"; text: string } | null>(null);
+  const [error, setError] = useState<{ step: ErrorPlace; text: string } | null>(null);
   const [imported, setImported] = useState<Imported | null>(null);
 
   /** Imports the text that read gives, or nothing when it gives null; the file name is for the import log. */
@@ -205,7 +208,7 @@ function CharacterImport() {
     }
   }
 
-  const errorFor = (step: Step | "checked") => error?.step === step && <p role="alert">{error.text}</p>;
+  const errorFor = (step: ErrorPlace) => error?.step === step && <p role="alert">{error.text}</p>;
 
   return (
     <>
