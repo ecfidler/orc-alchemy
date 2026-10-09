@@ -9,6 +9,8 @@ interface Change {
   from?: unknown;
   to?: unknown;
   description?: string;
+  /** key-renamed: the pack of the renamed item. */
+  pack?: unknown;
   details?: { key?: unknown; "content-type"?: unknown; plugin?: unknown; changes?: { fields?: unknown[]; "traits-fixed"?: number; "options-fixed"?: number } }[];
 }
 
@@ -88,7 +90,12 @@ function ChangeText({ change }: { change: Change }) {
     case "defaulted-choose":
       return <>Set skill choice to <Code>{show(to)}</Code> at <Code>{show(path)}</Code></>;
     case "key-renamed":
-      return <>Renamed key <Code>{show(from)}</Code> to <Code>{show(to)}</Code></>;
+      return (
+        <>
+          Renamed key <Code>{show(from)}</Code> to <Code>{show(to)}</Code>
+          {change.pack !== undefined && ` in ${show(change.pack)}`}
+        </>
+      );
     default:
       return <>{JSON.stringify(change)}</>;
   }

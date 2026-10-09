@@ -13,7 +13,7 @@ import { ImportPage } from "./ImportPage.tsx";
 afterEach(async () => {
   cleanup();
   for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
-  useHomebrew.setState({ lastImport: null });
+  useHomebrew.setState({ lastImport: null, pending: null });
 });
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
@@ -231,4 +231,108 @@ test("a bundle lists its characters, and its packs' log shows under step 1", asy
   expect(within(imported).getByRole("heading").textContent).toBe("Imported 1 character");
   expect(within(imported).getByText("Loaded 1 homebrew pack")).toBeTruthy();
   expect(within(screen.getByRole("region", { name: "Import log" })).getByRole("heading").textContent).toBe("Import log: dmv-export.json");
+});
+
+// ORC-70: duplicate-external-b over -a has four key conflicts, custom-lineage among them.
+async function loadAThenB() {
+  renderPage();
+  choose("Load homebrew file", "duplicate-external-a.orcbrew", orcbrew("duplicate-external-a.orcbrew"));
+  await screen.findByRole("listitem", { name: "duplicate-external-a" });
+  choose("Load homebrew file", "duplicate-external-b.orcbrew", orcbrew("duplicate-external-b.orcbrew"));
+  return screen.findByRole("region", { name: "Resolve key conflicts" });
+}
+
+const apply = () => screen.getByRole<HTMLButtonElement>("button", { name: /^(Apply and import|Choose for each conflict)/ });
+
+test("a file with key conflicts stores nothing until each conflict has a choice", async () => {
+  const step = await loadAThenB();
+  expect(within(step).getByRole("heading").textContent).toBe("Key conflicts in duplicate-external-b.orcbrew");
+  expect(within(step).getAllByRole("group").map((g) => g.querySelector("legend")!.textContent)).toEqual([
+    "classes: artificer",
+    "classes: monster-hunter",
+    "subclasses: artillerist",
+    "races: custom-lineage",
+  ]);
+  expect(screen.queryByRole("listitem", { name: "duplicate-external-b" })).toBeNull();
+  expect(apply().disabled).toBe(true);
+  expect(apply().textContent).toBe("Choose for each conflict (0 of 4)");
+
+  const lineage = within(step).getByRole("group", { name: "races: custom-lineage" });
+  expect(within(lineage).getByText("Imported: Custom Lineage (Variant) from duplicate-external-b. Loaded: Custom Lineage from duplicate-external-a.")).toBeTruthy();
+  fireEvent.click(within(lineage).getByRole("radio", { name: "Replace the one from duplicate-external-a with the imported one" }));
+  expect(apply().textContent).toBe("Choose for each conflict (1 of 4)");
+});
+
+test("Rename all, then Apply, imports the file with its keys renamed and lists the renames in the log", async () => {
+  const step = await loadAThenB();
+  fireEvent.click(within(step).getByRole("button", { name: "Rename all" }));
+  const lineage = within(step).getByRole("group", { name: "races: custom-lineage" });
+  expect(within(lineage).getByRole<HTMLInputElement>("radio", { name: "Rename the imported one to custom-lineage-duplicate-external-b" }).checked).toBe(true);
+  fireEvent.click(apply());
+
+  expect(await screen.findByRole("listitem", { name: "duplicate-external-b" })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Resolve key conflicts" })).toBeNull();
+  const log = screen.getByRole("region", { name: "Import log" });
+  expect(sectionTitles(log)).toEqual(["Key renames (4)", "Data cleanup (1)"]);
+  expect(Array.from(log.querySelectorAll("li"), (li) => li.textContent)).toContain("Renamed key custom-lineage to custom-lineage-duplicate-external-b in duplicate-external-b");
+  expect(useHomebrew.getState().homebrew!["duplicate-external-b"]).toHaveProperty(["~:orcpub.dnd.e5/races", "~:custom-lineage-duplicate-external-b"]);
+});
+
+test("Skip all, then Apply, imports the file without its conflicting items", async () => {
+  const step = await loadAThenB();
+  fireEvent.click(within(step).getByRole("button", { name: "Skip all" }));
+  fireEvent.click(apply());
+
+  expect(await screen.findByRole("listitem", { name: "duplicate-external-b" })).toBeTruthy();
+  const b = useHomebrew.getState().homebrew!["duplicate-external-b"] as Record<string, Record<string, unknown>>;
+  expect(b["~:orcpub.dnd.e5/races"]?.["~:custom-lineage"]).toBeUndefined();
+  expect(useHomebrew.getState().homebrew!["duplicate-external-a"]).toHaveProperty(["~:orcpub.dnd.e5/races", "~:custom-lineage"]);
+});
+
+test("choices made one key at a time apply each to its own conflict", async () => {
+  const step = await loadAThenB();
+  fireEvent.click(within(step).getByRole("button", { name: "Skip all" }));
+  const pick = (group: string, radio: string) =>
+    fireEvent.click(within(within(step).getByRole("group", { name: group })).getByRole("radio", { name: radio }));
+  pick("classes: artificer", "Rename the imported one to artificer-duplicate-external-b");
+  pick("races: custom-lineage", "Replace the one from duplicate-external-a with the imported one");
+  fireEvent.click(apply());
+
+  expect(await screen.findByRole("listitem", { name: "duplicate-external-b" })).toBeTruthy();
+  const { homebrew } = useHomebrew.getState();
+  expect(homebrew!["duplicate-external-b"]).toHaveProperty(["~:orcpub.dnd.e5/classes", "~:artificer-duplicate-external-b"]);
+  expect(homebrew!["duplicate-external-b"]).not.toHaveProperty(["~:orcpub.dnd.e5/classes", "~:monster-hunter"]);
+  expect(homebrew!["duplicate-external-b"]).toHaveProperty(["~:orcpub.dnd.e5/races", "~:custom-lineage"]);
+  expect(homebrew!["duplicate-external-a"]).not.toHaveProperty(["~:orcpub.dnd.e5/races", "~:custom-lineage"]);
+  expect(homebrew!["duplicate-external-a"]).toHaveProperty(["~:orcpub.dnd.e5/classes", "~:monster-hunter"]);
+});
+
+test("an external conflict that a choice on the file's own duplicates settles asks for no choice", async () => {
+  await loadEngine();
+  const a = engine().parseOrcbrew(orcbrew("duplicate-external-a.orcbrew"), { name: "duplicate-external-a" });
+  const pack = a.data!["duplicate-external-a"];
+  renderPage();
+  choose("Load homebrew file", "duplicate-external-a.orcbrew", orcbrew("duplicate-external-a.orcbrew"));
+  await screen.findByRole("listitem", { name: "duplicate-external-a" });
+  choose("Load homebrew file", "xy.orcbrew", engine().orcbrewToEdn({ x: pack, y: pack }));
+  const step = await screen.findByRole("region", { name: "Resolve key conflicts" });
+
+  const settled = within(step).getAllByText(/settles this one/);
+  expect(settled.length).toBeGreaterThan(0);
+  const groups = within(step).getAllByRole("group");
+  expect(apply().textContent).toBe(`Choose for each conflict (0 of ${groups.length - settled.length})`);
+  fireEvent.click(within(step).getByRole("button", { name: "Rename all" }));
+  fireEvent.click(apply());
+
+  expect(await screen.findByRole("listitem", { name: "x" })).toBeTruthy();
+  expect(engine().parseOrcbrew(engine().orcbrewToEdn(useHomebrew.getState().homebrew!)).conflicts).toEqual([]);
+});
+
+test("Cancel import stores nothing of the file", async () => {
+  const step = await loadAThenB();
+  fireEvent.click(within(step).getByRole("button", { name: "Cancel import" }));
+
+  expect(screen.queryByRole("region", { name: "Resolve key conflicts" })).toBeNull();
+  expect(screen.queryByRole("listitem", { name: "duplicate-external-b" })).toBeNull();
+  expect(screen.getByRole("listitem", { name: "duplicate-external-a" })).toBeTruthy();
 });

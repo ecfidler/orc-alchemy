@@ -55,3 +55,6 @@ Thumbs.db
 # Playwright output
 test-results/
 playwright-report/
+
+# The owner's private .orcbrew export. Never commit it (fixtures/orcbrew/private/ tests skip without it).
+fixtures/orcbrew/private/*.orcbrew

@@ -4,6 +4,7 @@
 // in storage as it is, is not used, and the UI warns about it.
 import { create } from "zustand";
 import { engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
+import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
 import type { BundleHomebrew } from "../engine/import.ts";
 import { deletePack, listPacks, savePacks, type PackRecord } from "../storage/packs.ts";
 
@@ -26,13 +27,17 @@ interface HomebrewState {
   fingerprint: string;
   /** The last import, kept raw, with the name of its file: the UI shows its log and its conflicts. */
   lastImport: LastImport | null;
+  /** An .orcbrew import that waits for a choice on each of its key conflicts, or null. */
+  pending: PendingImport | null;
   /**
    * Merges an .orcbrew file's text into the stored packs, skipping invalid
    * items, or, with strict, refusing the whole file if an item is invalid. A
    * single-plugin file loads as a pack named for the file. New packs are
-   * enabled. A failed import leaves the packs as they were. Throws, leaving
-   * the packs as they were and lastImport null, if the file has a pack named
-   * as a quarantined record, or if the importer throws.
+   * enabled. A failed import leaves the packs as they were. A file with key
+   * conflicts stores nothing yet: it becomes pending, and resolveConflicts or
+   * cancelImport ends it. Throws, leaving the packs as they were and
+   * lastImport null, if the file has a pack named as a quarantined record,
+   * or if the importer throws.
    * Needs the engine loaded.
    */
   load: (fileName: string, text: string, options?: { strict?: boolean }) => Promise<void>;
@@ -40,10 +45,23 @@ interface HomebrewState {
    * Merges a dmv-export bundle's packs into the stored packs, as load merges
    * a multi-plugin file, and gives each bundle pack its flags from the
    * bundle. A bundle pack without flags keeps its stored flags, or is
-   * enabled when new. Throws as load does. Needs the engine loaded.
+   * enabled when new. Its key conflicts do not make it pending: the packs
+   * come from this app, so their conflicts were resolved when they were
+   * loaded. Throws as load does. Needs the engine loaded.
    */
   loadBundle: (bundle: BundleHomebrew, fileName: string) => Promise<void>;
-  /** Removes a pack from storage. */
+  /**
+   * Applies a choice to each of the pending import's key conflicts, then
+   * stores the packs as load does. The applied renames join its log. Throws,
+   * and keeps the import pending, if a choice is missing or a rename fails.
+   */
+  resolveConflicts: (choices: Record<string, Resolution>) => Promise<void>;
+  /** Drops the pending import. Nothing of it was stored. */
+  cancelImport: () => void;
+  /**
+   * Removes a pack from storage. It also drops a pending import: that import
+   * was read with the pack in it, so applying it would store the pack again.
+   */
   remove: (pack: string) => Promise<void>;
   setPackEnabled: (pack: string, enabled: boolean) => Promise<void>;
   setItemEnabled: (pack: string, contentType: string, key: string, enabled: boolean) => Promise<void>;
@@ -52,6 +70,14 @@ interface HomebrewState {
 /** One import's result without its data, and the name of the file it read. */
 export type LastImport = Omit<ParsedOrcbrew, "data"> & { fileName: string };
 
+/** An import held for its key conflicts: its result, and the homebrew it parsed (the stored packs with the file merged in). */
+export interface PendingImport {
+  /** New for each pending import, so the UI starts each one with no choices. */
+  id: string;
+  result: LastImport;
+  homebrew: Record<string, object>;
+}
+
 interface MergeOptions {
   /** The file the text came from, for the import log. */
   fileName: string;
@@ -59,6 +85,8 @@ interface MergeOptions {
   name: string;
   flags: BundleHomebrew["flags"];
   strict?: boolean;
+  /** Hold an import that has key conflicts as pending, instead of storing it. */
+  askOnConflicts?: boolean;
 }
 
 export const useHomebrew = create<HomebrewState>()((set, get) => {
@@ -84,14 +112,14 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
 
   /**
    * Parses .orcbrew text over the stored packs, strictly if asked, and
-   * stores the packs it changes. A changed pack takes its flags from flags,
-   * or keeps its stored ones, or is enabled when new. The import's log
-   * becomes lastImport; an import that throws clears it. Runs inside queued.
+   * stores the packs it changes, or holds it as pending for its key
+   * conflicts if asked. The import's log becomes lastImport; an import that
+   * throws clears it. Runs inside queued.
    */
-  async function merge(text: string, { fileName, name, flags, strict = false }: MergeOptions) {
-    set({ lastImport: null }); // so an error is not shown under an earlier file's log
+  async function merge(text: string, { fileName, name, flags, strict = false, askOnConflicts = false }: MergeOptions) {
+    set({ lastImport: null, pending: null }); // so an error is not shown under an earlier file's log
     await restorePacks();
-    const { packs, quarantined } = get();
+    const { packs } = get();
     const existing = packs.length === 0 ? undefined : pluginMap(packs);
     let parsed: ParsedOrcbrew;
     try {
@@ -104,10 +132,26 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     const { data, ...withoutData } = parsed;
     const lastImport = { ...withoutData, fileName };
     if (data === null) return set({ lastImport });
-    const blocked = quarantined.find((q) => q.id in data);
+    checkQuarantine(data);
+    if (askOnConflicts && lastImport.conflicts.length > 0) return set({ pending: { id: crypto.randomUUID(), result: lastImport, homebrew: data } });
+    await store(data, flags, lastImport);
+  }
+
+  /** Throws if the homebrew has a pack named as a quarantined record. */
+  function checkQuarantine(data: Record<string, object>) {
+    const blocked = get().quarantined.find((q) => q.id in data);
     if (blocked) {
       throw new Error(`A stored pack named ${blocked.id} could not be read; it is kept as it is, so a pack of that name cannot be loaded.`);
     }
+  }
+
+  /**
+   * Stores the packs of the homebrew that differ from the stored ones, and
+   * makes lastImport the import's result. A changed pack takes its flags from
+   * flags, or keeps its stored ones, or is enabled when new.
+   */
+  async function store(data: Record<string, object>, flags: BundleHomebrew["flags"], lastImport: LastImport) {
+    const { packs } = get();
     const changed = Object.entries(data).flatMap(([id, plugin]): PackRecord[] => {
       const stored = packs.find((p) => p.id === id);
       const { enabled, disabledItems } = flags[id] ?? stored ?? { enabled: true, disabledItems: [] };
@@ -132,14 +176,26 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     homebrew: undefined,
     fingerprint: "",
     lastImport: null,
+    pending: null,
     load: (fileName, text, { strict } = {}) =>
-      queued(() => merge(text, { fileName, name: fileName.replace(/\.orcbrew$/i, ""), flags: {}, strict })),
+      queued(() => merge(text, { fileName, name: fileName.replace(/\.orcbrew$/i, ""), flags: {}, strict, askOnConflicts: true })),
     // Through .orcbrew text, so the bundle's packs get the same checks as a file's.
     loadBundle: ({ homebrew, flags }, fileName) =>
       queued(() => merge(engine().orcbrewToEdn(homebrew), { fileName, name: "dmv-export", flags })),
+    resolveConflicts: (choices) =>
+      queued(async () => {
+        const pending = get().pending;
+        if (pending === null) throw new Error("No import is waiting on its conflicts");
+        const { result, homebrew } = pending;
+        const { homebrew: resolved, renames } = applyResolutions(homebrew, result.conflicts, choices);
+        const renamed = renames.map(({ pack, contentType, from, to }) => ({ type: "key-renamed", pack, "content-type": contentType, from, to }));
+        await store(resolved, {}, { ...result, log: { ...result.log, changes: [...result.log.changes, ...renamed] }, conflicts: [] });
+        set({ pending: null });
+      }),
+    cancelImport: () => set({ pending: null }),
     remove: (pack) => queued(async () => {
       await deletePack(pack);
-      set(withPacks(get().packs.filter((p) => p.id !== pack)));
+      set({ ...withPacks(get().packs.filter((p) => p.id !== pack)), pending: null });
     }),
     setPackEnabled: (pack, enabled) => update(pack, (record) => (record.enabled === enabled ? null : { enabled })),
     setItemEnabled: (pack, contentType, key, enabled) =>

@@ -51,12 +51,19 @@ test("the pack name drops the extension in any case", async () => {
   expect(Object.keys(useHomebrew.getState().homebrew!)).toEqual(["warlock-test-content"]);
 });
 
-test("a second file merges in and reports its key conflicts; removing a pack keeps the others", async () => {
+test("a second file with key conflicts waits for its choices, then merges in; removing a pack keeps the others", async () => {
   const { useHomebrew, load, listPacks } = await reload();
   await load("duplicate-external-a");
   await load("duplicate-external-b");
+  const { pending } = useHomebrew.getState();
+  expect(pending?.result.conflicts.map((c) => c.key)).toContain("artificer");
+  expect(Object.keys(useHomebrew.getState().homebrew!)).toEqual(["duplicate-external-a"]);
+  expect((await listPacks()).map((p) => (p as { id: string }).id)).toEqual(["duplicate-external-a"]);
+
+  await useHomebrew.getState().resolveConflicts(Object.fromEntries(pending!.result.conflicts.map((c) => [c.id, "rename" as const])));
+  expect(useHomebrew.getState().pending).toBeNull();
   expect(Object.keys(useHomebrew.getState().homebrew!)).toEqual(["duplicate-external-a", "duplicate-external-b"]);
-  expect(useHomebrew.getState().lastImport?.conflicts.map((c) => c.key)).toContain("artificer");
+  expect(useHomebrew.getState().lastImport?.conflicts).toEqual([]);
 
   await useHomebrew.getState().remove("duplicate-external-a");
   expect(Object.keys(useHomebrew.getState().homebrew!)).toEqual(["duplicate-external-b"]);
@@ -308,4 +315,38 @@ test("a bundle with an item that is not a map is refused, and keeps the loaded p
   const homebrew = { bad: { "~:orcpub.dnd.e5/spells": { "~:x": 5 } } };
   await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} }, "dmv-export.json")).rejects.toThrow("The homebrew could not be read. An item or pack in the file may not be a map.");
   expect(app.useHomebrew.getState().packs).toBe(packs);
+});
+
+test("a missing choice keeps the import pending and stores nothing; cancelImport drops it", async () => {
+  const { useHomebrew, load, listPacks } = await reload();
+  await load("duplicate-external-a");
+  await load("duplicate-external-b");
+
+  await expect(useHomebrew.getState().resolveConflicts({})).rejects.toThrow("The conflict on artificer has no valid choice");
+  expect(useHomebrew.getState().pending).not.toBeNull();
+  expect((await listPacks()).map((p) => (p as { id: string }).id)).toEqual(["duplicate-external-a"]);
+
+  useHomebrew.getState().cancelImport();
+  expect(useHomebrew.getState().pending).toBeNull();
+  expect((await listPacks()).map((p) => (p as { id: string }).id)).toEqual(["duplicate-external-a"]);
+});
+
+test("removing a pack drops a pending import, so Apply cannot store the removed pack again", async () => {
+  const { useHomebrew, load, listPacks } = await reload();
+  await load("duplicate-external-a");
+  await load("duplicate-external-b");
+  expect(useHomebrew.getState().pending).not.toBeNull();
+
+  await useHomebrew.getState().remove("duplicate-external-a");
+  expect(useHomebrew.getState().pending).toBeNull();
+  await expect(useHomebrew.getState().resolveConflicts({})).rejects.toThrow("No import is waiting on its conflicts");
+  expect(await listPacks()).toEqual([]);
+});
+
+test("loading the same file again is not a key conflict", async () => {
+  const { useHomebrew, load } = await reload();
+  await load("duplicate-external-a");
+  await load("duplicate-external-a");
+  expect(useHomebrew.getState().pending).toBeNull();
+  expect(useHomebrew.getState().lastImport?.conflicts).toEqual([]);
 });
