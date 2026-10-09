@@ -181,7 +181,7 @@ test("pasted text that is not a character says why under step 3", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Import pasted character" }));
 
   const step = screen.getByRole("region", { name: "One character" });
-  expect((await within(step).findByRole("alert")).textContent).toBe("This file is not JSON");
+  expect((await within(step).findByRole("alert")).textContent).toBe("This file is not JSON or EDN");
 });
 
 test("the bundle step refuses a single character, and points to step 3", async () => {
@@ -200,16 +200,15 @@ test("the character step refuses a bundle, and points to step 2", async () => {
   expect((await within(step).findByRole("alert")).textContent).toBe("This is a dmv-export bundle. Import it in step 2.");
 });
 
-test("a file the engine cannot read says so in words, and the earlier file's log goes away", async () => {
+test("a file with no pack the engine can read shows its error in the log, in place of the earlier file's log", async () => {
   renderPage();
   choose("Load homebrew file", "warlock-test-content.orcbrew", orcbrew("warlock-test-content.orcbrew"));
-  await screen.findByRole("region", { name: "Import log" });
+  await screen.findByRole("heading", { name: "Import log: warlock-test-content.orcbrew" });
 
-  // Engine 0.2.0 throws on an item that is not a map (ORC-116).
-  choose("Load homebrew file", "bad.orcbrew", "{:orcpub.dnd.e5/spells {:a 5}}");
-  const step = screen.getByRole("region", { name: "Homebrew" });
-  expect((await within(step).findByRole("alert")).textContent).toMatch(/^The homebrew could not be read\. An item or pack in the file may not be a map\./);
-  expect(screen.queryByRole("region", { name: "Import log" })).toBeNull();
+  choose("Load homebrew file", "bad.orcbrew", '{"bad" 5}');
+  expect(await screen.findByRole("heading", { name: "Import log: bad.orcbrew" })).toBeTruthy();
+  const log = screen.getByRole("region", { name: "Import log" });
+  expect(within(log).getByRole("status").textContent).toMatch(/No pack in the file is a map/);
 });
 
 test("a bundle lists its characters, and its packs' log shows under step 1", async () => {

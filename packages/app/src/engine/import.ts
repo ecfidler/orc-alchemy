@@ -34,7 +34,7 @@ export function readCharacterFile(text: string, homebrew?: Homebrew): CharacterF
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error("This file is not JSON");
+    return readServerCharacters(text, homebrew);
   }
   if (!isObject(data)) throw new Error("This is not a character file");
 
@@ -55,19 +55,41 @@ export function readCharacterFile(text: string, homebrew?: Homebrew): CharacterF
       // magicItems become homebrew in the item builder (M5). The homebrew is read by readBundleHomebrew.
       const characters = Array.isArray(data.characters) ? data.characters : [];
       if (characters.length === 0 && bundlePacks(data) === null) throw new Error("This export has no characters");
-      const file: CharacterFile = { characters: [], failures: [] };
-      characters.forEach((character, i) => {
-        try {
-          file.characters.push(importOne(character, homebrew));
-        } catch (e) {
-          file.failures.push(`Character ${i + 1} of ${characters.length}: ${e instanceof Error ? e.message : String(e)}`);
-        }
-      });
-      return file;
+      return importEach(characters, homebrew);
     }
     default:
       throw new Error(`Unsupported file format: ${String(data.format)}`);
   }
+}
+
+/**
+ * The old server's EDN: one character from GET /dnd/5e/characters/<id>, or
+ * the list from GET /dnd/5e/characters. Neither has a rules value, so each
+ * character is 2014.
+ */
+function readServerCharacters(text: string, homebrew: Homebrew | undefined): CharacterFile {
+  let values: object[];
+  try {
+    values = engine().readServerEdn(text);
+  } catch {
+    throw new Error("This file is not JSON or EDN");
+  }
+  if (values.length === 0) throw new Error("This file has no characters");
+  if (values.length === 1) return { characters: [importOne(values[0], homebrew)], failures: [] };
+  return importEach(values, homebrew);
+}
+
+/** Imports each character, and reports each one that fails in failures. */
+function importEach(characters: unknown[], homebrew: Homebrew | undefined): CharacterFile {
+  const file: CharacterFile = { characters: [], failures: [] };
+  characters.forEach((character, i) => {
+    try {
+      file.characters.push(importOne(character, homebrew));
+    } catch (e) {
+      file.failures.push(`Character ${i + 1} of ${characters.length}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  });
+  return file;
 }
 
 /**
@@ -138,7 +160,7 @@ export function readBundleHomebrew(text: string): BundleHomebrew | null {
   checkVersion(data);
   const homebrew = bundlePacks(data);
   if (homebrew === null) return null;
-  // parseOrcbrew throws on a pack that is not a map, with a message that does not help the user.
+  // parseOrcbrew would skip a pack that is not a map. The export is damaged, so refuse all of it.
   const notPack = Object.keys(homebrew).find((pack) => !isObject(homebrew[pack]));
   if (notPack !== undefined) throw new Error(`The export's homebrew pack ${notPack} is not a pack`);
   const flags: Record<string, PackFlags> = {};

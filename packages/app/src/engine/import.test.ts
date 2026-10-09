@@ -19,7 +19,7 @@ const readText = (file: string) => readFileSync(join(fixturesDir, file), "utf8")
 beforeAll(() => loadEngine());
 
 test("finds every character and legacy fixture", () => {
-  expect(strictFiles).toHaveLength(23);
+  expect(strictFiles).toHaveLength(24);
 });
 
 test.each(strictFiles)("%s imports and builds", (file) => {
@@ -50,7 +50,8 @@ const metaKeys = (file: string) => {
 const keysOf = (character: CharacterFileEntry) => sortedKeys(character.unresolved);
 const importFixture = (file: string, homebrew?: Homebrew) => readCharacterFile(readText(file), homebrew).characters[0];
 
-test.each(strictFiles)("%s reports the unresolved keys its meta file records, with its packs loaded", (file) => {
+// Custom magic items reach the import with ORC-77, so the fixture that needs them is left out here.
+test.each(strictFiles.filter((file) => !readMeta(file).magicItems))("%s reports the unresolved keys its meta file records, with its packs loaded", (file) => {
   let homebrew: Homebrew | undefined;
   for (const pack of readMeta(file).orcbrew as string[]) {
     homebrew = engine().parseOrcbrew(readText(`orcbrew/${pack}`), { name: pack.replace(".orcbrew", ""), existing: homebrew }).data!;
@@ -61,6 +62,7 @@ test.each(strictFiles)("%s reports the unresolved keys its meta file records, wi
 test("without homebrew, only the fixtures with non-SRD content report unresolved keys", () => {
   const unresolved = strictFiles.filter((file) => importFixture(file).unresolved.length > 0);
   expect(unresolved).toEqual([
+    "characters/fighter-5-custom-magic-items.strict.json",
     "characters/ironwrought-artificer-3.strict.json",
     "characters/warlock-10-drow.strict.json",
     "legacy/character-test-2.strict.json",
@@ -140,8 +142,26 @@ test("a bundle keeps the characters that import and names the one that fails", (
   expect(file.failures).toEqual(["Character 2 of 2: This is not a character file"]);
 });
 
+// A real GET /dnd/5e/characters/<id> response, copied from the fork's engine-js/test/fixtures (ORC-11).
+const serverEdn = readFileSync(join(import.meta.dirname, "fighter-1.server.edn"), "utf8");
+
+test("the old server's EDN for one character imports through importCharacter", () => {
+  const { characters, failures } = readCharacterFile(serverEdn);
+  expect(failures).toEqual([]);
+  expect(characters).toEqual([
+    { entity: engine().importCharacter(engine().readServerEdn(serverEdn)[0]).entity, rules: "2014", legacyId: expect.any(String), name: "Brannor Ironfist", unresolved: [] },
+  ]);
+});
+
+test("the old server's EDN character list imports each character", () => {
+  const { characters, failures } = readCharacterFile(`[${serverEdn} {:db/id 1}]`);
+  expect(characters.map((c) => c.name)).toEqual(["Brannor Ironfist"]);
+  expect(failures).toEqual(["Character 2 of 2: This is not a character file"]);
+});
+
 test.each([
-  ["not JSON", "nope", "This file is not JSON"],
+  ["neither JSON nor EDN", "nope", "This file is not JSON or EDN"],
+  ["an empty EDN list", "()", "This file has no characters"],
   ["a JSON array", "[]", "This is not a character file"],
   ["an object that is not an entity", '{"foo":1}', "This is not a character file"],
   ["an unknown format", '{"format":"orcbrew"}', "Unsupported file format: orcbrew"],

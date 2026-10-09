@@ -133,7 +133,7 @@ and one synthetic file per drift form.
 The old app has no character export. The transfer path (doc 03) is that the
 user obtains each character's strict entity from their old instance and
 imports the file into the new app. There are two ways to obtain it: the
-public URL `https://<old>/dnd/5e/characters/<id>`, which returns Transit
+public URL `https://<old>/dnd/5e/characters/<id>`, which returns EDN
 text and needs no login for a shared character, or an exporter bookmarklet
 run while logged in.
 
@@ -151,7 +151,7 @@ characters and what handles it.
 | R7 | Unqualified legacy keys such as `:str` and `:quantity` | Not inherited. Detection specs exist (`character.cljc:47-94`). Patch D1 (ORC-20, doc 02) re-enabled the migration (`character.cljc:121-178`), and the facade's `importCharacter` runs it |
 | R8 | Selection keys that do not resolve because homebrew is not loaded | Inherited: `content_reconciliation.cljs` detects them. The UI is the new app's |
 | R9 | Duplicate multi-select options with the same key | Inherited: `has-duplicate-selections?`. Tolerate them on read |
-| R10 | Transit wire format with namespaced keywords | Decode with `transit-js`, or let the library decode it, which is simpler because `cognitect.transit` is already a ClojureScript dependency of the old client |
+| R10 | The old server sends EDN, not Transit (fixtures finding 10). Each map has a `:db/id`, and the top level also has `owner`, `type`, `game`, `game-version` and `summary` | The library: `readServerEdn` reads a response, and `importCharacter` reads EDN and removes those keys (ORC-107) |
 
 **Direction.** One way only. The old app cannot import a character file, so
 the new app has no obligation to write characters the old app can read.

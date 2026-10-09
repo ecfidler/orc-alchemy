@@ -19,11 +19,13 @@ const srdGolden = readdirSync(charactersDir)
 beforeAll(() => loadEngine());
 
 test("finds the SRD golden characters", () => {
-  expect(srdGolden).toHaveLength(10);
+  expect(srdGolden).toHaveLength(11);
 });
 
 test.each(srdGolden)("evaluate(%s).built matches expected.json", (name) => {
-  expect(engine().evaluate(readFixture(`${name}.strict.json`)).built).toEqual(readFixture(`${name}.expected.json`));
+  const { magicItems } = readFixture(`${name}.meta.json`);
+  const options = magicItems && { magicItems: engine().readServerEdn(readFileSync(join(charactersDir, "../magic-items", magicItems), "utf8")) };
+  expect(engine().evaluate(readFixture(`${name}.strict.json`), options).built).toEqual(readFixture(`${name}.expected.json`));
 });
 
 test("EngineGate renders its children once the engine has loaded", async () => {

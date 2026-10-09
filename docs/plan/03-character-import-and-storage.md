@@ -20,7 +20,7 @@ neither needs anything from the operator.
 
 **Path A, the public character URL.** Every character has a server route,
 `GET /dnd/5e/characters/<id>` (`routes.clj:1457-1458`), that needs no auth
-and returns the strict entity as Transit-JSON. The `<id>` is in the
+and returns the strict entity as EDN, not Transit (fixtures finding 10). The `<id>` is in the
 character's page URL, `/pages/dnd/5e/characters/<id>`. The user opens the
 API URL in a browser tab, saves the response as a file, and imports it.
 This works today but is tedious for many characters.
@@ -38,14 +38,15 @@ which returns all of the user's characters as full entities, and
 
 ```json
 { "format": "dmv-export", "version": 1, "exportedFrom": "https://old.example",
-  "characters": [ <transit-decoded strict entity>, ... ],
+  "characters": [ <the EDN text of each character response>, ... ],
   "magicItems":  [ ... ] }
 ```
 
 The calls are same-origin, so CORS is not a problem. The old server sends
 no CORS headers in production, so a cross-origin fetch from the new app is
-not an option. The bookmarklet either decodes Transit with `transit-js` or
-ships the raw Transit for the new app to decode through the library. Keep
+not an option. The bookmarklet does not parse EDN. It ships the raw EDN
+text of each response, and the new app reads it through the library's
+`importCharacter` and `readServerEdn`. Keep
 it under about 100 lines and free of dependencies where possible. It is the
 single most valuable compatibility tool for real users.
 
@@ -57,10 +58,12 @@ become homebrew magic items in the new app.
 ## Importing
 
 `importCharacter` (the doc 02 facade) accepts a strict entity as Transit
-text, decoded Transit, or the new app's JSON, and applies these steps in
-order:
+text, decoded Transit, the old server's EDN, or the new app's JSON, and
+applies these steps in order:
 
-1. Decode Transit, if needed.
+1. Decode Transit or EDN, if needed. For EDN, remove the server's
+   `:db/id` and top-level `owner`, `type`, `game`, `game-version` and
+   `summary` keys.
 2. Apply the inherited `char5e/from-strict` normalizations (R1 to R3, R6,
    and R9).
 3. Apply the two additions: parse a string `xps` to an integer (R5), and
