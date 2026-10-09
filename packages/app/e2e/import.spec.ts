@@ -120,3 +120,33 @@ test("a file that is not a character says why", async ({ page }) => {
   await expect(page.getByRole("alert")).toHaveText("This is not a character file");
   await expect(page).toHaveURL("/import");
 });
+
+test("after its pack loads in step 1, Check again clears r8's unresolved keys", async ({ page }) => {
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, "legacy/r8-unresolved-keys.strict.json"));
+  const list = page.getByRole("list", { name: "Unresolved content for Unit Seven" });
+  await expect(list.getByRole("listitem")).toHaveCount(4);
+
+  await page.getByLabel("Load homebrew file").setInputFiles(join(fixturesDir, "orcbrew/duplicate-external-b.orcbrew"));
+  await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toBeVisible();
+  await page.getByRole("button", { name: "Check again" }).click();
+  await expect(list).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Unit Seven", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Unit Seven" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Unresolved content" })).toHaveCount(0);
+});
+
+test("the sheet marks the content that does not resolve", async ({ page }) => {
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, "legacy/r8-unresolved-keys.strict.json"));
+  await page.getByRole("button", { name: "Unit Seven", exact: true }).click();
+
+  const gaps = page.getByRole("region", { name: "Unresolved content" });
+  await expect(gaps.getByRole("listitem")).toHaveText([
+    "Race: ironwrought (race / ironwrought)",
+    "Subrace: envoy (race / ironwrought / subrace / envoy)",
+    "Class: artificer (class / artificer)",
+    "Subclass: alchemist (class / artificer / levels / level-3 / artificer-specialization / alchemist)",
+  ]);
+});

@@ -7,6 +7,7 @@ import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
+import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import type { Sheet } from "../engine/sheet.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -98,6 +99,7 @@ function SheetPage() {
             </Link>
             <ExportCharacter id={id} />
           </div>
+          <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
           <CharacterSheet sheet={sheet} />
         </>
       )}

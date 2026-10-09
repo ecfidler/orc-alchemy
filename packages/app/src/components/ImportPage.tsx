@@ -2,7 +2,8 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
 import { isBundleText, readBundleHomebrew, readCharacterFile, type UnresolvedKey } from "../engine/import.ts";
-import { addCharacter } from "../state/character.ts";
+import { UnresolvedContent } from "./UnresolvedContent.tsx";
+import { addCharacter, checkStoredCharacter, remapStoredCharacter } from "../state/character.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { ConflictResolution } from "./ConflictResolution.tsx";
 import { ImportLog } from "./ImportLog.tsx";
@@ -141,12 +142,14 @@ interface Imported {
  * Each character is stored and checked against the loaded packs. One
  * character opens its sheet; a bundle, or one character with keys that do
  * not resolve, lists its characters to open, with their unresolved keys and
- * any that failed.
+ * any that failed. An unresolved key can be remapped to a suggestion, or
+ * checked again after its pack is loaded in step 1; the import never waits
+ * for either.
  */
 function CharacterImport() {
   const navigate = useNavigate();
   const [pasted, setPasted] = useState("");
-  const [error, setError] = useState<{ step: Step; text: string } | null>(null);
+  const [error, setError] = useState<{ step: Step | "checked"; text: string } | null>(null);
   const [imported, setImported] = useState<Imported | null>(null);
 
   /** Imports the text that read gives, or nothing when it gives null; the file name is for the import log. */
@@ -185,7 +188,24 @@ function CharacterImport() {
     }
   }
 
-  const errorFor = (step: Step) => error?.step === step && <p role="alert">{error.text}</p>;
+  /** Puts a character's new unresolved keys in the list. */
+  const setUnresolved = (id: string, unresolved: UnresolvedKey[]) =>
+    setImported((current) => current && { ...current, characters: current.characters.map((c) => (c.id === id ? { ...c, unresolved } : c)) });
+
+  async function checkAgain() {
+    if (imported === null) return;
+    setError(null);
+    try {
+      for (const { id } of imported.characters) {
+        const unresolved = await checkStoredCharacter(id);
+        if (unresolved !== null) setUnresolved(id, unresolved);
+      }
+    } catch (e) {
+      setError({ step: "checked", text: message(e) });
+    }
+  }
+
+  const errorFor = (step: Step | "checked") => error?.step === step && <p role="alert">{error.text}</p>;
 
   return (
     <>
@@ -245,21 +265,25 @@ function CharacterImport() {
                 <button type="button" onClick={() => navigate(`/sheet/${character.id}`)} className="underline">
                   {character.name ?? "Unnamed character"}
                 </button>
-                {character.unresolved.length > 0 && (
-                  <>
-                    <p className="ml-4">Unresolved content, left out of the sheet:</p>
-                    <ul aria-label={`Unresolved content for ${character.name ?? "Unnamed character"}`} className="ml-8 list-disc">
-                      {character.unresolved.map(({ label, key, path }, i) => (
-                        <li key={i}>
-                          {label}: {key} ({path.join(" / ")})
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+                <div className="ml-4">
+                  <UnresolvedContent
+                    characterName={character.name ?? "Unnamed character"}
+                    unresolved={character.unresolved}
+                    onRemap={async ({ path }, to) => setUnresolved(character.id, await remapStoredCharacter(character.id, path, to))}
+                  />
+                </div>
               </li>
             ))}
           </ul>
+          {imported.characters.some((c) => c.unresolved.length > 0) && (
+            <div className="space-y-1">
+              <p>Missing a homebrew pack? Load it in step 1, then check again.</p>
+              <button type="button" onClick={checkAgain} className="border border-black px-3 py-1">
+                Check again
+              </button>
+              {errorFor("checked")}
+            </div>
+          )}
           {imported.failures.length > 0 && (
             <ul role="alert">
               {imported.failures.map((failure, i) => (

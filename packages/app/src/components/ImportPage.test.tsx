@@ -7,6 +7,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { useHomebrew } from "../state/homebrew.ts";
+import { listCharacters } from "../storage/characters.ts";
 import type { PackRecord } from "../storage/packs.ts";
 import { ImportPage } from "./ImportPage.tsx";
 
@@ -335,4 +336,52 @@ test("Cancel import stores nothing of the file", async () => {
   expect(screen.queryByRole("region", { name: "Resolve key conflicts" })).toBeNull();
   expect(screen.queryByRole("listitem", { name: "duplicate-external-b" })).toBeNull();
   expect(screen.getByRole("listitem", { name: "duplicate-external-a" })).toBeTruthy();
+});
+
+// ORC-71: missing content on character import.
+const r8 = () => readFileSync(join(fixturesDir, "legacy/r8-unresolved-keys.strict.json"), "utf8");
+const unresolvedKeys = () =>
+  within(screen.getByRole("list", { name: "Unresolved content for Unit Seven" }))
+    .getAllByRole("listitem")
+    .map((li) => li.textContent!.split(" (")[0]);
+
+async function importR8() {
+  choose("Import character file", "r8-unresolved-keys.json", r8());
+  await screen.findByRole("list", { name: "Unresolved content for Unit Seven" }, { timeout: 5000 });
+}
+
+test("a character with unresolved keys lists them; after its pack loads, Check again clears the list", async () => {
+  renderPage();
+  await importR8();
+  expect(unresolvedKeys()).toEqual(["Race: ironwrought", "Subrace: envoy", "Class: artificer", "Subclass: alchemist"]);
+  expect(screen.queryByRole("combobox")).toBeNull(); // no packs loaded, so no suggestions
+
+  choose("Load homebrew file", "duplicate-external-b.orcbrew", orcbrew("duplicate-external-b.orcbrew"));
+  await screen.findByRole("listitem", { name: "duplicate-external-b" });
+  fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+
+  await waitFor(() => expect(screen.queryByRole("list", { name: "Unresolved content for Unit Seven" })).toBeNull());
+  expect(screen.queryByRole("button", { name: "Check again" })).toBeNull();
+});
+
+test("Remap gives the option the chosen suggestion, saves the character, and lists what still does not resolve", async () => {
+  await loadEngine();
+  // duplicate-external-b with its race ironwrought renamed to ironwrought-v2, which the engine suggests for ironwrought.
+  const b = engine().parseOrcbrew(orcbrew("duplicate-external-b.orcbrew"), { name: "duplicate-external-b" }).data!;
+  const renamed = engine().renameKey(b, { pack: "duplicate-external-b", contentType: "orcpub.dnd.e5/races", from: "ironwrought", to: "ironwrought-v2" });
+  renderPage();
+  choose("Load homebrew file", "b-v2.orcbrew", engine().orcbrewToEdn(renamed));
+  await screen.findByRole("listitem", { name: "duplicate-external-b" });
+  await importR8();
+  expect(unresolvedKeys()).toEqual(["Race: ironwrought", "Subrace: envoy"]);
+
+  const remap = screen.getByRole<HTMLButtonElement>("button", { name: "Remap ironwrought" });
+  expect(remap.disabled).toBe(true);
+  fireEvent.change(screen.getByRole("combobox", { name: "Replacement for ironwrought" }), { target: { value: "ironwrought-v2" } });
+  fireEvent.click(remap);
+
+  await waitFor(() => expect(screen.queryByRole("list", { name: "Unresolved content for Unit Seven" })).toBeNull());
+  const record = (await listCharacters()).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt)).at(-1)!;
+  expect(JSON.stringify(record.entity)).toContain("~:ironwrought-v2");
+  expect(engine().reconcileMissingContent(record.entity, useHomebrew.getState().homebrew).hasMissing).toBe(false);
 });

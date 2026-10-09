@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import { engine, loadEngine, useEvaluation, type Homebrew, type Rules, type StrictEntity } from "../engine/engine.ts";
+import { missingContent, remapOption, type UnresolvedKey } from "../engine/reconcile.ts";
 import { toSheet } from "../engine/sheet.ts";
 import {
   deleteCharacter,
@@ -68,6 +69,32 @@ function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, en
   const { homebrew, fingerprint } = useHomebrew.getState();
   const sheet = buildSheet(entity, homebrew);
   return saveCharacter({ ...record, name: sheet.name, updatedAt: now(), entity }, sheet, fingerprint);
+}
+
+/**
+ * A stored character's option keys that the loaded packs do not resolve.
+ * Null when there is no such character. Needs the engine loaded.
+ */
+export async function checkStoredCharacter(id: string): Promise<UnresolvedKey[] | null> {
+  const record = await getCharacter(id);
+  return record === undefined ? null : missingContent(record.entity, useHomebrew.getState().homebrew);
+}
+
+/**
+ * Gives a stored character's option at path the key to (remapOption), saves
+ * it, and returns its keys that still do not resolve. Throws if there is no
+ * such character, or as remapOption throws. Needs the engine loaded.
+ */
+export async function remapStoredCharacter(id: string, path: string[], to: string): Promise<UnresolvedKey[]> {
+  // A pending save of the open character would write its entity over this change.
+  await flushAutosave().catch(console.error);
+  const record = await getCharacter(id);
+  if (record === undefined) throw new Error("The character is no longer stored");
+  const entity = remapOption(record.entity, path, to);
+  const { format, version, rules, legacyId } = record;
+  await save({ format, version, rules, id, legacyId }, entity);
+  if (useCharacter.getState().id === id) useCharacter.getState().load(id, entity);
+  return missingContent(entity, useHomebrew.getState().homebrew);
 }
 
 /**
