@@ -4,6 +4,7 @@
 // exportCharacter.
 import type { Homebrew } from "@pubdoor/dmv";
 import { engine, type Rules, type StrictEntity } from "./engine.ts";
+import { missingContent, type UnresolvedKey } from "./reconcile.ts";
 
 export interface CharacterFileEntry {
   entity: StrictEntity;
@@ -13,14 +14,6 @@ export interface CharacterFileEntry {
   name: string | null;
   /** The option keys that do not resolve against the homebrew (quirk R8). Not stored. */
   unresolved: UnresolvedKey[];
-}
-
-export interface UnresolvedKey {
-  /** The content type, such as "Subclass", or "Option" for any other option. */
-  label: string;
-  key: string;
-  /** The option's path of keys, such as ["background", "noble"]. */
-  path: string[];
 }
 
 export interface CharacterFile {
@@ -186,11 +179,7 @@ function importOne(entity: unknown, homebrew: Homebrew | undefined): CharacterFi
   }
   const imported = engine().importCharacter(entity);
   const name = engine().evaluate(imported.entity, { homebrew }).built["character-name"];
-  const report = engine().reconcileMissingContent(imported.entity, homebrew);
-  const unresolved = [
-    ...report.items.map(({ label, key, path }) => ({ label, key, path })),
-    ...report.unresolvedOptions.map(({ key, path }) => ({ label: "Option", key, path })),
-  ];
+  const unresolved = missingContent(imported.entity, homebrew);
   // Every importable character is 2014: old-app files are, and readCharacterFile refuses other envelopes.
   return { ...imported, rules: "2014", name: name || null, unresolved };
 }
