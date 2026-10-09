@@ -56,10 +56,29 @@ export function internalCopies(conflict: KeyConflict): { others: { source: strin
 }
 
 /**
+ * The internal conflict whose choice settles an external one, or undefined.
+ * A key can have both kinds, for example in a multi-pack file loaded a
+ * second time. Both choices on an internal conflict rename or remove every
+ * copy but the last, so an external conflict on one of those copies has
+ * nothing left to choose.
+ */
+export function settledBy(conflict: KeyConflict, conflicts: KeyConflict[]): KeyConflict | undefined {
+  if (conflict.type !== "external") return undefined;
+  return conflicts.find(
+    (c) =>
+      c.type === "internal" &&
+      c["content-type"] === conflict["content-type"] &&
+      c.key === conflict.key &&
+      internalCopies(c).others.some((o) => o.source === conflict["import-source"]),
+  );
+}
+
+/**
  * Applies a choice to every conflict and returns the new homebrew and the
  * renames made. Renames go through the engine's renameKey, which rewrites
- * the references in the same pack. Throws, with the conflict's key, if a
- * conflict has no choice, has a choice its type does not offer, lacks a
+ * the references in the same pack. A conflict that settledBy settles needs
+ * no choice. Throws, with the conflict's key, if any other conflict has no
+ * choice, has a choice its type does not offer, lacks a
  * field the engine sets for its type, or if a rename fails.
  */
 export function applyResolutions(
@@ -80,20 +99,19 @@ export function applyResolutions(
     renames.push({ pack, contentType: contentType(c), from: c.key, to });
   }
 
-  for (const c of conflicts) {
+  const open = conflicts.filter((c) => settledBy(c, conflicts) === undefined);
+  for (const c of open) {
     const choice = choices[c.id];
     if (choice === undefined || !resolutionsFor(c).includes(choice)) {
       throw new Error(`The conflict on ${c.key} has no valid choice`);
     }
   }
-  // Internal conflicts first. A key can have both kinds, for example in a
-  // multi-pack file loaded a second time; an external conflict whose imported
-  // copy an internal choice already renamed or removed has nothing left to do.
-  const ordered = [...conflicts.filter((c) => c.type === "internal"), ...conflicts.filter((c) => c.type === "external")];
-  for (const c of ordered) {
+  for (const c of open) {
     const choice = choices[c.id];
     if (c.type === "external") {
       const imported = field(c, "import-source");
+      // Two external conflicts can share one imported copy, when two loaded
+      // packs have the key; after the first renames or skips it, the second has nothing to do.
       if (!hasItem(result, imported, contentType(c), c.key)) continue;
       if (choice === "rename") rename(c, imported, field(c, "suggested-new-key"));
       else if (choice === "skip") result = withoutItem(result, imported, contentType(c), c.key);
@@ -110,9 +128,9 @@ export function applyResolutions(
 }
 
 /**
- * The homebrew without one item. The parsed homebrew is Transit-encoded, so
- * a content type such as "orcpub.dnd.e5/races" is "~:orcpub.dnd.e5/races"
- * there, and a key such as "elf" is "~:elf".
+ * The items of one content type in one pack. The parsed homebrew is
+ * Transit-encoded, so a content type such as "orcpub.dnd.e5/races" is
+ * "~:orcpub.dnd.e5/races" there, and a key such as "elf" is "~:elf".
  */
 const itemsOf = (homebrew: Record<string, object>, pack: string, contentType: string) =>
   (homebrew[pack] as Record<string, Record<string, unknown>> | undefined)?.[`~:${contentType}`];
@@ -120,9 +138,9 @@ const itemsOf = (homebrew: Record<string, object>, pack: string, contentType: st
 const hasItem = (homebrew: Record<string, object>, pack: string, contentType: string, key: string) =>
   `~:${key}` in (itemsOf(homebrew, pack, contentType) ?? {});
 
+/** The homebrew without one item, or the same homebrew if it does not have the item. */
 function withoutItem(homebrew: Record<string, object>, pack: string, contentType: string, key: string): Record<string, object> {
-  const items = itemsOf(homebrew, pack, contentType);
-  if (items === undefined || !(`~:${key}` in items)) return homebrew;
-  const { [`~:${key}`]: _removed, ...rest } = items;
+  if (!hasItem(homebrew, pack, contentType, key)) return homebrew;
+  const { [`~:${key}`]: _removed, ...rest } = itemsOf(homebrew, pack, contentType)!;
   return { ...homebrew, [pack]: { ...homebrew[pack], [`~:${contentType}`]: rest } };
 }

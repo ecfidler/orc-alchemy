@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
-import { applyResolutions, type KeyConflict, type Resolution } from "./conflicts.ts";
+import { applyResolutions, settledBy, type KeyConflict, type Resolution } from "./conflicts.ts";
 import { engine, loadEngine } from "./engine.ts";
 
 beforeAll(() => loadEngine());
@@ -86,16 +86,32 @@ test("a conflict with no choice, or with a choice its type does not offer, throw
   expect(() => applyResolutions(homebrew, [internal], { "internal-0": "replace" })).toThrow("The conflict on x has no valid choice");
 });
 
-test("a key with both an internal and an external conflict resolves with Rename all", () => {
-  // Two packs that share duplicate-external-a's keys, loaded over duplicate-external-a: as when a multi-pack file is loaded again.
+/** Two packs that share duplicate-external-a's keys, parsed over duplicate-external-a: as when a multi-pack file is loaded again. */
+function xyOverA() {
   const a = engine().parseOrcbrew(orcbrew("duplicate-external-a.orcbrew"), { name: "duplicate-external-a" });
   const pack = a.data!["duplicate-external-a"];
-  const file = engine().orcbrewToEdn({ x: pack, y: pack });
-  const { data, conflicts } = engine().parseOrcbrew(file, { existing: a.data! });
-  expect(new Set(conflicts.map((c) => c.type))).toEqual(new Set(["internal", "external"]));
+  const { data, conflicts } = engine().parseOrcbrew(engine().orcbrewToEdn({ x: pack, y: pack }), { existing: a.data! });
+  return { homebrew: data!, conflicts };
+}
 
-  const { homebrew: resolved } = applyResolutions(data!, conflicts, all(conflicts, "rename"));
-  expect(reparse(resolved).conflicts).toEqual([]);
+describe("a key with both an internal and an external conflict", () => {
+  test("the internal choice settles each external conflict on a copy it renames or removes", () => {
+    const { conflicts } = xyOverA();
+    const external = conflicts.filter((c) => c.type === "external");
+    expect(external.length).toBeGreaterThan(0);
+    for (const c of external) {
+      expect(settledBy(c, conflicts)?.type, `${c.key} from ${c["import-source"]}`).toBe(c["import-source"] === "x" ? "internal" : undefined);
+    }
+  });
+
+  test("Rename all resolves it, and a settled conflict needs no choice", () => {
+    const { homebrew, conflicts } = xyOverA();
+    const open = conflicts.filter((c) => settledBy(c, conflicts) === undefined);
+    expect(open.length).toBeLessThan(conflicts.length);
+
+    const { homebrew: resolved } = applyResolutions(homebrew, conflicts, all(open, "rename"));
+    expect(reparse(resolved).conflicts).toEqual([]);
+  });
 });
 
 // The owner's real export: 29 packs and 86 internal conflicts. It is private and git-ignored, so this skips without it.

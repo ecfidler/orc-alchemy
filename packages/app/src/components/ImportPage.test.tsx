@@ -307,6 +307,27 @@ test("choices made one key at a time apply each to its own conflict", async () =
   expect(homebrew!["duplicate-external-a"]).toHaveProperty(["~:orcpub.dnd.e5/classes", "~:monster-hunter"]);
 });
 
+test("an external conflict that a choice on the file's own duplicates settles asks for no choice", async () => {
+  await loadEngine();
+  const a = engine().parseOrcbrew(orcbrew("duplicate-external-a.orcbrew"), { name: "duplicate-external-a" });
+  const pack = a.data!["duplicate-external-a"];
+  renderPage();
+  choose("Load homebrew file", "duplicate-external-a.orcbrew", orcbrew("duplicate-external-a.orcbrew"));
+  await screen.findByRole("listitem", { name: "duplicate-external-a" });
+  choose("Load homebrew file", "xy.orcbrew", engine().orcbrewToEdn({ x: pack, y: pack }));
+  const step = await screen.findByRole("region", { name: "Resolve key conflicts" });
+
+  const settled = within(step).getAllByText(/settles this one/);
+  expect(settled.length).toBeGreaterThan(0);
+  const groups = within(step).getAllByRole("group");
+  expect(apply().textContent).toBe(`Choose for each conflict (0 of ${groups.length - settled.length})`);
+  fireEvent.click(within(step).getByRole("button", { name: "Rename all" }));
+  fireEvent.click(apply());
+
+  expect(await screen.findByRole("listitem", { name: "x" })).toBeTruthy();
+  expect(engine().parseOrcbrew(engine().orcbrewToEdn(useHomebrew.getState().homebrew!)).conflicts).toEqual([]);
+});
+
 test("Cancel import stores nothing of the file", async () => {
   const step = await loadAThenB();
   fireEvent.click(within(step).getByRole("button", { name: "Cancel import" }));
