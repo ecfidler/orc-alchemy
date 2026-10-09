@@ -43,7 +43,7 @@ himself.
 | ORC-70 | #36 | Merged | The conflict step: rename, skip, replace, rename all |
 | ORC-71 | #37 | Merged | Missing-content reconciliation: remap a key, or import the pack first |
 | ORC-72, ORC-73 | #38 | Merged | The My Content page at `/content`, and `.orcbrew` export per pack and for all content |
-| ORC-107 | orcpub #36 | Ready, Engine CI green | `importCharacter` reads EDN, and the new `readServerEdn` |
+| ORC-107 | orcpub #36 | Merged into `pubdoor` | `importCharacter` reads EDN, and the new `readServerEdn` |
 
 ORC-73 shows Done in Linear, but one acceptance step is still open. Ethan
 must export a file from My Content and run the fork's
@@ -70,8 +70,9 @@ environment cannot run it.
 Three PubDoor issues go into one engine version, 0.3.0. Ethan publishes it
 from his machine, because the cloud environment cannot build the engine.
 
-1. **ORC-107** (orcpub PR #36). Merge it. Then ORC-107 stays open for two
-   changes in this repository, made with the 0.3.0 bump:
+1. **ORC-107** (orcpub PR #36, merged). Linear set ORC-107 to Done on the
+   merge, but two changes in this repository are still to do, with the
+   0.3.0 bump. Track them in the bump issue, or reopen ORC-107:
    - Let EDN text through `readCharacterFile` in `engine/import.ts`. Today it
      refuses text that is not JSON before the engine sees it.
    - Correct the plan docs that say the server sends Transit: doc 01 §C2 and
@@ -191,7 +192,7 @@ the recommended option of each.
 
 | Issue | Project | State | Subject |
 |---|---|---|---|
-| ORC-107 | PubDoor | In Review | EDN import. App and docs follow-ups in §3 |
+| ORC-107 | PubDoor | Done | EDN import. The app and docs follow-ups in §3 are not done |
 | ORC-126 | PubDoor | Backlog | Custom magic items in `buildTemplate` and `evaluate` |
 | ORC-125 | PubDoor | Backlog | No line numbers for EDN parse errors in `parseOrcbrew` |
 | ORC-41 | Alchemy 5e | Backlog | Per-type validators through the facade |
