@@ -26,8 +26,8 @@ export interface CharacterFile {
 /**
  * Reads a character file's text and imports every character in it. Throws
  * with a reason the user can read for anything that is not a character file.
- * A character in a bundle or list that fails is reported in failures, not
- * thrown. Each character's keys are checked against the homebrew, or against
+ * A character in a bundle, or in an EDN list of two or more, that fails is
+ * reported in failures, not thrown. Each character's keys are checked against the homebrew, or against
  * the SRD alone without it.
  */
 export function readCharacterFile(text: string, homebrew?: Homebrew): CharacterFile {
