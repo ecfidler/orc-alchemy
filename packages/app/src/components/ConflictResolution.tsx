@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { conflictSources, internalCopies, resolutionsFor, settledBy, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
+import { conflictSources, internalCopies, resolutionsFor, settledBy, conflictsToChoose, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
 import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** The words for one choice on one conflict. */
 function choiceLabel(conflict: KeyConflict, choice: Resolution): string {
@@ -44,10 +42,10 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
   const [choices, setChoices] = useState<Record<string, Resolution>>({});
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
-  const open = conflicts.filter((c) => settledBy(c, conflicts) === undefined);
-  const decided = open.filter((c) => choices[c.id] !== undefined).length;
+  const toChoose = conflictsToChoose(conflicts);
+  const decided = toChoose.filter((c) => choices[c.id] !== undefined).length;
 
-  const chooseAll = (choice: "rename" | "skip") => setChoices(Object.fromEntries(open.map((c) => [c.id, choice])));
+  const chooseAll = (choice: "rename" | "skip") => setChoices(Object.fromEntries(toChoose.map((c) => [c.id, choice])));
 
   async function apply() {
     setError(null);
@@ -55,7 +53,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
     try {
       await useHomebrew.getState().resolveConflicts(choices);
     } catch (e) {
-      setError(message(e));
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setApplying(false);
     }
@@ -88,15 +86,15 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
                 <p>The choice for {conflict.key} in more than one pack of the file settles this one: it renames or removes this copy.</p>
               ) : (
                 resolutionsFor(conflict).map((choice) => (
-                <label key={choice} className="block">
-                  <input
-                    type="radio"
-                    name={conflict.id}
-                    checked={choices[conflict.id] === choice}
-                    onChange={() => setChoices((current) => ({ ...current, [conflict.id]: choice }))}
-                  />{" "}
-                  {choiceLabel(conflict, choice)}
-                </label>
+                  <label key={choice} className="block">
+                    <input
+                      type="radio"
+                      name={conflict.id}
+                      checked={choices[conflict.id] === choice}
+                      onChange={() => setChoices((current) => ({ ...current, [conflict.id]: choice }))}
+                    />{" "}
+                    {choiceLabel(conflict, choice)}
+                  </label>
                 ))
               )}
             </fieldset>
@@ -107,11 +105,11 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={decided < open.length || applying}
+          disabled={decided < toChoose.length || applying}
           onClick={apply}
           className="border border-black px-3 py-1 disabled:opacity-50"
         >
-          {decided < open.length ? `Choose for each conflict (${decided} of ${open.length})` : "Apply and import"}
+          {decided < toChoose.length ? `Choose for each conflict (${decided} of ${toChoose.length})` : "Apply and import"}
         </button>
         <button type="button" onClick={() => useHomebrew.getState().cancelImport()} className="underline">
           Cancel import

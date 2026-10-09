@@ -73,13 +73,17 @@ export function settledBy(conflict: KeyConflict, conflicts: KeyConflict[]): KeyC
   );
 }
 
+/** The conflicts that need a choice: all but the ones settledBy settles. */
+export const conflictsToChoose = (conflicts: KeyConflict[]) => conflicts.filter((c) => settledBy(c, conflicts) === undefined);
+
 /**
- * Applies a choice to every conflict and returns the new homebrew and the
- * renames made. Renames go through the engine's renameKey, which rewrites
- * the references in the same pack. A conflict that settledBy settles needs
- * no choice. Throws, with the conflict's key, if any other conflict has no
- * choice, has a choice its type does not offer, lacks a
- * field the engine sets for its type, or if a rename fails.
+ * Applies a choice to each conflict that needs one, and returns the new
+ * homebrew and the renames made. Renames go through the engine's renameKey,
+ * which rewrites the references in the same pack. Throws, with the
+ * conflict's key, in these cases:
+ * - a conflict that needs a choice has none, or has one its type does not offer
+ * - a conflict lacks a field that the engine sets for its type
+ * - a rename fails
  */
 export function applyResolutions(
   homebrew: Record<string, object>,
@@ -99,14 +103,14 @@ export function applyResolutions(
     renames.push({ pack, contentType: contentType(c), from: c.key, to });
   }
 
-  const open = conflicts.filter((c) => settledBy(c, conflicts) === undefined);
-  for (const c of open) {
+  const toChoose = conflictsToChoose(conflicts);
+  for (const c of toChoose) {
     const choice = choices[c.id];
     if (choice === undefined || !resolutionsFor(c).includes(choice)) {
       throw new Error(`The conflict on ${c.key} has no valid choice`);
     }
   }
-  for (const c of open) {
+  for (const c of toChoose) {
     const choice = choices[c.id];
     if (c.type === "external") {
       const imported = field(c, "import-source");
