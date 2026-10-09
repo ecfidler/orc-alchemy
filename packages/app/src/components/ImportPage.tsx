@@ -4,6 +4,7 @@ import { loadEngine } from "../engine/engine.ts";
 import { isBundleText, readBundleHomebrew, readCharacterFile, type UnresolvedKey } from "../engine/import.ts";
 import { addCharacter } from "../state/character.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
+import { ConflictResolution } from "./ConflictResolution.tsx";
 import { ImportLog } from "./ImportLog.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -48,6 +49,7 @@ function HomebrewImport() {
   const packs = useHomebrew((state) => state.packs);
   const quarantined = useHomebrew((state) => state.quarantined);
   const lastImport = useHomebrew((state) => state.lastImport);
+  const pending = useHomebrew((state) => state.pending);
   const [strict, setStrict] = useState(false);
   const [restored, setRestored] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +90,7 @@ function HomebrewImport() {
         nothing from the file
       </label>
       {error && <p role="alert">{error}</p>}
+      {pending && <ConflictResolution key={pending.id} pending={pending} />}
       {lastImport && <ImportLog result={lastImport} />}
       {!restored && <p role="status">Reading the stored homebrew…</p>}
       {quarantined.length > 0 && (

@@ -89,3 +89,20 @@ test("Export everything writes the packs, and its bundle restores them and the c
   await other.getByLabel("Load homebrew file").setInputFiles({ name: "all-content.orcbrew", mimeType: "application/edn", buffer: readFileSync(orcbrewPath) });
   await expect(other.getByRole("listitem", { name: "warlock-test-content" })).toBeVisible();
 });
+
+// ORC-70: the conflict step stores nothing until each conflict has a choice.
+test("a pack with key conflicts loads after Rename all and Apply", async ({ page }) => {
+  await page.goto("/import");
+  await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "duplicate-external-a.orcbrew"));
+  await expect(page.getByRole("listitem", { name: "duplicate-external-a" })).toBeVisible();
+  await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "duplicate-external-b.orcbrew"));
+
+  const conflicts = page.getByRole("region", { name: "Resolve key conflicts" });
+  await expect(conflicts.getByRole("group")).toHaveCount(4);
+  await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toHaveCount(0);
+  await conflicts.getByRole("button", { name: "Rename all" }).click();
+  await conflicts.getByRole("button", { name: "Apply and import" }).click();
+
+  await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Import log" })).toContainText("Key renames (4)");
+});
