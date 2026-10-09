@@ -12,6 +12,9 @@ export function AppShell() {
         <Link to="/import" className="underline">
           Import
         </Link>
+        <Link to="/content" className="underline">
+          My Content
+        </Link>
       </header>
       {inMemory && (
         <p role="alert" className="border-b border-black px-4 py-2">

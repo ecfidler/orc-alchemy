@@ -150,16 +150,6 @@ export function readBundleHomebrew(text: string): BundleHomebrew | null {
   return { homebrew, flags };
 }
 
-/**
- * The packs as the old app's all-content.orcbrew, or the names of the packs
- * that fail validateForExport: the old app would refuse them.
- */
-export function oldAppOrcbrew(homebrew: Record<string, object>): { text: string } | { invalid: string[] } {
-  const check = engine().validateForExport(homebrew);
-  if (!check.valid) return { invalid: Object.keys(check.packs).filter((pack) => !check.packs[pack].valid) };
-  return { text: engine().orcbrewToEdn(homebrew, { pretty: true }) };
-}
-
 function bundlePacks(data: Record<string, unknown>): Record<string, object> | null {
   const { homebrew } = data;
   if (!isObject(homebrew) || Object.keys(homebrew).length === 0) return null;

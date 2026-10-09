@@ -49,24 +49,16 @@ test("the page shows the three steps in order: homebrew, bundle, one character",
   ]);
 });
 
-test("a chosen pack is listed with its import log, its checkbox disables it, and Remove takes it out", async () => {
+test("a chosen pack is listed with its import log, and the list points to My Content", async () => {
   renderPage();
   choose("Load homebrew file", "warlock-test-content.orcbrew", orcbrew("warlock-test-content.orcbrew"));
 
-  const pack = await screen.findByRole("listitem", { name: "warlock-test-content" });
+  await screen.findByRole("listitem", { name: "warlock-test-content" });
   const log = screen.getByRole("region", { name: "Import log" });
   expect(within(log).getByRole("heading").textContent).toBe("Import log: warlock-test-content.orcbrew");
   expect(within(log).getByRole("status").textContent).toMatch(/^✅ Import successful/);
   expect(within(log).getByText("No issues found. The import completed cleanly.")).toBeTruthy();
-
-  const enabled = within(pack).getByRole<HTMLInputElement>("checkbox", { name: "warlock-test-content" });
-  expect(enabled.checked).toBe(true);
-  fireEvent.click(enabled);
-  await waitFor(() => expect(enabled.checked).toBe(false));
-  expect(useHomebrew.getState().homebrew).toBeUndefined();
-
-  fireEvent.click(within(pack).getByRole("button", { name: "Remove warlock-test-content" }));
-  await waitFor(() => expect(screen.queryByRole("list", { name: "Homebrew packs" })).toBeNull());
+  expect(screen.getByRole("link", { name: "My Content" }).getAttribute("href")).toBe("/content");
 });
 
 // ORC-69: each drift fixture's automatic fixes are listed, in the old import log's sections.

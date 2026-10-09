@@ -3,6 +3,7 @@
 // reports, applied to the homebrew it parsed, before anything is stored.
 import type { ContentType, KeyConflict } from "@pubdoor/dmv";
 import { engine } from "./engine.ts";
+import { tag, withoutItem } from "./content.ts";
 
 export type { KeyConflict };
 
@@ -118,13 +119,13 @@ export function applyResolutions(
       // packs have the key; after the first renames or skips it, the second has nothing to do.
       if (!hasItem(result, imported, contentType(c), c.key)) continue;
       if (choice === "rename") rename(c, imported, field(c, "suggested-new-key"));
-      else if (choice === "skip") result = withoutItem(result, imported, contentType(c), c.key);
-      else result = withoutItem(result, field(c, "existing-source"), contentType(c), c.key);
+      else if (choice === "skip") result = withoutPackItem(result, imported, contentType(c), c.key);
+      else result = withoutPackItem(result, field(c, "existing-source"), contentType(c), c.key);
     } else {
       const { others } = internalCopies(c);
       for (const { source, newKey } of others) {
         if (choice === "rename") rename(c, source, newKey);
-        else result = withoutItem(result, source, contentType(c), c.key);
+        else result = withoutPackItem(result, source, contentType(c), c.key);
       }
     }
   }
@@ -137,14 +138,13 @@ export function applyResolutions(
  * "~:orcpub.dnd.e5/races" there, and a key such as "elf" is "~:elf".
  */
 const itemsOf = (homebrew: Record<string, object>, pack: string, contentType: string) =>
-  (homebrew[pack] as Record<string, Record<string, unknown>> | undefined)?.[`~:${contentType}`];
+  (homebrew[pack] as Record<string, Record<string, unknown>> | undefined)?.[tag(contentType)];
 
 const hasItem = (homebrew: Record<string, object>, pack: string, contentType: string, key: string) =>
-  `~:${key}` in (itemsOf(homebrew, pack, contentType) ?? {});
+  tag(key) in (itemsOf(homebrew, pack, contentType) ?? {});
 
 /** The homebrew without one item, or the same homebrew if it does not have the item. */
-function withoutItem(homebrew: Record<string, object>, pack: string, contentType: string, key: string): Record<string, object> {
+function withoutPackItem(homebrew: Record<string, object>, pack: string, contentType: string, key: string): Record<string, object> {
   if (!hasItem(homebrew, pack, contentType, key)) return homebrew;
-  const { [`~:${key}`]: _removed, ...rest } = itemsOf(homebrew, pack, contentType)!;
-  return { ...homebrew, [pack]: { ...homebrew[pack], [`~:${contentType}`]: rest } };
+  return { ...homebrew, [pack]: withoutItem(homebrew[pack], tag(contentType), tag(key)) };
 }
