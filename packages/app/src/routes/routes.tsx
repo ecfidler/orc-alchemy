@@ -7,6 +7,7 @@ import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
+import { MyContent } from "../components/MyContent.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import type { Sheet } from "../engine/sheet.ts";
@@ -145,6 +146,7 @@ export const routes: RouteObject[] = [
         ),
       },
       { path: "import", element: <ImportPage /> },
+      { path: "content", element: <MyContent /> },
       {
         path: "sheet/:id",
         element: (

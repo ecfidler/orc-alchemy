@@ -1,25 +1,33 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type Download } from "@playwright/test";
+import { expect, test, type Download, type Page } from "@playwright/test";
 
 const orcbrewDir = join(import.meta.dirname, "../../../fixtures/orcbrew");
 
-test("a chosen homebrew pack is listed until it is removed", async ({ page }) => {
+test("a chosen homebrew pack is listed until My Content deletes it", async ({ page }) => {
   await page.goto("/import");
   await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "warlock-test-content.orcbrew"));
 
-  const pack = page.getByRole("listitem", { name: "warlock-test-content" });
-  await expect(pack).toBeVisible();
+  await expect(page.getByRole("listitem", { name: "warlock-test-content" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Import log" })).toContainText("Import successful");
 
-  await pack.getByRole("button", { name: "Remove warlock-test-content" }).click();
-  await expect(pack).toHaveCount(0);
+  await page.getByRole("link", { name: "My Content" }).first().click();
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.getByRole("region", { name: "warlock-test-content" }).getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("region", { name: "warlock-test-content" })).toHaveCount(0);
+  await page.goto("/import");
+  await expect(page.getByRole("list", { name: "Homebrew packs" })).toHaveCount(0);
 });
+
+/** The enabled checkbox of a pack on My Content. */
+const packEnabled = (page: Page, pack: string) => page.getByRole("region", { name: pack }).getByRole("checkbox", { name: "Enabled" });
 
 test("a loaded pack and its enabled flag survive a reload", async ({ page }) => {
   await page.goto("/import");
   await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "warlock-test-content.orcbrew"));
-  const enabled = page.getByRole("listitem", { name: "warlock-test-content" }).getByRole("checkbox", { name: "warlock-test-content" });
+  await expect(page.getByRole("listitem", { name: "warlock-test-content" })).toBeVisible();
+  await page.goto("/content");
+  const enabled = packEnabled(page, "warlock-test-content");
   await expect(enabled).toBeChecked();
 
   await page.reload();
@@ -30,6 +38,35 @@ test("a loaded pack and its enabled flag survive a reload", async ({ page }) => 
 
   await page.reload();
   await expect(enabled).not.toBeChecked();
+});
+
+// ORC-72, ORC-73: an item turned off on My Content, and a pack exported from it and loaded in an empty browser.
+test("My Content turns an item off, and a pack's export loads back in an empty browser", async ({ page, browser }) => {
+  await page.goto("/import");
+  await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "duplicate-external-b.orcbrew"));
+  await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toBeVisible();
+  await page.goto("/content");
+
+  const pack = page.getByRole("region", { name: "duplicate-external-b" });
+  await pack.getByText(/^\d+ classes$/).click();
+  const artificer = pack.getByRole("checkbox", { name: "Artificer (Alternate) (duplicate-external-b)" });
+  await artificer.click();
+  await expect(artificer).not.toBeChecked();
+
+  const download = page.waitForEvent("download");
+  await pack.getByRole("button", { name: "Export" }).click();
+  expect((await download).suggestedFilename()).toBe("duplicate-external-b.orcbrew");
+
+  const empty = await (await browser.newContext()).newPage();
+  await empty.goto("/import");
+  await empty
+    .getByLabel("Load homebrew file")
+    .setInputFiles({ name: "duplicate-external-b.orcbrew", mimeType: "application/edn", buffer: readFileSync(await (await download).path()) });
+  await expect(empty.getByRole("region", { name: "Import log" })).toContainText("No issues found");
+  await empty.goto("/content");
+  // .orcbrew has no flags: the item turned off here comes back on.
+  await empty.getByRole("region", { name: "duplicate-external-b" }).getByText(/^\d+ classes$/).click();
+  await expect(empty.getByRole("checkbox", { name: "Artificer (Alternate) (duplicate-external-b)" })).toBeChecked();
 });
 
 const fixturesDir = join(import.meta.dirname, "../../../fixtures");
@@ -60,9 +97,12 @@ test("a homebrew golden character, imported after its pack, shows its expected.j
 test("Export everything writes the packs, and its bundle restores them and the characters in an empty browser", async ({ page, browser }) => {
   await page.goto("/import");
   await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "warlock-test-content.orcbrew"));
-  const enabled = page.getByRole("listitem", { name: "warlock-test-content" }).getByRole("checkbox", { name: "warlock-test-content" });
+  await expect(page.getByRole("listitem", { name: "warlock-test-content" })).toBeVisible();
+  await page.goto("/content");
+  const enabled = packEnabled(page, "warlock-test-content");
   await enabled.click();
   await expect(enabled).not.toBeChecked();
+  await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, "characters/fighter-1.strict.json"));
   await expect(page).toHaveURL(/\/sheet\//);
   await page.goto("/");
@@ -80,8 +120,7 @@ test("Export everything writes the packs, and its bundle restores them and the c
   await expect(empty.getByText("Loaded 1 homebrew pack")).toBeVisible();
   const imported = empty.getByRole("region", { name: "Imported characters" });
   await expect(imported.getByRole("button", { name: "Brannor Ironfist", exact: true })).toBeVisible();
-  const restored = empty.getByRole("listitem", { name: "warlock-test-content" }).getByRole("checkbox", { name: "warlock-test-content" });
-  await expect(restored).not.toBeChecked();
+  await expect(empty.getByRole("listitem", { name: "warlock-test-content" })).toContainText("(turned off)");
 
   // The .orcbrew file is the old app's all-content export: it loads as a pack file.
   const other = await (await browser.newContext()).newPage();

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
 import { isBundleText, readBundleHomebrew, readCharacterFile } from "../engine/import.ts";
 import type { UnresolvedKey } from "../engine/reconcile.ts";
@@ -45,8 +45,8 @@ export function ImportPage() {
 /**
  * Step 1: loads .orcbrew files, progressive by default or strict on request,
  * asks for a choice on each key conflict before a file is stored, and shows
- * the last import's log. Lists the stored packs to enable,
- * disable or remove, and warns about stored records that could not be read.
+ * the last import's log. Lists the stored packs, which My Content manages,
+ * and warns about stored records that could not be read.
  */
 function HomebrewImport() {
   const packs = useHomebrew((state) => state.packs);
@@ -73,12 +73,6 @@ function HomebrewImport() {
     } catch (e) {
       setError(message(e));
     }
-  }
-
-  /** Shows the error if the action fails. */
-  function report(action: Promise<void>) {
-    setError(null);
-    action.catch((e) => setError(message(e)));
   }
 
   return (
@@ -108,18 +102,23 @@ function HomebrewImport() {
         </div>
       )}
       {packs.length > 0 && (
-        <ul aria-label="Homebrew packs">
-          {packs.map(({ id, enabled }) => (
-            <li key={id} aria-label={id}>
-              <label>
-                <input type="checkbox" checked={enabled} onChange={(e) => report(useHomebrew.getState().setPackEnabled(id, e.target.checked))} /> {id}
-              </label>{" "}
-              <button type="button" onClick={() => report(useHomebrew.getState().remove(id))} aria-label={`Remove ${id}`} className="underline">
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p>
+            Loaded packs. To turn them or their items off, export them, or delete them, use{" "}
+            <Link to="/content" className="underline">
+              My Content
+            </Link>
+            .
+          </p>
+          <ul aria-label="Homebrew packs" className="ml-4 list-disc">
+            {packs.map(({ id, enabled }) => (
+              <li key={id} aria-label={id}>
+                {id}
+                {!enabled && " (turned off)"}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );

@@ -63,6 +63,14 @@ interface HomebrewState {
    * was read with the pack in it, so applying it would store the pack again.
    */
   remove: (pack: string) => Promise<void>;
+  /** Removes a record that could not be read from storage, and its warning. */
+  removeQuarantined: (id: string) => Promise<void>;
+  /**
+   * Removes one item from a pack, and from its disabled items. contentType
+   * and key are Transit-encoded, as in disabledItems. Throws if the pack is
+   * not stored.
+   */
+  removeItem: (pack: string, contentType: string, key: string) => Promise<void>;
   setPackEnabled: (pack: string, enabled: boolean) => Promise<void>;
   setItemEnabled: (pack: string, contentType: string, key: string, enabled: boolean) => Promise<void>;
 }
@@ -197,6 +205,21 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       await deletePack(pack);
       set({ ...withPacks(get().packs.filter((p) => p.id !== pack)), pending: null });
     }),
+    removeQuarantined: (id) =>
+      queued(async () => {
+        await deletePack(id);
+        set({ quarantined: get().quarantined.filter((q) => q.id !== id) });
+      }),
+    removeItem: (pack, contentType, key) =>
+      update(pack, ({ plugin, disabledItems }) => {
+        const items = (plugin as Record<string, Record<string, unknown> | undefined>)[contentType];
+        if (items === undefined || !(key in items)) return null;
+        const { [key]: _removed, ...rest } = items;
+        return {
+          plugin: { ...plugin, [contentType]: rest },
+          disabledItems: disabledItems.filter(([t, k]) => t !== contentType || k !== key),
+        };
+      }),
     setPackEnabled: (pack, enabled) => update(pack, (record) => (record.enabled === enabled ? null : { enabled })),
     setItemEnabled: (pack, contentType, key, enabled) =>
       update(pack, ({ disabledItems }) => {

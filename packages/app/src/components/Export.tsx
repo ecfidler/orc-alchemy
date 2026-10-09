@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { loadEngine } from "../engine/engine.ts";
-import { characterFile, exportBundle, oldAppOrcbrew } from "../engine/import.ts";
+import { characterFile, exportBundle } from "../engine/import.ts";
+import { exportOrcbrew } from "../engine/orcbrew-export.ts";
 import { flushAutosave } from "../state/character.ts";
 import { bundleHomebrew, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { getCharacter, listCharacters } from "../storage/characters.ts";
@@ -45,10 +46,11 @@ export function ExportEverything() {
           notices.push(`These stored packs could not be read and are not in the export: ${quarantined.map((q) => q.id).join(", ")}.`);
         }
         if (hasPacks) {
-          // The full export UI, with "export anyway", is ORC-73.
-          const orcbrew = oldAppOrcbrew(packs.homebrew);
-          if ("invalid" in orcbrew) notices.push(`all-content.orcbrew was not written: the old app would refuse ${orcbrew.invalid.join(", ")}.`);
-          else downloadText("all-content.orcbrew", orcbrew.text, "application/edn");
+          const orcbrew = exportOrcbrew(packs.homebrew, { pretty: true });
+          if ("invalid" in orcbrew) {
+            const names = orcbrew.invalid.map((p) => p.pack).join(", ");
+            notices.push(`all-content.orcbrew was not written: the old app would refuse ${names}. To see why, or to export anyway, use My Content.`);
+          } else downloadText(orcbrew.fileName, orcbrew.text, "application/edn");
         }
         return notices.join(" ") || undefined;
       }}
@@ -82,7 +84,8 @@ function download(name: string, data: unknown) {
   downloadText(name, JSON.stringify(data, null, 2), "application/json");
 }
 
-function downloadText(name: string, text: string, type: string) {
+/** Downloads text as a file. */
+export function downloadText(name: string, text: string, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement("a");
   link.href = url;
