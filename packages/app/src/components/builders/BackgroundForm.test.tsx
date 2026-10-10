@@ -127,7 +127,7 @@ test("a stored key that is not the key of the name is kept, with a warning that 
   await useHomebrew.getState().saveItem(DEFAULT, "~:orcpub.dnd.e5/backgrounds", { "~:key": "~:old-spy", "~:name": "Spy", "~:option-pack": DEFAULT });
   const router = renderAt("/content/edit/background/Default%20Option%20Source/old-spy");
   await screen.findByRole("form", { name: "Edit background" });
-  expect(screen.getByRole("note").textContent).toMatch(/The key of this background is old-spy, not spy/);
+  expect(screen.getByRole("note").textContent).toMatch(/The key of this background is old-spy\. The key of its name is spy\./);
   expect(save().disabled).toBe(false);
   type("Name", "Old Spy");
   expect(screen.queryByRole("note")).toBeNull();

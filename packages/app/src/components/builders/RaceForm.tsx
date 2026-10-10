@@ -8,8 +8,8 @@
 // swimming speeds in :props as integers, the tool proficiencies and the
 // proficiency choices in :profs, :spells a vector of {:level unlock-level
 // :value {:level :ability :key}}, and :traits a vector of :name, :type and
-// :description maps. The subrace form (SubraceForm.tsx) uses the parts
-// exported here.
+// :description maps. The subrace form (SubraceForm.tsx) and the feat form
+// (FeatForm.tsx) use the parts exported here.
 import { asSet, setItems, tag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
@@ -26,6 +26,7 @@ import {
   range,
   Select,
   SKILLS,
+  TextArea,
   TextField,
   TOOLS,
   Traits,
@@ -117,10 +118,7 @@ function RaceForm({ record, onChange, problems }: FormProps) {
       {(lists) => (
         <div className="space-y-3">
           <TextField edit={edit} problems={problems} field="name" label="Name" />
-          <label className="block">
-            Description
-            <textarea value={String(edit.get("help") ?? "")} onChange={(ev) => edit.set(["help"], ev.target.value)} className="block w-full border border-black" rows={4} />
-          </label>
+          <TextArea edit={edit} field="help" label="Description" />
           <div>
             <Select label="Size" value={edit.get("size") ?? tag("medium")} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
             <Select label="Speed" value={edit.get("speed")} options={speeds} onSelect={(v) => edit.set(["speed"], v)} />

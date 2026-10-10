@@ -9,7 +9,7 @@
 // key), true for the other checkboxes (a second click stores false), and a
 // map such as {:armor-prof {:light true}} for the grouped ones.
 import { asSet, setItems, tag } from "../../engine/content.ts";
-import { ABILITIES, abilityKey, Checks, editor, SKILLS, TextField, TOOLS, ValueChecks, WithChoices, type BuilderType, type Edit, type FormProps } from "./fields.tsx";
+import { ABILITIES, abilityKey, Checks, editor, SKILLS, TextArea, TextField, TOOLS, ValueChecks, WithChoices, type BuilderType, type Edit, type FormProps } from "./fields.tsx";
 import type { Choice } from "../../engine/builder-choices.ts";
 import { ArmorChecks, PropChecks, ResistanceChecks } from "./RaceForm.tsx";
 
@@ -42,10 +42,7 @@ function FeatForm({ record, onChange, problems }: FormProps) {
       {(lists) => (
         <div className="space-y-3">
           <TextField edit={edit} problems={problems} field="name" label="Name" />
-          <label className="block">
-            Description
-            <textarea value={String(edit.get("description") ?? "")} onChange={(ev) => edit.set(["description"], ev.target.value)} className="block w-full border border-black" rows={4} />
-          </label>
+          <TextArea edit={edit} field="description" label="Description" />
           <SetChecks
             edit={edit}
             legend="Prerequisites"

@@ -13,17 +13,16 @@ import type { Choice } from "../../engine/builder-choices.ts";
 import {
   ARTISANS_TOOLS,
   Checks,
-  CLOTHES,
   editor,
-  HOLY_SYMBOLS,
-  MISC_EQUIPMENT,
   MISC_TOOLS,
   MUSICAL_INSTRUMENTS,
   SKILLS,
+  TextArea,
   TextField,
   Traits,
   ValueChecks,
   VEHICLES,
+  named,
   nameToKw,
   type BuilderType,
   type Edit,
@@ -31,6 +30,22 @@ import {
   type ItemRecord,
   type Path,
 } from "./fields.tsx";
+
+// The old equipment lists (equipment.cljc), keyed as common/add-keys keys them.
+const CLOTHES = named(["Clothes, common", "Clothes, costume", "Clothes, fine", "Clothes, traveler’s"]);
+const HOLY_SYMBOLS = named(["Amulet", "Emblem", "Reliquary"]);
+const MISC_EQUIPMENT = named([
+  "Abacus", "Acid", "Alchemist’s fire", "Alms Box", "Antitoxin", "Backpack", "Bag of Sand", "Ball bearings", "Barrel", "Basket",
+  "Bedroll", "Bell", "Blanket", "Block and tackle", "Book", "Bottle, glass", "Bucket", "Caltrops", "Candle", "Case, crossbow bolt",
+  "Case, map or scroll", "Censer", "Chain", "Chalk", "Chest", "Climber’s kit", "Component pouch", "Costume", "Crowbar",
+  "Fishing tackle", "Flask or tankard", "Grappling hook", "Hammer", "Hammer, sledge", "Healer’s kit", "Holy water", "Holy symbol",
+  "Hourglass", "Hunting trap", "Ink", "Ink pen", "Incense", "Jug or pitcher", "Knife, Small", "Ladder (10-foot)", "Lamp",
+  "Lantern, bullseye", "Lantern, hooded", "Lock", "Magnifying glass", "Manacles", "Mess kit", "Mirror, steel", "Oil", "Paper",
+  "Parchment", "Perfume", "Pick, miner’s", "Piton", "Poison, basic", "Pole (10-foot)", "Pot, iron", "Potion of healing", "Pouch",
+  "Prayer Book", "Prayer Wheel", "Purse", "Quiver", "Ram, portable", "Rations (1 day)", "Robes", "Rope, hempen", "Rope, silk", "Sack",
+  "Scale, merchant’s", "Sealing wax", "Shovel", "Signal whistle", "Signet ring", "Soap", "Spellbook", "Spikes, iron", "Spyglass",
+  "String", "Tent, two-person", "Tinderbox", "Torch", "Vial", "Vestements", "Waterskin", "Whetstone", "Wooden Stake",
+]);
 
 const ANY = [1, 2, 3];
 
@@ -59,14 +74,11 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
       <TextField edit={edit} problems={problems} field="name" label="Name" />
       {key !== "" && name !== "" && key !== nameToKw(name) && (
         <p role="note" className="text-amber-700">
-          The key of this background is {key}, not {nameToKw(name)}, the key of its name. The old app gives an imported background the key of its name, so a
-          character that has this background in the old app can lose it.
+          The key of this background is {key}. The key of its name is {nameToKw(name)}. A character always gets a background by the key of its name, not by
+          the stored key. Thus a character that has the key {key} does not find this background. To make the keys the same, change the name, or make a new background with this name.
         </p>
       )}
-      <label className="block">
-        Description
-        <textarea value={String(edit.get("help") ?? "")} onChange={(ev) => edit.set(["help"], ev.target.value)} className="block w-full border border-black" rows={4} />
-      </label>
+      <TextArea edit={edit} field="help" label="Description" />
       <KeyChecks edit={edit} legend="Skill Proficiencies" path={["profs", "skill"]} items={SKILLS} />
       <Checks
         legend="Languages"
