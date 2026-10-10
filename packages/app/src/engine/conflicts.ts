@@ -42,11 +42,17 @@ function field(conflict: KeyConflict, name: "import-source" | "existing-source" 
 export const conflictSources = (conflict: KeyConflict) => (conflict.sources ?? []) as { source: string; name?: string }[];
 
 /**
+ * True if the conflict's copy in the pack is on: its pack and the item do
+ * not carry the old app's :disabled? flag in the homebrew.
+ */
+export const copyOn = (conflict: KeyConflict, source: string, homebrew: Record<string, object>) =>
+  !disabledInFile(homebrew[source]) && !disabledInFile(itemsOf(homebrew, source, conflict["content-type"])?.[tag(conflict.key)]);
+
+/**
  * For an internal conflict: the packs whose copies a choice changes, each
  * with its suggested key, and the pack whose copy keeps the key. The copy
- * that keeps it is the one the old app uses: the last copy that is on. A
- * copy is off if its pack or the item carries the old app's :disabled? flag
- * in the homebrew. If every copy is off, the last copy keeps the key.
+ * that keeps it is the one the old app uses: the last copy that is on (see
+ * copyOn). If every copy is off, the last copy keeps the key.
  */
 export function internalCopies(
   conflict: KeyConflict,
@@ -54,9 +60,7 @@ export function internalCopies(
 ): { others: { source: string; newKey: string }[]; kept: string } {
   const sources = conflictSources(conflict).map((s) => s.source);
   const renames = conflict["suggested-renames"] ?? [];
-  const on = (source: string) =>
-    !disabledInFile(homebrew[source]) && !disabledInFile(itemsOf(homebrew, source, conflict["content-type"])?.[tag(conflict.key)]);
-  const lastOn = sources.findLastIndex(on);
+  const lastOn = sources.findLastIndex((source) => copyOn(conflict, source, homebrew));
   const keptIndex = lastOn === -1 ? sources.length - 1 : lastOn;
   const others = sources.flatMap((source, i) => {
     if (i === keptIndex) return [];

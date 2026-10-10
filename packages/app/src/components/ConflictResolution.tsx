@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { conflictSources, internalCopies, resolutionsFor, settledBy, conflictsToChoose, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
+import { conflictSources, copyOn, internalCopies, resolutionsFor, settledBy, conflictsToChoose, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
 import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
 
 /** The words for one choice on one conflict. */
@@ -19,8 +19,8 @@ function choiceLabel(conflict: KeyConflict, choice: Resolution, homebrew: Record
   return `Skip: keep only the one in ${kept}`;
 }
 
-/** The conflict as the old modal describes it. */
-function ConflictText({ conflict }: { conflict: KeyConflict }) {
+/** The conflict as the old modal describes it, with each copy that is off marked: an off copy does not keep the key. */
+function ConflictText({ conflict, homebrew }: { conflict: KeyConflict; homebrew: Record<string, object> }) {
   if (conflict.type === "external") {
     return (
       <p>
@@ -28,7 +28,9 @@ function ConflictText({ conflict }: { conflict: KeyConflict }) {
       </p>
     );
   }
-  return <p>In more than one pack of the file: {conflictSources(conflict).map((s) => (s.name ? `${s.name} in ${s.source}` : s.source)).join("; ")}.</p>;
+  const copy = (s: { source: string; name?: string }) =>
+    `${s.name ? `${s.name} in ${s.source}` : s.source}${copyOn(conflict, s.source, homebrew) ? "" : " (off)"}`;
+  return <p>In more than one pack of the file: {conflictSources(conflict).map(copy).join("; ")}.</p>;
 }
 
 /**
@@ -81,7 +83,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
               <legend className="font-bold">
                 {conflict["content-type-name"]}: {conflict.key}
               </legend>
-              <ConflictText conflict={conflict} />
+              <ConflictText conflict={conflict} homebrew={pending.homebrew} />
               {settledBy(conflict, conflicts, pending.homebrew) ? (
                 <p>The choice for {conflict.key} in more than one pack of the file settles this one: it renames or removes this copy.</p>
               ) : (

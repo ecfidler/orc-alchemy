@@ -338,6 +338,18 @@ test("an external conflict that a choice on the file's own duplicates settles as
   expect(engine().parseOrcbrew(engine().orcbrewToEdn(useHomebrew.getState().homebrew!)).conflicts).toEqual([]);
 });
 
+// ORC-131: a copy with the old app's off flag does not keep the key, and the step says which copy is off.
+test("an internal conflict marks the copy that is off, and names the on pack as the one that keeps the key", async () => {
+  const pack = (name: string, flag = "") => `"${name}" {${flag}:orcpub.dnd.e5/feats {:keen {:key :keen :name "Keen" :option-pack "${name}"}}}`;
+  renderPage();
+  choose("Load homebrew file", "ab.orcbrew", `{${pack("A")} ${pack("B", ":disabled? true ")}}`);
+  const step = await screen.findByRole("region", { name: "Resolve key conflicts" });
+
+  expect(within(step).getByText("In more than one pack of the file: Keen in A; Keen in B (off).")).toBeTruthy();
+  expect(within(step).getByLabelText("Rename the one in B to keen-b")).toBeTruthy();
+  expect(within(step).getByLabelText("Skip: keep only the one in A")).toBeTruthy();
+});
+
 test("Cancel import stores nothing of the file", async () => {
   const step = await loadAThenB();
   fireEvent.click(within(step).getByRole("button", { name: "Cancel import" }));
