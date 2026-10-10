@@ -3,7 +3,7 @@ import { conflictSources, internalCopies, resolutionsFor, settledBy, conflictsTo
 import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
 
 /** The words for one choice on one conflict. */
-function choiceLabel(conflict: KeyConflict, choice: Resolution): string {
+function choiceLabel(conflict: KeyConflict, choice: Resolution, homebrew: Record<string, object>): string {
   if (conflict.type === "external") {
     switch (choice) {
       case "rename":
@@ -14,7 +14,7 @@ function choiceLabel(conflict: KeyConflict, choice: Resolution): string {
         return `Replace the one from ${conflict["existing-source"]} with the imported one`;
     }
   }
-  const { others, kept } = internalCopies(conflict);
+  const { others, kept } = internalCopies(conflict, homebrew);
   if (choice === "rename") return `Rename ${others.map((o) => `the one in ${o.source} to ${o.newKey}`).join(", ")}`;
   return `Skip: keep only the one in ${kept}`;
 }
@@ -42,7 +42,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
   const [choices, setChoices] = useState<Record<string, Resolution>>({});
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
-  const toChoose = conflictsToChoose(conflicts);
+  const toChoose = conflictsToChoose(conflicts, pending.homebrew);
   const decided = toChoose.filter((c) => choices[c.id] !== undefined).length;
 
   const chooseAll = (choice: "rename" | "skip") => setChoices(Object.fromEntries(toChoose.map((c) => [c.id, choice])));
@@ -82,7 +82,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
                 {conflict["content-type-name"]}: {conflict.key}
               </legend>
               <ConflictText conflict={conflict} />
-              {settledBy(conflict, conflicts) ? (
+              {settledBy(conflict, conflicts, pending.homebrew) ? (
                 <p>The choice for {conflict.key} in more than one pack of the file settles this one: it renames or removes this copy.</p>
               ) : (
                 resolutionsFor(conflict).map((choice) => (
@@ -93,7 +93,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
                       checked={choices[conflict.id] === choice}
                       onChange={() => setChoices((current) => ({ ...current, [conflict.id]: choice }))}
                     />{" "}
-                    {choiceLabel(conflict, choice)}
+                    {choiceLabel(conflict, choice, pending.homebrew)}
                   </label>
                 ))
               )}

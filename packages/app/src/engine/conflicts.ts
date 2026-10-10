@@ -3,7 +3,7 @@
 // reports, applied to the homebrew it parsed, before anything is stored.
 import type { ContentType, KeyConflict } from "@pubdoor/dmv";
 import { engine } from "./engine.ts";
-import { tag, withoutItem } from "./content.ts";
+import { disabledInFile, tag, withoutItem } from "./content.ts";
 
 export type { KeyConflict };
 
@@ -11,9 +11,10 @@ export type { KeyConflict };
  * What to do with one conflict. External conflicts take all three choices;
  * internal ones take rename and skip.
  * - rename: the imported item gets the engine's suggested key. For an
- *   internal conflict, every copy except the last gets its suggested key.
+ *   internal conflict, every copy except the kept one gets its suggested
+ *   key (see internalCopies).
  * - skip: the imported item is not imported. For an internal conflict,
- *   only the last copy is kept.
+ *   only the kept copy stays.
  * - replace: the imported item replaces the loaded one.
  */
 export type Resolution = "rename" | "skip" | "replace";
@@ -42,40 +43,51 @@ export const conflictSources = (conflict: KeyConflict) => (conflict.sources ?? [
 
 /**
  * For an internal conflict: the packs whose copies a choice changes, each
- * with its suggested key, and the pack whose copy keeps the key. The last
- * copy keeps it.
+ * with its suggested key, and the pack whose copy keeps the key. The copy
+ * that keeps it is the one the old app uses: the last copy that is on. A
+ * copy is off if its pack or the item carries the old app's :disabled? flag
+ * in the homebrew. If every copy is off, the last copy keeps the key.
  */
-export function internalCopies(conflict: KeyConflict): { others: { source: string; newKey: string }[]; kept: string } {
-  const sources = conflictSources(conflict);
+export function internalCopies(
+  conflict: KeyConflict,
+  homebrew: Record<string, object>,
+): { others: { source: string; newKey: string }[]; kept: string } {
+  const sources = conflictSources(conflict).map((s) => s.source);
   const renames = conflict["suggested-renames"] ?? [];
-  const others = sources.slice(0, -1).map(({ source }) => {
+  const on = (source: string) =>
+    !disabledInFile(homebrew[source]) && !disabledInFile(itemsOf(homebrew, source, conflict["content-type"])?.[tag(conflict.key)]);
+  const lastOn = sources.findLastIndex(on);
+  const keptIndex = lastOn === -1 ? sources.length - 1 : lastOn;
+  const others = sources.flatMap((source, i) => {
+    if (i === keptIndex) return [];
     const newKey = renames.find((r) => r.source === source)?.["new-key"];
     if (newKey === undefined) throw new Error(`The conflict on ${conflict.key} has no suggested key for ${source}`);
-    return { source, newKey };
+    return [{ source, newKey }];
   });
-  return { others, kept: sources[sources.length - 1]?.source ?? "" };
+  return { others, kept: sources[keptIndex] ?? "" };
 }
 
 /**
  * The internal conflict whose choice settles an external one, or undefined.
  * A key can have both kinds, for example in a multi-pack file loaded a
  * second time. Both choices on an internal conflict rename or remove every
- * copy but the last, so an external conflict on one of those copies has
+ * copy but the kept one, so an external conflict on one of those copies has
  * nothing left to choose.
  */
-export function settledBy(conflict: KeyConflict, conflicts: KeyConflict[]): KeyConflict | undefined {
+export function settledBy(conflict: KeyConflict, conflicts: KeyConflict[], homebrew: Record<string, object>): KeyConflict | undefined {
   if (conflict.type !== "external") return undefined;
   return conflicts.find(
     (c) =>
       c.type === "internal" &&
       c["content-type"] === conflict["content-type"] &&
       c.key === conflict.key &&
-      internalCopies(c).others.some((o) => o.source === conflict["import-source"]),
+      internalCopies(c, homebrew).others.some((o) => o.source === conflict["import-source"]),
   );
 }
 
 /** The conflicts that need a choice: all but the ones settledBy settles. */
-export const conflictsToChoose = (conflicts: KeyConflict[]) => conflicts.filter((c) => settledBy(c, conflicts) === undefined);
+export const conflictsToChoose = (conflicts: KeyConflict[], homebrew: Record<string, object>) =>
+  conflicts.filter((c) => settledBy(c, conflicts, homebrew) === undefined);
 
 /**
  * Applies a choice to each conflict that needs one, and returns the new
@@ -104,7 +116,7 @@ export function applyResolutions(
     renames.push({ pack, contentType: contentType(c), from: c.key, to });
   }
 
-  const toChoose = conflictsToChoose(conflicts);
+  const toChoose = conflictsToChoose(conflicts, homebrew);
   for (const c of toChoose) {
     const choice = choices[c.id];
     if (choice === undefined || !resolutionsFor(c).includes(choice)) {
@@ -122,7 +134,8 @@ export function applyResolutions(
       else if (choice === "skip") result = withoutPackItem(result, imported, contentType(c), c.key);
       else result = withoutPackItem(result, field(c, "existing-source"), contentType(c), c.key);
     } else {
-      const { others } = internalCopies(c);
+      // From the homebrew as parsed: an earlier conflict's rename does not change which copy keeps this key.
+      const { others } = internalCopies(c, homebrew);
       for (const { source, newKey } of others) {
         if (choice === "rename") rename(c, source, newKey);
         else result = withoutPackItem(result, source, contentType(c), c.key);

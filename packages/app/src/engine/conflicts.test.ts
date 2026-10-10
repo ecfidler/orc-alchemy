@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
-import { applyResolutions, settledBy, type KeyConflict, type Resolution } from "./conflicts.ts";
-import { engine, loadEngine } from "./engine.ts";
+import { applyResolutions, internalCopies, settledBy, type KeyConflict, type Resolution } from "./conflicts.ts";
+import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { missingContent } from "./reconcile.ts";
 
 beforeAll(() => loadEngine());
 
@@ -96,21 +97,80 @@ function xyOverA() {
 
 describe("a key with both an internal and an external conflict", () => {
   test("the internal choice settles each external conflict on a copy it renames or removes", () => {
-    const { conflicts } = xyOverA();
+    const { homebrew, conflicts } = xyOverA();
     const external = conflicts.filter((c) => c.type === "external");
     expect(external.length).toBeGreaterThan(0);
     for (const c of external) {
-      expect(settledBy(c, conflicts)?.type, `${c.key} from ${c["import-source"]}`).toBe(c["import-source"] === "x" ? "internal" : undefined);
+      expect(settledBy(c, conflicts, homebrew)?.type, `${c.key} from ${c["import-source"]}`).toBe(c["import-source"] === "x" ? "internal" : undefined);
     }
   });
 
   test("Rename all resolves it, and a settled conflict needs no choice", () => {
     const { homebrew, conflicts } = xyOverA();
-    const open = conflicts.filter((c) => settledBy(c, conflicts) === undefined);
+    const open = conflicts.filter((c) => settledBy(c, conflicts, homebrew) === undefined);
     expect(open.length).toBeLessThan(conflicts.length);
 
     const { homebrew: resolved } = applyResolutions(homebrew, conflicts, all(open, "rename"));
     expect(reparse(resolved).conflicts).toEqual([]);
+  });
+});
+
+/** A pack of an .orcbrew file with the feat keen and the spell zap, and the old app's off flag where asked. */
+const pack = (name: string, { off = false, featOff = false } = {}) =>
+  `"${name}" {${off ? ":disabled? true " : ""}` +
+  `:orcpub.dnd.e5/feats {:keen {:key :keen :name "Keen" :option-pack "${name}" :description "From ${name}"${featOff ? " :disabled? true" : ""}}} ` +
+  `:orcpub.dnd.e5/spells {:zap {:key :zap :name "Zap" :level 1 :school "evocation" :spell-lists {:wizard true} :option-pack "${name}"}}}`;
+const parsePacks = (...packs: string[]) => {
+  const { data, conflicts } = engine().parseOrcbrew(`{${packs.join(" ")}}`);
+  return { homebrew: data!, conflicts };
+};
+/** A character with one feat. */
+const withFeat = (key: string) =>
+  ({
+    "~:orcpub.entity.strict/selections": [
+      { "~:orcpub.entity.strict/key": "~:feats", "~:orcpub.entity.strict/options": [{ "~:orcpub.entity.strict/key": `~:${key}` }] },
+    ],
+  }) as unknown as StrictEntity;
+
+describe("an internal conflict where a copy has the old app's off flag (ORC-131)", () => {
+  test.each(["rename", "skip"] as const)("%s all keeps the keys on the pack that is on, and a character that uses its feat builds the same", (choice) => {
+    const { homebrew, conflicts } = parsePacks(pack("A"), pack("B", { off: true }));
+    expect(conflicts.map((c) => [c.type, c.key])).toEqual([
+      ["internal", "keen"],
+      ["internal", "zap"],
+    ]);
+    expect(missingContent(withFeat("no-such-feat"), { homebrew })).not.toEqual([]);
+
+    const { homebrew: resolved, renames } = applyResolutions(homebrew, conflicts, all(conflicts, choice));
+    expect(item(resolved, "A", "feats", "keen")).toBeDefined();
+    expect(item(resolved, "A", "spells", "zap")).toBeDefined();
+    expect(item(resolved, "B", "feats", "keen")).toBeUndefined();
+    expect(item(resolved, "B", "spells", "zap")).toBeUndefined();
+    expect(renames.map((r) => `${r.pack}: ${r.from} -> ${r.to}`)).toEqual(choice === "rename" ? ["B: keen -> keen-b", "B: zap -> zap-b"] : []);
+
+    expect(missingContent(withFeat("keen"), { homebrew: resolved })).toEqual([]);
+    expect(engine().evaluate(withFeat("keen"), { homebrew: resolved }).built).toEqual(engine().evaluate(withFeat("keen"), { homebrew }).built);
+    expect(reparse(resolved).conflicts).toEqual([]);
+  });
+
+  const kept = (homebrew: Record<string, object>, conflicts: KeyConflict[]) =>
+    Object.fromEntries(conflicts.map((c) => [c.key, internalCopies(c, homebrew).kept]));
+
+  test("an item that is off in the last pack does not keep its key", () => {
+    const { homebrew, conflicts } = parsePacks(pack("A"), pack("B", { featOff: true }));
+    expect(kept(homebrew, conflicts)).toEqual({ keen: "A", zap: "B" });
+  });
+
+  test("if every copy is off, the last keeps the key", () => {
+    const { homebrew, conflicts } = parsePacks(pack("A", { off: true }), pack("B", { off: true }));
+    expect(kept(homebrew, conflicts)).toEqual({ keen: "B", zap: "B" });
+  });
+
+  test("of three packs, on, on and off, the second keeps the key", () => {
+    const { homebrew, conflicts } = parsePacks(pack("A"), pack("B"), pack("C", { off: true }));
+    expect(kept(homebrew, conflicts)).toEqual({ keen: "B", zap: "B" });
+    const { renames } = applyResolutions(homebrew, conflicts, all(conflicts, "rename"));
+    expect(renames.map((r) => `${r.pack}: ${r.from} -> ${r.to}`)).toEqual(["A: keen -> keen-a", "C: keen -> keen-c", "A: zap -> zap-a", "C: zap -> zap-c"]);
   });
 });
 
@@ -124,9 +184,15 @@ describe.skipIf(!existsSync(privateExport))("the owner's real export", () => {
     expect(parsed.conflicts.every((c) => c.type === "internal")).toBe(true);
 
     const { homebrew: resolved, renames } = applyResolutions(parsed.data!, parsed.conflicts, all(parsed.conflicts, "rename"));
-    // Each conflict renames every copy but the last: one per conflict, two for a key in three packs, and so on.
+    // Each conflict renames every copy but the kept one: one per conflict, two for a key in three packs, and so on.
     const copies = parsed.conflicts.reduce((n, c) => n + (c.sources?.length ?? 0) - 1, 0);
     expect(renames).toHaveLength(copies);
+    // ORC-131: this pack is on, and a pack that is off repeats its keys later in the file.
+    // No key that only those two packs share is renamed in the pack that is on.
+    const on = "Tashas_Cauldron_of_Everything";
+    const shared = parsed.conflicts.filter((c) => (c.sources as { source: string }[]).map((s) => s.source).join() === `${on},${on}_2`);
+    expect(shared.length).toBeGreaterThan(0);
+    expect(renames.filter((r) => r.pack === on && shared.some((c) => c.key === r.from && c["content-type"] === r.contentType))).toEqual([]);
     expect(reparse(resolved).conflicts).toEqual([]);
     expect(() => engine().buildTemplate(resolved)).not.toThrow();
   }, 120_000); // the export is 2 MB: parsing it twice takes seconds
