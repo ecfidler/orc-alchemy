@@ -91,6 +91,9 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   fireEvent.click(screen.getByRole("button", { name: "Delete modifier 1" }));
   type("Modifier 1 type", "~:weapon-prof");
   type("Modifier 1 value", "~:martial");
+  // A new row's level shows "-", so level 1 can be picked and stored.
+  expect(screen.getByLabelText<HTMLSelectElement>("Modifier 1 level").value).toBe("");
+  type("Modifier 1 level", "1");
   type("Modifier 2 type", "~:spell");
   type("Modifier 2 level", "3");
   type("Modifier 2 spell level", "0");
@@ -130,7 +133,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
       "~:spell-list-kw": "~:wizard",
     },
     "~:level-modifiers": [
-      { "~:type": "~:weapon-prof", "~:value": "~:martial" },
+      { "~:type": "~:weapon-prof", "~:value": "~:martial", "~:level": 1 },
       { "~:type": "~:spell", "~:level": 3, "~:value": { "~:level": 0, "~:ability": "~:orcpub.dnd.e5.character/int", "~:key": "~:fire-bolt" } },
     ],
     "~:level-selections": [{ "~:type": "~:rune-carvings", "~:level": 2, "~:num": 2 }],

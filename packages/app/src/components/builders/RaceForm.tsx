@@ -14,6 +14,7 @@ import { asSet, setItems, tag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
   ABILITIES,
+  ABILITY_OPTIONS,
   abilityKey,
   Checks,
   CONDITIONS,
@@ -78,7 +79,6 @@ export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKey(nam
  */
 export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
   const spells = (edit.get("spells") ?? []) as ItemRecord[];
-  const abilities = ABILITIES.map(([key, name]): [string, string] => [tag(abilityKey(key)), name]);
   return (
     <fieldset>
       <legend className="font-bold">Spells</legend>
@@ -91,7 +91,7 @@ export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
           <div key={i}>
             <Select label={`Spell ${n} unlock at level`} value={spell[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["spells", i, "level"], v)} placeholder="-" />
             <Select label={`Spell ${n} level`} value={value[tag("level")]} options={numbers(range(0, 10))} onSelect={(v) => edit.set(["spells", i, "value", "level"], v)} />
-            <Select label={`Spell ${n} spellcasting ability`} value={value[tag("ability")]} options={abilities} onSelect={(v) => edit.set(["spells", i, "value", "ability"], v)} placeholder="<select ability>" />
+            <Select label={`Spell ${n} spellcasting ability`} value={value[tag("ability")]} options={ABILITY_OPTIONS} onSelect={(v) => edit.set(["spells", i, "value", "ability"], v)} placeholder="<select ability>" />
             <Select label={`Spell ${n}`} value={value[tag("key")]} options={options} onSelect={(v) => edit.set(["spells", i, "value", "key"], v)} placeholder="<select spell>" />
             {i < spells.length && (
               <button type="button" onClick={() => edit.set(["spells"], spells.filter((_, j) => j !== i))} className="border border-black px-2">

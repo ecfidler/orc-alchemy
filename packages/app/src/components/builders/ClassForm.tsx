@@ -14,9 +14,10 @@
 // treat a nil as a problem. The modifiers and selections are also the
 // subclass form's.
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
-import { asSet, intKey, setItems, tag } from "../../engine/content.ts";
+import { asSet, intKey, intKeyValue, setItems, tag } from "../../engine/content.ts";
 import {
   ABILITIES,
+  ABILITY_OPTIONS,
   abilityKey,
   Checks,
   CONDITIONS,
@@ -51,8 +52,6 @@ const SCHEDULES: Record<number, Record<number, number>> = {
   2: { 2: 2, 3: 1, 5: 1, 7: 1, 9: 1, 11: 1, 13: 1, 15: 1, 17: 1, 19: 1 },
   3: { 3: 3, 4: 1, 7: 1, 8: 1, 10: 1, 11: 1, 13: 1, 14: 1, 16: 1, 19: 1, 20: 1 },
 };
-/** The abilities as their stored keywords. */
-export const ABILITY_OPTIONS: Options = ABILITIES.map(([key, name]) => [tag(abilityKey(key)), name]);
 const LEVELS = numbers(range(1, 21));
 const button = "border border-black px-2";
 
@@ -106,7 +105,7 @@ export function LevelModifiers({ edit, problems, choices }: ListProps) {
           <div key={i} className="mb-2">
             {/* A new type keeps the value, as the old event does. */}
             <Select label={`Modifier ${n} type`} value={row[tag("type")]} options={types.map(([key, name]) => [tag(key), name])} onSelect={(t) => edit.set(at("type"), t)} placeholder="<select type>" />
-            <Select label={`Modifier ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(at("level"), v)} />
+            <Select label={`Modifier ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(at("level"), v)} placeholder="-" />
             {type?.[2] && <Select label={`Modifier ${n} value`} value={row[tag("value")]} options={type[2]} onSelect={(v) => edit.set(at("value"), v)} placeholder="<select value>" />}
             {type?.[0] === "spell" && (
               <>
@@ -153,8 +152,8 @@ export function LevelSelections({ edit, problems, choices }: ListProps) {
               onSelect={(v) => edit.set(["level-selections", i, "type"], v)}
               placeholder="<select type>"
             />
-            <Select label={`Selection ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(["level-selections", i, "level"], v)} />
-            <Select label={`Selection ${n} amount`} value={row[tag("num")]} options={numbers(range(1, 11))} onSelect={(v) => edit.set(["level-selections", i, "num"], v)} />
+            <Select label={`Selection ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(["level-selections", i, "level"], v)} placeholder="-" />
+            <Select label={`Selection ${n} amount`} value={row[tag("num")]} options={numbers(range(1, 11))} onSelect={(v) => edit.set(["level-selections", i, "num"], v)} placeholder="-" />
             <button type="button" onClick={() => edit.set(["level-selections"], rows.filter((_, j) => j !== i))} className={button}>
               Delete selection {n}
             </button>
@@ -176,7 +175,7 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
   const cantrips = edit.get("spellcasting", "cantrips?") === true;
   const cantripsKnown = (edit.get("spellcasting", "cantrips-known") ?? {}) as ItemRecord;
   const extraCantrips = Object.keys(cantripsKnown)
-    .map((key) => Number(key.slice(2)))
+    .map(intKeyValue)
     .filter((level) => level !== 1)
     .sort((a, b) => a - b);
   const setCantripLevel = (from: number | undefined, to: unknown) => {
@@ -271,7 +270,7 @@ function ClassForm({ record, onChange, problems }: FormProps) {
           </label>
           <div>
             <Select label="Hit die" value={edit.get("hit-die")} options={numbers([6, 8, 10, 12])} onSelect={(v) => edit.set(["hit-die"], v)} />
-            <Select label="Subclass chosen at level" value={edit.get("subclass-level")} options={numbers([1, 2, 3])} onSelect={(v) => edit.set(["subclass-level"], v)} />
+            <Select label="Subclass chosen at level" value={edit.get("subclass-level")} options={numbers([1, 2, 3])} onSelect={(v) => edit.set(["subclass-level"], v)} placeholder="-" />
           </div>
           <TextField edit={edit} problems={problems} field="subclass-title" label="Subclass title, such as Path or Circle" />
           <TextField edit={edit} problems={problems} field="subclass-help" label="Subclass description" />

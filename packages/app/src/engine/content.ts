@@ -34,6 +34,9 @@ export const untag = (value: unknown) => String(value ?? "").replace(/^~:/, "");
 /** An integer map key as a stored pack has it: Transit encodes the key 3 as "~i3". */
 export const intKey = (n: number) => `~i${n}`;
 
+/** The integer of an encoded map key: the reverse of intKey. */
+export const intKeyValue = (key: string) => Number(key.replace(/^~i/, ""));
+
 /** A set as a stored pack has it: Transit encodes the set #{:a} as { "~#set": ["~:a"] }. */
 export const asSet = (items: unknown[]) => ({ "~#set": items });
 

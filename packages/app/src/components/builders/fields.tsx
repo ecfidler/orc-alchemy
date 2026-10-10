@@ -124,6 +124,8 @@ export const TOOLS: Choice[] = [
 /** A select's options: the stored value and its text. */
 export type Options = [value: unknown, text: string][];
 
+/** The abilities as their stored keywords, for a select. */
+export const ABILITY_OPTIONS: Options = ABILITIES.map(([key, name]) => [tag(abilityKey(key)), name]);
 export const TRAIT_TYPES: Options = [
   [tag("other"), "Other"],
   [tag("action"), "Action"],
@@ -258,7 +260,7 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
               <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => edit.set(["traits", i, "name"], e.target.value)} className="border border-black px-1" />
             </label>
             <Select label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
-            {levels && <Select label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} />}
+            {levels && <Select label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
             <button type="button" onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} className="border border-black px-2">
               Delete feature {n}
             </button>
