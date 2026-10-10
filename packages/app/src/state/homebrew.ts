@@ -97,6 +97,14 @@ interface HomebrewState {
   setMagicItemEnabled: (key: string, enabled: boolean) => Promise<void>;
   /** Removes a magic item from storage. */
   removeMagicItem: (key: string) => Promise<void>;
+  /**
+   * Stores one item, as its type's validator returned it, under its key in
+   * the pack named pack. It replaces the item with that key. A pack that is
+   * not stored is created, enabled. contentType is Transit-encoded. Throws,
+   * and stores nothing, if the item has no key, if the pack is quarantined,
+   * or if the packs do not build with the item. Needs the engine loaded.
+   */
+  saveItem: (pack: string, contentType: string, item: object) => Promise<void>;
   /** Removes a record that could not be read from storage, and its warning. */
   removeQuarantined: (id: string) => Promise<void>;
   /**
@@ -274,6 +282,21 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       queued(async () => {
         await deleteMagicItem(key);
         set(withMagicItems(get().magicItems.filter((r) => r.id !== key)));
+      }),
+    saveItem: (pack, contentType, item) =>
+      queued(async () => {
+        await restorePacks();
+        const key = (item as Record<string, unknown>)["~:key"];
+        if (typeof key !== "string") throw new Error("The item has no key");
+        checkQuarantine({ [pack]: {} });
+        const { packs } = get();
+        const stored: Omit<PackRecord, "updatedAt"> = packs.find((p) => p.id === pack) ?? { id: pack, rules: "2014", enabled: true, disabledItems: [], plugin: {} };
+        const changed: PackRecord = { ...stored, plugin: withItem(stored.plugin, contentType, key, item), updatedAt: now() };
+        const others = packs.filter((p) => p.id !== pack);
+        const reason = buildProblem(pluginMap([...others, changed]));
+        if (reason !== null) throw new Error(`The engine could not build the packs with this item: ${reason}`);
+        await savePacks([changed]);
+        set(withPacks([...others, changed]));
       }),
     removeQuarantined: (id) =>
       queued(async () => {

@@ -11,6 +11,7 @@ import { exportOrcbrew, type PackProblems } from "../engine/orcbrew-export.ts";
 import { itemOn, orcbrewHomebrew, packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import type { MagicItemRecord, PackRecord } from "../storage/packs.ts";
 import { downloadText } from "./Export.tsx";
+import { BUILDERS } from "./HomebrewBuilder.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -50,6 +51,13 @@ export function MyContent() {
           Import page
         </Link>
         .
+      </p>
+      <p className="flex flex-wrap gap-4">
+        {Object.entries(BUILDERS).map(([name, { one }]) => (
+          <Link key={name} to={`/content/new/${name}`} className="underline">
+            New {one}
+          </Link>
+        ))}
       </p>
       <p>
         Magic items come from a dmv-export bundle. They are not in .orcbrew files, because the old app has no magic-item homebrew.
@@ -145,6 +153,7 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
       {CONTENT_TYPES.map(({ type, one, many }) => {
         const items = packItems(id, plugin, type);
         const taggedType = tag(type);
+        const builder = Object.keys(BUILDERS).find((name) => BUILDERS[name].contentType === type);
         return (
           <details key={type} className="ml-4">
             <summary>
@@ -163,6 +172,11 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
                       />{" "}
                       {name}
                     </label>
+                    {builder && (
+                      <Link to={`/content/edit/${builder}/${encodeURIComponent(id)}/${encodeURIComponent(key)}`} aria-label={`Edit ${name}`} className="underline">
+                        Edit
+                      </Link>
+                    )}
                     <button
                       type="button"
                       aria-label={`Delete ${name}`}
