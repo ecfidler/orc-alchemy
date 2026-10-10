@@ -138,15 +138,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     await restorePacks();
     const { packs } = get();
     const existing = packs.length === 0 ? undefined : pluginMap(packs);
-    let parsed: ParsedOrcbrew;
-    try {
-      parsed = engine().parseOrcbrew(text, { name, existing, strict });
-    } catch (e) {
-      // Engine 0.2.0 throws on an item or pack that is not a map (ORC-116), with a ClojureScript message.
-      const detail = e instanceof Error ? e.message : String(e);
-      throw new Error(`The homebrew could not be read. An item or pack in the file may not be a map. (Engine message: ${detail})`);
-    }
-    const { data, ...withoutData } = parsed;
+    const { data, ...withoutData } = engine().parseOrcbrew(text, { name, existing, strict });
     const lastImport = { ...withoutData, fileName };
     if (data === null) return set({ lastImport });
     checkQuarantine(data);

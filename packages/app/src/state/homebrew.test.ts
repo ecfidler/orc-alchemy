@@ -308,13 +308,11 @@ test("a bundle with a pack named as a quarantined record is refused", async () =
   expect(app.useHomebrew.getState().packs).toEqual([]);
 });
 
-test("a bundle with an item that is not a map is refused, and keeps the loaded packs", async () => {
+test("a bundle item that is not a map is skipped and logged", async () => {
   const app = await reload();
-  await app.load("warlock-test-content");
-  const { packs } = app.useHomebrew.getState();
   const homebrew = { bad: { "~:orcpub.dnd.e5/spells": { "~:x": 5 } } };
-  await expect(app.useHomebrew.getState().loadBundle({ homebrew, flags: {} }, "dmv-export.json")).rejects.toThrow("The homebrew could not be read. An item or pack in the file may not be a map.");
-  expect(app.useHomebrew.getState().packs).toBe(packs);
+  await app.useHomebrew.getState().loadBundle({ homebrew, flags: {} }, "dmv-export.json");
+  expect(app.useHomebrew.getState().lastImport?.skipped.map((s) => s.key)).toEqual(["x"]);
 });
 
 test("a missing choice keeps the import pending and stores nothing; cancelImport drops it", async () => {

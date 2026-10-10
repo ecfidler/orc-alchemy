@@ -235,7 +235,7 @@ function CharacterImport() {
           Import character file{" "}
           <input
             type="file"
-            accept=".json,application/json"
+            accept=".json,application/json,.edn,.txt"
             onChange={(e) => importText("character", () => chosenText(e))}
             className="block"
           />

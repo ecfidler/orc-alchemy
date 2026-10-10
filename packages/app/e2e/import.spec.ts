@@ -10,10 +10,11 @@ const strictFiles = ["characters", "legacy"].flatMap((dir) =>
 );
 const readJson = (file: string) => JSON.parse(readFileSync(join(fixturesDir, file), "utf8"));
 
-// With no homebrew loaded, a fixture has unresolved keys when its meta file lists some or names a pack.
+// With no homebrew loaded, a fixture has unresolved keys when its meta file lists some or names a pack
+// or custom magic items.
 const hasUnresolved = (file: string) => {
   const meta = readJson(file.replace(".strict.json", ".meta.json"));
-  return meta.unresolved !== undefined || meta.orcbrew.length > 0;
+  return meta.unresolved !== undefined || meta.orcbrew.length > 0 || meta.magicItems !== undefined;
 };
 
 for (const file of strictFiles) {

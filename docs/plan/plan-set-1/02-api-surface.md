@@ -4,7 +4,7 @@ title: "Phase 1: Map the backend API"
 description: "The complete backend API map: endpoints, auth, and the Transit wire format."
 tags: [plan-set-1, api, backend]
 status: stable
-generated: { by: claude-code/agent, at: 2026-09-29T23:45:58Z }
+generated: { by: claude-code/agent, at: 2026-10-09T23:08:47Z }
 ---
 
 # Phase 1: Map the backend API
@@ -22,6 +22,12 @@ Sources of truth in this repo:
 - `src/clj/orcpub/routes/party.clj` and `src/clj/orcpub/routes/folder.clj`.
 
 ## Wire format: Transit
+
+> **Correction (ORC-107).** The responses are EDN, not Transit. The ORC-11
+> spot check asked for `application/transit+json` and got EDN, because
+> `routes.clj` adds no Transit response encoding (fork `fixtures/README.md`,
+> finding 10). The engine's `readServerEdn` reads a response. The text
+> below about responses is wrong; it is kept as written.
 
 API endpoints exchange Transit-JSON (`Content-Type:
 application/transit+json`). Pedestal's `body-params` interceptor decodes
