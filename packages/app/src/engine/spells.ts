@@ -2,6 +2,7 @@
 // the prepared spells, read from and written to the strict entity. Only this
 // file knows their Transit keys.
 import { useEffect, useState } from "react";
+import { asSet, setItems, tag, untag } from "./content.ts";
 import type { Engine, StrictEntity } from "./engine.ts";
 
 const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
@@ -54,8 +55,7 @@ export function preparedSpells(entity: StrictEntity): Record<string, Set<string>
   const byClass = (strict["~:orcpub.entity.strict/values"]?.[BY_CLASS] ?? []) as Record<string, unknown>[];
   return Object.fromEntries(
     byClass.map((entry) => {
-      const spells = entry[PREPARED] as { "~#set"?: string[] } | undefined;
-      return [entry[CLASS_NAME] as string, new Set((spells?.["~#set"] ?? []).map((key) => key.replace(/^~:/, "")))];
+      return [entry[CLASS_NAME] as string, new Set(setItems(entry[PREPARED]).map(untag))];
     }),
   );
 }
@@ -71,6 +71,6 @@ export function setPrepared(e: Engine, entity: StrictEntity, className: string, 
   const spells = (byClass[className] ??= new Set());
   if (prepared) spells.add(spellKey);
   else spells.delete(spellKey);
-  const value = Object.fromEntries(Object.entries(byClass).map(([name, keys]) => [name, { "~#set": [...keys].map((key) => `~:${key}`) }]));
+  const value = Object.fromEntries(Object.entries(byClass).map(([name, keys]) => [name, asSet([...keys].map(tag))]));
   return e.setValue(entity, "prepared-spells-by-class", value);
 }

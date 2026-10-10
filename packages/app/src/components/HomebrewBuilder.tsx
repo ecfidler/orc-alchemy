@@ -9,16 +9,28 @@ import { DEFAULT_PACK, itemAt, tag } from "../engine/content.ts";
 import { engine } from "../engine/engine.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { problemText, type BuilderType, type ItemRecord } from "./builders/fields.tsx";
+import { classBuilder } from "./builders/ClassForm.tsx";
 import { magicItemBuilder } from "./builders/MagicItemForm.tsx";
 import { monsterBuilder } from "./builders/MonsterForm.tsx";
+import { raceBuilder } from "./builders/RaceForm.tsx";
 import { spellBuilder } from "./builders/SpellForm.tsx";
+import { subclassBuilder } from "./builders/SubclassForm.tsx";
+import { subraceBuilder } from "./builders/SubraceForm.tsx";
 
 /**
  * The types that have a form, by the name in the routes /content/new/:type
  * and /content/edit/:type/:pack/:key, or /content/edit/:type/:key for a
  * type stored outside packs.
  */
-export const BUILDERS: Record<string, BuilderType> = { spell: spellBuilder, monster: monsterBuilder, magicItem: magicItemBuilder };
+export const BUILDERS: Record<string, BuilderType> = {
+  spell: spellBuilder,
+  monster: monsterBuilder,
+  race: raceBuilder,
+  subrace: subraceBuilder,
+  class: classBuilder,
+  subclass: subclassBuilder,
+  magicItem: magicItemBuilder,
+};
 
 const OPTION_PACK = tag("option-pack");
 

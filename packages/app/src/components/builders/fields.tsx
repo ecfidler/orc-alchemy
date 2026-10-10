@@ -1,8 +1,12 @@
 // The plug-in seam of the homebrew builder (HomebrewBuilder.tsx): what a
 // type's form gets, and what it gives the frame. It is in its own file so a
-// form and the frame do not import each other.
-import type { ComponentType } from "react";
+// form and the frame do not import each other. It also holds the toolkit
+// the forms share: the old app's lists, a record editor, and the controls.
+import type { ComponentType, ReactNode } from "react";
+import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
+import { tag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
+import { useHomebrew } from "../../state/homebrew.ts";
 
 /**
  * One item as the form edits it: verbose Transit-JSON, as a stored pack has
@@ -91,4 +95,193 @@ export function FieldProblems({ problems, field, label }: { problems: Problem[];
       ))}
     </ul>
   );
+}
+
+export const ABILITIES = [
+  ["str", "Strength"],
+  ["dex", "Dexterity"],
+  ["con", "Constitution"],
+  ["int", "Intelligence"],
+  ["wis", "Wisdom"],
+  ["cha", "Charisma"],
+];
+/** An ability's key as the old app stores it, such as :orcpub.dnd.e5.character/con. */
+export const abilityKey = (ability: string) => `orcpub.dnd.e5.character/${ability}`;
+export const SKILLS: Choice[] = [
+  "Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation",
+  "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival",
+].map((name) => ({ key: nameToKey(name), name }));
+/** The old tools (equipment.cljc tools), keyed as common/name-to-kw keys them. */
+export const TOOLS: Choice[] = [
+  "Bagpipes", "Drum", "Dulcimer", "Flute", "Lute", "Lyre", "Horn", "Pan Flute", "Shawm", "Viol", "Alchemist's Supplies",
+  "Brewer's Supplies", "Calligrapher's Supplies", "Carpenter's Tools", "Cartographer's Tools", "Cobbler's Tools", "Cook's Utensils",
+  "Glassblower's Tools", "Jeweler's Tools", "Leatherworker's Tools", "Mason's Tools", "Painter's Supplies", "Potter's Tools",
+  "Smith's Tools", "Tinker's Tools", "Weaver's Tools", "Woodcarver's Tools", "Disguise Kit", "Forgery Kit", "Herbalism Kit",
+  "Navigator's Tools", "Poisoner's Kit", "Thieves' Tools", "Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set",
+  "Water Vehicles", "Land Vehicles",
+].map((name) => ({ key: nameToKey(name.replace(/'/g, "")), name }));
+
+/** A select's options: the stored value and its text. */
+export type Options = [value: unknown, text: string][];
+
+/** The abilities as their stored keywords, for a select. */
+export const ABILITY_OPTIONS: Options = ABILITIES.map(([key, name]) => [tag(abilityKey(key)), name]);
+export const TRAIT_TYPES: Options = [
+  [tag("other"), "Other"],
+  [tag("action"), "Action"],
+  [tag("b-action"), "Bonus Action"],
+  [tag("reaction"), "Reaction"],
+];
+export const YES_NO: Options = [
+  [false, "No"],
+  [true, "Yes"],
+];
+
+/** The numbers from from up to, but not including, to. */
+export const range = (from: number, to: number, step = 1) => Array.from({ length: Math.ceil((to - from) / step) }, (_, i) => from + i * step);
+export const numbers = (values: number[]): Options => values.map((n) => [n, String(n)]);
+
+/**
+ * A path into a record: keyword names without the "~:", vector indexes, and
+ * keys already Transit-encoded, such as intKey(3).
+ */
+export type Path = (string | number)[];
+
+const transitKey = (k: string) => (k.startsWith("~") ? k : tag(k));
+
+const getIn = (value: unknown, path: Path): unknown =>
+  path.reduce<unknown>((v, k) => (v as Record<string | number, unknown> | undefined)?.[typeof k === "number" ? k : transitKey(k)], value);
+
+/** The value with the path set, or without its last key when the value is undefined; a missing map or vector is created. */
+function setIn(value: unknown, [k, ...rest]: Path, v: unknown): unknown {
+  if (typeof k === "number") {
+    const next = [...((value as unknown[] | undefined) ?? [])];
+    next[k] = rest.length > 0 ? setIn(next[k], rest, v) : v;
+    return next;
+  }
+  const key = transitKey(k);
+  const next = { ...((value as ItemRecord | undefined) ?? {}) };
+  next[key] = rest.length > 0 ? setIn(next[key], rest, v) : v;
+  if (next[key] === undefined) delete next[key];
+  return next;
+}
+
+/** Reads and changes a record by paths. */
+export interface Edit {
+  get: (...path: Path) => unknown;
+  set: (path: Path, value: unknown) => void;
+  /** As the old toggle events: a missing or false value becomes true, and true becomes false. */
+  toggle: (path: Path) => void;
+}
+
+export function editor(record: ItemRecord, onChange: (record: ItemRecord) => void): Edit {
+  const get = (...path: Path) => getIn(record, path);
+  const set = (path: Path, value: unknown) => onChange(setIn(record, path, value) as ItemRecord);
+  return { get, set, toggle: (path) => set(path, get(...path) !== true) };
+}
+
+/**
+ * A labelled select. Each option's value is its stored value as text, so a
+ * number or a keyword finds its option. placeholder is an extra first option
+ * for no value, which onSelect gets as undefined. Without one, a value that
+ * is not an option shows the first option, as the old dropdowns did.
+ */
+export function Select({ label, value, options, onSelect, placeholder }: { label: string; value: unknown; options: Options; onSelect: (value: unknown) => void; placeholder?: string }) {
+  const known = options.some(([v]) => v === value);
+  return (
+    <label className="mr-4 inline-block">
+      {label}{" "}
+      <select value={known ? String(value) : ""} onChange={(e) => onSelect(options.find(([v]) => String(v) === e.target.value)?.[0])} className="border border-black">
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
+        {options.map(([v, text]) => (
+          <option key={String(v)} value={String(v)}>
+            {text}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/** A group of checkboxes, one for each item. */
+export function Checks({ legend, items, checked, onToggle }: { legend: string; items: Choice[]; checked: (key: string) => boolean; onToggle: (key: string) => void }) {
+  return (
+    <fieldset>
+      <legend className="font-bold">{legend}</legend>
+      {items.map(({ key, name }) => (
+        <label key={key} className="mr-4 inline-block">
+          <input type="checkbox" checked={checked(key)} onChange={() => onToggle(key)} /> {name}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+/** A text field of the record, with its problems. */
+export function TextField({ edit, problems, field, label }: { edit: Edit; problems: Problem[]; field: string; label: string }) {
+  return (
+    <div>
+      <label className="block">
+        {label}{" "}
+        <input type="text" value={String(edit.get(field) ?? "")} onChange={(e) => edit.set([field], e.target.value)} className="border border-black px-1" />
+      </label>
+      <FieldProblems problems={problems} field={field} label={label} />
+    </div>
+  );
+}
+
+/** A proficiency choice in :profs, as {:skill-options {:choose 2 :options {:arcana true}}}. Choose shows 1 until it is set. */
+export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; legend: string; field: string; items: Choice[] }) {
+  return (
+    <fieldset>
+      <legend className="font-bold">{legend}</legend>
+      <Select label={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
+      <Checks legend={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
+    </fieldset>
+  );
+}
+
+/**
+ * The features and traits, each with a name, a type and a description, and
+ * with levels the level it is unlocked at, as the class and subclass forms
+ * have it.
+ */
+export function Traits({ edit, problems = [], levels = false }: { edit: Edit; problems?: Problem[]; levels?: boolean }) {
+  const traits = (edit.get("traits") ?? []) as ItemRecord[];
+  return (
+    <fieldset>
+      <legend className="font-bold">Features / traits</legend>
+      {traits.map((trait, i) => {
+        const n = i + 1;
+        return (
+          <div key={i} className="mb-3">
+            <label className="mr-4 inline-block">
+              Feature {n} name{" "}
+              <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => edit.set(["traits", i, "name"], e.target.value)} className="border border-black px-1" />
+            </label>
+            <Select label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
+            {levels && <Select label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
+            <button type="button" onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} className="border border-black px-2">
+              Delete feature {n}
+            </button>
+            <label className="block">
+              Feature {n} description
+              <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => edit.set(["traits", i, "description"], e.target.value)} className="block w-full border border-black" />
+            </label>
+          </div>
+        );
+      })}
+      <button type="button" onClick={() => edit.set(["traits"], [...traits, {}])} className="border border-black px-2">
+        Add feature / trait
+      </button>
+      <FieldProblems problems={problems} field="traits" label="Features / traits" />
+    </fieldset>
+  );
+}
+
+/** The lists of the SRD and the enabled packs, or a status line until they load. */
+export function WithChoices({ children }: { children: (choices: BuilderChoices) => ReactNode }) {
+  const homebrew = useHomebrew((state) => state.homebrew);
+  const choices = useBuilderChoices(homebrew);
+  return choices === null ? <p role="status">Reading the content lists…</p> : children(choices);
 }

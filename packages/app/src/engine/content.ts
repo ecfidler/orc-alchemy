@@ -31,6 +31,21 @@ export const tag = (name: string) => `~:${name}`;
 /** The name of a tagged keyword, without its "~:": the reverse of tag. A value that is not a string gives its text, or "" for none. */
 export const untag = (value: unknown) => String(value ?? "").replace(/^~:/, "");
 
+/** An integer map key as a stored pack has it: Transit encodes the key 3 as "~i3". */
+export const intKey = (n: number) => `~i${n}`;
+
+/** The integer of an encoded map key: the reverse of intKey. */
+export const intKeyValue = (key: string) => Number(key.replace(/^~i/, ""));
+
+/** A set as a stored pack has it: Transit encodes the set #{:a} as { "~#set": ["~:a"] }. */
+export const asSet = (items: unknown[]) => ({ "~#set": items });
+
+/** The items of a Transit-encoded set, or [] for a value that is not one. */
+export const setItems = (value: unknown): unknown[] => (value as { "~#set"?: unknown[] } | undefined)?.["~#set"] ?? [];
+
+/** A class's name as the old class list shows it: with its pack after it, unless the pack is the default one. */
+export const classDisplayName = (name: string, pack: string) => (pack === DEFAULT_PACK ? name : `${name} (${pack})`);
+
 /** The items of one tagged content type in a plugin. */
 export const itemsAt = (plugin: object, taggedType: string) => (plugin as Record<string, Record<string, object> | undefined>)[taggedType];
 
@@ -85,7 +100,7 @@ export function packItems(pack: string, plugin: object, type: ContentType): Pack
     .map(([tagged, item]) => {
       const key = untag(tagged);
       const name = typeof item?.["~:name"] === "string" && item["~:name"] !== "" ? item["~:name"] : key;
-      return { key, tagged, name: type === "orcpub.dnd.e5/classes" && pack !== DEFAULT_PACK ? `${name} (${pack})` : name };
+      return { key, tagged, name: type === "orcpub.dnd.e5/classes" ? classDisplayName(name, pack) : name };
     })
     .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 }

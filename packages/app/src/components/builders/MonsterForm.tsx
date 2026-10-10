@@ -9,7 +9,7 @@
 // and :description maps, :type absent, :action or :legendary-action.
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKey, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKey, range, SKILLS, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -32,15 +32,6 @@ const ALIGNMENTS = [
   "neutral good (50%) or neutral evil (50%)",
   "unaligned",
 ];
-const ABILITIES = [
-  ["str", "Strength"],
-  ["dex", "Dexterity"],
-  ["con", "Constitution"],
-  ["int", "Intelligence"],
-  ["wis", "Wisdom"],
-  ["cha", "Charisma"],
-];
-const SKILLS = ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"];
 /** The SRD languages (languages.json); the old list also had the homebrew ones. */
 const LANGUAGES = ["Abyssal", "Celestial", "Common", "Deep Speech", "Draconic", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Infernal", "Orc", "Primordial", "Sylvan", "Undercommon"];
 const CHALLENGES = [0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)];
@@ -51,7 +42,6 @@ const TRAIT_TYPES = [
   [tag("legendary-action"), "Legendary Action"],
 ];
 
-const range = (from: number, to: number) => Array.from({ length: to - from }, (_, i) => from + i);
 /** A select's number, or undefined for "-". */
 const parsed = (value: string) => (value === "" ? undefined : Number(value));
 /** The map with the key set to the value, or without the key when the value is undefined. */
@@ -162,8 +152,8 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       </fieldset>
       <fieldset>
         <legend>Skills</legend>
-        {SKILLS.map((name) => (
-          <span key={name}>{select(name, skills[tag(nameToKey(name))], orNone(range(1, 21)), (v) => setIn("skills", nameToKey(name), parsed(v)))}</span>
+        {SKILLS.map(({ key, name }) => (
+          <span key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</span>
         ))}
       </fieldset>
       {checkboxes("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`)}
