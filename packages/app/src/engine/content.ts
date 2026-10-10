@@ -72,9 +72,15 @@ export function withoutItem(plugin: object, taggedType: string, taggedKey: strin
  */
 const DISABLED = "~:disabled?";
 
-/** True if the pack or item carries the old app's flag that turns it off. */
-export const disabledInFile = (value: unknown): boolean =>
-  typeof value === "object" && value !== null && (value as Record<string, unknown>)[DISABLED] === true;
+/**
+ * True if the pack or item carries the old app's flag that turns it off. As
+ * in the engine, any value of the flag but false and nil turns it off.
+ */
+export function disabledInFile(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const flag = (value as Record<string, unknown>)[DISABLED];
+  return flag !== undefined && flag !== null && flag !== false;
+}
 
 /** The pack or item with the old app's flag that turns it off. */
 export const withDisabledFlag = (value: object): object => ({ ...value, [DISABLED]: true });
