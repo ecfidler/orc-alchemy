@@ -12,9 +12,6 @@ export function AppShell() {
         <Link to="/import" className="underline">
           Import
         </Link>
-        <Link to="/import/dmv" className="underline">
-          Import from DMV
-        </Link>
         <Link to="/content" className="underline">
           My Content
         </Link>

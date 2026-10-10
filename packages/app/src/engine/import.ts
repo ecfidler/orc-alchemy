@@ -55,20 +55,7 @@ export function readCharacterFile(text: string, homebrew?: Homebrew): CharacterF
     case "dmv-export": {
       checkVersion(data);
       // magicItems become homebrew in the item builder (M5). The homebrew is read by readBundleHomebrew.
-      const entries: unknown[] = Array.isArray(data.characters) ? data.characters : [];
-      // A string entry is the raw text of an old server response, as the exporter bookmarklet writes it.
-      const characters: unknown[] = [];
-      const failures: string[] = [];
-      entries.forEach((entry, i) => {
-        if (typeof entry !== "string") characters.push(entry);
-        else {
-          try {
-            characters.push(...engine().readServerEdn(entry));
-          } catch {
-            failures.push(`Character list ${i + 1} of ${entries.length}: This is not the old server's EDN`);
-          }
-        }
-      });
+      const { characters, failures } = bundleCharacters(Array.isArray(data.characters) ? data.characters : []);
       if (characters.length === 0 && failures.length === 0 && bundlePacks(data) === null) {
         throw new Error("This export has no characters");
       }
@@ -96,6 +83,25 @@ function readServerCharacters(text: string, homebrew: Homebrew | undefined): Cha
   if (values.length === 0) throw new Error("This file has no characters");
   if (values.length === 1) return { characters: [importOne(values[0], homebrew)], failures: [] };
   return importEach(values, homebrew);
+}
+
+/**
+ * A bundle's character values. A string entry is the raw text of an old
+ * server response, as the exporter bookmarklet writes it, and gives each
+ * character in it; one that is not EDN is a failure.
+ */
+function bundleCharacters(entries: unknown[]): { characters: unknown[]; failures: string[] } {
+  const characters: unknown[] = [];
+  const failures: string[] = [];
+  entries.forEach((entry, i) => {
+    if (typeof entry !== "string") return characters.push(entry);
+    try {
+      characters.push(...engine().readServerEdn(entry));
+    } catch {
+      failures.push(`Character list ${i + 1} of ${entries.length}: This is not the old server's EDN`);
+    }
+  });
+  return { characters, failures };
 }
 
 /** Imports each character, and reports each one that fails in failures. */

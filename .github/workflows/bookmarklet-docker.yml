@@ -1,7 +1,8 @@
 # The exporter bookmarklet against the old app in Docker (ORC-67).
 #
-# Builds the old app (ecfidler/orcpub, branch pubdoor) from source and brings
-# it up as the fork's docker-integration.yml does, then runs
+# Builds the old app from source (ecfidler/orcpub at tag pubdoor-v0.3.0, the
+# source of fixtures/) and brings it up as the fork's docker-integration.yml
+# does, then runs
 # tools/exporter-bookmarklet/docker/docker.e2e.ts.
 #
 # Run it on demand:  gh workflow run bookmarklet-docker.yml --ref <branch>
@@ -35,7 +36,7 @@ jobs:
             - uses: actions/checkout@v7
               with:
                   repository: ecfidler/orcpub
-                  ref: pubdoor
+                  ref: pubdoor-v0.3.0
                   path: orcpub
                   persist-credentials: false
 

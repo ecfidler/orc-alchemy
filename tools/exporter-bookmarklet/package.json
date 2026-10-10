@@ -7,6 +7,11 @@
     "./bookmarklet.js": "./bookmarklet.js"
   },
   "scripts": {
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@pubdoor/dmv": "0.3.0"
   }
 }
