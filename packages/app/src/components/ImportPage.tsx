@@ -36,6 +36,13 @@ export function ImportPage() {
     <>
       <h1 className="text-xl">Import</h1>
       <p>Import your homebrew first, then your characters, so the characters find the content they use.</p>
+      <p>
+        Coming from Dungeon Master's Vault? Follow the{" "}
+        <Link to="/import/dmv" className="underline">
+          guide to moving from Dungeon Master's Vault
+        </Link>
+        .
+      </p>
       <HomebrewImport />
       <CharacterImport />
     </>
@@ -247,12 +254,11 @@ function CharacterImport() {
       </section>
       <section aria-label="One character" className="mt-4 space-y-2">
         <h2 className="text-lg">3. One character</h2>
-        <p>A character file, or the text that the old app's public character link shows.</p>
+        <p>A character file, or its text. The old app's public character link downloads a character file with no extension.</p>
         <label className="block">
           Import character file{" "}
           <input
             type="file"
-            accept=".json,application/json,.edn,.txt"
             onChange={(e) => importText("character", () => chosenText(e))}
             className="block"
           />
