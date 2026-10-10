@@ -125,6 +125,7 @@ const GAMING_SETS = named(["Dice Set", "Dragonchess Set", "Playing Card Set", "T
 export const VEHICLES = named(["Water Vehicles", "Land Vehicles"]);
 /** The old tools (equipment.cljc tools). */
 export const TOOLS: Choice[] = [...MUSICAL_INSTRUMENTS, ...ARTISANS_TOOLS, ...MISC_TOOLS, ...GAMING_SETS, ...VEHICLES];
+
 /** A select's options: the stored value and its text. */
 export type Options = [value: unknown, text: string][];
 
