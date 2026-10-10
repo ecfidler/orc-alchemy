@@ -115,8 +115,11 @@ describe("a key with both an internal and an external conflict", () => {
   });
 });
 
-/** A pack of an .orcbrew file with the feat keen and the spell zap, and the old app's off flag where asked. */
-/** featOff can also be the flag's value as EDN, such as '"yes"'. */
+/**
+ * A pack of an .orcbrew file with the feat keen and the spell zap, and the
+ * old app's off flag where asked. featOff can also be the flag's value as
+ * EDN, such as '"yes"'.
+ */
 const packEdn = (name: string, { off = false, featOff = false }: { off?: boolean; featOff?: boolean | string } = {}) =>
   `"${name}" {${off ? ":disabled? true " : ""}` +
   `:orcpub.dnd.e5/feats {:keen {:key :keen :name "Keen" :option-pack "${name}" :description "From ${name}"${featOff ? ` :disabled? ${featOff === true ? "true" : featOff}` : ""}}} ` +
