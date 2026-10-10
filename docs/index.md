@@ -12,6 +12,7 @@ before you add or change a document.
 
 # Subdirectories
 
+* [Guides](guides/index.md) - Steps for people who use Alchemy 5e.
 * [Plan Set 2](plan/index.md) - The active plan, and Plan Set 1 as reference.
 * [Reports](reports/index.md) - Investigations that compare options and record a decision.
 * [Knowledge base](kb/index.md) - External facts that the plan and the reports rely on.

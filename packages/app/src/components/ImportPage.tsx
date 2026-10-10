@@ -36,6 +36,13 @@ export function ImportPage() {
     <>
       <h1 className="text-xl">Import</h1>
       <p>Import your homebrew first, then your characters, so the characters find the content they use.</p>
+      <p>
+        Coming from Dungeon Master's Vault? Follow the{" "}
+        <Link to="/import/dmv" className="underline">
+          guide to moving from Dungeon Master's Vault
+        </Link>
+        .
+      </p>
       <HomebrewImport />
       <CharacterImport />
     </>

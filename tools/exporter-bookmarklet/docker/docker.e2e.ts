@@ -123,3 +123,29 @@ test("the bookmarklet exports the old server's characters, and the app imports t
   const hp = fighter["max-hit-points"];
   await expect(page.getByLabel("Hit Points", { exact: true })).toHaveText(`${fighter["current-hit-points"] ?? hp} / ${hp}`);
 });
+
+// The guide's way without the bookmark (ORC-68, doc 03 Path A): open a
+// character's public URL with no login, and paste the text in step 3.
+test("a character's public URL text imports in step 3", async ({ browser, page }) => {
+  const api = await request.newContext({ baseURL: oldApp, ignoreHTTPSErrors: true });
+  const login = await api.post("/login", { data: { username: "testadmin", password: "SecurePass123" } });
+  const token = /:token\s+"([^"]+)"/.exec(await login.text())![1];
+  const list = await (await api.get("/dnd/5e/characters", { headers: { Authorization: `Token ${token}` } })).text();
+  await api.dispose();
+  const fighter = expected.get("fighter-1");
+  const id = readServerEdn(list)
+    .map((c) => c as Record<string, unknown>)
+    .find((c) => evaluate(importCharacter(c).entity).built["character-name"] === fighter["character-name"])!["~:db/id"];
+  expect(id, "the character list gives each character's :db/id").toBeDefined();
+
+  const anonymous = await browser.newContext({ ignoreHTTPSErrors: true });
+  const oldPage = await anonymous.newPage();
+  await oldPage.goto(`${oldApp}/dnd/5e/characters/${id}`);
+  const text = await oldPage.locator("body").innerText();
+  await anonymous.close();
+
+  await page.goto("/import");
+  await page.getByLabel("Paste the character's text").fill(text);
+  await page.getByRole("button", { name: "Import pasted character" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: fighter["character-name"] })).toBeVisible();
+});

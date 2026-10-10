@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-10-10
+
+* **Creation**: Added the `guides/` directory and [Moving from Dungeon Master's Vault](guides/moving-from-dungeon-masters-vault.md) (ORC-68).
+
 ## 2026-10-06
 
 * **Creation**: Added the `handoffs/` directory and the [M3 handoff: homebrew in the app](handoffs/m3-homebrew-in-the-app.md) (ORC-54).
