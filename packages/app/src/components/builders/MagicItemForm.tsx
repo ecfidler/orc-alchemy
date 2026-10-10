@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKey, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKw, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
 
@@ -218,7 +218,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
             </div>
             <div>
               Alignment:{" "}
-              {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKey(name))), () => toggleAttunement(nameToKey(name))))}
+              {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKw(name))), () => toggleAttunement(nameToKw(name))))}
             </div>
           </div>
         )}
@@ -266,7 +266,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       {toggles("Damage resistances", "damage-resistance", DAMAGE_TYPES)}
       {toggles("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES)}
       {toggles("Damage immunities", "damage-immunity", DAMAGE_TYPES)}
-      {toggles("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKey))}
+      {toggles("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw))}
       <FieldProblems problems={problems} field={MI + "modifiers"} label="Modifiers" />
     </div>
   );

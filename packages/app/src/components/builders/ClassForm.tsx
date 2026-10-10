@@ -24,12 +24,13 @@ import {
   DAMAGE_TYPES,
   editor,
   FieldProblems,
-  nameToKey,
+  nameToKw,
   numbers,
   ProficiencyChoice,
   range,
   Select,
   SKILLS,
+  TextArea,
   TextField,
   title,
   TOOLS,
@@ -68,7 +69,7 @@ function modifierTypes(choices: BuilderChoices): [key: string, name: string, val
     ["flying-speed", "Flying Speed", speeds],
     ["flying-speed-equals-walking-speed", "Flying Speed Equals Walking Speed"],
     ["num-attacks", "Number of Attacks", numbers(range(2, 5))],
-    ["saving-throw-advantage", "Saving Throw Advantage", CONDITIONS.map((c) => [tag(nameToKey(c)), c])],
+    ["saving-throw-advantage", "Saving Throw Advantage", CONDITIONS.map((c) => [tag(nameToKw(c)), c])],
     ["skill-prof", "Skill Proficiency", SKILLS.map(({ key, name }) => [tag(key), name])],
     ["spell", "Spell"],
     ["swimming-speed", "Swimming Speed", speeds],
@@ -264,10 +265,7 @@ function ClassForm({ record, onChange, problems }: FormProps) {
       {(choices) => (
         <div className="space-y-3">
           <TextField edit={edit} problems={problems} field="name" label="Name" />
-          <label className="block">
-            Description
-            <textarea value={String(edit.get("help") ?? "")} onChange={(e) => edit.set(["help"], e.target.value)} className="block w-full border border-black" rows={4} />
-          </label>
+          <TextArea edit={edit} field="help" label="Description" />
           <div>
             <Select label="Hit die" value={edit.get("hit-die")} options={numbers([6, 8, 10, 12])} onSelect={(v) => edit.set(["hit-die"], v)} />
             <Select label="Subclass chosen at level" value={edit.get("subclass-level")} options={numbers([1, 2, 3])} onSelect={(v) => edit.set(["subclass-level"], v)} placeholder="-" />

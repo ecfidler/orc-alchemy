@@ -8,8 +8,8 @@
 // swimming speeds in :props as integers, the tool proficiencies and the
 // proficiency choices in :profs, :spells a vector of {:level unlock-level
 // :value {:level :ability :key}}, and :traits a vector of :name, :type and
-// :description maps. The subrace form (SubraceForm.tsx) uses the parts
-// exported here.
+// :description maps. The subrace form (SubraceForm.tsx) and the feat form
+// (FeatForm.tsx) use the parts exported here.
 import { asSet, setItems, tag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
@@ -20,12 +20,13 @@ import {
   CONDITIONS,
   DAMAGE_TYPES,
   editor,
-  nameToKey,
+  nameToKw,
   numbers,
   ProficiencyChoice,
   range,
   Select,
   SKILLS,
+  TextArea,
   TextField,
   TOOLS,
   Traits,
@@ -70,7 +71,7 @@ export const ImmunityChecks = ({ edit }: { edit: Edit }) => (
   <PropChecks edit={edit} legend="Damage Immunities" prop="damage-immunity" items={choices(DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)} />
 );
 export const SkillChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Skill Proficiencies" prop="skill-prof" items={SKILLS} />;
-export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKey(name), name: `You have advantage on saving throws against being ${name}` }));
+export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKw(name), name: `You have advantage on saving throws against being ${name}` }));
 
 /**
  * The spells, as the old option-spells: one row for each, and a blank row
@@ -117,10 +118,7 @@ function RaceForm({ record, onChange, problems }: FormProps) {
       {(lists) => (
         <div className="space-y-3">
           <TextField edit={edit} problems={problems} field="name" label="Name" />
-          <label className="block">
-            Description
-            <textarea value={String(edit.get("help") ?? "")} onChange={(ev) => edit.set(["help"], ev.target.value)} className="block w-full border border-black" rows={4} />
-          </label>
+          <TextArea edit={edit} field="help" label="Description" />
           <div>
             <Select label="Size" value={edit.get("size") ?? tag("medium")} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
             <Select label="Speed" value={edit.get("speed")} options={speeds} onSelect={(v) => edit.set(["speed"], v)} />
