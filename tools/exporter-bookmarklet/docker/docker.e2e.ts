@@ -27,12 +27,15 @@ const readJson = (file: string) => JSON.parse(readFileSync(join(charactersDir, f
 const bookmarklet = readFileSync(join(import.meta.dirname, "../bookmarklet.js"), "utf8");
 
 // The golden characters that need no homebrew and no custom magic items (those come in ORC-77).
+// The old server's schema has no attuned-magic-items attribute, and the old UI never sets it
+// (its attune event is commented out), so a golden that holds it cannot be saved there.
 const goldens = readdirSync(charactersDir)
   .filter((file) => file.endsWith(".meta.json"))
   .map((file) => file.slice(0, -".meta.json".length))
   .filter((name) => {
     const meta = readJson(`${name}.meta.json`);
-    return meta.orcbrew.length === 0 && meta.magicItems === undefined;
+    const attuned = readFileSync(join(charactersDir, `${name}.strict.json`), "utf8").includes("attuned-magic-items");
+    return meta.orcbrew.length === 0 && meta.magicItems === undefined && !attuned;
   });
 const expected = new Map(goldens.map((name) => [name, readJson(`${name}.expected.json`)]));
 const nameOf = (golden: string): string => expected.get(golden)["character-name"];
