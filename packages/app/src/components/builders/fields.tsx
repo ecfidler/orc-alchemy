@@ -19,10 +19,29 @@ export interface FormProps {
   problems: ValidationProblem[];
 }
 
-/** One content type that has a form. */
-export interface BuilderType {
+/** One content type that has a form: stored in a pack, or in a store of its own. */
+export type BuilderType = BuilderBase & (InPack | OutsidePacks);
+
+interface InPack {
   /** The pack content type the item is stored under. */
   contentType: ContentType;
+  save?: never;
+  load?: never;
+}
+
+/** A type stored outside packs, such as the custom magic items. The frame shows no option source. */
+interface OutsidePacks {
+  contentType?: never;
+  /**
+   * Stores the item as the validator returned it. storedKey is the key of
+   * the item that was edited, or undefined for a new item.
+   */
+  save: (item: object, storedKey?: string) => Promise<void>;
+  /** The stored item with the key, or undefined. */
+  load: (key: string) => ItemRecord | undefined;
+}
+
+interface BuilderBase {
   /** The validator for the type. */
   validator: keyof Engine["validate"];
   /** The name of one item, such as "spell", for the UI. */

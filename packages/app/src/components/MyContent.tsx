@@ -60,7 +60,7 @@ export function MyContent() {
         ))}
       </p>
       <p>
-        Magic items come from a dmv-export bundle. They are not in .orcbrew files, because the old app has no magic-item homebrew.
+        Magic items come from a dmv-export bundle or the magic item form. They are not in .orcbrew files, because the old app has no magic-item homebrew.
       </p>
       {error && <p role="alert">{error}</p>}
       {!restored && <p role="status">Reading the stored homebrew…</p>}
@@ -104,7 +104,7 @@ export function MyContent() {
   );
 }
 
-/** The stored magic items, each with its enabled checkbox and Delete. */
+/** The stored magic items, each with its enabled checkbox, Edit and Delete. */
 function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (action: Promise<void>) => void }) {
   return (
     <section aria-label="Magic items" className="mt-4 border border-black p-2">
@@ -118,6 +118,9 @@ function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (acti
                 <input type="checkbox" checked={enabled} onChange={(e) => report(useHomebrew.getState().setMagicItemEnabled(id, e.target.checked))} />{" "}
                 {name}
               </label>
+              <Link to={`/content/edit/magicItem/${encodeURIComponent(id)}`} aria-label={`Edit ${name}`} className="underline">
+                Edit
+              </Link>
               <button
                 type="button"
                 aria-label={`Delete ${name}`}

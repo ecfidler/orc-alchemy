@@ -150,7 +150,7 @@ export const routes: RouteObject[] = [
       { path: "import", element: <ImportPage /> },
       { path: "import/dmv", element: <DmvExporter /> },
       { path: "content", element: <MyContent /> },
-      ...["content/new/:type", "content/edit/:type/:pack/:key"].map((path) => ({
+      ...["content/new/:type", "content/edit/:type/:key", "content/edit/:type/:pack/:key"].map((path) => ({
         path,
         element: (
           <EngineGate>
