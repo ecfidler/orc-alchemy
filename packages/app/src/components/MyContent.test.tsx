@@ -229,12 +229,15 @@ test("New spell links to the spell form, and only the items of a type with a for
   await load("warlock-test-content.orcbrew");
   const { item } = engine().validate.spell({ "~:name": "Fire Pop", "~:level": 1, "~:school": "evocation", "~:option-pack": "My Spells", "~:spell-lists": { "~:wizard": true } });
   await useHomebrew.getState().saveItem("My Spells", "~:orcpub.dnd.e5/spells", item);
+  // Encounters have no form.
+  await useHomebrew.getState().saveItem("My Spells", "~:orcpub.dnd.e5/encounters", { "~:key": "~:ambush", "~:name": "Ambush", "~:option-pack": "My Spells" });
   renderPage();
   expect((await screen.findByRole("link", { name: "New spell" })).getAttribute("href")).toBe("/content/new/spell");
   const spells = within(await screen.findByRole("region", { name: "My Spells" })).getByRole("list", { name: "My Spells spells" });
   expect(within(spells).getByRole("link", { name: "Edit Fire Pop" }).getAttribute("href")).toBe("/content/edit/spell/My%20Spells/fire-pop");
   const pack = within(screen.getByRole("region", { name: "warlock-test-content" }));
   expect(within(pack.getByRole("list", { name: "warlock-test-content subraces" })).getAllByRole("link", { name: /^Edit / })).toHaveLength(1);
-  expect(within(pack.getByRole("list", { name: "warlock-test-content backgrounds" })).queryAllByRole("link", { name: /^Edit / })).toHaveLength(0);
-  expect(within(pack.getByRole("list", { name: "warlock-test-content feats" })).queryAllByRole("link", { name: /^Edit / })).toHaveLength(0);
+  expect(within(pack.getByRole("list", { name: "warlock-test-content backgrounds" })).getAllByRole("link", { name: /^Edit / })).toHaveLength(1);
+  expect(within(pack.getByRole("list", { name: "warlock-test-content feats" })).getAllByRole("link", { name: /^Edit / })).toHaveLength(1);
+  expect(within(screen.getByRole("list", { name: "My Spells encounters" })).queryAllByRole("link", { name: /^Edit / })).toHaveLength(0);
 });

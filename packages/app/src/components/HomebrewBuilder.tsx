@@ -9,10 +9,16 @@ import { DEFAULT_PACK, itemAt, tag } from "../engine/content.ts";
 import { engine } from "../engine/engine.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { problemText, type BuilderType, type ItemRecord } from "./builders/fields.tsx";
+import { backgroundBuilder } from "./builders/BackgroundForm.tsx";
+import { boonBuilder } from "./builders/BoonForm.tsx";
 import { classBuilder } from "./builders/ClassForm.tsx";
+import { featBuilder } from "./builders/FeatForm.tsx";
+import { invocationBuilder } from "./builders/InvocationForm.tsx";
+import { languageBuilder } from "./builders/LanguageForm.tsx";
 import { magicItemBuilder } from "./builders/MagicItemForm.tsx";
 import { monsterBuilder } from "./builders/MonsterForm.tsx";
 import { raceBuilder } from "./builders/RaceForm.tsx";
+import { selectionBuilder } from "./builders/SelectionForm.tsx";
 import { spellBuilder } from "./builders/SpellForm.tsx";
 import { subclassBuilder } from "./builders/SubclassForm.tsx";
 import { subraceBuilder } from "./builders/SubraceForm.tsx";
@@ -30,6 +36,12 @@ export const BUILDERS: Record<string, BuilderType> = {
   class: classBuilder,
   subclass: subclassBuilder,
   magicItem: magicItemBuilder,
+  background: backgroundBuilder,
+  feat: featBuilder,
+  language: languageBuilder,
+  invocation: invocationBuilder,
+  boon: boonBuilder,
+  selection: selectionBuilder,
 };
 
 const OPTION_PACK = tag("option-pack");

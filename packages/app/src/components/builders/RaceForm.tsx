@@ -20,7 +20,7 @@ import {
   CONDITIONS,
   DAMAGE_TYPES,
   editor,
-  nameToKey,
+  nameToKw,
   numbers,
   ProficiencyChoice,
   range,
@@ -70,7 +70,7 @@ export const ImmunityChecks = ({ edit }: { edit: Edit }) => (
   <PropChecks edit={edit} legend="Damage Immunities" prop="damage-immunity" items={choices(DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)} />
 );
 export const SkillChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Skill Proficiencies" prop="skill-prof" items={SKILLS} />;
-export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKey(name), name: `You have advantage on saving throws against being ${name}` }));
+export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKw(name), name: `You have advantage on saving throws against being ${name}` }));
 
 /**
  * The spells, as the old option-spells: one row for each, and a blank row

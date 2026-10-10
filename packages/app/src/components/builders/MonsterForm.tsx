@@ -9,7 +9,7 @@
 // and :description maps, :type absent, :action or :legendary-action.
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKey, range, SKILLS, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKw, range, SKILLS, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -159,9 +159,9 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       {checkboxes("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`)}
       {checkboxes("Damage resistances", "damage-resistance", ["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`))}
       {checkboxes("Damage immunities", "damage-immunity", DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)}
-      {checkboxes("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKey), (c) => `Immunity to being ${title(c)}`)}
+      {checkboxes("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw), (c) => `Immunity to being ${title(c)}`)}
       {text("senses", "Senses")}
-      {checkboxes("Languages", "language", LANGUAGES.map(nameToKey), title)}
+      {checkboxes("Languages", "language", LANGUAGES.map(nameToKw), title)}
       {field(
         "challenge",
         "Challenge rating",

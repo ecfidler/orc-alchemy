@@ -71,8 +71,9 @@ export const CONDITIONS = ["Blinded", "Charmed", "Deafened", "Exhausted", "Frigh
 
 /** A key as a title, such as "very-rare" to "Very Rare". */
 export const title = (key: string) => key.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
-/** A name as a key, such as "Lawful Good" to "lawful-good". */
-export const nameToKey = (name: string) => name.toLowerCase().replace(/\W+/g, "-");
+/** A name as a key, as common/name-to-kw keys it: "Lawful Good" to "lawful-good", and "Thieves' Tools" to "thieves-tools". */
+export const nameToKw = (name: string) => name.toLowerCase().replace(/'/g, "").replace(/\W+/g, "-");
+const named = (names: string[]): Choice[] => names.map((name) => ({ key: nameToKw(name), name }));
 
 /** The text of one problem with the field labelled label. */
 export function problemText(label: string, problem: Problem): string {
@@ -110,16 +111,33 @@ export const abilityKey = (ability: string) => `orcpub.dnd.e5.character/${abilit
 export const SKILLS: Choice[] = [
   "Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation",
   "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival",
-].map((name) => ({ key: nameToKey(name), name }));
-/** The old tools (equipment.cljc tools), keyed as common/name-to-kw keys them. */
-export const TOOLS: Choice[] = [
-  "Bagpipes", "Drum", "Dulcimer", "Flute", "Lute", "Lyre", "Horn", "Pan Flute", "Shawm", "Viol", "Alchemist's Supplies",
-  "Brewer's Supplies", "Calligrapher's Supplies", "Carpenter's Tools", "Cartographer's Tools", "Cobbler's Tools", "Cook's Utensils",
-  "Glassblower's Tools", "Jeweler's Tools", "Leatherworker's Tools", "Mason's Tools", "Painter's Supplies", "Potter's Tools",
-  "Smith's Tools", "Tinker's Tools", "Weaver's Tools", "Woodcarver's Tools", "Disguise Kit", "Forgery Kit", "Herbalism Kit",
-  "Navigator's Tools", "Poisoner's Kit", "Thieves' Tools", "Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set",
-  "Water Vehicles", "Land Vehicles",
-].map((name) => ({ key: nameToKey(name.replace(/'/g, "")), name }));
+].map((name) => ({ key: nameToKw(name), name }));
+// The old tool and equipment lists (equipment.cljc), keyed as common/name-to-kw keys them.
+export const MUSICAL_INSTRUMENTS = named(["Bagpipes", "Drum", "Dulcimer", "Flute", "Lute", "Lyre", "Horn", "Pan Flute", "Shawm", "Viol"]);
+export const ARTISANS_TOOLS = named([
+  "Alchemist's Supplies", "Brewer's Supplies", "Calligrapher's Supplies", "Carpenter's Tools", "Cartographer's Tools", "Cobbler's Tools",
+  "Cook's Utensils", "Glassblower's Tools", "Jeweler's Tools", "Leatherworker's Tools", "Mason's Tools", "Painter's Supplies",
+  "Potter's Tools", "Smith's Tools", "Tinker's Tools", "Weaver's Tools", "Woodcarver's Tools",
+]);
+export const MISC_TOOLS = named(["Disguise Kit", "Forgery Kit", "Herbalism Kit", "Navigator's Tools", "Poisoner's Kit", "Thieves' Tools"]);
+export const GAMING_SETS = named(["Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set"]);
+export const VEHICLES = named(["Water Vehicles", "Land Vehicles"]);
+/** The old tools (equipment.cljc tools). */
+export const TOOLS: Choice[] = [...MUSICAL_INSTRUMENTS, ...ARTISANS_TOOLS, ...MISC_TOOLS, ...GAMING_SETS, ...VEHICLES];
+export const CLOTHES = named(["Clothes, common", "Clothes, costume", "Clothes, fine", "Clothes, traveler’s"]);
+export const HOLY_SYMBOLS = named(["Amulet", "Emblem", "Reliquary"]);
+export const MISC_EQUIPMENT = named([
+  "Abacus", "Acid", "Alchemist’s fire", "Alms Box", "Antitoxin", "Backpack", "Bag of Sand", "Ball bearings", "Barrel", "Basket",
+  "Bedroll", "Bell", "Blanket", "Block and tackle", "Book", "Bottle, glass", "Bucket", "Caltrops", "Candle", "Case, crossbow bolt",
+  "Case, map or scroll", "Censer", "Chain", "Chalk", "Chest", "Climber’s kit", "Component pouch", "Costume", "Crowbar",
+  "Fishing tackle", "Flask or tankard", "Grappling hook", "Hammer", "Hammer, sledge", "Healer’s kit", "Holy water", "Holy symbol",
+  "Hourglass", "Hunting trap", "Ink", "Ink pen", "Incense", "Jug or pitcher", "Knife, Small", "Ladder (10-foot)", "Lamp",
+  "Lantern, bullseye", "Lantern, hooded", "Lock", "Magnifying glass", "Manacles", "Mess kit", "Mirror, steel", "Oil", "Paper",
+  "Parchment", "Perfume", "Pick, miner’s", "Piton", "Poison, basic", "Pole (10-foot)", "Pot, iron", "Potion of healing", "Pouch",
+  "Prayer Book", "Prayer Wheel", "Purse", "Quiver", "Ram, portable", "Rations (1 day)", "Robes", "Rope, hempen", "Rope, silk", "Sack",
+  "Scale, merchant’s", "Sealing wax", "Shovel", "Signal whistle", "Signet ring", "Soap", "Spellbook", "Spikes, iron", "Spyglass",
+  "String", "Tent, two-person", "Tinderbox", "Torch", "Vial", "Vestements", "Waterskin", "Whetstone", "Wooden Stake",
+]);
 
 /** A select's options: the stored value and its text. */
 export type Options = [value: unknown, text: string][];
@@ -284,4 +302,34 @@ export function WithChoices({ children }: { children: (choices: BuilderChoices) 
   const homebrew = useHomebrew((state) => state.homebrew);
   const choices = useBuilderChoices(homebrew);
   return choices === null ? <p role="status">Reading the content lists…</p> : children(choices);
+}
+
+/**
+ * Checkboxes of one number at path, as the old toggle-value events: a click
+ * stores the box's number, and a second click on it removes the key.
+ */
+export function ValueChecks({ edit, legend, path, values, name }: { edit: Edit; legend: string; path: Path; values: number[]; name: (n: number) => string }) {
+  const value = edit.get(...path);
+  return (
+    <Checks
+      legend={legend}
+      items={values.map((n) => ({ key: String(n), name: name(n) }))}
+      checked={(key) => value === Number(key)}
+      onToggle={(key) => edit.set(path, value === Number(key) ? undefined : Number(key))}
+    />
+  );
+}
+
+/** A name and a :description, as the old language, invocation and boon builders have them. */
+export function NameDescriptionForm({ record, onChange, problems }: FormProps) {
+  const edit = editor(record, onChange);
+  return (
+    <div className="space-y-3">
+      <TextField edit={edit} problems={problems} field="name" label="Name" />
+      <label className="block">
+        Description
+        <textarea value={String(edit.get("description") ?? "")} onChange={(e) => edit.set(["description"], e.target.value)} className="block w-full border border-black" rows={4} />
+      </label>
+    </div>
+  );
 }
