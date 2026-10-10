@@ -16,16 +16,10 @@ test("the bookmark link runs the exporter bookmarklet's source", () => {
   for (const link of screen.getAllByRole("link", { name: "Import page" })) expect(link.getAttribute("href")).toBe("/import");
 });
 
-test("the guide puts the homebrew before the characters, and covers unresolved content and the public link", () => {
+test("the page has the same sections as the Markdown copy of the guide", () => {
   render(<RouterProvider router={createMemoryRouter([{ path: "/", element: <DmvExporter /> }])} />);
-  const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-  expect(headings).toEqual([
-    "1. Export your homebrew from Dungeon Master's Vault",
-    "2. Export your characters and magic items",
-    "3. Import the homebrew first",
-    "4. Then import the characters",
-    "5. Check the sheets",
-    "If a character has unresolved content",
-    "Without the bookmark",
-  ]);
+  const markdown = readFileSync(join(import.meta.dirname, "../../../../docs/guides/moving-from-dungeon-masters-vault.md"), "utf8");
+  const sections = [...markdown.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
+  expect(sections).toContain("Without the bookmark");
+  expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(sections);
 });

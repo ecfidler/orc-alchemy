@@ -18,7 +18,7 @@
 // in Node with the engine, and in the app's Import page and sheet.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, request, test } from "@playwright/test";
+import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { emptyCharacter, evaluate, importCharacter, readServerEdn } from "@pubdoor/dmv";
 
 const oldApp = process.env.OLD_APP_URL ?? "https://localhost";
@@ -40,17 +40,22 @@ const goldens = readdirSync(charactersDir)
 const expected = new Map(goldens.map((name) => [name, readJson(`${name}.expected.json`)]));
 const nameOf = (golden: string): string => expected.get(golden)["character-name"];
 
+/** Logs in to the old server as testadmin, and gives its token. */
+async function token(api: APIRequestContext): Promise<string> {
+  const login = await api.post("/login", { data: { username: "testadmin", password: "SecurePass123" } });
+  const body = await login.text();
+  expect(login.status(), body).toBe(200);
+  // The old server answers in EDN: {:token "<jwt>" ...}.
+  return /:token\s+"([^"]+)"/.exec(body)![1];
+}
+
 test.beforeAll(async () => {
   const api = await request.newContext({ baseURL: oldApp, ignoreHTTPSErrors: true });
-  const login = await api.post("/login", { data: { username: "testadmin", password: "SecurePass123" } });
-  const loginBody = await login.text();
-  expect(login.status(), loginBody).toBe(200);
-  // The old server answers in EDN: {:token "<jwt>" ...}.
-  const token = /:token\s+"([^"]+)"/.exec(loginBody)![1];
+  const auth = await token(api);
 
   for (const golden of goldens) {
     const saved = await api.post("/dnd/5e/characters", {
-      headers: { Authorization: `Token ${token}`, "Content-Type": "application/transit+json" },
+      headers: { Authorization: `Token ${auth}`, "Content-Type": "application/transit+json" },
       data: readFileSync(join(charactersDir, `${golden}.strict.json`), "utf8"),
     });
     expect(saved.status(), `save ${golden}: ${await saved.text()}`).toBe(200);
@@ -125,27 +130,30 @@ test("the bookmarklet exports the old server's characters, and the app imports t
 });
 
 // The guide's way without the bookmark (ORC-68, doc 03 Path A): open a
-// character's public URL with no login, and paste the text in step 3.
-test("a character's public URL text imports in step 3", async ({ browser, page }) => {
+// character's public URL with no login. The browser downloads a file with no
+// extension, and step 3 of the Import page imports it.
+test("a character's public URL downloads a file that imports in step 3", async ({ browser, page }) => {
   const api = await request.newContext({ baseURL: oldApp, ignoreHTTPSErrors: true });
-  const login = await api.post("/login", { data: { username: "testadmin", password: "SecurePass123" } });
-  const token = /:token\s+"([^"]+)"/.exec(await login.text())![1];
-  const list = await (await api.get("/dnd/5e/characters", { headers: { Authorization: `Token ${token}` } })).text();
+  const auth = await token(api);
+  const list = await (await api.get("/dnd/5e/characters", { headers: { Authorization: `Token ${auth}` } })).text();
   await api.dispose();
   const fighter = expected.get("fighter-1");
-  const id = readServerEdn(list)
+  const character = readServerEdn(list)
     .map((c) => c as Record<string, unknown>)
-    .find((c) => evaluate(importCharacter(c).entity).built["character-name"] === fighter["character-name"])!["~:db/id"];
+    .find((c) => evaluate(importCharacter(c).entity).built["character-name"] === fighter["character-name"]);
+  expect(character, "the character list holds fighter-1").toBeDefined();
+  const id = character!["~:db/id"];
   expect(id, "the character list gives each character's :db/id").toBeDefined();
 
-  const anonymous = await browser.newContext({ ignoreHTTPSErrors: true });
+  const anonymous = await browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true });
   const oldPage = await anonymous.newPage();
-  await oldPage.goto(`${oldApp}/dnd/5e/characters/${id}`);
-  const text = await oldPage.locator("body").innerText();
-  await anonymous.close();
+  const download = oldPage.waitForEvent("download");
+  // The navigation fails with "Download is starting": the page is a download.
+  await oldPage.goto(`${oldApp}/dnd/5e/characters/${id}`).catch(() => {});
+  const file = await (await download).path();
 
   await page.goto("/import");
-  await page.getByLabel("Paste the character's text").fill(text);
-  await page.getByRole("button", { name: "Import pasted character" }).click();
+  await page.getByLabel("Import character file").setInputFiles(file);
   await expect(page.getByRole("heading", { level: 1, name: fighter["character-name"] })).toBeVisible();
+  await anonymous.close();
 });
