@@ -145,3 +145,40 @@ test("a pack with key conflicts loads after Rename all and Apply", async ({ page
   await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Import log" })).toContainText("Key renames (4)");
 });
+
+// ORC-74: a spell made in the spell form is in a new wizard's spell picker.
+test("a spell made on My Content is a choice in a new wizard's spells", async ({ page }) => {
+  await page.goto("/content");
+  await page.getByRole("link", { name: "New spell" }).click();
+  await page.getByRole("textbox", { name: "Name" }).fill("Fire Pop");
+  await page.getByRole("combobox", { name: "Level" }).selectOption("1st-level");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/\/content$/);
+  await expect(page.getByRole("region", { name: "Default Option Source" })).toBeVisible();
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "New character" }).click();
+  const builder = page.getByRole("region", { name: "Builder" });
+  const steps = page.getByRole("navigation", { name: "Steps" });
+  await steps.getByRole("button", { name: /^Class/ }).click();
+  await builder.getByLabel("Class 1", { exact: true }).selectOption("Wizard");
+  await steps.getByRole("button", { name: /^Spells/ }).click();
+  await expect(builder.getByRole("region", { name: /^Wizard Spells Known/ }).getByRole("button", { name: "1 - Fire Pop" })).toBeVisible();
+});
+
+test("a magic item made on My Content is listed there, and Edit opens it", async ({ page }) => {
+  await page.goto("/content");
+  await page.getByRole("link", { name: "New magic item" }).click();
+  await expect(page.getByLabel("Option source (pack)")).toHaveCount(0);
+  await page.getByRole("textbox", { name: "Name" }).fill("Hawk Eye Circlet");
+  await page.getByRole("combobox", { name: "WIS change" }).selectOption("Increases by");
+  await page.getByRole("spinbutton", { name: "WIS value" }).fill("2");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/\/content$/);
+  const items = page.getByRole("region", { name: "Magic items" });
+  await expect(items.getByLabel("Hawk Eye Circlet", { exact: true })).toBeChecked();
+
+  await items.getByRole("link", { name: "Edit Hawk Eye Circlet" }).click();
+  await expect(page).toHaveURL(/\/content\/edit\/magicItem\/hawk-eye-circlet$/);
+  await expect(page.getByRole("spinbutton", { name: "WIS value" })).toHaveValue("2");
+});

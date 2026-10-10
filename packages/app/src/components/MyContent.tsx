@@ -11,6 +11,7 @@ import { exportOrcbrew, type PackProblems } from "../engine/orcbrew-export.ts";
 import { itemOn, orcbrewHomebrew, packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import type { MagicItemRecord, PackRecord } from "../storage/packs.ts";
 import { downloadText } from "./Export.tsx";
+import { BUILDERS } from "./HomebrewBuilder.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -51,8 +52,15 @@ export function MyContent() {
         </Link>
         .
       </p>
+      <p className="flex flex-wrap gap-4">
+        {Object.entries(BUILDERS).map(([name, { one }]) => (
+          <Link key={name} to={`/content/new/${name}`} className="underline">
+            New {one}
+          </Link>
+        ))}
+      </p>
       <p>
-        Magic items come from a dmv-export bundle. They are not in .orcbrew files, because the old app has no magic-item homebrew.
+        Magic items come from a dmv-export bundle or the magic item form. They are not in .orcbrew files, because the old app has no magic-item homebrew.
       </p>
       {error && <p role="alert">{error}</p>}
       {!restored && <p role="status">Reading the stored homebrew…</p>}
@@ -96,7 +104,7 @@ export function MyContent() {
   );
 }
 
-/** The stored magic items, each with its enabled checkbox and Delete. */
+/** The stored magic items, each with its enabled checkbox, Edit and Delete. */
 function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (action: Promise<void>) => void }) {
   return (
     <section aria-label="Magic items" className="mt-4 border border-black p-2">
@@ -110,6 +118,9 @@ function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (acti
                 <input type="checkbox" checked={enabled} onChange={(e) => report(useHomebrew.getState().setMagicItemEnabled(id, e.target.checked))} />{" "}
                 {name}
               </label>
+              <Link to={`/content/edit/magicItem/${encodeURIComponent(id)}`} aria-label={`Edit ${name}`} className="underline">
+                Edit
+              </Link>
               <button
                 type="button"
                 aria-label={`Delete ${name}`}
@@ -145,6 +156,7 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
       {CONTENT_TYPES.map(({ type, one, many }) => {
         const items = packItems(id, plugin, type);
         const taggedType = tag(type);
+        const builder = Object.keys(BUILDERS).find((name) => BUILDERS[name].contentType === type);
         return (
           <details key={type} className="ml-4">
             <summary>
@@ -163,6 +175,11 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
                       />{" "}
                       {name}
                     </label>
+                    {builder && (
+                      <Link to={`/content/edit/${builder}/${encodeURIComponent(id)}/${encodeURIComponent(key)}`} aria-label={`Edit ${name}`} className="underline">
+                        Edit
+                      </Link>
+                    )}
                     <button
                       type="button"
                       aria-label={`Delete ${name}`}

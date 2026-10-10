@@ -224,3 +224,14 @@ test("the stored magic items are listed by name; each can be turned off and dele
   expect(useHomebrew.getState().magicItems.map((r) => r.id)).toEqual(["circlet-of-the-hawk", "emberbrand", "pearl-of-stillwater"]);
   expect(screen.queryByText("There is no homebrew in this browser.")).toBeNull();
 });
+
+test("New spell links to the spell form, and each spell, and no other item, has an Edit link to it", async () => {
+  await load("duplicate-external-b.orcbrew");
+  const { item } = engine().validate.spell({ "~:name": "Fire Pop", "~:level": 1, "~:school": "evocation", "~:option-pack": "My Spells", "~:spell-lists": { "~:wizard": true } });
+  await useHomebrew.getState().saveItem("My Spells", "~:orcpub.dnd.e5/spells", item);
+  renderPage();
+  expect((await screen.findByRole("link", { name: "New spell" })).getAttribute("href")).toBe("/content/new/spell");
+  const spells = within(await screen.findByRole("region", { name: "My Spells" })).getByRole("list", { name: "My Spells spells" });
+  expect(within(spells).getByRole("link", { name: "Edit Fire Pop" }).getAttribute("href")).toBe("/content/edit/spell/My%20Spells/fire-pop");
+  expect(within(screen.getByRole("region", { name: "duplicate-external-b" })).queryAllByRole("link", { name: /^Edit / })).toHaveLength(0);
+});
