@@ -4,9 +4,10 @@ import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { itemAt } from "../../engine/content.ts";
+import { itemAt, withoutDisabledFlag } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
-import { useHomebrew } from "../../state/homebrew.ts";
+import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
+import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 
 beforeAll(() => loadEngine());
@@ -85,6 +86,10 @@ test("the form recreates the Star Elf subrace of the community fixture, and Edit
   // The old save changes nothing that the fixture does not have, so nothing is normalized.
   expect(itemAt(plugin, "~:orcpub.dnd.e5/subraces", "~:star-elf")).toEqual(fixture);
   expect(engine().validateForExport(useHomebrew.getState().homebrew!).valid).toBe(true);
+  // My Content's .orcbrew export of the pack reads back as the fixture's pack, without the old pack flag the fixture carries.
+  const exported = exportOrcbrew(orcbrewHomebrew(), { pack: "dand wiki" });
+  if (!("text" in exported)) throw new Error("The pack did not export");
+  expect(engine().parseOrcbrew(exported.text, { name: "dand wiki" }).data!["dand wiki"]).toEqual(withoutDisabledFlag(parsed["Imported Content"]));
 
   cleanup();
   renderAt(`/content/edit/subrace/${encodeURIComponent("dand wiki")}/star-elf`);

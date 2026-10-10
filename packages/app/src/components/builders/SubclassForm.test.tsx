@@ -66,10 +66,12 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
   type("Level 1 spell 1", "~:fog-cloud");
   type("Level 1 spell 2", "~:bless");
   type("Level 5 spell 1", "~:cone-of-cold");
-  fireEvent.click(within(screen.getByRole("group", { name: "Skill proficiency choice" })).getByLabelText("Religion"));
+  fireEvent.click(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByLabelText("Religion"));
   fireEvent.click(screen.getByRole("button", { name: "Add modifier" }));
   type("Modifier 1 type", "~:swimming-speed");
   type("Modifier 1 value", "30");
+  // A new type keeps the value, as the old event does.
+  type("Modifier 1 type", "~:flying-speed");
   await saved(router);
 
   expect(stored("waves-domain")).toEqual({
@@ -78,8 +80,8 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
     "~:option-pack": DEFAULT,
     "~:class": "~:cleric",
     "~:cleric-spells": { "~i1": { "~i0": "~:fog-cloud", "~i1": "~:bless" }, "~i5": { "~i0": "~:cone-of-cold" } },
-    "~:profs": { "~:skill-options": { "~:choose": 1, "~:options": { "~:religion": true } } },
-    "~:level-modifiers": [{ "~:type": "~:swimming-speed", "~:value": 30 }],
+    "~:profs": { "~:skill-options": { "~:options": { "~:religion": true } } },
+    "~:level-modifiers": [{ "~:type": "~:flying-speed", "~:value": 30 }],
     "~:traits": [],
   });
   expect(engine().validateForExport(useHomebrew.getState().homebrew!).valid).toBe(true);
@@ -105,18 +107,21 @@ test("a fighter subclass can cast wizard spells", async () => {
 // The done-when of ORC-75: a class and its subclass made in the forms give a
 // character the class's level selections and the subclass choice.
 test("a class and a subclass authored in the forms are a character's choices, and their pack passes validateForExport", async () => {
-  await useHomebrew.getState().saveItem(DEFAULT, "~:orcpub.dnd.e5/selections", {
-    "~:name": "Rune Carvings",
-    "~:key": "~:rune-carvings",
-    "~:option-pack": DEFAULT,
-    "~:options": [{ "~:name": "Fire Rune" }, { "~:name": "Stone Rune" }, { "~:name": "Hill Rune" }],
-  });
+  const selection = (name: string, options: string[]) =>
+    useHomebrew.getState().saveItem(DEFAULT, "~:orcpub.dnd.e5/selections", {
+      "~:name": name,
+      "~:key": `~:${name.toLowerCase().replace(" ", "-")}`,
+      "~:option-pack": DEFAULT,
+      "~:options": options.map((option) => ({ "~:name": option })),
+    });
+  await selection("Rune Carvings", ["Fire Rune", "Stone Rune", "Hill Rune"]);
+  await selection("Frost Gifts", ["Ice Skin", "Cold Breath"]);
   let router = renderAt("/content/new/class");
   await screen.findByLabelText("Name");
   type("Name", "Rune Knight");
   type("Hit die", "10");
-  type("Pick subclass at level", "3");
-  type("Subclass title", "Rune Path");
+  type("Subclass chosen at level", "3");
+  type("Subclass title, such as Path or Circle", "Rune Path");
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
   type("Selection 1 type", "~:rune-carvings");
   type("Selection 1 level", "2");
@@ -133,6 +138,9 @@ test("a class and a subclass authored in the forms are a character's choices, an
   type("Feature 1 name", "Frost Rune");
   type("Feature 1 level", "3");
   type("Feature 1 description", "Your weapon is cold.");
+  fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
+  type("Selection 1 type", "~:frost-gifts");
+  type("Selection 1 level", "3");
   await saved(router);
   cleanup();
 
@@ -146,7 +154,10 @@ test("a class and a subclass authored in the forms are a character's choices, an
   const carvings = screen.getByRole("region", { name: /^Rune Carvings/ });
   expect(within(carvings).getByRole("heading").textContent).toBe("Rune Carvings(2 to choose)");
   expect(within(carvings).getByRole("button", { name: "Fire Rune" })).toBeTruthy();
-  expect(within(screen.getByRole("region", { name: /^Rune Path/ })).getByRole("button", { name: "Frost Path" })).toBeTruthy();
+  // Picking the subclass opens its level-3 selection.
+  expect(screen.queryByRole("region", { name: /^Frost Gifts/ })).toBeNull();
+  fireEvent.click(within(screen.getByRole("region", { name: /^Rune Path/ })).getByRole("button", { name: "Frost Path" }));
+  expect(within(screen.getByRole("region", { name: /^Frost Gifts/ })).getByRole("button", { name: "Cold Breath" })).toBeTruthy();
 
   expect(e.validateForExport(useHomebrew.getState().homebrew!).valid).toBe(true);
 });

@@ -71,9 +71,9 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   type("Name", "Rune Knight");
   type("Description", "A warrior of runes.");
   type("Hit die", "10");
-  type("Pick subclass at level", "3");
-  type("Subclass title", "Rune Path");
-  type("Subclass flavor", "The runes you follow.");
+  type("Subclass chosen at level", "3");
+  type("Subclass title, such as Path or Circle", "Rune Path");
+  type("Subclass description", "The runes you follow.");
   click("Strength saving throw");
   click("Constitution saving throw");
   click("Constitution saving throw");
@@ -83,9 +83,9 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   type("Spell list", "~:wizard");
   type("Spellcasting ability", "~:orcpub.dnd.e5.character/int");
   type("First spell slots at level", "2");
-  type("Skill proficiency choice: choose", "2");
-  for (const skill of ["Athletics", "History", "Arcana", "Arcana"]) clickIn("Skill proficiency choice", skill);
-  clickIn("Skill expertise choice", "Stealth");
+  type("Skill Proficiency Choice: choose", "2");
+  for (const skill of ["Athletics", "History", "Arcana", "Arcana"]) clickIn("Skill Proficiency Choice: options", skill);
+  clickIn("Skill Expertise Choice: options", "Stealth");
   for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Add modifier" }));
   type("Modifier 1 type", "~:armor-prof");
   fireEvent.click(screen.getByRole("button", { name: "Delete modifier 1" }));
@@ -120,7 +120,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
     "~:profs": {
       "~:save": { "~:orcpub.dnd.e5.character/str": true },
       "~:skill-options": { "~:choose": 2, "~:options": { "~:athletics": true, "~:history": true, "~:arcana": false } },
-      "~:skill-expertise-options": { "~:choose": 1, "~:options": { "~:stealth": true } },
+      "~:skill-expertise-options": { "~:options": { "~:stealth": true } },
     },
     "~:spellcasting": {
       "~:level-factor": 2,
@@ -148,7 +148,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   expect(screen.getByLabelText<HTMLInputElement>("Ability increase at level 4").checked).toBe(false);
   expect(screen.getByLabelText<HTMLSelectElement>("Spell list").value).toBe("~:wizard");
   expect(screen.getByLabelText<HTMLSelectElement>("First spell slots at level").value).toBe("2");
-  expect(within(screen.getByRole("group", { name: "Skill proficiency choice" })).getByLabelText<HTMLInputElement>("History").checked).toBe(true);
+  expect(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByLabelText<HTMLInputElement>("History").checked).toBe(true);
   expect(screen.getByLabelText<HTMLSelectElement>("Modifier 2 spell").value).toBe("~:fire-bolt");
   expect(screen.getByLabelText<HTMLSelectElement>("Selection 1 type").value).toBe("~:rune-carvings");
   expect(screen.getByLabelText<HTMLSelectElement>("Feature 1 type").value).toBe("~:b-action");

@@ -5,10 +5,9 @@
 // fighter or rogue subclass that casts wizard spells, and :paladin-spells,
 // :cleric-spells or :warlock-spells as {spell-level {index spell}}. The skill
 // choices, modifiers, selections and traits are as in the class form.
-import type { ClassChoices } from "../../engine/class-choices.ts";
-import { tag, untag } from "../../engine/content.ts";
-import { assocIn, intKey, LevelModifiers, LevelSelections, Select, SkillChoice, TextField, Traits, WithChoices } from "./ClassForm.tsx";
-import { FieldProblems, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { intKey, tag, untag } from "../../engine/content.ts";
+import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
+import { editor, FieldProblems, ProficiencyChoice, Select, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type FormProps } from "./fields.tsx";
 
 /** The parent classes whose subclasses add spells, with the field and its title. */
 const CLASS_SPELLS: Record<string, [field: string, title: string]> = {
@@ -17,44 +16,21 @@ const CLASS_SPELLS: Record<string, [field: string, title: string]> = {
   warlock: ["warlock-spells", "Expanded Spells"],
 };
 
-/** The old subclass spells table: two spells for each spell level from 1 to 5. */
-function SubclassSpells({ record, onChange, choices, field, legend }: Omit<FormProps, "problems"> & { choices: ClassChoices; field: string; legend: string }) {
-  return (
-    <fieldset>
-      <legend>{legend}</legend>
-      {[1, 2, 3, 4, 5].map((level) => (
-        <div key={level}>
-          {[0, 1].map((i) => (
-            <Select
-              key={i}
-              label={`Level ${level} spell ${i + 1}`}
-              value={((record[tag(field)] ?? {}) as Record<string, ItemRecord>)[intKey(level)]?.[intKey(i)]}
-              options={choices.spells.filter((s) => s.level === level).map(({ key, name }) => [tag(key), name])}
-              onSelect={(v) => onChange(assocIn(record, [tag(field), intKey(level), intKey(i)], v))}
-              placeholder="<select spell>"
-            />
-          ))}
-        </div>
-      ))}
-    </fieldset>
-  );
-}
-
-function SubclassForm(props: FormProps) {
-  const { record, onChange, problems } = props;
-  const parent = untag(record[tag("class")]);
+function SubclassForm({ record, onChange, problems }: FormProps) {
+  const edit = editor(record, onChange);
+  const parent = untag(edit.get("class"));
   const spells = CLASS_SPELLS[parent];
   return (
     <WithChoices>
       {(choices) => (
         <div className="space-y-3">
-          <TextField {...props} field="name" label="Name" />
+          <TextField edit={edit} problems={problems} field="name" label="Name" />
           <div>
             <Select
               label="Class"
-              value={record[tag("class")]}
+              value={edit.get("class")}
               options={choices.classes.map(({ key, name }) => [tag(key), name])}
-              onSelect={(v) => onChange(assocIn(record, [tag("class")], v))}
+              onSelect={(v) => edit.set(["class"], v)}
               placeholder="<select class>"
             />
             <FieldProblems problems={problems} field="class" label="Class" />
@@ -62,20 +38,36 @@ function SubclassForm(props: FormProps) {
           {(parent === "fighter" || parent === "rogue") && (
             <Select
               label="Casts wizard spells"
-              value={record[tag("spellcasting")] !== undefined}
-              options={[
-                [false, "No"],
-                [true, "Yes"],
-              ]}
-              onSelect={(yes) => onChange(assocIn(record, [tag("spellcasting")], yes ? { [tag("level-factor")]: 3 } : undefined))}
+              value={edit.get("spellcasting") !== undefined}
+              options={YES_NO}
+              onSelect={(yes) => edit.set(["spellcasting"], yes ? { [tag("level-factor")]: 3 } : undefined)}
             />
           )}
-          {spells && <SubclassSpells record={record} onChange={onChange} choices={choices} field={spells[0]} legend={spells[1]} />}
-          <SkillChoice record={record} onChange={onChange} field="skill-options" legend="Skill proficiency choice" />
-          <SkillChoice record={record} onChange={onChange} field="skill-expertise-options" legend="Skill expertise choice" />
-          <LevelModifiers {...props} choices={choices} />
-          <LevelSelections {...props} choices={choices} />
-          <Traits {...props} />
+          {spells && (
+            // The old subclass spells table: two spells for each spell level from 1 to 5.
+            <fieldset>
+              <legend className="font-bold">{spells[1]}</legend>
+              {[1, 2, 3, 4, 5].map((level) => (
+                <div key={level}>
+                  {[0, 1].map((i) => (
+                    <Select
+                      key={i}
+                      label={`Level ${level} spell ${i + 1}`}
+                      value={edit.get(spells[0], intKey(level), intKey(i))}
+                      options={choices.spells.filter((s) => s.level === level).map(({ key, name }) => [tag(key), name])}
+                      onSelect={(v) => edit.set([spells[0], intKey(level), intKey(i)], v)}
+                      placeholder="<select spell>"
+                    />
+                  ))}
+                </div>
+              ))}
+            </fieldset>
+          )}
+          <ProficiencyChoice edit={edit} legend="Skill Proficiency Choice" field="skill-options" items={SKILLS} />
+          <ProficiencyChoice edit={edit} legend="Skill Expertise Choice" field="skill-expertise-options" items={SKILLS} />
+          <LevelModifiers edit={edit} problems={problems} choices={choices} />
+          <LevelSelections edit={edit} problems={problems} choices={choices} />
+          <Traits edit={edit} problems={problems} levels />
         </div>
       )}
     </WithChoices>
