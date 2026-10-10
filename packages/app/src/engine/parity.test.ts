@@ -249,8 +249,8 @@ test.each(goldens)("%s rebuilt by the builder's mutations equals the golden", (n
   }
   // The meta's magicItems names the old server's GET /dnd/5e/items body under fixtures/magic-items.
   const itemsFile: string | undefined = readJson(`characters/${name}.meta.json`).magicItems;
-  const magicItems = itemsFile && e.readServerEdn(readFileSync(join(fixturesDir, "magic-items", itemsFile), "utf8"));
-  const content: Content = { homebrew, magicItems: magicItems || undefined };
+  const magicItems = itemsFile ? e.readServerEdn(readFileSync(join(fixturesDir, "magic-items", itemsFile), "utf8")) : undefined;
+  const content: Content = { homebrew, magicItems };
   const golden = readJson(`characters/${name}.strict.json`) as Entity;
   const gaps: Gaps = GAPS[name] ?? {};
   const { entity, refused, removed, skipped } = rebuild(golden, content);

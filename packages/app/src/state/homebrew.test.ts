@@ -427,3 +427,15 @@ test("a stored magic item record that is not well formed is skipped", async () =
   expect(warn).toHaveBeenCalled();
   warn.mockRestore();
 });
+
+test("loading a magic item again keeps its off flag", async () => {
+  const app = await reload();
+  const items = customItems(app);
+  await app.useHomebrew.getState().loadMagicItems(items);
+  await app.useHomebrew.getState().setMagicItemEnabled("wardens-plate", false);
+  await app.useHomebrew.getState().loadMagicItems(items);
+  await app.useHomebrew.getState().loadMagicItems([{ ...items[1], "~:orcpub.dnd.e5.magic-items/description": "Changed." }]);
+  const plate = app.useHomebrew.getState().magicItems.find((r) => r.id === "wardens-plate");
+  expect(plate).toMatchObject({ enabled: false, item: { "~:orcpub.dnd.e5.magic-items/description": "Changed." } });
+  expect(app.useHomebrew.getState().magicItemsOn).toHaveLength(3);
+});

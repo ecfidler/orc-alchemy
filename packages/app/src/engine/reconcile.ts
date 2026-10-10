@@ -20,7 +20,7 @@ export interface UnresolvedKey {
 }
 
 /** The option keys of the entity that do not resolve against the content, or against the SRD alone without it. */
-export function missingContent(entity: StrictEntity, { homebrew, magicItems }: Content = {}): UnresolvedKey[] {
+export function missingContent(entity: StrictEntity, { homebrew, magicItems }: Content = { homebrew: undefined }): UnresolvedKey[] {
   const report = engine().reconcileMissingContent(entity, homebrew, { magicItems });
   return [
     ...report.items.map(({ label, key, path, suggestions }) => ({ label, key, path, suggestions })),

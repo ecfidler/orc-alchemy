@@ -89,8 +89,8 @@ interface HomebrewState {
   remove: (pack: string) => Promise<void>;
   /**
    * Stores custom magic items, each as validate.magicItem returned it, keyed
-   * by magicItemKey. An item replaces a stored one with its key. Each one
-   * loads enabled.
+   * by magicItemKey. An item replaces a stored one with its key, and keeps
+   * its stored on or off flag. A new item loads enabled.
    */
   loadMagicItems: (items: object[]) => Promise<void>;
   /** Turns a magic item on or off. Throws if it is not stored. */
@@ -230,7 +230,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     homebrew: undefined,
     magicItems: [],
     magicItemsOn: undefined,
-    content: {},
+    content: { homebrew: undefined },
     fingerprint: "",
     lastImport: null,
     pending: null,
@@ -262,8 +262,8 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
         for (const item of items) {
           const id = magicItemKey(item);
           const old = stored.find((r) => r.id === id);
-          if (old?.enabled && JSON.stringify(old.item) === JSON.stringify(item)) changed.delete(id);
-          else changed.set(id, { id, enabled: true, item, updatedAt: now() });
+          if (old !== undefined && JSON.stringify(old.item) === JSON.stringify(item)) changed.delete(id);
+          else changed.set(id, { id, enabled: old?.enabled ?? true, item, updatedAt: now() });
         }
         if (changed.size === 0) return;
         await saveMagicItems([...changed.values()]);

@@ -25,7 +25,9 @@ export function ExportCharacter({ id, label = "Export this character" }: { id: s
  * Downloads every stored character, pack and magic item as a dmv-export
  * bundle, and the packs as all-content.orcbrew for the old app. The packs go in as stored,
  * disabled ones too: the bundle keeps their flags, and the .orcbrew file
- * marks them with the old app's :disabled? flag. A pack that fails validateForExport stops the .orcbrew file, not
+ * marks them with the old app's :disabled? flag. Magic items go in as item
+ * maps without their flags, so a browser that has none of them loads each one
+ * enabled. A pack that fails validateForExport stops the .orcbrew file, not
  * the bundle. Quarantined records are left out, with a notice. Loads the
  * engine on demand.
  */

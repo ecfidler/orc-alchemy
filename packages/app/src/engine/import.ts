@@ -55,7 +55,7 @@ export function readCharacterFile(text: string, content?: Content): CharacterFil
       checkVersion(data);
       // The homebrew is read by readBundleHomebrew, and the magic items by readBundleMagicItems.
       const { characters, failures } = bundleCharacters(Array.isArray(data.characters) ? data.characters : []);
-      if (characters.length === 0 && failures.length === 0 && bundlePacks(data) === null && readBundleMagicItems(text) === null) {
+      if (characters.length === 0 && failures.length === 0 && bundlePacks(data) === null && !(Array.isArray(data.magicItems) && data.magicItems.length > 0)) {
         throw new Error("This export has no characters");
       }
       const file = importEach(characters, content);

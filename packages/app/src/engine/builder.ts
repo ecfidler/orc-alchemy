@@ -187,7 +187,7 @@ export function remainingByStep(steps: BuilderStep[]): number[] {
 }
 
 /** The builder steps for the open character's selections; the template is built once per content. */
-export function useBuilderSteps(selections: AvailableSelection[] | null, content: Content = {}): BuilderStep[] {
+export function useBuilderSteps(selections: AvailableSelection[] | null, content: Content = { homebrew: undefined }): BuilderStep[] {
   const { homebrew, magicItems } = content;
   const shape = useMemo(() => engine().buildTemplate(homebrew, { magicItems }).shape, [homebrew, magicItems]);
   return useMemo(() => (selections === null ? [] : builderSteps(selections, shape)), [selections, shape]);

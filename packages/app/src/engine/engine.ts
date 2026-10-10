@@ -12,7 +12,8 @@ export type { Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity };
  * character builds against the SRD alone.
  */
 export interface Content {
-  homebrew?: Homebrew;
+  /** Required, so a bare multi-plugin map is not taken for a Content by mistake. */
+  homebrew: Homebrew | undefined;
   magicItems?: MagicItems;
 }
 

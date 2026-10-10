@@ -103,18 +103,18 @@ test.each([
   expect(readBundleMagicItems(text)).toBeNull();
 });
 
-test("a bundle with only magic items is not refused, and one with an empty item list is", () => {
+test("a bundle with only magic items is not refused, and one with an empty magicItems array is", () => {
   expect(readCharacterFile(bundleOf([customItemsEdn()]))).toEqual({ characters: [], failures: [] });
-  expect(() => readCharacterFile(bundleOf(["()"]))).toThrow("This export has no characters");
+  expect(() => readCharacterFile(bundleOf([]))).toThrow("This export has no characters");
 });
 
 test("a bundle's magic items export as item maps and read back the same, and its character resolves them", () => {
   const items = engine().readServerEdn(customItemsEdn());
-  const [character] = readCharacterFile(readText("characters/fighter-5-custom-magic-items.strict.json"), { magicItems: items }).characters;
+  const [character] = readCharacterFile(readText("characters/fighter-5-custom-magic-items.strict.json"), { homebrew: undefined, magicItems: items }).characters;
   const text = JSON.stringify(exportBundle([character.entity], "https://alchemy.example", undefined, items));
   const read = readBundleMagicItems(text)!;
   expect(read).toEqual({ items, failures: [] });
-  const [back] = readCharacterFile(text, { magicItems: read.items }).characters;
+  const [back] = readCharacterFile(text, { homebrew: undefined, magicItems: read.items }).characters;
   expect(back.unresolved).toEqual([]);
   expect(back.entity).toEqual(character.entity);
 });
