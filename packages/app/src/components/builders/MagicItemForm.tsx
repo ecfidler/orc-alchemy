@@ -48,7 +48,6 @@ const SPEEDS: { label: string; increases: string; atLeast: string; walking?: str
   { label: "Climbing speed", increases: "climbing-speed", atLeast: "climbing-speed-override", walking: "climbing-speed-equal-to-walking" },
 ];
 
-
 type Mod = Record<string, unknown>;
 const MOD_KEY = tag("orcpub.modifiers/key");
 const MOD_ARGS = tag("orcpub.modifiers/args");
