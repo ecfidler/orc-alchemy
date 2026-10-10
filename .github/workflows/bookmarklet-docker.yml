@@ -1,0 +1,116 @@
+# The exporter bookmarklet against the old app in Docker (ORC-67).
+#
+# Builds the old app (ecfidler/orcpub, branch pubdoor) from source and brings
+# it up as the fork's docker-integration.yml does, then runs
+# tools/exporter-bookmarklet/docker/docker.e2e.ts.
+#
+# Run it on demand:  gh workflow run bookmarklet-docker.yml --ref <branch>
+# Run it locally with Docker: see the comment at the top of docker.e2e.ts.
+
+name: Bookmarklet Docker
+
+on:
+    pull_request:
+        branches: [main]
+        paths:
+            - "tools/exporter-bookmarklet/**"
+            - ".github/workflows/bookmarklet-docker.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    bookmarklet-docker:
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        defaults:
+            run:
+                working-directory: orcpub
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
+
+            - uses: actions/checkout@v7
+              with:
+                  repository: ecfidler/orcpub
+                  ref: pubdoor
+                  path: orcpub
+                  persist-credentials: false
+
+            - name: Generate the old app's .env
+              run: |
+                  ./run --auto
+                  # ./run --auto also builds and starts the stack. Remove it and
+                  # its data, so that the steps below start clean.
+                  docker compose down -v 2>/dev/null || true
+                  sudo rm -rf data/
+
+            # DOCKER_BUILDKIT=0: BuildKit hangs during image export on GitHub
+            # runners (the fork's docs/LEIN-UBERJAR-HANG.md).
+            - name: Build the old app's images
+              env:
+                  DOCKER_BUILDKIT: 0
+              run: |
+                  docker build --target transactor -t orcpub-datomic -f docker/Dockerfile .
+                  docker build --target app -t orcpub-app -f docker/Dockerfile .
+                  echo "ORCPUB_IMAGE=orcpub-app" >> "$GITHUB_ENV"
+                  echo "DATOMIC_IMAGE=orcpub-datomic" >> "$GITHUB_ENV"
+
+            - name: Start datomic
+              run: |
+                  docker compose up -d --no-deps datomic
+                  for i in $(seq 1 90); do
+                    STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q datomic)" 2>/dev/null || echo starting)
+                    echo "[$i/90] datomic health=$STATUS"
+                    [ "$STATUS" = healthy ] && exit 0
+                    sleep 2
+                  done
+                  echo "datomic did not become healthy within 180s"
+                  exit 1
+
+            - name: Start orcpub and web
+              run: |
+                  docker compose up -d
+                  for i in $(seq 1 90); do
+                    STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q orcpub)" 2>/dev/null || echo starting)
+                    echo "[$i/90] orcpub health=$STATUS"
+                    [ "$STATUS" = healthy ] && exit 0
+                    [ "$STATUS" = unhealthy ] && break
+                    sleep 2
+                  done
+                  echo "orcpub did not become healthy"
+                  exit 1
+
+            - name: Create the test user
+              run: ./docker-user.sh create testadmin admin@test.local SecurePass123
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version-file: package.json
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - working-directory: .
+              run: bun install --frozen-lockfile
+
+            - name: Install Playwright Chromium
+              working-directory: packages/app
+              run: bunx playwright install --with-deps chromium
+
+            - name: Bookmarklet test
+              working-directory: packages/app
+              run: bunx playwright test -c ../../tools/exporter-bookmarklet/docker/docker.config.ts
+
+            - name: Collect logs on failure
+              if: failure()
+              run: |
+                  docker compose ps
+                  docker compose logs
+
+            - name: Clean up
+              if: always()
+              run: docker compose down -v

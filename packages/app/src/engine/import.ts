@@ -1,6 +1,7 @@
 // Character files (doc 03): a strict entity saved from the old app, the old
 // server's EDN for one character or the list, the app's dmv-character
-// envelope, or a dmv-export bundle. Each character read goes
+// envelope, or a dmv-export bundle, whose characters can hold the old
+// server's EDN as text. Each character read goes
 // through the engine's importCharacter, and each one written through its
 // exportCharacter.
 import type { Homebrew } from "@pubdoor/dmv";
@@ -54,9 +55,26 @@ export function readCharacterFile(text: string, homebrew?: Homebrew): CharacterF
     case "dmv-export": {
       checkVersion(data);
       // magicItems become homebrew in the item builder (M5). The homebrew is read by readBundleHomebrew.
-      const characters = Array.isArray(data.characters) ? data.characters : [];
-      if (characters.length === 0 && bundlePacks(data) === null) throw new Error("This export has no characters");
-      return importEach(characters, homebrew);
+      const entries: unknown[] = Array.isArray(data.characters) ? data.characters : [];
+      // A string entry is the raw text of an old server response, as the exporter bookmarklet writes it.
+      const characters: unknown[] = [];
+      const failures: string[] = [];
+      entries.forEach((entry, i) => {
+        if (typeof entry !== "string") characters.push(entry);
+        else {
+          try {
+            characters.push(...engine().readServerEdn(entry));
+          } catch {
+            failures.push(`Character list ${i + 1} of ${entries.length}: This is not the old server's EDN`);
+          }
+        }
+      });
+      if (characters.length === 0 && failures.length === 0 && bundlePacks(data) === null) {
+        throw new Error("This export has no characters");
+      }
+      const file = importEach(characters, homebrew);
+      file.failures.unshift(...failures);
+      return file;
     }
     default:
       throw new Error(`Unsupported file format: ${String(data.format)}`);
