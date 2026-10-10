@@ -58,7 +58,7 @@ async function authorFirePop(optionSource?: string) {
   fireEvent.click(screen.getByLabelText("Material"));
   type("Material component", "a match");
   for (const klass of ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock"]) fireEvent.click(screen.getByLabelText(klass));
-  if (optionSource !== undefined) type("Option source", optionSource);
+  if (optionSource !== undefined) type("Option source (pack)", optionSource);
   fireEvent.click(save());
   // Save builds the packs with the spell, which is slow under load.
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
@@ -129,7 +129,7 @@ test("the option source names the pack; Edit loads the stored spell, and a renam
   renderAt("/content/edit/spell/My%20Spells/fire-pop");
   await screen.findByRole("form", { name: "Edit spell" });
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Fire Pop");
-  expect(screen.getByLabelText<HTMLInputElement>("Option source").value).toBe("My Spells");
+  expect(screen.getByLabelText<HTMLInputElement>("Option source (pack)").value).toBe("My Spells");
   expect(screen.getByLabelText<HTMLSelectElement>("Level").value).toBe("1");
   expect(screen.getByLabelText<HTMLInputElement>("Verbal").checked).toBe(true);
   expect(screen.getByLabelText<HTMLInputElement>("Somatic").checked).toBe(false);

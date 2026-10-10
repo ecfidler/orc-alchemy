@@ -169,7 +169,7 @@ test("a spell made on My Content is a choice in a new wizard's spells", async ({
 test("a magic item made on My Content is listed there, and Edit opens it", async ({ page }) => {
   await page.goto("/content");
   await page.getByRole("link", { name: "New magic item" }).click();
-  await expect(page.getByLabel("Option source")).toHaveCount(0);
+  await expect(page.getByLabel("Option source (pack)")).toHaveCount(0);
   await page.getByRole("textbox", { name: "Name" }).fill("Hawk Eye Circlet");
   await page.getByRole("combobox", { name: "WIS change" }).selectOption("Increases by");
   await page.getByRole("spinbutton", { name: "WIS value" }).fill("2");

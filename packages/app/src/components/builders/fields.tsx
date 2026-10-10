@@ -11,12 +11,15 @@ import type { ContentType, Engine, ValidationProblem } from "../../engine/engine
  */
 export type ItemRecord = Record<string, unknown>;
 
+/** A validator's problem, or one that the frame adds, with its own text. */
+export type Problem = ValidationProblem | { path: (string | number)[]; text: string };
+
 export interface FormProps {
   record: ItemRecord;
   /** Replaces the record. */
   onChange: (record: ItemRecord) => void;
-  /** The validator's problems with the record. Show them with FieldProblems. */
-  problems: ValidationProblem[];
+  /** The problems with the record. Show them with FieldProblems. */
+  problems: Problem[];
 }
 
 /** One content type that has a form: stored in a pack, or in a store of its own. */
@@ -27,6 +30,7 @@ interface InPack {
   contentType: ContentType;
   save?: never;
   load?: never;
+  check?: never;
 }
 
 /** A type stored outside packs, such as the custom magic items. The frame shows no option source. */
@@ -39,6 +43,8 @@ interface OutsidePacks {
   save: (item: object, storedKey?: string) => Promise<void>;
   /** The stored item with the key, or undefined. */
   load: (key: string) => ItemRecord | undefined;
+  /** More problems with the item, as validated, that stop its save. storedKey is as for save. */
+  check?: (item: object, storedKey?: string) => Problem[];
 }
 
 interface BuilderBase {
@@ -56,8 +62,18 @@ interface BuilderBase {
   Form: ComponentType<FormProps>;
 }
 
+export const DAMAGE_TYPES = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
+export const CONDITIONS = ["Blinded", "Charmed", "Deafened", "Exhausted", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
+
+/** A key as a title, such as "very-rare" to "Very Rare". */
+export const title = (key: string) => key.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
+/** A name as a key, such as "Lawful Good" to "lawful-good". */
+export const nameToKey = (name: string) => name.toLowerCase().replace(/\W+/g, "-");
+
 /** The text of one problem with the field labelled label. */
-export function problemText(label: string, { reason, pred }: ValidationProblem): string {
+export function problemText(label: string, problem: Problem): string {
+  if ("text" in problem) return problem.text;
+  const { reason, pred } = problem;
   if (reason === "missing") return `${label} is required.`;
   if (reason === "duplicate") return `${label} has two options with the same name.`;
   if (pred.includes("starts-with-letter")) return `${label} must start with a letter.`;
@@ -65,7 +81,7 @@ export function problemText(label: string, { reason, pred }: ValidationProblem):
 }
 
 /** The problems of one top-level field, as text, under its control. */
-export function FieldProblems({ problems, field, label }: { problems: ValidationProblem[]; field: string; label: string }) {
+export function FieldProblems({ problems, field, label }: { problems: Problem[]; field: string; label: string }) {
   const found = problems.filter((p) => p.path[0] === field);
   if (found.length === 0) return null;
   return (

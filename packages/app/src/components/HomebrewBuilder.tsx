@@ -20,25 +20,25 @@ import { spellBuilder } from "./builders/SpellForm.tsx";
  */
 export const BUILDERS: Record<string, BuilderType> = { spell: spellBuilder, monster: monsterBuilder, magicItem: magicItemBuilder };
 
-const OPTION_PACK = "~:option-pack";
+const OPTION_PACK = tag("option-pack");
 
 /** The page: a new item of the route's type, or the stored item at its pack and key. */
 export function HomebrewBuilder() {
   const { type = "", pack, key } = useParams();
   const builder = BUILDERS[type];
   const packs = useHomebrew((state) => state.packs);
-  const [restored, setRestored] = useState<boolean | string>(false);
+  const [restore, setRestore] = useState<{ done: boolean; error: string | null }>({ done: false, error: null });
 
   useEffect(() => {
     restorePacks().then(
-      () => setRestored(true),
-      (e) => setRestored(`The stored homebrew could not be read from this browser: ${e instanceof Error ? e.message : String(e)}`),
+      () => setRestore({ done: true, error: null }),
+      (e) => setRestore({ done: true, error: `The stored homebrew could not be read from this browser: ${e instanceof Error ? e.message : String(e)}` }),
     );
   }, []);
 
   if (builder === undefined) return <NotFound text="There is no form for this content type" />;
-  if (typeof restored === "string") return <p role="alert">{restored}</p>;
-  if (!restored) return <p role="status">Reading the stored homebrew…</p>;
+  if (restore.error !== null) return <p role="alert">{restore.error}</p>;
+  if (!restore.done) return <p role="status">Reading the stored homebrew…</p>;
   if (key === undefined) return <BuilderForm key={type} builder={builder} initial={builder.save ? builder.empty : { ...builder.empty, [OPTION_PACK]: DEFAULT_PACK }} />;
   if (builder.save) {
     const item = builder.load(key);
@@ -76,10 +76,11 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
   const optionPack = String(record[OPTION_PACK] ?? "").trim() || DEFAULT_PACK;
   // A type stored outside packs has no option source.
   const outside = builder.save !== undefined;
-  const { ok, problems, item } = useMemo(
-    () => engine().validate[validator](outside ? record : { ...record, [OPTION_PACK]: optionPack }),
-    [validator, record, optionPack, outside],
-  );
+  const { problems, item } = useMemo(() => {
+    const { problems, item } = engine().validate[validator](outside ? record : { ...record, [OPTION_PACK]: optionPack });
+    return { problems: [...problems, ...(builder.check?.(item, editing) ?? [])], item };
+  }, [validator, record, optionPack, outside, builder, editing]);
+  const ok = problems.length === 0;
   const others = problems.filter((p) => !fields.includes(String(p.path[0])));
 
   async function save() {
@@ -115,7 +116,7 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
       {!outside && (
         <>
           <label className="block">
-            Option source{" "}
+            Option source (pack){" "}
             <input
               type="text"
               list="option-sources"

@@ -57,7 +57,7 @@ async function authorCirclet() {
 test("the form has no option source, and Save is off until the item has a name", async () => {
   renderAt("/content/new/magicItem");
   await screen.findByRole("form", { name: "New magic item" });
-  expect(screen.queryByLabelText("Option source")).toBeNull();
+  expect(screen.queryByLabelText("Option source (pack)")).toBeNull();
   expect(save().disabled).toBe(true);
   type("Name", "1 Ring");
   expect(screen.getByRole("list", { name: "Problems: Name" }).textContent).toBe("Name must start with a letter.");
@@ -94,7 +94,7 @@ test("Edit loads the stored item; a save keeps the enabled flag, and a rename re
   await useHomebrew.getState().setMagicItemEnabled("hawk-eye-circlet", false);
   fireEvent.click(screen.getByRole("link", { name: "Edit Hawk Eye Circlet" }));
   await screen.findByRole("form", { name: "Edit magic item" });
-  expect(screen.queryByLabelText("Option source")).toBeNull();
+  expect(screen.queryByLabelText("Option source (pack)")).toBeNull();
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Hawk Eye Circlet");
   expect(screen.getByLabelText<HTMLSelectElement>("WIS change").value).toBe("ability");
   expect(screen.getByLabelText<HTMLInputElement>("WIS value").value).toBe("2");
@@ -112,6 +112,30 @@ test("Edit loads the stored item; a save keeps the enabled flag, and a rename re
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   expect(useHomebrew.getState().magicItems.map((r) => [r.id, r.enabled])).toEqual([["falcon-circlet", false]]);
+});
+
+test("a new or renamed item may not take the key of another stored item; an edit under its own key may", async () => {
+  await authorCirclet();
+  await useHomebrew.getState().loadMagicItems([{ [`${MI}name`]: "Ring of Warmth", [`${MI}type`]: "~:ring", [`${MI}rarity`]: "~:common" }]);
+  const taken = (name: string) => `A magic item named ${name} already exists. Change the name.`;
+
+  fireEvent.click(screen.getByRole("link", { name: "New magic item" }));
+  await screen.findByRole("form", { name: "New magic item" });
+  type("Name", "Hawk Eye Circlet");
+  expect(screen.getByRole("list", { name: "Problems: Name" }).textContent).toBe(taken("Hawk Eye Circlet"));
+  expect(save().disabled).toBe(true);
+  type("Name", "Owl Circlet");
+  expect(save().disabled).toBe(false);
+  cleanup();
+
+  renderAt("/content/edit/magicItem/hawk-eye-circlet");
+  await screen.findByRole("form", { name: "Edit magic item" });
+  expect(screen.queryByRole("list", { name: "Problems: Name" })).toBeNull();
+  expect(save().disabled).toBe(false);
+  type("Name", "Ring of Warmth");
+  expect(screen.getByRole("list", { name: "Problems: Name" }).textContent).toBe(taken("Ring of Warmth"));
+  expect(save().disabled).toBe(true);
+  expect(stored("ring-of-warmth")!.item).toMatchObject({ [`${MI}type`]: "~:ring" });
 });
 
 test("an edit of a magic item that is not stored says so", async () => {

@@ -28,6 +28,9 @@ export const DEFAULT_PACK = "Default Option Source";
  */
 export const tag = (name: string) => `~:${name}`;
 
+/** The name of a tagged keyword, without its "~:": the reverse of tag. A value that is not a string gives its text, or "" for none. */
+export const untag = (value: unknown) => String(value ?? "").replace(/^~:/, "");
+
 /** The items of one tagged content type in a plugin. */
 export const itemsAt = (plugin: object, taggedType: string) => (plugin as Record<string, Record<string, object> | undefined>)[taggedType];
 
@@ -80,7 +83,7 @@ export function packItems(pack: string, plugin: object, type: ContentType): Pack
   const items = (plugin as Record<string, Record<string, Record<string, unknown>> | undefined>)[tag(type)] ?? {};
   return Object.entries(items)
     .map(([tagged, item]) => {
-      const key = tagged.replace(/^~:/, "");
+      const key = untag(tagged);
       const name = typeof item?.["~:name"] === "string" && item["~:name"] !== "" ? item["~:name"] : key;
       return { key, tagged, name: type === "orcpub.dnd.e5/classes" && pack !== DEFAULT_PACK ? `${name} (${pack})` : name };
     })

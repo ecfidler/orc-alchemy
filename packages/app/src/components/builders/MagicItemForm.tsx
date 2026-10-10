@@ -7,13 +7,12 @@
 // weapon or armor with subtypes into one option for each base item. Magic
 // items are not in packs: save and load use the magic items store.
 import type { ReactNode } from "react";
+import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { FieldProblems, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKey, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
-const kw = (name: string) => `~:${name}`;
-const unkw = (value: unknown) => String(value ?? "").replace(/^~:/, "");
 
 /** The old builder's types and rarities (subs.cljs ::mi/item-types, ::mi/rarities). */
 const TYPES = ["wondrous-item", "weapon", "armor", "ring", "wand", "rod", "scroll", "potion", "other"];
@@ -41,8 +40,6 @@ const ARMOR_SUBTYPES: [string, string][] = [["all", "All"], ["light", "All light
 const CLASSES = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"];
 const ALIGNMENTS = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"];
 const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
-const DAMAGE_TYPES = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
-const CONDITIONS = ["Blinded", "Charmed", "Deafened", "Exhausted", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
 /** The modifier keys of each speed for each kind of change (magic_items.cljc speed-mod-fn). */
 const SPEEDS: { label: string; increases: string; atLeast: string; walking?: string }[] = [
   { label: "Walking speed", increases: "speed", atLeast: "speed-override" },
@@ -51,36 +48,36 @@ const SPEEDS: { label: string; increases: string; atLeast: string; walking?: str
   { label: "Climbing speed", increases: "climbing-speed", atLeast: "climbing-speed-override", walking: "climbing-speed-equal-to-walking" },
 ];
 
-const title = (key: string) => key.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
-const nameToKey = (name: string) => name.toLowerCase().replace(/\W+/g, "-");
 
 type Mod = Record<string, unknown>;
-const MOD_KEY = "~:orcpub.modifiers/key";
-const MOD_ARGS = "~:orcpub.modifiers/args";
+const MOD_KEY = tag("orcpub.modifiers/key");
+const MOD_ARGS = tag("orcpub.modifiers/args");
 /** A modifier as the old save stores it (magic_items.cljc mod-cfg): a string arg here is always a keyword. */
 function modCfg(key: string, ...args: (string | number)[]): Mod {
-  const mod: Mod = { [MOD_KEY]: kw(key) };
-  if (args.length > 0) mod[MOD_ARGS] = args.map((arg) => (typeof arg === "number" ? { "~:orcpub.modifiers/int-arg": arg } : { "~:orcpub.modifiers/keyword-arg": kw(arg) }));
+  const mod: Mod = { [MOD_KEY]: tag(key) };
+  if (args.length > 0) mod[MOD_ARGS] = args.map((arg) => (typeof arg === "number" ? { [tag("orcpub.modifiers/int-arg")]: arg } : { [tag("orcpub.modifiers/keyword-arg")]: tag(arg) }));
   return mod;
 }
-const modKey = (mod: Mod) => unkw(mod[MOD_KEY]);
+const modKey = (mod: Mod) => untag(mod[MOD_KEY]);
 /** The modifier's arg values: a keyword arg without its "~:". */
 const modArgs = (mod: Mod) =>
   ((mod[MOD_ARGS] ?? []) as Record<string, unknown>[]).map((arg) =>
-    "~:orcpub.modifiers/int-arg" in arg ? Number(arg["~:orcpub.modifiers/int-arg"]) : unkw(arg["~:orcpub.modifiers/keyword-arg"] ?? arg["~:orcpub.modifiers/string-arg"]),
+    tag("orcpub.modifiers/int-arg") in arg
+      ? Number(arg[tag("orcpub.modifiers/int-arg")])
+      : untag(arg[tag("orcpub.modifiers/keyword-arg")] ?? arg[tag("orcpub.modifiers/string-arg")]),
   );
 
 function MagicItemForm({ record, onChange, problems }: FormProps) {
-  const get = (field: string) => record[kw(MI + field)];
+  const get = (field: string) => record[tag(MI + field)];
   const change = (fields: Record<string, unknown>) => {
     const next = { ...record };
     for (const [field, value] of Object.entries(fields)) {
-      if (value === undefined) delete next[kw(MI + field)];
-      else next[kw(MI + field)] = value;
+      if (value === undefined) delete next[tag(MI + field)];
+      else next[tag(MI + field)] = value;
     }
     onChange(next);
   };
-  const type = unkw(get("type"));
+  const type = untag(get("type"));
   const subtypes = (get("subtypes") ?? []) as string[];
   const attunement = (get("attunement") ?? []) as string[];
   const mods = (get("modifiers") ?? []) as Mod[];
@@ -95,15 +92,15 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
 
   /** As the old toggle-subtype (magic_items.cljc apply-subtype-toggle): All replaces the others. */
   function toggleSubtype(key: string) {
-    const clean = subtypes.filter((s) => s !== kw("all") && s !== kw("other"));
-    const next = key === "all" ? [kw("all")] : clean.includes(kw(key)) ? clean.filter((s) => s !== kw(key)) : [...clean, kw(key)];
+    const clean = subtypes.filter((s) => s !== tag("all") && s !== tag("other"));
+    const next = key === "all" ? [tag("all")] : clean.includes(tag(key)) ? clean.filter((s) => s !== tag(key)) : [...clean, tag(key)];
     change({ subtypes: next.length === 0 ? undefined : next });
   }
   /** As the old toggle-attunement-value: with no value left, the item can be attuned by any creature. */
   function toggleAttunement(key: string) {
-    const values = attunement.includes(kw(key)) ? attunement.filter((a) => a !== kw(key)) : [...attunement, kw(key)];
-    const clean = values.filter((a) => a !== kw("any"));
-    change({ attunement: clean.length === 0 ? [kw("any")] : clean });
+    const values = attunement.includes(tag(key)) ? attunement.filter((a) => a !== tag(key)) : [...attunement, tag(key)];
+    const clean = values.filter((a) => a !== tag("any"));
+    change({ attunement: clean.length === 0 ? [tag("any")] : clean });
   }
 
   const field = (name: string, label: string, control: ReactNode) => (
@@ -115,7 +112,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
     </div>
   );
   const select = (name: string, values: string[], names: (v: string) => string, onSelect: (v: string) => void) => (
-    <select value={unkw(get(name))} onChange={(e) => onSelect(e.target.value)} className="border border-black">
+    <select value={untag(get(name))} onChange={(e) => onSelect(e.target.value)} className="border border-black">
       {values.map((v) => (
         <option key={v} value={v}>
           {names(v)}
@@ -196,8 +193,8 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
         <input type="text" value={String(get("name") ?? "")} onChange={(e) => change({ name: e.target.value })} className="border border-black px-1" />,
       )}
       {/* As the old set-item-type, a new type drops the subtypes. */}
-      {field("type", "Type", select("type", TYPES, title, (v) => change({ type: kw(v), subtypes: undefined })))}
-      {field("rarity", "Rarity", select("rarity", RARITIES, title, (v) => change({ rarity: kw(v) })))}
+      {field("type", "Type", select("type", TYPES, title, (v) => change({ type: tag(v), subtypes: undefined })))}
+      {field("rarity", "Rarity", select("rarity", RARITIES, title, (v) => change({ rarity: tag(v) })))}
       {field(
         "description",
         "Description",
@@ -206,23 +203,23 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       {(type === "weapon" || type === "armor") && (
         <fieldset aria-label={type === "weapon" ? "Base weapon" : "Base armor"}>
           <legend>{type === "weapon" ? "Base weapon" : "Base armor"}</legend>
-          {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(kw(key)), () => toggleSubtype(key)))}
+          {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
           <FieldProblems problems={problems} field={MI + "subtypes"} label="Base item" />
         </fieldset>
       )}
       <fieldset aria-label="Attunement">
         <legend>Attunement</legend>
-        {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [kw("any")] }))}
+        {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] }))}
         {attunement.length > 0 && (
           <div>
-            {check("Any", attunement.length === 1 && attunement[0] === kw("any"), () => {}, true)}
+            {check("Any", attunement.length === 1 && attunement[0] === tag("any"), () => {}, true)}
             <div>
               Class:{" "}
-              {["spellcaster", ...CLASSES].map((key) => check(title(key), attunement.includes(kw(key)), () => toggleAttunement(key)))}
+              {["spellcaster", ...CLASSES].map((key) => check(title(key), attunement.includes(tag(key)), () => toggleAttunement(key)))}
             </div>
             <div>
               Alignment:{" "}
-              {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(kw(nameToKey(name))), () => toggleAttunement(nameToKey(name))))}
+              {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKey(name))), () => toggleAttunement(nameToKey(name))))}
             </div>
           </div>
         )}
@@ -280,7 +277,7 @@ export const magicItemBuilder: BuilderType = {
   validator: "magicItem",
   one: "magic item",
   // The old builder's new item (events.cljs ::mi/reset-item).
-  empty: { [kw(MI + "type")]: kw("wondrous-item"), [kw(MI + "rarity")]: kw("common") },
+  empty: { [tag(MI + "type")]: tag("wondrous-item"), [tag(MI + "rarity")]: tag("common") },
   fields: ["name", "type", "rarity", "description", "subtypes", "attunement", "magical-attack-bonus", "magical-damage-bonus", "magical-ac-bonus", "modifiers"].map(
     (name) => MI + name,
   ),
@@ -302,4 +299,11 @@ export const magicItemBuilder: BuilderType = {
     }
   },
   load: (key) => useHomebrew.getState().magicItems.find((r) => r.id === key)?.item as ItemRecord | undefined,
+  // A new or renamed item must not replace another stored item with its key.
+  check(item, storedKey) {
+    const key = magicItemKey(item);
+    if (key === storedKey || !useHomebrew.getState().magicItems.some((r) => r.id === key)) return [];
+    const name = String((item as ItemRecord)[tag(MI + "name")] ?? key);
+    return [{ path: [MI + "name"], text: `A magic item named ${name} already exists. Change the name.` }];
+  },
 };

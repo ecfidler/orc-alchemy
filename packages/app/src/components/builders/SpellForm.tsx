@@ -6,20 +6,19 @@
 // :material booleans and the :material-component text, and :spell-lists a
 // map of class keyword to true or false.
 import { tag } from "../../engine/content.ts";
-import { FieldProblems, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { FieldProblems, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SCHOOLS = ["abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 /** The old builder's spellcasting classes. */
 const CLASSES = ["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"];
 const COMPONENTS = ["verbal", "somatic", "material"];
 
-const title = (key: string) => key[0].toUpperCase() + key.slice(1);
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 
 function SpellForm({ record, onChange, problems }: FormProps) {
   const set = (field: string, value: unknown) => onChange({ ...record, [tag(field)]: value });
-  const components = (record["~:components"] ?? {}) as ItemRecord;
-  const lists = (record["~:spell-lists"] ?? {}) as ItemRecord;
+  const components = (record[tag("components")] ?? {}) as ItemRecord;
+  const lists = (record[tag("spell-lists")] ?? {}) as ItemRecord;
   const text = (field: string, label: string) => (
     <div>
       <label className="block">
@@ -41,7 +40,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       <div>
         <label className="block">
           Level{" "}
-          <select value={String(record["~:level"] ?? "")} onChange={(e) => set("level", parseInt(e.target.value, 10))} className="border border-black">
+          <select value={String(record[tag("level")] ?? "")} onChange={(e) => set("level", parseInt(e.target.value, 10))} className="border border-black">
             {Array.from({ length: 10 }, (_, n) => (
               <option key={n} value={n}>
                 {n === 0 ? "Cantrip" : `${ordinal(n)}-level`}
@@ -54,7 +53,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       <div>
         <label className="block">
           School{" "}
-          <select value={String(record["~:school"] ?? "")} onChange={(e) => set("school", e.target.value)} className="border border-black">
+          <select value={String(record[tag("school")] ?? "")} onChange={(e) => set("school", e.target.value)} className="border border-black">
             {SCHOOLS.map((school) => (
               <option key={school} value={school}>
                 {school}
@@ -83,8 +82,8 @@ function SpellForm({ record, onChange, problems }: FormProps) {
         <label className="block">
           Material component{" "}
           <textarea
-            value={String(components["~:material-component"] ?? "")}
-            onChange={(e) => set("components", { ...components, "~:material-component": e.target.value })}
+            value={String(components[tag("material-component")] ?? "")}
+            onChange={(e) => set("components", { ...components, [tag("material-component")]: e.target.value })}
             className="block w-full border border-black"
           />
         </label>
@@ -94,7 +93,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       <div>
         <label className="block">
           Description
-          <textarea value={String(record["~:description"] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-black" rows={6} />
+          <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-black" rows={6} />
         </label>
         <FieldProblems problems={problems} field="description" label="Description" />
       </div>
@@ -117,7 +116,7 @@ export const spellBuilder: BuilderType = {
   validator: "spell",
   one: "spell",
   // The old builder's new spell (db.cljs default-spell).
-  empty: { "~:level": 0, "~:school": "abjuration", "~:spell-lists": Object.fromEntries(CLASSES.map((klass) => [tag(klass), true])) },
+  empty: { [tag("level")]: 0, [tag("school")]: "abjuration", [tag("spell-lists")]: Object.fromEntries(CLASSES.map((klass) => [tag(klass), true])) },
   fields: ["name", "level", "school", "ritual", "attack-roll?", "casting-time", "range", "components", "duration", "description", "spell-lists"],
   Form: SpellForm,
 };
