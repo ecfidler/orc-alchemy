@@ -11,7 +11,8 @@ const strictFiles = ["characters", "legacy"].flatMap((dir) =>
 const readJson = (file: string) => JSON.parse(readFileSync(join(fixturesDir, file), "utf8"));
 
 // With no homebrew loaded, a fixture has unresolved keys when its meta file lists some or names a pack
-// or custom magic items.
+// or custom magic items: step 3 imports the character alone. sheet.spec.ts imports the golden with
+// custom magic items in a bundle with its items, where they resolve.
 const hasUnresolved = (file: string) => {
   const meta = readJson(file.replace(".strict.json", ".meta.json"));
   return meta.unresolved !== undefined || meta.orcbrew.length > 0 || meta.magicItems !== undefined;

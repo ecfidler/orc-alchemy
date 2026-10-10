@@ -1,7 +1,7 @@
 // The Equipment step (ORC-59): the inventory lists, custom items, hands and
 // attunement, read from the strict entity, and the writes the old builder
 // and sheet make. Only this file knows their Transit keys.
-import type { Engine, Homebrew, StrictEntity } from "./engine.ts";
+import type { Content, Engine, StrictEntity } from "./engine.ts";
 
 const QUANTITY = "~:orcpub.dnd.e5.character.equipment/quantity";
 const EQUIPPED = "~:orcpub.dnd.e5.character.equipment/equipped?";
@@ -74,18 +74,16 @@ export const customItems = (entity: StrictEntity, valueKey: string): CustomItem[
     starting: item[BACKGROUND_STARTING] === true || item[CLASS_STARTING] === true,
   }));
 
-type Options = { homebrew?: Homebrew };
-
 /** Sets whether an item is carried, as the old builder: the other keys stay. */
-export function setCarried(e: Engine, entity: StrictEntity, list: string, key: string, equipped: boolean, opts?: Options) {
+export function setCarried(e: Engine, entity: StrictEntity, list: string, key: string, equipped: boolean, content?: Content) {
   const [, item] = storedValues(entity, list).find(([k]) => k === key)!;
-  return e.setField(entity, [list, key], { ...item, [EQUIPPED]: equipped }, opts);
+  return e.setField(entity, [list, key], { ...item, [EQUIPPED]: equipped }, content);
 }
 
 /** Sets an item's quantity, as the old builder: it keeps only equipped?, so the starting-equipment flags go. */
-export function setQuantity(e: Engine, entity: StrictEntity, list: string, key: string, quantity: number, opts?: Options) {
+export function setQuantity(e: Engine, entity: StrictEntity, list: string, key: string, quantity: number, content?: Content) {
   const [, item] = storedValues(entity, list).find(([k]) => k === key)!;
-  return e.setField(entity, [list, key], { [EQUIPPED]: item[EQUIPPED] === true, [QUANTITY]: quantity }, opts);
+  return e.setField(entity, [list, key], { [EQUIPPED]: item[EQUIPPED] === true, [QUANTITY]: quantity }, content);
 }
 
 /** Puts an item key, or "none", in a hand. The main hand also sets the off hand to none, as the old sheet. */

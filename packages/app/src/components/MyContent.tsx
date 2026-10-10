@@ -1,24 +1,28 @@
 // My Content (ORC-72, ORC-73), as the old app's My Content page
 // (views.cljs my-content): the stored packs, each with its content lists, and
-// the .orcbrew export of one pack or of all of them.
+// the .orcbrew export of one pack or of all of them; and the stored custom
+// magic items (ORC-77).
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { CONTENT_TYPES, packItems, tag } from "../engine/content.ts";
 import { loadEngine } from "../engine/engine.ts";
+import { magicItemName } from "../engine/import.ts";
 import { exportOrcbrew, type PackProblems } from "../engine/orcbrew-export.ts";
 import { itemOn, orcbrewHomebrew, packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
-import type { PackRecord } from "../storage/packs.ts";
+import type { MagicItemRecord, PackRecord } from "../storage/packs.ts";
 import { downloadText } from "./Export.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
  * The page: Export all and the pretty-print choice, the records that could
- * not be read, and each stored pack. A pack or item turned off is left out
- * of every character's build; Delete removes it from this browser.
+ * not be read, each stored pack, and the magic items. A pack or item turned
+ * off is left out of every character's build; Delete removes it from this
+ * browser.
  */
 export function MyContent() {
   const packs = useHomebrew((state) => state.packs);
+  const magicItems = useHomebrew((state) => state.magicItems);
   const quarantined = useHomebrew((state) => state.quarantined);
   const [restored, setRestored] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +52,7 @@ export function MyContent() {
         .
       </p>
       <p>
-        Magic items are not in .orcbrew files, because the old app has no magic-item homebrew. Magic items as homebrew come in a later
-        version.
+        Magic items come from a dmv-export bundle. They are not in .orcbrew files, because the old app has no magic-item homebrew.
       </p>
       {error && <p role="alert">{error}</p>}
       {!restored && <p role="status">Reading the stored homebrew…</p>}
@@ -85,8 +88,41 @@ export function MyContent() {
           </ul>
         </>
       )}
-      {restored && packs.length === 0 && quarantined.length === 0 && <p className="mt-4">There is no homebrew in this browser.</p>}
+      {magicItems.length > 0 && <MagicItems items={magicItems} report={report} />}
+      {restored && packs.length === 0 && quarantined.length === 0 && magicItems.length === 0 && (
+        <p className="mt-4">There is no homebrew in this browser.</p>
+      )}
     </>
+  );
+}
+
+/** The stored magic items, each with its enabled checkbox and Delete. */
+function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (action: Promise<void>) => void }) {
+  return (
+    <section aria-label="Magic items" className="mt-4 border border-black p-2">
+      <h2 className="text-lg font-bold">Magic items</h2>
+      <ul className="ml-4">
+        {items.map(({ id, enabled, item }) => {
+          const name = magicItemName(item) || id;
+          return (
+            <li key={id} className="flex flex-wrap items-center gap-2">
+              <label>
+                <input type="checkbox" checked={enabled} onChange={(e) => report(useHomebrew.getState().setMagicItemEnabled(id, e.target.checked))} />{" "}
+                {name}
+              </label>
+              <button
+                type="button"
+                aria-label={`Delete ${name}`}
+                onClick={() => window.confirm(`Delete the magic item ${name} from this browser?`) && report(useHomebrew.getState().removeMagicItem(id))}
+                className="underline"
+              >
+                Delete
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

@@ -14,6 +14,7 @@ import { ImportPage } from "./ImportPage.tsx";
 afterEach(async () => {
   cleanup();
   for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
+  for (const { id } of useHomebrew.getState().magicItems) await useHomebrew.getState().removeMagicItem(id);
   useHomebrew.setState({ lastImport: null, pending: null });
 });
 
@@ -223,6 +224,23 @@ test("a bundle lists its characters, and its packs' log shows under step 1", asy
   expect(within(imported).getByRole("heading").textContent).toBe("Imported 1 character");
   expect(within(imported).getByText("Loaded 1 homebrew pack")).toBeTruthy();
   expect(within(screen.getByRole("region", { name: "Import log" })).getByRole("heading").textContent).toBe("Import log: dmv-export.json");
+});
+
+test("a bundle's magic items load before its characters, so their keys resolve; an invalid item is skipped and named", async () => {
+  const edn = readFileSync(join(fixturesDir, "magic-items/custom-items.edn"), "utf8");
+  const invalid = { "~:orcpub.dnd.e5.magic-items/name": "Broken Shield", "~:orcpub.dnd.e5.magic-items/type": 7 };
+  const character = JSON.parse(readFileSync(join(fixturesDir, "characters/fighter-5-custom-magic-items.strict.json"), "utf8"));
+  const bundle = { format: "dmv-export", version: 1, characters: [character], magicItems: [edn, invalid] };
+
+  renderPage();
+  choose("Import dmv-export bundle", "dmv-export.json", JSON.stringify(bundle));
+
+  const imported = await screen.findByRole("region", { name: "Imported characters" }, { timeout: 5000 });
+  expect(within(imported).getByRole("heading").textContent).toBe("Imported 1 character");
+  expect(within(imported).getByText("Loaded 4 magic items")).toBeTruthy();
+  expect(within(imported).queryByRole("list", { name: /^Unresolved content/ })).toBeNull();
+  expect(within(imported).getByRole("alert").textContent).toMatch(/^Magic item skipped: Broken Shield: .*type is invalid/);
+  expect(useHomebrew.getState().magicItems.map((r) => r.id)).toEqual(["circlet-of-the-hawk", "emberbrand", "pearl-of-stillwater", "wardens-plate"]);
 });
 
 // ORC-70: duplicate-external-b over -a has four key conflicts, custom-lineage among them.

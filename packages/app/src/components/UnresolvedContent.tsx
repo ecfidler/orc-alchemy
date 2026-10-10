@@ -106,8 +106,8 @@ function Remap({ unresolved, onRemap }: { unresolved: UnresolvedKey; onRemap: On
 /** The open character's unresolved content, checked against the loaded packs, for its sheet. */
 export function OpenCharacterGaps({ characterName }: { characterName: string }) {
   const entity = useCharacter((state) => state.entity);
-  const homebrew = useHomebrew((state) => state.homebrew);
-  const unresolved = useMemo(() => (entity === null ? [] : missingContent(entity, homebrew)), [entity, homebrew]);
+  const content = useHomebrew((state) => state.content);
+  const unresolved = useMemo(() => (entity === null ? [] : missingContent(entity, content)), [entity, content]);
   if (unresolved.length === 0) return null;
   return (
     <section aria-label="Unresolved content" className="border border-black p-2">

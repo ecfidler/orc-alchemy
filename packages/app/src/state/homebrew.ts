@@ -1,13 +1,24 @@
 // The loaded homebrew (doc 04 §Storage): the stored pack records, and the
 // multi-plugin map built from them, the old app's :plugins, keyed by pack
-// name. A stored record that does not read or build is quarantined: it stays
-// in storage as it is, is not used, and the UI warns about it.
+// name; and the stored custom magic items (ORC-77). A stored pack record that
+// does not read or build is quarantined: it stays in storage as it is, is not
+// used, and the UI warns about it. A stored magic item record that is not
+// well formed is skipped, with a warning in the console.
 import { create } from "zustand";
-import { engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
+import { engine, loadEngine, type Content, type ParsedOrcbrew } from "../engine/engine.ts";
 import { disabledInFile, itemAt, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem } from "../engine/content.ts";
 import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
-import type { BundleHomebrew } from "../engine/import.ts";
-import { deletePack, listPacks, savePacks, type PackRecord } from "../storage/packs.ts";
+import { magicItemKey, type BundleHomebrew } from "../engine/import.ts";
+import {
+  deleteMagicItem,
+  deletePack,
+  listMagicItems,
+  listPacks,
+  saveMagicItems,
+  savePacks,
+  type MagicItemRecord,
+  type PackRecord,
+} from "../storage/packs.ts";
 
 interface HomebrewState {
   /** The stored packs that read and build, sorted by name. */
@@ -20,10 +31,22 @@ interface HomebrewState {
    * packs changes.
    */
   homebrew: Record<string, object> | undefined;
+  /** The stored custom magic items that are well formed, sorted by key. */
+  magicItems: MagicItemRecord[];
   /**
-   * Names the homebrew: the enabled packs with the times they last changed,
-   * or "" with none. A character summary stores it, so the list page can
-   * find summaries built with other homebrew.
+   * The enabled magic items' maps, or undefined with none. A new array only
+   * when they change.
+   */
+  magicItemsOn: object[] | undefined;
+  /**
+   * What characters build against: homebrew and magicItemsOn, as the engine's
+   * options take them. A new object only when either changes.
+   */
+  content: Content;
+  /**
+   * Names the homebrew: the enabled packs and magic items with the times
+   * they last changed, or "" with none. A character summary stores it, so
+   * the list page can find summaries built with other homebrew.
    */
   fingerprint: string;
   /** The last import, kept raw, with the name of its file: the UI shows its log and its conflicts. */
@@ -64,6 +87,16 @@ interface HomebrewState {
    * was read with the pack in it, so applying it would store the pack again.
    */
   remove: (pack: string) => Promise<void>;
+  /**
+   * Stores custom magic items, each as validate.magicItem returned it, keyed
+   * by magicItemKey. An item replaces a stored one with its key, and keeps
+   * its stored on or off flag. A new item loads enabled.
+   */
+  loadMagicItems: (items: object[]) => Promise<void>;
+  /** Turns a magic item on or off. Throws if it is not stored. */
+  setMagicItemEnabled: (key: string, enabled: boolean) => Promise<void>;
+  /** Removes a magic item from storage. */
+  removeMagicItem: (key: string) => Promise<void>;
   /** Removes a record that could not be read from storage, and its warning. */
   removeQuarantined: (id: string) => Promise<void>;
   /**
@@ -127,6 +160,18 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       set(withPacks(get().packs.map((p) => (p.id === pack ? changed : p))));
     });
 
+  /** Stores a changed magic item and puts it in the state; change returns null when the item is already as asked. */
+  const updateMagicItem = (key: string, change: (record: MagicItemRecord) => Partial<MagicItemRecord> | null) =>
+    queued(async () => {
+      const record = get().magicItems.find((r) => r.id === key);
+      if (record === undefined) throw new Error(`No magic item with the key ${key}`);
+      const fields = change(record);
+      if (fields === null) return;
+      const changed = { ...record, ...fields, updatedAt: now() };
+      await saveMagicItems([changed]);
+      set(withMagicItems(get().magicItems.map((r) => (r.id === key ? changed : r))));
+    });
+
   /**
    * Parses .orcbrew text over the stored packs, strictly if asked, and
    * stores the packs it changes, or holds it as pending for its key
@@ -183,6 +228,9 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     packs: [],
     quarantined: [],
     homebrew: undefined,
+    magicItems: [],
+    magicItemsOn: undefined,
+    content: { homebrew: undefined },
     fingerprint: "",
     lastImport: null,
     pending: null,
@@ -206,6 +254,27 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       await deletePack(pack);
       set({ ...withPacks(get().packs.filter((p) => p.id !== pack)), pending: null });
     }),
+    loadMagicItems: (items) =>
+      queued(async () => {
+        await restorePacks();
+        const stored = get().magicItems;
+        const changed = new Map<string, MagicItemRecord>();
+        for (const item of items) {
+          const id = magicItemKey(item);
+          const old = stored.find((r) => r.id === id);
+          if (old !== undefined && JSON.stringify(old.item) === JSON.stringify(item)) changed.delete(id);
+          else changed.set(id, { id, enabled: old?.enabled ?? true, item, updatedAt: now() });
+        }
+        if (changed.size === 0) return;
+        await saveMagicItems([...changed.values()]);
+        set(withMagicItems([...stored.filter((r) => !changed.has(r.id)), ...changed.values()]));
+      }),
+    setMagicItemEnabled: (key, enabled) => updateMagicItem(key, (record) => (record.enabled === enabled ? null : { enabled })),
+    removeMagicItem: (key) =>
+      queued(async () => {
+        await deleteMagicItem(key);
+        set(withMagicItems(get().magicItems.filter((r) => r.id !== key)));
+      }),
     removeQuarantined: (id) =>
       queued(async () => {
         await deletePack(id);
@@ -237,15 +306,18 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
 let restoring: Promise<void> | undefined;
 
 /**
- * Reads the stored packs into useHomebrew once; later calls return the same
- * promise, or try again after a failed read. Loads the engine to check them
- * when there are any. Wait for it before building a character to store.
+ * Reads the stored packs and magic items into useHomebrew once; later calls
+ * return the same promise, or try again after a failed read. Loads the
+ * engine to check them when there are any. Wait for it before building a
+ * character to store.
  */
 export function restorePacks(): Promise<void> {
-  restoring ??= listPacks()
-    .then(async (records) => {
-      if (records.length === 0) return;
+  restoring ??= Promise.all([listPacks(), listMagicItems()])
+    .then(async ([records, items]) => {
+      if (records.length === 0 && items.length === 0) return;
       await loadEngine();
+      useHomebrew.setState(withMagicItems(items.filter(wellFormedMagicItem)));
+      if (records.length === 0) return;
       const shaped: PackRecord[] = [];
       const quarantined: HomebrewState["quarantined"] = [];
       for (const record of records) {
@@ -317,8 +389,22 @@ export function bundleHomebrew(): BundleHomebrew {
 /** The multi-plugin map of these packs, as stored. */
 const pluginMap = (packs: PackRecord[]) => Object.fromEntries(packs.map((p) => [p.id, p.plugin]));
 
+const isMap = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** True if the stored record is a magic item record whose item is valid; else warns, so it is skipped. */
+function wellFormedMagicItem(record: unknown): record is MagicItemRecord {
+  const ok =
+    isMap(record) &&
+    typeof record.id === "string" &&
+    typeof record.enabled === "boolean" &&
+    typeof record.updatedAt === "string" &&
+    isMap(record.item) &&
+    engine().validate.magicItem(record.item).ok;
+  if (!ok) console.warn("A stored magic item is not well formed, so it is not used:", record);
+  return ok;
+}
+
 function shapeProblem(record: unknown): string | null {
-  const isMap = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
   const isItem = (item: unknown) => Array.isArray(item) && item.length === 2 && item.every((s) => typeof s === "string");
   if (
     !isMap(record) ||
@@ -343,15 +429,44 @@ function buildProblem(homebrew: Record<string, object>): string | null {
   }
 }
 
-/** packs, sorted by name so the homebrew is the same after a reload, and the homebrew built from them, with its fingerprint. */
-function withPacks(packs: PackRecord[]): Pick<HomebrewState, "packs" | "homebrew" | "fingerprint"> {
-  const sorted = [...packs].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+type Derived = Pick<HomebrewState, "content" | "fingerprint">;
+
+/** packs, sorted by name so the homebrew is the same after a reload, and the homebrew built from them, with the content and fingerprint. */
+function withPacks(packs: PackRecord[]): Pick<HomebrewState, "packs" | "homebrew"> & Derived {
+  const sorted = [...packs].sort(byId);
   const enabled = sorted.filter(packOn);
+  const homebrew = enabled.length === 0 ? undefined : Object.fromEntries(enabled.map((p) => [p.id, withoutDisabled(p)]));
+  const { magicItems, magicItemsOn } = useHomebrew.getState();
+  return { packs: sorted, homebrew, ...derived(sorted, homebrew, magicItems, magicItemsOn) };
+}
+
+/** The magic items, sorted by key, and the enabled ones' maps, with the content and fingerprint. */
+function withMagicItems(records: MagicItemRecord[]): Pick<HomebrewState, "magicItems" | "magicItemsOn"> & Derived {
+  const sorted = [...records].sort(byId);
+  const on = sorted.filter((r) => r.enabled).map((r) => r.item);
+  const { packs, homebrew, magicItemsOn: previous = [] } = useHomebrew.getState();
+  const same = on.length === previous.length && on.every((item, i) => item === previous[i]);
+  const magicItemsOn = on.length === 0 ? undefined : same ? previous : on;
+  return { magicItems: sorted, magicItemsOn, ...derived(packs, homebrew, sorted, magicItemsOn) };
+}
+
+function derived(
+  packs: PackRecord[],
+  homebrew: HomebrewState["homebrew"],
+  magicItems: MagicItemRecord[],
+  magicItemsOn: HomebrewState["magicItemsOn"],
+): Derived {
+  const { content } = useHomebrew.getState();
+  // Every change to a pack or an item, its flags included, sets its updatedAt.
+  const parts = [
+    ...packs.filter(packOn).map((p) => [p.id, p.updatedAt]),
+    ...magicItems.filter((r) => r.enabled).map((r) => ["magic-item", r.id, r.updatedAt]),
+  ];
   return {
-    packs: sorted,
-    homebrew: enabled.length === 0 ? undefined : Object.fromEntries(enabled.map((p) => [p.id, withoutDisabled(p)])),
-    // Every change to a pack, its flags included, sets its updatedAt.
-    fingerprint: enabled.length === 0 ? "" : JSON.stringify(enabled.map((p) => [p.id, p.updatedAt])),
+    content: content.homebrew === homebrew && content.magicItems === magicItemsOn ? content : { homebrew, magicItems: magicItemsOn },
+    fingerprint: parts.length === 0 ? "" : JSON.stringify(parts),
   };
 }
 

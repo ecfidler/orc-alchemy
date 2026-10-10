@@ -1,8 +1,8 @@
 // The Abilities step (ORC-57): the base scores and how they were set, read
 // from and written to the strict entity, with the old character_builder.cljs
 // rules for point buy, rolls and swaps, and the increases built adds to them.
-import type { AvailableSelection, Built2014, Homebrew } from "@pubdoor/dmv";
-import { engine, type StrictEntity } from "./engine.ts";
+import type { AvailableSelection, Built2014 } from "@pubdoor/dmv";
+import { engine, type Content, type StrictEntity } from "./engine.ts";
 import { ABILITIES, unqualify, type Ability } from "./sheet.ts";
 
 export type Scores = Record<Ability, number>;
@@ -44,9 +44,9 @@ export function baseScores(entity: StrictEntity): { method: Method | null; score
 }
 
 /** Sets the method and its base scores in one mutation. */
-export function setBaseScores(entity: StrictEntity, method: Method, scores: Scores, homebrew?: Homebrew): StrictEntity {
+export function setBaseScores(entity: StrictEntity, method: Method, scores: Scores, content?: Content): StrictEntity {
   const value = Object.fromEntries(ABILITIES.map((a) => [scoreKey(a), scores[a]]));
-  return engine().setField(entity, ["ability-scores", method], value, { homebrew });
+  return engine().setField(entity, ["ability-scores", method], value, content);
 }
 
 /** Point-buy points left of 27; negative for too many, and null when a score is outside 8 to 15, so has no cost. */

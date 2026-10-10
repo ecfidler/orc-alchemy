@@ -1,7 +1,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
-import { isBundleText, readBundleHomebrew, readCharacterFile } from "../engine/import.ts";
+import { isBundleText, readBundleHomebrew, readBundleMagicItems, readCharacterFile } from "../engine/import.ts";
 import type { UnresolvedKey } from "../engine/reconcile.ts";
 import { addCharacter, checkStoredCharacter, remapStoredCharacter } from "../state/character.ts";
 import { packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
@@ -134,13 +134,16 @@ interface Imported {
   failures: string[];
   /** How many homebrew packs the bundle had. */
   packs: number;
+  /** How many of the bundle's magic items were stored. */
+  magicItems: number;
 }
 
 /**
  * Steps 2 and 3: a dmv-export bundle, or one character as a file saved from
  * the old app, a dmv-character file, or the text of the old app's public
  * character URL pasted in. Each step refuses the other step's files. A
- * bundle's packs are loaded first, so its characters resolve against them.
+ * bundle's packs and magic items are loaded first, so its characters resolve
+ * against them; a magic item that is not valid is skipped and listed.
  * Each character is stored and checked against the loaded packs. One
  * character opens its sheet; a bundle, or one character with keys that do
  * not resolve, lists its characters to open, with their unresolved keys and
@@ -172,7 +175,9 @@ function CharacterImport() {
       await restorePacks(); // so each summary builds with the stored packs
       const bundle = readBundleHomebrew(text);
       if (bundle !== null) await useHomebrew.getState().loadBundle(bundle, name);
-      const file = readCharacterFile(text, useHomebrew.getState().homebrew);
+      const magic = readBundleMagicItems(text);
+      if (magic !== null) await useHomebrew.getState().loadMagicItems(magic.items);
+      const file = readCharacterFile(text, useHomebrew.getState().content);
       const characters = await Promise.all(
         file.characters.map(async (c) => ({
           id: await addCharacter(c.entity, c.rules, c.legacyId),
@@ -180,10 +185,16 @@ function CharacterImport() {
           unresolved: c.unresolved,
         })),
       );
-      if (bundle === null && characters.length === 1 && file.failures.length === 0 && characters[0].unresolved.length === 0) {
+      const failures = [...(magic?.failures.map((f) => `Magic item skipped: ${f}`) ?? []), ...file.failures];
+      if (bundle === null && magic === null && characters.length === 1 && failures.length === 0 && characters[0].unresolved.length === 0) {
         navigate(`/sheet/${characters[0].id}`);
       } else {
-        setImported({ characters, failures: file.failures, packs: bundle === null ? 0 : Object.keys(bundle.homebrew).length });
+        setImported({
+          characters,
+          failures,
+          packs: bundle === null ? 0 : Object.keys(bundle.homebrew).length,
+          magicItems: magic?.items.length ?? 0,
+        });
       }
     } catch (e) {
       setError({ step, text: message(e) });
@@ -221,7 +232,7 @@ function CharacterImport() {
           <Link to="/import/dmv" className="underline">
             exporter bookmarklet
           </Link>
-          , or from Export everything in this app. It can hold homebrew too.
+          , or from Export everything in this app. It can hold homebrew and magic items too.
         </p>
         <label className="block">
           Import dmv-export bundle{" "}
@@ -268,6 +279,11 @@ function CharacterImport() {
           {imported.packs > 0 && (
             <p>
               Loaded {imported.packs} homebrew {imported.packs === 1 ? "pack" : "packs"}
+            </p>
+          )}
+          {imported.magicItems > 0 && (
+            <p>
+              Loaded {imported.magicItems} magic {imported.magicItems === 1 ? "item" : "items"}
             </p>
           )}
           <ul>

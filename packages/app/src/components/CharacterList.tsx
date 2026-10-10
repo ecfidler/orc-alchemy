@@ -20,7 +20,7 @@ export function NewCharacter() {
     try {
       const { emptyCharacter, autofill } = await loadEngine();
       await restorePacks(); // so its summary builds with the stored packs
-      const entity = random ? autofill(emptyCharacter(), { homebrew: useHomebrew.getState().homebrew }) : emptyCharacter();
+      const entity = random ? autofill(emptyCharacter(), useHomebrew.getState().content) : emptyCharacter();
       navigate(`/build/${await addCharacter(entity, "2014", null)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
