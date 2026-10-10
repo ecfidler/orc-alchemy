@@ -159,6 +159,20 @@ test("the old server's EDN character list imports each character", () => {
   expect(failures).toEqual(["Character 2 of 2: This is not a character file"]);
 });
 
+test("a bundle entry of the old server's EDN list text imports each character in it", () => {
+  const bundle = { format: "dmv-export", version: 1, characters: [`[${serverEdn} ${serverEdn}]`], magicItems: ["()"] };
+  const file = readCharacterFile(JSON.stringify(bundle));
+  expect(file.characters.map((c) => c.name)).toEqual(["Brannor Ironfist", "Brannor Ironfist"]);
+  expect(file.failures).toEqual([]);
+});
+
+test("a bundle entry of text that is not EDN is reported, and the other entries import", () => {
+  const bundle = { format: "dmv-export", version: 1, characters: ["[{:db/id", serverEdn] };
+  const file = readCharacterFile(JSON.stringify(bundle));
+  expect(file.characters.map((c) => c.name)).toEqual(["Brannor Ironfist"]);
+  expect(file.failures).toEqual(["Character list 1 of 2: This is not the old server's EDN"]);
+});
+
 test.each([
   ["neither JSON nor EDN", "nope", "This file is not JSON or EDN"],
   ["an empty EDN list", "()", "This file has no characters"],
@@ -167,6 +181,7 @@ test.each([
   ["an unknown format", '{"format":"orcbrew"}', "Unsupported file format: orcbrew"],
   ["a later envelope version", '{"format":"dmv-character","version":2}', "Unsupported dmv-character version: 2"],
   ["an empty bundle", '{"format":"dmv-export","version":1,"characters":[]}', "This export has no characters"],
+  ["a bundle with an empty EDN list", '{"format":"dmv-export","version":1,"characters":["[]"]}', "This export has no characters"],
 ])("refuses %s", (_, text, message) => {
   expect(() => readCharacterFile(text)).toThrow(message);
 });

@@ -39,6 +39,14 @@ jobs:
               working-directory: packages/app
               run: bun run test
 
+            - name: Bookmarklet typecheck
+              working-directory: tools/exporter-bookmarklet
+              run: bun run typecheck
+
+            - name: Bookmarklet tests
+              working-directory: tools/exporter-bookmarklet
+              run: bun run test
+
             - name: Install Playwright Chromium
               working-directory: packages/app
               run: bunx playwright install --with-deps chromium

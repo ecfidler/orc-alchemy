@@ -216,7 +216,13 @@ function CharacterImport() {
     <>
       <section aria-label="Character bundle" className="mt-4 space-y-2">
         <h2 className="text-lg">2. Character bundle</h2>
-        <p>The dmv-export.json file from the exporter bookmarklet, or from Export everything in this app. It can hold homebrew too.</p>
+        <p>
+          The dmv-export.json file from the{" "}
+          <Link to="/import/dmv" className="underline">
+            exporter bookmarklet
+          </Link>
+          , or from Export everything in this app. It can hold homebrew too.
+        </p>
         <label className="block">
           Import dmv-export bundle{" "}
           <input

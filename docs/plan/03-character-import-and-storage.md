@@ -4,7 +4,7 @@ title: "03: Character import and storage"
 description: "How characters leave an old instance through the exporter bookmarklet, how the new app imports them, and the native character format."
 tags: [plan, characters, import]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-09T23:08:47Z }
+generated: { by: claude-code/agent, at: 2026-10-10T00:22:28Z }
 ---
 
 # 03: Character import and storage
@@ -33,21 +33,27 @@ stores its user map as an EDN string under the localStorage key `"user"`
 (`db.cljs:33, 174-176`). The JWT is the `:token "…"` entry in that string,
 and a regex can extract it. With the token, the bookmarklet calls
 `GET /dnd/5e/characters` with the header `Authorization: Token <jwt>`,
-which returns all of the user's characters as full entities, and
-`GET /dnd/5e/items` for their custom magic items. It then downloads one
-`dmv-export.json` bundle:
+and `GET /dnd/5e/items` for their custom magic items. The list response
+already holds every character of the user in full, so no call for each
+character id is necessary. It then downloads one `dmv-export.json` bundle:
 
 ```json
 { "format": "dmv-export", "version": 1, "exportedFrom": "https://old.example",
-  "characters": [ <the EDN text of each character response>, ... ],
-  "magicItems":  [ ... ] }
+  "characters": [ "<the EDN text of the GET /dnd/5e/characters response>" ],
+  "magicItems":  [ "<the EDN text of the GET /dnd/5e/items response>" ] }
 ```
+
+An entry in `characters` or `magicItems` can be a string: the raw EDN
+text of one old server response. A list response holds many values. A
+`characters` entry can also be one character as an object, as the app's own export
+writes it. The format stays `dmv-export` version 1.
 
 The calls are same-origin, so CORS is not a problem. The old server sends
 no CORS headers in production, so a cross-origin fetch from the new app is
-not an option. The bookmarklet does not parse EDN. It ships the raw EDN
-text of each response, and the new app reads it through the library's
-`importCharacter` and `readServerEdn`. Keep
+not an option. The bookmarklet does not parse EDN. The new app reads each
+string entry with the library's `readServerEdn`, and each character in it
+through `importCharacter`. An entry that is not EDN is reported as a
+failure, and the other entries import. Keep
 it under about 100 lines and free of dependencies where possible. It is the
 single most valuable compatibility tool for real users.
 

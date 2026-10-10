@@ -5,6 +5,7 @@ import { AppShell } from "../components/AppShell.tsx";
 import { Builder } from "../components/Builder.tsx";
 import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
+import { DmvExporter } from "../components/DmvExporter.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
 import { MyContent } from "../components/MyContent.tsx";
@@ -146,6 +147,7 @@ export const routes: RouteObject[] = [
         ),
       },
       { path: "import", element: <ImportPage /> },
+      { path: "import/dmv", element: <DmvExporter /> },
       { path: "content", element: <MyContent /> },
       {
         path: "sheet/:id",
