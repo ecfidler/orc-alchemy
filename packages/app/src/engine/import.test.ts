@@ -1,12 +1,19 @@
 import "fake-indexeddb/auto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Homebrew } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { addCharacter } from "../state/character.ts";
 import { getCharacter } from "../storage/characters.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { characterFile, exportBundle, readBundleHomebrew, readCharacterFile, type CharacterFileEntry } from "./import.ts";
+import { engine, loadEngine, type Content, type Homebrew, type StrictEntity } from "./engine.ts";
+import {
+  characterFile,
+  exportBundle,
+  magicItemKey,
+  readBundleHomebrew,
+  readBundleMagicItems,
+  readCharacterFile,
+  type CharacterFileEntry,
+} from "./import.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const strictFiles = ["characters", "legacy"].flatMap((dir) =>
@@ -48,15 +55,68 @@ const metaKeys = (file: string) => {
   return unresolved ? sortedKeys([...unresolved.items, ...unresolved.unresolvedOptions]) : [];
 };
 const keysOf = (character: CharacterFileEntry) => sortedKeys(character.unresolved);
-const importFixture = (file: string, homebrew?: Homebrew) => readCharacterFile(readText(file), homebrew).characters[0];
+const importFixture = (file: string, content?: Content) => readCharacterFile(readText(file), content).characters[0];
+const customItemsEdn = () => readText("magic-items/custom-items.edn");
 
-// Custom magic items reach the import with ORC-77, so the fixture that needs them is left out here.
-test.each(strictFiles.filter((file) => !readMeta(file).magicItems))("%s reports the unresolved keys its meta file records, with its packs loaded", (file) => {
+test.each(strictFiles)("%s reports the unresolved keys its meta file records, with its packs and magic items loaded", (file) => {
   let homebrew: Homebrew | undefined;
   for (const pack of readMeta(file).orcbrew as string[]) {
     homebrew = engine().parseOrcbrew(readText(`orcbrew/${pack}`), { name: pack.replace(".orcbrew", ""), existing: homebrew }).data!;
   }
-  expect(keysOf(importFixture(file, homebrew))).toEqual(metaKeys(file));
+  const itemsFile: string | undefined = readMeta(file).magicItems;
+  const magicItems = itemsFile ? engine().readServerEdn(readText(`magic-items/${itemsFile}`)) : undefined;
+  expect(keysOf(importFixture(file, { homebrew, magicItems }))).toEqual(metaKeys(file));
+});
+
+test("without its magic items, fighter-5-custom-magic-items reports each custom item it carries", () => {
+  const keys = importFixture("characters/fighter-5-custom-magic-items.strict.json").unresolved.map((u) => u.key);
+  expect(keys.sort()).toEqual(["circlet-of-the-hawk", "emberbrand-greatsword", "emberbrand-longsword", "pearl-of-stillwater", "wardens-plate"]);
+});
+
+const bundleOf = (magicItems: unknown[]) => JSON.stringify({ format: "dmv-export", version: 1, characters: [], magicItems });
+
+test("a bundle's magic items from the old server's EDN text are each read and checked", () => {
+  const read = readBundleMagicItems(bundleOf([customItemsEdn()]));
+  expect(read?.failures).toEqual([]);
+  expect(read?.items.map(magicItemKey)).toEqual(["emberbrand", "wardens-plate", "circlet-of-the-hawk", "pearl-of-stillwater"]);
+  expect(read?.items).toEqual(engine().readServerEdn(customItemsEdn()));
+});
+
+test("a bundle's item maps are read; an invalid one is skipped and named, and a later item replaces one with its key", () => {
+  const [emberbrand, plate] = engine().readServerEdn(customItemsEdn()) as Record<string, unknown>[];
+  const renamed = { ...plate, "~:orcpub.dnd.e5.magic-items/description": "Changed." };
+  const invalid = { ...plate, "~:orcpub.dnd.e5.magic-items/name": "Broken Shield", "~:orcpub.dnd.e5.magic-items/type": 7 };
+  const read = readBundleMagicItems(bundleOf([emberbrand, plate, invalid, renamed, "[{:db/id", 3]));
+  expect(read?.items).toEqual([emberbrand, renamed]);
+  expect(read?.failures).toEqual([
+    expect.stringMatching(/^Broken Shield: .*type is invalid/),
+    "Magic item list 5 of 6: This is not the old server's EDN",
+    "Unnamed magic item: This is not a magic item",
+  ]);
+});
+
+test.each([
+  ["not JSON", "nope"],
+  ["a bundle without magic items", '{"format":"dmv-export","version":1,"characters":[]}'],
+  ["a bundle with an empty EDN item list", bundleOf(["()"])],
+])("%s has no bundle magic items", (_, text) => {
+  expect(readBundleMagicItems(text)).toBeNull();
+});
+
+test("a bundle with only magic items is not refused, and one with an empty item list is", () => {
+  expect(readCharacterFile(bundleOf([customItemsEdn()]))).toEqual({ characters: [], failures: [] });
+  expect(() => readCharacterFile(bundleOf(["()"]))).toThrow("This export has no characters");
+});
+
+test("a bundle's magic items export as item maps and read back the same, and its character resolves them", () => {
+  const items = engine().readServerEdn(customItemsEdn());
+  const [character] = readCharacterFile(readText("characters/fighter-5-custom-magic-items.strict.json"), { magicItems: items }).characters;
+  const text = JSON.stringify(exportBundle([character.entity], "https://alchemy.example", undefined, items));
+  const read = readBundleMagicItems(text)!;
+  expect(read).toEqual({ items, failures: [] });
+  const [back] = readCharacterFile(text, { magicItems: read.items }).characters;
+  expect(back.unresolved).toEqual([]);
+  expect(back.entity).toEqual(character.entity);
 });
 
 test("without homebrew, only the fixtures with non-SRD content report unresolved keys", () => {

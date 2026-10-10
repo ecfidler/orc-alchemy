@@ -2,8 +2,8 @@
 // to their template options, nested under the option that opens them, and
 // grouped into steps, as the old character_builder.cljs pages.
 import { useMemo } from "react";
-import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
-import { engine } from "./engine.ts";
+import type { AvailableSelection, TemplateSelection } from "@pubdoor/dmv";
+import { engine, type Content } from "./engine.ts";
 
 export interface BuilderOption {
   key: string;
@@ -186,8 +186,9 @@ export function remainingByStep(steps: BuilderStep[]): number[] {
   return steps.map((step) => nodes(step.selections, seen).reduce((sum, node) => sum + Math.abs(node.remaining), 0));
 }
 
-/** The builder steps for the open character's selections; the template is built once per homebrew. */
-export function useBuilderSteps(selections: AvailableSelection[] | null, homebrew?: Homebrew): BuilderStep[] {
-  const shape = useMemo(() => engine().buildTemplate(homebrew).shape, [homebrew]);
+/** The builder steps for the open character's selections; the template is built once per content. */
+export function useBuilderSteps(selections: AvailableSelection[] | null, content: Content = {}): BuilderStep[] {
+  const { homebrew, magicItems } = content;
+  const shape = useMemo(() => engine().buildTemplate(homebrew, { magicItems }).shape, [homebrew, magicItems]);
   return useMemo(() => (selections === null ? [] : builderSteps(selections, shape)), [selections, shape]);
 }

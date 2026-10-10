@@ -5,7 +5,7 @@
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, rollHitPoints, storedHitPoints, type HitPointsMethod } from "../engine/classes.ts";
-import { engine, type Engine, type Homebrew, type StrictEntity } from "../engine/engine.ts";
+import { engine, type Content, type Engine, type StrictEntity } from "../engine/engine.ts";
 import { ABILITIES, unqualify } from "../engine/sheet.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
@@ -13,16 +13,16 @@ import { NumberField } from "./AbilityScores.tsx";
 
 const MAX_LEVEL = 20;
 
-type Mutation = (e: Engine, entity: StrictEntity, options: { homebrew?: Homebrew }) => StrictEntity;
+type Mutation = (e: Engine, entity: StrictEntity, options: Content) => StrictEntity;
 
-/** An engine mutation with the loaded homebrew; its error, if it throws, for the alert. */
+/** An engine mutation with the loaded content; its error, if it throws, for the alert. */
 export function useMutation(): [error: string | null, run: (mutate: Mutation) => void] {
-  const homebrew = useHomebrew((state) => state.homebrew);
+  const content = useHomebrew((state) => state.content);
   const [error, setError] = useState<string | null>(null);
   function run(mutate: Mutation) {
     setError(null);
     try {
-      useCharacter.getState().update((entity) => mutate(engine(), entity, { homebrew }));
+      useCharacter.getState().update((entity) => mutate(engine(), entity, content));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }

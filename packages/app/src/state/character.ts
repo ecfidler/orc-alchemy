@@ -2,7 +2,7 @@
 // truth; built and selections are derived from it with useEvaluation.
 import { useMemo } from "react";
 import { create } from "zustand";
-import { engine, loadEngine, useEvaluation, type Homebrew, type Rules, type StrictEntity } from "../engine/engine.ts";
+import { engine, loadEngine, useEvaluation, type Content, type Rules, type StrictEntity } from "../engine/engine.ts";
 import { missingContent, remapOption, type UnresolvedKey } from "../engine/reconcile.ts";
 import { toSheet } from "../engine/sheet.ts";
 import {
@@ -50,8 +50,8 @@ export const useCharacter = create<CharacterState>()((set, get) => ({
 export function useOpenCharacter() {
   const entity = useCharacter((state) => state.entity);
   const dirty = useCharacter((state) => state.dirty);
-  const homebrew = useHomebrew((state) => state.homebrew);
-  const evaluation = useEvaluation(entity, homebrew);
+  const content = useHomebrew((state) => state.content);
+  const evaluation = useEvaluation(entity, content);
   const built = evaluation?.built ?? null;
   const sheet = useMemo(() => (built === null ? null : toSheet(built, entity!)), [built, entity]);
   return { entity, built, sheet, selections: evaluation?.selections ?? null, dirty };
@@ -66,8 +66,8 @@ export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId:
 
 /** Saves a record with entity, its name, and the time; and its summary, built with the loaded homebrew. */
 function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, entity: StrictEntity) {
-  const { homebrew, fingerprint } = useHomebrew.getState();
-  const sheet = buildSheet(entity, homebrew);
+  const { content, fingerprint } = useHomebrew.getState();
+  const sheet = buildSheet(entity, content);
   return saveCharacter({ ...record, name: sheet.name, updatedAt: now(), entity }, sheet, fingerprint);
 }
 
@@ -77,7 +77,7 @@ function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, en
  */
 export async function checkStoredCharacter(id: string): Promise<UnresolvedKey[] | null> {
   const record = await getCharacter(id);
-  return record === undefined ? null : missingContent(record.entity, useHomebrew.getState().homebrew);
+  return record === undefined ? null : missingContent(record.entity, useHomebrew.getState().content);
 }
 
 /**
@@ -96,7 +96,7 @@ export async function remapStoredCharacter(id: string, path: string[], newKey: s
   await save(record, entity);
   const open = useCharacter.getState();
   if (open.id === id) open.load(id, entity);
-  return missingContent(entity, useHomebrew.getState().homebrew);
+  return missingContent(entity, useHomebrew.getState().content);
 }
 
 /**
@@ -110,7 +110,7 @@ export async function remapStoredCharacter(id: string, path: string[], newKey: s
  */
 export async function refreshSummaries(summaries: CharacterSummary[], isCurrent: () => boolean): Promise<void> {
   await restorePacks();
-  const { homebrew, fingerprint } = useHomebrew.getState();
+  const { content, fingerprint } = useHomebrew.getState();
   const stale = summaries.filter((s) => s.fingerprint !== fingerprint);
   if (stale.length === 0) return;
   await loadEngine();
@@ -124,7 +124,7 @@ export async function refreshSummaries(summaries: CharacterSummary[], isCurrent:
     const record = await getCharacter(id);
     if (record === undefined) continue; // deleted since
     try {
-      rebuilt.push({ record, sheet: buildSheet(record.entity, homebrew), fingerprint });
+      rebuilt.push({ record, sheet: buildSheet(record.entity, content), fingerprint });
     } catch (e) {
       console.error(`The summary of character ${id} could not be rebuilt:`, e);
     }
@@ -132,7 +132,7 @@ export async function refreshSummaries(summaries: CharacterSummary[], isCurrent:
   if (rebuilt.length > 0 && live()) await saveSummaries(rebuilt);
 }
 
-const buildSheet = (entity: StrictEntity, homebrew: Homebrew | undefined) => toSheet(engine().evaluate(entity, { homebrew }).built, entity);
+const buildSheet = (entity: StrictEntity, content: Content) => toSheet(engine().evaluate(entity, content).built, entity);
 
 /**
  * Reads a stored character to open with load: its draft, which is dirty, if

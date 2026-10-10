@@ -1,3 +1,4 @@
+import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -6,6 +7,7 @@ import { attunedItems, customItems } from "../engine/equipment.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { toSheet } from "../engine/sheet.ts";
 import { useCharacter } from "../state/character.ts";
+import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -105,3 +107,24 @@ test("no more than 3 magic items are attuned at once", () => {
   expect(attunedItems(entity())).toEqual(["cloak-of-protection", "ring-of-protection"]);
   expect(labelled("Attuned: Bag of Holding").disabled).toBe(false);
 });
+
+test("an imported magic item is offered, and wearing it changes the build", async () => {
+  const edn = readFileSync(join(charactersDir, "../magic-items/custom-items.edn"), "utf8");
+  await useHomebrew.getState().loadMagicItems(engine().readServerEdn(edn));
+  try {
+    open(unequippedFighter20());
+    const built = () => engine().evaluate(entity(), useHomebrew.getState().content).built;
+    const wis = built().abilities["orcpub.dnd.e5.character/wis"];
+    choose("Add an item to Other Magic Items", "circlet-of-the-hawk");
+    fireEvent.click(labelled("Attuned: Circlet of the Hawk"));
+    expect(built().abilities["orcpub.dnd.e5.character/wis"]).toBe(wis + 2);
+
+    choose("Add an item to Magic Armor", "wardens-plate");
+    choose("Worn armor", "wardens-plate");
+    expect(built()["worn-armor"]).toBe("wardens-plate");
+    // Plate is 18, and Warden's Plate adds 2.
+    expect(toSheet(built(), entity()).armorClass).toBe(20);
+  } finally {
+    for (const { id } of useHomebrew.getState().magicItems) await useHomebrew.getState().removeMagicItem(id);
+  }
+}, 20_000);

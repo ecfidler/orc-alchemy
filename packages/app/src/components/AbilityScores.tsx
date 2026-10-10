@@ -28,7 +28,7 @@ const abbr = (ability: Ability) => ability.toUpperCase();
 export function AbilityScores({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { entity, built, selections } = useOpenCharacter();
-  const homebrew = useHomebrew((state) => state.homebrew);
+  const content = useHomebrew((state) => state.content);
   const [error, setError] = useState<string | null>(null);
   const { method, scores } = useMemo(() => baseScores(entity!), [entity]);
   const rows = useMemo(() => abilityRows(built!, selections!), [built, selections]);
@@ -36,7 +36,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
   function write(to: Method, next: Scores) {
     setError(null);
     try {
-      useCharacter.getState().update((e) => setBaseScores(e, to, next, homebrew));
+      useCharacter.getState().update((e) => setBaseScores(e, to, next, content));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }

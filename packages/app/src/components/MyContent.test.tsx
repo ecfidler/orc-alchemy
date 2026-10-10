@@ -22,6 +22,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   downloads.length = 0;
   for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
+  for (const { id } of useHomebrew.getState().magicItems) await useHomebrew.getState().removeMagicItem(id);
   useHomebrew.setState({ lastImport: null, pending: null });
 });
 
@@ -71,7 +72,7 @@ test("turning an item off leaves it out of the next evaluate; turning it on brin
   fireEvent.click(artificer);
   await waitFor(() => expect(artificer.checked).toBe(false));
   expect(classes()).toEqual([]);
-  expect(missingContent(r8, useHomebrew.getState().homebrew).map((u) => u.key)).toContain("artificer");
+  expect(missingContent(r8, useHomebrew.getState().content).map((u) => u.key)).toContain("artificer");
 
   fireEvent.click(artificer);
   await waitFor(() => expect(artificer.checked).toBe(true));
@@ -198,4 +199,28 @@ test("a stored pack that could not be read is listed with its warning, and Delet
   fireEvent.click(within(warning).getByRole("button", { name: "Delete bad" }));
   await waitFor(() => expect(screen.queryByRole("region", { name: "Unreadable homebrew packs" })).toBeNull());
   expect(((await list()) as PackRecord[]).map((p) => p.id)).toEqual(["good"]);
+});
+
+test("the stored magic items are listed by name; each can be turned off and deleted", async () => {
+  await useHomebrew.getState().loadMagicItems(engine().readServerEdn(readFileSync(join(fixturesDir, "magic-items", "custom-items.edn"), "utf8")));
+  renderPage();
+  const section = within(await screen.findByRole("region", { name: "Magic items" }));
+  expect(section.getAllByRole("checkbox").map((c) => c.parentElement!.textContent!.trim())).toEqual([
+    "Circlet of the Hawk",
+    "Emberbrand",
+    "Pearl of Stillwater",
+    "Warden's Plate",
+  ]);
+
+  const pearl = section.getByRole<HTMLInputElement>("checkbox", { name: "Pearl of Stillwater" });
+  expect(pearl.checked).toBe(true);
+  fireEvent.click(pearl);
+  await waitFor(() => expect(pearl.checked).toBe(false));
+  expect(useHomebrew.getState().magicItemsOn).toHaveLength(3);
+
+  yes();
+  fireEvent.click(section.getByRole("button", { name: "Delete Warden's Plate" }));
+  await waitFor(() => expect(section.queryByRole("checkbox", { name: "Warden's Plate" })).toBeNull());
+  expect(useHomebrew.getState().magicItems.map((r) => r.id)).toEqual(["circlet-of-the-hawk", "emberbrand", "pearl-of-stillwater"]);
+  expect(screen.queryByText("There is no homebrew in this browser.")).toBeNull();
 });

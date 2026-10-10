@@ -14,7 +14,7 @@ const dupB = () => engine().parseOrcbrew(orcbrew("duplicate-external-b.orcbrew")
 /** duplicate-external-b with its race ironwrought renamed to ironwrought-v2: the engine suggests that for ironwrought. */
 const dupBv2 = () =>
   engine().renameKey(dupB(), { pack: "duplicate-external-b", contentType: "orcpub.dnd.e5/races", from: "ironwrought", to: "ironwrought-v2" });
-const keys = (entity: StrictEntity, homebrew?: Record<string, object>) => missingContent(entity, homebrew).map((u) => `${u.label}: ${u.key}`);
+const keys = (entity: StrictEntity, homebrew?: Record<string, object>) => missingContent(entity, { homebrew }).map((u) => `${u.label}: ${u.key}`);
 
 describe("missingContent", () => {
   test("r8-unresolved-keys without its pack lists its race, subrace, class and subclass", () => {
@@ -22,7 +22,7 @@ describe("missingContent", () => {
   });
 
   test("character-test-2 lists its content keys and its other options, which have no suggestions", () => {
-    const unresolved = missingContent(character("character-test-2"), undefined);
+    const unresolved = missingContent(character("character-test-2"));
     expect(unresolved.map((u) => `${u.label}: ${u.key}`)).toEqual([
       "Background: noble",
       "Feat: ritual-caster",
@@ -35,7 +35,7 @@ describe("missingContent", () => {
   });
 
   test("a loaded pack with a similar key gives a suggestion", () => {
-    const race = missingContent(character("r8-unresolved-keys"), dupBv2()).find((u) => u.key === "ironwrought");
+    const race = missingContent(character("r8-unresolved-keys"), { homebrew: dupBv2() }).find((u) => u.key === "ironwrought");
     expect(race?.suggestions).toEqual([expect.objectContaining({ key: "ironwrought-v2", name: "Ironwrought", source: "Homebrew Pack B" })]);
   });
 

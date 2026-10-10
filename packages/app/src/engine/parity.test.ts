@@ -6,18 +6,16 @@ import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { setBaseScores, type Method, type Scores } from "./abilities.ts";
 import { DESCRIPTION_FIELDS, setDescription } from "./description.ts";
-import { engine, loadEngine, type Homebrew, type StrictEntity } from "./engine.ts";
+import { engine, loadEngine, type Content, type Homebrew, type StrictEntity } from "./engine.ts";
 import { setAttuned, setCarried, setQuantity, storedItems, wield, type Hand } from "./equipment.ts";
 import { ABILITIES } from "./sheet.ts";
 import { setPrepared } from "./spells.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const readJson = (file: string) => JSON.parse(readFileSync(join(fixturesDir, file), "utf8"));
-// The builder takes custom magic items with ORC-77, so the golden that needs them is left out until then.
 const goldens = readdirSync(join(fixturesDir, "characters"))
   .filter((file) => file.endsWith(".strict.json"))
-  .map((file) => file.replace(".strict.json", ""))
-  .filter((name) => !readJson(`characters/${name}.meta.json`).magicItems);
+  .map((file) => file.replace(".strict.json", ""));
 
 const KEY = "~:orcpub.entity.strict/key";
 const SELECTIONS = "~:orcpub.entity.strict/selections";
@@ -59,6 +57,10 @@ const GAPS: Record<string, Gaps> = {
     values: ["current-hit-points", "off-hand-weapon"],
     reason: "Only the sheet shows current-hit-points. The off hand holds the shield, as fighter-1.",
   },
+  "fighter-5-custom-magic-items": {
+    values: ["current-hit-points", "off-hand-weapon"],
+    reason: "The fighter-5 build with custom magic items, so the same gaps as fighter-5.",
+  },
   "fighter-20": { refused: ["languages/common"], reason: "A human knows Common already." },
   "wizard-20": { refused: ["languages/common"], reason: "A human knows Common already." },
   "fighter-3-wizard-2": { refused: ["languages/common", "languages/elvish"], reason: "A half-elf knows Common and Elvish already." },
@@ -88,9 +90,8 @@ const optionsOf = (s: Selection | undefined) => s?.[OPTIONS] ?? (s?.[OPTION] ? [
 const plain = (x: object) => JSON.parse(JSON.stringify(x));
 
 /** Replays the golden with the builder's writes. Returns the entity, the refused picks, the removed items and the skipped values. */
-function rebuild(golden: Entity, homebrew?: Homebrew) {
+function rebuild(golden: Entity, opts: Content) {
   const e = engine();
-  const opts = { homebrew };
   let entity = plain(e.emptyCharacter()) as Entity;
   const set = (next: StrictEntity) => (entity = JSON.parse(typeof next === "string" ? next : JSON.stringify(next)));
   const top = (key: string) => entity[SELECTIONS].find((s) => s[KEY] === `~:${key}`);
@@ -121,7 +122,7 @@ function rebuild(golden: Entity, homebrew?: Homebrew) {
     } else if (key === "ability-scores") {
       const scores = options[0][MAP] as Record<string, number>;
       const base = Object.fromEntries(ABILITIES.map((a) => [a, scores[`${CHARACTER}${a}`]])) as Scores;
-      set(setBaseScores(entity, unkeyword(options[0][KEY]) as Method, base, homebrew));
+      set(setBaseScores(entity, unkeyword(options[0][KEY]) as Method, base, opts));
     } else if (path.length === 0 && INVENTORY.includes(key)) {
       // The Add list, then the quantity and Carried controls.
       for (const o of options) {
@@ -237,7 +238,7 @@ function normalize(x: unknown): unknown {
 
 beforeAll(() => loadEngine());
 
-test("all 12 goldens are here", () => expect(goldens).toHaveLength(12));
+test("all 13 goldens are here", () => expect(goldens).toHaveLength(13));
 
 test.each(goldens)("%s rebuilt by the builder's mutations equals the golden", (name) => {
   const e = engine();
@@ -246,9 +247,13 @@ test.each(goldens)("%s rebuilt by the builder's mutations equals the golden", (n
     const parsed = e.parseOrcbrew(readFileSync(join(fixturesDir, "orcbrew", pack), "utf8"), { name: pack.replace(".orcbrew", ""), existing: homebrew });
     homebrew = parsed.data!;
   }
+  // The meta's magicItems names the old server's GET /dnd/5e/items body under fixtures/magic-items.
+  const itemsFile: string | undefined = readJson(`characters/${name}.meta.json`).magicItems;
+  const magicItems = itemsFile && e.readServerEdn(readFileSync(join(fixturesDir, "magic-items", itemsFile), "utf8"));
+  const content: Content = { homebrew, magicItems: magicItems || undefined };
   const golden = readJson(`characters/${name}.strict.json`) as Entity;
   const gaps: Gaps = GAPS[name] ?? {};
-  const { entity, refused, removed, skipped } = rebuild(golden, homebrew);
+  const { entity, refused, removed, skipped } = rebuild(golden, content);
 
   expect(refused.sort()).toEqual([...(gaps.refused ?? [])].sort());
   expect(removed.sort()).toEqual([...(gaps.removed ?? [])].sort());
@@ -263,7 +268,7 @@ test.each(goldens)("%s rebuilt by the builder's mutations equals the golden", (n
   if (noOffHand) delete compared[VALUES]![OFF_HAND];
   expect(normalize(compared)).toEqual(normalize(stripped));
 
-  const built = plain(e.evaluate(entity, { homebrew }).built);
+  const built = plain(e.evaluate(entity, content).built);
   if (noOffHand && built["off-hand-weapon"] === "none") built["off-hand-weapon"] = null;
   const expected = readJson(`characters/${name}.expected.json`);
   expect(Object.keys(built).sort()).toEqual(Object.keys(expected).sort());

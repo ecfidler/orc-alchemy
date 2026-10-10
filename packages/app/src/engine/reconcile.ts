@@ -2,7 +2,7 @@
 // the option keys of a character that the loaded packs do not resolve, with
 // the engine's suggestions, and a remap of one key to a suggestion.
 import type { ContentSuggestion } from "@pubdoor/dmv";
-import { engine, type Homebrew, type StrictEntity } from "./engine.ts";
+import { engine, type Content, type StrictEntity } from "./engine.ts";
 
 export type { ContentSuggestion };
 
@@ -19,9 +19,9 @@ export interface UnresolvedKey {
   suggestions: ContentSuggestion[];
 }
 
-/** The option keys of the entity that do not resolve against the homebrew, or against the SRD alone without it. */
-export function missingContent(entity: StrictEntity, homebrew: Homebrew | undefined): UnresolvedKey[] {
-  const report = engine().reconcileMissingContent(entity, homebrew);
+/** The option keys of the entity that do not resolve against the content, or against the SRD alone without it. */
+export function missingContent(entity: StrictEntity, { homebrew, magicItems }: Content = {}): UnresolvedKey[] {
+  const report = engine().reconcileMissingContent(entity, homebrew, { magicItems });
   return [
     ...report.items.map(({ label, key, path, suggestions }) => ({ label, key, path, suggestions })),
     ...report.unresolvedOptions.map(({ key, path }) => ({ label: OPTION_LABEL, key, path, suggestions: [] })),

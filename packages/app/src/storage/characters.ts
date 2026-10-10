@@ -1,7 +1,7 @@
 // Local-first character storage (doc 03 §Storage): one IndexedDB record per
 // character holding its dmv-character envelope, a summaries index for the
 // list page, and drafts of unsaved changes. The same database holds the
-// homebrew packs (packs.ts). When IndexedDB is unavailable or
+// homebrew packs and custom magic items (packs.ts). When IndexedDB is unavailable or
 // fails, as in some private windows, storage moves to memory for the rest of
 // the session and useStorage says so. A request that fails after that is
 // thrown to the caller. useStorage reports a failed write; a failed read is
@@ -124,8 +124,8 @@ export function deleteDraft(id: string): Promise<void> {
   return write([{ store: "drafts", delete: id }]);
 }
 
-type StoreName = "characters" | "summaries" | "drafts" | "packs";
-const storeNames: StoreName[] = ["characters", "summaries", "drafts", "packs"];
+type StoreName = "characters" | "summaries" | "drafts" | "packs" | "magicItems";
+const storeNames: StoreName[] = ["characters", "summaries", "drafts", "packs", "magicItems"];
 type Write = { store: StoreName; put: { id: string } } | { store: StoreName; delete: string };
 
 interface Backend {
@@ -178,8 +178,8 @@ function toMemory(reason: unknown): Backend {
 
 function openIndexedDb(): Promise<Backend> {
   return new Promise((resolve, reject) => {
-    // Version 2 adds packs. An upgrade creates only the stores not there yet, so it keeps the others' records.
-    const request = indexedDB.open("alchemy-5e", 2);
+    // Version 2 adds packs, and version 3 magicItems. An upgrade creates only the stores not there yet, so it keeps the others' records.
+    const request = indexedDB.open("alchemy-5e", 3);
     request.onupgradeneeded = () => {
       for (const name of storeNames) {
         if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name, { keyPath: "id" });

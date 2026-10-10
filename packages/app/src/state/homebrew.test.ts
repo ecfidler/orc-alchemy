@@ -259,7 +259,7 @@ test("a bundle's packs and flags round-trip through an empty database, with its 
   await app.useHomebrew.getState().setPackEnabled("community-mezzoloth-race", false);
   await app.useHomebrew.getState().setItemEnabled("warlock-test-content", "~:orcpub.dnd.e5/feats", "~:keen-mind", false);
   const before = app.useHomebrew.getState();
-  const [character] = app.readCharacterFile(readText("characters/warlock-10-drow.strict.json"), before.homebrew).characters;
+  const [character] = app.readCharacterFile(readText("characters/warlock-10-drow.strict.json"), before.content).characters;
   const { homebrew, flags } = app.bundleHomebrew();
   expect(Object.keys(homebrew)).toEqual(["community-mezzoloth-race", "warlock-test-content"]);
   expect(flags["community-mezzoloth-race"]).toEqual({ enabled: false, disabledItems: [] });
@@ -275,7 +275,7 @@ test("a bundle's packs and flags round-trip through an empty database, with its 
   expect(after.homebrew).toEqual(before.homebrew);
   expect(withoutTimes((await app.listPacks()) as PackRecord[])).toEqual(withoutTimes(before.packs));
 
-  const { characters, failures } = app.readCharacterFile(text, after.homebrew);
+  const { characters, failures } = app.readCharacterFile(text, after.content);
   expect(failures).toEqual([]);
   expect(characters).toEqual([{ ...character, name: null }]);
 });
@@ -347,4 +347,83 @@ test("loading the same file again is not a key conflict", async () => {
   await load("duplicate-external-a");
   expect(useHomebrew.getState().pending).toBeNull();
   expect(useHomebrew.getState().lastImport?.conflicts).toEqual([]);
+});
+
+const customItems = (app: Awaited<ReturnType<typeof reload>>) => app.engine().readServerEdn(readText("magic-items/custom-items.edn"));
+
+test("magic items load enabled, sorted by key, and are kept after a reload", async () => {
+  let app = await reload();
+  const items = customItems(app);
+  await app.useHomebrew.getState().loadMagicItems(items);
+  const { magicItems, magicItemsOn, content } = app.useHomebrew.getState();
+  expect(magicItems.map(({ id, enabled }) => [id, enabled])).toEqual([
+    ["circlet-of-the-hawk", true],
+    ["emberbrand", true],
+    ["pearl-of-stillwater", true],
+    ["wardens-plate", true],
+  ]);
+  expect(magicItemsOn).toHaveLength(4);
+  expect(content).toEqual({ homebrew: undefined, magicItems: magicItemsOn });
+
+  app = await reload();
+  await app.restorePacks();
+  expect(app.useHomebrew.getState().magicItems.map((r) => r.item)).toEqual(magicItems.map((r) => r.item));
+});
+
+test("turning a magic item off or deleting it changes the content and the fingerprint", async () => {
+  const app = await reload();
+  const { useHomebrew } = app;
+  expect(useHomebrew.getState().fingerprint).toBe("");
+  await useHomebrew.getState().loadMagicItems(customItems(app));
+  const loaded = useHomebrew.getState();
+  expect(loaded.fingerprint).not.toBe("");
+
+  await useHomebrew.getState().setMagicItemEnabled("pearl-of-stillwater", false);
+  const off = useHomebrew.getState();
+  expect(off.magicItemsOn).toHaveLength(3);
+  expect(off.content).not.toBe(loaded.content);
+  expect(off.fingerprint).not.toBe(loaded.fingerprint);
+  expect(((await app.listMagicItems()) as { id: string; enabled: boolean }[]).find((r) => r.id === "pearl-of-stillwater")?.enabled).toBe(false);
+
+  // Deleting an item that is off leaves the enabled items, and the content, as they were.
+  await useHomebrew.getState().removeMagicItem("pearl-of-stillwater");
+  expect(useHomebrew.getState().magicItemsOn).toBe(off.magicItemsOn);
+  expect(useHomebrew.getState().content).toBe(off.content);
+  expect(useHomebrew.getState().fingerprint).toBe(off.fingerprint);
+  expect(((await app.listMagicItems()) as { id: string }[]).map((r) => r.id)).not.toContain("pearl-of-stillwater");
+
+  for (const { id } of useHomebrew.getState().magicItems) await useHomebrew.getState().removeMagicItem(id);
+  expect(useHomebrew.getState()).toMatchObject({ magicItems: [], magicItemsOn: undefined, fingerprint: "" });
+});
+
+test("a magic item with a stored key replaces it, and loading the same items again changes nothing", async () => {
+  const app = await reload();
+  const items = customItems(app);
+  await app.useHomebrew.getState().loadMagicItems(items);
+  const before = app.useHomebrew.getState();
+  await app.useHomebrew.getState().loadMagicItems(items);
+  expect(app.useHomebrew.getState().fingerprint).toBe(before.fingerprint);
+
+  // The fingerprint names each item's updatedAt, so let the clock move first.
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const changed = { ...items[1], "~:orcpub.dnd.e5.magic-items/description": "Changed." };
+  await app.useHomebrew.getState().loadMagicItems([changed]);
+  expect(app.useHomebrew.getState().magicItems.find((r) => r.id === "wardens-plate")?.item).toEqual(changed);
+  expect(app.useHomebrew.getState().magicItems).toHaveLength(4);
+  expect(app.useHomebrew.getState().fingerprint).not.toBe(before.fingerprint);
+});
+
+test("a stored magic item record that is not well formed is skipped", async () => {
+  let app = await reload();
+  const [item] = customItems(app);
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  await app.saveMagicItems([
+    { id: "emberbrand", enabled: true, item, updatedAt: "" },
+    { id: "bad", enabled: "yes" as unknown as boolean, item, updatedAt: "" },
+  ]);
+  app = await reload();
+  await app.restorePacks();
+  expect(app.useHomebrew.getState().magicItems.map((r) => r.id)).toEqual(["emberbrand"]);
+  expect(warn).toHaveBeenCalled();
+  warn.mockRestore();
 });

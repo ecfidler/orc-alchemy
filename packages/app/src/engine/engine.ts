@@ -2,9 +2,19 @@
 // app loads the engine through here and treats the strict entity as opaque.
 import { useMemo } from "react";
 import type * as Dmv from "@pubdoor/dmv";
-import type { Evaluation, Homebrew, ParsedOrcbrew, Rules, StrictEntity } from "@pubdoor/dmv";
+import type { Evaluation, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity } from "@pubdoor/dmv";
 
-export type { Homebrew, ParsedOrcbrew, Rules, StrictEntity };
+export type { Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity };
+
+/**
+ * The content a character builds against, as the engine's options take it:
+ * the loaded packs and the enabled custom magic items. Without either, the
+ * character builds against the SRD alone.
+ */
+export interface Content {
+  homebrew?: Homebrew;
+  magicItems?: MagicItems;
+}
 
 export type Engine = typeof Dmv;
 
@@ -24,10 +34,10 @@ export function engine(): Engine {
 }
 
 /**
- * Builds the entity against the homebrew, or the SRD alone without it; null
- * without an entity. The engine memoizes on the JSON text of both, so this
+ * Builds the entity against the content, or the SRD alone without it; null
+ * without an entity. The engine memoizes on the JSON text of each, so this
  * is cheap to repeat.
  */
-export function useEvaluation(entity: StrictEntity | null, homebrew?: Homebrew): Evaluation | null {
-  return useMemo(() => (entity === null ? null : engine().evaluate(entity, { homebrew })), [entity, homebrew]);
+export function useEvaluation(entity: StrictEntity | null, content?: Content): Evaluation | null {
+  return useMemo(() => (entity === null ? null : engine().evaluate(entity, content)), [entity, content]);
 }
