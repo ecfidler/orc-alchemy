@@ -68,7 +68,7 @@ test("the bookmarklet exports the old server's characters, and the app imports t
   //    UI (character_builder.cljs). The old app names an unnamed character at random.
   await page.goto(`${oldApp}/pages/dnd/5e/character-builder`);
   const saved = page.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/dnd/5e/characters");
-  await page.getByRole("button", { name: "Save New Character", exact: true }).click();
+  await page.getByRole("button", { name: /Save New Character$/ }).click();
   expect((await saved).status()).toBe(200);
 
   // 3. Run the bookmarklet on the old site.

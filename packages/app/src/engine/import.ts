@@ -94,7 +94,10 @@ function bundleCharacters(entries: unknown[]): { characters: unknown[]; failures
   const characters: unknown[] = [];
   const failures: string[] = [];
   entries.forEach((entry, i) => {
-    if (typeof entry !== "string") return characters.push(entry);
+    if (typeof entry !== "string") {
+      characters.push(entry);
+      return;
+    }
     try {
       characters.push(...engine().readServerEdn(entry));
     } catch {
