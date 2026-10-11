@@ -213,7 +213,8 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
 
   /**
    * Stores the packs of the homebrew that differ from the stored ones, and
-   * makes lastImport the import's result. A changed pack takes its flags from
+   * makes lastImport the import's result, with the background key warnings
+   * of the loaded packs. A changed pack takes its flags from
    * flags, or keeps its stored ones, or is enabled when new.
    */
   async function store(data: Record<string, object>, flags: BundleHomebrew["flags"], lastImport: LastImport) {
