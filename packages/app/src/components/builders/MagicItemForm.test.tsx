@@ -15,6 +15,7 @@ beforeAll(() => loadEngine());
 afterEach(async () => {
   cleanup();
   for (const { id } of useHomebrew.getState().magicItems) await useHomebrew.getState().removeMagicItem(id);
+  for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
 });
 
 function renderAt(path: string) {
@@ -30,16 +31,22 @@ function renderAt(path: string) {
   return router;
 }
 
+/** Waits for the form and its fields, which show when the content lists are read. */
+async function form(name: string) {
+  await screen.findByRole("form", { name });
+  await screen.findByLabelText("Rarity");
+}
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const group = (name: string) => within(screen.getByRole("group", { name }));
 const stored = (key: string) => useHomebrew.getState().magicItems.find((r) => r.id === key);
 const MI = "~:orcpub.dnd.e5.magic-items/";
+const W = "~:orcpub.dnd.e5.weapons/";
 
 /** Fills the new magic item form with Hawk Eye Circlet: attuned, WIS +2, fire resistance. */
 async function authorCirclet() {
   const router = renderAt("/content/new/magicItem");
-  await screen.findByRole("form", { name: "New magic item" });
+  await form("New magic item");
   type("Name", "Hawk Eye Circlet");
   type("Rarity", "uncommon");
   type("Description", "Your Wisdom increases by 2.");
@@ -56,7 +63,7 @@ async function authorCirclet() {
 
 test("the form has no option source, and Save is off until the item has a name", async () => {
   renderAt("/content/new/magicItem");
-  await screen.findByRole("form", { name: "New magic item" });
+  await form("New magic item");
   expect(screen.queryByLabelText("Option source (pack)")).toBeNull();
   expect(save().disabled).toBe(true);
   type("Name", "1 Ring");
@@ -93,7 +100,7 @@ test("Edit loads the stored item; a save keeps the enabled flag, and a rename re
   await authorCirclet();
   await useHomebrew.getState().setMagicItemEnabled("hawk-eye-circlet", false);
   fireEvent.click(screen.getByRole("link", { name: "Edit Hawk Eye Circlet" }));
-  await screen.findByRole("form", { name: "Edit magic item" });
+  await form("Edit magic item");
   expect(screen.queryByLabelText("Option source (pack)")).toBeNull();
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Hawk Eye Circlet");
   expect(screen.getByLabelText<HTMLSelectElement>("WIS change").value).toBe("ability");
@@ -107,7 +114,7 @@ test("Edit loads the stored item; a save keeps the enabled flag, and a rename re
   expect(JSON.stringify(stored("hawk-eye-circlet")!.item)).toContain('"~:orcpub.modifiers/int-arg":3');
 
   fireEvent.click(screen.getByRole("link", { name: "Edit Hawk Eye Circlet" }));
-  await screen.findByRole("form", { name: "Edit magic item" });
+  await form("Edit magic item");
   type("Name", "Falcon Circlet");
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
@@ -120,7 +127,7 @@ test("a new or renamed item may not take the key of another stored item; an edit
   const taken = (name: string) => `A magic item named ${name} already exists. Change the name.`;
 
   fireEvent.click(screen.getByRole("link", { name: "New magic item" }));
-  await screen.findByRole("form", { name: "New magic item" });
+  await form("New magic item");
   type("Name", "Hawk Eye Circlet");
   expect(screen.getByRole("list", { name: "Problems: Name" }).textContent).toBe(taken("Hawk Eye Circlet"));
   expect(save().disabled).toBe(true);
@@ -129,7 +136,7 @@ test("a new or renamed item may not take the key of another stored item; an edit
   cleanup();
 
   renderAt("/content/edit/magicItem/hawk-eye-circlet");
-  await screen.findByRole("form", { name: "Edit magic item" });
+  await form("Edit magic item");
   expect(screen.queryByRole("list", { name: "Problems: Name" })).toBeNull();
   expect(save().disabled).toBe(false);
   type("Name", "Ring of Warmth");
@@ -145,11 +152,11 @@ test("an edit of a magic item that is not stored says so", async () => {
 
 test("a weapon stores its base weapons, and All replaces the others", async () => {
   renderAt("/content/new/magicItem");
-  await screen.findByRole("form", { name: "New magic item" });
+  await form("New magic item");
   type("Name", "Flame Blade");
   type("Type", "weapon");
   const base = group("Base weapon");
-  fireEvent.click(base.getByLabelText("Longsword"));
+  fireEvent.click(await base.findByLabelText("Longsword"));
   fireEvent.click(base.getByLabelText("All"));
   expect(base.getByLabelText<HTMLInputElement>("Longsword").checked).toBe(false);
   fireEvent.click(base.getByLabelText("Longsword"));
@@ -192,3 +199,134 @@ test("a magic item authored in the form is offered in the Equipment step, and at
   fireEvent.click(document.querySelector<HTMLInputElement>('[aria-label="Attuned: Hawk Eye Circlet"]')!);
   await waitFor(() => expect(built().abilities["orcpub.dnd.e5.character/wis"]).toBe(wis + 2));
 }, 20_000);
+
+test("the base weapons are Custom, the All choices, then the weapons by name, as the old list", async () => {
+  renderAt("/content/new/magicItem");
+  await form("New magic item");
+  type("Type", "weapon");
+  const base = group("Base weapon");
+  await base.findByLabelText("Longsword");
+  const names = base.getAllByRole("checkbox").map((box) => box.parentElement!.textContent!.trim());
+  expect(names.slice(0, 7)).toEqual(["Custom", "All", "All Swords", "All Axes", "Battleaxe", "Blowgun", "Club"]);
+  expect(names).toHaveLength(44);
+  expect(names.at(-1)).toBe("Whip");
+});
+
+test("the attunement classes include a class of an enabled pack", async () => {
+  await useHomebrew.getState().saveItem("Tinkers", "~:orcpub.dnd.e5/classes", { "~:key": "~:artificer", "~:name": "Artificer", "~:option-pack": "Tinkers" });
+  renderAt("/content/new/magicItem");
+  await form("New magic item");
+  type("Name", "Spanner of Power");
+  fireEvent.click(screen.getByLabelText("Requires attunement"));
+  const attunement = group("Attunement");
+  fireEvent.click(await attunement.findByLabelText("Artificer (Tinkers)"));
+  expect(attunement.getByLabelText("Spellcaster")).toBeTruthy();
+  expect(attunement.getByLabelText("Wizard")).toBeTruthy();
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect((stored("spanner-of-power")!.item as Record<string, unknown>)[`${MI}attunement`]).toEqual(["~:artificer"]);
+});
+
+test("a Custom base weapon stores the old details, and another base weapon removes them", async () => {
+  renderAt("/content/new/magicItem");
+  await form("New magic item");
+  type("Name", "Bone Club");
+  type("Type", "weapon");
+  const base = group("Base weapon");
+  fireEvent.click(await base.findByLabelText("Longsword"));
+  expect(screen.queryByRole("group", { name: "Base weapon details" })).toBeNull();
+  fireEvent.click(base.getByLabelText("Custom"));
+  expect(base.getByLabelText<HTMLInputElement>("Longsword").checked).toBe(false);
+  // The old first details (magic_items.cljc apply-subtype-toggle).
+  const details = group("Base weapon details");
+  expect(details.getByLabelText<HTMLSelectElement>("Damage die number").value).toBe("1");
+  expect(details.getByLabelText<HTMLSelectElement>("Damage die").value).toBe("4");
+  expect(details.getByLabelText<HTMLSelectElement>("Simple / martial").value).toBe("~:simple");
+  expect(details.getByLabelText<HTMLSelectElement>("Melee / ranged").value).toBe("melee");
+  expect(details.getByLabelText<HTMLSelectElement>("Damage type").value).toBe("~:bludgeoning");
+  expect(details.queryByLabelText("Range min")).toBeNull();
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  const defaults = {
+    [`${MI}name`]: "Bone Club",
+    [`${MI}type`]: "~:weapon",
+    [`${MI}rarity`]: "~:common",
+    [`${MI}subtypes`]: ["~:other"],
+    [`${W}damage-die-count`]: 1,
+    [`${W}damage-die`]: 4,
+    [`${W}type`]: "~:simple",
+    [`${W}damage-type`]: "~:bludgeoning",
+    [`${W}melee?`]: true,
+    [`${W}ranged?`]: false,
+  };
+  expect(stored("bone-club")!.item).toEqual(defaults);
+
+  // Each detail is stored as the old events stored it (events.cljs ::mi/toggle-item-..., ::mi/set-item-...).
+  fireEvent.click(screen.getByRole("link", { name: "Edit Bone Club" }));
+  await form("Edit magic item");
+  const edit = group("Base weapon details");
+  fireEvent.click(edit.getByLabelText("Finesse?"));
+  fireEvent.click(edit.getByLabelText("Two-Handed?"));
+  fireEvent.click(edit.getByLabelText("Thrown?"));
+  fireEvent.click(edit.getByLabelText("Thrown?"));
+  fireEvent.click(edit.getByLabelText("Versatile?"));
+  fireEvent.change(edit.getByLabelText("Versatile damage die"), { target: { value: "10" } });
+  fireEvent.change(edit.getByLabelText("Damage die number"), { target: { value: "2" } });
+  fireEvent.change(edit.getByLabelText("Damage die"), { target: { value: "6" } });
+  fireEvent.change(edit.getByLabelText("Simple / martial"), { target: { value: "~:martial" } });
+  fireEvent.change(edit.getByLabelText("Damage type"), { target: { value: "~:piercing" } });
+  fireEvent.change(edit.getByLabelText("Melee / ranged"), { target: { value: "ranged" } });
+  fireEvent.change(edit.getByLabelText("Range min"), { target: { value: "20" } });
+  fireEvent.change(edit.getByLabelText("Range max"), { target: { value: "60" } });
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("bone-club")!.item).toEqual({
+    ...defaults,
+    [`${W}finesse?`]: true,
+    [`${W}two-handed?`]: true,
+    [`${W}thrown?`]: false,
+    [`${W}versatile`]: { [`${W}damage-die`]: 10 },
+    [`${W}damage-die-count`]: 2,
+    [`${W}damage-die`]: 6,
+    [`${W}type`]: "~:martial",
+    [`${W}damage-type`]: "~:piercing",
+    [`${W}melee?`]: false,
+    [`${W}ranged?`]: true,
+    [`${W}range`]: { [`${W}min`]: 20, [`${W}max`]: 60 },
+  });
+  expect(engine().validate.magicItem(stored("bone-club")!.item).ok).toBe(true);
+
+  // The engine offers the item under its own key, with no base weapon.
+  cleanup();
+  useCharacter.getState().load("homebrew-custom-weapon", engine().emptyCharacter());
+  render(<Builder />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Equipment/ }));
+  const add = document.querySelector<HTMLSelectElement>('[aria-label="Add an item to Magic Weapons"]')!;
+  expect(add.querySelector('option[value="bone-club"]')).not.toBeNull();
+  cleanup();
+
+  // As the old save, Versatile without its dice is not stored. All, or a base weapon, removes the details.
+  renderAt("/content/edit/magicItem/bone-club");
+  await form("Edit magic item");
+  fireEvent.click(group("Base weapon details").getByLabelText("Versatile?"));
+  fireEvent.click(group("Base weapon details").getByLabelText("Versatile?"));
+  expect(group("Base weapon details").getByLabelText<HTMLInputElement>("Versatile?").checked).toBe(true);
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("bone-club")!.item).not.toHaveProperty([`${W}versatile`]);
+
+  for (const [choice, subtypes] of [
+    ["All", ["~:all"]],
+    ["Club", ["~:club"]],
+  ] as const) {
+    await useHomebrew.getState().loadMagicItems([{ ...defaults, [`${W}finesse?`]: true, [`${W}range`]: { [`${W}min`]: 20 } }]);
+    cleanup();
+    renderAt("/content/edit/magicItem/bone-club");
+    await form("Edit magic item");
+    fireEvent.click(await group("Base weapon").findByLabelText(choice));
+    expect(screen.queryByRole("group", { name: "Base weapon details" })).toBeNull();
+    fireEvent.click(save());
+    await screen.findByRole("heading", { name: "My Content" });
+    expect(stored("bone-club")!.item).toEqual({ [`${MI}name`]: "Bone Club", [`${MI}type`]: "~:weapon", [`${MI}rarity`]: "~:common", [`${MI}subtypes`]: subtypes });
+  }
+}, 30_000);

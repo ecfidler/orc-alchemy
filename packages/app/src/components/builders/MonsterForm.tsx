@@ -9,7 +9,7 @@
 // and :description maps, :type absent, :action or :legendary-action.
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKw, range, SKILLS, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -32,8 +32,6 @@ const ALIGNMENTS = [
   "neutral good (50%) or neutral evil (50%)",
   "unaligned",
 ];
-/** The SRD languages (languages.json); the old list also had the homebrew ones. */
-const LANGUAGES = ["Abyssal", "Celestial", "Common", "Deep Speech", "Draconic", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Infernal", "Orc", "Primordial", "Sylvan", "Undercommon"];
 const CHALLENGES = [0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)];
 const DICE = [4, 6, 8, 10, 12, 20, 100];
 const TRAIT_TYPES = [
@@ -161,7 +159,13 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       {checkboxes("Damage immunities", "damage-immunity", DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)}
       {checkboxes("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw), (c) => `Immunity to being ${title(c)}`)}
       {text("senses", "Senses")}
-      {checkboxes("Languages", "language", LANGUAGES.map(nameToKw), title)}
+      {/* The SRD languages and those of the enabled packs, as the old list (::langs/languages). */}
+      <WithChoices>
+        {({ languages }) => {
+          const names = Object.fromEntries(languages.map(({ key, name }) => [key, name]));
+          return checkboxes("Languages", "language", Object.keys(names), (key) => names[key]);
+        }}
+      </WithChoices>
       {field(
         "challenge",
         "Challenge rating",

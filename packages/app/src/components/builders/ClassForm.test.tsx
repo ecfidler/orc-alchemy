@@ -195,3 +195,30 @@ test("a class with a custom spell list stores its cantrips and spells by level",
   expect(known("hedge-mage-cantrips-known")).toMatchObject({ optionCount: 1, min: 2 });
   expect(known("hedge-mage-spells-known")).toMatchObject({ optionCount: 1, min: 2 });
 });
+
+test("the spell lists include a list that a spell of an enabled pack is on, as the old list (::spells/spell-lists)", async () => {
+  await useHomebrew.getState().saveItem("Tinkers", "~:orcpub.dnd.e5/spells", {
+    "~:key": "~:spark",
+    "~:name": "Spark",
+    "~:option-pack": "Tinkers",
+    "~:level": 0,
+    "~:school": "evocation",
+    "~:spell-lists": { "~:artificer": true, "~:monk": false, "~:wizard": true },
+  });
+  renderAt("/content/new/class");
+  await screen.findByLabelText("Name");
+  type("Spell slots", "true");
+  const lists = [...screen.getByLabelText<HTMLSelectElement>("Spell list").options].map((o) => [o.value, o.text]);
+  expect(lists).toEqual([
+    ["", "Custom"],
+    ["~:bard", "Bard"],
+    ["~:cleric", "Cleric"],
+    ["~:druid", "Druid"],
+    ["~:paladin", "Paladin"],
+    ["~:ranger", "Ranger"],
+    ["~:sorcerer", "Sorcerer"],
+    ["~:warlock", "Warlock"],
+    ["~:wizard", "Wizard"],
+    ["~:artificer", "Artificer"],
+  ]);
+});
