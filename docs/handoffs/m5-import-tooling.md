@@ -1,22 +1,25 @@
 ---
 type: Handoff
 title: "M5 handoff: import tooling and homebrew UI"
-description: "The starting point to finish M5 on Alchemy 5e: what is merged, the one open issue (ORC-78), the decisions so far, the follow-ups, and the traps."
+description: "The record of M5 on Alchemy 5e, closed on 2026-10-11: what merged, the ORC-78 result, the decisions, the follow-ups, and the traps."
 tags: [handoff, homebrew, import, milestones]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-10T04:57:51Z }
+generated: { by: claude-code/agent, at: 2026-10-11T15:38:42Z }
 ---
 
 # M5 handoff: import tooling and homebrew UI
 
-You are picking up M5 of project Alchemy 5e, *Import tooling & homebrew
-UI*. Every M5 issue is merged except ORC-78, the real-user acceptance.
-ORC-78 needs a file from Ethan. This document gives the state, the
-decisions, the follow-ups and the traps.
+**M5 closed on 2026-10-11.** Every M5 issue is merged. ORC-78, the
+real-user acceptance, ran on the owner's data: 43 of 43 characters
+imported, and each one builds to the same values as the old app's code,
+except for the Hexblade subclass value on 2 characters after a conflict
+choice (ORC-132, engine, left open by the owner's decision). ORC-131, found
+by that run, is merged (#46). The next milestone is M6, Backend. This
+document stays as the record of M5: its decisions, follow-ups and traps.
 
 ## 1. Read these first
 
-1. `CLAUDE.md` at the repository root. The current milestone line says M5.
+1. `CLAUDE.md` at the repository root. The current milestone line says M6.
 2. `.claude/skills/milestone-workflow/SKILL.md` and
    `.claude/skills/linear-issue-workflow/SKILL.md`.
 3. [Moving from Dungeon Master's Vault](../guides/moving-from-dungeon-masters-vault.md).
@@ -39,32 +42,26 @@ fork at tag `pubdoor-v0.3.0` (57fcce84). Each issue went as one PR into
 | ORC-75 | #43 | Race, subrace, class and subclass forms; one toolkit in `builders/fields.tsx`; `engine/builder-choices.ts` |
 | ORC-76 | #44 | Background, feat, language, invocation, boon and selection forms |
 | ORC-68 | #45 | The guide at `/import/dmv` and `docs/guides/` |
+| ORC-131 | #46 | In an internal conflict, the last copy that is on keeps the key |
 
 Earlier M5 work (ORC-69 to ORC-73, ORC-41, ORC-126) was merged before
 this session; see the PRs #34 to #38.
 
-## 3. Next: ORC-78
+## 3. ORC-78, the M5 proof
 
-ORC-78 is the M5 proof: Ethan's real data imports cleanly, and every
-character matches the old app.
+The run and its numbers are on Linear ORC-78. The inputs stay outside the
+repositories: `all-content3.orcbrew` (also at `fixtures/orcbrew/private/`,
+git-ignored, so the private test block runs on the owner's machine) and
+`dmv-export.json` in `/home/ethan/orc-78-private/`, with `results.md`.
 
-**Inputs.**
-- `all-content3.orcbrew`: at `/home/ethan/orcpub/fixtures/orcbrew/private/`
-  (29 packs, 1412 items, a BOM, 86 internal conflicts). Never commit it.
-- `dmv-export.json`: **not there yet.** Ethan runs the bookmarklet on his
-  real Dungeon Master's Vault account. He gets the bookmark link from
-  `bun run dev` in `packages/app`, page `/import/dmv`. Ask where he
-  saved it. Keep it out of both repositories.
-
-**Steps.** Follow the guide. Import the homebrew first, then the bundle.
-Record on ORC-78: import time, conflicts and how they were resolved,
-unresolved keys per character, and each sheet value that differs from the
-old app. Each difference becomes a fixture and an issue. The homebrew
-half can start without the bundle.
-
-**Then close M5** with the milestone-workflow skill, section 4: check the
-proof claim by claim, move the `CLAUDE.md` milestone line, and update
-project memory.
+- With the homebrew as the old importer leaves it, 42 of 43 characters
+  match the JVM oracle exactly. The last differs by the set-order artifact
+  of fixtures finding 13.
+- Rename all first changed 15 characters. The cause was ORC-131: the key
+  stayed on a copy in a pack that is off. After #46, 2 characters differ,
+  only by ORC-132.
+- Not covered: a real browser session with these files, and custom magic
+  items (the account has none).
 
 ## 4. Decisions made in M5
 
@@ -94,6 +91,7 @@ project memory.
 | ORC-127 | Golden `fighter-20` holds `attuned-magic-items`, which the old server cannot store. The Docker test leaves it out |
 | ORC-129 | Builder lists offer SRD values only (languages, weapons, class attunement, spell lists); the Custom base weapon is missing |
 | ORC-130 | No import warning for a background key that differs from `name-to-kw(name)` |
+| ORC-132 | PubDoor: two subclasses with the same name; a renamed key changes only `levels.<class>.subclass` |
 
 Older open items: ORC-73's export check passed (84 exports). ORC-125 (no
 line numbers in EDN parse errors) is still in the backlog.
