@@ -126,15 +126,16 @@ function Section({ title, open = true, children }: { title: string; open?: boole
  * The log of one homebrew import, in the sections of the old app's import
  * log panel: errors, skipped items, the automatic fixes by kind, and the
  * other changes under Advanced details, closed. It also lists the key
- * conflicts the import found.
+ * conflicts the import found, and the backgrounds in the loaded packs whose
+ * key is not the key of their name.
  */
 export function ImportLog({ result }: { result: LastImport }) {
-  const { log, conflicts, skipped, fileName } = result;
+  const { log, conflicts, skipped, fileName, backgroundKeyWarnings = [] } = result;
   const changes = log.changes as Change[];
   const advanced = changes.filter((c) => !USER_TYPES.has(c.type ?? ""));
   // A parse error's line and hint, when the engine has them, are in log.message, which shows above.
   const errors = log.errors;
-  const clean = errors.length === 0 && skipped.length === 0 && changes.length === 0 && conflicts.length === 0;
+  const clean = errors.length === 0 && skipped.length === 0 && changes.length === 0 && conflicts.length === 0 && backgroundKeyWarnings.length === 0;
 
   return (
     <section aria-label="Import log" className="space-y-2 border border-black p-2">
@@ -188,6 +189,18 @@ export function ImportLog({ result }: { result: LastImport }) {
                 {c.type === "internal"
                   ? "used by more than one pack in this file"
                   : `${c["import-name"] ?? c.key} from ${c["import-source"]} has the key of ${c["existing-name"] ?? c.key} from ${c["existing-source"]}`}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {backgroundKeyWarnings.length > 0 && (
+        <Section title={`Background keys (${backgroundKeyWarnings.length})`}>
+          <p>These backgrounds are in the loaded packs. A character always gets a background by the key of its name, not by the stored key.</p>
+          <ul className="ml-6 list-disc">
+            {backgroundKeyWarnings.map(({ pack, name, key, nameKey }, i) => (
+              <li key={i}>
+                {name} in {pack} has the key <Code>{key}</Code>. A character gets it by the key <Code>{nameKey}</Code>.
               </li>
             ))}
           </ul>

@@ -6,7 +6,7 @@
 // well formed is skipped, with a warning in the console.
 import { create } from "zustand";
 import { engine, loadEngine, type Content, type ParsedOrcbrew } from "../engine/engine.ts";
-import { disabledInFile, itemAt, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem } from "../engine/content.ts";
+import { backgroundKeyWarnings, disabledInFile, itemAt, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem, type BackgroundKeyWarning } from "../engine/content.ts";
 import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
 import { magicItemKey, type BundleHomebrew } from "../engine/import.ts";
 import {
@@ -126,7 +126,11 @@ interface HomebrewState {
 }
 
 /** One import's result without its data, and the name of the file it read. */
-export type LastImport = Omit<ParsedOrcbrew, "data"> & { fileName: string };
+export type LastImport = Omit<ParsedOrcbrew, "data"> & {
+  fileName: string;
+  /** The backgrounds in the loaded packs, after this import, whose key is not the key of their name. Not there for an import that did not parse. */
+  backgroundKeyWarnings?: BackgroundKeyWarning[];
+};
 
 /** An import held for its key conflicts: its result, and the homebrew it parsed (the stored packs with the file merged in). */
 export interface PendingImport {
@@ -209,7 +213,8 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
 
   /**
    * Stores the packs of the homebrew that differ from the stored ones, and
-   * makes lastImport the import's result. A changed pack takes its flags from
+   * makes lastImport the import's result, with the background key warnings
+   * of the loaded packs. A changed pack takes its flags from
    * flags, or keeps its stored ones, or is enabled when new.
    */
   async function store(data: Record<string, object>, flags: BundleHomebrew["flags"], lastImport: LastImport) {
@@ -227,6 +232,8 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       }
       return [{ id, rules: "2014", enabled, disabledItems, plugin, updatedAt: now() }];
     });
+    // From every loaded pack, not only the changed ones: a file that is loaded again changes nothing and must still warn.
+    lastImport = { ...lastImport, backgroundKeyWarnings: Object.entries(data).flatMap(([id, plugin]) => backgroundKeyWarnings(id, plugin)) };
     if (changed.length === 0) return set({ lastImport });
     await savePacks(changed);
     set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport });

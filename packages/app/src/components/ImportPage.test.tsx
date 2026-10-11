@@ -444,3 +444,21 @@ test("a key under another unresolved key offers no remap until that one resolves
   expect(within(envoy).queryByRole("button", { name: "Remap envoy" })).toBeNull();
   expect(envoy.textContent).toContain("To remap it, first remap its race or load the pack that has it.");
 });
+
+// ORC-130: the engine gets a background by the key of its name, so a stored key that differs is never used.
+test("the import log warns of a background whose key is not the key of its name", async () => {
+  renderPage();
+  const pack = `{:orcpub.dnd.e5/backgrounds {:old-spy {:key :old-spy :name "Spy" :option-pack "Keys"} :thieves-friend {:key :thieves-friend :name "Thieves' Friend" :option-pack "Keys"}}}`;
+  choose("Load homebrew file", "keys.orcbrew", pack);
+  const log = await screen.findByRole("region", { name: "Import log" });
+  const warnings = within(log).getByText("Background keys (1)").closest("details")!;
+  expect(within(warnings).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+    "Spy in keys has the key old-spy. A character gets it by the key spy.",
+  ]);
+
+  // The same file again changes no pack, and the warning stays.
+  choose("Load homebrew file", "keys.ORCBREW", pack);
+  await waitFor(() => expect(useHomebrew.getState().lastImport?.fileName).toBe("keys.ORCBREW"));
+  expect(useHomebrew.getState().packs.map((p) => p.id)).toEqual(["keys"]);
+  expect(within(screen.getByRole("region", { name: "Import log" })).getByText("Background keys (1)")).toBeTruthy();
+});

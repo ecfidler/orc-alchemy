@@ -4,7 +4,7 @@
 // the forms share: the old app's lists, a record editor, and the controls.
 import type { ComponentType, ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
-import { tag } from "../../engine/content.ts";
+import { nameToKw, tag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 
@@ -71,8 +71,7 @@ export const CONDITIONS = ["Blinded", "Charmed", "Deafened", "Exhausted", "Frigh
 
 /** A key as a title, such as "very-rare" to "Very Rare". */
 export const title = (key: string) => key.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
-/** A name as a key, as common/name-to-kw keys it: "Lawful Good" to "lawful-good", and "Thieves' Tools" to "thieves-tools". */
-export const nameToKw = (name: string) => name.toLowerCase().replace(/'/g, "").replace(/\W+/g, "-");
+export { nameToKw };
 /** The names as choices, each keyed by nameToKw. */
 export const named = (names: string[]): Choice[] => names.map((name) => ({ key: nameToKw(name), name }));
 
