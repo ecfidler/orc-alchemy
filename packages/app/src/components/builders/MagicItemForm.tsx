@@ -4,40 +4,37 @@
 // from-internal-item): namespaced keys, keyword values, :subtypes and
 // :attunement as keyword vectors, and :modifiers as mod-cfg maps of a
 // :orcpub.modifiers/key and its keyword or int args. The engine expands a
-// weapon or armor with subtypes into one option for each base item. Magic
-// items are not in packs: save and load use the magic items store.
+// weapon or armor with subtypes into one option for each base item. A
+// Custom base weapon (the subtype :other) has its own details in
+// :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
+// load use the magic items store.
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKw, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { CONDITIONS, DAMAGE_TYPES, editor, FieldProblems, nameToKw, numbers, range, Select, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
+const W = "orcpub.dnd.e5.weapons/";
 
 /** The old builder's types and rarities (subs.cljs ::mi/item-types, ::mi/rarities). */
 const TYPES = ["wondrous-item", "weapon", "armor", "ring", "wand", "rod", "scroll", "potion", "other"];
 const RARITIES = ["common", "uncommon", "rare", "very-rare", "legendary", "varies"];
-/** The SRD weapons and armor of the engine's content (content/weapons.json, content/armor.json), as key and name. */
-const WEAPONS: [string, string][] = [
-  ["crossbow-light", "Crossbow, light"], ["dart", "Dart"], ["shortbow", "Shortbow"], ["sling", "Sling"], ["club", "Club"],
-  ["dagger", "Dagger"], ["greatclub", "Greatclub"], ["handaxe", "Handaxe"], ["javelin", "Javelin"], ["light-hammer", "Light hammer"],
-  ["mace", "Mace"], ["quarterstaff", "Quarterstaff"], ["sickle", "Sickle"], ["spear", "Spear"], ["battleaxe", "Battleaxe"],
-  ["flail", "Flail"], ["glaive", "Glaive"], ["greataxe", "Greataxe"], ["greatsword", "Greatsword"], ["halberd", "Halberd"],
-  ["lance", "Lance"], ["longsword", "Longsword"], ["maul", "Maul"], ["morningstar", "Morningstar"], ["pike", "Pike"],
-  ["rapier", "Rapier"], ["scimitar", "Scimitar"], ["shortsword", "Shortsword"], ["trident", "Trident"], ["war-pick", "War pick"],
-  ["warhammer", "Warhammer"], ["whip", "Whip"], ["blowgun", "Blowgun"], ["crossbow-hand", "Crossbow, hand"],
-  ["crossbow-heavy", "Crossbow, heavy"], ["longbow", "Longbow"], ["net", "Net"], ["firearm-hand", "Firearm, Hand (DMV)"],
-  ["firearm-burst", "Firearm, Burst (DMV)"], ["firearm-long", "Firearm, Long (DMV)"],
-];
+/** The SRD armor of the engine's content (content/armor.json), as key and name. */
 const ARMOR: [string, string][] = [
   ["shield", "Shield"], ["padded", "Padded"], ["leather", "Leather"], ["studded", "Studded"], ["hide", "Hide"],
   ["chain-shirt", "Chain Shirt"], ["scale-mail", "Scale mail"], ["breastplate", "Breastplate"], ["half-plate", "Half plate"],
   ["ring-mail", "Ring mail"], ["chain-mail", "Chain mail"], ["splint", "Splint"], ["plate", "Plate"], ["spiked-armor", "Spiked Armor"],
 ];
-/** The base items each subtype selector offers, after its "All" choices, as the old selectors list them. */
-const WEAPON_SUBTYPES: [string, string][] = [["all", "All"], ["sword", "All Swords"], ["axe", "All Axes"], ...[...WEAPONS].sort((a, b) => a[1].localeCompare(b[1]))];
+/** The choices the old weapon selector offers before the weapons, which follow sorted by name. */
+const WEAPON_SUBTYPES: [string, string][] = [["other", "Custom"], ["all", "All"], ["sword", "All Swords"], ["axe", "All Axes"]];
+/** The choices the old armor selector offers: its "All" choices, then the armor. */
 const ARMOR_SUBTYPES: [string, string][] = [["all", "All"], ["light", "All light"], ["medium", "All medium"], ["heavy", "All heavy"], ...ARMOR];
-const CLASSES = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"];
+/** The properties of a Custom base weapon, each with its checkbox name and its field. */
+const WEAPON_PROPERTIES = ["Finesse", "Versatile", "Reach", "Two-Handed", "Thrown", "Heavy", "Light", "Ammunition", "Special", "Loading"].map((name) => ({ name, field: `${name.toLowerCase()}?` }));
+/** The fields of a Custom base weapon, which each subtype toggle removes (magic_items.cljc remove-custom-weapon-fields). */
+const WEAPON_FIELDS = [...WEAPON_PROPERTIES.map((p) => p.field), "damage-die-count", "damage-die", "versatile", "melee?", "ranged?", "type", "range", "damage-type"];
+const DICE: Options = [4, 6, 8, 10, 12, 20, 100].map((die) => [die, `d${die}`]);
 const ALIGNMENTS = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"];
 const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
 /** The modifier keys of each speed for each kind of change (magic_items.cljc speed-mod-fn). */
@@ -80,6 +77,10 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
   const subtypes = (get("subtypes") ?? []) as string[];
   const attunement = (get("attunement") ?? []) as string[];
   const mods = (get("modifiers") ?? []) as Mod[];
+  // The details of a Custom base weapon.
+  const edit = editor(record, onChange);
+  const versatile = edit.get(W + "versatile");
+  const ranged = edit.get(W + "melee?") !== true && edit.get(W + "ranged?") === true;
 
   /** Replaces the first modifier that matches with next, or removes it with null, or adds next. */
   function setMod(match: (mod: Mod) => boolean, next: Mod | null) {
@@ -89,11 +90,28 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
   }
   const findMod = (match: (mod: Mod) => boolean) => mods.find(match);
 
-  /** As the old toggle-subtype (magic_items.cljc apply-subtype-toggle): All replaces the others. */
+  /**
+   * As the old toggle-subtype (magic_items.cljc apply-subtype-toggle): Custom
+   * and All each replace the others, each toggle removes the details of a
+   * Custom weapon, and Custom sets its first details.
+   */
   function toggleSubtype(key: string) {
     const clean = subtypes.filter((s) => s !== tag("all") && s !== tag("other"));
-    const next = key === "all" ? [tag("all")] : clean.includes(tag(key)) ? clean.filter((s) => s !== tag(key)) : [...clean, tag(key)];
-    change({ subtypes: next.length === 0 ? undefined : next });
+    const nextSubtypes = key === "other" || key === "all" ? [tag(key)] : clean.includes(tag(key)) ? clean.filter((s) => s !== tag(key)) : [...clean, tag(key)];
+    const next = { ...record, [tag(MI + "subtypes")]: nextSubtypes };
+    if (nextSubtypes.length === 0) delete next[tag(MI + "subtypes")];
+    for (const field of WEAPON_FIELDS) delete next[tag(W + field)];
+    if (key === "other") {
+      Object.assign(next, {
+        [tag(W + "damage-die-count")]: 1,
+        [tag(W + "damage-die")]: 4,
+        [tag(W + "type")]: tag("simple"),
+        [tag(W + "damage-type")]: tag("bludgeoning"),
+        [tag(W + "melee?")]: true,
+        [tag(W + "ranged?")]: false,
+      });
+    }
+    onChange(next);
   }
   /** As the old toggle-attunement-value: with no value left, the item can be attuned by any creature. */
   function toggleAttunement(key: string) {
@@ -185,90 +203,143 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
   };
 
   return (
-    <div className="space-y-3">
-      {field(
-        "name",
-        "Name",
-        <input type="text" value={String(get("name") ?? "")} onChange={(e) => change({ name: e.target.value })} className="border border-black px-1" />,
+    <WithChoices>
+      {({ weapons, classes }) => (
+        <div className="space-y-3">
+          {field(
+            "name",
+            "Name",
+            <input type="text" value={String(get("name") ?? "")} onChange={(e) => change({ name: e.target.value })} className="border border-black px-1" />,
+          )}
+          {/* As the old set-item-type, a new type drops the subtypes. */}
+          {field("type", "Type", select("type", TYPES, title, (v) => change({ type: tag(v), subtypes: undefined })))}
+          {field("rarity", "Rarity", select("rarity", RARITIES, title, (v) => change({ rarity: tag(v) })))}
+          {field(
+            "description",
+            "Description",
+            <textarea value={String(get("description") ?? "")} onChange={(e) => change({ description: e.target.value })} className="block w-full border border-black" rows={6} />,
+          )}
+          {(type === "weapon" || type === "armor") && (
+            <fieldset aria-label={type === "weapon" ? "Base weapon" : "Base armor"}>
+              <legend>{type === "weapon" ? "Base weapon" : "Base armor"}</legend>
+              {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
+              {type === "weapon" && [...weapons].sort((a, b) => a.name.localeCompare(b.name)).map(({ key, name }) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
+              <FieldProblems problems={problems} field={MI + "subtypes"} label="Base item" />
+            </fieldset>
+          )}
+          {type === "weapon" && subtypes.includes(tag("other")) && (
+            <fieldset aria-label="Base weapon details">
+              <legend>Base weapon details</legend>
+              <div>
+                {/* As the old toggles: Versatile is a map of its damage dice or absent, and each other property is true or false. */}
+                {WEAPON_PROPERTIES.map(({ name, field }) =>
+                  name === "Versatile"
+                    ? check("Versatile?", versatile !== undefined, () => edit.set([W + "versatile"], versatile === undefined ? {} : undefined))
+                    : check(`${name}?`, edit.get(W + field) === true, () => edit.toggle([W + field])),
+                )}
+              </div>
+              <Select label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
+              <Select label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
+              {versatile !== undefined && (
+                <>
+                  <Select
+                    label="Versatile damage die number"
+                    value={edit.get(W + "versatile", W + "damage-die-count")}
+                    options={numbers(range(1, 10))}
+                    onSelect={(n) => edit.set([W + "versatile", W + "damage-die-count"], n)}
+                  />
+                  <Select label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
+                </>
+              )}
+              <Select label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
+              <Select
+                label="Melee / ranged"
+                value={edit.get(W + "melee?") === true ? "melee" : ranged ? "ranged" : undefined}
+                options={["melee", "ranged"].map((v) => [v, title(v)])}
+                onSelect={(v) => onChange({ ...record, [tag(W + "melee?")]: v === "melee", [tag(W + "ranged?")]: v === "ranged" })}
+              />
+              {ranged &&
+                ["min", "max"].map((end) => (
+                  <label key={end} className="mr-4 inline-block">
+                    Range {end}{" "}
+                    {/* As the old number field, only digits are a value. */}
+                    <input
+                      type="number"
+                      value={String(edit.get(W + "range", W + end) ?? "")}
+                      onChange={(e) => edit.set([W + "range", W + end], /^\d+$/.test(e.target.value) ? parseInt(e.target.value, 10) : undefined)}
+                      className="w-16 border border-black px-1"
+                    />
+                  </label>
+                ))}
+              <Select label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
+            </fieldset>
+          )}
+          <fieldset aria-label="Attunement">
+            <legend>Attunement</legend>
+            {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] }))}
+            {attunement.length > 0 && (
+              <div>
+                {check("Any", attunement.length === 1 && attunement[0] === tag("any"), () => {}, true)}
+                <div>
+                  Class:{" "}
+                  {check("Spellcaster", attunement.includes(tag("spellcaster")), () => toggleAttunement("spellcaster"))}
+                  {classes.map(({ key, name }) => check(name, attunement.includes(tag(key)), () => toggleAttunement(key)))}
+                </div>
+                <div>
+                  Alignment:{" "}
+                  {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKw(name))), () => toggleAttunement(nameToKw(name))))}
+                </div>
+              </div>
+            )}
+            <FieldProblems problems={problems} field={MI + "attunement"} label="Attunement" />
+          </fieldset>
+          <fieldset>
+            <legend>Item properties</legend>
+            {type === "weapon" && bonus("magical-attack-bonus", "Magical attack bonus")}
+            {type === "weapon" && bonus("magical-damage-bonus", "Magical damage bonus")}
+            {bonus("magical-ac-bonus", "Magical AC bonus")}
+          </fieldset>
+          <fieldset aria-label="Ability scores">
+            <legend>Ability scores</legend>
+            {ABILITIES.map((ability) => {
+              const arg = `orcpub.dnd.e5.character/${ability}`;
+              return modRow(
+                ability.toUpperCase(),
+                [
+                  { key: "ability-override", text: "Becomes at least" },
+                  { key: "ability", text: "Increases by" },
+                ],
+                (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
+                [arg],
+              );
+            })}
+          </fieldset>
+          <fieldset aria-label="Saving throws">
+            <legend>Saving throw bonus</legend>
+            {ABILITIES.map((ability) => {
+              const arg = `orcpub.dnd.e5.character/${ability}`;
+              return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
+            })}
+          </fieldset>
+          <fieldset aria-label="Speeds">
+            <legend>Speed bonus</legend>
+            {SPEEDS.map(({ label, increases, atLeast, walking }) => {
+              const keys = [
+                { key: atLeast, text: "Becomes at least" },
+                { key: increases, text: "Increases by" },
+                ...(walking ? [{ key: walking, text: "Equals walking speed", noValue: true }] : []),
+              ];
+              return modRow(label, keys, (m) => keys.some((k) => k.key === modKey(m)), []);
+            })}
+          </fieldset>
+          {toggles("Damage resistances", "damage-resistance", DAMAGE_TYPES)}
+          {toggles("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES)}
+          {toggles("Damage immunities", "damage-immunity", DAMAGE_TYPES)}
+          {toggles("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw))}
+          <FieldProblems problems={problems} field={MI + "modifiers"} label="Modifiers" />
+        </div>
       )}
-      {/* As the old set-item-type, a new type drops the subtypes. */}
-      {field("type", "Type", select("type", TYPES, title, (v) => change({ type: tag(v), subtypes: undefined })))}
-      {field("rarity", "Rarity", select("rarity", RARITIES, title, (v) => change({ rarity: tag(v) })))}
-      {field(
-        "description",
-        "Description",
-        <textarea value={String(get("description") ?? "")} onChange={(e) => change({ description: e.target.value })} className="block w-full border border-black" rows={6} />,
-      )}
-      {(type === "weapon" || type === "armor") && (
-        <fieldset aria-label={type === "weapon" ? "Base weapon" : "Base armor"}>
-          <legend>{type === "weapon" ? "Base weapon" : "Base armor"}</legend>
-          {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
-          <FieldProblems problems={problems} field={MI + "subtypes"} label="Base item" />
-        </fieldset>
-      )}
-      <fieldset aria-label="Attunement">
-        <legend>Attunement</legend>
-        {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] }))}
-        {attunement.length > 0 && (
-          <div>
-            {check("Any", attunement.length === 1 && attunement[0] === tag("any"), () => {}, true)}
-            <div>
-              Class:{" "}
-              {["spellcaster", ...CLASSES].map((key) => check(title(key), attunement.includes(tag(key)), () => toggleAttunement(key)))}
-            </div>
-            <div>
-              Alignment:{" "}
-              {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKw(name))), () => toggleAttunement(nameToKw(name))))}
-            </div>
-          </div>
-        )}
-        <FieldProblems problems={problems} field={MI + "attunement"} label="Attunement" />
-      </fieldset>
-      <fieldset>
-        <legend>Item properties</legend>
-        {type === "weapon" && bonus("magical-attack-bonus", "Magical attack bonus")}
-        {type === "weapon" && bonus("magical-damage-bonus", "Magical damage bonus")}
-        {bonus("magical-ac-bonus", "Magical AC bonus")}
-      </fieldset>
-      <fieldset aria-label="Ability scores">
-        <legend>Ability scores</legend>
-        {ABILITIES.map((ability) => {
-          const arg = `orcpub.dnd.e5.character/${ability}`;
-          return modRow(
-            ability.toUpperCase(),
-            [
-              { key: "ability-override", text: "Becomes at least" },
-              { key: "ability", text: "Increases by" },
-            ],
-            (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
-            [arg],
-          );
-        })}
-      </fieldset>
-      <fieldset aria-label="Saving throws">
-        <legend>Saving throw bonus</legend>
-        {ABILITIES.map((ability) => {
-          const arg = `orcpub.dnd.e5.character/${ability}`;
-          return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
-        })}
-      </fieldset>
-      <fieldset aria-label="Speeds">
-        <legend>Speed bonus</legend>
-        {SPEEDS.map(({ label, increases, atLeast, walking }) => {
-          const keys = [
-            { key: atLeast, text: "Becomes at least" },
-            { key: increases, text: "Increases by" },
-            ...(walking ? [{ key: walking, text: "Equals walking speed", noValue: true }] : []),
-          ];
-          return modRow(label, keys, (m) => keys.some((k) => k.key === modKey(m)), []);
-        })}
-      </fieldset>
-      {toggles("Damage resistances", "damage-resistance", DAMAGE_TYPES)}
-      {toggles("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES)}
-      {toggles("Damage immunities", "damage-immunity", DAMAGE_TYPES)}
-      {toggles("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw))}
-      <FieldProblems problems={problems} field={MI + "modifiers"} label="Modifiers" />
-    </div>
+    </WithChoices>
   );
 }
 
@@ -291,7 +362,9 @@ export const magicItemBuilder: BuilderType = {
     const homebrew = useHomebrew.getState();
     const key = magicItemKey(item);
     const old = storedKey === undefined || storedKey === key ? undefined : homebrew.magicItems.find((r) => r.id === storedKey);
-    await homebrew.loadMagicItems([item]);
+    // As the old save (entity.cljc remove-empty-fields), an empty map, such as :versatile without its dice, is not stored.
+    const filled = Object.fromEntries(Object.entries(item).filter(([, value]) => !(typeof value === "object" && value !== null && Object.keys(value).length === 0)));
+    await homebrew.loadMagicItems([filled]);
     if (old !== undefined) {
       if (!old.enabled) await useHomebrew.getState().setMagicItemEnabled(key, false);
       await useHomebrew.getState().removeMagicItem(old.id);

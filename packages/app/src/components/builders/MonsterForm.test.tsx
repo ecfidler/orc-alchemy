@@ -75,7 +75,7 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   fireEvent.click(screen.getByLabelText("Immunity to poison damage"));
   fireEvent.click(screen.getByLabelText("Vulnerability to cold damage"));
   fireEvent.click(screen.getByLabelText("Immunity to being Poisoned"));
-  fireEvent.click(screen.getByLabelText("Abyssal"));
+  fireEvent.click(await screen.findByLabelText("Abyssal"));
   fireEvent.click(screen.getByLabelText("Deep Speech"));
   fireEvent.click(screen.getByLabelText("Deep Speech"));
   type("Senses", "darkvision 60 ft.");
@@ -144,4 +144,26 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   expect(screen.getByLabelText<HTMLInputElement>("Deep Speech").checked).toBe(false);
   expect(screen.getByLabelText<HTMLSelectElement>("Feature 2 type").value).toBe("~:legendary-action");
   expect(save().disabled).toBe(false);
+});
+
+test("the languages include a language of an enabled pack", async () => {
+  await useHomebrew.getState().saveItem("Swamp", "~:orcpub.dnd.e5/languages", { "~:key": "~:mudspeak", "~:name": "Mudspeak", "~:option-pack": "Swamp" });
+  const router = renderAt("/content/new/monster");
+  await screen.findByRole("form", { name: "New monster" });
+  type("Name", "Mud Imp");
+  type("Hit die count", "3");
+  type("Hit die", "6");
+  fireEvent.click(await screen.findByLabelText("Mudspeak"));
+  expect(screen.getByLabelText("Deep Speech")).toBeTruthy();
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored()!["~:props"]).toEqual({ "~:language": { "~:mudspeak": true } });
+});
+
+test("the languages leave out a pack language that the old app's flag turns off", async () => {
+  await useHomebrew.getState().saveItem("Swamp", "~:orcpub.dnd.e5/languages", { "~:key": "~:mudspeak", "~:name": "Mudspeak", "~:option-pack": "Swamp" });
+  await useHomebrew.getState().saveItem("Swamp", "~:orcpub.dnd.e5/languages", { "~:key": "~:bogspeak", "~:name": "Bogspeak", "~:option-pack": "Swamp", "~:disabled?": true });
+  renderAt("/content/new/monster");
+  await screen.findByLabelText("Mudspeak");
+  expect(screen.queryByLabelText("Bogspeak")).toBeNull();
 });

@@ -45,8 +45,6 @@ import {
   type Problem,
 } from "./fields.tsx";
 
-/** The SRD classes with a spell list (::spells/spell-lists). */
-const SPELL_LISTS = ["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"];
 /** The old app's spells-known schedules (classes.cljc), by the level at which slots start. */
 const SCHEDULES: Record<number, Record<number, number>> = {
   1: { 1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 13: 1, 15: 1, 17: 1 },
@@ -211,7 +209,7 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
           <Select
             label="Spell list"
             value={spellcasting[tag("spell-list-kw")]}
-            options={SPELL_LISTS.map((key) => [tag(key), choices.classes.find((c) => c.key === key)?.name ?? title(key)])}
+            options={choices.spellLists.map((key) => [tag(key), choices.classes.find((c) => c.key === key)?.name ?? title(key)])}
             onSelect={(v) => edit.set(["spellcasting", "spell-list-kw"], v)}
             placeholder="Custom"
           />

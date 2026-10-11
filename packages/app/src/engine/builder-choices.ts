@@ -3,12 +3,13 @@
 // subclass can belong to (::classes/classes), the selections a class level
 // can give (::selections/plugin-selections), the languages
 // (::langs/languages), the weapons (::mi/custom-and-standard-weapons without
-// the custom ones) and the spells (::spells/spells-for-level). Each list is
-// the SRD content of the engine plus the items of the enabled packs; the
-// selections come from the packs only.
+// the custom ones), the spells (::spells/spells-for-level) and the spell
+// lists (the keys of ::spells/spell-lists). Each list is the SRD content of
+// the engine plus the items of the enabled packs; the selections come from
+// the packs only.
 import { useEffect, useMemo, useState } from "react";
 import type { ContentItem } from "@pubdoor/dmv";
-import { classDisplayName, itemsAt, tag, untag } from "./content.ts";
+import { classDisplayName, disabledInFile, itemsAt, tag, untag } from "./content.ts";
 
 export interface Choice {
   key: string;
@@ -39,6 +40,8 @@ export interface BuilderChoices {
   weapons: Choice[];
   /** Sorted by name. */
   spells: SpellChoice[];
+  /** The keys of the class spell lists: the SRD ones, then each other list that a pack's spell is on. */
+  spellLists: string[];
 }
 
 interface Srd {
@@ -77,12 +80,17 @@ const ABILITY = "orcpub.dnd.e5.character/";
 const shortAbilities = (abilities: unknown) =>
   Object.fromEntries(Object.entries((abilities ?? {}) as Record<string, number>).map(([key, value]) => [untag(key).replace(ABILITY, ""), value]));
 
-/** The items of one content type in all the packs, as Transit-encoded records, with each item's pack. */
+/** The items of one content type in all the packs, as Transit-encoded records, with each item's pack. An item that the old app's flag turns off is left out. */
 function itemsInPacks(homebrew: Record<string, object> | undefined, type: string): { pack: string; item: Record<string, unknown> }[] {
   return Object.entries(homebrew ?? {}).flatMap(([pack, plugin]) =>
-    Object.values(itemsAt(plugin, tag(type)) ?? {}).map((item) => ({ pack, item: item as Record<string, unknown> })),
+    Object.values(itemsAt(plugin, tag(type)) ?? {})
+      .filter((item) => !disabledInFile(item))
+      .map((item) => ({ pack, item: item as Record<string, unknown> })),
   );
 }
+
+/** The SRD class spell lists (spell_lists.cljc spell-lists). */
+const SPELL_LISTS = ["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"];
 
 const choiceOf = (item: Record<string, unknown>): Choice => ({ key: untag(item[tag("key")]), name: String(item[tag("name")] ?? "") });
 const byName = (a: Choice, b: Choice) => a.name.localeCompare(b.name);
@@ -98,6 +106,7 @@ export function useBuilderChoices(homebrew: Record<string, object> | undefined):
   return useMemo(() => {
     if (srd === null) return null;
     const items = (type: string) => itemsInPacks(homebrew, type);
+    const spells = items("orcpub.dnd.e5/spells");
     return {
       races: unique([
         ...srd.races.map((race) => ({
@@ -128,8 +137,16 @@ export function useBuilderChoices(homebrew: Record<string, object> | undefined):
       weapons: srd.weapons,
       spells: unique([
         ...srd.spells,
-        ...items("orcpub.dnd.e5/spells").map(({ item }) => ({ ...choiceOf(item), level: Number(item[tag("level")] ?? 0) })),
+        ...spells.map(({ item }) => ({ ...choiceOf(item), level: Number(item[tag("level")] ?? 0) })),
       ]).sort(byName),
+      spellLists: [
+        ...new Set([
+          ...SPELL_LISTS,
+          ...spells.flatMap(({ item }) =>
+            Object.entries((item[tag("spell-lists")] ?? {}) as Record<string, unknown>).flatMap(([list, on]) => (on ? [untag(list)] : [])),
+          ),
+        ]),
+      ],
     };
   }, [srd, homebrew]);
 }
