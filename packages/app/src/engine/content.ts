@@ -126,7 +126,7 @@ export interface BackgroundKeyWarning {
 /**
  * The backgrounds of a pack whose key differs from the key of the name. The
  * engine keys a background option from its name and ignores the stored key
- * (doc 01, Known quirks), so a character with the stored key does not find
+ * (doc 01 §Known quirks), so a character with the stored key does not find
  * the background.
  */
 export function backgroundKeyWarnings(pack: string, plugin: object): BackgroundKeyWarning[] {

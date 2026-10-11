@@ -455,4 +455,10 @@ test("the import log warns of a background whose key is not the key of its name"
   expect(within(warnings).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
     "Spy in keys has the key old-spy. A character gets it by the key spy.",
   ]);
+
+  // The same file again changes no pack, and the warning stays.
+  choose("Load homebrew file", "keys.ORCBREW", pack);
+  await waitFor(() => expect(useHomebrew.getState().lastImport?.fileName).toBe("keys.ORCBREW"));
+  expect(useHomebrew.getState().packs.map((p) => p.id)).toEqual(["keys"]);
+  expect(within(screen.getByRole("region", { name: "Import log" })).getByText("Background keys (1)")).toBeTruthy();
 });

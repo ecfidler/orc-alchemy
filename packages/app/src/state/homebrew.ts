@@ -6,7 +6,7 @@
 // well formed is skipped, with a warning in the console.
 import { create } from "zustand";
 import { engine, loadEngine, type Content, type ParsedOrcbrew } from "../engine/engine.ts";
-import { backgroundKeyWarnings, disabledInFile, itemAt, type BackgroundKeyWarning, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem } from "../engine/content.ts";
+import { backgroundKeyWarnings, disabledInFile, itemAt, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem, type BackgroundKeyWarning } from "../engine/content.ts";
 import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
 import { magicItemKey, type BundleHomebrew } from "../engine/import.ts";
 import {
@@ -128,8 +128,8 @@ interface HomebrewState {
 /** One import's result without its data, and the name of the file it read. */
 export type LastImport = Omit<ParsedOrcbrew, "data"> & {
   fileName: string;
-  /** The backgrounds in the packs this import stored whose key is not the key of their name. */
-  backgroundKeys?: BackgroundKeyWarning[];
+  /** The backgrounds in the loaded packs, after this import, whose key is not the key of their name. Not there for an import that did not parse. */
+  backgroundKeyWarnings?: BackgroundKeyWarning[];
 };
 
 /** An import held for its key conflicts: its result, and the homebrew it parsed (the stored packs with the file merged in). */
@@ -231,10 +231,11 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       }
       return [{ id, rules: "2014", enabled, disabledItems, plugin, updatedAt: now() }];
     });
+    // From every loaded pack, not only the changed ones: a file that is loaded again changes nothing and must still warn.
+    lastImport = { ...lastImport, backgroundKeyWarnings: Object.entries(data).flatMap(([id, plugin]) => backgroundKeyWarnings(id, plugin)) };
     if (changed.length === 0) return set({ lastImport });
     await savePacks(changed);
-    const backgroundKeys = changed.flatMap((p) => backgroundKeyWarnings(p.id, p.plugin));
-    set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport: { ...lastImport, backgroundKeys } });
+    set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport });
   }
 
   return {
