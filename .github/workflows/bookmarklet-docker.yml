@@ -1,7 +1,7 @@
 # The exporter bookmarklet against the old app in Docker (ORC-67).
 #
-# Builds the old app from source (ecfidler/orcpub at tag pubdoor-v0.3.0, the
-# source of fixtures/) and brings it up as the fork's docker-integration.yml
+# Builds the old app from source (ecfidler/orcpub at tag pubdoor-v0.3.0, which
+# has the same fixtures/ as this repository) and brings it up as the fork's docker-integration.yml
 # does, then runs
 # tools/exporter-bookmarklet/docker/docker.e2e.ts.
 #
