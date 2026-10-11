@@ -6,7 +6,7 @@
 // well formed is skipped, with a warning in the console.
 import { create } from "zustand";
 import { engine, loadEngine, type Content, type ParsedOrcbrew } from "../engine/engine.ts";
-import { disabledInFile, itemAt, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem } from "../engine/content.ts";
+import { backgroundKeyWarnings, disabledInFile, itemAt, type BackgroundKeyWarning, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem } from "../engine/content.ts";
 import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
 import { magicItemKey, type BundleHomebrew } from "../engine/import.ts";
 import {
@@ -126,7 +126,11 @@ interface HomebrewState {
 }
 
 /** One import's result without its data, and the name of the file it read. */
-export type LastImport = Omit<ParsedOrcbrew, "data"> & { fileName: string };
+export type LastImport = Omit<ParsedOrcbrew, "data"> & {
+  fileName: string;
+  /** The backgrounds in the packs this import stored whose key is not the key of their name. */
+  backgroundKeys?: BackgroundKeyWarning[];
+};
 
 /** An import held for its key conflicts: its result, and the homebrew it parsed (the stored packs with the file merged in). */
 export interface PendingImport {
@@ -229,7 +233,8 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     });
     if (changed.length === 0) return set({ lastImport });
     await savePacks(changed);
-    set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport });
+    const backgroundKeys = changed.flatMap((p) => backgroundKeyWarnings(p.id, p.plugin));
+    set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport: { ...lastImport, backgroundKeys } });
   }
 
   return {

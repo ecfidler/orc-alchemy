@@ -110,3 +110,32 @@ export function packItems(pack: string, plugin: object, type: ContentType): Pack
     })
     .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 }
+
+/** A name as a key, as common/name-to-kw keys it: "Lawful Good" to "lawful-good", and "Thieves' Tools" to "thieves-tools". */
+export const nameToKw = (name: string) => name.toLowerCase().replace(/'/g, "").replace(/\W+/g, "-");
+
+/** A background whose stored key is not the key of its name. */
+export interface BackgroundKeyWarning {
+  pack: string;
+  name: string;
+  key: string;
+  /** The key of the name: the one a character gets the background by. */
+  nameKey: string;
+}
+
+/**
+ * The backgrounds of a pack whose key differs from the key of the name. The
+ * engine keys a background option from its name and ignores the stored key
+ * (doc 01, Known quirks), so a character with the stored key does not find
+ * the background.
+ */
+export function backgroundKeyWarnings(pack: string, plugin: object): BackgroundKeyWarning[] {
+  const backgrounds = (itemsAt(plugin, tag("orcpub.dnd.e5/backgrounds")) ?? {}) as Record<string, Record<string, unknown> | null>;
+  return Object.entries(backgrounds).flatMap(([tagged, item]) => {
+    const name = item?.["~:name"];
+    if (typeof name !== "string" || name === "") return [];
+    const key = untag(item?.["~:key"] ?? tagged);
+    const nameKey = nameToKw(name);
+    return key === nameKey ? [] : [{ pack, name, key, nameKey }];
+  });
+}
