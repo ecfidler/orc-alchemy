@@ -4,7 +4,7 @@ title: "02: The engine library"
 description: "What the compiled engine package exposes beyond the Plan Set 1 facade, the build scope, the engine wrinkles, and the golden tests."
 tags: [plan, engine, phase-a]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+generated: { by: claude-code/agent, at: 2026-10-11T17:44:10Z }
 ---
 
 # 02: The engine library
@@ -175,6 +175,7 @@ fork (doc 00) and bumps the published package version.
 | D3 | Add `:boons` to `required-fields` and `content-type-names` in `import_validation.cljs` | Doc 01 §Known quirks |
 | D4 | Extend `key-reference-map` to every key reference in a pack: spells' `:spell-lists`, the `:type` of each `level-selections` entry in a class or subclass, a class's or subclass's `[:spellcasting :spell-list-kw]`, a subclass's `[:spellcasting :spell-list]`, and a feat's `[:path-prereqs :race]`. `rename-key-in-plugin` also sets the renamed item's `:key`, and renaming a key that the pack lacks changes nothing. Done in ORC-35 | Doc 01 §Known quirks |
 | D5 | On import, rewrite two homebrew forms that the old engine mishandled (`import_validation.cljs`). `normalize-ability-keys-in-import` rewrites bare ability keys such as `:con` as qualified keys in races, feats, classes, and subclasses (`normalized-ability-key`). Monsters keep their bare keys, and doc 01 §C1 lists every place. `default-skill-choose-in-import` gives a skill choice without `:choose` the value 1 (`defaulted-choose`). Done in ORC-40 and ORC-39 | Doc 01 §C1 |
+| D6 | The built `levels.<class>.subclass` takes `name-to-kw` of the subclass name (`subclass-option` in `options.cljc`), as the subclass option's key does. It took the value from `:key`, so after `renameKey` on a subclass a character kept its pick but its built value named the new key. Done in ORC-132, version 0.3.1 | The ORC-78 result |
 
 Anything else is a facade concern, not an engine patch.
 

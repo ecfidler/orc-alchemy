@@ -2,8 +2,8 @@
 
 > **Snapshot provenance.** This directory is a verbatim snapshot of the
 > fork's `fixtures/`, copied with `git archive` from `ecfidler/orcpub`
-> branch `pubdoor` at commit **`57fcce84dda53b8c2478b4e2da5993b3d231ef13`** (tag `pubdoor-v0.3.0`), which
-> publishes **`@pubdoor/dmv@0.3.0`**. Only this note was added. Paths in the
+> branch `pubdoor` at commit **`b063d70ce248afcd25cd6443987aabfee4ff5939`** (tag `pubdoor-v0.3.1`), which
+> publishes **`@pubdoor/dmv@0.3.1`**. Only this note was added. Paths in the
 > rest of this file (`scripts/`, `src/`, `test/`, `engine-js/`) are fork paths.
 >
 > Do not edit the fixtures here. To refresh, regenerate in the fork (see
