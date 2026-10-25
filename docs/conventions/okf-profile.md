@@ -4,7 +4,7 @@ title: How this project uses the Open Knowledge Format
 description: The project rules for OKF v0.2 bundles, frontmatter, types, actors, links, indexes, and logs in orc-alchemy and the orcpub fork.
 tags: [docs, okf, conventions]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-05T22:20:14Z }
+generated: { by: claude-code/agent, at: 2026-10-25T19:00:00Z }
 sources:
   - id: okf-spec
     resource: https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md
@@ -46,6 +46,14 @@ These files do not get OKF frontmatter. They keep their own format.
 - The upstream OrcPub and Dungeon Master's Vault documents in the fork. Do
   not edit them. The fork bundle lists them in
   `docs/pubdoor/doc-ownership.md`.
+
+## Asset files in a bundle
+
+A bundle can hold a file that is not markdown, for example an HTML
+prototype under `docs/design/prototypes/`. An asset file gets no
+frontmatter. The `index.md` of its directory lists it with a link and one
+sentence, the same as a concept document. Keep assets small, and keep them
+only when a document links to them.
 
 # Frontmatter
 

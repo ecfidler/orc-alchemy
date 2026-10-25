@@ -2,9 +2,9 @@
 type: Reference
 title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
-tags: [design, theme, m8]
+tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-25T18:40:00Z }
+generated: { by: claude-code/agent, at: 2026-10-25T19:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -32,20 +32,26 @@ The prototypes are throwaway HTML. Use them as the visual reference for
 sizes, spacing and CSS. Copies are in [`prototypes/`](prototypes/). Open a
 file in a browser.
 
-| Prototype | File | Use this view |
-|---|---|---|
-| Palette | [orc-144-palette-prototype.html](prototypes/orc-144-palette-prototype.html) | Variant C, "Highlighter" |
-| Character sheet | [orc-145-sheet-prototype.html](prototypes/orc-145-sheet-prototype.html) | Layout F (the bar button switches between the paladin 5 and cleric 9 examples) |
-| Notes and bubbles | [orc-146-marks-prototype.html](prototypes/orc-146-marks-prototype.html) | Note A, bubble D |
-| App shell | [orc-147-shell-prototype.html](prototypes/orc-147-shell-prototype.html) | Shell C, "Binder" |
-| Home page | [orc-150-landing-prototype.html](prototypes/orc-150-landing-prototype.html) | Variant C |
+| Prototype | File | Artifact | Use this view |
+|---|---|---|---|
+| Palette | [orc-144-palette-prototype.html](prototypes/orc-144-palette-prototype.html) | [Alchemy Palette Swatches](https://claude.ai/artifact/ESwYfMN2qURiqBNCuTe5sZ) | Variant C, "Highlighter" |
+| Character sheet | [orc-145-sheet-prototype.html](prototypes/orc-145-sheet-prototype.html) | [Alchemy Sheet Layouts](https://claude.ai/artifact/394mSv1c8D6qJY7jjsFPav) | Layout F (the bar button switches between the paladin 5 and cleric 9 examples) |
+| Stuck note and use bubble | [orc-146-marks-prototype.html](prototypes/orc-146-marks-prototype.html) | [Alchemy Sheet Marks](https://claude.ai/artifact/E2xXzitQ9JoXw7VutfQLS2) | Note A, bubble D |
+| App shell | [orc-147-shell-prototype.html](prototypes/orc-147-shell-prototype.html) | [Alchemy App Shell](https://claude.ai/artifact/46sfqc3KY9SqxHbZr8Kgx7) | Shell C, "Binder" |
+| Home page | [orc-150-landing-prototype.html](prototypes/orc-150-landing-prototype.html) | [Alchemy Landing Page](https://claude.ai/artifact/3qz3VfuLZNxQFXZu1v9VJU) | Variant C |
+
+The Artifacts need a claude.ai sign-in. The copies here do not.
+
+Where two prototypes give different values for one token, the later
+decision wins. For example, `--note-shadow` comes from the shell prototype
+(ORC-147), not from the ORC-146 prototype.
 
 # The motif
 
 The motif is **Paper**.[^theme-notes] The app must feel like a physical
 character sheet, but it does not copy paper literally. Graphite-dark text on
-a slightly yellow off-white page, bold marker accents, a yellow sticky note
-for things the user must act on, and a subtle grain.
+a slightly yellow off-white page, bold marker accents, a yellow note for
+things the user must act on, and a subtle grain.
 
 # Tokens
 
@@ -73,7 +79,7 @@ borders and marks. Every text pair passes in both modes.
 | `--info` | Links, use bubbles, focus ring (blue) | #1E5FB4 | #5EA2FF | 6.12 / 8.09 |
 | `--warning` | Warning text (yellow) | #7F6200 | #FFD93D | 5.62 / 15.24 |
 | `--caution` | A bad mark that is not an error, for example death-save failures (orange) | #B85A00 | #FF9A3D | 4.55 / 9.94 |
-| `--note` | Sticky-note fill (yellow) | #FFE45C | #FFE45C | — |
+| `--note` | Stuck note and alert note fill (yellow) | #FFE45C | #FFE45C | — |
 | `--note-red` | Alert note fill, "failed" | #FFB3A8 | #FF9C8F | — |
 | `--note-blue` | Alert note fill, information | #A9CCFF | #9CC4FF | — |
 | `--note-ink` | Text on any note | #222222 | #000000 | 12.50 / 16.50 on `--note` |
@@ -104,8 +110,8 @@ never a tab color, so red always means "failed".
 
 The package has a unit test that computes the contrast of each text pair in
 the table above, in both modes, and fails below 4.5 : 1 (3 : 1 for
-`--rule-strong` and `--caution` as a mark). Add a row to the test when you
-add a text token.
+`--rule-strong` and `--caution` as a mark). When you add a text token, add a
+row to the test.
 
 # Type and texture
 
@@ -114,7 +120,9 @@ add a text token.
 * **Inter** for labels: 10.5px, uppercase, 0.08em letter spacing,
   `--ink-muted`. Sheet ability labels (STR, DEX...) are 13px.
 * Self-host both fonts with `@fontsource-variable/newsreader` and
-  `@fontsource-variable/inter`. `theme.css` loads them. The app makes no
+  `@fontsource-variable/inter`. `theme.css` loads them. Use Newsreader's
+  files with the optical-size axis and set `font-optical-sizing: auto`, as
+  the prototypes do. The app makes no
   third-party font request.
 * **Grain:** an SVG noise layer over the page, fixed, with no pointer
   events, at `--grain-opacity`. The sheet prototype has the SVG.
@@ -124,8 +132,8 @@ add a text token.
 # Light and dark
 
 * Light is the paper page. Dark is OLED black and white: `--paper` is pure
-  black, and the accents shift to suit the black page. The sticky notes and
-  the flag tabs stay bright in dark mode, with black text.
+  black, and the accents shift to suit the black page. The stuck notes, the
+  alert notes and the flag tabs stay bright in dark mode, with black text.
 * The app **follows the system theme** by default. A stored override in
   `localStorage` key `theme` (`"light"` or `"dark"`) sets
   `data-theme` on `<html>`. Match System removes the key. It does not store
@@ -164,8 +172,9 @@ peer dependency.
   the app's dependencies to the package's.
 * **Tailwind's default colors** stay in the app until the last M8 ticket,
   which removes them with `--color-*: initial`.
-* **Demiplane** is assumed to become a sibling workspace package and to use
-  the same package.
+* **Note:** ORC-148 assumes that Demiplane's web pages become a sibling
+  workspace package that uses this package. If they go to another
+  repository, publishing the package is Demiplane work.
 
 # Controls
 
@@ -227,8 +236,8 @@ the same yellow in dark mode.
 * **Placement rule (hard):** the note takes its own space above the box it
   marks. It overlaps only the box's top border. It must never cover the
   box's content.
-* **Where it goes:** only where the user must act. The builder step bar
-  count and the unchosen selections, unresolved content on the sheet, and
+* **Where it goes:** only where the user must act. The count of choices
+  left on the builder step bar and the unchosen selections, unresolved content on the sheet, and
   key conflicts before import.
 * Information that needs no action, such as an import-log warning, stays as
   `--warning` text. Too many choices picked uses `--danger` text, not a
@@ -320,7 +329,7 @@ One column, top to bottom:
 **Mug stain:** one coffee ring, about 240px, to the right of the facts and
 over the top of Recent characters. It is behind the content and never
 blocks a control. Ship the prototype's SVG as one replaceable file. Ethan
-draws the real stain later.
+will draw the real stain.
 
 # Preferences page
 
@@ -330,8 +339,13 @@ ORC-149.
 * One heading, "Appearance", with one Select: Light, Dark, Match System.
   Match System is the default. A change applies at once. There is no Save
   button.
+* Later options get their own headings below "Appearance".
 * The page uses `useThemePreference()`. It does not touch `localStorage`
-  itself.
+  itself. Another open tab changes at once, with no alert note.
+* `/account` stays free for Demiplane.
+* In M8 the choice is stored in this browser only. When Demiplane comes, it
+  also syncs with the user's account. The `localStorage` copy stays,
+  because the head script must read it before first paint.
 * Preferences are never exported, in an `.orcbrew` file or a DMV export.
 
 # Character sheet
@@ -354,7 +368,8 @@ The left column is at least 320px wide.
   oval.
 * Inspiration (an empty box) and proficiency bonus.
 * Saving throws and skills, one line each, with square proficiency marks.
-  The ability tag after a skill is small Inter caps.
+  The ability tag after a skill is small Inter caps. There is no underline
+  under a bonus.
 * Passive perception.
 * **Equipment**, with one **Gold** box floated in its top-right corner. The
   Gold box shows all coins (`cp`, `sp`, `ep`, `gp`, `pp` treasure items)
@@ -363,15 +378,17 @@ The left column is at least 320px wide.
 
 ## Right column
 
-* A shaded panel with AC, initiative and speed, each sized to its content
-  (at least 96px) and spaced evenly.
+* A shaded panel with AC (in a shield shape), initiative and speed, each
+  sized to its content (at least 96px) and spaced evenly.
 * Hit points: temporary on the left, then current / max on the right. The
   sheet model has no temporary HP, so that box is empty. When the record has
-  no current HP, show the max as the current value.
+  no current HP, show the max as the current value, as the sheet does
+  today.
 * Hit dice: the value and the "Hit dice" label only.
 * Death saves: two rows of three slot circles, successes `--success` and
-  failures `--caution`. The "Death saves" label is at the bottom. The app
-  records no death saves, so the circles are empty.
+  failures `--caution`. The "Death saves" label is at the bottom, and the
+  two rows fill the space above it. The app records no death saves, so the
+  circles are empty.
 * **Attacks**, as a table. Attack cantrips such as Sacred Flame stay in it.
 * **Spellcasting** (see below).
 * **Features & traits.** Each feature's name is on its own line above its
@@ -385,6 +402,10 @@ The left column is at least 320px wide.
 One **Spellcasting** section for every spell source: classes, races and
 feats together. 5e gives a multiclass caster one shared set of slots, so the
 sheet shows one set.
+
+**Known limit:** the engine puts Warlock Pact Magic slots in the same slot
+list (a Warlock 10 has two 5th-level slots there). The sheet shows the list
+as the engine reports it. It does not split Pact Magic slots out.
 
 * **The boxes:** a shaded row of large boxes in the style of the AC row:
   spell save DC, spell attack and spellcasting ability. A character with
@@ -425,8 +446,9 @@ M8 does not design a phone layout. These rules from the prototypes apply:
 
 # Build order
 
-The M8 build tickets in Linear follow this order. Each one is blocked by the
-one before it.
+This is the order in which the M8 build tickets were filed. Linear holds the
+tickets, their blocking relations and their status. When this list and
+Linear disagree, Linear wins.
 
 1. Create `@orc-alchemy/ui`.
 2. App shell.
@@ -452,14 +474,22 @@ tests, because font rendering differs between machines.
 # Out of scope for M8
 
 * Recording spent uses, and choosing prepared spells from the sheet. Both
-  change the character record.
+  change the character record, so they are features, not styling.
 * A page-by-page layout redesign of the builder, homebrew forms, import and
-  export pages. M8 gives them the tokens, fonts, controls and notes only.
-* A phone layout, motion and the lead-to-gold animation, an icon set, and a
-  print stylesheet.
-* Where personality and notes go.
-* Making the logo and art. Ethan provides them.
-* Demiplane's own pages.
+  export pages. It needs its own prototypes. M8 gives these pages the
+  tokens, fonts, controls and notes only.
+* A phone layout. M8 keeps only the phone rules above. A real phone pass
+  needs its own prototypes.
+* Motion and the lead-to-gold animation. They need art and a reduced-motion
+  plan first.
+* An icon set. The app uses text labels, and no M8 decision needs icons.
+* A print stylesheet. The sheet layout comes first, and printing is a
+  separate feature.
+* Where personality and notes go. Ethan will decide later, perhaps on a
+  notes page.
+* Making the logo and art. Ethan will provide them.
+* The domain name. It is hosting, not theme.
+* Demiplane's own pages. Demiplane designs them, with this package.
 
 [^orc-102]: Map: settle the app theme, <https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme>
 [^theme-notes]: Alchemy Theme Notes, <https://linear.app/orc-alchemy/document/alchemy-theme-notes-ef04deb34a0a>
