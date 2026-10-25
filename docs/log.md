@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-10-25
+
+* **Creation**: Added the `design/` directory and the [Theme spec](design/theme.md), with copies of the M8 prototypes (ORC-151).
+
 ## 2026-10-10
 
 * **Creation**: Added the `guides/` directory and [Moving from Dungeon Master's Vault](guides/moving-from-dungeon-masters-vault.md) (ORC-68).

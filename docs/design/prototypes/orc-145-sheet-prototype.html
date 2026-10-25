@@ -1,0 +1,687 @@
+<title>Alchemy Sheet Layouts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one character sheet rendered three ways (A printed sheet, B ledger notebook, C filled-in form); a floating bar switches layout, theme, texture and label face. Palette is ORC-144 "Highlighter". */
+:root {
+  --paper: #FFFCF5; --paper-raised: #FFFFFF; --ink: #222222; --ink-muted: #595959;
+  --rule: #E3DECE; --rule-strong: #8A8578;
+  --danger: #C2271D; --success: #1F7A3A; --info: #1E5FB4; --warning: #7F6200;
+  --note: #FFE45C; --note-ink: #222222;
+  --bar: #222222; --bar-fg: #FFFCF5;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --label-font: var(--sans); --label-size: 10.5px; --label-case: uppercase; --label-track: .08em; --label-style: normal;
+  --grain-opacity: .05;
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #000000; --paper-raised: #0A0A0A; --ink: #FFFFFF; --ink-muted: #ADADAD; --rule: #222222; --rule-strong: #6B6B6B;
+  --danger: #FF5C52; --success: #4ED07A; --info: #5EA2FF; --warning: #FFD93D; --note: #FFE45C; --note-ink: #000000;
+  --bar: #FFFFFF; --bar-fg: #000000; --grain-opacity: .07; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #000000; --paper-raised: #0A0A0A; --ink: #FFFFFF; --ink-muted: #ADADAD; --rule: #222222; --rule-strong: #6B6B6B;
+  --danger: #FF5C52; --success: #4ED07A; --info: #5EA2FF; --warning: #FFD93D; --note: #FFE45C; --note-ink: #000000;
+  --bar: #FFFFFF; --bar-fg: #000000; --grain-opacity: .07; color-scheme: dark }
+:root[data-labels="serif"] { --label-font: var(--serif); --label-size: 13px; --label-case: none; --label-track: 0; --label-style: italic; }
+
+html { background: var(--paper); }
+body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-weight: 450; font-size: 17px; line-height: 1.5; font-optical-sizing: auto; position: relative; min-height: 100%; }
+body[data-texture="grain"]::before { content: ""; position: fixed; inset: 0; pointer-events: none; opacity: var(--grain-opacity); z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+body[data-texture="ruled"] .sheet { background-image: repeating-linear-gradient(to bottom, transparent 0 31px, color-mix(in srgb, var(--info) 14%, transparent) 31px 32px); }
+.sheet { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 140px; }
+.proto { font-family: var(--sans); font-size: 12px; color: var(--ink-muted); letter-spacing: .04em; margin-bottom: 12px; }
+.proto b { color: var(--ink); font-weight: 600; }
+
+.lbl { font-family: var(--label-font); font-size: var(--label-size); text-transform: var(--label-case); letter-spacing: var(--label-track); font-style: var(--label-style); color: var(--ink-muted); line-height: 1.2; }
+.num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { margin: 0; font-weight: 500; text-wrap: balance; }
+p { margin: 0; }
+.muted { color: var(--ink-muted); }
+.prof { font-weight: 600; }
+.dim { color: var(--ink-muted); }
+
+/* ---------- A: printed sheet (follows the official 5e sheet, page 1) ---------- */
+.a-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr); gap: 14px; align-items: stretch; }
+.a-namebox { border: 1.5px solid var(--rule-strong); border-radius: 6px 26px 26px 6px; padding: 6px 18px 6px; display: grid; align-content: end; align-self: start; background: var(--paper-raised); }
+.a-name { font-size: clamp(26px, 4vw, 36px); line-height: 1.05; border-bottom: 1px solid var(--rule-strong); padding-bottom: 2px; }
+.a-meta { border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 8px 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 18px; }
+.a-meta div { display: grid; }
+.a-meta span:first-child { border-bottom: 1px solid var(--rule-strong); min-height: 26px; }
+.a-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 16px; align-items: start; }
+.a-col { display: grid; gap: 12px; min-width: 0; align-content: start; }
+.a-c1 { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; }
+.a-abil { display: grid; gap: 16px; align-content: start; background: var(--panel); border-radius: 6px; padding: 8px 6px 18px; }
+.a-ab { border: 1.5px solid var(--rule-strong); border-radius: 10px; background: var(--paper-raised); text-align: center; padding: 6px 2px 14px; position: relative; display: grid; }
+.a-ab .lbl { font-size: 9px; letter-spacing: .03em; }
+.a-ab .mod { font-size: 30px; line-height: 1.05; font-weight: 500; }
+.a-ab .score { position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); background: var(--paper-raised); border: 1.5px solid var(--rule-strong); border-radius: 999px; padding: 0 10px; font-size: 14px; }
+.a-stack { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.a-small { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; border: 1.5px solid var(--rule-strong); border-radius: 6px; overflow: hidden; background: var(--paper-raised); }
+.a-small .v { border-right: 1.5px solid var(--rule-strong); text-align: center; font-size: 20px; padding: 4px 0; }
+.a-small .lbl { padding: 0 8px; }
+.a-frame { border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 8px 10px 6px; display: grid; gap: 6px; background: var(--paper-raised); }
+.a-frame > .lbl:last-child { text-align: center; padding-top: 4px; border-top: 1px solid var(--rule); }
+.a-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.a-list li { display: grid; grid-template-columns: 13px 26px minmax(0, 1fr); align-items: baseline; gap: 4px; font-size: 14.5px; }
+.a-list li .num { border-bottom: 1px solid var(--rule-strong); text-align: center; }
+.dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--ink-muted); display: inline-block; }
+.dot.on { background: var(--ink); border-color: var(--ink); }
+.a-panel { background: var(--panel); border-radius: 6px; padding: 10px; display: grid; gap: 10px; }
+.a-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.a-shield { border: 1.5px solid var(--rule-strong); background: var(--paper-raised); text-align: center; padding: 8px 4px; display: grid; border-radius: 6px; }
+.a-shield.ac { border-radius: 8px 8px 50% 50% / 8px 8px 34% 34%; padding-bottom: 14px; }
+.a-shield .v { font-size: 26px; line-height: 1.1; font-weight: 500; }
+.a-hp { display: grid; gap: 4px; }
+.a-hp .max { display: flex; gap: 8px; align-items: baseline; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
+.a-hp .v { font-size: 34px; line-height: 1.1; text-align: center; }
+.a-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.a-death { display: grid; gap: 2px; font-size: 13px; }
+.a-death div { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+.a-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.a-table th { text-align: left; font-weight: 400; padding: 2px 6px 2px 0; }
+.a-table td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--rule-strong); background: var(--panel); }
+.a-equip { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; font-size: 14.5px; }
+.a-coins { display: grid; gap: 6px; }
+.a-coins div { border: 1.5px solid var(--rule-strong); border-radius: 50% / 40%; text-align: center; display: grid; padding: 2px 0; }
+.a-lines p { border-bottom: 1px solid var(--rule); padding: 2px 0; }
+.a-pers { background: var(--panel); border-radius: 6px 18px 6px 6px; padding: 10px; display: grid; gap: 8px; }
+.a-pers .a-frame p { font-size: 14.5px; }
+.a-feat { display: grid; gap: 8px; font-size: 14.5px; }
+.a-feat b { font-weight: 600; }
+/* ---------- D/E: A revised from comments ---------- */
+.d-ab { aspect-ratio: 10 / 9; padding: 6px 2px 14px; gap: 10px; align-content: center; }
+.d-ab .lbl { font-size: 13px; letter-spacing: .1em; font-weight: 500; }
+.d-ab .mod { font-size: 32px; }
+.d-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.d-list li { display: grid; grid-template-columns: 14px 28px minmax(0, 1fr); align-items: baseline; gap: 4px; font-size: 14.5px; }
+.d-hp { display: grid; gap: 6px; }
+.d-vitals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+.d-vitals > .d-hp { grid-column: 1 / -1; }
+.d-vitals .a-pair { display: contents; }
+.d-two .d-vitals { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.1fr); }
+.d-two .d-vitals > .d-hp { grid-column: auto; }
+.d-hp .max { display: flex; gap: 8px; align-items: baseline; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
+.d-hprow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; align-items: end; }
+.d-hprow > div { display: grid; text-align: center; }
+.d-cur .v { font-size: 34px; line-height: 1.1; }
+.d-temp { border-right: 1px solid var(--rule); }
+.d-cur .of { font-size: inherit; color: var(--ink-muted); }
+.d-temp .v { font-size: 24px; line-height: 1.5; }
+.d-feat { display: grid; gap: 10px; font-size: 14.5px; }
+.d-feat p { display: grid; gap: 1px; }
+.d-feat b { font-weight: 600; }
+.a-cols.d-two { grid-template-columns: minmax(320px, 1fr) minmax(0, 2fr); }
+.d-hr { border: 0; border-top: 1.5px solid var(--rule-strong); margin: 40px 0 10px; }
+.d-seq { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; align-items: start; }
+
+/* ---------- F: E plus the ORC-146 marks (bubble D, use circles) and a spell list (ORC-153) ---------- */
+:root { --bubble: color-mix(in srgb, var(--info) 12%, var(--paper-raised)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bubble: color-mix(in srgb, var(--info) 18%, var(--paper-raised)); } }
+:root[data-theme="dark"] { --bubble: color-mix(in srgb, var(--info) 18%, var(--paper-raised)); }
+.rest { font-family: var(--sans); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); font-weight: 500; }
+.uses { display: inline-flex; gap: 5px; align-items: center; }
+.u { all: unset; cursor: pointer; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--info); background: var(--bubble); position: relative; box-sizing: border-box; }
+.u:focus-visible, .bigpool:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.u.spent { background: transparent; border-color: var(--ink-muted); }
+.u.spent::after { content: ""; position: absolute; left: -3px; right: -3px; top: 50%; height: 2px; background: var(--ink); transform: rotate(-52deg); border-radius: 2px; }
+.bub2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; border: 1.5px solid var(--info); background: var(--bubble); border-radius: 18px; padding: 8px 14px 10px; }
+.bub2 .head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-weight: 600; min-width: 0; }
+.bub2 .body { grid-column: 1; min-width: 0; }
+.bub2 .side { grid-column: 2; grid-row: 1 / span 2; display: grid; justify-items: end; align-content: start; gap: 4px; }
+.bigpool { all: unset; cursor: pointer; display: inline-flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; line-height: 1; }
+.bigpool .n { font-size: 30px; font-weight: 500; }
+.bigpool .of { font-size: 30px; font-weight: 500; color: var(--ink-muted); }
+.bub2.spent { background: transparent; border-style: dashed; border-color: var(--ink-muted); }
+.bub2.spent .head > span:first-child, .bub2.spent .body, .bub2.spent .bigpool .n { color: var(--ink-muted); }
+.d-list li > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-list li > span:last-child .muted { font-family: var(--sans); font-size: 9.5px !important; letter-spacing: .04em; }
+.f-cur { align-self: center; }
+.f-dice { text-align: center; grid-template-rows: 1fr auto; }
+.f-dice .v { font-size: 24px; line-height: 1.1; align-self: center; }
+.f-dsframe { grid-template-rows: 1fr auto; }
+.f-death { align-content: space-evenly; gap: 6px; }
+.f-equip { display: flow-root; font-size: 14.5px; }
+.f-equip .a-lines p { display: flow-root; }
+.f-gold { float: right; margin: 0 0 6px 12px; border: 1.5px solid var(--rule-strong); border-radius: 6px; display: grid; text-align: center; padding: 4px 10px 3px; min-width: 64px; }
+.f-gold .v { font-size: 22px; line-height: 1.15; }
+@media (max-width: 760px) { .f-lvl .f-lv { font-size: 20px; } .f-lvl .f-lv.word { font-size: 12.5px; } }
+.f-cast { gap: 10px; }
+:root { --orange: #B85A00; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --orange: #FF9A3D; } }
+:root[data-theme="dark"] { --orange: #FF9A3D; }
+.u.dsv { --c: var(--success); border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, var(--paper-raised)); }
+.u.dsv.f { --c: var(--orange); }
+.u.dsv.on { background: var(--c); }
+.u.dsv.on::after { content: none; }
+.f-death .uses { gap: 5px; }
+.a-head .d-meta { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); align-items: end; }
+@media (max-width: 760px) { .a-head .d-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } .a-head .d-meta > :first-child { grid-column: 1 / -1; } }
+.d-two .a-trio { display: flex; justify-content: space-evenly; gap: 8px; }
+.d-two .a-trio > .a-shield { flex: 0 0 auto; min-width: 96px; padding-inline: 14px; }
+@media (max-width: 760px) { .d-two .a-trio > .a-shield { flex: 1 1 0; min-width: 0; max-width: 112px; padding-inline: 6px; } .d-two .a-trio .lbl { font-size: 9.5px; letter-spacing: .04em; } }
+.f-levels { display: grid; }
+.f-lvl { display: grid; grid-template-columns: 80px 88px minmax(0, 1fr); column-gap: 12px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.f-lvl:last-child { border-bottom: 0; }
+@media (max-width: 760px) { .f-lvl { grid-template-columns: 58px 88px minmax(0, 1fr); column-gap: 8px; } .f-lv { font-size: 20px; } .f-lv.word { font-size: 13px; } }
+.f-lv { font-size: 24px; line-height: 1.1; text-align: center; font-weight: 500; }
+.f-lv.word { font-size: 16px; }
+.f-sl .uses { display: flex; flex-wrap: nowrap; gap: 5px; justify-content: flex-start; }
+.f-headrow > :nth-child(2) { text-align: left; }
+.f-lvl > :not(:last-child) { align-self: stretch; display: grid; align-content: center; border-right: 1px solid var(--rule); padding-right: 10px; }
+.f-headrow > * { text-align: center; }
+.f-headrow > :last-child { text-align: left; }
+.f-list { margin: 0; font-size: 14.5px; align-self: start; }
+.f-headrow { padding: 0 0 2px; border-bottom: 1px solid var(--rule-strong); }
+.f-headrow > * { border-right: 0 !important; }
+.f-note { margin-top: 8px; }
+.f-slots { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.f-slots > span { display: inline-flex; gap: 6px; align-items: center; }
+.f-spells { display: grid; gap: 4px; font-size: 14.5px; }
+.f-spells p { border-bottom: 1px solid var(--rule); padding: 2px 0; }
+.f-spells .always { font-family: var(--sans); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); border: 1px solid var(--rule-strong); border-radius: 3px; padding: 0 3px; margin-left: 4px; vertical-align: 1px; }
+/* ---------- B: ledger notebook ---------- */
+.b-wrap { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 28px; }
+.b-tabs { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); align-self: start; display: grid; gap: 2px; border-left: 2px solid var(--ink); }
+.b-tabs a { color: var(--ink-muted); text-decoration: none; padding: 4px 12px; font-size: 15px; }
+.b-tabs a:first-child { color: var(--ink); font-weight: 600; border-left: 4px solid var(--note); margin-left: -3px; padding-left: 11px; }
+.b-title { display: grid; gap: 2px; padding-bottom: 14px; }
+.b-title h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.05; font-weight: 400; font-style: italic; }
+.b-strip { display: flex; flex-wrap: wrap; gap: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule-strong); margin-bottom: 26px; }
+.b-strip > div { padding: 8px 18px 8px 0; margin-right: 18px; border-right: 1px solid var(--rule); display: grid; }
+.b-strip > div:last-child { border-right: 0; }
+.b-strip .v { font-size: 26px; line-height: 1.1; }
+.b-sec { margin-bottom: 30px; }
+.b-sec > h2 { font-size: 22px; display: flex; align-items: baseline; gap: 10px; border-bottom: 2px solid var(--ink); padding-bottom: 2px; margin-bottom: 0; }
+.b-sec > h2 .lbl { margin-left: auto; }
+.b-rows { display: grid; }
+.b-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline; min-height: 32px; border-bottom: 1px solid var(--rule); padding: 3px 0; }
+.b-row .r { font-variant-numeric: tabular-nums; text-align: right; }
+.b-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
+.b-abil { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-bottom: 1px solid var(--rule); }
+.b-abil > div { padding: 8px 4px; border-right: 1px solid var(--rule); display: grid; gap: 0; text-align: center; }
+.b-abil > div:last-child { border-right: 0; }
+.b-abil .mod { font-size: 26px; line-height: 1.1; }
+.b-feat { border-bottom: 1px solid var(--rule); padding: 6px 0; display: grid; gap: 2px; font-size: 16px; }
+.b-feat .n { font-style: italic; font-weight: 600; }
+
+/* ---------- C: filled-in form ---------- */
+.c-band { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 18px; align-items: end; padding: 12px 14px; border: 2px solid var(--ink); border-radius: 4px 4px 0 0; }
+.c-band h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.05; }
+.c-lvl { text-align: center; border-left: 1px solid var(--rule-strong); padding-left: 18px; display: grid; }
+.c-lvl .v { font-size: 36px; line-height: 1; }
+.c-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; border: 2px solid var(--ink); border-top: 0; margin-bottom: 18px; }
+.c-meta > div { padding: 6px 12px; border-right: 1px solid var(--rule-strong); border-top: 1px solid var(--rule-strong); display: grid; }
+.c-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px 16px; }
+fieldset.c-set { grid-column: span 6; margin: 0; border: 1.5px solid var(--rule-strong); border-radius: 4px; padding: 6px 12px 12px; min-width: 0; display: grid; gap: 8px; align-content: start; }
+fieldset.c-set.wide { grid-column: span 12; }
+fieldset.c-set.third { grid-column: span 4; }
+fieldset.c-set.two3 { grid-column: span 8; }
+.c-set legend { font-family: var(--label-font); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; font-weight: 600; padding: 0 6px; color: var(--ink); }
+:root[data-labels="serif"] .c-set legend { text-transform: none; letter-spacing: 0; font-style: italic; font-size: 15px; }
+.c-fill { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px 14px; }
+.c-f { display: grid; }
+.c-f .v { border-bottom: 1.5px solid var(--rule-strong); padding: 0 2px 1px; font-size: 20px; min-height: 30px; font-variant-numeric: tabular-nums; }
+.c-f .lbl { padding-top: 2px; }
+.c-abil { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.c-abil > div { display: grid; text-align: center; }
+.c-abil .box { border: 1.5px solid var(--rule-strong); background: var(--paper-raised); padding: 4px 0; display: grid; }
+.c-abil .mod { font-size: 26px; line-height: 1.1; }
+.c-check { list-style: none; padding: 0; margin: 0; columns: 2; column-gap: 18px; font-size: 15px; }
+.c-check li { display: grid; grid-template-columns: 16px 32px minmax(0, 1fr); gap: 4px; align-items: baseline; break-inside: avoid; }
+.box9 { width: 10px; height: 10px; border: 1.5px solid var(--ink-muted); display: inline-block; }
+.box9.on { background: var(--ink); border-color: var(--ink); }
+.c-lines { display: grid; }
+.c-lines p { border-bottom: 1px solid var(--rule); padding: 4px 0; font-size: 15.5px; }
+
+.slots { display: flex; gap: 14px; flex-wrap: wrap; }
+.slots > div { display: grid; gap: 2px; }
+.pips { display: flex; gap: 4px; }
+.pip { width: 13px; height: 13px; border: 1.5px solid var(--ink); border-radius: 3px; }
+
+/* ---------- phone ---------- */
+@media (max-width: 1000px) { .a-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .a-head { grid-template-columns: 1fr; }
+  .a-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .a-cols { grid-template-columns: 1fr; }
+  .a-c1 { grid-template-columns: 1fr; }
+  .a-abil { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 10px; }
+  .b-wrap { grid-template-columns: 1fr; gap: 12px; }
+  .b-tabs { position: static; display: flex; flex-wrap: wrap; border-left: 0; border-bottom: 2px solid var(--ink); }
+  .b-tabs a:first-child { border-left: 0; margin-left: 0; padding-left: 12px; background: var(--note); color: var(--note-ink); }
+  .b-two { grid-template-columns: 1fr; }
+  .b-abil { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .a-cols.d-two { grid-template-columns: 1fr; }
+  .d-two .d-vitals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .d-two .d-vitals > .d-hp { grid-column: 1 / -1; }
+  fieldset.c-set, fieldset.c-set.third, fieldset.c-set.two3 { grid-column: span 12; }
+  .c-abil { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ---------- prototype bar (not part of the design) ---------- */
+.bar { position: fixed; z-index: 10; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bar); color: var(--bar-fg); border-radius: 18px; padding: 6px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px; font-family: var(--sans); font-size: 13px; box-shadow: 0 6px 24px rgba(0,0,0,.3); width: max-content; max-width: calc(100vw - 32px); }
+.bar button { all: unset; cursor: pointer; padding: 7px 11px; border-radius: 12px; white-space: nowrap; }
+.bar button:hover { background: color-mix(in srgb, var(--bar-fg) 16%, transparent); }
+.bar button:focus-visible { outline: 2px solid var(--bar-fg); outline-offset: 1px; }
+.bar .lbl2 { padding: 0 8px; font-weight: 600; white-space: nowrap; }
+.bar .sep { width: 1px; align-self: stretch; background: color-mix(in srgb, var(--bar-fg) 30%, transparent); margin: 4px 2px; }
+@media (prefers-reduced-motion: no-preference) { .sheet { transition: opacity .12s; } }
+</style>
+
+<main class="sheet" id="sheet"></main>
+
+<nav class="bar" aria-label="Prototype controls">
+  <button id="prev" aria-label="Previous layout">←</button>
+  <span class="lbl2" id="vlabel" aria-live="polite"></span>
+  <button id="next" aria-label="Next layout">→</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="theme"></button>
+  <button id="texture"></button>
+  <button id="labels"></button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="who"></button>
+</nav>
+
+<script>
+// Example character: SRD content only, values worked out by hand for a level 5 paladin.
+const ISOLDE = {
+  alwaysTag: "oath", cantrips: [],
+  name: "Isolde Varrow", player: "Ethan", race: "Human", background: "Acolyte", alignment: "Lawful Good",
+  cls: "Paladin 5 (Oath of Devotion)", level: 5, xp: 6500,
+  ac: 18, hp: 38, maxHp: 44, speed: "30 ft.", init: "+0", prof: "+3", passive: 11,
+  abilities: [["STR",16,"+3",false,"+3"],["DEX",10,"+0",false,"+0"],["CON",14,"+2",false,"+2"],["INT",8,"−1",false,"−1"],["WIS",12,"+1",true,"+4"],["CHA",16,"+3",true,"+6"]],
+  skills: [["+3","Acrobatics","DEX",0],["+1","Animal Handling","WIS",0],["−1","Arcana","INT",0],["+6","Athletics","STR",1],["+3","Deception","CHA",0],["−1","History","INT",0],["+4","Insight","WIS",1],["+6","Intimidation","CHA",1],["−1","Investigation","INT",0],["+1","Medicine","WIS",0],["−1","Nature","INT",0],["+1","Perception","WIS",0],["+3","Performance","CHA",0],["+6","Persuasion","CHA",1],["+2","Religion","INT",1],["+0","Sleight of Hand","DEX",0],["+0","Stealth","DEX",0],["+1","Survival","WIS",0]],
+  attacks: [["Longsword","+6","1d8 + 3 slashing"],["Javelin","+6","1d6 + 3 piercing"]],
+  slots: [["1st",4],["2nd",2]],
+  spellInfo: { dc: 14, atk: "+6", prepare: 5 },
+  spells: { "1st": ["Bless","Cure Wounds","Shield of Faith","Protection from Evil and Good*","Sanctuary*"], "2nd": ["Lesser Restoration*","Zone of Truth*","Find Steed"] },
+  actions: [["Lay on Hands","Pool of 25 hit points. Touch a creature to restore any number of them."],["Divine Sense","Know the location of celestials, fiends and undead within 60 ft. 4 uses per long rest."],["Channel Divinity: Sacred Weapon","Add +3 to attack rolls with one weapon for 1 minute. 1 use per short rest."]],
+  traits: [["Extra Attack","Attack twice when you take the Attack action."],["Divine Smite","Spend a spell slot on a hit to deal 2d8 extra radiant damage, +1d8 per slot level above 1st."],["Fighting Style: Defense","+1 to AC while wearing armor."],["Divine Health","Immune to disease."]],
+  gear: [["Chain Mail","1","equipped"],["Shield","1","equipped"],["Longsword","1","equipped"],["Javelin","4",""],["Holy symbol (amulet)","1",""],["Priest's pack","1",""]],
+  langs: "Common, Celestial, Dwarvish", armorProf: "All armor, shields", weaponProf: "Simple, martial",
+  personality: "I quote the old litanies when I am nervous, and I am often nervous.", hitDice: "5d10", coins: [["CP",0],["SP",14],["EP",0],["GP",37],["PP",0]],
+  ideals: "Tradition. The old rites must be kept, or the light goes out.", bonds: "The chapel at Varrow Ford raised me.", flaws: "I judge others harshly, and myself more harshly."
+};
+// Second example for the spellcasting demo (ORC-153): a level 9 Life cleric, SRD content, worked out by hand.
+const ALDRIC = {
+  name: "Aldric Venn", player: "Ethan", race: "Human", background: "Acolyte", alignment: "Neutral Good",
+  cls: "Cleric 9 (Life Domain)", level: 9, xp: 48000, alwaysTag: "domain",
+  ac: 20, hp: 51, maxHp: 66, speed: "30 ft.", init: "+0", prof: "+4", passive: 15,
+  abilities: [["STR",14,"+2",false,"+2"],["DEX",10,"+0",false,"+0"],["CON",14,"+2",false,"+2"],["INT",10,"+0",false,"+0"],["WIS",20,"+5",true,"+9"],["CHA",12,"+1",true,"+5"]],
+  skills: [["+0","Acrobatics","DEX",0],["+5","Animal Handling","WIS",0],["+0","Arcana","INT",0],["+2","Athletics","STR",0],["+1","Deception","CHA",0],["+0","History","INT",0],["+9","Insight","WIS",1],["+1","Intimidation","CHA",0],["+0","Investigation","INT",0],["+9","Medicine","WIS",1],["+0","Nature","INT",0],["+5","Perception","WIS",0],["+1","Performance","CHA",0],["+5","Persuasion","CHA",1],["+4","Religion","INT",1],["+0","Sleight of Hand","DEX",0],["+0","Stealth","DEX",0],["+5","Survival","WIS",0]],
+  attacks: [["Mace","+6","1d6 + 2 bludgeoning, +1d8 radiant"],["Sacred Flame","DC 17 Dex","2d8 radiant"]],
+  slots: [["1st",4],["2nd",3],["3rd",3],["4th",3],["5th",1]],
+  spellInfo: { dc: 17, atk: "+9", prepare: 14 },
+  cantrips: ["Guidance","Light","Sacred Flame","Spare the Dying"],
+  spells: {
+    "1st": ["Bless*","Cure Wounds*","Guiding Bolt","Healing Word","Sanctuary","Shield of Faith"],
+    "2nd": ["Lesser Restoration*","Spiritual Weapon*","Aid","Hold Person","Prayer of Healing"],
+    "3rd": ["Beacon of Hope*","Revivify*","Dispel Magic","Mass Healing Word","Spirit Guardians"],
+    "4th": ["Death Ward*","Guardian of Faith*","Banishment","Freedom of Movement"],
+    "5th": ["Mass Cure Wounds*","Raise Dead*","Flame Strike","Greater Restoration"] },
+  actions: [["Channel Divinity (2 per short rest)","Turn Undead, or Preserve Life: restore 45 hit points split among creatures within 30 ft."]],
+  traits: [["Disciple of Life","A healing spell of 1st level or higher restores an extra 2 + the spell's level hit points."],["Blessed Healer","When you heal another creature with a spell, you regain 2 + the spell's level hit points."],["Divine Strike","Once on each of your turns, a weapon hit deals an extra 1d8 radiant damage."],["Ritual Casting","Cast a prepared spell with the ritual tag as a ritual."]],
+  gear: [["Plate armor","1","equipped"],["Shield","1","equipped"],["Mace","1","equipped"],["Holy symbol (reliquary)","1",""],["Priest's pack","1",""],["Diamonds (300 gp)","1","for Revivify"]],
+  langs: "Common, Celestial, Dwarvish", armorProf: "All armor, shields", weaponProf: "Simple",
+  personality: "I see omens in every event and action.", hitDice: "9d8", coins: [["CP",0],["SP",40],["EP",0],["GP",212],["PP",3]],
+  ideals: "Charity. I always try to help those in need.", bonds: "I owe my life to the priest who took me in.", flaws: "I put too much trust in those who wield power within my temple."
+};
+let C = ISOLDE;
+
+const lbl = t => `<span class="lbl">${t}</span>`;
+
+function layoutA() {
+  const ab = C.abilities.map(([a,s,m]) => `<div class="a-ab">${lbl(a === "STR" ? "Strength" : a === "DEX" ? "Dexterity" : a === "CON" ? "Constitution" : a === "INT" ? "Intelligence" : a === "WIS" ? "Wisdom" : "Charisma")}<span class="mod num">${m}</span><span class="score num">${s}</span></div>`).join("");
+  const saves = C.abilities.map(([a,,,p,sv]) => `<li><span class="dot ${p?"on":""}"></span><span class="num ${p?"prof":"dim"}">${sv}</span><span class="${p?"":"dim"}">${{STR:"Strength",DEX:"Dexterity",CON:"Constitution",INT:"Intelligence",WIS:"Wisdom",CHA:"Charisma"}[a]}</span></li>`).join("");
+  const skills = C.skills.map(([b,n,a,p]) => `<li><span class="dot ${p?"on":""}"></span><span class="num ${p?"prof":"dim"}">${b}</span><span class="${p?"":"dim"}">${n} <span class="muted" style="font-size:11px">(${a[0]+a.slice(1).toLowerCase()})</span></span></li>`).join("");
+  const pips = n => Array.from({length: 3}, (_, i) => `<span class="dot ${i < n ? "on" : ""}"></span>`).join("");
+  return `
+  <header class="a-head">
+    <div class="a-namebox"><h1 class="a-name">${C.name}</h1>${lbl("Character name")}</div>
+    <div class="a-meta">
+      <div><span>${C.cls}</span>${lbl("Class &amp; level")}</div>
+      <div><span>${C.background}</span>${lbl("Background")}</div>
+      <div><span>${C.player}</span>${lbl("Player name")}</div>
+      <div><span>${C.race}</span>${lbl("Race")}</div>
+      <div><span>${C.alignment}</span>${lbl("Alignment")}</div>
+      <div><span class="num">${C.xp.toLocaleString()}</span>${lbl("Experience points")}</div>
+    </div>
+  </header>
+  <div class="a-cols">
+    <div class="a-col">
+      <div class="a-c1">
+        <div class="a-abil">${ab}</div>
+        <div class="a-stack">
+          <div class="a-small"><span class="v num">&nbsp;</span>${lbl("Inspiration")}</div>
+          <div class="a-small"><span class="v num">${C.prof}</span>${lbl("Proficiency bonus")}</div>
+          <div class="a-frame"><ul class="a-list">${saves}</ul>${lbl("Saving throws")}</div>
+          <div class="a-frame"><ul class="a-list">${skills}</ul>${lbl("Skills")}</div>
+        </div>
+      </div>
+      <div class="a-small"><span class="v num">${C.passive}</span>${lbl("Passive wisdom (perception)")}</div>
+      <div class="a-frame"><div class="a-lines"><p><span class="lbl">Languages</span> ${C.langs}</p><p><span class="lbl">Armor</span> ${C.armorProf}</p><p><span class="lbl">Weapons</span> ${C.weaponProf}</p></div>${lbl("Other proficiencies &amp; languages")}</div>
+    </div>
+    <div class="a-col">
+      <div class="a-panel">
+        <div class="a-trio">
+          <div class="a-shield ac"><span class="v num">${C.ac}</span>${lbl("Armor class")}</div>
+          <div class="a-shield"><span class="v num">${C.init}</span>${lbl("Initiative")}</div>
+          <div class="a-shield"><span class="v num">${parseInt(C.speed)}</span>${lbl("Speed")}</div>
+        </div>
+        <div class="a-frame a-hp"><div class="max">${lbl("Hit point maximum")}<span class="num">${C.maxHp}</span></div><span class="v num">${C.hp}</span>${lbl("Current hit points")}</div>
+        <div class="a-frame a-hp"><span class="v num" style="font-size:24px">&nbsp;</span>${lbl("Temporary hit points")}</div>
+        <div class="a-pair">
+          <div class="a-frame a-hp"><div class="max">${lbl("Total")}<span class="num">${C.hitDice}</span></div><span class="v num" style="font-size:24px">${C.hitDice}</span>${lbl("Hit dice")}</div>
+          <div class="a-frame"><div class="a-death"><div>${lbl("Successes")}<span>${pips(0)}</span></div><div>${lbl("Failures")}<span>${pips(0)}</span></div></div>${lbl("Death saves")}</div>
+        </div>
+      </div>
+      <div class="a-frame"><table class="a-table"><thead><tr><th>${lbl("Name")}</th><th>${lbl("Atk bonus")}</th><th>${lbl("Damage/type")}</th></tr></thead><tbody>${C.attacks.map(([n,a,d])=>`<tr><td>${n}</td><td class="num">${a}</td><td>${d}</td></tr>`).join("")}</tbody></table>
+        <div class="a-lines"><p><span class="lbl">Spell save DC</span> <span class="num">${C.spellInfo.dc}</span> · <span class="lbl">Spell attack</span> <span class="num">${C.spellInfo.atk}</span></p><p><span class="lbl">Slots</span> ${C.slots.map(([l,n])=>`${l} <span class="num">${n}</span>`).join(" · ")}</p></div>
+        ${lbl("Attacks &amp; spellcasting")}</div>
+      <div class="a-frame"><div class="a-equip"><div class="a-coins">${C.coins.map(([c,v])=>`<div>${lbl(c)}<span class="num">${v}</span></div>`).join("")}</div><div class="a-lines">${C.gear.map(([n,q,e])=>`<p>${q !== "1" ? `<span class="num">${q}</span> ` : ""}${n}${e?` <span class="muted" style="font-size:12px">(${e})</span>`:""}</p>`).join("")}</div></div>${lbl("Equipment")}</div>
+    </div>
+    <div class="a-col">
+      <div class="a-pers">
+        <div class="a-frame"><p>${C.personality}</p>${lbl("Personality traits")}</div>
+        <div class="a-frame"><p>${C.ideals}</p>${lbl("Ideals")}</div>
+        <div class="a-frame"><p>${C.bonds}</p>${lbl("Bonds")}</div>
+        <div class="a-frame"><p>${C.flaws}</p>${lbl("Flaws")}</div>
+      </div>
+      <div class="a-frame"><div class="a-feat">${[...C.actions, ...C.traits].map(([n,t])=>`<p><b>${n}.</b> ${t}</p>`).join("")}</div>${lbl("Features &amp; traits")}</div>
+    </div>
+  </div>`;
+}
+function layoutB() {
+  const row = (l, r) => `<div class="b-row"><span>${l}</span><span class="r">${r}</span></div>`;
+  return `
+  <div class="b-wrap">
+    <nav class="b-tabs" aria-label="Sheet sections">
+      <a href="#combat">Combat</a><a href="#abilities">Abilities</a><a href="#spells">Spells</a><a href="#features">Features</a><a href="#gear">Gear</a><a href="#details">Details</a>
+    </nav>
+    <div>
+      <div class="b-title"><h1>${C.name}</h1><span class="muted">${C.race} ${C.cls} · ${C.background} · ${C.alignment}</span></div>
+      <div class="b-strip">
+        <div>${lbl("Armor class")}<span class="v num">${C.ac}</span></div>
+        <div>${lbl("Hit points")}<span class="v num">${C.hp}<span class="muted" style="font-size:16px"> / ${C.maxHp}</span></span></div>
+        <div>${lbl("Speed")}<span class="v num">${parseInt(C.speed)}</span></div>
+        <div>${lbl("Initiative")}<span class="v num">${C.init}</span></div>
+        <div>${lbl("Proficiency")}<span class="v num">${C.prof}</span></div>
+      </div>
+      <section class="b-sec" id="combat"><h2>Attacks ${lbl("to hit · damage")}</h2>
+        <div class="b-rows">${C.attacks.map(([n,a,d])=>row(n, `${a} · ${d}`)).join("")}</div>
+      </section>
+      <section class="b-sec" id="abilities"><h2>Abilities ${lbl("score · modifier · save")}</h2>
+        <div class="b-abil">${C.abilities.map(([a,s,m,p,sv])=>`<div>${lbl(a)}<span class="mod num">${m}</span><span class="muted num" style="font-size:14px">${s} · save <span class="${p?"prof":""}" style="color:var(--ink)">${sv}</span></span></div>`).join("")}</div>
+        <div class="b-two">
+          <div class="b-rows">${C.skills.slice(0,9).map(([b,n,a,p])=>row(`<span class="${p?"prof":"dim"}">${n}</span> <span class="muted" style="font-size:12px">${a}</span>`, `<span class="${p?"prof":"dim"}">${b}</span>`)).join("")}</div>
+          <div class="b-rows">${C.skills.slice(9).map(([b,n,a,p])=>row(`<span class="${p?"prof":"dim"}">${n}</span> <span class="muted" style="font-size:12px">${a}</span>`, `<span class="${p?"prof":"dim"}">${b}</span>`)).join("")}</div>
+        </div>
+      </section>
+      <section class="b-sec" id="spells"><h2>Spells ${lbl(`DC ${C.spellInfo.dc} · attack ${C.spellInfo.atk} · prepare ${C.spellInfo.prepare}`)}</h2>
+        <div class="b-two">${Object.entries(C.spells).map(([lvl, list])=>`<div class="b-rows">${row(`<span class="lbl">${lvl} level</span>`, `<span class="pips" style="justify-content:flex-end">${"<span class='pip'></span>".repeat(C.slots.find(s=>s[0]===lvl)[1])}</span>`)}${list.map(s=>row(s.replace("*",""), s.endsWith("*")?`<span class="lbl">${C.alwaysTag}</span>`:"")).join("")}</div>`).join("")}</div>
+      </section>
+      <section class="b-sec" id="features"><h2>Features</h2>
+        ${[...C.actions, ...C.traits].map(([n,t])=>`<div class="b-feat"><span class="n">${n}</span><span>${t}</span></div>`).join("")}
+      </section>
+      <section class="b-sec" id="gear"><h2>Gear ${lbl("qty")}</h2><div class="b-rows">${C.gear.map(([n,q,e])=>row(`${n}${e?` <span class="muted" style="font-size:14px">(${e})</span>`:""}`, q)).join("")}</div></section>
+      <section class="b-sec" id="details"><h2>Details</h2><div class="b-rows">${row(lbl("Ideals"),"")}<div class="b-feat">${C.ideals}</div>${row(lbl("Bonds"),"")}<div class="b-feat">${C.bonds}</div>${row(lbl("Flaws"),"")}<div class="b-feat">${C.flaws}</div></div></section>
+    </div>
+  </div>`;
+}
+
+function layoutC() {
+  const f = (l, v) => `<div class="c-f"><span class="v">${v}</span>${lbl(l)}</div>`;
+  return `
+  <header>
+    <div class="c-band"><h1>${C.name}</h1><div class="c-lvl"><span class="v num">${C.level}</span>${lbl("Level")}</div></div>
+    <div class="c-meta">
+      <div>${lbl("Class")}<span>${C.cls}</span></div><div>${lbl("Race")}<span>${C.race}</span></div><div>${lbl("Background")}<span>${C.background}</span></div>
+      <div>${lbl("Alignment")}<span>${C.alignment}</span></div><div>${lbl("Player")}<span>${C.player}</span></div><div>${lbl("Experience")}<span class="num">${C.xp.toLocaleString()}</span></div>
+    </div>
+  </header>
+  <div class="c-grid">
+    <fieldset class="c-set two3"><legend>Combat</legend>
+      <div class="c-fill">${f("Armor class", C.ac)}${f("Hit points", `${C.hp} <span class="muted" style="font-size:15px">/ ${C.maxHp}</span>`)}${f("Speed", C.speed)}${f("Initiative", C.init)}${f("Proficiency", C.prof)}${f("Passive perception", C.passive)}</div>
+    </fieldset>
+    <fieldset class="c-set third"><legend>Spellcasting</legend>
+      <div class="c-fill">${f("Save DC", C.spellInfo.dc)}${f("Attack", C.spellInfo.atk)}</div>
+      <div class="slots">${C.slots.map(([l,n])=>`<div>${lbl(l)}<div class="pips">${"<span class='pip'></span>".repeat(n)}</div></div>`).join("")}</div>
+    </fieldset>
+    <fieldset class="c-set wide"><legend>Ability scores</legend>
+      <div class="c-abil">${C.abilities.map(([a,s,m,p,sv])=>`<div><div class="box">${lbl(a)}<span class="mod num">${m}</span></div><span class="num" style="font-size:14px">${s}</span><span class="num muted" style="font-size:13px"><span class="box9 ${p?"on":""}" style="width:8px;height:8px"></span> save ${sv}</span></div>`).join("")}</div>
+    </fieldset>
+    <fieldset class="c-set"><legend>Skills</legend>
+      <ul class="c-check">${C.skills.map(([b,n,a,p])=>`<li><span class="box9 ${p?"on":""}"></span><span class="num ${p?"prof":"dim"}">${b}</span><span class="${p?"":"dim"}">${n}</span></li>`).join("")}</ul>
+    </fieldset>
+    <fieldset class="c-set"><legend>Attacks</legend>
+      <div class="c-lines">${C.attacks.map(([n,a,d])=>`<p><b style="font-weight:600">${n}</b> <span class="num">${a}</span> to hit, ${d}</p>`).join("")}</div>
+      <legend style="padding:8px 0 0">Spells prepared</legend>
+      <div class="c-lines">${Object.entries(C.spells).map(([l,list])=>`<p><span class="lbl">${l}</span> ${list.map(s=>s.replace("*","")).join(", ")}</p>`).join("")}</div>
+    </fieldset>
+    <fieldset class="c-set two3"><legend>Features &amp; traits</legend>
+      <div class="c-lines">${[...C.actions, ...C.traits].map(([n,t])=>`<p><b style="font-weight:600">${n}.</b> ${t}</p>`).join("")}</div>
+    </fieldset>
+    <fieldset class="c-set third"><legend>Equipment</legend>
+      <div class="c-lines">${C.gear.map(([n,q,e])=>`<p><span class="num">${q}×</span> ${n}${e?` <span class="muted" style="font-size:13px">(${e})</span>`:""}</p>`).join("")}</div>
+    </fieldset>
+    <fieldset class="c-set wide"><legend>Personality</legend>
+      <div class="c-fill" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">${f("Ideals", `<span style="font-size:16px">${C.ideals}</span>`)}${f("Bonds", `<span style="font-size:16px">${C.bonds}</span>`)}${f("Flaws", `<span style="font-size:16px">${C.flaws}</span>`)}</div>
+    </fieldset>
+  </div>`;
+}
+
+// D and E: layout A revised from Ethan's comments (2026-10-14). D keeps three columns; E tries two.
+function layoutD(cols) {
+  const NAMES = {STR:"Strength",DEX:"Dexterity",CON:"Constitution",INT:"Intelligence",WIS:"Wisdom",CHA:"Charisma"};
+  const ab = C.abilities.map(([a,s,m]) => `<div class="a-ab d-ab" title="${NAMES[a]}">${lbl(a)}<span class="mod num">${m}</span><span class="score num">${s}</span></div>`).join("");
+  const saves = C.abilities.map(([a,,,p,sv]) => `<li><span class="box9 ${p?"on":""}"></span><span class="num ${p?"prof":"dim"}">${sv}</span><span class="${p?"":"dim"}">${NAMES[a]}</span></li>`).join("");
+  const skills = C.skills.map(([b,n,a,p]) => `<li><span class="box9 ${p?"on":""}"></span><span class="num ${p?"prof":"dim"}">${b}</span><span class="${p?"":"dim"}">${n} <span class="muted" style="font-size:11px">(${a[0]+a.slice(1).toLowerCase()})</span></span></li>`).join("");
+  const pips = n => Array.from({length: 3}, (_, i) => `<span class="dot ${i < n ? "on" : ""}"></span>`).join("");
+  const abilities = `
+      <div class="a-c1">
+        <div class="a-abil">${ab}</div>
+        <div class="a-stack">
+          <div class="a-small"><span class="v num">&nbsp;</span>${lbl("Inspiration")}</div>
+          <div class="a-small"><span class="v num">${C.prof}</span>${lbl("Proficiency bonus")}</div>
+          <div class="a-frame"><ul class="d-list">${saves}</ul>${lbl("Saving throws")}</div>
+          <div class="a-frame"><ul class="d-list">${skills}</ul>${lbl("Skills")}</div>
+        </div>
+      </div>
+      <div class="a-small"><span class="v num">${C.passive}</span>${lbl("Passive wisdom (perception)")}</div>`;
+  const combat = `
+      <div class="a-panel">
+        <div class="a-trio">
+          <div class="a-shield ac"><span class="v num">${C.ac}</span>${lbl("Armor class")}</div>
+          <div class="a-shield"><span class="v num">${C.init}</span>${lbl("Initiative")}</div>
+          <div class="a-shield"><span class="v num">${parseInt(C.speed)}</span>${lbl("Speed")}</div>
+        </div>
+        <div class="d-vitals">
+        <div class="a-frame d-hp">
+          <div class="d-hprow"><div class="d-temp"><span class="v num">0</span>${lbl("Temporary")}</div><div class="d-cur"><span class="v num">${C.hp}<span class="of"> / ${C.maxHp}</span></span>${lbl("Current / maximum")}</div></div>
+          ${lbl("Hit points")}
+        </div>
+        <div class="a-pair">
+          <div class="a-frame a-hp"><div class="max">${lbl("Total")}<span class="num">${C.hitDice}</span></div><span class="v num" style="font-size:24px">${C.hitDice}</span>${lbl("Hit dice")}</div>
+          <div class="a-frame"><div class="a-death"><div>${lbl("Successes")}<span>${pips(0)}</span></div><div>${lbl("Failures")}<span>${pips(0)}</span></div></div>${lbl("Death saves")}</div>
+        </div>
+        </div>
+      </div>
+      <div class="a-frame"><table class="a-table"><thead><tr><th>${lbl("Name")}</th><th>${lbl("Atk bonus")}</th><th>${lbl("Damage/type")}</th></tr></thead><tbody>${C.attacks.map(([n,a,d])=>`<tr><td>${n}</td><td class="num">${a}</td><td>${d}</td></tr>`).join("")}</tbody></table>
+        <div class="a-lines"><p><span class="lbl">Spell save DC</span> <span class="num">${C.spellInfo.dc}</span> · <span class="lbl">Spell attack</span> <span class="num">${C.spellInfo.atk}</span></p><p><span class="lbl">Slots</span> ${C.slots.map(([l,n])=>`${l} <span class="num">${n}</span>`).join(" · ")}</p></div>
+        ${lbl("Attacks &amp; spellcasting")}</div>`;
+  const features = `<div class="a-frame"><div class="d-feat">${[...C.actions, ...C.traits].map(([n,t])=>`<p><b>${n}</b><span>${t}</span></p>`).join("")}</div>${lbl("Features &amp; traits")}</div>`;
+  const body = cols === 3
+    ? `<div class="a-cols"><div class="a-col">${abilities}</div><div class="a-col">${combat}</div><div class="a-col">${features}</div></div>`
+    : `<div class="a-cols d-two"><div class="a-col">${abilities}</div><div class="a-col">${combat}${features}</div></div>`;
+  return `
+  <header class="a-head">
+    <div class="a-namebox"><h1 class="a-name">${C.name}</h1>${lbl("Character name")}</div>
+    <div class="a-meta d-meta">
+      <div><span>${C.cls}</span>${lbl("Class &amp; level")}</div>
+      <div><span>${C.background}</span>${lbl("Background")}</div>
+      <div><span>${C.race}</span>${lbl("Race")}</div>
+    </div>
+  </header>
+  ${body}
+  <hr class="d-hr">
+  <p class="proto">Sequestered sections. Where they finally go is not decided yet.</p>
+  <div class="d-seq">
+    <div class="a-frame"><div class="a-lines"><p><span class="lbl">Languages</span> ${C.langs}</p><p><span class="lbl">Armor</span> ${C.armorProf}</p><p><span class="lbl">Weapons</span> ${C.weaponProf}</p></div>${lbl("Other proficiencies &amp; languages")}</div>
+    <div class="a-frame"><div class="a-equip"><div class="a-coins">${C.coins.map(([c,v])=>`<div>${lbl(c)}<span class="num">${v}</span></div>`).join("")}</div><div class="a-lines">${C.gear.map(([n,q,e])=>`<p>${q !== "1" ? `<span class="num">${q}</span> ` : ""}${n}${e?` <span class="muted" style="font-size:12px">(${e})</span>`:""}</p>`).join("")}</div></div>${lbl("Equipment")}</div>
+    <div class="a-pers">
+      <div class="a-frame"><p>${C.personality}</p>${lbl("Personality traits")}</div>
+      <div class="a-frame"><p>${C.ideals}</p>${lbl("Ideals")}</div>
+      <div class="a-frame"><p>${C.bonds}</p>${lbl("Bonds")}</div>
+      <div class="a-frame"><p>${C.flaws}</p>${lbl("Flaws")}</div>
+    </div>
+  </div>`;
+}
+
+
+// F (ORC-153): E with the settled ORC-146 marks. Click a use circle or the Lay on Hands number to spend; the bar resets.
+const MARKS = {
+  isolde: {
+    limited: { loh: { kind: "pool", max: 25, step: 5, rest: "Long rest" }, ds: { kind: "uses", max: 4, rest: "Long rest" }, cd: { kind: "uses", max: 1, rest: "Short rest" }, s1: { kind: "uses", max: 4, rest: "Long rest" }, s2: { kind: "uses", max: 2, rest: "Long rest" } },
+    feats: [
+      ["Lay on Hands", "Pool of hit points you restore by touch. Spend 5 to cure a disease or neutralize a poison.", "loh"],
+      ["Divine Sense", "Know the location of celestials, fiends and undead within 60 ft. until the end of your next turn.", "ds"],
+      ["Channel Divinity: Sacred Weapon", "Add +3 to attack rolls with one weapon for 1 minute.", "cd"],
+      ...ISOLDE.traits],
+    used: { loh: 10, ds: 1, cd: 0, s1: 2, s2: 0, dS: 0, dF: 0 } },
+  aldric: {
+    limited: { cd: { kind: "uses", max: 2, rest: "Short rest" }, s1: { kind: "uses", max: 4, rest: "Long rest" }, s2: { kind: "uses", max: 3, rest: "Long rest" }, s3: { kind: "uses", max: 3, rest: "Long rest" }, s4: { kind: "uses", max: 3, rest: "Long rest" }, s5: { kind: "uses", max: 1, rest: "Long rest" } },
+    feats: [
+      ["Channel Divinity", "Turn Undead: undead within 30 ft. that fail a Wisdom save flee for 1 minute; CR 1 or lower are destroyed. Preserve Life: restore 45 hit points, split among creatures within 30 ft., up to half each one's maximum.", "cd"],
+      ...ALDRIC.traits],
+    used: { cd: 1, s1: 2, s2: 1, s3: 1, s4: 0, s5: 0, dS: 1, dF: 1 } },
+};
+const CHARS = { isolde: ISOLDE, aldric: ALDRIC };
+let who = "isolde", LIMITED, FEATS, used;
+function setWho(k) { who = k; C = CHARS[k]; ({ limited: LIMITED, feats: FEATS, used } = MARKS[k]); }
+setWho("isolde");
+function circles(id) {
+  const L = LIMITED[id];
+  return `<span class="uses" role="group" aria-label="${L.max} uses, ${L.max - used[id]} left">${Array.from({length: L.max}, (_, i) =>
+    `<button class="u ${i < used[id] ? "spent" : ""}" data-id="${id}" data-i="${i}" aria-label="Use ${i + 1}${i < used[id] ? ", spent" : ""}"></button>`).join("")}</span>`;
+}
+// Death saves: same circles as spell slots, filled instead of slashed. Green successes, orange failures.
+function deathRow(id) {
+  const n = used[id], f = id === "dF";
+  return `<span class="uses" role="group" aria-label="${f ? "Failures" : "Successes"}: ${n} of 3">${[0, 1, 2].map(i =>
+    `<button class="u dsv ${f ? "f" : ""} ${i < n ? "on" : ""}" data-id="${id}" data-i="${i}" data-max="3" aria-label="${f ? "Failure" : "Success"} ${i + 1}${i < n ? ", marked" : ""}"></button>`).join("")}</span>`;
+}
+function featureF([n, t, id]) {
+  if (!id) return `<p><b>${n}</b><span>${t}</span></p>`;
+  const L = LIMITED[id], left = L.max - used[id], rest = `<span class="rest">${L.rest}</span>`;
+  const side = L.kind === "pool" ? `${rest}<button class="bigpool" data-id="${id}" data-pool="1" aria-label="${left} of ${L.max} left. Click to spend ${L.step}."><span class="n">${left}</span><span class="of">/ ${L.max}</span></button>` : rest;
+  return `<div class="bub2 ${left === 0 ? "spent" : ""}"><span class="head"><span>${n}</span>${L.kind === "uses" ? circles(id) : ""}</span><span class="body">${t}</span><span class="side">${side}</span></div>`;
+}
+function layoutF() {
+  const NAMES = {STR:"Strength",DEX:"Dexterity",CON:"Constitution",INT:"Intelligence",WIS:"Wisdom",CHA:"Charisma"};
+  const ab = C.abilities.map(([a,s,m]) => `<div class="a-ab d-ab" title="${NAMES[a]}">${lbl(a)}<span class="mod num">${m}</span><span class="score num">${s}</span></div>`).join("");
+  const saves = C.abilities.map(([a,,,p,sv]) => `<li><span class="box9 ${p?"on":""}"></span><span class="num ${p?"prof":"dim"}">${sv}</span><span class="${p?"":"dim"}">${NAMES[a]}</span></li>`).join("");
+  const skills = C.skills.map(([b,n,a,p]) => `<li><span class="box9 ${p?"on":""}"></span><span class="num ${p?"prof":"dim"}">${b}</span><span class="${p?"":"dim"}">${n} <span class="muted" style="font-size:11px">(${a[0]+a.slice(1).toLowerCase()})</span></span></li>`).join("");
+  // All coins as one gold value: 10 cp = 1 sp, 10 sp = 1 gp, 2 ep = 1 gp, 1 pp = 10 gp.
+  const coin = Object.fromEntries(C.coins);
+  const gold = Math.round((coin.CP / 100 + coin.SP / 10 + coin.EP / 2 + coin.GP + coin.PP * 10) * 100) / 100;
+  const equipment = `<div class="a-frame"><div class="f-equip"><div class="f-gold"><span class="v num">${gold.toLocaleString()}</span>${lbl("Gold")}</div><div class="a-lines">${C.gear.map(([n,q,e])=>`<p>${q !== "1" ? `<span class="num">${q}</span> ` : ""}${n}${e?` <span class="muted" style="font-size:12px">(${e})</span>`:""}</p>`).join("")}</div></div>${lbl("Equipment")}</div>`;
+  const left = `
+      <div class="a-c1">
+        <div class="a-abil">${ab}</div>
+        <div class="a-stack">
+          <div class="a-small"><span class="v num">&nbsp;</span>${lbl("Inspiration")}</div>
+          <div class="a-small"><span class="v num">${C.prof}</span>${lbl("Proficiency bonus")}</div>
+          <div class="a-frame"><ul class="d-list">${saves}</ul>${lbl("Saving throws")}</div>
+          <div class="a-frame"><ul class="d-list">${skills}</ul>${lbl("Skills")}</div>
+        </div>
+      </div>
+      <div class="a-small"><span class="v num">${C.passive}</span>${lbl("Passive wisdom (perception)")}</div>
+      ${equipment}`;
+  const combat = `
+      <div class="a-panel">
+        <div class="a-trio">
+          <div class="a-shield ac"><span class="v num">${C.ac}</span>${lbl("Armor class")}</div>
+          <div class="a-shield"><span class="v num">${C.init}</span>${lbl("Initiative")}</div>
+          <div class="a-shield"><span class="v num">${parseInt(C.speed)}</span>${lbl("Speed")}</div>
+        </div>
+        <div class="d-vitals">
+          <div class="a-frame d-hp">
+            <div class="d-hprow"><div class="d-temp"><span class="v num">0</span>${lbl("Temporary")}</div><div class="d-cur f-cur"><span class="v num">${C.hp}<span class="of"> / ${C.maxHp}</span></span></div></div>
+            ${lbl("Hit points")}
+          </div>
+          <div class="a-frame f-dice"><span class="v num">${C.hitDice}</span>${lbl("Hit dice")}</div>
+          <div class="a-frame f-dsframe"><div class="a-death f-death"><div>${lbl("Successes")}${deathRow("dS")}</div><div>${lbl("Failures")}${deathRow("dF")}</div></div>${lbl("Death saves")}</div>
+        </div>
+      </div>`;
+  const attacks = `<div class="a-frame"><table class="a-table"><thead><tr><th>${lbl("Name")}</th><th>${lbl("Atk bonus")}</th><th>${lbl("Damage/type")}</th></tr></thead><tbody>${C.attacks.map(([n,a,d])=>`<tr><td>${n}</td><td class="num">${a}</td><td>${d}</td></tr>`).join("")}</tbody></table>
+        ${lbl("Attacks")}</div>`;
+  const cantrips = C.cantrips.length ? `<div class="f-lvl"><div class="f-lv word">Cantrips</div><div class="f-sl"></div><p class="f-list">${[...C.cantrips].sort().join(", ")}</p></div>` : "";
+  const ability = C.abilities.reduce((best, x) => x[3] && (!best || parseInt(x[2]) > parseInt(best[2])) ? x : best, null)[0];
+  const levels = Object.entries(C.spells).map(([lvl, list], k) => `<div class="f-lvl"><div class="f-lv num">${lvl}</div><div class="f-sl">${circles("s" + (k + 1))}</div><p class="f-list">${list.map(x => x.replace("*", "")).sort().join(", ")}</p></div>`).join("");
+  const cast = `<div class="a-frame f-cast">
+        <div class="a-panel"><div class="a-trio">
+          <div class="a-shield"><span class="v num">${C.spellInfo.dc}</span>${lbl("Spell save DC")}</div>
+          <div class="a-shield"><span class="v num">${C.spellInfo.atk}</span>${lbl("Spell attack")}</div>
+          <div class="a-shield"><span class="v">${ability}</span>${lbl("Spellcasting ability")}</div>
+        </div></div>
+        <div class="f-levels"><div class="f-lvl f-headrow">${lbl("Level")}${lbl("Slots")}${lbl("Prepared spells")}</div>${cantrips}${levels}</div>
+        ${lbl("Spellcasting")}</div>`;
+  const features = `<div class="a-frame"><div class="d-feat">${FEATS.map(featureF).join("")}</div>${lbl("Features &amp; traits")}</div>`;
+  const profs = `<div class="a-frame"><div class="a-lines"><p><span class="lbl">Languages</span> ${C.langs}</p><p><span class="lbl">Armor</span> ${C.armorProf}</p><p><span class="lbl">Weapons</span> ${C.weaponProf}</p></div>${lbl("Other proficiencies &amp; languages")}</div>`;
+  return `
+  <header class="a-head">
+    <div class="a-namebox"><h1 class="a-name">${C.name}</h1>${lbl("Character name")}</div>
+    <div class="a-meta d-meta">
+      <div><span>${C.cls}</span>${lbl("Class &amp; level")}</div>
+      <div><span>${C.background}</span>${lbl("Background")}</div>
+      <div><span>${C.race}</span>${lbl("Race")}</div>
+    </div>
+  </header>
+  <div class="a-cols d-two"><div class="a-col">${left}</div><div class="a-col">${combat}${attacks}${cast}${features}${profs}</div></div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".u, .bigpool"); if (!b) return;
+  const id = b.dataset.id, L = LIMITED[id] || { max: +b.dataset.max };
+  if (b.dataset.pool) used[id] = used[id] >= L.max ? 0 : Math.min(L.max, used[id] + L.step);
+  else { const i = +b.dataset.i; used[id] = i < used[id] ? i : i + 1; }
+  render();
+});
+
+const LAYOUTS = { A: ["Printed sheet", layoutA], B: ["Ledger", layoutB], C: ["Filled-in form", layoutC], D: ["A revised, 3 columns", () => layoutD(3)], E: ["A revised, 2 columns", () => layoutD(2)], F: ["E with marks and spells", layoutF] };
+const KEYS = Object.keys(LAYOUTS);
+const TEXTURES = ["none", "grain", "ruled"];
+const root = document.documentElement;
+let cur = (location.hash.slice(1) || "F").toUpperCase(); if (!LAYOUTS[cur]) cur = "A";
+let texture = "grain";
+let labels = "sans";
+
+function themeNow() { return root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
+function render() {
+  const [name, fn] = LAYOUTS[cur];
+  document.getElementById("sheet").innerHTML = `<p class="proto"><b>ORC-145 / ORC-153 prototype · throwaway.</b> Layout ${cur}: ${name}. Example character (${C.name}, ${C.cls}), SRD content.</p>` + fn();
+  document.getElementById("vlabel").textContent = `${cur} · ${name}`;
+  document.getElementById("theme").textContent = themeNow() === "dark" ? "Dark" : "Light";
+  document.getElementById("texture").textContent = `Texture: ${texture}`;
+  document.getElementById("labels").textContent = `Labels: ${labels}`;
+  document.getElementById("who").textContent = who === "isolde" ? "Paladin 5" : "Cleric 9";
+  document.body.dataset.texture = texture;
+  root.dataset.labels = labels;
+  if (location.hash.slice(1) !== cur) history.replaceState(null, "", "#" + cur);
+}
+function step(d) { cur = KEYS[(KEYS.indexOf(cur) + d + KEYS.length) % KEYS.length]; render(); window.scrollTo(0, 0); }
+document.getElementById("prev").onclick = () => step(-1);
+document.getElementById("next").onclick = () => step(1);
+document.getElementById("theme").onclick = () => { root.dataset.theme = themeNow() === "dark" ? "light" : "dark"; render(); };
+document.getElementById("texture").onclick = () => { texture = TEXTURES[(TEXTURES.indexOf(texture) + 1) % TEXTURES.length]; render(); };
+document.getElementById("who").onclick = () => { setWho(who === "isolde" ? "aldric" : "isolde"); render(); };
+document.getElementById("labels").onclick = () => { labels = labels === "sans" ? "serif" : "sans"; render(); };
+document.addEventListener("keydown", e => {
+  const t = e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  if (e.key === "ArrowLeft") step(-1); if (e.key === "ArrowRight") step(1);
+});
+document.addEventListener("click", e => { const a = e.target.closest(".b-tabs a"); if (a) { e.preventDefault(); document.getElementById(a.getAttribute("href").slice(1))?.scrollIntoView({ behavior: "smooth" }); } });
+render();
+</script>
