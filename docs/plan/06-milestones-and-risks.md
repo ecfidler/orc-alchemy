@@ -4,13 +4,13 @@ title: "06: Milestones, decisions, and risks"
 description: "The milestone sequence, the decision record, and the definition of done. Linear has the status and the risk register."
 tags: [plan, milestones, decisions]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+generated: { by: claude-code/agent, at: 2026-10-25T18:40:00Z }
 ---
 
 # 06: Milestones, decisions, and risks
 
 > Status and sequencing are in Linear, workspace *Orc Alchemy*. Milestones
-> M0, M1, and the engine half of M3 are on project PubDoor. M2 to M7 are on
+> M0, M1, and the engine half of M3 are on project PubDoor. M2 to M8 are on
 > project Alchemy 5e. Every milestone's issues carry their acceptance
 > criteria. The *Risk register*, *Plan overview*, and *Compatibility
 > contract* are team documents there. This file keeps what an agent working
@@ -29,6 +29,7 @@ generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
 | M5 | Import tooling and homebrew UI | Alchemy 5e | A real user's `all-content.orcbrew` and bookmarklet bundle import cleanly |
 | M6 | Backend | Alchemy 5e | Multi-device use |
 | M7 | The rest | Alchemy 5e | Parity checklist |
+| M8 | Theme | Alchemy 5e | Every page uses only role tokens and `@orc-alchemy/ui` controls, light and dark both pass AA, and the sheet matches layout F for the paladin 5 and cleric 9 examples. Spec: [Theme spec](../design/theme.md) |
 
 A usable standalone app exists after M4. User migration is complete after
 M5. Multi-device use arrives after M6. Relative sizes are on the Linear

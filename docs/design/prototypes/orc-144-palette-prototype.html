@@ -1,0 +1,172 @@
+<title>Alchemy Palette Swatches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: page chrome follows the viewer's theme; each variant shows a forced-light and a forced-dark panel side by side, stacked on phones. */
+:root {
+  --bg: #f3f1ea; --fg: #26262a; --fg-muted: #5f5d57; --line: #d6d1c2; --bar: #26262a; --bar-fg: #f3f1ea;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #101010; --fg: #ececec; --fg-muted: #a3a3a3; --line: #2c2c2c; --bar: #ececec; --bar-fg: #101010; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #101010; --fg: #ececec; --fg-muted: #a3a3a3; --line: #2c2c2c; --bar: #ececec; --bar-fg: #101010; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--serif); font-weight: 450; font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 120px; }
+header.top { display: grid; gap: 6px; margin-bottom: 20px; }
+.eyebrow { font-family: var(--sans); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.1; margin: 0; font-weight: 500; text-wrap: balance; }
+.lede { margin: 0; max-width: 68ch; color: var(--fg-muted); }
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr)); gap: 16px; }
+
+/* A panel draws only from its own --p-* variables, set inline by the script. */
+.panel { background: var(--p-paper); color: var(--p-ink); border: 1px solid var(--line); border-radius: 6px; padding: 20px; display: grid; gap: 18px; min-width: 0; }
+.panel h2 { margin: 0; font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--p-ink-muted); display: flex; justify-content: space-between; gap: 8px; }
+.label { font-family: var(--sans); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--p-ink-muted); }
+
+.charline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; border-bottom: 1px solid var(--p-rule); padding-bottom: 8px; }
+.charline .name { font-size: 24px; font-weight: 500; }
+.charline .meta { color: var(--p-ink-muted); }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 8px; }
+.stat { border: 1.5px solid var(--p-rule-strong); border-radius: 4px; padding: 6px 4px 8px; text-align: center; background: var(--p-raised); display: grid; gap: 2px; }
+.stat .mod { font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; font-weight: 500; }
+.stat .score { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--p-ink-muted); }
+
+.row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; align-items: start; }
+.field { border-bottom: 1.5px solid var(--p-rule-strong); padding-bottom: 4px; display: grid; gap: 2px; }
+.field .val { font-size: 22px; font-variant-numeric: tabular-nums; }
+
+.note { background: var(--p-note); color: var(--p-note-ink); padding: 10px 12px; border-radius: 2px; box-shadow: 0 1px 0 var(--p-rule), 2px 3px 0 color-mix(in srgb, var(--p-note) 55%, transparent); }
+.note strong { font-weight: 600; }
+
+.uses { display: flex; flex-wrap: wrap; gap: 8px; }
+.bubble { font-family: var(--serif); border: 1.5px solid var(--p-blue); background: color-mix(in srgb, var(--p-blue) 12%, var(--p-paper)); color: var(--p-ink); border-radius: 999px; padding: 3px 12px; display: inline-flex; gap: 8px; align-items: baseline; }
+.bubble .n { font-family: var(--sans); font-size: 12px; color: var(--p-ink-muted); font-variant-numeric: tabular-nums; }
+.bubble.spent { background: transparent; border-style: dashed; border-color: var(--p-rule-strong); color: var(--p-ink-muted); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+
+.status { display: grid; gap: 4px; font-size: 15px; }
+.status .red { color: var(--p-red); } .status .green { color: var(--p-green); } .status .yellow { color: var(--p-yellow); }
+.status a { color: var(--p-blue); text-underline-offset: 3px; }
+
+table.sw { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 12.5px; }
+.tablebox { overflow-x: auto; }
+.sw th { text-align: left; font-weight: 500; color: var(--p-ink-muted); padding: 4px 6px; border-bottom: 1px solid var(--p-rule); white-space: nowrap; }
+.sw td { padding: 5px 6px; border-bottom: 1px solid var(--p-rule); vertical-align: middle; white-space: nowrap; }
+.sw td.tok { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+.chip { display: inline-block; width: 22px; height: 22px; border-radius: 3px; border: 1px solid var(--p-rule-strong); vertical-align: middle; }
+.ratio { font-variant-numeric: tabular-nums; }
+.pass, .fail, .na { font-size: 11px; padding: 1px 6px; border-radius: 3px; margin-left: 6px; }
+.pass { color: var(--p-green); border: 1px solid var(--p-green); }
+.fail { color: var(--p-red); border: 1px solid var(--p-red); }
+.na { color: var(--p-ink-muted); border: 1px solid var(--p-rule); }
+
+.foot { margin-top: 20px; color: var(--fg-muted); font-size: 15px; max-width: 72ch; }
+
+.switcher { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); background: var(--bar); color: var(--bar-fg); border-radius: 999px; padding: 6px; display: flex; align-items: center; gap: 4px; font-family: var(--sans); font-size: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.25); max-width: calc(100vw - 32px); }
+.switcher button { all: unset; cursor: pointer; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 999px; font-size: 18px; }
+.switcher button:hover { background: color-mix(in srgb, var(--bar-fg) 15%, transparent); }
+.switcher button:focus-visible { outline: 2px solid var(--bar-fg); outline-offset: 1px; }
+.switcher .lbl { padding-inline: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">ORC-144 · Prototype · throwaway</div>
+    <h1 id="title">Palette</h1>
+    <p class="lede" id="blurb"></p>
+  </header>
+  <div class="panels" id="panels"></div>
+  <p class="foot">Each panel is forced to light or dark, whatever your device is set to. Contrast is measured against the page color (WCAG 2.2). Text needs 4.5:1 for AA. Field borders need 3:1 as non-text contrast. The faint rule is decoration only. Use the bar or the ← → keys to switch variants.</p>
+</div>
+
+<nav class="switcher" aria-label="Palette variants">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span class="lbl" id="lbl" aria-live="polite"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</nav>
+
+<script>
+const VARIANTS = {
+  A: { name: "Legal pad", blurb: "Page #FFFCF5 with warm, faintly yellow stat boxes and soft graphite. Accents are mid-strength, like colored pencil. Dark mode keeps the accents but lifts them to pastel so they read on black.",
+    light: { paper:"#FFFCF5", raised:"#FAF4E2", ink:"#2B2B2E", "ink-muted":"#5E5B55", rule:"#DCD5BD", "rule-strong":"#8C8574", red:"#A8322B", green:"#3D7041", blue:"#2F5E8E", yellow:"#7A5E00", note:"#F5DC6A", "note-ink":"#2B2B2E" },
+    dark:  { paper:"#000000", raised:"#0E0E0E", ink:"#F2F2F2", "ink-muted":"#A6A6A6", rule:"#262626", "rule-strong":"#6E6E6E", red:"#FF7A70", green:"#7FCC86", blue:"#86B4F0", yellow:"#F2CF5B", note:"#4A3F0E", "note-ink":"#FFF3C4" } },
+  B: { name: "Ledger", blurb: "Page #FFFCF5 with cool grey stat boxes and a slightly blue graphite. Accents are muted, like stamped ink in an old ledger. Dark mode is the quietest of the three.",
+    light: { paper:"#FFFCF5", raised:"#F6F3EA", ink:"#33353A", "ink-muted":"#63646A", rule:"#DDD9CC", "rule-strong":"#8E8B80", red:"#9B3B34", green:"#4A6B4A", blue:"#3B5878", yellow:"#6E5810", note:"#EED98A", "note-ink":"#33353A" },
+    dark:  { paper:"#000000", raised:"#111111", ink:"#EDEDED", "ink-muted":"#9C9C9C", rule:"#242424", "rule-strong":"#6A6A6A", red:"#E58B83", green:"#93BF93", blue:"#9DB6D6", yellow:"#E8D08A", note:"#3A321A", "note-ink":"#F5E6B8" } },
+  C: { name: "Highlighter", blurb: "Page #FFFCF5 with pure white stat boxes and near-black pencil. Accents are bold, like marker. In dark mode the sticky note stays a bright yellow with black text, so emphasis is loud on both.",
+    light: { paper:"#FFFCF5", raised:"#FFFFFF", ink:"#222222", "ink-muted":"#595959", rule:"#E3DECE", "rule-strong":"#8A8578", red:"#C2271D", green:"#1F7A3A", blue:"#1E5FB4", yellow:"#7F6200", note:"#FFE45C", "note-ink":"#222222" },
+    dark:  { paper:"#000000", raised:"#0A0A0A", ink:"#FFFFFF", "ink-muted":"#ADADAD", rule:"#222222", "rule-strong":"#6B6B6B", red:"#FF5C52", green:"#4ED07A", blue:"#5EA2FF", yellow:"#FFD93D", note:"#FFE45C", "note-ink":"#000000" } }
+};
+const ROLES = [
+  ["paper","Page","bg"], ["raised","Raised box (stat boxes)","bg"], ["ink","Body text","text"], ["ink-muted","Labels, secondary text","text"],
+  ["rule","Hairlines (decoration)","deco"], ["rule-strong","Field and box borders","ui"],
+  ["red","Danger, errors","text"], ["green","Success, saved","text"], ["blue","Links, info, use bubbles","text"],
+  ["yellow","Warning text","text"], ["note","Sticky-note fill","bg"], ["note-ink","Text on a sticky note","note"]
+];
+const lum = h => { const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=0.03928?v/12.92:((v+0.055)/1.055)**2.4); return .2126*c[0]+.7152*c[1]+.0722*c[2]; };
+const ratio = (a,b) => { const x=lum(a), y=lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); };
+
+function panel(mode, p) {
+  const el = document.createElement("section");
+  el.className = "panel";
+  el.setAttribute("aria-label", mode + " mode");
+  for (const [k,v] of Object.entries(p)) el.style.setProperty("--p-" + k, v);
+  const rows = ROLES.map(([k, role, kind]) => {
+    let cell = '<span class="na">—</span>';
+    if (kind === "text" || kind === "ui" || kind === "deco" || kind === "note") {
+      const bg = kind === "note" ? p.note : p.paper;
+      const r = ratio(p[k], bg), need = kind === "text" || kind === "note" ? 4.5 : kind === "ui" ? 3 : null;
+      const badge = need == null ? '<span class="na">decor</span>' : r >= need ? `<span class="pass">${need === 3 ? "3:1" : "AA"}</span>` : `<span class="fail">below ${need}:1</span>`;
+      cell = `<span class="ratio">${r.toFixed(2)}</span>${badge}${kind === "note" ? ' <span class="label">on note</span>' : ""}`;
+    }
+    return `<tr><td><span class="chip" style="background:${p[k]}"></span></td><td class="tok">--${k}</td><td>${p[k]}</td><td>${role}</td><td>${cell}</td></tr>`;
+  }).join("");
+  el.innerHTML = `
+    <h2><span>${mode}</span><span>${mode === "Dark" ? "OLED black" : "Paper"}</span></h2>
+    <div class="charline"><span class="name">Thalia Brightwater</span><span class="meta">Human Fighter 3 · Soldier</span></div>
+    <div class="stats">
+      ${[["STR",16],["DEX",14],["CON",15],["INT",10],["WIS",12],["CHA",8]].map(([a,s]) => { const m=Math.floor((s-10)/2); return `<div class="stat"><span class="label">${a}</span><span class="mod">${m>=0?"+":"−"}${Math.abs(m)}</span><span class="score">${s}</span></div>`; }).join("")}
+    </div>
+    <div class="row2">
+      <div class="field"><span class="label">Hit points</span><span class="val">28 / 31</span></div>
+      <div class="field"><span class="label">Armor class</span><span class="val">18</span></div>
+    </div>
+    <div class="note"><strong>2 choices left.</strong> Pick a Fighting Style and a Martial Archetype.</div>
+    <div class="uses">
+      <span class="bubble">Action Surge <span class="n">1 / short rest</span></span>
+      <span class="bubble spent">Second Wind <span class="n">used</span></span>
+    </div>
+    <div class="status">
+      <span class="green">Saved to this browser.</span>
+      <span class="yellow">More than one item uses the key “longsword”.</span>
+      <span class="red">Saving failed. Recent changes may not be kept.</span>
+      <a href="#${current}">Open My Content</a>
+    </div>
+    <div class="tablebox"><table class="sw"><thead><tr><th></th><th>Token</th><th>Hex</th><th>Role</th><th>Contrast</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return el;
+}
+
+const KEYS = Object.keys(VARIANTS);
+let current = (location.hash || "").slice(1).toUpperCase();
+if (!VARIANTS[current]) current = "A";
+function render() {
+  const v = VARIANTS[current];
+  document.getElementById("title").textContent = `Palette ${current}: ${v.name}`;
+  document.getElementById("blurb").textContent = v.blurb;
+  document.getElementById("lbl").textContent = `${current} · ${v.name}`;
+  const box = document.getElementById("panels");
+  box.replaceChildren(panel("Light", v.light), panel("Dark", v.dark));
+  if (location.hash.slice(1) !== current) history.replaceState(null, "", "#" + current);
+}
+function step(d) { current = KEYS[(KEYS.indexOf(current) + d + KEYS.length) % KEYS.length]; render(); }
+document.getElementById("prev").addEventListener("click", () => step(-1));
+document.getElementById("next").addEventListener("click", () => step(1));
+document.addEventListener("keydown", e => {
+  const t = e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  if (e.key === "ArrowLeft") step(-1); if (e.key === "ArrowRight") step(1);
+});
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1).toUpperCase(); if (VARIANTS[h] && h !== current) { current = h; render(); } });
+render();
+</script>

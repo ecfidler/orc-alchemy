@@ -1,0 +1,376 @@
+<title>Alchemy Sheet Marks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: the ORC-145 layout E sheet (trimmed), then a strip of other places a sticky note could go. The bar switches note style, bubble style, use state and theme. Palette is ORC-144 "Highlighter". */
+:root {
+  --paper: #FFFCF5; --paper-raised: #FFFFFF; --ink: #222222; --ink-muted: #595959;
+  --rule: #E3DECE; --rule-strong: #8A8578;
+  --danger: #C2271D; --success: #1F7A3A; --info: #1E5FB4; --warning: #7F6200;
+  --note: #FFE45C; --note-ink: #222222;
+  --note-shadow: rgba(60, 45, 0, .22); --note-edge: color-mix(in srgb, var(--note) 70%, #000);
+  --bubble: color-mix(in srgb, var(--info) 12%, var(--paper-raised));
+  --bar: #222222; --bar-fg: #FFFCF5;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --grain-opacity: .05;
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #000000; --paper-raised: #0A0A0A; --ink: #FFFFFF; --ink-muted: #ADADAD; --rule: #222222; --rule-strong: #6B6B6B;
+  --danger: #FF5C52; --success: #4ED07A; --info: #5EA2FF; --warning: #FFD93D; --note: #FFE45C; --note-ink: #000000;
+  --note-shadow: rgba(255, 228, 92, .18); --note-edge: color-mix(in srgb, var(--note) 75%, #000);
+  --bubble: color-mix(in srgb, var(--info) 18%, var(--paper-raised));
+  --bar: #FFFFFF; --bar-fg: #000000; --grain-opacity: .07; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #000000; --paper-raised: #0A0A0A; --ink: #FFFFFF; --ink-muted: #ADADAD; --rule: #222222; --rule-strong: #6B6B6B;
+  --danger: #FF5C52; --success: #4ED07A; --info: #5EA2FF; --warning: #FFD93D; --note: #FFE45C; --note-ink: #000000;
+  --note-shadow: rgba(255, 228, 92, .18); --note-edge: color-mix(in srgb, var(--note) 75%, #000);
+  --bubble: color-mix(in srgb, var(--info) 18%, var(--paper-raised));
+  --bar: #FFFFFF; --bar-fg: #000000; --grain-opacity: .07; color-scheme: dark }
+
+html { background: var(--paper); }
+body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-weight: 450; font-size: 17px; line-height: 1.5; font-optical-sizing: auto; position: relative; min-height: 100%; }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; opacity: var(--grain-opacity); z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.sheet { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 160px; }
+.proto { font-family: var(--sans); font-size: 12px; color: var(--ink-muted); letter-spacing: .04em; margin-bottom: 12px; max-width: 70ch; }
+.proto b { color: var(--ink); font-weight: 600; }
+.lbl { font-family: var(--sans); font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-muted); line-height: 1.2; }
+.num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { margin: 0; font-weight: 500; text-wrap: balance; }
+p { margin: 0; }
+.muted, .dim { color: var(--ink-muted); }
+.prof { font-weight: 600; }
+button { font: inherit; color: inherit; }
+
+/* ---------- layout E, trimmed ---------- */
+.a-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr); gap: 14px; align-items: stretch; position: relative; }
+.a-namebox { border: 1.5px solid var(--rule-strong); border-radius: 6px 26px 26px 6px; padding: 10px 18px 6px; display: grid; align-content: end; background: var(--paper-raised); position: relative; }
+.a-name { font-size: clamp(26px, 4vw, 36px); line-height: 1.05; border-bottom: 1px solid var(--rule-strong); padding-bottom: 2px; }
+.a-meta { border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 8px 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 18px; background: var(--paper); }
+.a-meta div { display: grid; }
+.a-meta span:first-child { border-bottom: 1px solid var(--rule-strong); min-height: 26px; }
+.a-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 16px; margin-top: 16px; align-items: start; }
+.a-col { display: grid; gap: 12px; min-width: 0; align-content: start; }
+.a-c1 { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; }
+.a-abil { display: grid; gap: 16px; align-content: start; background: var(--panel); border-radius: 6px; padding: 8px 6px 18px; }
+.a-ab { border: 1.5px solid var(--rule-strong); border-radius: 10px; background: var(--paper-raised); text-align: center; position: relative; display: grid; aspect-ratio: 1; max-width: 100%; padding: 8px 2px 14px; gap: 4px; align-content: center; }
+.a-ab .lbl { font-size: 9px; letter-spacing: .03em; }
+.a-ab .mod { font-size: 32px; line-height: 1.05; font-weight: 500; }
+.a-ab .score { position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); background: var(--paper-raised); border: 1.5px solid var(--rule-strong); border-radius: 999px; padding: 0 10px; font-size: 14px; }
+.a-stack { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.a-small { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; border: 1.5px solid var(--rule-strong); border-radius: 6px; overflow: hidden; background: var(--paper-raised); }
+.a-small .v { border-right: 1.5px solid var(--rule-strong); text-align: center; font-size: 20px; padding: 4px 0; }
+.a-small .lbl { padding: 0 8px; }
+.a-frame { border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 8px 10px 6px; display: grid; gap: 6px; background: var(--paper-raised); position: relative; }
+.a-frame > .lbl:last-child { text-align: center; padding-top: 4px; border-top: 1px solid var(--rule); }
+.d-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.d-list li { display: grid; grid-template-columns: 14px 28px minmax(0, 1fr); align-items: baseline; gap: 4px; font-size: 14.5px; }
+.box9 { width: 10px; height: 10px; border: 1.5px solid var(--ink-muted); display: inline-block; }
+.box9.on { background: var(--ink); border-color: var(--ink); }
+.a-panel { background: var(--panel); border-radius: 6px; padding: 10px; display: grid; gap: 10px; }
+.a-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.a-shield { border: 1.5px solid var(--rule-strong); background: var(--paper-raised); text-align: center; padding: 8px 4px; display: grid; border-radius: 6px; }
+.a-shield.ac { border-radius: 8px 8px 50% 50% / 8px 8px 34% 34%; padding-bottom: 14px; }
+.a-shield .v { font-size: 26px; line-height: 1.1; font-weight: 500; }
+.a-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.a-table th { text-align: left; font-weight: 400; padding: 2px 6px 2px 0; }
+.a-table td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--rule-strong); background: var(--panel); }
+.a-lines p { border-bottom: 1px solid var(--rule); padding: 3px 0; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+
+/* ---------- features ---------- */
+.feats { display: grid; gap: 12px; font-size: 14.5px; }
+.feat { display: grid; gap: 1px; position: relative; }
+.feat .fn { font-weight: 600; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.rest { font-family: var(--sans); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); font-weight: 500; }
+
+/* Bubble A: one circle per use, slashed when spent */
+.uses { display: inline-flex; gap: 5px; align-items: center; }
+.u { all: unset; cursor: pointer; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--info); background: var(--bubble); position: relative; box-sizing: border-box; }
+.u:focus-visible, .pool:focus-visible, .bub:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.u.spent { background: transparent; border-color: var(--ink-muted); }
+.u.spent::after { content: ""; position: absolute; left: -3px; right: -3px; top: 50%; height: 2px; background: var(--ink); transform: rotate(-52deg); border-radius: 2px; }
+.pool { all: unset; cursor: pointer; display: inline-flex; align-items: baseline; gap: 3px; border: 1.5px solid var(--info); background: var(--bubble); border-radius: 999px; padding: 0 9px; font-family: var(--serif); font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pool .of { color: var(--ink-muted); }
+.pool.spent { border-color: var(--ink-muted); background: transparent; text-decoration: line-through; text-decoration-thickness: 2px; }
+.feat.out .fn > span:first-child { text-decoration: line-through; text-decoration-thickness: 2px; }
+.feat.out > span:last-child { color: var(--ink-muted); }
+
+/* Bubble B: the whole feature sits in a bubble; a spent bubble is crossed out */
+.bub { all: unset; cursor: pointer; display: grid; gap: 2px; border: 1.5px solid var(--info); background: var(--bubble); border-radius: 18px; padding: 6px 12px 8px; position: relative; overflow: hidden; }
+.bub .count { margin-left: auto; font-family: var(--sans); font-size: 11.5px; font-weight: 600; color: var(--info); font-variant-numeric: tabular-nums; }
+.bub.spent { background: transparent; border-style: dashed; border-color: var(--ink-muted); color: var(--ink-muted); }
+.bub.spent .count { color: var(--ink-muted); }
+.bub.spent::before, .bub.spent::after { content: ""; position: absolute; left: 4%; right: 4%; top: 50%; height: 2px; background: var(--ink); opacity: .75; border-radius: 2px; pointer-events: none; }
+.bub.spent::before { transform: rotate(-4deg); }
+.bub.spent::after { transform: rotate(4deg); }
+.bub .ticks { display: inline-flex; gap: 3px; }
+.bub .ticks i { width: 7px; height: 7px; border-radius: 50%; background: var(--info); }
+.bub .ticks i.spent { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-muted); }
+
+/* Bubble D: A and B merged (Ethan, 2026-10-16). Limited features sit in a bubble with real use circles; a pool shows its number large; the rest type sits top right; a spent bubble changes outline and color only. Spell slots use plain circles. */
+.bub2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; border: 1.5px solid var(--info); background: var(--bubble); border-radius: 18px; padding: 8px 14px 10px; }
+.bub2 .head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-weight: 600; min-width: 0; }
+.bub2 .body { grid-column: 1; min-width: 0; }
+.bub2 .side { grid-column: 2; grid-row: 1 / span 2; display: grid; justify-items: end; align-content: start; gap: 4px; }
+.bigpool { all: unset; cursor: pointer; display: inline-flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; line-height: 1; }
+.bigpool:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.bigpool .n { font-size: 30px; font-weight: 500; }
+.bigpool .of { font-size: 15px; color: var(--ink-muted); }
+.bub2.spent { background: transparent; border-style: dashed; border-color: var(--ink-muted); }
+.bub2.spent .head > span:first-child, .bub2.spent .body, .bub2.spent .bigpool .n { color: var(--ink-muted); }
+
+/* Bubble C: bubbles sit in a margin column, the rest it refills on below */
+.feats.margin .feat { grid-template-columns: 78px minmax(0, 1fr); column-gap: 12px; }
+.feats.margin .feat > * { grid-column: 2; }
+.feats.margin .feat > .gut { grid-column: 1; grid-row: 1 / span 2; display: grid; gap: 3px; align-content: start; justify-items: center; border-right: 1px solid var(--rule); padding-right: 10px; }
+.gut .uses { flex-wrap: wrap; justify-content: center; }
+.gut .rest { text-align: center; }
+
+/* ---------- sticky notes ---------- */
+.note { background: var(--note); color: var(--note-ink); font-family: var(--sans); font-size: 12.5px; line-height: 1.35; font-weight: 500; }
+.note b { font-weight: 700; }
+.note button { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; font-weight: 700; }
+.note button:focus-visible { outline: 2px solid var(--note-ink); outline-offset: 1px; }
+/* A: a tilted note stuck over the box's corner */
+/* Rule: the note sits in its own space above the box and overlaps only the box's top border, never its content. */
+.nA { position: relative; z-index: 3; justify-self: end; margin: 0 -6px -7px 0; width: fit-content; max-width: min(240px, calc(100% - 8px)); padding: 9px 11px 11px; transform: rotate(2.2deg); box-shadow: 0 6px 10px -4px var(--note-shadow), 0 1px 0 var(--note-edge); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%); }
+.nA::after { content: ""; position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; background: linear-gradient(135deg, var(--note-edge) 50%, transparent 50%); }
+/* B: a flag tab out of the box's left edge; the message runs inline */
+.nB-host { position: relative; min-width: 0; }
+.nB { position: absolute; z-index: 3; left: -14px; top: 10px; width: 10px; height: 26px; border-radius: 2px 0 0 2px; box-shadow: -1px 1px 0 var(--note-edge); }
+.nB-msg { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; padding: 4px 8px; border-left: 4px solid var(--note); background: color-mix(in srgb, var(--note) 22%, var(--paper-raised)); font-family: var(--sans); font-size: 12.5px; font-weight: 500; }
+.nB-msg button { all: unset; cursor: pointer; text-decoration: underline; font-weight: 700; }
+/* C: a flat note strip across the top of the box */
+.nC { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 7px 12px; border-radius: 3px 3px 0 0; box-shadow: 0 2px 0 var(--note-edge); }
+.nC::before { content: "Needs you"; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+
+/* ---------- other places ---------- */
+.others { margin-top: 44px; display: grid; gap: 14px; }
+.others > h2 { font-size: 22px; border-bottom: 1.5px solid var(--rule-strong); padding-bottom: 2px; }
+.cands { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 26px 18px; align-items: start; }
+.cand { display: grid; gap: 8px; min-width: 0; }
+.cand .cap { font-family: var(--sans); font-size: 12px; color: var(--ink-muted); }
+.cand .cap b { color: var(--ink); font-weight: 600; }
+.rec { font-family: var(--sans); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.rec.yes { color: var(--success); } .rec.no { color: var(--warning); }
+.steps { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1.5px solid var(--rule-strong); }
+.steps span { padding: 6px 10px; font-size: 15px; position: relative; color: var(--ink-muted); }
+.steps span.cur { color: var(--ink); border-bottom: 3px solid var(--ink); margin-bottom: -1.5px; }
+.steps .cnt { font-family: var(--sans); font-size: 11px; font-weight: 700; margin-left: 4px; }
+.cnt.pill { background: var(--note); color: var(--note-ink); border-radius: 999px; padding: 0 6px; }
+.cnt.sq { background: var(--note); color: var(--note-ink); padding: 1px 5px; transform: rotate(3deg); display: inline-block; box-shadow: 0 2px 3px -1px var(--note-shadow); }
+.cnt.ul { border-bottom: 4px solid var(--note); }
+.optlist { display: grid; gap: 4px; font-size: 15px; }
+.optlist label { display: flex; gap: 8px; align-items: center; }
+.btnish { font-family: var(--sans); font-size: 13px; border: 1.5px solid var(--ink); border-radius: 4px; padding: 4px 10px; background: var(--paper-raised); justify-self: start; }
+.btnish[aria-disabled="true"] { color: var(--ink-muted); border-color: var(--rule-strong); }
+.warn { color: var(--warning); font-family: var(--sans); font-size: 13px; font-weight: 500; }
+
+/* ---------- phone ---------- */
+@media (max-width: 760px) {
+  .a-head { grid-template-columns: 1fr; }
+  .a-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .a-cols { grid-template-columns: 1fr; }
+  .a-c1 { grid-template-columns: 1fr; }
+  .a-abil { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 10px; }
+  .nA { right: 0; }
+  .nB { left: -10px; width: 7px; }
+}
+
+/* ---------- prototype bar (not part of the design) ---------- */
+.bar { position: fixed; z-index: 10; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bar); color: var(--bar-fg); border-radius: 18px; padding: 6px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; font-family: var(--sans); font-size: 13px; box-shadow: 0 6px 24px rgba(0,0,0,.3); width: max-content; max-width: calc(100vw - 32px); }
+.bar button { all: unset; cursor: pointer; padding: 7px 10px; border-radius: 12px; white-space: nowrap; }
+.bar button:hover { background: color-mix(in srgb, var(--bar-fg) 16%, transparent); }
+.bar button:focus-visible { outline: 2px solid var(--bar-fg); outline-offset: 1px; }
+.bar .sep { width: 1px; align-self: stretch; background: color-mix(in srgb, var(--bar-fg) 30%, transparent); margin: 4px 2px; }
+</style>
+
+<main class="sheet" id="sheet"></main>
+
+<nav class="bar" aria-label="Prototype controls">
+  <button id="note" title="Sticky-note style (N)"></button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="bubble" title="Bubble style (B)"></button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="state" title="Use state (S)"></button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="theme"></button>
+</nav>
+
+<script>
+// Example character: the same SRD level 5 paladin as the ORC-145 prototype.
+const C = {
+  name: "Isolde Varrow", player: "Ethan", race: "Human", background: "Acolyte", alignment: "Lawful Good",
+  cls: "Paladin 5 (Oath of Devotion)", xp: 6500, ac: 18, init: "+0", prof: "+3", passive: 11,
+  abilities: [["STR",16,"+3",false,"+3"],["DEX",10,"+0",false,"+0"],["CON",14,"+2",false,"+2"],["INT",8,"−1",false,"−1"],["WIS",12,"+1",true,"+4"],["CHA",16,"+3",true,"+6"]],
+  attacks: [["Longsword","+6","1d8 + 3 slashing"],["Javelin","+6","1d6 + 3 piercing"]],
+};
+const NAMES = {STR:"Strength",DEX:"Dexterity",CON:"Constitution",INT:"Intelligence",WIS:"Wisdom",CHA:"Charisma"};
+// Limited-use things. kind "uses" = one mark per use; kind "pool" = a number that goes down.
+const LIMITED = {
+  ds:   { kind: "uses", max: 4, rest: "Long rest" },
+  cd:   { kind: "uses", max: 1, rest: "Short rest" },
+  loh:  { kind: "pool", max: 25, rest: "Long rest" },
+  s1:   { kind: "uses", max: 4, rest: "Long rest" },
+  s2:   { kind: "uses", max: 2, rest: "Long rest" },
+};
+const FEATS = [
+  ["Lay on Hands", "Pool of hit points you restore by touch. Spend 5 to cure a disease or neutralize a poison.", "loh"],
+  ["Divine Sense", "Know the location of celestials, fiends and undead within 60 ft. until the end of your next turn.", "ds"],
+  ["Channel Divinity: Sacred Weapon", "Add +3 to attack rolls with one weapon for 1 minute.", "cd"],
+  ["Extra Attack", "Attack twice when you take the Attack action."],
+  ["Divine Smite", "Spend a spell slot on a hit to deal 2d8 extra radiant damage, +1d8 per slot level above 1st."],
+  ["Fighting Style: Defense", "+1 to AC while wearing armor."],
+];
+const PRESETS = {
+  "Fresh":     { ds: 0, cd: 0, loh: 0, s1: 0, s2: 0 },
+  "Some used": { ds: 1, cd: 1, loh: 12, s1: 2, s2: 0 },
+  "All spent": { ds: 4, cd: 1, loh: 25, s1: 4, s2: 2 },
+};
+const NOTES = { A: "Stuck note", B: "Flag tab", C: "Note strip" };
+const BUBBLES = { D: "Merged (A + B)", A: "Use circles", B: "Whole bubble", C: "Margin column" };
+let noteV = "A", bubV = "D", preset = "Some used";
+let used = { ...PRESETS[preset] };
+const root = document.documentElement;
+const lbl = t => `<span class="lbl">${t}</span>`;
+
+// ---- bubbles ----
+function circles(id) {
+  const L = LIMITED[id];
+  return `<span class="uses" role="group" aria-label="${L.max} uses, ${L.max - used[id]} left">${Array.from({length: L.max}, (_, i) =>
+    `<button class="u ${i < used[id] ? "spent" : ""}" data-id="${id}" data-i="${i}" aria-label="Use ${i + 1}${i < used[id] ? ", spent" : ""}"></button>`).join("")}</span>`;
+}
+function pool(id) {
+  const L = LIMITED[id], left = L.max - used[id];
+  return `<button class="pool ${left === 0 ? "spent" : ""}" data-id="${id}" data-pool="1" aria-label="${left} of ${L.max} left. Click to spend 5."><span>${left}</span><span class="of">/ ${L.max}</span></button>`;
+}
+const mark = id => LIMITED[id].kind === "pool" ? pool(id) : circles(id);
+const isOut = id => used[id] >= LIMITED[id].max;
+const restTag = id => `<span class="rest">${LIMITED[id].rest}</span>`;
+
+function feature([n, t, id]) {
+  if (!id) return bubV === "C"
+    ? `<div class="feat"><span class="gut" aria-hidden="true"></span><span class="fn"><span>${n}</span></span><span>${t}</span></div>`
+    : `<div class="feat"><span class="fn"><span>${n}</span></span><span>${t}</span></div>`;
+  if (bubV === "D") {
+    const L = LIMITED[id], left = L.max - used[id];
+    const side = L.kind === "pool"
+      ? `${restTag(id)}<button class="bigpool" data-id="${id}" data-pool="1" aria-label="${left} of ${L.max} left. Click to spend 5."><span class="n">${left}</span><span class="of">/ ${L.max}</span></button>`
+      : restTag(id);
+    const circ = L.kind === "uses" ? circles(id) : "";
+    return `<div class="bub2 ${left === 0 ? "spent" : ""}"><span class="head"><span>${n}</span>${circ}</span><span class="body">${t}</span><span class="side">${side}</span></div>`;
+  }
+  if (bubV === "A") return `<div class="feat ${isOut(id) ? "out" : ""}"><span class="fn"><span>${n}</span>${mark(id)}${restTag(id)}</span><span>${t}</span></div>`;
+  if (bubV === "B") {
+    const L = LIMITED[id], left = L.max - used[id];
+    const count = L.kind === "pool" ? `${left} / ${L.max} left` : `${left} of ${L.max} left`;
+    const ticks = L.kind === "uses" && L.max > 1 ? `<span class="ticks" aria-hidden="true">${Array.from({length: L.max}, (_, i) => `<i class="${i < used[id] ? "spent" : ""}"></i>`).join("")}</span>` : "";
+    return `<button class="bub ${left === 0 ? "spent" : ""}" data-id="${id}" data-bub="1" aria-label="${n}: ${count}. Click to use."><span class="fn feat" style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-weight:600"><span>${n}</span>${ticks}<span class="count">${count} · ${L.rest.toLowerCase()}</span></span><span>${t}</span></button>`;
+  }
+  return `<div class="feat ${isOut(id) ? "out" : ""}"><span class="gut">${mark(id)}${restTag(id)}</span><span class="fn"><span>${n}</span></span><span>${t}</span></div>`;
+}
+function slotsRow() {
+  if (bubV === "B") return ["s1", "s2"].map((id, k) => {
+    const L = LIMITED[id], left = L.max - used[id];
+    return `<button class="bub ${left === 0 ? "spent" : ""}" data-id="${id}" data-bub="1" style="padding:2px 10px;display:inline-flex;gap:8px;align-items:center" aria-label="${k ? "2nd" : "1st"} level slots: ${left} of ${L.max} left"><span class="lbl">${k ? "2nd" : "1st"}</span><span class="ticks">${Array.from({length: L.max}, (_, i) => `<i class="${i < used[id] ? "spent" : ""}"></i>`).join("")}</span></button>`;
+  }).join("");
+  return `<span class="lbl">1st</span>${circles("s1")}<span class="lbl">2nd</span>${circles("s2")}`;
+}
+
+// ---- notes ----
+const unresolvedMsg = `<span><b>1 option left out of the sheet:</b> a fighting style from a pack that is not loaded.</span> <button type="button">Remap</button>`;
+function noteOn(boxHtml, msg, opts = {}) {
+  if (noteV === "A") return boxHtml.replace("<!--STRIP-->", `<div class="note nA" role="note">${msg}</div>`);
+  if (noteV === "B") return boxHtml.replace("<!--NOTE-->", `<span class="note nB" aria-hidden="true"></span>`).replace("<!--MSG-->", `<div class="nB-msg" role="note">${msg}</div>`);
+  return boxHtml.replace("<!--STRIP-->", `<div class="note nC" role="note">${msg}</div>`);
+}
+
+function render() {
+  const ab = C.abilities.map(([a,s,m]) => `<div class="a-ab">${lbl(NAMES[a])}<span class="mod num">${m}</span><span class="score num">${s}</span></div>`).join("");
+  const saves = C.abilities.map(([a,,,p,sv]) => `<li><span class="box9 ${p?"on":""}"></span><span class="num ${p?"prof":"dim"}">${sv}</span><span class="${p?"":"dim"}">${NAMES[a]}</span></li>`).join("");
+  const nameBox = `<div class="nB-host" style="display:grid;gap:0"><!--STRIP--><div class="a-namebox"><!--NOTE--><h1 class="a-name">${C.name}</h1>${lbl("Character name")}</div><!--MSG--></div>`;
+  const header = `<header class="a-head">${noteOn(nameBox, unresolvedMsg)}
+    <div class="a-meta">
+      <div><span>${C.cls}</span>${lbl("Class &amp; level")}</div><div><span>${C.background}</span>${lbl("Background")}</div><div><span>${C.player}</span>${lbl("Player name")}</div>
+      <div><span>${C.race}</span>${lbl("Race")}</div><div><span>${C.alignment}</span>${lbl("Alignment")}</div><div><span class="num">${C.xp.toLocaleString()}</span>${lbl("Experience points")}</div>
+    </div></header>`;
+
+  const sheet = `${header}
+  <div class="a-cols">
+    <div class="a-col"><div class="a-c1"><div class="a-abil">${ab}</div><div class="a-stack">
+      <div class="a-small"><span class="v num">&nbsp;</span>${lbl("Inspiration")}</div>
+      <div class="a-small"><span class="v num">${C.prof}</span>${lbl("Proficiency bonus")}</div>
+      <div class="a-frame"><ul class="d-list">${saves}</ul>${lbl("Saving throws")}</div>
+    </div></div></div>
+    <div class="a-col">
+      <div class="a-panel"><div class="a-trio">
+        <div class="a-shield ac"><span class="v num">${C.ac}</span>${lbl("Armor class")}</div>
+        <div class="a-shield"><span class="v num">${C.init}</span>${lbl("Initiative")}</div>
+        <div class="a-shield"><span class="v num">30</span>${lbl("Speed")}</div></div></div>
+      <div class="a-frame"><table class="a-table"><thead><tr><th>${lbl("Name")}</th><th>${lbl("Atk bonus")}</th><th>${lbl("Damage/type")}</th></tr></thead><tbody>${C.attacks.map(([n,a,d])=>`<tr><td>${n}</td><td class="num">${a}</td><td>${d}</td></tr>`).join("")}</tbody></table>
+        <div class="a-lines"><p><span class="lbl">Spell save DC</span> <span class="num">14</span> <span class="lbl">Spell attack</span> <span class="num">+6</span></p><p><span class="lbl">Slots</span> ${slotsRow()}</p></div>
+        ${lbl("Attacks &amp; spellcasting")}</div>
+      <div class="a-frame"><div class="feats ${bubV === "C" ? "margin" : ""}">${FEATS.map(feature).join("")}</div>${lbl("Features &amp; traits")}</div>
+    </div>
+  </div>`;
+
+  // Other candidates for a note, with a recommendation each.
+  const stepCnt = n => noteV === "A" ? `<span class="cnt sq">${n}</span>` : noteV === "B" ? `<span class="cnt ul">${n} to do</span>` : `<span class="cnt pill">${n}</span>`;
+  const cand = (title, rec, recYes, body, cap) => `<div class="cand">${title ? `<div class="cap"><b>${title}</b> · <span class="rec ${recYes ? "yes" : "no"}">${rec}</span></div>` : ""}${body}${cap ? `<p class="cap">${cap}</p>` : ""}</div>`;
+  const choiceBox = `<div class="nB-host" style="display:grid"><!--STRIP--><div class="a-frame"><!--NOTE--><div class="optlist"><label><span class="box9"></span> Defense</label><label><span class="box9"></span> Dueling</label><label><span class="box9"></span> Great Weapon Fighting</label><label><span class="box9"></span> Protection</label></div>${lbl("Fighting style")}</div><!--MSG--></div>`;
+  const conflictBox = `<div class="nB-host" style="display:grid"><!--STRIP--><div class="a-frame" style="gap:8px"><!--NOTE--><p style="font-size:15px">Two items in <i>Sword Coast Extras</i> use the key <code>:hexblade</code>.</p><span class="btnish" aria-disabled="true">Apply and import</span>${lbl("Import")}</div><!--MSG--></div>`;
+  const logBox = (asNote) => asNote
+    ? `<div class="nB-host" style="display:grid"><!--STRIP--><div class="a-frame"><!--NOTE--><p style="font-size:15px">Background “Far Traveler” has key <code>:far-traveller</code>.</p>${lbl("Import log")}</div><!--MSG--></div>`
+    : `<div class="a-frame"><p class="warn">Background keys (1)</p><p style="font-size:15px">Background “Far Traveler” has key <code>:far-traveller</code>. Characters keep working.</p>${lbl("Import log")}</div>`;
+
+  const others = `<section class="others"><h2>Other places a note could go</h2>
+    <p class="proto">Placement rule for the stuck note: it takes its own space above the box and overlaps only the top border, so it never covers what is in the box. Recommendation: a sticky note means <b>you have to do something here</b>. A warning that needs nothing from you stays as yellow warning text, so notes keep their weight.</p>
+    <div class="cands">
+      ${cand("Builder step bar: choices left", "Note", true,
+        `<div class="steps"><span>Race</span><span class="cur">Class ${stepCnt(1)}</span><span>Abilities</span><span>Spells ${stepCnt(2)}</span><span>Equipment</span></div>`,
+        "The count today is a plain black badge.")}
+      ${cand("Builder: a choice not made yet", "Note", true, noteOn(choiceBox, `<span><b>1 to choose.</b></span>`), "Too many picked would use the danger red, not a note.")}
+      ${cand("Import: key conflicts to settle", "Note", true, noteOn(conflictBox, `<span><b>Choose for each conflict</b> (0 of 1) before import.</span>`))}
+      ${cand("Import log: a background key warning", "Warning text", false, logBox(false), "Nothing to do, so no note. For comparison, as a note:")}
+      ${cand("", "", false, noteOn(logBox(true), `<span><b>Background key differs from its name.</b></span>`))}
+    </div></section>`;
+
+  document.getElementById("sheet").innerHTML =
+    `<p class="proto"><b>ORC-146 prototype · throwaway.</b> Note ${noteV}: ${NOTES[noteV]}. Bubble ${bubV}: ${BUBBLES[bubV]}. Uses: ${preset}. Click a circle or a pool number to mark a use; click it again to clear. Look only: the app does not track uses.</p>` + sheet + others;
+  document.getElementById("note").textContent = `Note ${noteV} · ${NOTES[noteV]}`;
+  document.getElementById("bubble").textContent = `Bubble ${bubV} · ${BUBBLES[bubV]}`;
+  document.getElementById("state").textContent = `Uses: ${preset}`;
+  document.getElementById("theme").textContent = themeNow() === "dark" ? "Dark" : "Light";
+  document.body.dataset.note = noteV;
+  const h = `${noteV}${bubV}`; if (location.hash.slice(1) !== h) history.replaceState(null, "", "#" + h);
+}
+function themeNow() { return root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
+const cycle = (obj, k) => { const ks = Object.keys(obj); return ks[(ks.indexOf(k) + 1) % ks.length]; };
+const h0 = location.hash.slice(1).toUpperCase();
+if (/^[ABC][ABCD]$/.test(h0)) { noteV = h0[0]; bubV = h0[1]; }
+document.getElementById("note").onclick = () => { noteV = cycle(NOTES, noteV); render(); };
+document.getElementById("bubble").onclick = () => { bubV = cycle(BUBBLES, bubV); render(); };
+document.getElementById("state").onclick = () => { preset = cycle(PRESETS, preset); used = { ...PRESETS[preset] }; render(); };
+document.getElementById("theme").onclick = () => { root.dataset.theme = themeNow() === "dark" ? "light" : "dark"; render(); };
+document.addEventListener("keydown", e => {
+  const t = e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  const k = e.key.toLowerCase();
+  if (k === "n") document.getElementById("note").click();
+  if (k === "b") document.getElementById("bubble").click();
+  if (k === "s") document.getElementById("state").click();
+});
+document.getElementById("sheet").addEventListener("click", e => {
+  const el = e.target.closest("[data-id]"); if (!el) return;
+  const id = el.dataset.id, L = LIMITED[id];
+  if (el.dataset.pool) used[id] = used[id] >= L.max ? 0 : Math.min(L.max, used[id] + 5);
+  else if (el.dataset.bub) used[id] = used[id] >= L.max ? 0 : used[id] + (L.kind === "pool" ? 5 : 1);
+  else { const i = +el.dataset.i; used[id] = i < used[id] ? i : i + 1; }
+  used[id] = Math.min(used[id], L.max);
+  render();
+});
+render();
+</script>
