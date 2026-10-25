@@ -450,22 +450,22 @@ This is the order in which the M8 build tickets were filed. Linear holds the
 tickets, their blocking relations and their status. When this list and
 Linear disagree, Linear wins.
 
-1. Create `@orc-alchemy/ui`.
-2. App shell.
-3. Home page.
-4. Button.
-5. Fieldset and Field.
-6. Toggle and ToggleGroup.
-7. Checkbox and Radio.
-8. NumberField.
-9. AlertDialog and `confirm()`.
-10. Select, Combobox, Menu and Autocomplete.
-11. Preferences page.
-12. Paper patterns in the package.
-13. Sheet layout F, without spells.
-14. Sheet Spellcasting section.
-15. Stuck notes where the user must act.
-16. Palette clean-up.
+1. Create `@orc-alchemy/ui` (ORC-155).
+2. App shell (ORC-156).
+3. Home page (ORC-157).
+4. Button (ORC-158).
+5. Fieldset and Field (ORC-159).
+6. Toggle and ToggleGroup (ORC-160).
+7. Checkbox and Radio (ORC-161).
+8. NumberField (ORC-162).
+9. AlertDialog and `confirm()` (ORC-163).
+10. Select, Combobox, Menu and Autocomplete (ORC-164).
+11. Preferences page (ORC-165).
+12. Paper patterns in the package (ORC-166).
+13. Sheet layout F, without spells (ORC-167).
+14. Sheet Spellcasting section (ORC-168).
+15. Stuck notes where the user must act (ORC-169).
+16. Palette clean-up (ORC-170).
 
 **Review:** each ticket that changes a page attaches Playwright screenshots
 of the page in light and dark to its PR. CI has no screenshot comparison
