@@ -8,7 +8,7 @@
 // Custom base weapon (the subtype :other) has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
 // load use the magic items store.
-import { Field, Fieldset } from "@orc-alchemy/ui";
+import { Field, FieldErrors, Fieldset } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
@@ -219,12 +219,10 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
             <textarea value={String(get("description") ?? "")} onChange={(e) => change({ description: e.target.value })} className="block w-full border border-black" rows={6} />,
           )}
           {(type === "weapon" || type === "armor") && (
-            <Field label="Base item" errors={fieldErrors(problems, MI + "subtypes", "Base item")}>
-              <Fieldset legend={type === "weapon" ? "Base weapon" : "Base armor"}>
-                {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
-                {type === "weapon" && [...weapons].sort((a, b) => a.name.localeCompare(b.name)).map(({ key, name }) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
-              </Fieldset>
-            </Field>
+            <Fieldset legend={type === "weapon" ? "Base weapon" : "Base armor"} errors={fieldErrors(problems, MI + "subtypes", "Base item")}>
+              {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
+              {type === "weapon" && [...weapons].sort((a, b) => a.name.localeCompare(b.name)).map(({ key, name }) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
+            </Fieldset>
           )}
           {type === "weapon" && subtypes.includes(tag("other")) && (
             <Fieldset legend="Base weapon details">
@@ -272,25 +270,23 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
               <Select label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
             </Fieldset>
           )}
-          <Field label="Attunement" errors={fieldErrors(problems, MI + "attunement", "Attunement")}>
-            <Fieldset legend="Attunement">
-              {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] }))}
-              {attunement.length > 0 && (
+          <Fieldset legend="Attunement" errors={fieldErrors(problems, MI + "attunement", "Attunement")}>
+            {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] }))}
+            {attunement.length > 0 && (
+              <div>
+                {check("Any", attunement.length === 1 && attunement[0] === tag("any"), () => {}, true)}
                 <div>
-                  {check("Any", attunement.length === 1 && attunement[0] === tag("any"), () => {}, true)}
-                  <div>
-                    Class:{" "}
-                    {check("Spellcaster", attunement.includes(tag("spellcaster")), () => toggleAttunement("spellcaster"))}
-                    {classes.map(({ key, name }) => check(name, attunement.includes(tag(key)), () => toggleAttunement(key)))}
-                  </div>
-                  <div>
-                    Alignment:{" "}
-                    {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKw(name))), () => toggleAttunement(nameToKw(name))))}
-                  </div>
+                  Class:{" "}
+                  {check("Spellcaster", attunement.includes(tag("spellcaster")), () => toggleAttunement("spellcaster"))}
+                  {classes.map(({ key, name }) => check(name, attunement.includes(tag(key)), () => toggleAttunement(key)))}
                 </div>
-              )}
-            </Fieldset>
-          </Field>
+                <div>
+                  Alignment:{" "}
+                  {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKw(name))), () => toggleAttunement(nameToKw(name))))}
+                </div>
+              </div>
+            )}
+          </Fieldset>
           <Fieldset legend="Item properties">
             {type === "weapon" && bonus("magical-attack-bonus", "Magical attack bonus")}
             {type === "weapon" && bonus("magical-damage-bonus", "Magical damage bonus")}
@@ -310,13 +306,13 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
               );
             })}
           </Fieldset>
-          <Fieldset legend="Saving throw bonus" label="Saving throws">
+          <Fieldset legend="Saving throw bonus" name="Saving throws">
             {ABILITIES.map((ability) => {
               const arg = `orcpub.dnd.e5.character/${ability}`;
               return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
             })}
           </Fieldset>
-          <Fieldset legend="Speed bonus" label="Speeds">
+          <Fieldset legend="Speed bonus" name="Speeds">
             {SPEEDS.map(({ label, increases, atLeast, walking }) => {
               const keys = [
                 { key: atLeast, text: "Becomes at least" },
@@ -330,7 +326,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
           {toggles("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES)}
           {toggles("Damage immunities", "damage-immunity", DAMAGE_TYPES)}
           {toggles("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw))}
-          <Field label="Modifiers" errors={fieldErrors(problems, MI + "modifiers", "Modifiers")} />
+          <FieldErrors label="Modifiers" errors={fieldErrors(problems, MI + "modifiers", "Modifiers")} />
         </div>
       )}
     </WithChoices>

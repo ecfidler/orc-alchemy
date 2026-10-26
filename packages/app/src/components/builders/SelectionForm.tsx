@@ -26,39 +26,37 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
   return (
     <div className="space-y-3">
       <TextField edit={edit} problems={problems} field="name" label="Name" />
-      <Field label="Options" errors={fieldErrors(problems.filter((p) => p.path.length === 1), "options", "Options")}>
-        <Fieldset legend="Options">
-          {options.map((option, i) => {
-            const n = i + 1;
-            const found = problems.filter((p) => p.path[0] === "options" && p.path[1] === i);
-            return (
-              <div key={i} className="mb-3">
-                <Field
-                  label={`Option ${n}`}
-                  errors={found.map((problem) =>
-                    "reason" in problem && problem.reason === "duplicate" ? `Option ${n} has the same name as another option.` : problemText(`Option ${n} name`, problem),
-                  )}
-                >
-                  <label className="mr-4 inline-block">
-                    Option {n} name{" "}
-                    <input type="text" value={String(option[tag("name")] ?? "")} onChange={(e) => edit.set(["options", i, "name"], e.target.value)} className="border border-black px-1" />
-                  </label>
-                  <Button onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} size="small">
-                    Delete option {n}
-                  </Button>
-                </Field>
-                <label className="block">
-                  Option {n} description
-                  <textarea value={String(option[tag("description")] ?? "")} onChange={(e) => edit.set(["options", i, "description"], e.target.value)} className="block w-full border border-black" />
+      <Fieldset legend="Options" errors={fieldErrors(problems.filter((p) => p.path.length === 1), "options", "Options")}>
+        {options.map((option, i) => {
+          const n = i + 1;
+          const found = problems.filter((p) => p.path[0] === "options" && p.path[1] === i);
+          return (
+            <div key={i} className="mb-3">
+              <Field
+                label={`Option ${n}`}
+                errors={found.map((problem) =>
+                  "reason" in problem && problem.reason === "duplicate" ? `Option ${n} has the same name as another option.` : problemText(`Option ${n} name`, problem),
+                )}
+              >
+                <label className="mr-4 inline-block">
+                  Option {n} name{" "}
+                  <input type="text" value={String(option[tag("name")] ?? "")} onChange={(e) => edit.set(["options", i, "name"], e.target.value)} className="border border-black px-1" />
                 </label>
-              </div>
-            );
-          })}
-          <Button onClick={() => edit.set(["options"], [...options, { [tag("name")]: newOptionName(options) }])} size="small">
-            Add option
-          </Button>
-        </Fieldset>
-      </Field>
+                <Button onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} size="small">
+                  Delete option {n}
+                </Button>
+              </Field>
+              <label className="block">
+                Option {n} description
+                <textarea value={String(option[tag("description")] ?? "")} onChange={(e) => edit.set(["options", i, "description"], e.target.value)} className="block w-full border border-black" />
+              </label>
+            </div>
+          );
+        })}
+        <Button onClick={() => edit.set(["options"], [...options, { [tag("name")]: newOptionName(options) }])} size="small">
+          Add option
+        </Button>
+      </Fieldset>
     </div>
   );
 }

@@ -253,33 +253,31 @@ export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; 
 export function Traits({ edit, problems = [], levels = false }: { edit: Edit; problems?: Problem[]; levels?: boolean }) {
   const traits = (edit.get("traits") ?? []) as ItemRecord[];
   return (
-    <Field label="Features / traits" errors={fieldErrors(problems, "traits", "Features / traits")}>
-      <Fieldset legend="Features / traits">
-        {traits.map((trait, i) => {
-          const n = i + 1;
-          return (
-            <div key={i} className="mb-3">
-              <label className="mr-4 inline-block">
-                Feature {n} name{" "}
-                <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => edit.set(["traits", i, "name"], e.target.value)} className="border border-black px-1" />
-              </label>
-              <Select label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
-              {levels && <Select label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
-              <Button onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} size="small">
-                Delete feature {n}
-              </Button>
-              <label className="block">
-                Feature {n} description
-                <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => edit.set(["traits", i, "description"], e.target.value)} className="block w-full border border-black" />
-              </label>
-            </div>
-          );
-        })}
-        <Button onClick={() => edit.set(["traits"], [...traits, {}])} size="small">
-          Add feature / trait
-        </Button>
-      </Fieldset>
-    </Field>
+    <Fieldset legend="Features / traits" errors={fieldErrors(problems, "traits", "Features / traits")}>
+      {traits.map((trait, i) => {
+        const n = i + 1;
+        return (
+          <div key={i} className="mb-3">
+            <label className="mr-4 inline-block">
+              Feature {n} name{" "}
+              <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => edit.set(["traits", i, "name"], e.target.value)} className="border border-black px-1" />
+            </label>
+            <Select label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
+            {levels && <Select label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
+            <Button onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} size="small">
+              Delete feature {n}
+            </Button>
+            <label className="block">
+              Feature {n} description
+              <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => edit.set(["traits", i, "description"], e.target.value)} className="block w-full border border-black" />
+            </label>
+          </div>
+        );
+      })}
+      <Button onClick={() => edit.set(["traits"], [...traits, {}])} size="small">
+        Add feature / trait
+      </Button>
+    </Fieldset>
   );
 }
 

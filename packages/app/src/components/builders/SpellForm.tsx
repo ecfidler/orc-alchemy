@@ -65,28 +65,26 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       {checkbox("attack-roll?", "Requires an attack roll")}
       {text("casting-time", "Casting time")}
       {text("range", "Range")}
-      <Field label="Components" errors={fieldErrors(problems, "components", "Components")}>
-        <Fieldset legend="Components">
-          {COMPONENTS.map((component) => (
-            <label key={component} className="mr-4">
-              <input
-                type="checkbox"
-                checked={components[tag(component)] === true}
-                onChange={(e) => set("components", { ...components, [tag(component)]: e.target.checked })}
-              />{" "}
-              {title(component)}
-            </label>
-          ))}
-          <label className="block">
-            Material component{" "}
-            <textarea
-              value={String(components[tag("material-component")] ?? "")}
-              onChange={(e) => set("components", { ...components, [tag("material-component")]: e.target.value })}
-              className="block w-full border border-black"
-            />
+      <Fieldset legend="Components" errors={fieldErrors(problems, "components", "Components")}>
+        {COMPONENTS.map((component) => (
+          <label key={component} className="mr-4">
+            <input
+              type="checkbox"
+              checked={components[tag(component)] === true}
+              onChange={(e) => set("components", { ...components, [tag(component)]: e.target.checked })}
+            />{" "}
+            {title(component)}
           </label>
-        </Fieldset>
-      </Field>
+        ))}
+        <label className="block">
+          Material component{" "}
+          <textarea
+            value={String(components[tag("material-component")] ?? "")}
+            onChange={(e) => set("components", { ...components, [tag("material-component")]: e.target.value })}
+            className="block w-full border border-black"
+          />
+        </label>
+      </Fieldset>
       {text("duration", "Duration")}
       <Field label="Description" errors={fieldErrors(problems, "description", "Description")}>
         <label className="block">
@@ -94,16 +92,14 @@ function SpellForm({ record, onChange, problems }: FormProps) {
           <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-black" rows={6} />
         </label>
       </Field>
-      <Field label="Class spell lists" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>
-        <Fieldset legend="Class spell lists">
-          {CLASSES.map((klass) => (
-            <label key={klass} className="mr-4">
-              <input type="checkbox" checked={lists[tag(klass)] === true} onChange={(e) => set("spell-lists", { ...lists, [tag(klass)]: e.target.checked })} />{" "}
-              {title(klass)}
-            </label>
-          ))}
-        </Fieldset>
-      </Field>
+      <Fieldset legend="Class spell lists" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>
+        {CLASSES.map((klass) => (
+          <label key={klass} className="mr-4">
+            <input type="checkbox" checked={lists[tag(klass)] === true} onChange={(e) => set("spell-lists", { ...lists, [tag(klass)]: e.target.checked })} />{" "}
+            {title(klass)}
+          </label>
+        ))}
+      </Fieldset>
     </div>
   );
 }
