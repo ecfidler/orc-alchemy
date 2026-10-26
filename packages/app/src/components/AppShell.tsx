@@ -2,16 +2,15 @@ import { AlertNote, AlertNotes, FlagTab, FlagTabs, Shell, type FlagColor } from 
 import { Link, Outlet, useLocation } from "react-router";
 import { useStorage } from "../storage/characters.ts";
 
-/** The flag tabs. A tab is current on its sections: each section is a path and the paths under it. */
+/** The flag tabs. A tab is current on its sections: each section is a path and the paths under it. Home has no tab. */
 const TABS: { label: string; to: string; color: FlagColor; sections: string[] }[] = [
-  // The character list is at / until the Home page moves it (ORC-157).
-  { label: "Characters", to: "/", color: "yellow", sections: ["/", "/sheet", "/build"] },
+  { label: "Characters", to: "/characters", color: "yellow", sections: ["/characters", "/sheet", "/build"] },
   { label: "Import", to: "/import", color: "blue", sections: ["/import"] },
   { label: "My Content", to: "/content", color: "green", sections: ["/content"] },
   { label: "Preferences", to: "/preferences", color: "orange", sections: ["/preferences"] },
 ];
 
-const inSection = (path: string, section: string) => (section === "/" ? path === "/" : path === section || path.startsWith(`${section}/`));
+const inSection = (path: string, section: string) => path === section || path.startsWith(`${section}/`);
 
 export function AppShell() {
   const { inMemory, failed, outdated } = useStorage();

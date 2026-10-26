@@ -32,7 +32,7 @@ test("export everything downloads a dmv-export bundle that imports back", async 
   await importFixture(page, "fighter-1", "Brannor Ironfist");
   await importFixture(page, "wizard-5", "Fimble Nackle");
 
-  await page.goto("/");
+  await page.goto("/characters");
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export everything" }).click();
   const download = await downloading;
@@ -49,7 +49,7 @@ test("export everything downloads a dmv-export bundle that imports back", async 
 });
 
 test("export everything with nothing stored says so", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/characters");
   await page.getByRole("button", { name: "Export everything" }).click();
   await expect(page.getByRole("alert")).toHaveText("There are no characters or homebrew to export");
 });

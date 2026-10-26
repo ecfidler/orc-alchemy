@@ -1,0 +1,17 @@
+<!-- The mug stain on the Home page: a placeholder until Ethan draws the real one. Replace this file to change it. Colors come from --stain and --stain-wash. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" aria-hidden="true">
+  <defs>
+    <filter id="mug-stain-rough" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="8" result="t" />
+      <feDisplacementMap in="SourceGraphic" in2="t" scale="9" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+  <g filter="url(#mug-stain-rough)">
+    <circle cx="110" cy="110" r="86" fill="var(--stain-wash)" fill-opacity=".09" />
+    <circle cx="110" cy="110" r="86" fill="none" stroke="var(--stain)" stroke-width="5" stroke-dasharray="470 40" stroke-linecap="round" transform="rotate(-30 110 110)" />
+    <circle cx="110" cy="110" r="82" fill="none" stroke="var(--stain)" stroke-opacity=".35" stroke-width="2" />
+    <circle cx="124" cy="100" r="84" fill="none" stroke="var(--stain)" stroke-opacity=".3" stroke-width="3" stroke-dasharray="150 400" transform="rotate(200 124 100)" />
+    <circle cx="200" cy="168" r="4" fill="var(--stain)" fill-opacity=".6" />
+    <circle cx="210" cy="152" r="2" fill="var(--stain)" fill-opacity=".5" />
+  </g>
+</svg>
