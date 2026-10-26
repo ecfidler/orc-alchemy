@@ -2,18 +2,16 @@ import { AlertNote, AlertNotes, FlagTab, FlagTabs, Shell, type FlagColor } from 
 import { Link, Outlet, useLocation } from "react-router";
 import { useStorage } from "../storage/characters.ts";
 
-/** The flag tabs. Each tab is current on the paths that start with one of its prefixes. */
-const TABS: { label: string; to: string; color: FlagColor; current: (path: string) => boolean }[] = [
-  {
-    label: "Characters",
-    to: "/",
-    color: "yellow",
-    current: (path) => path === "/" || path.startsWith("/sheet/") || path.startsWith("/build/"),
-  },
-  { label: "Import", to: "/import", color: "blue", current: (path) => path === "/import" || path.startsWith("/import/") },
-  { label: "My Content", to: "/content", color: "green", current: (path) => path === "/content" || path.startsWith("/content/") },
-  { label: "Preferences", to: "/preferences", color: "orange", current: (path) => path === "/preferences" },
+/** The flag tabs. A tab is current on its sections: each section is a path and the paths under it. */
+const TABS: { label: string; to: string; color: FlagColor; sections: string[] }[] = [
+  // The character list is at / until the Home page moves it (ORC-157).
+  { label: "Characters", to: "/", color: "yellow", sections: ["/", "/sheet", "/build"] },
+  { label: "Import", to: "/import", color: "blue", sections: ["/import"] },
+  { label: "My Content", to: "/content", color: "green", sections: ["/content"] },
+  { label: "Preferences", to: "/preferences", color: "orange", sections: ["/preferences"] },
 ];
+
+const inSection = (path: string, section: string) => (section === "/" ? path === "/" : path === section || path.startsWith(`${section}/`));
 
 export function AppShell() {
   const { inMemory, failed, outdated } = useStorage();
@@ -22,7 +20,7 @@ export function AppShell() {
     <Shell
       logo={
         <Link to="/" aria-label="Alchemy 5e" className="inline-flex items-center gap-2.5 text-ink no-underline">
-          <img src="/potion-16.png" width={32} height={32} alt="" className="block [image-rendering:pixelated]" />
+          <img src="/potion-32.png" width={32} height={32} alt="" className="block [image-rendering:pixelated]" />
           <span className="text-xl leading-none font-[560] tracking-[-0.01em] whitespace-nowrap">
             Alchemy
             <small className="ml-1 align-[3px] font-sans text-[10px] font-semibold tracking-[0.1em] text-ink-muted">5E</small>
@@ -32,7 +30,7 @@ export function AppShell() {
       nav={
         <FlagTabs label="Main">
           {TABS.map((tab) => (
-            <FlagTab key={tab.to} color={tab.color} current={tab.current(pathname)} render={<Link to={tab.to} />}>
+            <FlagTab key={tab.to} color={tab.color} current={tab.sections.some((section) => inSection(pathname, section))} render={<Link to={tab.to} />}>
               {tab.label}
             </FlagTab>
           ))}
@@ -47,7 +45,7 @@ export function AppShell() {
         )}
         {outdated && (
           <AlertNote tone="act">
-            <b>Alchemy 5e was updated in another tab.</b> Reload this page to keep saving.{" "}
+            <b>Alchemy 5e was updated in another tab.</b> Reload to keep saving.{" "}
             <button type="button" onClick={() => location.reload()}>
               Reload this page
             </button>

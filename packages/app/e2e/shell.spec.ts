@@ -40,5 +40,5 @@ test("the potion is the favicon and the rail mark", async ({ page, request }) =>
   }
   const mark = page.getByRole("link", { name: "Alchemy 5e" }).locator("img");
   await expect(mark).toHaveCSS("image-rendering", "pixelated");
-  expect(await mark.evaluate((img: HTMLImageElement) => [img.naturalWidth, img.width])).toEqual([16, 32]);
+  expect(await mark.evaluate((img: HTMLImageElement) => [img.naturalWidth, img.width])).toEqual([32, 32]);
 });

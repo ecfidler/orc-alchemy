@@ -179,7 +179,7 @@
     --fill: var(--note-blue);
     padding-right: 40px;
   }
-  .ui-alert-note-kind {
+  .ui-alert-note-tone {
     flex: none;
     font-size: 10px;
     font-weight: 700;

@@ -65,7 +65,7 @@ test("the storage alerts are alert notes, and the outdated one reloads the page"
   useStorage.setState({ outdated: true });
   renderAt("/");
   const alert = screen.getByRole("alert");
-  expect(alert.textContent).toBe("ActAlchemy 5e was updated in another tab. Reload this page to keep saving. Reload this page");
+  expect(alert.textContent).toBe("ActAlchemy 5e was updated in another tab. Reload to keep saving. Reload this page");
   fireEvent.click(within(alert).getByRole("button", { name: "Reload this page" }));
   expect(reload).toHaveBeenCalled();
   cleanup();

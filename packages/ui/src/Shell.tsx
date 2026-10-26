@@ -26,9 +26,12 @@ export function FlagTabs({ label, children }: { label: string; children: ReactNo
 
 export type FlagColor = "yellow" | "blue" | "green" | "orange";
 
+type FlagTabProps = { className?: string; "data-flag"?: FlagColor; "aria-current"?: "page" };
+
 /**
  * A flag tab. `render` is the link element, for example the router's link;
- * the tab adds its look, its text and `aria-current` to it.
+ * the tab gives it its class (replacing any class on it), its text and
+ * `aria-current`.
  */
 export function FlagTab({
   color,
@@ -38,16 +41,8 @@ export function FlagTab({
 }: {
   color: FlagColor;
   current: boolean;
-  render: ReactElement<{ className?: string }>;
+  render: ReactElement<FlagTabProps>;
   children: ReactNode;
 }) {
-  return cloneElement(
-    render,
-    {
-      className: "ui-flag-tab",
-      "data-flag": color,
-      "aria-current": current ? "page" : undefined,
-    } as { className: string },
-    children,
-  );
+  return cloneElement(render, { className: "ui-flag-tab", "data-flag": color, "aria-current": current ? "page" : undefined }, children);
 }
