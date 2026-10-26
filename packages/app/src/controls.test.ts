@@ -14,3 +14,8 @@ test("the app has no <button> element; its buttons are the package Button", () =
 test("the app imports no Base UI; its controls come from @orc-alchemy/ui", () => {
   expect(sources.filter(({ text }) => text.includes("@base-ui/react")).map(({ file }) => file)).toEqual([]);
 });
+
+// ORC-159: every fieldset comes from @orc-alchemy/ui.
+test("the app has no <fieldset> element; its fieldsets are the package Fieldset", () => {
+  expect(sources.filter(({ text }) => /<fieldset[\s>]/.test(text)).map(({ file }) => file)).toEqual([]);
+});

@@ -5,8 +5,9 @@
 // :attack-roll? booleans, :components a map of :verbal, :somatic and
 // :material booleans and the :material-component text, and :spell-lists a
 // map of class keyword to true or false.
+import { Field, Fieldset } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
-import { FieldProblems, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { fieldErrors, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SCHOOLS = ["abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 /** The old builder's spellcasting classes. */
@@ -20,13 +21,12 @@ function SpellForm({ record, onChange, problems }: FormProps) {
   const components = (record[tag("components")] ?? {}) as ItemRecord;
   const lists = (record[tag("spell-lists")] ?? {}) as ItemRecord;
   const text = (field: string, label: string) => (
-    <div>
+    <Field label={label} errors={fieldErrors(problems, field, label)}>
       <label className="block">
         {label}{" "}
         <input type="text" value={String(record[tag(field)] ?? "")} onChange={(e) => set(field, e.target.value)} className="border border-black px-1" />
       </label>
-      <FieldProblems problems={problems} field={field} label={label} />
-    </div>
+    </Field>
   );
   const checkbox = (field: string, label: string) => (
     <label className="block">
@@ -37,7 +37,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
   return (
     <div className="space-y-3">
       {text("name", "Name")}
-      <div>
+      <Field label="Level" errors={fieldErrors(problems, "level", "Level")}>
         <label className="block">
           Level{" "}
           <select value={String(record[tag("level")] ?? "")} onChange={(e) => set("level", parseInt(e.target.value, 10))} className="border border-black">
@@ -48,9 +48,8 @@ function SpellForm({ record, onChange, problems }: FormProps) {
             ))}
           </select>
         </label>
-        <FieldProblems problems={problems} field="level" label="Level" />
-      </div>
-      <div>
+      </Field>
+      <Field label="School" errors={fieldErrors(problems, "school", "School")}>
         <label className="block">
           School{" "}
           <select value={String(record[tag("school")] ?? "")} onChange={(e) => set("school", e.target.value)} className="border border-black">
@@ -61,52 +60,50 @@ function SpellForm({ record, onChange, problems }: FormProps) {
             ))}
           </select>
         </label>
-        <FieldProblems problems={problems} field="school" label="School" />
-      </div>
+      </Field>
       {checkbox("ritual", "Ritual")}
       {checkbox("attack-roll?", "Requires an attack roll")}
       {text("casting-time", "Casting time")}
       {text("range", "Range")}
-      <fieldset>
-        <legend>Components</legend>
-        {COMPONENTS.map((component) => (
-          <label key={component} className="mr-4">
-            <input
-              type="checkbox"
-              checked={components[tag(component)] === true}
-              onChange={(e) => set("components", { ...components, [tag(component)]: e.target.checked })}
-            />{" "}
-            {title(component)}
+      <Field label="Components" errors={fieldErrors(problems, "components", "Components")}>
+        <Fieldset legend="Components">
+          {COMPONENTS.map((component) => (
+            <label key={component} className="mr-4">
+              <input
+                type="checkbox"
+                checked={components[tag(component)] === true}
+                onChange={(e) => set("components", { ...components, [tag(component)]: e.target.checked })}
+              />{" "}
+              {title(component)}
+            </label>
+          ))}
+          <label className="block">
+            Material component{" "}
+            <textarea
+              value={String(components[tag("material-component")] ?? "")}
+              onChange={(e) => set("components", { ...components, [tag("material-component")]: e.target.value })}
+              className="block w-full border border-black"
+            />
           </label>
-        ))}
-        <label className="block">
-          Material component{" "}
-          <textarea
-            value={String(components[tag("material-component")] ?? "")}
-            onChange={(e) => set("components", { ...components, [tag("material-component")]: e.target.value })}
-            className="block w-full border border-black"
-          />
-        </label>
-        <FieldProblems problems={problems} field="components" label="Components" />
-      </fieldset>
+        </Fieldset>
+      </Field>
       {text("duration", "Duration")}
-      <div>
+      <Field label="Description" errors={fieldErrors(problems, "description", "Description")}>
         <label className="block">
           Description
           <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-black" rows={6} />
         </label>
-        <FieldProblems problems={problems} field="description" label="Description" />
-      </div>
-      <fieldset>
-        <legend>Class spell lists</legend>
-        {CLASSES.map((klass) => (
-          <label key={klass} className="mr-4">
-            <input type="checkbox" checked={lists[tag(klass)] === true} onChange={(e) => set("spell-lists", { ...lists, [tag(klass)]: e.target.checked })} />{" "}
-            {title(klass)}
-          </label>
-        ))}
-        <FieldProblems problems={problems} field="spell-lists" label="Class spell lists" />
-      </fieldset>
+      </Field>
+      <Field label="Class spell lists" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>
+        <Fieldset legend="Class spell lists">
+          {CLASSES.map((klass) => (
+            <label key={klass} className="mr-4">
+              <input type="checkbox" checked={lists[tag(klass)] === true} onChange={(e) => set("spell-lists", { ...lists, [tag(klass)]: e.target.checked })} />{" "}
+              {title(klass)}
+            </label>
+          ))}
+        </Fieldset>
+      </Field>
     </div>
   );
 }

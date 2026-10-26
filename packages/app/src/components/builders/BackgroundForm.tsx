@@ -8,6 +8,7 @@
 // :treasure :gp, the equipment checkboxes in :equipment {:key 1}, the "Any 1"
 // equipment choices in :equipment-choices [{:name :options {:key 1}}], and
 // :traits a vector of :name, :type and :description maps.
+import { Fieldset } from "@orc-alchemy/ui";
 import { tag, untag } from "../../engine/content.ts";
 import type { Choice } from "../../engine/builder-choices.ts";
 import {
@@ -88,17 +89,15 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
           edit.set(["profs", "language-options"], languageChoice === Number(n) ? undefined : { [tag("choose")]: Number(n), [tag("options")]: { [tag("any")]: true } })
         }
       />
-      <fieldset>
-        <legend className="font-bold">Tool Proficiencies</legend>
+      <Fieldset legend="Tool Proficiencies">
         <ValueChecks edit={edit} legend="Artisan's Tools: proficiency choice" path={["profs", "tool-options", "artisans-tool"]} values={ANY} name={(n) => `Any ${n}`} />
         <KeyChecks edit={edit} legend="Artisan's Tools: proficiencies" path={["profs", "tool"]} items={ARTISANS_TOOLS} />
         <ValueChecks edit={edit} legend="Musical Instruments: proficiency choice" path={["profs", "tool-options", "musical-instrument"]} values={ANY} name={(n) => `Any ${n}`} />
         <ValueChecks edit={edit} legend="Gaming Set: proficiency choice" path={["profs", "tool-options", "gaming-set"]} values={ANY} name={(n) => `Any ${n}`} />
         <KeyChecks edit={edit} legend="Vehicle proficiencies" path={["profs", "tool"]} items={VEHICLES} />
         <KeyChecks edit={edit} legend="Other tool proficiencies" path={["profs", "tool"]} items={MISC_TOOLS} />
-      </fieldset>
-      <fieldset>
-        <legend className="font-bold">Starting Equipment</legend>
+      </Fieldset>
+      <Fieldset legend="Starting Equipment">
         <label className="block">
           Gold{" "}
           <input
@@ -122,7 +121,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
         <KeyChecks edit={edit} legend="Other Tools" path={["equipment"]} items={MISC_TOOLS} on={1} />
         <KeyChecks edit={edit} legend="Holy Symbols" path={["equipment"]} items={HOLY_SYMBOLS} on={1} />
         <KeyChecks edit={edit} legend="Other Equipment" path={["equipment"]} items={MISC_EQUIPMENT} on={1} />
-      </fieldset>
+      </Fieldset>
       <Traits edit={edit} />
     </div>
   );

@@ -7,10 +7,10 @@
 // to bonus, the damage, condition and language checkboxes in :props, as
 // {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
 // and :description maps, :type absent, :action or :legendary-action.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Field, Fieldset } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -63,10 +63,9 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   const setTrait = (index: number, key: string, value: unknown) => set("traits", traits.map((trait, i) => (i === index ? withValue(trait, key, value) : trait)));
 
   const field = (name: string, label: string, control: ReactNode) => (
-    <div>
+    <Field label={label} errors={fieldErrors(problems, name, label)}>
       {control}
-      <FieldProblems problems={problems} field={name} label={label} />
-    </div>
+    </Field>
   );
   const text = (name: string, label: string) =>
     field(
@@ -92,14 +91,13 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   const numbers = (values: number[]) => values.map((n) => [n, n]);
   const orNone = (values: number[]) => [["", "-"], ...numbers(values)];
   const checkboxes = (legend: string, prop: string, keys: string[], label: (key: string) => string) => (
-    <fieldset>
-      <legend>{legend}</legend>
+    <Fieldset legend={legend}>
       {keys.map((key) => (
         <label key={key} className="mr-4 inline-block">
           <input type="checkbox" checked={((props[tag(prop)] ?? {}) as ItemRecord)[tag(key)] === true} onChange={() => toggle(prop, key)} /> {label(key)}
         </label>
       ))}
-    </fieldset>
+    </Fieldset>
   );
   const hitPoints = map("hit-points");
   const saves = map("saving-throws");
@@ -118,8 +116,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       {field(
         "hit-points",
         "Hit points",
-        <fieldset>
-          <legend>Hit points</legend>
+        <Fieldset legend="Hit points">
           {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
           {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
           <label className="inline-block">
@@ -134,27 +131,24 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
               className="w-20 border border-black px-1"
             />
           </label>
-        </fieldset>,
+        </Fieldset>,
       )}
       {text("speed", "Speed")}
-      <fieldset>
-        <legend>Abilities</legend>
+      <Fieldset legend="Abilities">
         {ABILITIES.map(([key, name]) => (
           <span key={key}>{select(name, record[tag(key)], numbers(range(1, 31)), (v) => set(key, Number(v)))}</span>
         ))}
-      </fieldset>
-      <fieldset>
-        <legend>Saving throws</legend>
+      </Fieldset>
+      <Fieldset legend="Saving throws">
         {ABILITIES.map(([key, name]) => (
           <span key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</span>
         ))}
-      </fieldset>
-      <fieldset>
-        <legend>Skills</legend>
+      </Fieldset>
+      <Fieldset legend="Skills">
         {SKILLS.map(({ key, name }) => (
           <span key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</span>
         ))}
-      </fieldset>
+      </Fieldset>
       {checkboxes("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`)}
       {checkboxes("Damage resistances", "damage-resistance", ["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`))}
       {checkboxes("Damage immunities", "damage-immunity", DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)}
@@ -183,8 +177,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       {field(
         "traits",
         "Actions / features",
-        <fieldset>
-          <legend>Actions / features</legend>
+        <Fieldset legend="Actions / features">
           {traits.map((trait, i) => {
             const n = i + 1;
             return (
@@ -207,7 +200,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
           <Button onClick={() => set("traits", [...traits, {}])} size="small">
             Add action / feature
           </Button>
-        </fieldset>,
+        </Fieldset>,
       )}
       {field(
         "legendary-actions",

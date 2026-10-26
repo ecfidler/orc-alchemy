@@ -6,9 +6,9 @@
 // selection is {:options []} (db.cljs default-selection), Add Option
 // appends {:name "Option N"} with the first N not in use, and delete
 // removes the option at its index.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Field, Fieldset } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
-import { editor, FieldProblems, problemText, TextField, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { editor, fieldErrors, problemText, TextField, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const OPTIONS = tag("options");
 
@@ -26,39 +26,39 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
   return (
     <div className="space-y-3">
       <TextField edit={edit} problems={problems} field="name" label="Name" />
-      <fieldset>
-        <legend className="font-bold">Options</legend>
-        {options.map((option, i) => {
-          const n = i + 1;
-          const found = problems.filter((p) => p.path[0] === "options" && p.path[1] === i);
-          return (
-            <div key={i} className="mb-3">
-              <label className="mr-4 inline-block">
-                Option {n} name{" "}
-                <input type="text" value={String(option[tag("name")] ?? "")} onChange={(e) => edit.set(["options", i, "name"], e.target.value)} className="border border-black px-1" />
-              </label>
-              <Button onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} size="small">
-                Delete option {n}
-              </Button>
-              {found.length > 0 && (
-                <ul aria-label={`Problems: Option ${n}`} className="text-red-700">
-                  {found.map((problem, j) => (
-                    <li key={j}>{"reason" in problem && problem.reason === "duplicate" ? `Option ${n} has the same name as another option.` : problemText(`Option ${n} name`, problem)}</li>
-                  ))}
-                </ul>
-              )}
-              <label className="block">
-                Option {n} description
-                <textarea value={String(option[tag("description")] ?? "")} onChange={(e) => edit.set(["options", i, "description"], e.target.value)} className="block w-full border border-black" />
-              </label>
-            </div>
-          );
-        })}
-        <Button onClick={() => edit.set(["options"], [...options, { [tag("name")]: newOptionName(options) }])} size="small">
-          Add option
-        </Button>
-        <FieldProblems problems={problems.filter((p) => p.path.length === 1)} field="options" label="Options" />
-      </fieldset>
+      <Field label="Options" errors={fieldErrors(problems.filter((p) => p.path.length === 1), "options", "Options")}>
+        <Fieldset legend="Options">
+          {options.map((option, i) => {
+            const n = i + 1;
+            const found = problems.filter((p) => p.path[0] === "options" && p.path[1] === i);
+            return (
+              <div key={i} className="mb-3">
+                <Field
+                  label={`Option ${n}`}
+                  errors={found.map((problem) =>
+                    "reason" in problem && problem.reason === "duplicate" ? `Option ${n} has the same name as another option.` : problemText(`Option ${n} name`, problem),
+                  )}
+                >
+                  <label className="mr-4 inline-block">
+                    Option {n} name{" "}
+                    <input type="text" value={String(option[tag("name")] ?? "")} onChange={(e) => edit.set(["options", i, "name"], e.target.value)} className="border border-black px-1" />
+                  </label>
+                  <Button onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} size="small">
+                    Delete option {n}
+                  </Button>
+                </Field>
+                <label className="block">
+                  Option {n} description
+                  <textarea value={String(option[tag("description")] ?? "")} onChange={(e) => edit.set(["options", i, "description"], e.target.value)} className="block w-full border border-black" />
+                </label>
+              </div>
+            );
+          })}
+          <Button onClick={() => edit.set(["options"], [...options, { [tag("name")]: newOptionName(options) }])} size="small">
+            Add option
+          </Button>
+        </Fieldset>
+      </Field>
     </div>
   );
 }

@@ -257,7 +257,7 @@ const apply = () => screen.getByRole<HTMLButtonElement>("button", { name: /^(App
 test("a file with key conflicts stores nothing until each conflict has a choice", async () => {
   const step = await loadAThenB();
   expect(within(step).getByRole("heading").textContent).toBe("Key conflicts in duplicate-external-b.orcbrew");
-  expect(within(step).getAllByRole("group").map((g) => g.querySelector("legend")!.textContent)).toEqual([
+  expect(within(step).getAllByRole("group").map((g) => document.getElementById(g.getAttribute("aria-labelledby")!)!.textContent)).toEqual([
     "classes: artificer",
     "classes: monster-hunter",
     "subclasses: artillerist",

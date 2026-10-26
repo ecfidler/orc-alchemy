@@ -1,0 +1,16 @@
+/* The fieldset and the field errors (docs/design/theme.md, "Controls"). Low specificity, so the app's layout utilities win. */
+
+@layer components {
+  .ui-fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .ui-fieldset-legend {
+    font-weight: 600;
+  }
+  .ui-field-errors {
+    color: var(--danger);
+  }
+}
