@@ -10,8 +10,9 @@ export function AlertNotes({ children }: { children: ReactNode }) {
 /**
  * A flat note the width of the page column. The tone gives the meaning:
  * "act" (yellow) when the user must act, "failed" (red) when something
- * failed, "info" (blue) for information. Only an "info" note can be
- * dismissed. A button or link in the message is its action.
+ * failed, "info" (blue) for information. An "info" note always has a
+ * dismiss button; the other tones have none. A button or link in the
+ * message is its action.
  */
 export function AlertNote(
   props: { children: ReactNode } & ({ tone: "act" | "failed" } | { tone: "info"; onDismiss: () => void }),
