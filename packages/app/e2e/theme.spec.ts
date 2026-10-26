@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-const pageColor = (page: import("@playwright/test").Page) =>
+const pageColor = (page: Page) =>
   page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
 
 test("with no stored theme, the app follows the system", async ({ page }) => {

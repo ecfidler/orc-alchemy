@@ -47,7 +47,9 @@ const listeners = new Set<() => void>();
 function subscribe(listener: () => void) {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (event.key === THEME_STORAGE_KEY || event.key === null) listener();
+    if (event.key !== THEME_STORAGE_KEY && event.key !== null) return;
+    apply(read());
+    listener();
   };
   addEventListener("storage", onStorage);
   return () => {
@@ -59,7 +61,7 @@ function subscribe(listener: () => void) {
 /**
  * The stored theme preference and a setter. The setter writes the key (or
  * removes it for "system") and sets `data-theme` on `<html>` at once. A
- * change in another tab re-renders the hook.
+ * change in another tab sets `data-theme` here too, and re-renders the hook.
  */
 export function useThemePreference(): [ThemePreference, (preference: ThemePreference) => void] {
   const preference = useSyncExternalStore(subscribe, read, () => "system" as const);

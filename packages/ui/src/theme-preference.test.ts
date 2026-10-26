@@ -42,6 +42,7 @@ test("a change in another tab re-renders the hook", () => {
     dispatchEvent(new StorageEvent("storage", { key: THEME_STORAGE_KEY, newValue: "dark" }));
   });
   expect(result.current[0]).toBe("dark");
+  expect(document.documentElement.dataset.theme).toBe("dark");
 });
 
 test("the head script applies the stored override, and follows other tabs", () => {
