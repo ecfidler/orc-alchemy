@@ -115,11 +115,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {selection.options.map((option) => (
           <li key={option.key}>
-            <Button
-              aria-pressed={option.key === method}
-              onClick={() => pick(option.key as Method)}
-              className="h-full w-full p-2 text-left"
-            >
+            <Button aria-pressed={option.key === method} onClick={() => pick(option.key as Method)} className="h-full w-full p-2 text-left">
               {option.name}
             </Button>
           </li>
@@ -205,12 +201,7 @@ interface StepperButton {
 /** A base score between two buttons, such as swap left and right, with an optional note under it. */
 function Stepper({ score, note, left, right }: { score: number; note?: string; left: StepperButton; right: StepperButton }) {
   const button = (b: StepperButton) => (
-    <Button
-      aria-label={b.label}
-      disabled={b.disabled}
-      onClick={b.onClick}
-      size="small"
-    >
+    <Button aria-label={b.label} disabled={b.disabled} onClick={b.onClick} size="small">
       {b.text}
     </Button>
   );

@@ -96,7 +96,7 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
               <span>{level}</span>
               <Button
                 aria-label={`Add a ${name} level`}
-                disabled={level>= MAX_LEVEL}
+                disabled={level >= MAX_LEVEL}
                 onClick={() => run((e, entity, opts) => e.addLevel(entity, key, opts))}
                 size="small"
               >
@@ -156,10 +156,7 @@ export function HitPoints({ selection }: { selection: BuilderSelection }) {
   const stored = useMemo(() => storedHitPoints(entity!, actualPath), [entity, actualPath]);
   const write = (method: HitPointsMethod, n: number) => run((e, entity, opts) => e.setField(entity, [...actualPath, method], n, opts));
   const toggle = (method: HitPointsMethod, text: string, n: () => number) => (
-    <Button
-      aria-pressed={stored?.method === method}
-      onClick={() => write(method, n())}
-    >
+    <Button aria-pressed={stored?.method === method} onClick={() => write(method, n())}>
       {text}
     </Button>
   );
@@ -208,7 +205,7 @@ export function Improvements({ selection }: { selection: BuilderSelection }) {
                 <span>+{count}</span>
                 <Button
                   aria-label={`Increase ${abbr}`}
-                  disabled={!offered || full || total>= 20}
+                  disabled={!offered || full || total >= 20}
                   onClick={() => run((e, entity, opts) => e.increaseAbility(entity, actualPath, ability, opts))}
                   size="small"
                 >

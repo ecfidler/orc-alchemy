@@ -268,10 +268,7 @@ function CharacterImport() {
           Paste the character's text
           <textarea value={pasted} onChange={(e) => setPasted(e.target.value)} rows={4} className="block w-full border border-black p-1 font-mono text-xs" />
         </label>
-        <Button
-          disabled={pasted.trim() === ""}
-          onClick={() => importText("character", async () => ({ name: "pasted text", text: pasted }))}
-        >
+        <Button disabled={pasted.trim() === ""} onClick={() => importText("character", async () => ({ name: "pasted text", text: pasted }))}>
           Import pasted character
         </Button>
         {errorFor("character")}

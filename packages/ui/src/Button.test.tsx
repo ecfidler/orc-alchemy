@@ -65,10 +65,10 @@ test("ARIA state and labels pass through", () => {
 
 test("a button link stays a link, with the button look", () => {
   render(
-    <ButtonLink size="large" render={<a href="/import" className="ignored" />}>
+    <ButtonLink size="large" className="w-full" render={<a href="/import" className="ignored" />}>
       Import
     </ButtonLink>,
   );
   const link = screen.getByRole("link", { name: "Import" });
-  expect([link.getAttribute("href"), link.className, link.dataset.variant, link.dataset.size]).toEqual(["/import", "ui-button", "ghost", "large"]);
+  expect([link.getAttribute("href"), link.className, link.dataset.variant, link.dataset.size]).toEqual(["/import", "ui-button w-full", "ghost", "large"]);
 });

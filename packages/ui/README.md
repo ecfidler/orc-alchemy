@@ -35,10 +35,13 @@ bun run test       # vitest
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
-    "submit"). A ghost button with `aria-pressed` or `aria-current` shows
-    as solid. `className` is for layout only. Styles: `src/button.css`.
+    "submit"). A ghost button with `aria-current` shows as solid. One with
+    `aria-pressed` does too, until the pressed groups move to Toggle
+    (ORC-160). `className` is for layout and spacing; colors and borders
+    come from the variant. Styles: `src/button.css`.
   - `ButtonLink`: a link with the look of a button. Like `FlagTab`, it
-    takes the link element as `render`.
+    takes the link element as `render`. It takes `className` as `Button`
+    does.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.

@@ -90,12 +90,7 @@ function Remap({ unresolved, onRemap }: { unresolved: UnresolvedKey; onRemap: On
           </option>
         ))}
       </select>
-      <Button
-        aria-label={`Remap ${unresolved.key}`}
-        disabled={to === "" || busy}
-        onClick={remap}
-        size="small"
-      >
+      <Button aria-label={`Remap ${unresolved.key}`} disabled={to === "" || busy} onClick={remap} size="small">
         Remap
       </Button>
       {error && <span role="alert">{error}</span>}

@@ -106,10 +106,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
       </ul>
       {error && <p role="alert">{error}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button
-          disabled={decided < toChoose.length || applying}
-          onClick={apply}
-        >
+        <Button disabled={decided < toChoose.length || applying} onClick={apply}>
           {decided < toChoose.length ? `Choose for each conflict (${decided} of ${toChoose.length})` : "Apply and import"}
         </Button>
         <Button onClick={() => useHomebrew.getState().cancelImport()} variant="link">

@@ -51,10 +51,7 @@ export function Builder() {
               const remaining = counts[i];
               return (
                 <li key={s.name}>
-                  <Button
-                    aria-current={s === step ? "step" : undefined}
-                    onClick={() => setStepName(s.name)}
-                  >
+                  <Button aria-current={s === step ? "step" : undefined} onClick={() => setStepName(s.name)}>
                     {s.name}
                     {remaining > 0 && (
                       <>
@@ -156,11 +153,7 @@ export function OptionCards({ selection, options }: { selection: BuilderSelectio
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {options.map((option) => (
           <li key={option.key}>
-            <Button
-              aria-pressed={option.selected}
-              onClick={() => pick(option)}
-              className="h-full w-full p-2 text-left"
-            >
+            <Button aria-pressed={option.selected} onClick={() => pick(option)} className="h-full w-full p-2 text-left">
               {option.name}
             </Button>
           </li>
