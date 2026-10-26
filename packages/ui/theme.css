@@ -13,6 +13,7 @@
 @import "@fontsource-variable/newsreader/opsz.css";
 @import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "@fontsource-variable/inter/index.css";
+@import "./src/shell.css";
 
 /* Tailwind resolves this path from this file, so each app finds the package's classes. */
 @source "./src";

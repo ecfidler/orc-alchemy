@@ -14,7 +14,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await flushAutosave();
   useCharacter.setState({ id: null, entity: null, dirty: false });
-  useStorage.setState({ failed: false });
+  useStorage.setState({ inMemory: false, failed: false, outdated: false });
 });
 
 function renderAt(path: string) {
@@ -27,6 +27,57 @@ test("index route renders inside the shell", () => {
   expect(screen.getByRole("heading", { name: "Characters" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Import" }).getAttribute("href")).toBe("/import");
   expect(screen.getByRole("link", { name: "Import homebrew and characters" }).getAttribute("href")).toBe("/import");
+});
+
+test("the flag tab of the page's section is current", () => {
+  const current = () =>
+    within(screen.getByRole("navigation", { name: "Main" }))
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page")
+      .map((link) => link.textContent);
+
+  renderAt("/");
+  expect(within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link").map((link) => link.textContent)).toEqual([
+    "Characters",
+    "Import",
+    "My Content",
+    "Preferences",
+  ]);
+  expect(current()).toEqual(["Characters"]);
+  cleanup();
+  renderAt("/sheet/no-such-id");
+  expect(current()).toEqual(["Characters"]);
+  cleanup();
+  renderAt("/import/dmv");
+  expect(current()).toEqual(["Import"]);
+  cleanup();
+  renderAt("/content/new/spell");
+  expect(current()).toEqual(["My Content"]);
+  cleanup();
+  renderAt("/preferences");
+  expect(current()).toEqual(["Preferences"]);
+  expect(screen.getByRole("heading", { name: "Page not found" })).toBeTruthy();
+});
+
+test("the storage alerts are alert notes, and the outdated one reloads the page", () => {
+  const reload = vi.fn();
+  vi.spyOn(window, "location", "get").mockReturnValue({ ...window.location, reload });
+  useStorage.setState({ outdated: true });
+  renderAt("/");
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toBe("ActAlchemy 5e was updated in another tab. Reload this page to keep saving. Reload this page");
+  fireEvent.click(within(alert).getByRole("button", { name: "Reload this page" }));
+  expect(reload).toHaveBeenCalled();
+  cleanup();
+
+  useStorage.setState({ outdated: false, inMemory: true, failed: true });
+  renderAt("/");
+  expect(screen.getByRole("alert").textContent).toMatch(/^ActThis browser is not letting Alchemy 5e save\./);
+  cleanup();
+
+  useStorage.setState({ inMemory: false });
+  renderAt("/");
+  expect(screen.getByRole("alert").textContent).toMatch(/^FailedSaving to this browser failed\./);
 });
 
 test("the import route shows the import steps", () => {
