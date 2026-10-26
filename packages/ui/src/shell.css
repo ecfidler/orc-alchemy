@@ -1,0 +1,220 @@
+/* The binder shell, its flag tabs and the alert notes (docs/design/theme.md, "App shell" and "Alert note"). */
+
+@layer components {
+  .ui-shell {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    min-height: 100vh;
+  }
+
+  /* The margin rail: a double margin rule (1.5px, then a 1px line at 45%) between it and the page. */
+  .ui-shell-rail {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 22px;
+    padding: 20px 16px 20px max(16px, env(safe-area-inset-left, 0px));
+    border-right: 1.5px solid var(--margin-rule);
+  }
+  .ui-shell-rail::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 4px;
+    border-right: 1px solid color-mix(in srgb, var(--margin-rule) 45%, transparent);
+  }
+
+  .ui-shell-main {
+    min-width: 0;
+    padding: 20px max(16px, env(safe-area-inset-right, 0px)) 48px 28px;
+  }
+
+  /* Flag tabs stick out across the margin rule. A pale body, a solid end at the rule. */
+  .ui-flag-tabs {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    justify-items: end;
+    gap: 9px;
+    margin-right: -17.5px;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ui-flag-tab {
+    --flag: var(--flag-yellow);
+    --focus-ring: var(--ink);
+    display: block;
+    box-sizing: border-box;
+    width: calc(100% - 14px);
+    padding: 11px 14px 11px 16px;
+    color: var(--flag-ink);
+    text-decoration: none;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--flag) 55%, #ffffff) 0 68%, var(--flag) 68% 100%);
+    transition: width 0.15s ease;
+  }
+  .ui-flag-tab[data-flag="blue"] {
+    --flag: var(--flag-blue);
+  }
+  .ui-flag-tab[data-flag="green"] {
+    --flag: var(--flag-green);
+  }
+  .ui-flag-tab[data-flag="orange"] {
+    --flag: var(--flag-orange);
+  }
+  .ui-flag-tab:hover {
+    width: calc(100% - 6px);
+  }
+  .ui-flag-tab[aria-current="page"] {
+    width: calc(100% + 4px);
+    background: var(--flag);
+    box-shadow: 0 3px 6px -4px var(--note-shadow);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ui-flag-tab {
+      transition: none;
+    }
+    .ui-flag-tab:hover {
+      width: calc(100% - 14px);
+    }
+    .ui-flag-tab[aria-current="page"]:hover {
+      width: calc(100% + 4px);
+    }
+  }
+
+  /* At 680px and below, the rail is a top strip, and the tabs stand in a row on the rule. */
+  @media (max-width: 680px) {
+    .ui-shell {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+    }
+    .ui-shell-rail {
+      gap: 8px;
+      padding: 14px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+      border-right: 0;
+      border-bottom: 1.5px solid var(--margin-rule);
+    }
+    .ui-shell-rail::after {
+      top: auto;
+      bottom: 3px;
+      left: 0;
+      right: 0;
+      border-right: 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--margin-rule) 45%, transparent);
+    }
+    .ui-shell-main {
+      padding: 16px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px));
+    }
+    .ui-flag-tabs {
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+      justify-items: stretch;
+      align-items: end;
+      gap: 6px;
+      margin-right: 0;
+      margin-bottom: -11.5px;
+      font-size: 10px;
+      letter-spacing: 0.02em;
+    }
+    .ui-flag-tab,
+    .ui-flag-tab:hover,
+    .ui-flag-tab[aria-current="page"],
+    .ui-flag-tab[aria-current="page"]:hover {
+      width: auto;
+    }
+    .ui-flag-tab {
+      height: 54px;
+      padding: 10px 2px 0;
+      text-align: center;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--flag) 55%, #ffffff) 0 62%, var(--flag) 62% 100%);
+    }
+    .ui-flag-tab[aria-current="page"] {
+      height: 64px;
+    }
+  }
+
+  /* Alert notes: flat, the full width of the page column, with a folded bottom-right corner. */
+  .ui-alert-notes {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .ui-alert-notes:empty {
+    display: none;
+  }
+  .ui-alert-note {
+    --fill: var(--note);
+    --focus-ring: var(--note-ink);
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 14px;
+    padding: 11px 14px 12px;
+    color: var(--note-ink);
+    background: var(--fill);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    box-shadow: 0 4px 8px -5px var(--note-shadow);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  }
+  .ui-alert-note::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--fill) 72%, #000) 50%, transparent 50%);
+  }
+  .ui-alert-note[data-tone="failed"] {
+    --fill: var(--note-red);
+  }
+  .ui-alert-note[data-tone="info"] {
+    --fill: var(--note-blue);
+    padding-right: 40px;
+  }
+  .ui-alert-note-tone {
+    flex: none;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .ui-alert-note-message {
+    flex: 1 1 22ch;
+    min-width: 0;
+  }
+  .ui-alert-note-message b,
+  .ui-alert-note-message strong {
+    font-weight: 700;
+  }
+  .ui-alert-note-message :is(button, a) {
+    font: inherit;
+    font-weight: 700;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .ui-alert-note-dismiss {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    padding: 2px 4px;
+    font-size: 18px;
+    line-height: 1;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+}

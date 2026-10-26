@@ -29,8 +29,14 @@ bun run test       # vitest
 ## Exports
 
 - `./theme.css`: the role tokens in light and dark, the `dark` variant, the
-  fonts, the grain, the body defaults and the focus ring.
-- `.`: `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
+  fonts, the grain, the body defaults, the focus ring, and the shell, flag
+  tab and alert note styles (`src/shell.css`).
+- `.`: the components and hooks.
+  - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
+    and flag tabs. `FlagTab` takes the link element as `render`, so the app
+    gives it its router's link.
+  - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
+  - `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
 - `./testing`: test helpers (none yet).
 
 ## Rules
