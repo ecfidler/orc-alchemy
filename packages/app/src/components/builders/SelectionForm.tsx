@@ -42,10 +42,10 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
                   Option {n} name{" "}
                   <input type="text" value={String(option[tag("name")] ?? "")} onChange={(e) => edit.set(["options", i, "name"], e.target.value)} className="border border-black px-1" />
                 </label>
-                <Button onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} size="small">
-                  Delete option {n}
-                </Button>
               </Field>
+              <Button onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} size="small">
+                Delete option {n}
+              </Button>
               <label className="block">
                 Option {n} description
                 <textarea value={String(option[tag("description")] ?? "")} onChange={(e) => edit.set(["options", i, "description"], e.target.value)} className="block w-full border border-black" />

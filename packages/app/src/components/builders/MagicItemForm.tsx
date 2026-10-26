@@ -75,6 +75,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
     onChange(next);
   };
   const type = untag(get("type"));
+  const baseLegend = type === "weapon" ? "Base weapon" : "Base armor";
   const subtypes = (get("subtypes") ?? []) as string[];
   const attunement = (get("attunement") ?? []) as string[];
   const mods = (get("modifiers") ?? []) as Mod[];
@@ -219,7 +220,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
             <textarea value={String(get("description") ?? "")} onChange={(e) => change({ description: e.target.value })} className="block w-full border border-black" rows={6} />,
           )}
           {(type === "weapon" || type === "armor") && (
-            <Fieldset legend={type === "weapon" ? "Base weapon" : "Base armor"} errors={fieldErrors(problems, MI + "subtypes", "Base item")}>
+            <Fieldset legend={baseLegend} errors={fieldErrors(problems, MI + "subtypes", baseLegend)}>
               {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
               {type === "weapon" && [...weapons].sort((a, b) => a.name.localeCompare(b.name)).map(({ key, name }) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
             </Fieldset>

@@ -2,6 +2,8 @@ import { Field as BaseField } from "@base-ui/react/field";
 import { Fieldset as BaseFieldset } from "@base-ui/react/fieldset";
 import { useId, type ReactNode } from "react";
 
+const errorItems = (errors: string[]) => errors.map((error, i) => <li key={i}>{error}</li>);
+
 /**
  * A list of errors named "Problems: {label}", or nothing when there are
  * none. Use it alone for errors that belong to no field or group, such as
@@ -11,9 +13,7 @@ export function FieldErrors({ label, errors, id }: { label: string; errors: stri
   if (errors.length === 0) return null;
   return (
     <ul id={id} aria-label={`Problems: ${label}`} className="ui-field-errors">
-      {errors.map((error, i) => (
-        <li key={i}>{error}</li>
-      ))}
+      {errorItems(errors)}
     </ul>
   );
 }
@@ -62,9 +62,13 @@ export function Fieldset({
  */
 export function Field({ label, errors, children }: { label: string; errors: string[]; children: ReactNode }) {
   return (
-    <BaseField.Root invalid={errors.length > 0} className="ui-field">
+    <BaseField.Root invalid={errors.length > 0}>
       {children}
-      {errors.length > 0 && <BaseField.Error match render={({ id }) => <FieldErrors id={id} label={label} errors={errors} />} />}
+      {errors.length > 0 && (
+        <BaseField.Error match render={<ul aria-label={`Problems: ${label}`} className="ui-field-errors" />}>
+          {errorItems(errors)}
+        </BaseField.Error>
+      )}
     </BaseField.Root>
   );
 }

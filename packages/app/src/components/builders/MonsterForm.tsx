@@ -113,26 +113,22 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       </div>
       {field("armor-class", "Armor class", select("Armor class", record[tag("armor-class")], numbers(range(5, 25)), (v) => set("armor-class", Number(v))))}
       {text("armor-notes", "Armor notes")}
-      {field(
-        "hit-points",
-        "Hit points",
-        <Fieldset legend="Hit points">
-          {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
-          {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
-          <label className="inline-block">
-            Hit point modifier{" "}
-            <input
-              type="number"
-              value={String(hitPoints[tag("modifier")] ?? 0)}
-              onChange={(e) => {
-                const n = parseInt(e.target.value, 10);
-                setIn("hit-points", "modifier", Number.isNaN(n) ? undefined : n);
-              }}
-              className="w-20 border border-black px-1"
-            />
-          </label>
-        </Fieldset>,
-      )}
+      <Fieldset legend="Hit points" errors={fieldErrors(problems, "hit-points", "Hit points")}>
+        {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
+        {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
+        <label className="inline-block">
+          Hit point modifier{" "}
+          <input
+            type="number"
+            value={String(hitPoints[tag("modifier")] ?? 0)}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              setIn("hit-points", "modifier", Number.isNaN(n) ? undefined : n);
+            }}
+            className="w-20 border border-black px-1"
+          />
+        </label>
+      </Fieldset>
       {text("speed", "Speed")}
       <Fieldset legend="Abilities">
         {ABILITIES.map(([key, name]) => (
@@ -174,34 +170,30 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
           <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-black" rows={4} />
         </label>,
       )}
-      {field(
-        "traits",
-        "Actions / features",
-        <Fieldset legend="Actions / features">
-          {traits.map((trait, i) => {
-            const n = i + 1;
-            return (
-              <div key={i} className="mb-3">
-                <label className="mr-4 inline-block">
-                  Feature {n} name{" "}
-                  <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => setTrait(i, tag("name"), e.target.value)} className="border border-black px-1" />
-                </label>
-                {select(`Feature ${n} type`, trait[tag("type")], TRAIT_TYPES, (v) => setTrait(i, tag("type"), v || undefined))}
-                <Button onClick={() => set("traits", traits.filter((_, j) => j !== i))} size="small">
-                  Delete feature {n}
-                </Button>
-                <label className="block">
-                  Feature {n} description
-                  <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => setTrait(i, tag("description"), e.target.value)} className="block w-full border border-black" />
-                </label>
-              </div>
-            );
-          })}
-          <Button onClick={() => set("traits", [...traits, {}])} size="small">
-            Add action / feature
-          </Button>
-        </Fieldset>,
-      )}
+      <Fieldset legend="Actions / features" errors={fieldErrors(problems, "traits", "Actions / features")}>
+        {traits.map((trait, i) => {
+          const n = i + 1;
+          return (
+            <div key={i} className="mb-3">
+              <label className="mr-4 inline-block">
+                Feature {n} name{" "}
+                <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => setTrait(i, tag("name"), e.target.value)} className="border border-black px-1" />
+              </label>
+              {select(`Feature ${n} type`, trait[tag("type")], TRAIT_TYPES, (v) => setTrait(i, tag("type"), v || undefined))}
+              <Button onClick={() => set("traits", traits.filter((_, j) => j !== i))} size="small">
+                Delete feature {n}
+              </Button>
+              <label className="block">
+                Feature {n} description
+                <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => setTrait(i, tag("description"), e.target.value)} className="block w-full border border-black" />
+              </label>
+            </div>
+          );
+        })}
+        <Button onClick={() => set("traits", [...traits, {}])} size="small">
+          Add action / feature
+        </Button>
+      </Fieldset>
       {field(
         "legendary-actions",
         "Legendary actions",
