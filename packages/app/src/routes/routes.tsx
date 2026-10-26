@@ -8,6 +8,7 @@ import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { DmvExporter } from "../components/DmvExporter.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { HomebrewBuilder } from "../components/HomebrewBuilder.tsx";
+import { Home } from "../components/Home.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
 import { MyContent } from "../components/MyContent.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
@@ -68,7 +69,7 @@ function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => R
     return (
       <>
         <h1 className="text-xl">{problem}</h1>
-        <Link to="/" className="underline">
+        <Link to="/characters" className="underline">
           Back to characters
         </Link>
       </>
@@ -129,8 +130,9 @@ export const routes: RouteObject[] = [
   {
     element: <AppShell />,
     children: [
+      { index: true, element: <Home /> },
       {
-        index: true,
+        path: "characters",
         element: (
           <>
             <h1 className="text-xl">Characters</h1>
@@ -179,7 +181,7 @@ export const routes: RouteObject[] = [
         element: (
           <>
             <h1 className="text-xl">Page not found</h1>
-            <Link to="/" className="underline">
+            <Link to="/characters" className="underline">
               Back to characters
             </Link>
           </>

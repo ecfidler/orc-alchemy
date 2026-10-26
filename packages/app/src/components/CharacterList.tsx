@@ -7,11 +7,11 @@ import { listSummaries, useSummariesVersion, type CharacterSummary } from "../st
 import { ExportCharacter } from "./Export.tsx";
 
 /**
- * Stores a new character and opens it in the builder. New character stores
- * the engine's new character, a level 1 barbarian. Random character stores
- * one that autofill completes, with no name. Loads the engine on demand.
+ * Stores a new character and opens it in the builder. A new character is the
+ * engine's new character, a level 1 barbarian. A random one is one that
+ * autofill completes, with no name. Loads the engine on demand.
  */
-export function NewCharacter() {
+export function useCreateCharacter() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +27,12 @@ export function NewCharacter() {
     }
   }
 
+  return { create, error };
+}
+
+/** The New character and Random character buttons of the character list. */
+export function NewCharacter() {
+  const { create, error } = useCreateCharacter();
   return (
     <div className="mt-4">
       <div className="flex gap-2">
@@ -105,6 +111,11 @@ export function CharacterList() {
   );
 }
 
+/** The race and classes line of a character row, for example "Half-Elf · Fighter 3 / Wizard 2". */
+export function describe(summary: CharacterSummary) {
+  return [summary.race, summary.classes.map((c) => `${c.name} ${c.level}`).join(" / ")].filter(Boolean).join(" · ");
+}
+
 function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDeleted: () => void }) {
   const name = summary.name ?? "Unnamed character";
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +138,7 @@ function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDel
         <Link to={`/sheet/${summary.id}`} className="font-bold underline">
           {name}
         </Link>
-        <p>{[summary.race, summary.classes.map((c) => `${c.name} ${c.level}`).join(" / ")].filter(Boolean).join(" · ")}</p>
+        <p>{describe(summary)}</p>
       </div>
       <ExportCharacter id={summary.id} label={<>Export <span className="sr-only">{name}</span></>} />
       <button type="button" onClick={onDelete} className="underline">

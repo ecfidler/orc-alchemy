@@ -105,7 +105,7 @@ test("Export everything writes the packs, and its bundle restores them and the c
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(fixturesDir, "characters/fighter-1.strict.json"));
   await expect(page).toHaveURL(/\/sheet\//);
-  await page.goto("/");
+  await page.goto("/characters");
 
   const downloads: Download[] = [];
   page.on("download", (d) => downloads.push(d));

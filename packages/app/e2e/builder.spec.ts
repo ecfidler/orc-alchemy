@@ -275,7 +275,7 @@ test("Save stores the changes now, and leaving the builder saves them too", asyn
   // A move to the list saves at once: the list shows the change before autosave would have run.
   await builder.getByRole("button", { name: "Elf", exact: true }).click();
   await expect(race).toHaveText("Elf");
-  await page.getByRole("link", { name: "Alchemy 5e" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
   await expect(page.getByRole("listitem", { name: "Unnamed character" })).toContainText("Elf · Barbarian 1", { timeout: 3000 });
   await expect.poll(() => draftCount(page)).toBe(0);
 });

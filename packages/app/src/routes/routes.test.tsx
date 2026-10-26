@@ -21,9 +21,17 @@ function renderAt(path: string) {
   render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: [path] })} />);
 }
 
-test("index route renders inside the shell", () => {
+test("the index route is Home, inside the shell", async () => {
   renderAt("/");
-  expect(screen.getByRole("link", { name: "Alchemy 5e" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Alchemy 5e" }).getAttribute("href")).toBe("/");
+  expect(screen.getByRole("heading", { level: 1, name: "Alchemy 5e" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "New character" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Import from Dungeon Master's Vault" }).getAttribute("href")).toBe("/import/dmv");
+  expect(await screen.findByText("Characters you make or import show here.")).toBeTruthy();
+});
+
+test("the characters route shows the list, inside the shell", () => {
+  renderAt("/characters");
   expect(screen.getByRole("heading", { name: "Characters" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Import" }).getAttribute("href")).toBe("/import");
   expect(screen.getByRole("link", { name: "Import homebrew and characters" }).getAttribute("href")).toBe("/import");
@@ -37,6 +45,9 @@ test("the flag tab of the page's section is current", () => {
       .map((link) => link.textContent);
 
   renderAt("/");
+  expect(current()).toEqual([]);
+  cleanup();
+  renderAt("/characters");
   expect(within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link").map((link) => link.textContent)).toEqual([
     "Characters",
     "Import",
@@ -144,7 +155,7 @@ test("leaving the character after a failed save asks first", async () => {
 
   confirm.mockReturnValue(true);
   fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
-  expect(await screen.findByRole("heading", { name: "Characters" })).toBeTruthy();
+  expect(await screen.findByRole("heading", { level: 1, name: "Alchemy 5e" })).toBeTruthy();
 });
 
 test("opening a character with a draft recovers it and says so", async () => {

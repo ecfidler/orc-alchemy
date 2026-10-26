@@ -5,14 +5,14 @@ import { expect, test } from "@playwright/test";
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 
 test("an imported character appears in the list and opens its sheet", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/characters");
   await expect(page.getByText("No characters yet. Import a character file to add one.")).toBeVisible();
   await page.getByRole("link", { name: "Import homebrew and characters" }).click();
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-3-wizard-2.strict.json"));
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   const sheetUrl = page.url();
 
-  await page.getByRole("link", { name: "Alchemy 5e" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
   const corvin = page.getByRole("listitem", { name: "Corvin Half-Elven" });
   await expect(corvin).toContainText("Half-Elf · Fighter 3 / Wizard 2");
 
@@ -36,7 +36,7 @@ test("a bundle's characters appear in the list", async ({ page }) => {
   });
   await expect(page.getByRole("heading", { name: "Imported 2 characters" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Alchemy 5e" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
   await expect(page.getByRole("list", { name: "Characters" }).getByRole("listitem")).toHaveText([/Brannor Ironfist/, /Fimble Nackle/]);
 });
 
@@ -44,7 +44,7 @@ test("a character exports from the list", async ({ page }) => {
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "wizard-5.strict.json"));
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
-  await page.getByRole("link", { name: "Alchemy 5e" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
 
   const downloading = page.waitForEvent("download");
   await page.getByRole("listitem", { name: "Fimble Nackle" }).getByRole("button", { name: "Export Fimble Nackle" }).click();
@@ -55,7 +55,7 @@ test("deleting a character asks first, and it stays deleted after reload", async
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
-  await page.getByRole("link", { name: "Alchemy 5e" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
   const brannor = page.getByRole("listitem", { name: "Brannor Ironfist" });
 
   page.once("dialog", (dialog) => void dialog.dismiss());

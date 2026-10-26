@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const tab = (page: Page, name: string) => page.getByRole("navigation", { name: "Main" }).getByRole("link", { name });
 
 test("the rail is on the left, and at 680px and below it is a strip along the top", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/characters");
   const rail = page.getByRole("complementary");
   const main = page.getByRole("main");
   expect((await rail.boundingBox())!.width).toBe(200);
@@ -18,7 +18,7 @@ test("the rail is on the left, and at 680px and below it is a strip along the to
 });
 
 test("a tab moves out on hover, except under reduced motion", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/characters");
   const width = async () => (await tab(page, "Import").boundingBox())!.width;
   const rest = await width();
   await tab(page, "Import").hover();
@@ -32,7 +32,7 @@ test("a tab moves out on hover, except under reduced motion", async ({ page }) =
 });
 
 test("the potion is the favicon and the rail mark", async ({ page, request }) => {
-  await page.goto("/");
+  await page.goto("/characters");
   await expect(page.locator('link[rel="icon"][sizes="16x16"]')).toHaveAttribute("href", "/potion-16.png");
   for (const size of [16, 32, 256, 512]) {
     const response = await request.get(`/potion-${size}.png`);
