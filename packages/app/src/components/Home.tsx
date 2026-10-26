@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import mugStain from "../assets/mug-stain.svg?raw";
-import { raceAndClasses, useCreateCharacter, useSummaries } from "./characters.ts";
+import { raceAndClasses, useCreateCharacter, useSummaries } from "./character-hooks.ts";
 
 const button = "border-[1.5px] border-ink px-[18px] py-2.5 font-sans text-sm font-semibold rounded-md cursor-pointer";
 const solid = `${button} bg-ink text-paper`;
@@ -62,36 +62,38 @@ export function Home() {
 /** The three most recently changed characters. */
 function RecentCharacters() {
   const { summaries, error, retry } = useSummaries();
-  const recent = summaries && [...summaries].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
 
   return (
     <div className="mt-2 grid w-full min-w-0 gap-2.5">
       <h2 className="text-xl font-medium">Recent characters</h2>
       {error ? (
-        <p role="alert">
-          {error}.{" "}
-          <button type="button" onClick={retry}>
+        <div>
+          <p role="alert">{error}</p>
+          <button type="button" onClick={retry} className="underline">
             Try again
           </button>
-        </p>
-      ) : summaries === null || recent === null ? (
+        </div>
+      ) : summaries === null ? (
         <p role="status">Loading characters…</p>
-      ) : recent.length === 0 ? (
+      ) : summaries.length === 0 ? (
         <p className="border-[1.5px] border-dashed border-rule-strong p-[18px] text-[15px] text-ink-muted">Characters you make or import show here.</p>
       ) : (
         <>
           <ul aria-label="Recent characters" className="border-t-[1.5px] border-rule-strong">
-            {recent.map((summary) => {
-              const name = summary.name ?? "Unnamed character";
-              return (
-                <li key={summary.id} aria-label={name} className="grid gap-0.5 border-b border-rule px-0.5 py-2.5">
-                  <Link to={`/sheet/${summary.id}`} className="text-[19px] font-medium">
-                    {name}
-                  </Link>
-                  <span className="text-[14.5px] text-ink-muted">{raceAndClasses(summary)}</span>
-                </li>
-              );
-            })}
+            {[...summaries]
+              .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+              .slice(0, 3)
+              .map((summary) => {
+                const name = summary.name ?? "Unnamed character";
+                return (
+                  <li key={summary.id} aria-label={name} className="grid gap-0.5 border-b border-rule px-0.5 py-2.5">
+                    <Link to={`/sheet/${summary.id}`} className="text-[19px] font-medium">
+                      {name}
+                    </Link>
+                    <span className="text-[14.5px] text-ink-muted">{raceAndClasses(summary)}</span>
+                  </li>
+                );
+              })}
           </ul>
           <Link to="/characters" className="font-sans text-[13px] font-semibold">
             All characters ({summaries.length})

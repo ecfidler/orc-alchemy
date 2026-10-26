@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { removeCharacter } from "../state/character.ts";
 import type { CharacterSummary } from "../storage/characters.ts";
-import { raceAndClasses, useCreateCharacter, useSummaries } from "./characters.ts";
+import { raceAndClasses, useCreateCharacter, useSummaries } from "./character-hooks.ts";
 import { ExportCharacter } from "./Export.tsx";
 
 /** The New character and Random character buttons of the character list. */
