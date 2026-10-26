@@ -1,3 +1,4 @@
+import { Button } from "@orc-alchemy/ui";
 import { useEffect, useState, type ReactNode } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useBlocker, useParams } from "react-router";
@@ -80,9 +81,9 @@ function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => R
     <>
       <div className="flex flex-wrap items-center gap-3">
         {dirty && (
-          <button type="button" onClick={() => flushAutosave().catch(console.error)} className="border border-black px-3 py-1">
+          <Button onClick={() => flushAutosave().catch(console.error)}>
             Save
-          </button>
+          </Button>
         )}
         <span role="status">{dirty ? "Unsaved changes" : "Saved"}</span>
         {recovered && dirty && <span>Unsaved changes from your last visit were recovered.</span>}

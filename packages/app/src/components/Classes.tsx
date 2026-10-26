@@ -2,6 +2,7 @@
 // class rows, and the hit points and ability score improvements each level
 // asks for. Each change is an engine mutation, as in Selection. It also holds
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
+import { Button } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, rollHitPoints, storedHitPoints, type HitPointsMethod } from "../engine/classes.ts";
@@ -29,8 +30,6 @@ export function useMutation(): [error: string | null, run: (mutate: Mutation) =>
   }
   return [error, run];
 }
-
-const button = "border border-black px-2 disabled:opacity-30";
 
 /** The class selection: a row per class, in the entity's order, with its level, and a class to add. */
 export function Classes({ selection }: { selection: BuilderSelection }) {
@@ -86,28 +85,26 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
                 ))}
               </select>
               <span>Level</span>
-              <button
-                type="button"
+              <Button
                 aria-label={`Remove a ${name} level`}
                 disabled={level <= 1}
                 onClick={() => run((e, entity, opts) => e.removeLevel(entity, key, opts))}
-                className={button}
+                size="small"
               >
                 −
-              </button>
+              </Button>
               <span>{level}</span>
-              <button
-                type="button"
+              <Button
                 aria-label={`Add a ${name} level`}
-                disabled={level >= MAX_LEVEL}
+                disabled={level>= MAX_LEVEL}
                 onClick={() => run((e, entity, opts) => e.addLevel(entity, key, opts))}
-                className={button}
+                size="small"
               >
                 +
-              </button>
-              <button type="button" disabled={selection.selected.length === 1} onClick={() => remove(i, key)} className={button}>
+              </Button>
+              <Button disabled={selection.selected.length === 1} onClick={() => remove(i, key)} size="small">
                 Remove {name}
-              </button>
+              </Button>
             </li>
           );
         })}
@@ -126,9 +123,9 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
               </option>
             ))}
           </select>
-          <button type="button" onClick={() => run((e, entity, opts) => e.addClass(entity, toAdd.key, opts))} className={button}>
+          <Button onClick={() => run((e, entity, opts) => e.addClass(entity, toAdd.key, opts))} size="small">
             Add class
-          </button>
+          </Button>
         </div>
       )}
     </>
@@ -159,14 +156,12 @@ export function HitPoints({ selection }: { selection: BuilderSelection }) {
   const stored = useMemo(() => storedHitPoints(entity!, actualPath), [entity, actualPath]);
   const write = (method: HitPointsMethod, n: number) => run((e, entity, opts) => e.setField(entity, [...actualPath, method], n, opts));
   const toggle = (method: HitPointsMethod, text: string, n: () => number) => (
-    <button
-      type="button"
+    <Button
       aria-pressed={stored?.method === method}
       onClick={() => write(method, n())}
-      className={`border border-black px-3 py-1 ${stored?.method === method ? "bg-black text-white" : "hover:bg-gray-100"}`}
     >
       {text}
-    </button>
+    </Button>
   );
   return (
     <section aria-labelledby={id} className="space-y-2">
@@ -202,25 +197,23 @@ export function Improvements({ selection }: { selection: BuilderSelection }) {
             <li key={ability} className="text-center">
               <div>{abbr}</div>
               <div className="flex items-center justify-center gap-1">
-                <button
-                  type="button"
+                <Button
                   aria-label={`Decrease ${abbr}`}
                   disabled={count === 0}
                   onClick={() => run((e, entity, opts) => e.decreaseAbility(entity, actualPath, ability, opts))}
-                  className={button}
+                  size="small"
                 >
                   −
-                </button>
+                </Button>
                 <span>+{count}</span>
-                <button
-                  type="button"
+                <Button
                   aria-label={`Increase ${abbr}`}
-                  disabled={!offered || full || total >= 20}
+                  disabled={!offered || full || total>= 20}
                   onClick={() => run((e, entity, opts) => e.increaseAbility(entity, actualPath, ability, opts))}
-                  className={button}
+                  size="small"
                 >
                   +
-                </button>
+                </Button>
               </div>
             </li>
           );

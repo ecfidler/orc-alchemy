@@ -2,6 +2,7 @@
 // (views.cljs my-content): the stored packs, each with its content lists, and
 // the .orcbrew export of one pack or of all of them; and the stored custom
 // magic items (ORC-77).
+import { Button } from "@orc-alchemy/ui";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { CONTENT_TYPES, packItems, tag } from "../engine/content.ts";
@@ -71,9 +72,9 @@ export function MyContent() {
             {quarantined.map(({ id, reason }) => (
               <li key={id}>
                 The stored pack {id} could not be read, so it is not used. It is kept in this browser as it is. {reason}{" "}
-                <button type="button" onClick={() => window.confirm(`Delete the unreadable pack ${id}?`) && report(useHomebrew.getState().removeQuarantined(id))} className="underline">
+                <Button onClick={() => window.confirm(`Delete the unreadable pack ${id}?`) && report(useHomebrew.getState().removeQuarantined(id))} variant="link">
                   Delete {id}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -121,14 +122,13 @@ function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (acti
               <Link to={`/content/edit/magicItem/${encodeURIComponent(id)}`} aria-label={`Edit ${name}`} className="underline">
                 Edit
               </Link>
-              <button
-                type="button"
+              <Button
                 aria-label={`Delete ${name}`}
                 onClick={() => window.confirm(`Delete the magic item ${name} from this browser?`) && report(useHomebrew.getState().removeMagicItem(id))}
-                className="underline"
+                variant="link"
               >
                 Delete
-              </button>
+              </Button>
             </li>
           );
         })}
@@ -149,9 +149,9 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
           Enabled
         </label>
         <OrcbrewExport label="Export" pack={id} pretty={pretty} />
-        <button type="button" onClick={() => window.confirm(`Delete the pack ${id} from this browser?`) && report(useHomebrew.getState().remove(id))} className="underline">
+        <Button onClick={() => window.confirm(`Delete the pack ${id} from this browser?`) && report(useHomebrew.getState().remove(id))} variant="link">
           Delete
-        </button>
+        </Button>
       </div>
       {CONTENT_TYPES.map(({ type, one, many }) => {
         const items = packItems(id, plugin, type);
@@ -180,14 +180,13 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
                         Edit
                       </Link>
                     )}
-                    <button
-                      type="button"
+                    <Button
                       aria-label={`Delete ${name}`}
                       onClick={() => window.confirm(`Delete ${name} from ${id}?`) && report(useHomebrew.getState().removeItem(id, taggedType, tagged))}
-                      className="underline"
+                      variant="link"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </li>
                 );
               })}
@@ -223,9 +222,9 @@ function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; 
 
   return (
     <div>
-      <button type="button" onClick={() => run(false)} className="border border-black px-3 py-1">
+      <Button onClick={() => run(false)}>
         {label}
-      </button>
+      </Button>
       {error && <p role="alert">{error}</p>}
       {invalid && (
         <div role="alert" aria-label={`Export problems${pack ? ` in ${pack}` : ""}`} className="mt-1">
@@ -233,9 +232,9 @@ function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; 
           <ul className="ml-4 list-disc">
             {invalid.flatMap(({ pack: name, problems }) => problems.map((problem, i) => <li key={`${name}-${i}`}>{`${name}: ${problem}`}</li>))}
           </ul>
-          <button type="button" onClick={() => run(true)} className="border border-black px-3 py-1">
+          <Button onClick={() => run(true)}>
             Export anyway
-          </button>{" "}
+          </Button>{" "}
           <span>It fills placeholders for the missing fields and repairs the items, as the old app did.</span>
         </div>
       )}

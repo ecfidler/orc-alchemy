@@ -1,4 +1,4 @@
-import { AlertNote, AlertNotes, FlagTab, FlagTabs, Shell, type FlagColor } from "@orc-alchemy/ui";
+import { AlertNote, AlertNotes, Button, FlagTab, FlagTabs, Shell, type FlagColor } from "@orc-alchemy/ui";
 import { Link, Outlet, useLocation } from "react-router";
 import { useStorage } from "../storage/characters.ts";
 
@@ -45,9 +45,9 @@ export function AppShell() {
         {outdated && (
           <AlertNote tone="act">
             <b>Alchemy 5e was updated in another tab.</b> Reload to keep saving.{" "}
-            <button type="button" onClick={() => location.reload()}>
+            <Button variant="link" onClick={() => location.reload()}>
               Reload this page
-            </button>
+            </Button>
           </AlertNote>
         )}
         {!inMemory && !outdated && failed && (

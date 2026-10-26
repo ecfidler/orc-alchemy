@@ -1,3 +1,4 @@
+import { Button } from "@orc-alchemy/ui";
 import { useMemo, useState } from "react";
 import { missingContent, OPTION_LABEL, type ContentSuggestion, type UnresolvedKey } from "../engine/reconcile.ts";
 import { useCharacter } from "../state/character.ts";
@@ -89,15 +90,14 @@ function Remap({ unresolved, onRemap }: { unresolved: UnresolvedKey; onRemap: On
           </option>
         ))}
       </select>
-      <button
-        type="button"
+      <Button
         aria-label={`Remap ${unresolved.key}`}
         disabled={to === "" || busy}
         onClick={remap}
-        className="border border-black px-2 disabled:opacity-50"
+        size="small"
       >
         Remap
-      </button>
+      </Button>
       {error && <span role="alert">{error}</span>}
     </div>
   );

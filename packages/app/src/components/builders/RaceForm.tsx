@@ -10,6 +10,7 @@
 // :value {:level :ability :key}}, and :traits a vector of :name, :type and
 // :description maps. The subrace form (SubraceForm.tsx) and the feat form
 // (FeatForm.tsx) use the parts exported here.
+import { Button } from "@orc-alchemy/ui";
 import { asSet, setItems, tag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
@@ -95,9 +96,9 @@ export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
             <Select label={`Spell ${n} spellcasting ability`} value={value[tag("ability")]} options={ABILITY_OPTIONS} onSelect={(v) => edit.set(["spells", i, "value", "ability"], v)} placeholder="<select ability>" />
             <Select label={`Spell ${n}`} value={value[tag("key")]} options={options} onSelect={(v) => edit.set(["spells", i, "value", "key"], v)} placeholder="<select spell>" />
             {i < spells.length && (
-              <button type="button" onClick={() => edit.set(["spells"], spells.filter((_, j) => j !== i))} className="border border-black px-2">
+              <Button onClick={() => edit.set(["spells"], spells.filter((_, j) => j !== i))} size="small">
                 Delete spell {n}
-              </button>
+              </Button>
             )}
           </div>
         );

@@ -1,6 +1,7 @@
 // The builder (ORC-55): the open character's selections as steps of option
 // cards, beside its sheet as a live preview. Each pick is an engine mutation
 // through useCharacter's update, so it autosaves.
+import { Button } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
@@ -50,11 +51,9 @@ export function Builder() {
               const remaining = counts[i];
               return (
                 <li key={s.name}>
-                  <button
-                    type="button"
+                  <Button
                     aria-current={s === step ? "step" : undefined}
                     onClick={() => setStepName(s.name)}
-                    className={`border border-black px-3 py-1 ${s === step ? "bg-black text-white" : ""}`}
                   >
                     {s.name}
                     {remaining > 0 && (
@@ -65,7 +64,7 @@ export function Builder() {
                         </span>
                       </>
                     )}
-                  </button>
+                  </Button>
                 </li>
               );
             })}
@@ -157,14 +156,13 @@ export function OptionCards({ selection, options }: { selection: BuilderSelectio
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {options.map((option) => (
           <li key={option.key}>
-            <button
-              type="button"
+            <Button
               aria-pressed={option.selected}
               onClick={() => pick(option)}
-              className={`h-full w-full border border-black p-2 text-left ${option.selected ? "bg-black text-white" : "hover:bg-gray-100"}`}
+              className="h-full w-full p-2 text-left"
             >
               {option.name}
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

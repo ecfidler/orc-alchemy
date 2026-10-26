@@ -1,3 +1,4 @@
+import { Button } from "@orc-alchemy/ui";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
@@ -267,14 +268,12 @@ function CharacterImport() {
           Paste the character's text
           <textarea value={pasted} onChange={(e) => setPasted(e.target.value)} rows={4} className="block w-full border border-black p-1 font-mono text-xs" />
         </label>
-        <button
-          type="button"
+        <Button
           disabled={pasted.trim() === ""}
           onClick={() => importText("character", async () => ({ name: "pasted text", text: pasted }))}
-          className="border border-black px-3 py-1 disabled:opacity-50"
         >
           Import pasted character
-        </button>
+        </Button>
         {errorFor("character")}
       </section>
       {imported && (
@@ -295,9 +294,9 @@ function CharacterImport() {
           <ul>
             {imported.characters.map((character) => (
               <li key={character.id}>
-                <button type="button" onClick={() => navigate(`/sheet/${character.id}`)} className="underline">
+                <Button onClick={() => navigate(`/sheet/${character.id}`)} variant="link">
                   {character.name ?? "Unnamed character"}
-                </button>
+                </Button>
                 <div className="ml-4">
                   <UnresolvedContent
                     characterName={character.name ?? "Unnamed character"}
@@ -311,9 +310,9 @@ function CharacterImport() {
           {imported.characters.some((c) => c.unresolved.length > 0) && (
             <div className="space-y-1">
               <p>Missing a homebrew pack? Load it in step 1, then check again.</p>
-              <button type="button" onClick={checkAgain} className="border border-black px-3 py-1">
+              <Button onClick={checkAgain}>
                 Check again
-              </button>
+              </Button>
               {errorFor("checked")}
             </div>
           )}

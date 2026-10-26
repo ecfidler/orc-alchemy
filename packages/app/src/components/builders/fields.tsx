@@ -2,6 +2,7 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
+import { Button } from "@orc-alchemy/ui";
 import type { ComponentType, ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
 import { nameToKw, tag } from "../../engine/content.ts";
@@ -275,9 +276,9 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
             </label>
             <Select label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
             {levels && <Select label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
-            <button type="button" onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} className="border border-black px-2">
+            <Button onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} size="small">
               Delete feature {n}
-            </button>
+            </Button>
             <label className="block">
               Feature {n} description
               <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => edit.set(["traits", i, "description"], e.target.value)} className="block w-full border border-black" />
@@ -285,9 +286,9 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
           </div>
         );
       })}
-      <button type="button" onClick={() => edit.set(["traits"], [...traits, {}])} className="border border-black px-2">
+      <Button onClick={() => edit.set(["traits"], [...traits, {}])} size="small">
         Add feature / trait
-      </button>
+      </Button>
       <FieldProblems problems={problems} field="traits" label="Features / traits" />
     </fieldset>
   );

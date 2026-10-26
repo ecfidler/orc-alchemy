@@ -1,3 +1,4 @@
+import { Button } from "@orc-alchemy/ui";
 import { useState, type ReactNode } from "react";
 import { loadEngine } from "../engine/engine.ts";
 import { characterFile, exportBundle } from "../engine/import.ts";
@@ -78,9 +79,9 @@ function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => P
   }
   return (
     <div className="space-y-1">
-      <button type="button" onClick={onClick} className="underline">
+      <Button onClick={onClick} variant="link">
         {label}
-      </button>
+      </Button>
       {message && <p role="alert">{message}</p>}
     </div>
   );
