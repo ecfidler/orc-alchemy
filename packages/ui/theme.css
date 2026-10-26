@@ -1,0 +1,190 @@
+/*
+ * The Alchemy theme (docs/design/theme.md). Import it after Tailwind:
+ *
+ *   @import "tailwindcss";
+ *   @import "@orc-alchemy/ui/theme.css";
+ *
+ * Every color is a role token. The raw values are CSS variables on :root,
+ * and `@theme inline` maps them to utilities (bg-paper, text-ink...), so a
+ * utility follows the active mode. src/theme.test.ts reads this file: it
+ * checks the contrast pairs and that the two dark blocks are the same.
+ */
+
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
+@import "@fontsource-variable/inter/index.css";
+
+/* Tailwind resolves this path from this file, so each app finds the package's classes. */
+@source "./src";
+
+/*
+ * `dark:` matches a stored dark override, or the system dark mode when no
+ * light override is stored.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+}
+
+:root {
+  color-scheme: light;
+  --paper: #fffcf5;
+  --paper-raised: #ffffff;
+  --ink: #222222;
+  --ink-muted: #595959;
+  --rule: #e3dece;
+  --rule-strong: #8a8578;
+  --danger: #c2271d;
+  --success: #1f7a3a;
+  --info: #1e5fb4;
+  --warning: #7f6200;
+  --caution: #b85a00;
+  --note: #ffe45c;
+  --note-red: #ffb3a8;
+  --note-blue: #a9ccff;
+  --note-ink: #222222;
+  --note-shadow: rgba(60, 45, 0, 0.2);
+  --margin-rule: #c2271d;
+  --flag-yellow: #ffe45c;
+  --flag-blue: #7fb6ff;
+  --flag-green: #7ee08f;
+  --flag-orange: #ffae5c;
+  --flag-ink: #222222;
+  --stain: #8c5a2b;
+  --stain-wash: #a87442;
+  --stain-op: 0.55;
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --bubble: color-mix(in srgb, var(--info) 12%, var(--paper-raised));
+  --note-edge: color-mix(in srgb, var(--note) 70%, #000);
+  --grain-opacity: 0.05;
+}
+
+/* The dark values are written twice, because a media query and a selector cannot share one block. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #000000;
+    --paper-raised: #0a0a0a;
+    --ink: #ffffff;
+    --ink-muted: #adadad;
+    --rule: #222222;
+    --rule-strong: #6b6b6b;
+    --danger: #ff5c52;
+    --success: #4ed07a;
+    --info: #5ea2ff;
+    --warning: #ffd93d;
+    --caution: #ff9a3d;
+    --note-red: #ff9c8f;
+    --note-blue: #9cc4ff;
+    --note-ink: #000000;
+    --note-shadow: rgba(255, 255, 255, 0.1);
+    --margin-rule: #ff5c52;
+    --flag-ink: #000000;
+    --stain: #c8915a;
+    --stain-wash: #c8915a;
+    --stain-op: 0.62;
+    --bubble: color-mix(in srgb, var(--info) 18%, var(--paper-raised));
+    --note-edge: color-mix(in srgb, var(--note) 75%, #000);
+    --grain-opacity: 0.07;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #000000;
+  --paper-raised: #0a0a0a;
+  --ink: #ffffff;
+  --ink-muted: #adadad;
+  --rule: #222222;
+  --rule-strong: #6b6b6b;
+  --danger: #ff5c52;
+  --success: #4ed07a;
+  --info: #5ea2ff;
+  --warning: #ffd93d;
+  --caution: #ff9a3d;
+  --note-red: #ff9c8f;
+  --note-blue: #9cc4ff;
+  --note-ink: #000000;
+  --note-shadow: rgba(255, 255, 255, 0.1);
+  --margin-rule: #ff5c52;
+  --flag-ink: #000000;
+  --stain: #c8915a;
+  --stain-wash: #c8915a;
+  --stain-op: 0.62;
+  --bubble: color-mix(in srgb, var(--info) 18%, var(--paper-raised));
+  --note-edge: color-mix(in srgb, var(--note) 75%, #000);
+  --grain-opacity: 0.07;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-info: var(--info);
+  --color-warning: var(--warning);
+  --color-caution: var(--caution);
+  --color-note: var(--note);
+  --color-note-red: var(--note-red);
+  --color-note-blue: var(--note-blue);
+  --color-note-ink: var(--note-ink);
+  --color-note-shadow: var(--note-shadow);
+  --color-note-edge: var(--note-edge);
+  --color-margin-rule: var(--margin-rule);
+  --color-flag-yellow: var(--flag-yellow);
+  --color-flag-blue: var(--flag-blue);
+  --color-flag-green: var(--flag-green);
+  --color-flag-orange: var(--flag-orange);
+  --color-flag-ink: var(--flag-ink);
+  --color-stain: var(--stain);
+  --color-stain-wash: var(--stain-wash);
+  --color-panel: var(--panel);
+  --color-bubble: var(--bubble);
+
+  --font-serif: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --default-font-family: var(--font-serif);
+}
+
+@layer base {
+  html {
+    background: var(--paper);
+  }
+
+  body {
+    color: var(--ink);
+    font-family: var(--font-serif);
+    font-weight: 450;
+    font-size: 17px;
+    line-height: 1.5;
+    font-optical-sizing: auto;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  /* The grain: fixed SVG noise over the page, behind the content. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* A note or a flag tab sets --focus-ring to its ink. */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring, var(--info));
+    outline-offset: 2px;
+  }
+}
