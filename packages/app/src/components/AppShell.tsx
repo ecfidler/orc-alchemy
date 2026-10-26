@@ -4,8 +4,8 @@ import { useStorage } from "../storage/characters.ts";
 export function AppShell() {
   const { inMemory, failed, outdated } = useStorage();
   return (
-    <div className="min-h-screen bg-white text-black">
-      <header className="flex gap-4 border-b border-black px-4 py-3">
+    <div className="min-h-screen text-ink">
+      <header className="flex gap-4 border-b border-rule-strong px-4 py-3">
         <Link to="/" className="font-bold">
           Alchemy 5e
         </Link>

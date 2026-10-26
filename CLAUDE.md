@@ -43,6 +43,7 @@ docs/plan/               the plan
 scripts/okf-check.ts     the docs bundle check
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
+packages/ui/             @orc-alchemy/ui: theme and controls (ORC-155)
 tools/exporter-bookmarklet/  M5
 ```
 

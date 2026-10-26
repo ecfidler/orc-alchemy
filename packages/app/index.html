@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alchemy 5e</title>
+    <!-- From @orc-alchemy/ui themeHeadScript; index-html.test.ts checks the copy. -->
+    <script>
+      (function () {
+        var root = document.documentElement;
+        function apply(value) {
+          if (value === "light" || value === "dark") root.dataset.theme = value;
+          else delete root.dataset.theme;
+        }
+        try { apply(localStorage.getItem("theme")); } catch (e) {}
+        addEventListener("storage", function (event) {
+          if (event.key === "theme" || event.key === null) apply(event.newValue);
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
