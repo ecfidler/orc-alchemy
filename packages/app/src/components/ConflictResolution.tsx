@@ -1,3 +1,4 @@
+import { Button } from "@orc-alchemy/ui";
 import { useState } from "react";
 import { conflictSources, copyOn, internalCopies, resolutionsFor, settledBy, conflictsToChoose, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
 import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
@@ -69,12 +70,12 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
         the file is imported.
       </p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => chooseAll("rename")} className="border border-black px-3 py-1">
+        <Button onClick={() => chooseAll("rename")}>
           Rename all
-        </button>
-        <button type="button" onClick={() => chooseAll("skip")} className="border border-black px-3 py-1">
+        </Button>
+        <Button onClick={() => chooseAll("skip")}>
           Skip all
-        </button>
+        </Button>
       </div>
       <ul className="space-y-2">
         {conflicts.map((conflict) => (
@@ -105,17 +106,12 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
       </ul>
       {error && <p role="alert">{error}</p>}
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={decided < toChoose.length || applying}
-          onClick={apply}
-          className="border border-black px-3 py-1 disabled:opacity-50"
-        >
+        <Button disabled={decided < toChoose.length || applying} onClick={apply}>
           {decided < toChoose.length ? `Choose for each conflict (${decided} of ${toChoose.length})` : "Apply and import"}
-        </button>
-        <button type="button" onClick={() => useHomebrew.getState().cancelImport()} className="underline">
+        </Button>
+        <Button onClick={() => useHomebrew.getState().cancelImport()} variant="link">
           Cancel import
-        </button>
+        </Button>
       </div>
     </section>
   );

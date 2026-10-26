@@ -29,9 +29,19 @@ bun run test       # vitest
 ## Exports
 
 - `./theme.css`: the role tokens in light and dark, the `dark` variant, the
-  fonts, the grain, the body defaults, the focus ring, and the shell, flag
-  tab and alert note styles (`src/shell.css`).
+  fonts, the grain, the body defaults, the focus ring, the shell, flag
+  tab and alert note styles (`src/shell.css`), and the button styles
+  (`src/button.css`).
 - `.`: the components and hooks.
+  - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
+    `size` ("small", "normal" or "large") and `type` ("button" or
+    "submit"). A ghost button with `aria-current` shows as solid. One with
+    `aria-pressed` does too, until the pressed groups move to Toggle
+    (ORC-160). `className` is for layout and spacing; colors and borders
+    come from the variant. Styles: `src/button.css`.
+  - `ButtonLink`: a link with the look of a button. Like `FlagTab`, it
+    takes the link element as `render`. It takes `className` as `Button`
+    does.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.

@@ -1,10 +1,7 @@
+import { Button, ButtonLink } from "@orc-alchemy/ui";
 import { Link } from "react-router";
 import mugStain from "../assets/mug-stain.svg?raw";
 import { raceAndClasses, useCreateCharacter, useSummaries } from "./character-hooks.ts";
-
-const button = "border-[1.5px] border-ink px-[18px] py-2.5 font-sans text-sm font-semibold rounded-md cursor-pointer";
-const solid = `${button} bg-ink text-paper`;
-const ghost = `${button} text-ink no-underline`;
 
 /** The Home page at `/` (ORC-150, variant C): one column, with the mug stain behind it. */
 export function Home() {
@@ -28,15 +25,15 @@ export function Home() {
         </div>
         <p className="max-w-[34ch] text-[19px]">Build and keep your D&amp;D 5e characters. Everything stays in this browser.</p>
         <div className="flex flex-wrap gap-2.5">
-          <button type="button" onClick={() => create(false)} className={solid}>
+          <Button onClick={() => create(false)} variant="solid" size="large">
             New character
-          </button>
-          <button type="button" onClick={() => create(true)} className={ghost}>
+          </Button>
+          <Button onClick={() => create(true)} size="large">
             Random character
-          </button>
-          <Link to="/import/dmv" className={ghost}>
+          </Button>
+          <ButtonLink size="large" render={<Link to="/import/dmv" />}>
             Import from Dungeon Master's Vault
-          </Link>
+          </ButtonLink>
         </div>
         {error && <p role="alert">{error}</p>}
         <ul aria-label="What Alchemy 5e does" className="grid gap-1.5 text-[15px]">
@@ -69,9 +66,9 @@ function RecentCharacters() {
       {error ? (
         <div>
           <p role="alert">{error}</p>
-          <button type="button" onClick={retry} className="underline">
+          <Button onClick={retry} variant="link">
             Try again
-          </button>
+          </Button>
         </div>
       ) : summaries === null ? (
         <p role="status">Loading characters…</p>

@@ -7,6 +7,7 @@
 // to bonus, the damage, condition and language checkboxes in :props, as
 // {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
 // and :description maps, :type absent, :action or :legendary-action.
+import { Button } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
 import { ABILITIES, CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
@@ -193,9 +194,9 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
                   <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => setTrait(i, tag("name"), e.target.value)} className="border border-black px-1" />
                 </label>
                 {select(`Feature ${n} type`, trait[tag("type")], TRAIT_TYPES, (v) => setTrait(i, tag("type"), v || undefined))}
-                <button type="button" onClick={() => set("traits", traits.filter((_, j) => j !== i))} className="border border-black px-2">
+                <Button onClick={() => set("traits", traits.filter((_, j) => j !== i))} size="small">
                   Delete feature {n}
-                </button>
+                </Button>
                 <label className="block">
                   Feature {n} description
                   <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => setTrait(i, tag("description"), e.target.value)} className="block w-full border border-black" />
@@ -203,9 +204,9 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
               </div>
             );
           })}
-          <button type="button" onClick={() => set("traits", [...traits, {}])} className="border border-black px-2">
+          <Button onClick={() => set("traits", [...traits, {}])} size="small">
             Add action / feature
-          </button>
+          </Button>
         </fieldset>,
       )}
       {field(

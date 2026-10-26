@@ -1,6 +1,7 @@
 // The Equipment step (ORC-59): the inventory lists, as the old builder's
 // inventory selectors, and the worn armor, shield and weapons in hand, as
 // the old sheet's Equipped Items. Each change is an engine mutation.
+import { Button } from "@orc-alchemy/ui";
 import { useId, useMemo } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import {
@@ -25,8 +26,6 @@ import { Heading, useMutation } from "./Classes.tsx";
 const MAGIC_LISTS = ["magic-weapons", "magic-armor", "other-magic-items"];
 /** As the SRD: a character can attune to no more than 3 magic items at once. */
 const MAX_ATTUNED = 3;
-
-const button = "border border-black px-2";
 
 /** An inventory list, such as Armor: an item to add, then a row per item, and for some lists, custom items. */
 export function Inventory({ selection }: { selection: BuilderSelection }) {
@@ -94,14 +93,13 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                 score={item.quantity}
                 onCommit={(n) => run((e, entity, opts) => setQuantity(e, entity, list, item.key, n, opts))}
               />
-              <button
-                type="button"
+              <Button
                 // An item removed is no longer attuned.
                 onClick={() => run((e, entity) => setAttuned(e, e.removeInventoryItem(entity, list, item.key), item.key, false))}
-                className={button}
+                size="small"
               >
                 Remove {name}
-              </button>
+              </Button>
             </li>
           );
         })}
@@ -129,16 +127,16 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
               score={item.quantity}
               onCommit={(n) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { quantity: n }))}
             />
-            <button type="button" onClick={() => run((e, entity) => removeCustomItem(e, entity, customKey, item.name))} className={button}>
+            <Button onClick={() => run((e, entity) => removeCustomItem(e, entity, customKey, item.name))} size="small">
               Remove {item.name}
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
       {customKey && (
-        <button type="button" onClick={() => run((e, entity) => addCustomItem(e, entity, customKey))} className={button}>
+        <Button onClick={() => run((e, entity) => addCustomItem(e, entity, customKey))} size="small">
           Add custom item
-        </button>
+        </Button>
       )}
     </section>
   );

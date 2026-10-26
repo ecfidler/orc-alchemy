@@ -3,6 +3,7 @@
 // validator at each change, saved into the pack its option source names,
 // or, for a type stored outside packs, by the type's own save. Each type
 // with a form plugs in a BuilderType (builders/fields.tsx).
+import { Button } from "@orc-alchemy/ui";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { DEFAULT_PACK, itemAt, tag } from "../engine/content.ts";
@@ -159,9 +160,9 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
       <Form record={record} onChange={setRecord} problems={problems} />
       {error && <p role="alert">{error}</p>}
       <div className="flex gap-4">
-        <button type="submit" disabled={!ok || saving} className="border border-black px-3 py-1 disabled:opacity-50">
+        <Button type="submit" disabled={!ok || saving}>
           Save
-        </button>
+        </Button>
         <Link to="/content" className="underline">
           Cancel
         </Link>

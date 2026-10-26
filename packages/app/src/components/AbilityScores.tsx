@@ -1,5 +1,6 @@
 // The Abilities step (ORC-57): the base scores, set by one of the old
 // builder's four methods, and the increases the engine adds, read-only.
+import { Button } from "@orc-alchemy/ui";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import {
   POINT_BUY_COSTS,
@@ -114,14 +115,9 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {selection.options.map((option) => (
           <li key={option.key}>
-            <button
-              type="button"
-              aria-pressed={option.key === method}
-              onClick={() => pick(option.key as Method)}
-              className={`h-full w-full border border-black p-2 text-left ${option.key === method ? "bg-black text-white" : "hover:bg-gray-100"}`}
-            >
+            <Button aria-pressed={option.key === method} onClick={() => pick(option.key as Method)} className="h-full w-full p-2 text-left">
               {option.name}
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
@@ -135,9 +131,9 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
         </p>
       )}
       {method === "standard-roll" && (
-        <button type="button" onClick={() => write(method, rollScores())} className="border border-black px-3 py-1">
+        <Button onClick={() => write(method, rollScores())}>
           Re-roll
-        </button>
+        </Button>
       )}
       <table aria-label="Ability scores" className="w-full text-center">
         <thead>
@@ -205,15 +201,9 @@ interface StepperButton {
 /** A base score between two buttons, such as swap left and right, with an optional note under it. */
 function Stepper({ score, note, left, right }: { score: number; note?: string; left: StepperButton; right: StepperButton }) {
   const button = (b: StepperButton) => (
-    <button
-      type="button"
-      aria-label={b.label}
-      disabled={b.disabled}
-      onClick={b.onClick}
-      className="border border-black px-1 disabled:opacity-30"
-    >
+    <Button aria-label={b.label} disabled={b.disabled} onClick={b.onClick} size="small">
       {b.text}
-    </button>
+    </Button>
   );
   return (
     <div className="flex items-center justify-center gap-1">

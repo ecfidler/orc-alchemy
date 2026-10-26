@@ -6,11 +6,11 @@
 // selection is {:options []} (db.cljs default-selection), Add Option
 // appends {:name "Option N"} with the first N not in use, and delete
 // removes the option at its index.
+import { Button } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
 import { editor, FieldProblems, problemText, TextField, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const OPTIONS = tag("options");
-const button = "border border-black px-2";
 
 /** The old add-option event's default name: "Option N", from the option count plus one, with the first N not in use. */
 function newOptionName(options: ItemRecord[]) {
@@ -37,9 +37,9 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
                 Option {n} name{" "}
                 <input type="text" value={String(option[tag("name")] ?? "")} onChange={(e) => edit.set(["options", i, "name"], e.target.value)} className="border border-black px-1" />
               </label>
-              <button type="button" onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} className={button}>
+              <Button onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} size="small">
                 Delete option {n}
-              </button>
+              </Button>
               {found.length > 0 && (
                 <ul aria-label={`Problems: Option ${n}`} className="text-red-700">
                   {found.map((problem, j) => (
@@ -54,9 +54,9 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
             </div>
           );
         })}
-        <button type="button" onClick={() => edit.set(["options"], [...options, { [tag("name")]: newOptionName(options) }])} className={button}>
+        <Button onClick={() => edit.set(["options"], [...options, { [tag("name")]: newOptionName(options) }])} size="small">
           Add option
-        </button>
+        </Button>
         <FieldProblems problems={problems.filter((p) => p.path.length === 1)} field="options" label="Options" />
       </fieldset>
     </div>

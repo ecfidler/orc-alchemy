@@ -13,6 +13,7 @@
 // "Custom", the form removes the key: the importer and the export check
 // treat a nil as a problem. The modifiers and selections are also the
 // subclass form's.
+import { Button } from "@orc-alchemy/ui";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { asSet, intKey, intKeyValue, setItems, tag } from "../../engine/content.ts";
 import {
@@ -52,7 +53,6 @@ const SCHEDULES: Record<number, Record<number, number>> = {
   3: { 3: 3, 4: 1, 7: 1, 8: 1, 10: 1, 11: 1, 13: 1, 14: 1, 16: 1, 19: 1, 20: 1 },
 };
 const LEVELS = numbers(range(1, 21));
-const button = "border border-black px-2";
 
 const transitSchedule = (factor: number) => Object.fromEntries(Object.entries(SCHEDULES[factor]).map(([level, n]) => [intKey(Number(level)), n]));
 const keywords = (keys: string[], text: (key: string) => string = (k) => k): Options => keys.map((key) => [tag(key), text(key)]);
@@ -119,15 +119,15 @@ export function LevelModifiers({ edit, problems, choices }: ListProps) {
                 <Select label={`Modifier ${n} spell`} value={edit.get(...at("value", "key"))} options={spells} onSelect={(v) => edit.set(at("value", "key"), v)} placeholder="<select spell>" />
               </>
             )}
-            <button type="button" onClick={() => edit.set(["level-modifiers"], rows.filter((_, j) => j !== i))} className={button}>
+            <Button onClick={() => edit.set(["level-modifiers"], rows.filter((_, j) => j !== i))} size="small">
               Delete modifier {n}
-            </button>
+            </Button>
           </div>
         );
       })}
-      <button type="button" onClick={() => edit.set(["level-modifiers"], [...rows, {}])} className={button}>
+      <Button onClick={() => edit.set(["level-modifiers"], [...rows, {}])} size="small">
         Add modifier
-      </button>
+      </Button>
       <FieldProblems problems={problems} field="level-modifiers" label="Modifiers" />
     </fieldset>
   );
@@ -153,15 +153,15 @@ export function LevelSelections({ edit, problems, choices }: ListProps) {
             />
             <Select label={`Selection ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(["level-selections", i, "level"], v)} placeholder="-" />
             <Select label={`Selection ${n} amount`} value={row[tag("num")]} options={numbers(range(1, 11))} onSelect={(v) => edit.set(["level-selections", i, "num"], v)} placeholder="-" />
-            <button type="button" onClick={() => edit.set(["level-selections"], rows.filter((_, j) => j !== i))} className={button}>
+            <Button onClick={() => edit.set(["level-selections"], rows.filter((_, j) => j !== i))} size="small">
               Delete selection {n}
-            </button>
+            </Button>
           </div>
         );
       })}
-      <button type="button" onClick={() => edit.set(["level-selections"], [...rows, {}])} className={button}>
+      <Button onClick={() => edit.set(["level-selections"], [...rows, {}])} size="small">
         Add selection
-      </button>
+      </Button>
       <FieldProblems problems={problems} field="level-selections" label="Selections" />
     </fieldset>
   );
@@ -231,9 +231,9 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
               {extraCantrips.map((level, i) => (
                 <div key={level}>
                   <Select label={`Extra cantrip ${i + 1} level`} value={level} options={numbers(range(2, 21))} onSelect={(v) => setCantripLevel(level, v)} />
-                  <button type="button" onClick={() => setCantripLevel(level, undefined)} className={button}>
+                  <Button onClick={() => setCantripLevel(level, undefined)} size="small">
                     Remove extra cantrip {i + 1}
-                  </button>
+                  </Button>
                 </div>
               ))}
               <Select label="Add an extra cantrip at level" value={undefined} options={numbers(range(2, 21))} onSelect={(v) => setCantripLevel(undefined, v)} placeholder="<select level>" />

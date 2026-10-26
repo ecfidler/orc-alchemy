@@ -1,0 +1,52 @@
+/* The button (docs/design/theme.md, "Controls"). Low specificity, so a note's own button style and the app's layout utilities win. */
+
+@layer components {
+  .ui-button {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ink);
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .ui-button:where([data-size="small"]) {
+    padding: 0 5px;
+    border-radius: 4px;
+  }
+  .ui-button:where([data-size="large"]) {
+    font-size: 14px;
+    padding: 10px 18px;
+  }
+  .ui-button:where(:not([data-disabled]):hover) {
+    background: var(--panel);
+  }
+  /* aria-pressed is here until the pressed groups move to Toggle (ORC-160). */
+  .ui-button:where([data-variant="solid"], [aria-pressed="true"], [aria-current]:not([aria-current="false"])) {
+    color: var(--paper);
+    background: var(--ink);
+  }
+  .ui-button:where([data-disabled]) {
+    color: var(--ink-muted);
+    border-color: var(--rule-strong);
+    background: transparent;
+    cursor: default;
+  }
+  .ui-button:where([data-variant="link"]) {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .ui-button:where([data-variant="link"][data-disabled]) {
+    color: var(--ink-muted);
+  }
+}

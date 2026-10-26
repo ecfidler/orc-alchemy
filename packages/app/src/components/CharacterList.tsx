@@ -1,3 +1,4 @@
+import { Button } from "@orc-alchemy/ui";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { removeCharacter } from "../state/character.ts";
@@ -11,12 +12,12 @@ export function NewCharacter() {
   return (
     <div className="mt-4">
       <div className="flex gap-2">
-        <button type="button" onClick={() => create(false)} className="border border-black px-3 py-1">
+        <Button onClick={() => create(false)}>
           New character
-        </button>
-        <button type="button" onClick={() => create(true)} className="border border-black px-3 py-1">
+        </Button>
+        <Button onClick={() => create(true)}>
           Random character
-        </button>
+        </Button>
       </div>
       {error && <p role="alert">{error}</p>}
     </div>
@@ -35,9 +36,9 @@ export function CharacterList() {
       {error !== null ? (
         <>
           <p role="alert">{error}</p>
-          <button type="button" onClick={retry} className="underline">
+          <Button onClick={retry} variant="link">
             Try again
-          </button>
+          </Button>
         </>
       ) : sorted === null ? (
         <p role="status">Loading characters…</p>
@@ -79,9 +80,9 @@ function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDel
         <p>{raceAndClasses(summary)}</p>
       </div>
       <ExportCharacter id={summary.id} label={<>Export <span className="sr-only">{name}</span></>} />
-      <button type="button" onClick={onDelete} className="underline">
+      <Button onClick={onDelete} variant="link">
         Delete <span className="sr-only">{name}</span>
-      </button>
+      </Button>
       {error && <p role="alert">{error}</p>}
     </li>
   );
