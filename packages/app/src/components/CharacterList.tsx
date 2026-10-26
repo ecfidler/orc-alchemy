@@ -1,34 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { loadEngine } from "../engine/engine.ts";
-import { addCharacter, refreshSummaries, removeCharacter } from "../state/character.ts";
-import { restorePacks, useHomebrew } from "../state/homebrew.ts";
-import { listSummaries, useSummariesVersion, type CharacterSummary } from "../storage/characters.ts";
+import { useRef, useState } from "react";
+import { Link } from "react-router";
+import { removeCharacter } from "../state/character.ts";
+import type { CharacterSummary } from "../storage/characters.ts";
+import { raceAndClasses, useCreateCharacter, useSummaries } from "./characters.ts";
 import { ExportCharacter } from "./Export.tsx";
-
-/**
- * Stores a new character and opens it in the builder. A new character is the
- * engine's new character, a level 1 barbarian. A random one is one that
- * autofill completes, with no name. Loads the engine on demand.
- */
-export function useCreateCharacter() {
-  const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
-
-  async function create(random: boolean) {
-    setError(null);
-    try {
-      const { emptyCharacter, autofill } = await loadEngine();
-      await restorePacks(); // so its summary builds with the stored packs
-      const entity = random ? autofill(emptyCharacter(), useHomebrew.getState().content) : emptyCharacter();
-      navigate(`/build/${await addCharacter(entity, "2014", null)}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  }
-
-  return { create, error };
-}
 
 /** The New character and Random character buttons of the character list. */
 export function NewCharacter() {
@@ -48,72 +23,35 @@ export function NewCharacter() {
   );
 }
 
-/**
- * The stored characters, from the summaries index, re-read whenever a
- * summary is written or deleted, the packs change, or on Try again. Summaries
- * built with other homebrew are rebuilt in the background.
- */
+/** The character list, sorted by name. */
 export function CharacterList() {
-  const version = useSummariesVersion();
-  const fingerprint = useHomebrew((state) => state.fingerprint);
-  const [attempt, setAttempt] = useState(0);
-  const [summaries, setSummaries] = useState<CharacterSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { summaries, error, retry } = useSummaries();
   // Keeps keyboard focus in the list when a deleted row goes.
   const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // A slow read must not replace a later one.
-    let current = true;
-    listSummaries().then(
-      (list) => {
-        if (!current) return;
-        setSummaries(list.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "")));
-        setError(null);
-        // Its write changes useSummariesVersion, so the list is read again and finds nothing stale.
-        refreshSummaries(list, () => current).catch(console.error);
-      },
-      () => current && setError("The characters could not be read from this browser"),
-    );
-    return () => {
-      current = false;
-    };
-  }, [version, attempt, fingerprint]);
+  const sorted = summaries && [...summaries].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
 
   return (
     <div ref={listRef} tabIndex={-1} className="outline-none">
       {error !== null ? (
         <>
           <p role="alert">{error}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setAttempt((n) => n + 1);
-            }}
-            className="underline"
-          >
+          <button type="button" onClick={retry} className="underline">
             Try again
           </button>
         </>
-      ) : summaries === null ? (
+      ) : sorted === null ? (
         <p role="status">Loading characters…</p>
-      ) : summaries.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <p>No characters yet. Import a character file to add one.</p>
       ) : (
         <ul aria-label="Characters" className="divide-y divide-black">
-          {summaries.map((summary) => (
+          {sorted.map((summary) => (
             <CharacterRow key={summary.id} summary={summary} onDeleted={() => listRef.current?.focus()} />
           ))}
         </ul>
       )}
     </div>
   );
-}
-
-/** The race and classes line of a character row, for example "Half-Elf · Fighter 3 / Wizard 2". */
-export function describe(summary: CharacterSummary) {
-  return [summary.race, summary.classes.map((c) => `${c.name} ${c.level}`).join(" / ")].filter(Boolean).join(" · ");
 }
 
 function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDeleted: () => void }) {
@@ -138,7 +76,7 @@ function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDel
         <Link to={`/sheet/${summary.id}`} className="font-bold underline">
           {name}
         </Link>
-        <p>{describe(summary)}</p>
+        <p>{raceAndClasses(summary)}</p>
       </div>
       <ExportCharacter id={summary.id} label={<>Export <span className="sr-only">{name}</span></>} />
       <button type="button" onClick={onDelete} className="underline">

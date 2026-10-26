@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import mugStain from "../assets/mug-stain.svg?raw";
-import { listSummaries, useSummariesVersion, type CharacterSummary } from "../storage/characters.ts";
-import { describe, useCreateCharacter } from "./CharacterList.tsx";
+import { raceAndClasses, useCreateCharacter, useSummaries } from "./characters.ts";
 
-const solid = "border-[1.5px] border-ink bg-ink px-[18px] py-2.5 font-sans text-sm font-semibold text-paper rounded-md cursor-pointer";
-const ghost = "border-[1.5px] border-ink px-[18px] py-2.5 font-sans text-sm font-semibold text-ink rounded-md cursor-pointer no-underline";
+const button = "border-[1.5px] border-ink px-[18px] py-2.5 font-sans text-sm font-semibold rounded-md cursor-pointer";
+const solid = `${button} bg-ink text-paper`;
+const ghost = `${button} text-ink no-underline`;
 
 /** The Home page at `/` (ORC-150, variant C): one column, with the mug stain behind it. */
 export function Home() {
@@ -60,47 +59,39 @@ export function Home() {
   );
 }
 
-/** The three most recently changed characters, re-read whenever a summary is written or deleted. */
+/** The three most recently changed characters. */
 function RecentCharacters() {
-  const version = useSummariesVersion();
-  const [summaries, setSummaries] = useState<CharacterSummary[] | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let current = true;
-    listSummaries().then(
-      (list) => {
-        if (!current) return;
-        setSummaries(list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
-        setError(false);
-      },
-      () => current && setError(true),
-    );
-    return () => {
-      current = false;
-    };
-  }, [version]);
+  const { summaries, error, retry } = useSummaries();
+  const recent = summaries && [...summaries].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
 
   return (
     <div className="mt-2 grid w-full min-w-0 gap-2.5">
       <h2 className="text-xl font-medium">Recent characters</h2>
       {error ? (
-        <p role="alert">The characters could not be read from this browser.</p>
-      ) : summaries === null ? (
+        <p role="alert">
+          {error}.{" "}
+          <button type="button" onClick={retry}>
+            Try again
+          </button>
+        </p>
+      ) : summaries === null || recent === null ? (
         <p role="status">Loading characters…</p>
-      ) : summaries.length === 0 ? (
+      ) : recent.length === 0 ? (
         <p className="border-[1.5px] border-dashed border-rule-strong p-[18px] text-[15px] text-ink-muted">Characters you make or import show here.</p>
       ) : (
         <>
           <ul aria-label="Recent characters" className="border-t-[1.5px] border-rule-strong">
-            {summaries.slice(0, 3).map((summary) => (
-              <li key={summary.id} aria-label={summary.name ?? "Unnamed character"} className="grid gap-0.5 border-b border-rule px-0.5 py-2.5">
-                <Link to={`/sheet/${summary.id}`} className="text-[19px] font-medium">
-                  {summary.name ?? "Unnamed character"}
-                </Link>
-                <span className="text-[14.5px] text-ink-muted">{describe(summary)}</span>
-              </li>
-            ))}
+            {recent.map((summary) => {
+              const name = summary.name ?? "Unnamed character";
+              return (
+                <li key={summary.id} aria-label={name} className="grid gap-0.5 border-b border-rule px-0.5 py-2.5">
+                  <Link to={`/sheet/${summary.id}`} className="text-[19px] font-medium">
+                    {name}
+                  </Link>
+                  <span className="text-[14.5px] text-ink-muted">{raceAndClasses(summary)}</span>
+                </li>
+              );
+            })}
           </ul>
           <Link to="/characters" className="font-sans text-[13px] font-semibold">
             All characters ({summaries.length})
