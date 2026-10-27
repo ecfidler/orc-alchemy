@@ -49,7 +49,7 @@ test("Standard Scores is the default, and a swap moves a score to its neighbour"
 test("the methods are one named tab stop; the arrow keys move between them, a press picks one, and a press of the picked one keeps it", async () => {
   open(dwarf());
   const methods = within(screen.getByRole("group", { name: "Base Ability Scores" })).getAllByRole("button");
-  expect(methods.filter((m) => m.tabIndex === 0)).toHaveLength(1);
+  expect(methods.map((m) => m.tabIndex)).toEqual([0, -1, -1, -1]);
   methods[0].focus();
   fireEvent.keyDown(methods[0], { key: "ArrowRight" });
   await waitFor(() => expect(document.activeElement).toBe(method("Point Buy")));

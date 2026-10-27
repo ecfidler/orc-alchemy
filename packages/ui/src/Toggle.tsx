@@ -26,8 +26,8 @@ export type ToggleGroupProps = Omit<
   /** Layout classes, for example a grid. */
   className?: string;
 } & (
-    | { /** The group's name. */ "aria-label": string }
-    | { /** The id of the element that names the group, for example its heading. */ "aria-labelledby": string }
+    | { /** The group's name. */ "aria-label": string; "aria-labelledby"?: never }
+    | { /** The id of the element that names the group, for example its heading. */ "aria-labelledby": string; "aria-label"?: never }
   );
 
 /**

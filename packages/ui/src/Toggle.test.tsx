@@ -62,7 +62,8 @@ test("a group is named, takes layout classes, and its value sets which toggles a
 test("a group is one tab stop; the arrow keys, Home and End move focus in it", async () => {
   render(<Align />);
   const [left, center, right] = screen.getAllByRole("button");
-  expect([left, center, right].filter((b) => b.tabIndex === 0)).toHaveLength(1);
+  // The stop is on the first toggle, not on the pressed one.
+  expect([left, center, right].map((b) => b.tabIndex)).toEqual([0, -1, -1]);
   const key = async (from: HTMLElement, key: string, to: HTMLElement) => {
     fireEvent.keyDown(from, { key });
     await waitFor(() => expect(document.activeElement).toBe(to));

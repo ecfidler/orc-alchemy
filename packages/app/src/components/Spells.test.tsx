@@ -41,6 +41,7 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   // A second press deselects a card of a multiselect.
   fireEvent.click(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }));
   expect(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }).getAttribute("aria-pressed")).toBe("false");
+  // Pick it again for the steps below.
   fireEvent.click(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }));
 
   // The search narrows the cards.
