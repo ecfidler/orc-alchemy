@@ -35,19 +35,23 @@ bun run test       # vitest
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
-    "submit"). A ghost button with `aria-current` shows as solid. For a button
-    that is on or off, use `Toggle`. `className` is for layout and spacing; colors and borders
-    come from the variant. Styles: `src/button.css`.
+    "submit"). A ghost button with `aria-current` shows as solid. For a
+    button that is on or off, use `Toggle`. `className` is for layout and
+    spacing; colors and borders come from the variant. Styles:
+    `src/button.css`.
   - `ButtonLink`: a link with the look of a button. Like `FlagTab`, it
     takes the link element as `render`. It takes `className` as `Button`
     does.
   - `Toggle`: Base UI Toggle, a button that is on or off. It has the
-    ghost button look and is solid while it is pressed. It takes
-    `className` as `Button` does. Styles: `src/button.css`.
-  - `ToggleGroup`: Base UI ToggleGroup, a named group of toggles. Its
-    `value` lists the pressed toggles, by each toggle's `value`. Only one
-    is pressed unless `multiple` is set. The group is one tab stop: the
-    arrow keys, Home and End move in it, and Space or Enter presses.
+    ghost button look and is solid while it is pressed. On its own it
+    takes `pressed` and `onPressedChange`. It takes `className` as
+    `Button` does. Styles: `src/button.css`.
+  - `ToggleGroup`: Base UI ToggleGroup, a group of toggles. Name it with
+    `aria-label` or `aria-labelledby`. Its `value` lists the pressed
+    toggles by each toggle's `value`; the owner changes it from each
+    toggle's `onPressedChange`. Only one toggle is pressed unless
+    `multiple` is set. The group is one tab stop, on its first toggle:
+    Left and Right, Home and End move in it, and Space or Enter presses.
   - `Fieldset`: Base UI Fieldset, a group with a visible `legend`. The
     legend names the group, or `name` does when the legend is not the
     right name. The legend is a `<div>`, not a `<legend>`, so a test finds

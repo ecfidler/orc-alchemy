@@ -112,7 +112,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
         {selection.name}
       </h3>
       {error && <p role="alert">{error}</p>}
-      <ToggleGroup aria-label={selection.name} value={method ? [method] : []} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <ToggleGroup aria-labelledby={id} value={method ? [method] : []} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {selection.options.map((option) => (
           <Toggle key={option.key} value={option.key} onPressedChange={() => pick(option.key as Method)} className="h-full w-full p-2 text-left">
             {option.name}

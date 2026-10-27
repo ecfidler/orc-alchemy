@@ -29,11 +29,11 @@ test("a pressed toggle is marked for the solid look", () => {
   expect([toggle.getAttribute("aria-pressed"), toggle.hasAttribute("data-pressed")]).toEqual(["true", true]);
 });
 
-function Methods({ onPress }: { onPress?: (key: string, pressed: boolean) => void }) {
-  const [value, setValue] = useState(["roll"]);
+function Align({ onPress }: { onPress?: (key: string, pressed: boolean) => void }) {
+  const [value, setValue] = useState(["center"]);
   return (
-    <ToggleGroup aria-label="Method" value={value} className="grid">
-      {["average", "roll", "manual"].map((key) => (
+    <ToggleGroup aria-label="Align" value={value} className="grid">
+      {["left", "center", "right"].map((key) => (
         <Toggle
           key={key}
           value={key}
@@ -50,29 +50,29 @@ function Methods({ onPress }: { onPress?: (key: string, pressed: boolean) => voi
 }
 
 test("a group is named, takes layout classes, and its value sets which toggles are pressed", () => {
-  render(<Methods />);
-  const group = screen.getByRole("group", { name: "Method" });
+  render(<Align />);
+  const group = screen.getByRole("group", { name: "Align" });
   expect(group.className).toBe("grid");
   const pressed = screen.getAllByRole("button").map((b) => b.getAttribute("aria-pressed"));
   expect(pressed).toEqual(["false", "true", "false"]);
-  fireEvent.click(screen.getByRole("button", { name: "average" }));
+  fireEvent.click(screen.getByRole("button", { name: "left" }));
   expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false", "false"]);
 });
 
 test("a group is one tab stop; the arrow keys, Home and End move focus in it", async () => {
-  render(<Methods />);
-  const [average, roll, manual] = screen.getAllByRole("button");
-  expect([average, roll, manual].filter((b) => b.tabIndex === 0)).toHaveLength(1);
+  render(<Align />);
+  const [left, center, right] = screen.getAllByRole("button");
+  expect([left, center, right].filter((b) => b.tabIndex === 0)).toHaveLength(1);
   const key = async (from: HTMLElement, key: string, to: HTMLElement) => {
     fireEvent.keyDown(from, { key });
     await waitFor(() => expect(document.activeElement).toBe(to));
   };
-  average.focus();
-  await key(average, "ArrowRight", roll);
-  await key(roll, "End", manual);
-  await key(manual, "ArrowRight", average);
-  await key(average, "ArrowLeft", manual);
-  await key(manual, "Home", average);
+  left.focus();
+  await key(left, "ArrowRight", center);
+  await key(center, "End", right);
+  await key(right, "ArrowRight", left);
+  await key(left, "ArrowLeft", right);
+  await key(right, "Home", left);
 });
 
 test("a press of a toggle in a controlled group reaches the toggle, and the group keeps its value until the owner changes it", () => {
@@ -91,11 +91,19 @@ test("a press of a toggle in a controlled group reaches the toggle, and the grou
 });
 
 test("multiple lets more than one toggle be pressed", () => {
+  const press = vi.fn();
   render(
-    <ToggleGroup aria-label="Toppings" value={["a", "b"]} multiple>
+    <ToggleGroup aria-labelledby="toppings" value={["a", "b"]} multiple>
+      <span id="toppings">Toppings</span>
       <Toggle value="a">A</Toggle>
       <Toggle value="b">B</Toggle>
+      <Toggle value="c" onPressedChange={press}>
+        C
+      </Toggle>
     </ToggleGroup>,
   );
-  expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "true"]);
+  expect(screen.getByRole("group", { name: "Toppings" })).toBeTruthy();
+  expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "true", "false"]);
+  fireEvent.click(screen.getByRole("button", { name: "C" }));
+  expect(press).toHaveBeenCalledWith(true, expect.anything());
 });

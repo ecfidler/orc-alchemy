@@ -52,6 +52,12 @@ test("hit points by roll or typed in", () => {
   fireEvent.click(hp.getByRole("button", { name: "Roll (1d6)" }));
   expect(storedHitPoints(useCharacter.getState().entity!, path)).toEqual({ method: "roll", value: 4 });
   expect(hp.getByRole("button", { name: "Roll (1d6)" }).getAttribute("aria-pressed")).toBe("true");
+  // A press of Roll while it is pressed rolls again.
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  fireEvent.click(hp.getByRole("button", { name: "Roll (1d6)" }));
+  expect(storedHitPoints(useCharacter.getState().entity!, path)).toEqual({ method: "roll", value: 6 });
+  vi.spyOn(Math, "random").mockReturnValue(0.5);
+  fireEvent.click(hp.getByRole("button", { name: "Roll (1d6)" }));
   // A cleared field is not written.
   fireEvent.change(hp.getByLabelText("Hit points"), { target: { value: "" } });
   fireEvent.change(hp.getByLabelText("Hit points"), { target: { value: "0" } });

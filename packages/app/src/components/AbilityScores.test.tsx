@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { useCharacter } from "../state/character.ts";
@@ -44,6 +44,20 @@ test("Standard Scores is the default, and a swap moves a score to its neighbour"
   expect(built()).toEqual([8, 14, 15, 12, 10, 15]);
   fireEvent.click(screen.getByRole("button", { name: "Move DEX right" }));
   expect(row("Total")).toEqual(["8", "13", "16", "12", "10", "15"]);
+});
+
+test("the methods are one named tab stop; the arrow keys move between them, a press picks one, and a press of the picked one keeps it", async () => {
+  open(dwarf());
+  const methods = within(screen.getByRole("group", { name: "Base Ability Scores" })).getAllByRole("button");
+  expect(methods.filter((m) => m.tabIndex === 0)).toHaveLength(1);
+  methods[0].focus();
+  fireEvent.keyDown(methods[0], { key: "ArrowRight" });
+  await waitFor(() => expect(document.activeElement).toBe(method("Point Buy")));
+  fireEvent.click(document.activeElement!);
+  expect(method("Point Buy").getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(method("Point Buy"));
+  expect(method("Point Buy").getAttribute("aria-pressed")).toBe("true");
+  expect(built()).toEqual([8, 8, 10, 8, 8, 8]);
 });
 
 test("Point Buy starts at 8s and counts points, within the old limits", () => {
