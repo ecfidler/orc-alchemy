@@ -2,7 +2,7 @@
 // class rows, and the hit points and ability score improvements each level
 // asks for. Each change is an engine mutation, as in Selection. It also holds
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, rollHitPoints, storedHitPoints, type HitPointsMethod } from "../engine/classes.ts";
@@ -156,17 +156,19 @@ export function HitPoints({ selection }: { selection: BuilderSelection }) {
   const stored = useMemo(() => storedHitPoints(entity!, actualPath), [entity, actualPath]);
   const write = (method: HitPointsMethod, n: number) => run((e, entity, opts) => e.setField(entity, [...actualPath, method], n, opts));
   const toggle = (method: HitPointsMethod, text: string, n: () => number) => (
-    <Button aria-pressed={stored?.method === method} onClick={() => write(method, n())}>
+    <Toggle value={method} onPressedChange={() => write(method, n())}>
       {text}
-    </Button>
+    </Toggle>
   );
   return (
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
       {error && <p role="alert">{error}</p>}
       <div className="flex flex-wrap items-center gap-2">
-        {toggle("average", `Average (${averageHitPoints(die)})`, () => averageHitPoints(die))}
-        {toggle("roll", `Roll (1d${die})`, () => rollHitPoints(die))}
+        <ToggleGroup aria-label="Hit point method" value={stored ? [stored.method] : []} className="flex gap-2">
+          {toggle("average", `Average (${averageHitPoints(die)})`, () => averageHitPoints(die))}
+          {toggle("roll", `Roll (1d${die})`, () => rollHitPoints(die))}
+        </ToggleGroup>
         <NumberField label="Hit points" min={1} score={stored?.value ?? null} onCommit={(n) => write("manual-entry", n)} />
       </div>
     </section>

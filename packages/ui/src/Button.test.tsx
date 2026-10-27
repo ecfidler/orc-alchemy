@@ -53,13 +53,13 @@ test("a disabled button is disabled, marked, and takes no click", () => {
 test("ARIA state and labels pass through", () => {
   render(
     <>
-      <Button aria-pressed aria-label="Point buy">
-        Point buy, 27 points
+      <Button aria-expanded aria-label="More">
+        More options
       </Button>
       <Button aria-current="step">Race</Button>
     </>,
   );
-  expect(screen.getByRole("button", { name: "Point buy" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "More" }).getAttribute("aria-expanded")).toBe("true");
   expect(screen.getByRole("button", { name: "Race" }).getAttribute("aria-current")).toBe("step");
 });
 

@@ -30,18 +30,24 @@ bun run test       # vitest
 
 - `./theme.css`: the role tokens in light and dark, the `dark` variant, the
   fonts, the grain, the body defaults, the focus ring, the shell, flag
-  tab and alert note styles (`src/shell.css`), the button styles
+  tab and alert note styles (`src/shell.css`), the button and toggle styles
   (`src/button.css`), and the fieldset and field styles (`src/field.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
-    "submit"). A ghost button with `aria-current` shows as solid. One with
-    `aria-pressed` does too, until the pressed groups move to Toggle
-    (ORC-160). `className` is for layout and spacing; colors and borders
+    "submit"). A ghost button with `aria-current` shows as solid. For a button
+    that is on or off, use `Toggle`. `className` is for layout and spacing; colors and borders
     come from the variant. Styles: `src/button.css`.
   - `ButtonLink`: a link with the look of a button. Like `FlagTab`, it
     takes the link element as `render`. It takes `className` as `Button`
     does.
+  - `Toggle`: Base UI Toggle, a button that is on or off. It has the
+    ghost button look and is solid while it is pressed. It takes
+    `className` as `Button` does. Styles: `src/button.css`.
+  - `ToggleGroup`: Base UI ToggleGroup, a named group of toggles. Its
+    `value` lists the pressed toggles, by each toggle's `value`. Only one
+    is pressed unless `multiple` is set. The group is one tab stop: the
+    arrow keys, Home and End move in it, and Space or Enter presses.
   - `Fieldset`: Base UI Fieldset, a group with a visible `legend`. The
     legend names the group, or `name` does when the legend is not the
     right name. The legend is a `<div>`, not a `<legend>`, so a test finds

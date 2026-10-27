@@ -17,8 +17,8 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "className" | 
 
 /**
  * A button, with Base UI Button inside. A ghost button with `aria-current`
- * set shows as solid while it is current. One with `aria-pressed` does too,
- * until the pressed groups move to Toggle (ORC-160).
+ * set shows as solid while it is current. For a button that is on or off,
+ * use Toggle.
  */
 export function Button({ variant = "ghost", size = "normal", type = "button", className, ...props }: ButtonProps) {
   return (

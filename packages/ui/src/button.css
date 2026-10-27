@@ -25,8 +25,8 @@
   .ui-button:where(:not([data-disabled]):hover) {
     background: var(--panel);
   }
-  /* aria-pressed is here until the pressed groups move to Toggle (ORC-160). */
-  .ui-button:where([data-variant="solid"], [aria-pressed="true"], [aria-current]:not([aria-current="false"])) {
+  /* A pressed Toggle and a current ghost button look solid too. */
+  .ui-button:where([data-variant="solid"], [data-pressed], [aria-current]:not([aria-current="false"])) {
     color: var(--paper);
     background: var(--ink);
   }

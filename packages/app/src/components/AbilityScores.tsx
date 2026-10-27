@@ -1,6 +1,6 @@
 // The Abilities step (ORC-57): the base scores, set by one of the old
 // builder's four methods, and the increases the engine adds, read-only.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import {
   POINT_BUY_COSTS,
@@ -112,15 +112,13 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
         {selection.name}
       </h3>
       {error && <p role="alert">{error}</p>}
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <ToggleGroup aria-label={selection.name} value={method ? [method] : []} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {selection.options.map((option) => (
-          <li key={option.key}>
-            <Button aria-pressed={option.key === method} onClick={() => pick(option.key as Method)} className="h-full w-full p-2 text-left">
-              {option.name}
-            </Button>
-          </li>
+          <Toggle key={option.key} value={option.key} onPressedChange={() => pick(option.key as Method)} className="h-full w-full p-2 text-left">
+            {option.name}
+          </Toggle>
         ))}
-      </ul>
+      </ToggleGroup>
       {method === "point-buy" && (
         <p>
           {left === null

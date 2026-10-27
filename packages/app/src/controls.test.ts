@@ -19,3 +19,8 @@ test("the app imports no Base UI; its controls come from @orc-alchemy/ui", () =>
 test("the app has no <fieldset> element; its fieldsets are the package Fieldset", () => {
   expect(sources.filter(({ text }) => /<fieldset[\s>]/.test(text)).map(({ file }) => file)).toEqual([]);
 });
+
+// ORC-160: every on-or-off button is the package Toggle.
+test("the app sets no aria-pressed; its on-or-off buttons are the package Toggle", () => {
+  expect(sources.filter(({ text }) => text.includes("aria-pressed")).map(({ file }) => file)).toEqual([]);
+});
