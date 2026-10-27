@@ -38,6 +38,11 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   fireEvent.click(cantrips.getByRole("button", { name: "Acid Splash" }));
   expect(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("list", { name: "Chosen: Wizard Cantrips Known" }).textContent).toBe("Acid Splash");
+  // A second press deselects a card of a multiselect.
+  fireEvent.click(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }));
+  expect(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }).getAttribute("aria-pressed")).toBe("false");
+  // Pick it again for the steps below.
+  fireEvent.click(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }));
 
   // The search narrows the cards.
   fireEvent.change(screen.getByLabelText("Search: Wizard Spells Known"), { target: { value: "alarm" } });

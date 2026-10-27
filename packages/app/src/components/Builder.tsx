@@ -1,7 +1,7 @@
 // The builder (ORC-55): the open character's selections as steps of option
 // cards, beside its sheet as a live preview. Each pick is an engine mutation
 // through useCharacter's update, so it autosaves.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
@@ -150,15 +150,18 @@ export function OptionCards({ selection, options }: { selection: BuilderSelectio
   return (
     <>
       {error && <p role="alert">{error}</p>}
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <ToggleGroup
+        aria-label={selection.name}
+        value={options.filter((option) => option.selected).map((option) => option.key)}
+        multiple={selection.multiselect}
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+      >
         {options.map((option) => (
-          <li key={option.key}>
-            <Button aria-pressed={option.selected} onClick={() => pick(option)} className="h-full w-full p-2 text-left">
-              {option.name}
-            </Button>
-          </li>
+          <Toggle key={option.key} value={option.key} onPressedChange={() => pick(option)} className="h-full w-full p-2 text-left">
+            {option.name}
+          </Toggle>
         ))}
-      </ul>
+      </ToggleGroup>
     </>
   );
 }
