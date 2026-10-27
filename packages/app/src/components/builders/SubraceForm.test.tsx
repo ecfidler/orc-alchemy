@@ -33,7 +33,7 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByLabelText(label));
+const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const value = (label: string) => screen.getByLabelText<HTMLSelectElement>(label).value;
 const WIS = "~:orcpub.dnd.e5.character/wis";
 
@@ -97,7 +97,7 @@ test("the form recreates the Star Elf subrace of the community fixture, and Edit
   await screen.findByLabelText("Spell 1");
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Star Elf");
   expect([value("Race"), value("Wisdom"), value("Spell 2 unlock at level"), value("Spell 3")]).toEqual(["~:elf", "1", "3", "~:detect-thoughts"]);
-  expect(within(screen.getByRole("group", { name: "Weapon Proficiencies" })).getByLabelText<HTMLInputElement>("Rapier").checked).toBe(true);
+  expect(within(screen.getByRole("group", { name: "Weapon Proficiencies" })).getByRole("checkbox", { name: "Rapier" })).toBeChecked();
   expect(save().disabled).toBe(false);
 });
 

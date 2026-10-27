@@ -50,12 +50,12 @@ async function authorCirclet() {
   type("Name", "Hawk Eye Circlet");
   type("Rarity", "uncommon");
   type("Description", "Your Wisdom increases by 2.");
-  fireEvent.click(screen.getByLabelText("Requires attunement"));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Requires attunement" }));
   type("WIS change", "ability");
   type("WIS value", "2");
   type("Walking speed change", "speed");
   type("Walking speed value", "10");
-  fireEvent.click(group("Damage resistances").getByLabelText("Fire"));
+  fireEvent.click(group("Damage resistances").getByRole("checkbox", { name: "Fire" }));
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   return router;
@@ -105,7 +105,7 @@ test("Edit loads the stored item; a save keeps the enabled flag, and a rename re
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Hawk Eye Circlet");
   expect(screen.getByLabelText<HTMLSelectElement>("WIS change").value).toBe("ability");
   expect(screen.getByLabelText<HTMLInputElement>("WIS value").value).toBe("2");
-  expect(group("Damage resistances").getByLabelText<HTMLInputElement>("Fire").checked).toBe(true);
+  expect(group("Damage resistances").getByRole("checkbox", { name: "Fire" })).toBeChecked();
 
   type("WIS value", "3");
   fireEvent.click(save());
@@ -156,12 +156,12 @@ test("a weapon stores its base weapons, and All replaces the others", async () =
   type("Name", "Flame Blade");
   type("Type", "weapon");
   const base = group("Base weapon");
-  fireEvent.click(await base.findByLabelText("Longsword"));
-  fireEvent.click(base.getByLabelText("All"));
-  expect(base.getByLabelText<HTMLInputElement>("Longsword").checked).toBe(false);
-  fireEvent.click(base.getByLabelText("Longsword"));
-  fireEvent.click(base.getByLabelText("Scimitar"));
-  expect(base.getByLabelText<HTMLInputElement>("All").checked).toBe(false);
+  fireEvent.click(await base.findByRole("checkbox", { name: "Longsword" }));
+  fireEvent.click(base.getByRole("checkbox", { name: "All" }));
+  expect(base.getByRole("checkbox", { name: "Longsword" })).not.toBeChecked();
+  fireEvent.click(base.getByRole("checkbox", { name: "Longsword" }));
+  fireEvent.click(base.getByRole("checkbox", { name: "Scimitar" }));
+  expect(base.getByRole("checkbox", { name: "All" })).not.toBeChecked();
   type("Magical attack bonus", "1");
   type("Magical damage bonus", "1");
   fireEvent.click(save());
@@ -183,7 +183,7 @@ test("a weapon stores its base weapons, and All replaces the others", async () =
 // The done-when of ORC-128: an item made in the form is in My Content, and a character can equip it.
 test("a magic item authored in the form is offered in the Equipment step, and attuning it applies its modifier", async () => {
   await authorCirclet();
-  expect(within(screen.getByRole("region", { name: "Magic items" })).getByLabelText("Hawk Eye Circlet")).toBeTruthy();
+  expect(within(screen.getByRole("region", { name: "Magic items" })).getByRole("checkbox", { name: "Hawk Eye Circlet" })).toBeTruthy();
   cleanup();
 
   const e = engine();
@@ -205,7 +205,7 @@ test("the base weapons are Custom, the All choices, then the weapons by name, as
   await form("New magic item");
   type("Type", "weapon");
   const base = group("Base weapon");
-  await base.findByLabelText("Longsword");
+  await base.findByRole("checkbox", { name: "Longsword" });
   const names = base.getAllByRole("checkbox").map((box) => box.parentElement!.textContent!.trim());
   expect(names.slice(0, 7)).toEqual(["Custom", "All", "All Swords", "All Axes", "Battleaxe", "Blowgun", "Club"]);
   expect(names).toHaveLength(44);
@@ -217,11 +217,11 @@ test("the attunement classes include a class of an enabled pack", async () => {
   renderAt("/content/new/magicItem");
   await form("New magic item");
   type("Name", "Spanner of Power");
-  fireEvent.click(screen.getByLabelText("Requires attunement"));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Requires attunement" }));
   const attunement = group("Attunement");
-  fireEvent.click(await attunement.findByLabelText("Artificer (Tinkers)"));
-  expect(attunement.getByLabelText("Spellcaster")).toBeTruthy();
-  expect(attunement.getByLabelText("Wizard")).toBeTruthy();
+  fireEvent.click(await attunement.findByRole("checkbox", { name: "Artificer (Tinkers)" }));
+  expect(attunement.getByRole("checkbox", { name: "Spellcaster" })).toBeTruthy();
+  expect(attunement.getByRole("checkbox", { name: "Wizard" })).toBeTruthy();
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   expect((stored("spanner-of-power")!.item as Record<string, unknown>)[`${MI}attunement`]).toEqual(["~:artificer"]);
@@ -233,10 +233,10 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   type("Name", "Bone Club");
   type("Type", "weapon");
   const base = group("Base weapon");
-  fireEvent.click(await base.findByLabelText("Longsword"));
+  fireEvent.click(await base.findByRole("checkbox", { name: "Longsword" }));
   expect(screen.queryByRole("group", { name: "Base weapon details" })).toBeNull();
-  fireEvent.click(base.getByLabelText("Custom"));
-  expect(base.getByLabelText<HTMLInputElement>("Longsword").checked).toBe(false);
+  fireEvent.click(base.getByRole("checkbox", { name: "Custom" }));
+  expect(base.getByRole("checkbox", { name: "Longsword" })).not.toBeChecked();
   // The old first details (magic_items.cljc apply-subtype-toggle).
   const details = group("Base weapon details");
   expect(details.getByLabelText<HTMLSelectElement>("Damage die number").value).toBe("1");
@@ -265,11 +265,11 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   fireEvent.click(screen.getByRole("link", { name: "Edit Bone Club" }));
   await form("Edit magic item");
   const edit = group("Base weapon details");
-  fireEvent.click(edit.getByLabelText("Finesse?"));
-  fireEvent.click(edit.getByLabelText("Two-Handed?"));
-  fireEvent.click(edit.getByLabelText("Thrown?"));
-  fireEvent.click(edit.getByLabelText("Thrown?"));
-  fireEvent.click(edit.getByLabelText("Versatile?"));
+  fireEvent.click(edit.getByRole("checkbox", { name: "Finesse?" }));
+  fireEvent.click(edit.getByRole("checkbox", { name: "Two-Handed?" }));
+  fireEvent.click(edit.getByRole("checkbox", { name: "Thrown?" }));
+  fireEvent.click(edit.getByRole("checkbox", { name: "Thrown?" }));
+  fireEvent.click(edit.getByRole("checkbox", { name: "Versatile?" }));
   fireEvent.change(edit.getByLabelText("Versatile damage die"), { target: { value: "10" } });
   fireEvent.change(edit.getByLabelText("Damage die number"), { target: { value: "2" } });
   fireEvent.change(edit.getByLabelText("Damage die"), { target: { value: "6" } });
@@ -308,9 +308,9 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   // As the old save, Versatile without its dice is not stored. All, or a base weapon, removes the details.
   renderAt("/content/edit/magicItem/bone-club");
   await form("Edit magic item");
-  fireEvent.click(group("Base weapon details").getByLabelText("Versatile?"));
-  fireEvent.click(group("Base weapon details").getByLabelText("Versatile?"));
-  expect(group("Base weapon details").getByLabelText<HTMLInputElement>("Versatile?").checked).toBe(true);
+  fireEvent.click(group("Base weapon details").getByRole("checkbox", { name: "Versatile?" }));
+  fireEvent.click(group("Base weapon details").getByRole("checkbox", { name: "Versatile?" }));
+  expect(group("Base weapon details").getByRole("checkbox", { name: "Versatile?" })).toBeChecked();
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   expect(stored("bone-club")!.item).not.toHaveProperty([`${W}versatile`]);
@@ -323,7 +323,7 @@ test("a Custom base weapon stores the old details, and another base weapon remov
     cleanup();
     renderAt("/content/edit/magicItem/bone-club");
     await form("Edit magic item");
-    fireEvent.click(await group("Base weapon").findByLabelText(choice));
+    fireEvent.click(await group("Base weapon").findByRole("checkbox", { name: choice }));
     expect(screen.queryByRole("group", { name: "Base weapon details" })).toBeNull();
     fireEvent.click(save());
     await screen.findByRole("heading", { name: "My Content" });

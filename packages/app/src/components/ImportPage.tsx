@@ -1,4 +1,4 @@
-import { Button } from "@orc-alchemy/ui";
+import { Button, Checkbox } from "@orc-alchemy/ui";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
@@ -90,10 +90,7 @@ function HomebrewImport() {
       <label className="block">
         Load homebrew file <input type="file" accept=".orcbrew" onChange={onChange} className="block" />
       </label>
-      <label className="block">
-        <input type="checkbox" checked={strict} onChange={(e) => setStrict(e.target.checked)} /> Strict: if an item is invalid, import
-        nothing from the file
-      </label>
+      <Checkbox label="Strict: if an item is invalid, import nothing from the file" checked={strict} onCheckedChange={setStrict} className="flex" />
       {error && <p role="alert">{error}</p>}
       {pending && <ConflictResolution key={pending.id} pending={pending} />}
       {lastImport && <ImportLog result={lastImport} />}

@@ -24,3 +24,8 @@ test("the app has no <fieldset> element; its fieldsets are the package Fieldset"
 test("the app sets no aria-pressed; its on-or-off buttons are the package Toggle", () => {
   expect(sources.filter(({ text }) => text.includes("aria-pressed")).map(({ file }) => file)).toEqual([]);
 });
+
+// ORC-161: every checkbox and radio is the package Checkbox or Radio.
+test("the app has no native checkbox or radio input", () => {
+  expect(sources.filter(({ text }) => /type="(checkbox|radio)"/.test(text)).map(({ file }) => file)).toEqual([]);
+});

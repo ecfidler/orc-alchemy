@@ -2,7 +2,7 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button, Field, Fieldset } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, Fieldset } from "@orc-alchemy/ui";
 import type { ComponentType, ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
 import { nameToKw, tag } from "../../engine/content.ts";
@@ -205,9 +205,7 @@ export function Checks({ legend, items, checked, onToggle }: { legend: string; i
   return (
     <Fieldset legend={legend}>
       {items.map(({ key, name }) => (
-        <label key={key} className="mr-4 inline-block">
-          <input type="checkbox" checked={checked(key)} onChange={() => onToggle(key)} /> {name}
-        </label>
+        <Checkbox key={key} label={name} checked={checked(key)} onCheckedChange={() => onToggle(key)} className="mr-4" />
       ))}
     </Fieldset>
   );

@@ -54,10 +54,10 @@ async function authorFirePop(optionSource?: string) {
   type("Range", "60 feet");
   type("Duration", "Instantaneous");
   type("Description", "A small burst of fire.");
-  fireEvent.click(screen.getByLabelText("Verbal"));
-  fireEvent.click(screen.getByLabelText("Material"));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Verbal" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Material" }));
   type("Material component", "a match");
-  for (const klass of ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock"]) fireEvent.click(screen.getByLabelText(klass));
+  for (const klass of ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock"]) fireEvent.click(screen.getByRole("checkbox", { name: klass }));
   if (optionSource !== undefined) type("Option source (pack)", optionSource);
   fireEvent.click(save());
   // Save builds the packs with the spell, which is slow under load.
@@ -77,10 +77,10 @@ test("each problem shows under its field, and Save is off until the spell is val
   expect(save().disabled).toBe(false);
 
   // A spell must be on at least one class list.
-  for (const klass of ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock", "Wizard"]) fireEvent.click(screen.getByLabelText(klass));
+  for (const klass of ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock", "Wizard"]) fireEvent.click(screen.getByRole("checkbox", { name: klass }));
   expect(problems("Class spell lists")).toBe("Class spell lists is not valid.");
   expect(save().disabled).toBe(true);
-  fireEvent.click(screen.getByLabelText("Wizard"));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Wizard" }));
   expect(save().disabled).toBe(false);
   expect(screen.queryByRole("list", { name: "Problems" })).toBeNull();
 });
@@ -131,8 +131,8 @@ test("the option source names the pack; Edit loads the stored spell, and a renam
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Fire Pop");
   expect(screen.getByLabelText<HTMLInputElement>("Option source (pack)").value).toBe("My Spells");
   expect(screen.getByLabelText<HTMLSelectElement>("Level").value).toBe("1");
-  expect(screen.getByLabelText<HTMLInputElement>("Verbal").checked).toBe(true);
-  expect(screen.getByLabelText<HTMLInputElement>("Somatic").checked).toBe(false);
+  expect(screen.getByRole("checkbox", { name: "Verbal" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Somatic" })).not.toBeChecked();
 
   type("Name", "Fire Burst");
   fireEvent.click(save());

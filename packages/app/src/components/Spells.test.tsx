@@ -55,14 +55,14 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   // Int 10: a wizard 1 prepares 1 spell.
   const prepared = region("Prepared spells: Wizard");
   expect(prepared.getByText("0 of 1 prepared")).toBeTruthy();
-  fireEvent.click(prepared.getByLabelText("Prepared: Alarm"));
+  fireEvent.click(prepared.getByRole("checkbox", { name: "Prepared: Alarm" }));
   expect(region("Prepared spells: Wizard").getByText("1 of 1 prepared")).toBeTruthy();
   expect(preparedSpells(entity())).toEqual({ Wizard: new Set(["alarm"]) });
-  expect(screen.getByLabelText<HTMLInputElement>("Prepared: Alarm").checked).toBe(true);
-  expect(screen.getByLabelText<HTMLInputElement>("Prepared: Burning Hands").disabled).toBe(true);
-  fireEvent.click(screen.getByLabelText("Prepared: Alarm"));
+  expect(screen.getByRole("checkbox", { name: "Prepared: Alarm" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Prepared: Burning Hands" })).toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(screen.getByRole("checkbox", { name: "Prepared: Alarm" }));
   expect(preparedSpells(entity())).toEqual({ Wizard: new Set() });
-  expect(screen.getByLabelText<HTMLInputElement>("Prepared: Burning Hands").disabled).toBe(false);
+  expect(screen.getByRole("checkbox", { name: "Prepared: Burning Hands" })).not.toHaveAttribute("aria-disabled", "true");
 });
 
 test("the level filter narrows a wizard 3's spell cards to one level", () => {
@@ -95,9 +95,10 @@ test("a Life cleric's domain spells are always prepared and take no place in its
   open("spells-life-cleric-1", e.select(caster("cleric"), ["class", "cleric", "levels", "level-1", "divine-domain"], "life-domain"));
   const prepared = region("Prepared spells: Cleric");
   expect(prepared.getByText("0 of 2 prepared")).toBeTruthy();
-  const bless = prepared.getByLabelText<HTMLInputElement>("Prepared: Bless");
-  expect([bless.checked, bless.disabled]).toEqual([true, true]);
-  fireEvent.click(prepared.getByLabelText("Prepared: Bane"));
+  const bless = prepared.getByRole("checkbox", { name: "Prepared: Bless" });
+  expect(bless).toBeChecked();
+  expect(bless).toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(prepared.getByRole("checkbox", { name: "Prepared: Bane" }));
   expect(region("Prepared spells: Cleric").getByText("1 of 2 prepared")).toBeTruthy();
   expect(preparedSpells(entity())).toEqual({ Cleric: new Set(["bane"]) });
 });

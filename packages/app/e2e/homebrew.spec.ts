@@ -176,7 +176,7 @@ test("a magic item made on My Content is listed there, and Edit opens it", async
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);
   const items = page.getByRole("region", { name: "Magic items" });
-  await expect(items.getByLabel("Hawk Eye Circlet", { exact: true })).toBeChecked();
+  await expect(items.getByRole("checkbox", { name: "Hawk Eye Circlet", exact: true })).toBeChecked();
 
   await items.getByRole("link", { name: "Edit Hawk Eye Circlet" }).click();
   await expect(page).toHaveURL(/\/content\/edit\/magicItem\/hawk-eye-circlet$/);

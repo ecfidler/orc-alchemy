@@ -1,4 +1,4 @@
-import { Button, Fieldset } from "@orc-alchemy/ui";
+import { Button, Fieldset, Radio, RadioGroup } from "@orc-alchemy/ui";
 import { useState } from "react";
 import { conflictSources, copyOn, internalCopies, resolutionsFor, settledBy, conflictsToChoose, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
 import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
@@ -85,17 +85,15 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
               {settledBy(conflict, conflicts, pending.homebrew) ? (
                 <p>The choice for {conflict.key} in more than one pack of the file settles this one: it renames or removes this copy.</p>
               ) : (
-                resolutionsFor(conflict).map((choice) => (
-                  <label key={choice} className="block">
-                    <input
-                      type="radio"
-                      name={conflict.id}
-                      checked={choices[conflict.id] === choice}
-                      onChange={() => setChoices((current) => ({ ...current, [conflict.id]: choice }))}
-                    />{" "}
-                    {choiceLabel(conflict, choice, pending.homebrew)}
-                  </label>
-                ))
+                <RadioGroup
+                  aria-label={`Choice for ${conflict.key}`}
+                  value={choices[conflict.id]}
+                  onValueChange={(choice) => setChoices((current) => ({ ...current, [conflict.id]: choice as Resolution }))}
+                >
+                  {resolutionsFor(conflict).map((choice) => (
+                    <Radio key={choice} value={choice} label={choiceLabel(conflict, choice, pending.homebrew)} className="flex" />
+                  ))}
+                </RadioGroup>
               )}
             </Fieldset>
           </li>

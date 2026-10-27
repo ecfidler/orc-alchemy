@@ -5,7 +5,7 @@
 // :attack-roll? booleans, :components a map of :verbal, :somatic and
 // :material booleans and the :material-component text, and :spell-lists a
 // map of class keyword to true or false.
-import { Field, Fieldset } from "@orc-alchemy/ui";
+import { Checkbox, Field, Fieldset } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
 import { fieldErrors, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
@@ -29,9 +29,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
     </Field>
   );
   const checkbox = (field: string, label: string) => (
-    <label className="block">
-      <input type="checkbox" checked={record[tag(field)] === true} onChange={(e) => set(field, e.target.checked)} /> {label}
-    </label>
+    <Checkbox label={label} checked={record[tag(field)] === true} onCheckedChange={(on) => set(field, on)} className="flex" />
   );
 
   return (
@@ -67,14 +65,13 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       {text("range", "Range")}
       <Fieldset legend="Components" errors={fieldErrors(problems, "components", "Components")}>
         {COMPONENTS.map((component) => (
-          <label key={component} className="mr-4">
-            <input
-              type="checkbox"
-              checked={components[tag(component)] === true}
-              onChange={(e) => set("components", { ...components, [tag(component)]: e.target.checked })}
-            />{" "}
-            {title(component)}
-          </label>
+          <Checkbox
+            key={component}
+            label={title(component)}
+            checked={components[tag(component)] === true}
+            onCheckedChange={(on) => set("components", { ...components, [tag(component)]: on })}
+            className="mr-4"
+          />
         ))}
         <label className="block">
           Material component{" "}
@@ -94,10 +91,13 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       </Field>
       <Fieldset legend="Class spell lists" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>
         {CLASSES.map((klass) => (
-          <label key={klass} className="mr-4">
-            <input type="checkbox" checked={lists[tag(klass)] === true} onChange={(e) => set("spell-lists", { ...lists, [tag(klass)]: e.target.checked })} />{" "}
-            {title(klass)}
-          </label>
+          <Checkbox
+            key={klass}
+            label={title(klass)}
+            checked={lists[tag(klass)] === true}
+            onCheckedChange={(on) => set("spell-lists", { ...lists, [tag(klass)]: on })}
+            className="mr-4"
+          />
         ))}
       </Fieldset>
     </div>

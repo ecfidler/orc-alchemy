@@ -31,7 +31,8 @@ bun run test       # vitest
 - `./theme.css`: the role tokens in light and dark, the `dark` variant, the
   fonts, the grain, the body defaults, the focus ring, the shell, flag
   tab and alert note styles (`src/shell.css`), the button and toggle styles
-  (`src/button.css`), and the fieldset and field styles (`src/field.css`).
+  (`src/button.css`), the fieldset and field styles (`src/field.css`), and
+  the checkbox and radio styles (`src/check.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
@@ -52,6 +53,18 @@ bun run test       # vitest
     toggle's `onPressedChange`. Only one toggle is pressed unless
     `multiple` is set. The group is one tab stop, on its first toggle:
     Left and Right, Home and End move in it, and Space or Enter presses.
+  - `Checkbox`: Base UI Checkbox with a square mark: a filled square while
+    it is checked. It is controlled by `checked` and `onCheckedChange`.
+    Give it a visible `label`, which a click also checks it by, or an
+    `aria-label` when no label is next to it. With `label`, `name` names
+    the box when the label is not the right name. A test finds a box by
+    its role and name, and reads it with `toBeChecked()`. Styles:
+    `src/check.css`.
+  - `RadioGroup` and `Radio`: Base UI RadioGroup and Radio. The group has a
+    name (`aria-label` or `aria-labelledby`), a controlled `value`, and
+    `onValueChange`. Each `Radio` has a `value` and a visible `label`. The
+    group is one tab stop, and the arrow keys move the choice. Styles:
+    `src/check.css`.
   - `Fieldset`: Base UI Fieldset, a group with a visible `legend`. The
     legend names the group, or `name` does when the legend is not the
     right name. The legend is a `<div>`, not a `<legend>`, so a test finds

@@ -30,8 +30,9 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByLabelText(label));
-const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByLabelText<HTMLInputElement>(label).checked;
+const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
+/** Whether the checkbox is checked, for a check of several boxes at once. */
+const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === DEFAULT)?.plugin;

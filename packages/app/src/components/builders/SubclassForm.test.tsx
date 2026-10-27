@@ -66,7 +66,7 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
   type("Level 1 spell 1", "~:fog-cloud");
   type("Level 1 spell 2", "~:bless");
   type("Level 5 spell 1", "~:cone-of-cold");
-  fireEvent.click(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByLabelText("Religion"));
+  fireEvent.click(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByRole("checkbox", { name: "Religion" }));
   fireEvent.click(screen.getByRole("button", { name: "Add modifier" }));
   type("Modifier 1 type", "~:swimming-speed");
   type("Modifier 1 value", "30");
