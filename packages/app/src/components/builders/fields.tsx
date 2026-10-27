@@ -2,7 +2,7 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Field, Fieldset } from "@orc-alchemy/ui";
 import type { ComponentType, ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
 import { nameToKw, tag } from "../../engine/content.ts";
@@ -23,7 +23,7 @@ export interface FormProps {
   record: ItemRecord;
   /** Replaces the record. */
   onChange: (record: ItemRecord) => void;
-  /** The problems with the record. Show them with FieldProblems. */
+  /** The problems with the record. Show them with Field and fieldErrors. */
   problems: Problem[];
 }
 
@@ -86,17 +86,9 @@ export function problemText(label: string, problem: Problem): string {
   return `${label} is not valid.`;
 }
 
-/** The problems of one top-level field, as text, under its control. */
-export function FieldProblems({ problems, field, label }: { problems: Problem[]; field: string; label: string }) {
-  const found = problems.filter((p) => p.path[0] === field);
-  if (found.length === 0) return null;
-  return (
-    <ul aria-label={`Problems: ${label}`} className="text-red-700">
-      {found.map((problem, i) => (
-        <li key={i}>{problemText(label, problem)}</li>
-      ))}
-    </ul>
-  );
+/** The problems of one top-level field, as text, for its Field. */
+export function fieldErrors(problems: Problem[], field: string, label: string): string[] {
+  return problems.filter((p) => p.path[0] === field).map((problem) => problemText(label, problem));
 }
 
 export const ABILITIES = [
@@ -211,27 +203,25 @@ export function Select({ label, value, options, onSelect, placeholder }: { label
 /** A group of checkboxes, one for each item. */
 export function Checks({ legend, items, checked, onToggle }: { legend: string; items: Choice[]; checked: (key: string) => boolean; onToggle: (key: string) => void }) {
   return (
-    <fieldset>
-      <legend className="font-bold">{legend}</legend>
+    <Fieldset legend={legend}>
       {items.map(({ key, name }) => (
         <label key={key} className="mr-4 inline-block">
           <input type="checkbox" checked={checked(key)} onChange={() => onToggle(key)} /> {name}
         </label>
       ))}
-    </fieldset>
+    </Fieldset>
   );
 }
 
 /** A text field of the record, with its problems. */
 export function TextField({ edit, problems, field, label }: { edit: Edit; problems: Problem[]; field: string; label: string }) {
   return (
-    <div>
+    <Field label={label} errors={fieldErrors(problems, field, label)}>
       <label className="block">
         {label}{" "}
         <input type="text" value={String(edit.get(field) ?? "")} onChange={(e) => edit.set([field], e.target.value)} className="border border-black px-1" />
       </label>
-      <FieldProblems problems={problems} field={field} label={label} />
-    </div>
+    </Field>
   );
 }
 
@@ -248,11 +238,10 @@ export function TextArea({ edit, field, label }: { edit: Edit; field: string; la
 /** A proficiency choice in :profs, as {:skill-options {:choose 2 :options {:arcana true}}}. Choose shows 1 until it is set. */
 export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; legend: string; field: string; items: Choice[] }) {
   return (
-    <fieldset>
-      <legend className="font-bold">{legend}</legend>
+    <Fieldset legend={legend}>
       <Select label={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
       <Checks legend={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
-    </fieldset>
+    </Fieldset>
   );
 }
 
@@ -264,8 +253,7 @@ export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; 
 export function Traits({ edit, problems = [], levels = false }: { edit: Edit; problems?: Problem[]; levels?: boolean }) {
   const traits = (edit.get("traits") ?? []) as ItemRecord[];
   return (
-    <fieldset>
-      <legend className="font-bold">Features / traits</legend>
+    <Fieldset legend="Features / traits" errors={fieldErrors(problems, "traits", "Features / traits")}>
       {traits.map((trait, i) => {
         const n = i + 1;
         return (
@@ -289,8 +277,7 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
       <Button onClick={() => edit.set(["traits"], [...traits, {}])} size="small">
         Add feature / trait
       </Button>
-      <FieldProblems problems={problems} field="traits" label="Features / traits" />
-    </fieldset>
+    </Fieldset>
   );
 }
 

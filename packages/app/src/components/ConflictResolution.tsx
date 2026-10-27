@@ -1,4 +1,4 @@
-import { Button } from "@orc-alchemy/ui";
+import { Button, Fieldset } from "@orc-alchemy/ui";
 import { useState } from "react";
 import { conflictSources, copyOn, internalCopies, resolutionsFor, settledBy, conflictsToChoose, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
 import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
@@ -80,10 +80,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
       <ul className="space-y-2">
         {conflicts.map((conflict) => (
           <li key={conflict.id}>
-            <fieldset className="border-l-4 border-black pl-2">
-              <legend className="font-bold">
-                {conflict["content-type-name"]}: {conflict.key}
-              </legend>
+            <Fieldset legend={`${conflict["content-type-name"]}: ${conflict.key}`} className="border-l-4 border-black pl-2">
               <ConflictText conflict={conflict} homebrew={pending.homebrew} />
               {settledBy(conflict, conflicts, pending.homebrew) ? (
                 <p>The choice for {conflict.key} in more than one pack of the file settles this one: it renames or removes this copy.</p>
@@ -100,7 +97,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
                   </label>
                 ))
               )}
-            </fieldset>
+            </Fieldset>
           </li>
         ))}
       </ul>

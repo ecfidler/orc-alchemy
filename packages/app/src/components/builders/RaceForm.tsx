@@ -10,7 +10,7 @@
 // :value {:level :ability :key}}, and :traits a vector of :name, :type and
 // :description maps. The subrace form (SubraceForm.tsx) and the feat form
 // (FeatForm.tsx) use the parts exported here.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Fieldset } from "@orc-alchemy/ui";
 import { asSet, setItems, tag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
@@ -82,8 +82,7 @@ export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKw(name
 export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
   const spells = (edit.get("spells") ?? []) as ItemRecord[];
   return (
-    <fieldset>
-      <legend className="font-bold">Spells</legend>
+    <Fieldset legend="Spells">
       {[...spells, {}].map((spell, i) => {
         const n = i + 1;
         const value = (spell[tag("value")] ?? {}) as ItemRecord;
@@ -103,7 +102,7 @@ export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
           </div>
         );
       })}
-    </fieldset>
+    </Fieldset>
   );
 }
 
@@ -136,12 +135,11 @@ function RaceForm({ record, onChange, problems }: FormProps) {
             checked={(key) => edit.get("props", key) === true}
             onToggle={(key) => edit.toggle(["props", key])}
           />
-          <fieldset>
-            <legend className="font-bold">Ability Score Increases</legend>
+          <Fieldset legend="Ability Score Increases">
             {ABILITIES.map(([key, name]) => (
               <Select key={key} label={name} value={edit.get("abilities", abilityKey(key)) ?? 0} options={BONUSES} onSelect={(v) => edit.set(["abilities", abilityKey(key)], v)} />
             ))}
-          </fieldset>
+          </Fieldset>
           <Checks legend="Languages" items={lists.languages.map(({ name }) => ({ key: name, name }))} checked={(name) => languages.includes(name)} onToggle={toggleLanguage} />
           <PropChecks edit={edit} legend="Weapon Proficiencies" prop="weapon-prof" items={weaponChoices(lists)} />
           <ArmorChecks edit={edit} />

@@ -15,6 +15,7 @@
 @import "@fontsource-variable/inter/index.css";
 @import "./src/shell.css";
 @import "./src/button.css";
+@import "./src/field.css";
 
 /* Tailwind resolves this path from this file, so each app finds the package's classes. */
 @source "./src";

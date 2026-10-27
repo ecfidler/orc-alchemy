@@ -6,13 +6,14 @@
 // subrace's speed and darkvision only when they differ from the race's. The
 // languages are checkboxes in :props, as {:language {:elvish true}}, and
 // :props :max-hp-bonus is 1, 2 or absent.
+import { Field, Fieldset } from "@orc-alchemy/ui";
 import { tag, untag } from "../../engine/content.ts";
 import {
   ABILITIES,
   abilityKey,
   Checks,
   editor,
-  FieldProblems,
+  fieldErrors,
   numbers,
   ProficiencyChoice,
   range,
@@ -36,17 +37,15 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
         return (
           <div className="space-y-3">
             <TextField edit={edit} problems={problems} field="name" label="Name" />
-            <div>
+            <Field label="Race" errors={fieldErrors(problems, "race", "Race")}>
               <Select label="Race" value={edit.get("race")} options={lists.races.map((r) => [tag(r.key), r.name])} onSelect={(v) => edit.set(["race"], v)} />
-              <FieldProblems problems={problems} field="race" label="Race" />
-            </div>
+            </Field>
             <div>
               <Select label="Size" value={edit.get("size") ?? (race?.size && tag(race.size))} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
               <Select label="Speed" value={edit.get("speed") ?? race?.speed} options={numbers(range(5, 55, 5))} onSelect={(v) => edit.set(["speed"], v)} />
               <Select label="Darkvision" value={edit.get("darkvision") ?? race?.darkvision} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
             </div>
-            <fieldset>
-              <legend className="font-bold">Ability Score Increases</legend>
+            <Fieldset legend="Ability Score Increases">
               {ABILITIES.map(([key, name]) => {
                 const raceBonus = race?.abilities[key] ?? 0;
                 const bonus = (edit.get("abilities", abilityKey(key)) as number | undefined) ?? 0;
@@ -59,7 +58,7 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
                   </div>
                 );
               })}
-            </fieldset>
+            </Fieldset>
             <Checks
               legend="Hit Points"
               items={[1, 2].map((n) => ({ key: String(n), name: `Your hit point maximum increases by ${n} for each of your levels` }))}

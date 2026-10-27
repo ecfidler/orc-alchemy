@@ -13,7 +13,7 @@
 // "Custom", the form removes the key: the importer and the export check
 // treat a nil as a problem. The modifiers and selections are also the
 // subclass form's.
-import { Button } from "@orc-alchemy/ui";
+import { Button, FieldErrors, Fieldset } from "@orc-alchemy/ui";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { asSet, intKey, intKeyValue, setItems, tag } from "../../engine/content.ts";
 import {
@@ -24,7 +24,7 @@ import {
   CONDITIONS,
   DAMAGE_TYPES,
   editor,
-  FieldProblems,
+  fieldErrors,
   nameToKw,
   numbers,
   ProficiencyChoice,
@@ -94,8 +94,7 @@ export function LevelModifiers({ edit, problems, choices }: ListProps) {
   const types = modifierTypes(choices);
   const spells: Options = choices.spells.map(({ key, name }) => [tag(key), name]);
   return (
-    <fieldset>
-      <legend className="font-bold">Modifiers</legend>
+    <Fieldset legend="Modifiers" errors={fieldErrors(problems, "level-modifiers", "Modifiers")}>
       {rows.map((row, i) => {
         const n = i + 1;
         const at = (...path: (string | number)[]) => ["level-modifiers", i, ...path];
@@ -128,8 +127,7 @@ export function LevelModifiers({ edit, problems, choices }: ListProps) {
       <Button onClick={() => edit.set(["level-modifiers"], [...rows, {}])} size="small">
         Add modifier
       </Button>
-      <FieldProblems problems={problems} field="level-modifiers" label="Modifiers" />
-    </fieldset>
+    </Fieldset>
   );
 }
 
@@ -137,8 +135,7 @@ export function LevelModifiers({ edit, problems, choices }: ListProps) {
 export function LevelSelections({ edit, problems, choices }: ListProps) {
   const rows = (edit.get("level-selections") ?? []) as ItemRecord[];
   return (
-    <fieldset>
-      <legend className="font-bold">Selections</legend>
+    <Fieldset legend="Selections" errors={fieldErrors(problems, "level-selections", "Selections")}>
       <p>A selection gives options to pick at a level, such as Martial Maneuvers. Make the selection first; it is then a type here.</p>
       {rows.map((row, i) => {
         const n = i + 1;
@@ -162,8 +159,7 @@ export function LevelSelections({ edit, problems, choices }: ListProps) {
       <Button onClick={() => edit.set(["level-selections"], [...rows, {}])} size="small">
         Add selection
       </Button>
-      <FieldProblems problems={problems} field="level-selections" label="Selections" />
-    </fieldset>
+    </Fieldset>
   );
 }
 
@@ -191,8 +187,7 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
   const maxLevel = factor === 2 ? 5 : factor === 3 ? 4 : 9;
 
   return (
-    <fieldset>
-      <legend className="font-bold">Spellcasting</legend>
+    <Fieldset legend="Spellcasting" errors={fieldErrors(problems, "spellcasting", "Spellcasting")}>
       <Select
         label="Spell slots"
         value={spellcasting !== undefined}
@@ -250,8 +245,7 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
           ))}
         </div>
       )}
-      <FieldProblems problems={problems} field="spellcasting" label="Spellcasting" />
-    </fieldset>
+    </Fieldset>
   );
 }
 
@@ -292,7 +286,7 @@ function ClassForm({ record, onChange, problems }: FormProps) {
           <LevelModifiers edit={edit} problems={problems} choices={choices} />
           <LevelSelections edit={edit} problems={problems} choices={choices} />
           <Traits edit={edit} problems={problems} levels />
-          <FieldProblems problems={problems} field="profs" label="Proficiencies" />
+          <FieldErrors label="Proficiencies" errors={fieldErrors(problems, "profs", "Proficiencies")} />
         </div>
       )}
     </WithChoices>

@@ -8,11 +8,12 @@
 // Custom base weapon (the subtype :other) has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
 // load use the magic items store.
+import { Field, FieldErrors, Fieldset } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { CONDITIONS, DAMAGE_TYPES, editor, FieldProblems, nameToKw, numbers, range, Select, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
+import { CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, nameToKw, numbers, range, Select, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
 const W = "orcpub.dnd.e5.weapons/";
@@ -74,6 +75,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
     onChange(next);
   };
   const type = untag(get("type"));
+  const baseLegend = type === "weapon" ? "Base weapon" : "Base armor";
   const subtypes = (get("subtypes") ?? []) as string[];
   const attunement = (get("attunement") ?? []) as string[];
   const mods = (get("modifiers") ?? []) as Mod[];
@@ -121,12 +123,11 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
   }
 
   const field = (name: string, label: string, control: ReactNode) => (
-    <div>
+    <Field label={label} errors={fieldErrors(problems, MI + name, label)}>
       <label className="block">
         {label} {control}
       </label>
-      <FieldProblems problems={problems} field={MI + name} label={label} />
-    </div>
+    </Field>
   );
   const select = (name: string, values: string[], names: (v: string) => string, onSelect: (v: string) => void) => (
     <select value={untag(get(name))} onChange={(e) => onSelect(e.target.value)} className="border border-black">
@@ -155,13 +156,12 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
   );
   /** A modifier with one keyword arg, on or off, such as a damage resistance (magic_items.cljc toggle-mods). */
   const toggles = (legend: string, key: string, values: string[]) => (
-    <fieldset aria-label={legend}>
-      <legend>{legend}</legend>
+    <Fieldset legend={legend}>
       {values.map((value) => {
         const match = (m: Mod) => modKey(m) === key && modArgs(m)[0] === value;
         return check(title(value), findMod(match) !== undefined, () => setMod(match, findMod(match) ? null : modCfg(key, value)));
       })}
-    </fieldset>
+    </Fieldset>
   );
   /** A number with how it changes: a select of the modifier key, and its int value. */
   const modRow = (label: string, keys: { key: string; text: string; noValue?: boolean }[], match: (m: Mod) => boolean, args: string[]) => {
@@ -220,16 +220,13 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
             <textarea value={String(get("description") ?? "")} onChange={(e) => change({ description: e.target.value })} className="block w-full border border-black" rows={6} />,
           )}
           {(type === "weapon" || type === "armor") && (
-            <fieldset aria-label={type === "weapon" ? "Base weapon" : "Base armor"}>
-              <legend>{type === "weapon" ? "Base weapon" : "Base armor"}</legend>
+            <Fieldset legend={baseLegend} errors={fieldErrors(problems, MI + "subtypes", baseLegend)}>
               {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
               {type === "weapon" && [...weapons].sort((a, b) => a.name.localeCompare(b.name)).map(({ key, name }) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
-              <FieldProblems problems={problems} field={MI + "subtypes"} label="Base item" />
-            </fieldset>
+            </Fieldset>
           )}
           {type === "weapon" && subtypes.includes(tag("other")) && (
-            <fieldset aria-label="Base weapon details">
-              <legend>Base weapon details</legend>
+            <Fieldset legend="Base weapon details">
               <div>
                 {/* As the old toggles: Versatile is a map of its damage dice or absent, and each other property is true or false. */}
                 {WEAPON_PROPERTIES.map(({ name, field }) =>
@@ -272,10 +269,9 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
                   </label>
                 ))}
               <Select label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
-            </fieldset>
+            </Fieldset>
           )}
-          <fieldset aria-label="Attunement">
-            <legend>Attunement</legend>
+          <Fieldset legend="Attunement" errors={fieldErrors(problems, MI + "attunement", "Attunement")}>
             {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] }))}
             {attunement.length > 0 && (
               <div>
@@ -291,16 +287,13 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
                 </div>
               </div>
             )}
-            <FieldProblems problems={problems} field={MI + "attunement"} label="Attunement" />
-          </fieldset>
-          <fieldset>
-            <legend>Item properties</legend>
+          </Fieldset>
+          <Fieldset legend="Item properties">
             {type === "weapon" && bonus("magical-attack-bonus", "Magical attack bonus")}
             {type === "weapon" && bonus("magical-damage-bonus", "Magical damage bonus")}
             {bonus("magical-ac-bonus", "Magical AC bonus")}
-          </fieldset>
-          <fieldset aria-label="Ability scores">
-            <legend>Ability scores</legend>
+          </Fieldset>
+          <Fieldset legend="Ability scores">
             {ABILITIES.map((ability) => {
               const arg = `orcpub.dnd.e5.character/${ability}`;
               return modRow(
@@ -313,16 +306,14 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
                 [arg],
               );
             })}
-          </fieldset>
-          <fieldset aria-label="Saving throws">
-            <legend>Saving throw bonus</legend>
+          </Fieldset>
+          <Fieldset legend="Saving throw bonus" name="Saving throws">
             {ABILITIES.map((ability) => {
               const arg = `orcpub.dnd.e5.character/${ability}`;
               return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
             })}
-          </fieldset>
-          <fieldset aria-label="Speeds">
-            <legend>Speed bonus</legend>
+          </Fieldset>
+          <Fieldset legend="Speed bonus" name="Speeds">
             {SPEEDS.map(({ label, increases, atLeast, walking }) => {
               const keys = [
                 { key: atLeast, text: "Becomes at least" },
@@ -331,12 +322,12 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
               ];
               return modRow(label, keys, (m) => keys.some((k) => k.key === modKey(m)), []);
             })}
-          </fieldset>
+          </Fieldset>
           {toggles("Damage resistances", "damage-resistance", DAMAGE_TYPES)}
           {toggles("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES)}
           {toggles("Damage immunities", "damage-immunity", DAMAGE_TYPES)}
           {toggles("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw))}
-          <FieldProblems problems={problems} field={MI + "modifiers"} label="Modifiers" />
+          <FieldErrors label="Modifiers" errors={fieldErrors(problems, MI + "modifiers", "Modifiers")} />
         </div>
       )}
     </WithChoices>

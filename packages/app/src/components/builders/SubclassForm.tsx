@@ -5,9 +5,10 @@
 // fighter or rogue subclass that casts wizard spells, and :paladin-spells,
 // :cleric-spells or :warlock-spells as {spell-level {index spell}}. The skill
 // choices, modifiers, selections and traits are as in the class form.
+import { Field, Fieldset } from "@orc-alchemy/ui";
 import { intKey, tag, untag } from "../../engine/content.ts";
 import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
-import { editor, FieldProblems, ProficiencyChoice, Select, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type FormProps } from "./fields.tsx";
+import { editor, fieldErrors, ProficiencyChoice, Select, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type FormProps } from "./fields.tsx";
 
 /** The parent classes whose subclasses add spells, with the field and its title. */
 const CLASS_SPELLS: Record<string, [field: string, title: string]> = {
@@ -25,7 +26,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
       {(choices) => (
         <div className="space-y-3">
           <TextField edit={edit} problems={problems} field="name" label="Name" />
-          <div>
+          <Field label="Class" errors={fieldErrors(problems, "class", "Class")}>
             <Select
               label="Class"
               value={edit.get("class")}
@@ -33,8 +34,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
               onSelect={(v) => edit.set(["class"], v)}
               placeholder="<select class>"
             />
-            <FieldProblems problems={problems} field="class" label="Class" />
-          </div>
+          </Field>
           {(parent === "fighter" || parent === "rogue") && (
             <Select
               label="Casts wizard spells"
@@ -45,8 +45,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
           )}
           {spells && (
             // The old subclass spells table: two spells for each spell level from 1 to 5.
-            <fieldset>
-              <legend className="font-bold">{spells[1]}</legend>
+            <Fieldset legend={spells[1]}>
               {[1, 2, 3, 4, 5].map((level) => (
                 <div key={level}>
                   {[0, 1].map((i) => (
@@ -61,7 +60,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
                   ))}
                 </div>
               ))}
-            </fieldset>
+            </Fieldset>
           )}
           <ProficiencyChoice edit={edit} legend="Skill Proficiency Choice" field="skill-options" items={SKILLS} />
           <ProficiencyChoice edit={edit} legend="Skill Expertise Choice" field="skill-expertise-options" items={SKILLS} />

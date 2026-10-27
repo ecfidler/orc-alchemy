@@ -7,10 +7,10 @@
 // to bonus, the damage, condition and language checkboxes in :props, as
 // {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
 // and :description maps, :type absent, :action or :legendary-action.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Field, Fieldset } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, CONDITIONS, DAMAGE_TYPES, FieldProblems, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -63,10 +63,9 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   const setTrait = (index: number, key: string, value: unknown) => set("traits", traits.map((trait, i) => (i === index ? withValue(trait, key, value) : trait)));
 
   const field = (name: string, label: string, control: ReactNode) => (
-    <div>
+    <Field label={label} errors={fieldErrors(problems, name, label)}>
       {control}
-      <FieldProblems problems={problems} field={name} label={label} />
-    </div>
+    </Field>
   );
   const text = (name: string, label: string) =>
     field(
@@ -92,14 +91,13 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   const numbers = (values: number[]) => values.map((n) => [n, n]);
   const orNone = (values: number[]) => [["", "-"], ...numbers(values)];
   const checkboxes = (legend: string, prop: string, keys: string[], label: (key: string) => string) => (
-    <fieldset>
-      <legend>{legend}</legend>
+    <Fieldset legend={legend}>
       {keys.map((key) => (
         <label key={key} className="mr-4 inline-block">
           <input type="checkbox" checked={((props[tag(prop)] ?? {}) as ItemRecord)[tag(key)] === true} onChange={() => toggle(prop, key)} /> {label(key)}
         </label>
       ))}
-    </fieldset>
+    </Fieldset>
   );
   const hitPoints = map("hit-points");
   const saves = map("saving-throws");
@@ -115,46 +113,38 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       </div>
       {field("armor-class", "Armor class", select("Armor class", record[tag("armor-class")], numbers(range(5, 25)), (v) => set("armor-class", Number(v))))}
       {text("armor-notes", "Armor notes")}
-      {field(
-        "hit-points",
-        "Hit points",
-        <fieldset>
-          <legend>Hit points</legend>
-          {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
-          {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
-          <label className="inline-block">
-            Hit point modifier{" "}
-            <input
-              type="number"
-              value={String(hitPoints[tag("modifier")] ?? 0)}
-              onChange={(e) => {
-                const n = parseInt(e.target.value, 10);
-                setIn("hit-points", "modifier", Number.isNaN(n) ? undefined : n);
-              }}
-              className="w-20 border border-black px-1"
-            />
-          </label>
-        </fieldset>,
-      )}
+      <Fieldset legend="Hit points" errors={fieldErrors(problems, "hit-points", "Hit points")}>
+        {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
+        {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
+        <label className="inline-block">
+          Hit point modifier{" "}
+          <input
+            type="number"
+            value={String(hitPoints[tag("modifier")] ?? 0)}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              setIn("hit-points", "modifier", Number.isNaN(n) ? undefined : n);
+            }}
+            className="w-20 border border-black px-1"
+          />
+        </label>
+      </Fieldset>
       {text("speed", "Speed")}
-      <fieldset>
-        <legend>Abilities</legend>
+      <Fieldset legend="Abilities">
         {ABILITIES.map(([key, name]) => (
           <span key={key}>{select(name, record[tag(key)], numbers(range(1, 31)), (v) => set(key, Number(v)))}</span>
         ))}
-      </fieldset>
-      <fieldset>
-        <legend>Saving throws</legend>
+      </Fieldset>
+      <Fieldset legend="Saving throws">
         {ABILITIES.map(([key, name]) => (
           <span key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</span>
         ))}
-      </fieldset>
-      <fieldset>
-        <legend>Skills</legend>
+      </Fieldset>
+      <Fieldset legend="Skills">
         {SKILLS.map(({ key, name }) => (
           <span key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</span>
         ))}
-      </fieldset>
+      </Fieldset>
       {checkboxes("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`)}
       {checkboxes("Damage resistances", "damage-resistance", ["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`))}
       {checkboxes("Damage immunities", "damage-immunity", DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)}
@@ -180,35 +170,30 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
           <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-black" rows={4} />
         </label>,
       )}
-      {field(
-        "traits",
-        "Actions / features",
-        <fieldset>
-          <legend>Actions / features</legend>
-          {traits.map((trait, i) => {
-            const n = i + 1;
-            return (
-              <div key={i} className="mb-3">
-                <label className="mr-4 inline-block">
-                  Feature {n} name{" "}
-                  <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => setTrait(i, tag("name"), e.target.value)} className="border border-black px-1" />
-                </label>
-                {select(`Feature ${n} type`, trait[tag("type")], TRAIT_TYPES, (v) => setTrait(i, tag("type"), v || undefined))}
-                <Button onClick={() => set("traits", traits.filter((_, j) => j !== i))} size="small">
-                  Delete feature {n}
-                </Button>
-                <label className="block">
-                  Feature {n} description
-                  <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => setTrait(i, tag("description"), e.target.value)} className="block w-full border border-black" />
-                </label>
-              </div>
-            );
-          })}
-          <Button onClick={() => set("traits", [...traits, {}])} size="small">
-            Add action / feature
-          </Button>
-        </fieldset>,
-      )}
+      <Fieldset legend="Actions / features" errors={fieldErrors(problems, "traits", "Actions / features")}>
+        {traits.map((trait, i) => {
+          const n = i + 1;
+          return (
+            <div key={i} className="mb-3">
+              <label className="mr-4 inline-block">
+                Feature {n} name{" "}
+                <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => setTrait(i, tag("name"), e.target.value)} className="border border-black px-1" />
+              </label>
+              {select(`Feature ${n} type`, trait[tag("type")], TRAIT_TYPES, (v) => setTrait(i, tag("type"), v || undefined))}
+              <Button onClick={() => set("traits", traits.filter((_, j) => j !== i))} size="small">
+                Delete feature {n}
+              </Button>
+              <label className="block">
+                Feature {n} description
+                <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => setTrait(i, tag("description"), e.target.value)} className="block w-full border border-black" />
+              </label>
+            </div>
+          );
+        })}
+        <Button onClick={() => set("traits", [...traits, {}])} size="small">
+          Add action / feature
+        </Button>
+      </Fieldset>
       {field(
         "legendary-actions",
         "Legendary actions",

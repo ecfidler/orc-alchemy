@@ -30,8 +30,8 @@ bun run test       # vitest
 
 - `./theme.css`: the role tokens in light and dark, the `dark` variant, the
   fonts, the grain, the body defaults, the focus ring, the shell, flag
-  tab and alert note styles (`src/shell.css`), and the button styles
-  (`src/button.css`).
+  tab and alert note styles (`src/shell.css`), the button styles
+  (`src/button.css`), and the fieldset and field styles (`src/field.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
@@ -42,6 +42,17 @@ bun run test       # vitest
   - `ButtonLink`: a link with the look of a button. Like `FlagTab`, it
     takes the link element as `render`. It takes `className` as `Button`
     does.
+  - `Fieldset`: Base UI Fieldset, a group with a visible `legend`. The
+    legend names the group, or `name` does when the legend is not the
+    right name. The legend is a `<div>`, not a `<legend>`, so a test finds
+    a group by its role and name. `errors` show at the end of the group
+    and describe it.
+  - `Field`: Base UI Field, for one control. It shows its `errors` after
+    the control, as a list named "Problems: {label}", and is invalid while
+    it has some. A Base UI control in it gets the list as its description.
+  - `FieldErrors`: the error list alone, for errors that belong to no
+    field or group.
+  - Styles for the three: `src/field.css`. A legend is semibold.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.
