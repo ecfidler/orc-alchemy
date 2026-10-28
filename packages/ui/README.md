@@ -33,8 +33,9 @@ bun run test       # vitest
   tab and alert note styles (`src/shell.css`), the button and toggle styles
   (`src/button.css`), the fieldset and field styles (`src/field.css`), the
   checkbox and radio styles (`src/check.css`), the number field styles
-  (`src/number-field.css`), and the alert dialog styles
-  (`src/dialog.css`).
+  (`src/number-field.css`), the alert dialog styles (`src/dialog.css`),
+  and the select, combobox, autocomplete and menu styles
+  (`src/select.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
@@ -92,6 +93,23 @@ bun run test       # vitest
     text, "OK" by default. Cancel has the focus when the dialog opens.
   - `AlertDialog`: the dialog that `useConfirm()` shows. The owner sets
     `open`, and closes it from `onAnswer`. Styles: `src/dialog.css`.
+  - `Select`: Base UI Select, a pick of one value from a list. Its role is
+    combobox, and its text is the picked option. It is controlled by
+    `value` (null while nothing is picked) and `onValueChange`. Each of
+    its `options` is a `[value, label]` pair; an option with a null value
+    gives null. `placeholder` shows while nothing is picked. Put it in a
+    label, or give it an `aria-label`. Styles: `src/select.css`.
+  - `Combobox`: Base UI Combobox, for an action such as "add this" from a
+    long list. The user types to filter the `options`, and a pick calls
+    `onPick` and clears the field. It keeps no value.
+  - `Autocomplete`: Base UI Autocomplete, a text field with
+    `suggestions` that it filters as the user types. The user can also
+    type any other text. It is controlled by `value` and
+    `onValueChange`.
+  - `Menu`: Base UI Menu, a ghost button named `label` that opens a list
+    of actions. A pick of one of its `items` calls `onPick`.
+  - Combobox, Autocomplete and Menu take their list styles from
+    `src/select.css`.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.
@@ -102,6 +120,15 @@ bun run test       # vitest
   - `answerConfirmDialog(answer)`: waits for the confirm dialog, clicks
     the button named `answer` (the action, or "Cancel"), waits for the
     dialog to close, and returns its question.
+  - `pickOption(control, name)`: picks the option or menu item `name` (a
+    string or a RegExp) in a Select, Combobox, Autocomplete or Menu.
+    `control` is the combobox or the menu button. In a text field it types
+    a string name first, so that the list filters to it.
+  - `optionNames(control)`: opens the list, returns the names of its
+    options or menu items, and closes it.
+- `./testing/playwright`: `pickOption(control, name)` for Playwright, as
+  above, where `control` is a locator. An app that uses it installs
+  `@playwright/test` (an optional peer).
 
 ## Rules
 

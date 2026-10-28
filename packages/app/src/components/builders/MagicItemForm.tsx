@@ -8,7 +8,7 @@
 // Custom base weapon (the subtype :other) has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
 // load use the magic items store.
-import { Checkbox, Field, FieldErrors, Fieldset, NumberField } from "@orc-alchemy/ui";
+import { Checkbox, Field, FieldErrors, Fieldset, NumberField, Select as UiSelect } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
@@ -129,15 +129,11 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       </label>
     </Field>
   );
-  const select = (name: string, values: string[], names: (v: string) => string, onSelect: (v: string) => void) => (
-    <select value={untag(get(name))} onChange={(e) => onSelect(e.target.value)} className="border border-black">
-      {values.map((v) => (
-        <option key={v} value={v}>
-          {names(v)}
-        </option>
-      ))}
-    </select>
-  );
+  // A value that is not an option shows the first option, as the old dropdowns did.
+  const select = (name: string, values: string[], names: (v: string) => string, onSelect: (v: string) => void) => {
+    const current = untag(get(name));
+    return <UiSelect value={values.includes(current) ? current : (values[0] ?? null)} options={values.map((v) => [v, names(v)])} onValueChange={onSelect} />;
+  };
   const bonus = (name: string, label: string) =>
     field(
       name,
@@ -165,22 +161,15 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       <div key={label}>
         <label>
           {label}{" "}
-          <select
+          <UiSelect
             aria-label={`${label} change`}
             value={current?.key ?? ""}
-            onChange={(e) => {
-              const k = keys.find((k) => k.key === e.target.value);
+            options={[["", "None"], ...keys.map((k): [string, string] => [k.key, k.text])]}
+            onValueChange={(next) => {
+              const k = keys.find((k) => k.key === next);
               setMod(match, k ? (k.noValue ? modCfg(k.key, ...args) : modCfg(k.key, ...args, typeof value === "number" ? value : 0)) : null);
             }}
-            className="border border-black"
-          >
-            <option value="">None</option>
-            {keys.map((k) => (
-              <option key={k.key} value={k.key}>
-                {k.text}
-              </option>
-            ))}
-          </select>
+          />
         </label>{" "}
         {current && !current.noValue && (
           <NumberField

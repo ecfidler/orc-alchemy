@@ -3,7 +3,7 @@
 // validator at each change, saved into the pack its option source names,
 // or, for a type stored outside packs, by the type's own save. Each type
 // with a form plugs in a BuilderType (builders/fields.tsx).
-import { Button } from "@orc-alchemy/ui";
+import { Autocomplete, Button } from "@orc-alchemy/ui";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { DEFAULT_PACK, itemAt, tag } from "../engine/content.ts";
@@ -93,7 +93,8 @@ function NotFound({ text }: { text: string }) {
 function BuilderForm({ builder, initial, editing }: { builder: BuilderType; initial: ItemRecord; editing?: string }) {
   const { one, validator, fields, Form } = builder;
   const navigate = useNavigate();
-  const packNames = useHomebrew((state) => state.packs.map((p) => p.id).join("\n"));
+  const packList = useHomebrew((state) => state.packs.map((p) => p.id).join("\n"));
+  const packNames = useMemo(() => packList.split("\n").filter(Boolean), [packList]);
   const [record, setRecord] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,19 +143,14 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
         <>
           <label className="block">
             Option source (pack){" "}
-            <input
-              type="text"
-              list="option-sources"
+            <Autocomplete
               value={String(record[OPTION_PACK] ?? "")}
+              onValueChange={(pack) => setRecord({ ...record, [OPTION_PACK]: pack })}
+              suggestions={packNames}
               placeholder={DEFAULT_PACK}
-              onChange={(e) => setRecord({ ...record, [OPTION_PACK]: e.target.value })}
-              className="border border-black px-1"
             />
           </label>
           <p>The pack to save the {one} in. A new pack is created if necessary.</p>
-          <datalist id="option-sources">
-            {packNames.split("\n").map((name) => name && <option key={name} value={name} />)}
-          </datalist>
         </>
       )}
       <Form record={record} onChange={setRecord} problems={problems} />

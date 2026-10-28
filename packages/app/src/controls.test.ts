@@ -39,3 +39,8 @@ test("the app has no number input", () => {
 test("the app has no window.confirm; it asks with useConfirm", () => {
   expect(sources.filter(({ text }) => text.includes("window.confirm")).map(({ file }) => file)).toEqual([]);
 });
+
+// ORC-164: every pick is the package Select, Combobox, Menu or Autocomplete.
+test("the app has no native select or datalist", () => {
+  expect(sources.filter(({ text }) => /(^|[^"'\w])<(select|datalist)[\s>]/m.test(text)).map(({ file }) => file)).toEqual([]);
+});

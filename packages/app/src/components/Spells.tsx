@@ -1,7 +1,7 @@
 // The Spells step (ORC-60): each spell selection's cards, with a level
 // filter and a name search, and the prepared spells of each class that
 // prepares. Each pick is an engine mutation, as in Options in Builder.tsx.
-import { Checkbox } from "@orc-alchemy/ui";
+import { Checkbox, Select } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
@@ -44,19 +44,12 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
       )}
       <div className="flex flex-wrap gap-2">
         {levels.length > 1 && (
-          <select
+          <Select
             aria-label={`Level: ${name}`}
             value={level}
-            onChange={(event) => setLevel(event.target.value)}
-            className="border border-black p-1"
-          >
-            <option value="all">All levels</option>
-            {levels.map((n) => (
-              <option key={n} value={n}>
-                {levelName(n)}
-              </option>
-            ))}
-          </select>
+            options={[["all", "All levels"], ...levels.map((n): [string, string] => [String(n), levelName(n)])]}
+            onValueChange={setLevel}
+          />
         )}
         <input
           type="search"

@@ -4,6 +4,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -35,6 +36,8 @@ function renderAt(path: string) {
 }
 
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const choose = (label: string, option: string | RegExp) => pickOption(screen.getByRole("combobox", { name: label }), option);
+const shown = (label: string) => screen.getByRole("combobox", { name: label }).textContent;
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 async function save(router: ReturnType<typeof renderAt>) {
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -73,9 +76,9 @@ test("the background, feat and subrace forms recreate the warlock test content p
   await screen.findByLabelText("Spell 1");
   type("Option source (pack)", PACK);
   type("Name", "Dark Elf (Drow)");
-  type("Race", "~:elf");
-  type("Charisma", "1");
-  type("Darkvision", "120");
+  await choose("Race", "Elf");
+  await choose("Charisma", "+1");
+  await choose("Darkvision", "120");
   for (const weapon of ["Rapier", "Shortsword", "Crossbow, hand"]) check("Weapon Proficiencies", weapon);
   addTrait("Sunlight Sensitivity", "Disadvantage on attack and perception rolls in direct sunlight");
   await save(router);

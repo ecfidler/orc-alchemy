@@ -1,10 +1,14 @@
 export { AlertDialog, useConfirm, type AlertDialogProps, type Confirm } from "./AlertDialog.tsx";
 export { AlertNote, AlertNotes } from "./AlertNote.tsx";
+export { Autocomplete, type AutocompleteProps } from "./Autocomplete.tsx";
 export { Button, ButtonLink, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button.tsx";
 export { Checkbox, type CheckboxProps } from "./Checkbox.tsx";
+export { Combobox, type ComboboxProps } from "./Combobox.tsx";
 export { Field, FieldErrors, Fieldset } from "./Field.tsx";
+export { Menu, type MenuProps } from "./Menu.tsx";
 export { NumberField, type NumberFieldProps } from "./NumberField.tsx";
 export { Radio, RadioGroup, type RadioGroupProps } from "./Radio.tsx";
+export { Select, type SelectOption, type SelectProps } from "./Select.tsx";
 export { FlagTab, FlagTabs, Shell, type FlagColor } from "./Shell.tsx";
 export { THEME_STORAGE_KEY, themeHeadScript, useThemePreference, type ThemePreference } from "./theme-preference.ts";
 export { Toggle, ToggleGroup, type ToggleGroupProps, type ToggleProps } from "./Toggle.tsx";

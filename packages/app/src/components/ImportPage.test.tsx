@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -401,7 +402,7 @@ test("Remap gives the option the chosen suggestion, saves the character, and lis
 
   const remap = screen.getByRole<HTMLButtonElement>("button", { name: "Remap ironwrought" });
   expect(remap.disabled).toBe(true);
-  fireEvent.change(screen.getByRole("combobox", { name: "Replacement for ironwrought" }), { target: { value: "ironwrought-v2" } });
+  await pickOption(screen.getByRole("combobox", { name: "Replacement for ironwrought" }), /^Ironwrought.*\(ironwrought-v2/);
   fireEvent.click(remap);
 
   await waitFor(() => expect(screen.queryByRole("list", { name: "Unresolved content for Unit Seven" })).toBeNull());

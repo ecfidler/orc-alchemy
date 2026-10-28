@@ -1,3 +1,4 @@
+import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
@@ -65,14 +66,16 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   expect(screen.getByRole("checkbox", { name: "Prepared: Burning Hands" })).not.toHaveAttribute("aria-disabled", "true");
 });
 
-test("the level filter narrows a wizard 3's spell cards to one level", () => {
+test("the level filter narrows a wizard 3's spell cards to one level", async () => {
   open("spells-wizard-3", caster("wizard", 3));
-  const level = screen.getByLabelText<HTMLSelectElement>("Level: Wizard Spells Known");
+  const level = screen.getByRole("combobox", { name: "Level: Wizard Spells Known" });
   // The cantrips are in their own selection, so this one has the 1st and 2nd levels.
-  expect([...level.options].map((o) => o.text)).toEqual(["All levels", "1st level", "2nd level"]);
+  fireEvent.click(level);
+  expect((await screen.findAllByRole("option")).map((o) => o.textContent)).toEqual(["All levels", "1st level", "2nd level"]);
+  fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
   const all = cards("Wizard Spells Known");
   expect(all.some((name) => name!.startsWith("1 - "))).toBe(true);
-  fireEvent.change(level, { target: { value: "2" } });
+  await pickOption(level, "2nd level");
   const second = cards("Wizard Spells Known");
   expect(second.length).toBeGreaterThan(0);
   expect(second.length).toBeLessThan(all.length);

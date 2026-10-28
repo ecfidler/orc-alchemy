@@ -5,7 +5,7 @@
 // :attack-roll? booleans, :components a map of :verbal, :somatic and
 // :material booleans and the :material-component text, and :spell-lists a
 // map of class keyword to true or false.
-import { Checkbox, Field, Fieldset } from "@orc-alchemy/ui";
+import { Checkbox, Field, Fieldset, Select } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
 import { fieldErrors, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
@@ -38,25 +38,17 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       <Field label="Level" errors={fieldErrors(problems, "level", "Level")}>
         <label className="block">
           Level{" "}
-          <select value={String(record[tag("level")] ?? "")} onChange={(e) => set("level", parseInt(e.target.value, 10))} className="border border-black">
-            {Array.from({ length: 10 }, (_, n) => (
-              <option key={n} value={n}>
-                {n === 0 ? "Cantrip" : `${ordinal(n)}-level`}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={typeof record[tag("level")] === "number" ? (record[tag("level")] as number) : null}
+            options={Array.from({ length: 10 }, (_, n) => [n, n === 0 ? "Cantrip" : `${ordinal(n)}-level`])}
+            onValueChange={(n) => set("level", n)}
+          />
         </label>
       </Field>
       <Field label="School" errors={fieldErrors(problems, "school", "School")}>
         <label className="block">
           School{" "}
-          <select value={String(record[tag("school")] ?? "")} onChange={(e) => set("school", e.target.value)} className="border border-black">
-            {SCHOOLS.map((school) => (
-              <option key={school} value={school}>
-                {school}
-              </option>
-            ))}
-          </select>
+          <Select value={String(record[tag("school")] ?? "") || null} options={SCHOOLS.map((school) => [school, school])} onValueChange={(school) => set("school", school)} />
         </label>
       </Field>
       {checkbox("ritual", "Ritual")}

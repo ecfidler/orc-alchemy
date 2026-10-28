@@ -25,7 +25,9 @@ export function AlertDialog({ open, message, action, onAnswer }: AlertDialogProp
         <BaseAlertDialog.Popup className="ui-dialog">
           <BaseAlertDialog.Title className="ui-dialog-message">{message}</BaseAlertDialog.Title>
           <div className="ui-dialog-actions">
-            <BaseAlertDialog.Close render={<Button />}>Cancel</BaseAlertDialog.Close>
+            <BaseAlertDialog.Close data-variant="ghost" data-size="normal" className="ui-button">
+              Cancel
+            </BaseAlertDialog.Close>
             <Button variant="solid" onClick={() => onAnswer(true)}>
               {action}
             </Button>

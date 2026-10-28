@@ -1,4 +1,4 @@
-import { Button } from "@orc-alchemy/ui";
+import { Button, Select } from "@orc-alchemy/ui";
 import { useMemo, useState } from "react";
 import { missingContent, OPTION_LABEL, type ContentSuggestion, type UnresolvedKey } from "../engine/reconcile.ts";
 import { useCharacter } from "../state/character.ts";
@@ -77,19 +77,12 @@ function Remap({ unresolved, onRemap }: { unresolved: UnresolvedKey; onRemap: On
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <select
+      <Select
         aria-label={`Replacement for ${unresolved.key}`}
         value={to}
-        onChange={(e) => setTo(e.target.value)}
-        className="border border-black"
-      >
-        <option value="">Leave it unresolved</option>
-        {unresolved.suggestions.map((s) => (
-          <option key={s.key} value={s.key}>
-            {suggestionLabel(s)}
-          </option>
-        ))}
-      </select>
+        options={[["", "Leave it unresolved"], ...unresolved.suggestions.map((s): [string, string] => [s.key, suggestionLabel(s)])]}
+        onValueChange={setTo}
+      />
       <Button aria-label={`Remap ${unresolved.key}`} disabled={to === "" || busy} onClick={remap} size="small">
         Remap
       </Button>

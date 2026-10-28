@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -33,6 +34,8 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const choose = (label: string, option: string | RegExp) => pickOption(screen.getByRole("combobox", { name: label }), option);
+const shown = (label: string) => screen.getByRole("combobox", { name: label }).textContent;
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (pack: string, key: string) => {
@@ -57,17 +60,17 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   await screen.findByLabelText("Spell 1");
   type("Option source (pack)", "me");
   type("Name", "Mezzoloth");
-  type("Darkvision", "60");
-  type("Constitution", "2");
+  await choose("Darkvision", "60");
+  await choose("Constitution", "+2");
   check("Languages", "Common");
   check("Languages", "Infernal");
-  type("Spell 1 spellcasting ability", "~:orcpub.dnd.e5.character/cha");
-  type("Spell 1", "~:message");
-  type("Spell 2 level", "2");
-  type("Spell 2 spellcasting ability", "~:orcpub.dnd.e5.character/cha");
-  type("Spell 2", "~:darkness");
+  await choose("Spell 1 spellcasting ability", "Charisma");
+  await choose("Spell 1", "Message");
+  await choose("Spell 2 level", "2");
+  await choose("Spell 2 spellcasting ability", "Charisma");
+  await choose("Spell 2", "Darkness");
   // A third spell, deleted again.
-  type("Spell 3", "~:light");
+  await choose("Spell 3", "Light");
   fireEvent.click(screen.getByRole("button", { name: "Delete spell 3" }));
   fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
   fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
@@ -100,10 +103,10 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   await screen.findByRole("form", { name: "Edit race" });
   await screen.findByLabelText("Spell 1");
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Mezzoloth");
-  expect(screen.getByLabelText<HTMLSelectElement>("Darkvision").value).toBe("60");
-  expect(screen.getByLabelText<HTMLSelectElement>("Constitution").value).toBe("2");
+  expect(shown("Darkvision")).toBe("60");
+  expect(shown("Constitution")).toBe("+2");
   expect(within(screen.getByRole("group", { name: "Languages" })).getByRole("checkbox", { name: "Infernal" })).toBeChecked();
-  expect(screen.getByLabelText<HTMLSelectElement>("Spell 2").value).toBe("~:darkness");
+  expect(shown("Spell 2")).toBe("Darkness");
   expect(screen.getByLabelText<HTMLTextAreaElement>("Feature 2 description").value).toMatch(/^You have four arms/);
   expect(save().disabled).toBe(false);
 });
@@ -113,9 +116,9 @@ test("the modifiers are stored as the old events store them", async () => {
   await screen.findByLabelText("Spell 1");
   type("Name", "Lizard");
   type("Description", "Scaly.");
-  type("Size", "~:small");
-  type("Speed", "25");
-  type("Swimming speed", "30");
+  await choose("Size", "small");
+  await choose("Speed", "25");
+  await choose("Swimming speed", "30");
   check("Armor Class", "Without armor your AC becomes 13 + your DEX modifier.");
   check("Weapon Proficiencies", "All Simple Weapons");
   check("Weapon Proficiencies", "Dart");
@@ -125,16 +128,16 @@ test("the modifiers are stored as the old events store them", async () => {
   check("Damage Resistances", "Resistance to poison damage");
   check("Damage Immunities", "Immunity to fire damage");
   check("Skill Proficiencies", "Stealth");
-  type("Skill Proficiency Choice: choose", "2");
+  await choose("Skill Proficiency Choice: choose", "2");
   check("Skill Proficiency Choice: options", "Survival");
   check("Language Proficiency Choice: options", "Draconic");
   check("Weapon Proficiency Choice: options", "Rapier");
-  type("Spell 1 unlock at level", "3");
-  type("Spell 1 level", "1");
-  type("Spell 1", "~:shield");
+  await choose("Spell 1 unlock at level", "3");
+  await choose("Spell 1 level", "1");
+  await choose("Spell 1", "Shield");
   fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
   type("Feature 1 name", "Bite");
-  type("Feature 1 type", "~:b-action");
+  await choose("Feature 1 type", "Bonus Action");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
 

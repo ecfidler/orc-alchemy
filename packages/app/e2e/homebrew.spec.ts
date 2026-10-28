@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 
 const orcbrewDir = join(import.meta.dirname, "../../../fixtures/orcbrew");
@@ -151,7 +152,7 @@ test("a spell made on My Content is a choice in a new wizard's spells", async ({
   await page.goto("/content");
   await page.getByRole("link", { name: "New spell" }).click();
   await page.getByRole("textbox", { name: "Name" }).fill("Fire Pop");
-  await page.getByRole("combobox", { name: "Level" }).selectOption("1st-level");
+  await pickOption(page.getByRole("combobox", { name: "Level" }), "1st-level");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);
   await expect(page.getByRole("region", { name: "Default Option Source" })).toBeVisible();
@@ -161,7 +162,7 @@ test("a spell made on My Content is a choice in a new wizard's spells", async ({
   const builder = page.getByRole("region", { name: "Builder" });
   const steps = page.getByRole("navigation", { name: "Steps" });
   await steps.getByRole("button", { name: /^Class/ }).click();
-  await builder.getByLabel("Class 1", { exact: true }).selectOption("Wizard");
+  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Wizard");
   await steps.getByRole("button", { name: /^Spells/ }).click();
   await expect(builder.getByRole("region", { name: /^Wizard Spells Known/ }).getByRole("button", { name: "1 - Fire Pop" })).toBeVisible();
 });
@@ -171,7 +172,7 @@ test("a magic item made on My Content is listed there, and Edit opens it", async
   await page.getByRole("link", { name: "New magic item" }).click();
   await expect(page.getByLabel("Option source (pack)")).toHaveCount(0);
   await page.getByRole("textbox", { name: "Name" }).fill("Hawk Eye Circlet");
-  await page.getByRole("combobox", { name: "WIS change" }).selectOption("Increases by");
+  await pickOption(page.getByRole("combobox", { name: "WIS change" }), "Increases by");
   await page.getByRole("textbox", { name: "WIS value" }).fill("2");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);

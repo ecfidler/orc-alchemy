@@ -2,7 +2,7 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button, Checkbox, Field, Fieldset } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, Fieldset, Select as UiSelect, type SelectOption } from "@orc-alchemy/ui";
 import type { ComponentType, ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
 import { nameToKw, tag } from "../../engine/content.ts";
@@ -181,24 +181,18 @@ export function editor(record: ItemRecord, onChange: (record: ItemRecord) => voi
 }
 
 /**
- * A labelled select. Each option's value is its stored value as text, so a
- * number or a keyword finds its option. placeholder is an extra first option
+ * A labelled select, with the package Select inside. A number or a keyword
+ * finds its option by its stored value. placeholder is an extra first option
  * for no value, which onSelect gets as undefined. Without one, a value that
  * is not an option shows the first option, as the old dropdowns did.
  */
 export function Select({ label, value, options, onSelect, placeholder }: { label: string; value: unknown; options: Options; onSelect: (value: unknown) => void; placeholder?: string }) {
   const known = options.some(([v]) => v === value);
+  const all: SelectOption<unknown>[] = placeholder === undefined ? options : [[null, placeholder], ...options];
   return (
     <label className="mr-4 inline-block">
       {label}{" "}
-      <select value={known ? String(value) : ""} onChange={(e) => onSelect(options.find(([v]) => String(v) === e.target.value)?.[0])} className="border border-black">
-        {placeholder !== undefined && <option value="">{placeholder}</option>}
-        {options.map(([v, text]) => (
-          <option key={String(v)} value={String(v)}>
-            {text}
-          </option>
-        ))}
-      </select>
+      <UiSelect value={known ? value : placeholder === undefined ? (options[0]?.[0] ?? null) : null} options={all} onValueChange={(v) => onSelect(v ?? undefined)} />
     </label>
   );
 }

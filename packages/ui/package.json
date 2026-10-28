@@ -6,17 +6,22 @@
   "exports": {
     "./theme.css": "./theme.css",
     ".": "./src/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./testing/playwright": "./src/testing/playwright.ts"
   },
   "scripts": {
     "typecheck": "tsc",
     "test": "vitest run"
   },
   "peerDependencies": {
+    "@playwright/test": "^1.63.0",
     "@testing-library/react": "^16.3.3",
     "react": "^18.3.1"
   },
   "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    },
     "@testing-library/react": {
       "optional": true
     }

@@ -39,7 +39,7 @@ test("removing the first class asks first when the next class is above level 1",
   await answerConfirmDialog("Remove");
   await waitFor(() => expect(built().classes).toEqual(["wizard"]));
   expect(built().levels.wizard["class-level"]).toBe(1);
-  expect((screen.getByLabelText("Class 1") as HTMLSelectElement).value).toBe("wizard");
+  expect(screen.getByRole("combobox", { name: "Class 1" })).toHaveTextContent("Wizard");
   expect(screen.getByRole("button", { name: "Remove Wizard" }).hasAttribute("disabled")).toBe(true);
 });
 

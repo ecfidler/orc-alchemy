@@ -2,7 +2,7 @@
 // class rows, and the hit points and ability score improvements each level
 // asks for. Each change is an engine mutation, as in Selection. It also holds
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
-import { Button, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
+import { Button, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, rollHitPoints, storedHitPoints, type HitPointsMethod } from "../engine/classes.ts";
@@ -75,18 +75,12 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
           const level = levelOf(key);
           return (
             <li key={key} className="flex flex-wrap items-center gap-2">
-              <select
+              <Select
                 aria-label={`Class ${i + 1}`}
                 value={key}
-                onChange={(event) => replace(i, key, event.target.value)}
-                className="border border-black p-1"
-              >
-                {[option(key), ...free].map((o) => (
-                  <option key={o.key} value={o.key}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
+                options={[option(key), ...free].map((o) => [o.key, o.name])}
+                onValueChange={(to) => replace(i, key, to)}
+              />
               <span>Level</span>
               <Button
                 aria-label={`Remove a ${name} level`}
@@ -114,18 +108,7 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
       </ol>
       {toAdd && (
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            aria-label="Add a class"
-            value={toAdd.key}
-            onChange={(event) => setAdding(event.target.value)}
-            className="border border-black p-1"
-          >
-            {free.map((o) => (
-              <option key={o.key} value={o.key}>
-                {o.name}
-              </option>
-            ))}
-          </select>
+          <Select aria-label="Add a class" value={toAdd.key} options={free.map((o) => [o.key, o.name])} onValueChange={setAdding} />
           <Button onClick={() => run((e, entity, opts) => e.addClass(entity, toAdd.key, opts))} size="small">
             Add class
           </Button>

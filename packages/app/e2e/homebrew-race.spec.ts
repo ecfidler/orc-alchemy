@@ -1,3 +1,4 @@
+import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test } from "@playwright/test";
 
 // ORC-75: a race made in the race form is one of a new character's race choices.
@@ -5,8 +6,8 @@ test("a race made in the race form is a race choice of a new character", async (
   await page.goto("/content/new/race");
   await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
   await page.getByRole("textbox", { name: "Name" }).fill("Mezzoloth");
-  await page.getByRole("combobox", { name: "Speed", exact: true }).selectOption("35");
-  await page.getByRole("combobox", { name: "Constitution" }).selectOption("2");
+  await pickOption(page.getByRole("combobox", { name: "Speed", exact: true }), "35");
+  await pickOption(page.getByRole("combobox", { name: "Constitution" }), "+2");
   await page.getByRole("group", { name: "Languages" }).getByRole("checkbox", { name: "Infernal" }).check();
   await page.getByRole("button", { name: "Add feature / trait" }).click();
   await page.getByRole("textbox", { name: "Feature 1 name" }).fill("Multilimbed");

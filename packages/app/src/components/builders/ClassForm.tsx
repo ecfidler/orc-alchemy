@@ -13,7 +13,7 @@
 // "Custom", the form removes the key: the importer and the export check
 // treat a nil as a problem. The modifiers and selections are also the
 // subclass form's.
-import { Button, FieldErrors, Fieldset } from "@orc-alchemy/ui";
+import { Button, FieldErrors, Fieldset, Menu } from "@orc-alchemy/ui";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { asSet, intKey, intKeyValue, setItems, tag } from "../../engine/content.ts";
 import {
@@ -231,7 +231,7 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
                   </Button>
                 </div>
               ))}
-              <Select label="Add an extra cantrip at level" value={undefined} options={numbers(range(2, 21))} onSelect={(v) => setCantripLevel(undefined, v)} placeholder="<select level>" />
+              <Menu label="Add an extra cantrip at level" items={numbers(range(2, 21))} onPick={(v) => setCantripLevel(undefined, v)} />
             </>
           )}
           {range(cantrips ? 0 : 1, maxLevel + 1).map((level) => (

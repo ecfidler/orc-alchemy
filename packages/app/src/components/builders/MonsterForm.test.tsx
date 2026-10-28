@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -30,6 +31,8 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const choose = (label: string, option: string | RegExp) => pickOption(screen.getByRole("combobox", { name: label }), option);
+const shown = (label: string) => screen.getByRole("combobox", { name: label }).textContent;
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = () => {
   const pack = useHomebrew.getState().packs.find((p) => p.id === DEFAULT);
@@ -45,13 +48,13 @@ test("each problem shows under its field, and Save is off until the monster is v
 
   type("Name", "Mud Imp");
   expect(problems("Name")).toBeNull();
-  type("Hit die", "6");
+  await choose("Hit die", "6");
   expect(problems("Hit points")).toBe("Hit points is required.");
-  type("Hit die count", "3");
+  await choose("Hit die count", "3");
   expect(problems("Hit points")).toBeNull();
   expect(save().disabled).toBe(false);
   // "-" removes the die count again.
-  type("Hit die count", "");
+  await choose("Hit die count", "-");
   expect(save().disabled).toBe(true);
 });
 
@@ -59,18 +62,18 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   const router = renderAt("/content/new/monster");
   await screen.findByRole("form", { name: "New monster" });
   type("Name", "Mud Imp");
-  type("Size", "~:small");
-  type("Type", "~:fiend");
-  type("Alignment", "chaotic evil");
-  type("Armor class", "13");
+  await choose("Size", "Small");
+  await choose("Type", "Fiend");
+  await choose("Alignment", "chaotic evil");
+  await choose("Armor class", "13");
   type("Armor notes", "natural armor");
-  type("Hit die count", "3");
-  type("Hit die", "6");
+  await choose("Hit die count", "3");
+  await choose("Hit die", "6");
   type("Hit point modifier", "3");
   type("Speed", "20 ft., fly 40 ft.");
-  type("Dexterity", "17");
-  type("Dexterity saving throw", "5");
-  type("Stealth", "5");
+  await choose("Dexterity", "17");
+  await choose("Dexterity saving throw", "5");
+  await choose("Stealth", "5");
   fireEvent.click(screen.getByRole("checkbox", { name: "Resistance to fire damage" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Immunity to poison damage" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Vulnerability to cold damage" }));
@@ -79,7 +82,7 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   fireEvent.click(screen.getByRole("checkbox", { name: "Deep Speech" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Deep Speech" }));
   type("Senses", "darkvision 60 ft.");
-  type("Challenge rating", "0.5");
+  await choose("Challenge rating", "1/2");
   type("Special traits", "It smells of mud.");
   fireEvent.click(screen.getByRole("button", { name: "Add action / feature" }));
   fireEvent.click(screen.getByRole("button", { name: "Add action / feature" }));
@@ -87,10 +90,10 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   type("Feature 1 name", "Gone");
   fireEvent.click(screen.getByRole("button", { name: "Delete feature 1" }));
   type("Feature 1 name", "Claw");
-  type("Feature 1 type", "~:action");
+  await choose("Feature 1 type", "Action");
   type("Feature 1 description", "Melee Weapon Attack: +5 to hit.");
   type("Feature 2 name", "Muck");
-  type("Feature 2 type", "~:legendary-action");
+  await choose("Feature 2 type", "Legendary Action");
   type("Legendary actions", "The imp can take 1 legendary action.");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
@@ -136,13 +139,13 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   renderAt(`/content/edit/monster/${encodeURIComponent(DEFAULT)}/mud-imp`);
   await screen.findByRole("form", { name: "Edit monster" });
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Mud Imp");
-  expect(screen.getByLabelText<HTMLSelectElement>("Size").value).toBe("~:small");
-  expect(screen.getByLabelText<HTMLSelectElement>("Hit die").value).toBe("6");
-  expect(screen.getByLabelText<HTMLSelectElement>("Challenge rating").value).toBe("0.5");
-  expect(screen.getByLabelText<HTMLSelectElement>("Dexterity saving throw").value).toBe("5");
+  expect(shown("Size")).toBe("Small");
+  expect(shown("Hit die")).toBe("6");
+  expect(shown("Challenge rating")).toBe("1/2");
+  expect(shown("Dexterity saving throw")).toBe("5");
   expect(screen.getByRole("checkbox", { name: "Resistance to fire damage" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "Deep Speech" })).not.toBeChecked();
-  expect(screen.getByLabelText<HTMLSelectElement>("Feature 2 type").value).toBe("~:legendary-action");
+  expect(shown("Feature 2 type")).toBe("Legendary Action");
   expect(save().disabled).toBe(false);
 });
 
@@ -151,8 +154,8 @@ test("the languages include a language of an enabled pack", async () => {
   const router = renderAt("/content/new/monster");
   await screen.findByRole("form", { name: "New monster" });
   type("Name", "Mud Imp");
-  type("Hit die count", "3");
-  type("Hit die", "6");
+  await choose("Hit die count", "3");
+  await choose("Hit die", "6");
   fireEvent.click(await screen.findByRole("checkbox", { name: "Mudspeak" }));
   expect(screen.getByRole("checkbox", { name: "Deep Speech" })).toBeTruthy();
   fireEvent.click(save());
