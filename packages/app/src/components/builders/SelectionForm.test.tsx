@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { optionNames } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -109,7 +110,7 @@ test("the form recreates Divergent Soul Quirks of the GM Binder fixture, Edit lo
   renderAt("/content/new/class");
   await screen.findByLabelText("Name");
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
-  const types = within(screen.getByLabelText("Selection 1 type")).getAllByRole("option").map((o) => o.textContent);
+  const types = await optionNames(screen.getByRole("combobox", { name: "Selection 1 type" }));
   expect(types).toContain("Divergent Soul Quirks");
 });
 

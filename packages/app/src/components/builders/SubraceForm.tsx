@@ -17,7 +17,7 @@ import {
   numbers,
   ProficiencyChoice,
   range,
-  Select,
+  SelectField,
   SKILLS,
   TextField,
   Traits,
@@ -38,12 +38,12 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
           <div className="space-y-3">
             <TextField edit={edit} problems={problems} field="name" label="Name" />
             <Field label="Race" errors={fieldErrors(problems, "race", "Race")}>
-              <Select label="Race" value={edit.get("race")} options={lists.races.map((r) => [tag(r.key), r.name])} onSelect={(v) => edit.set(["race"], v)} />
+              <SelectField label="Race" value={edit.get("race")} options={lists.races.map((r) => [tag(r.key), r.name])} onSelect={(v) => edit.set(["race"], v)} />
             </Field>
             <div>
-              <Select label="Size" value={edit.get("size") ?? (race?.size && tag(race.size))} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
-              <Select label="Speed" value={edit.get("speed") ?? race?.speed} options={numbers(range(5, 55, 5))} onSelect={(v) => edit.set(["speed"], v)} />
-              <Select label="Darkvision" value={edit.get("darkvision") ?? race?.darkvision} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
+              <SelectField label="Size" value={edit.get("size") ?? (race?.size && tag(race.size))} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
+              <SelectField label="Speed" value={edit.get("speed") ?? race?.speed} options={numbers(range(5, 55, 5))} onSelect={(v) => edit.set(["speed"], v)} />
+              <SelectField label="Darkvision" value={edit.get("darkvision") ?? race?.darkvision} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
             </div>
             <Fieldset legend="Ability Score Increases">
               {ABILITIES.map(([key, name]) => {
@@ -51,7 +51,7 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
                 const bonus = (edit.get("abilities", abilityKey(key)) as number | undefined) ?? 0;
                 return (
                   <div key={key}>
-                    <Select label={name} value={bonus} options={BONUSES} onSelect={(v) => edit.set(["abilities", abilityKey(key)], v)} />
+                    <SelectField label={name} value={bonus} options={BONUSES} onSelect={(v) => edit.set(["abilities", abilityKey(key)], v)} />
                     <span>
                       Race bonus {raceBonus}, total {raceBonus + bonus}
                     </span>

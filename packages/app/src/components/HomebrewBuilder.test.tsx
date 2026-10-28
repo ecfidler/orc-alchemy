@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -48,8 +49,8 @@ async function authorFirePop(optionSource?: string) {
   const router = renderAt("/content/new/spell");
   await screen.findByRole("form", { name: "New spell" });
   type("Name", "Fire Pop");
-  type("Level", "1");
-  type("School", "evocation");
+  await pickOption(screen.getByRole("combobox", { name: "Level" }), "1st-level");
+  await pickOption(screen.getByRole("combobox", { name: "School" }), "evocation");
   type("Casting time", "1 action");
   type("Range", "60 feet");
   type("Duration", "Instantaneous");
@@ -130,7 +131,7 @@ test("the option source names the pack; Edit loads the stored spell, and a renam
   await screen.findByRole("form", { name: "Edit spell" });
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Fire Pop");
   expect(screen.getByLabelText<HTMLInputElement>("Option source (pack)").value).toBe("My Spells");
-  expect(screen.getByLabelText<HTMLSelectElement>("Level").value).toBe("1");
+  expect(screen.getByRole("combobox", { name: "Level" }).textContent).toBe("1st-level");
   expect(screen.getByRole("checkbox", { name: "Verbal" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "Somatic" })).not.toBeChecked();
 

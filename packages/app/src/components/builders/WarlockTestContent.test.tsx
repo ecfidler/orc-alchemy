@@ -12,6 +12,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
+import { choose } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -73,9 +74,9 @@ test("the background, feat and subrace forms recreate the warlock test content p
   await screen.findByLabelText("Spell 1");
   type("Option source (pack)", PACK);
   type("Name", "Dark Elf (Drow)");
-  type("Race", "~:elf");
-  type("Charisma", "1");
-  type("Darkvision", "120");
+  await choose("Race", "Elf");
+  await choose("Charisma", "+1");
+  await choose("Darkvision", "120");
   for (const weapon of ["Rapier", "Shortsword", "Crossbow, hand"]) check("Weapon Proficiencies", weapon);
   addTrait("Sunlight Sensitivity", "Disadvantage on attack and perception rolls in direct sunlight");
   await save(router);

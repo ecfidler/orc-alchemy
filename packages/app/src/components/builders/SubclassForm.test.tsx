@@ -9,6 +9,7 @@ import { useHomebrew } from "../../state/homebrew.ts";
 import { Builder } from "../Builder.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 import { classBuilder } from "./ClassForm.tsx";
+import { choose, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -47,13 +48,13 @@ test("each problem shows under its field, and Save is off until the subclass is 
   renderAt("/content/new/subclass");
   await screen.findByLabelText("Name");
   expect(problems("Name")).toBe("Name is required.");
-  expect(screen.getByLabelText<HTMLSelectElement>("Class").value).toBe("~:barbarian");
+  expect(shown("Class")).toBe("Barbarian");
   type("Name", "Path of Frost");
   expect(save().disabled).toBe(false);
-  type("Class", "");
+  await choose("Class", "<select class>");
   expect(problems("Class")).toBe("Class is required.");
   expect(save().disabled).toBe(true);
-  type("Class", "~:fighter");
+  await choose("Class", "Fighter");
   expect(save().disabled).toBe(false);
 });
 
@@ -62,16 +63,16 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
   await screen.findByLabelText("Name");
   type("Name", "Waves Domain");
   expect(screen.queryByRole("group", { name: "Domain Spells" })).toBeNull();
-  type("Class", "~:cleric");
-  type("Level 1 spell 1", "~:fog-cloud");
-  type("Level 1 spell 2", "~:bless");
-  type("Level 5 spell 1", "~:cone-of-cold");
+  await choose("Class", "Cleric");
+  await choose("Level 1 spell 1", "Fog Cloud");
+  await choose("Level 1 spell 2", "Bless");
+  await choose("Level 5 spell 1", "Cone of Cold");
   fireEvent.click(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByRole("checkbox", { name: "Religion" }));
   fireEvent.click(screen.getByRole("button", { name: "Add modifier" }));
-  type("Modifier 1 type", "~:swimming-speed");
-  type("Modifier 1 value", "30");
+  await choose("Modifier 1 type", "Swimming Speed");
+  await choose("Modifier 1 value", "30 ft.");
   // A new type keeps the value, as the old event does.
-  type("Modifier 1 type", "~:flying-speed");
+  await choose("Modifier 1 type", "Flying Speed");
   await saved(router);
 
   expect(stored("waves-domain")).toEqual({
@@ -89,17 +90,17 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
   cleanup();
   renderAt(`/content/edit/subclass/${encodeURIComponent(DEFAULT)}/waves-domain`);
   await screen.findByLabelText("Name");
-  expect(screen.getByLabelText<HTMLSelectElement>("Class").value).toBe("~:cleric");
-  expect(screen.getByLabelText<HTMLSelectElement>("Level 1 spell 2").value).toBe("~:bless");
-  expect(screen.getByLabelText<HTMLSelectElement>("Modifier 1 value").value).toBe("30");
+  expect(shown("Class")).toBe("Cleric");
+  expect(shown("Level 1 spell 2")).toBe("Bless");
+  expect(shown("Modifier 1 value")).toBe("30 ft.");
 });
 
 test("a fighter subclass can cast wizard spells", async () => {
   const router = renderAt("/content/new/subclass");
   await screen.findByLabelText("Name");
   type("Name", "Spell Blade");
-  type("Class", "~:fighter");
-  type("Casts wizard spells", "true");
+  await choose("Class", "Fighter");
+  await choose("Casts wizard spells", "Yes");
   await saved(router);
   expect(stored("spell-blade")!["~:spellcasting"]).toEqual({ "~:level-factor": 3 });
 });
@@ -119,28 +120,28 @@ test("a class and a subclass authored in the forms are a character's choices, an
   let router = renderAt("/content/new/class");
   await screen.findByLabelText("Name");
   type("Name", "Rune Knight");
-  type("Hit die", "10");
-  type("Subclass chosen at level", "3");
+  await choose("Hit die", "10");
+  await choose("Subclass chosen at level", "3");
   type("Subclass title, such as Path or Circle", "Rune Path");
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
-  type("Selection 1 type", "~:rune-carvings");
-  type("Selection 1 level", "2");
-  type("Selection 1 amount", "2");
+  await choose("Selection 1 type", "Rune Carvings");
+  await choose("Selection 1 level", "2");
+  await choose("Selection 1 amount", "2");
   await saved(router);
 
   cleanup();
   router = renderAt("/content/new/subclass");
   await screen.findByLabelText("Name");
   // The new class is a parent the subclass can have.
-  type("Class", "~:rune-knight");
+  await choose("Class", "Rune Knight");
   type("Name", "Frost Path");
   fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
   type("Feature 1 name", "Frost Rune");
-  type("Feature 1 level", "3");
+  await choose("Feature 1 level", "3");
   type("Feature 1 description", "Your weapon is cold.");
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
-  type("Selection 1 type", "~:frost-gifts");
-  type("Selection 1 level", "3");
+  await choose("Selection 1 type", "Frost Gifts");
+  await choose("Selection 1 level", "3");
   await saved(router);
   cleanup();
 

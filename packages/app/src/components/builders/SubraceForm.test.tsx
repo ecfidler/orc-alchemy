@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { optionNames } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -9,6 +10,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
+import { choose, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -34,27 +36,25 @@ function renderAt(path: string) {
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
-const value = (label: string) => screen.getByLabelText<HTMLSelectElement>(label).value;
-const WIS = "~:orcpub.dnd.e5.character/wis";
 
 test("the race list has the SRD races and the enabled packs' races, and the race's values show until the subrace has its own", async () => {
   await useHomebrew.getState().saveItem("Lizards", "~:orcpub.dnd.e5/races", { "~:key": "~:lizard", "~:name": "Lizard", "~:option-pack": "Lizards", "~:speed": 40, "~:size": "~:small" });
   renderAt("/content/new/subrace");
   await screen.findByLabelText("Spell 1");
-  const races = [...screen.getByLabelText<HTMLSelectElement>("Race").options].map((o) => o.text);
+  const races = await optionNames(screen.getByRole("combobox", { name: "Race" }));
   expect(races).toEqual(expect.arrayContaining(["Dwarf", "Elf", "Tiefling", "Lizard"]));
   expect(races).not.toContain("Custom");
 
   // The new subrace is a dwarf's: speed 25, darkvision 60, Con +2.
   expect(screen.getByRole("textbox", { name: "Name" })).toBeTruthy();
   expect(screen.queryByRole("list", { name: "Problems: Name" })?.textContent).toBe("Name is required.");
-  expect([value("Race"), value("Size"), value("Speed"), value("Darkvision")]).toEqual(["~:dwarf", "~:medium", "25", "60"]);
+  expect([shown("Race"), shown("Size"), shown("Speed"), shown("Darkvision")]).toEqual(["Dwarf", "medium", "25", "60"]);
   expect(screen.getByText("Race bonus 2, total 2")).toBeTruthy();
-  type("Race", "~:lizard");
-  expect([value("Size"), value("Speed")]).toEqual(["~:small", "40"]);
-  type("Speed", "35");
-  type("Race", "~:elf");
-  expect(value("Speed")).toBe("35");
+  await choose("Race", "Lizard");
+  expect([shown("Size"), shown("Speed")]).toEqual(["small", "40"]);
+  await choose("Speed", "35");
+  await choose("Race", "Elf");
+  expect(shown("Speed")).toBe("35");
 });
 
 test("the form recreates the Star Elf subrace of the community fixture, and Edit loads it back", async () => {
@@ -62,20 +62,20 @@ test("the form recreates the Star Elf subrace of the community fixture, and Edit
   await screen.findByLabelText("Spell 1");
   type("Option source (pack)", "dand wiki");
   type("Name", "Star Elf");
-  type("Race", "~:elf");
-  type("Wisdom", "1");
+  await choose("Race", "Elf");
+  await choose("Wisdom", "+1");
   for (const weapon of ["Dart", "Morningstar", "Rapier", "Shortbow"]) check("Weapon Proficiencies", weapon);
   check("Skill Proficiencies", "Insight");
-  type("Spell 1 spellcasting ability", WIS);
-  type("Spell 1", "~:guidance");
-  type("Spell 2 unlock at level", "3");
-  type("Spell 2 level", "1");
-  type("Spell 2 spellcasting ability", WIS);
-  type("Spell 2", "~:detect-magic");
-  type("Spell 3 unlock at level", "5");
-  type("Spell 3 level", "2");
-  type("Spell 3 spellcasting ability", WIS);
-  type("Spell 3", "~:detect-thoughts");
+  await choose("Spell 1 spellcasting ability", "Wisdom");
+  await choose("Spell 1", "Guidance");
+  await choose("Spell 2 unlock at level", "3");
+  await choose("Spell 2 level", "1");
+  await choose("Spell 2 spellcasting ability", "Wisdom");
+  await choose("Spell 2", "Detect Magic");
+  await choose("Spell 3 unlock at level", "5");
+  await choose("Spell 3 level", "2");
+  await choose("Spell 3 spellcasting ability", "Wisdom");
+  await choose("Spell 3", "Detect Thoughts");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
 
@@ -96,7 +96,7 @@ test("the form recreates the Star Elf subrace of the community fixture, and Edit
   await screen.findByRole("form", { name: "Edit subrace" });
   await screen.findByLabelText("Spell 1");
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Star Elf");
-  expect([value("Race"), value("Wisdom"), value("Spell 2 unlock at level"), value("Spell 3")]).toEqual(["~:elf", "1", "3", "~:detect-thoughts"]);
+  expect([shown("Race"), shown("Wisdom"), shown("Spell 2 unlock at level"), shown("Spell 3")]).toEqual(["Elf", "+1", "3", "Detect Thoughts"]);
   expect(within(screen.getByRole("group", { name: "Weapon Proficiencies" })).getByRole("checkbox", { name: "Rapier" })).toBeChecked();
   expect(save().disabled).toBe(false);
 });
@@ -105,7 +105,7 @@ test("the subrace modifiers are stored as the old events store them", async () =
   const router = renderAt("/content/new/subrace");
   await screen.findByLabelText("Spell 1");
   type("Name", "Deep Dwarf");
-  type("Darkvision", "120");
+  await choose("Darkvision", "120");
   check("Hit Points", "Your hit point maximum increases by 1 for each of your levels");
   check("Hit Points", "Your hit point maximum increases by 2 for each of your levels");
   check("Saving Throw Advantage", "You have advantage on saving throws against being Poisoned");

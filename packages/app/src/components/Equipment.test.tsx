@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { attunedItems, customItems } from "../engine/equipment.ts";
@@ -40,20 +41,26 @@ const sheet = () => toSheet(engine().evaluate(entity()).built, entity());
 const region = (name: string) => within(screen.getByRole("region", { name: new RegExp(`^${name}`) }));
 // getByLabelText is slow on a page of four long item lists; every control here has an aria-label.
 const labelled = (label: string) => document.querySelector<HTMLElement>(`[aria-label="${label}"]`)!;
-const choose = (label: string, value: string) => fireEvent.change(labelled(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(labelled(label), { target: { value } });
+const choose = (label: string, name: string) => pickOption(labelled(label), name);
 
-test("fighter-20 equipped through the Equipment step has its AC, hit points and attacks", () => {
+test("fighter-20 equipped through the Equipment step has its AC, hit points and attacks", async () => {
   open(unequippedFighter20());
   expect(sheet().armorClass).toBe(18);
-  choose("Add an item to Armor", "plate");
-  choose("Add an item to Magic Weapons", "longsword-1");
-  choose("Add an item to Other Magic Items", "amulet-of-health");
+  await choose("Add an item to Armor", "Plate");
+  await choose("Add an item to Magic Weapons", "Longsword +1");
+  await choose("Add an item to Other Magic Items", "Amulet of Health");
   // An item in the list is not offered again.
-  expect(labelled("Add an item to Armor").querySelector('option[value="plate"]')).toBeNull();
+  const add = labelled("Add an item to Armor");
+  add.focus();
+  fireEvent.keyDown(add, { key: "ArrowDown" });
+  fireEvent.change(add, { target: { value: "Plate" } });
+  expect((await screen.findAllByRole("option")).map((o) => o.textContent)).not.toContain("Plate");
+  fireEvent.keyDown(add, { key: "Escape" });
   expect(labelled("Carried: Plate")).toBeChecked();
-  choose("Worn armor", "plate");
-  choose("Wielded shield", "shield");
-  choose("Main hand", "longsword-1");
+  await choose("Worn armor", "Plate");
+  await choose("Wielded shield", "Shield");
+  await choose("Main hand", "Longsword +1");
   // A longsword +1 is not a dual-wield weapon, so the off hand is not offered.
   expect(document.querySelector('[aria-label="Off hand"]')).toBeNull();
   fireEvent.click(labelled("Attuned: Amulet of Health"));
@@ -68,7 +75,7 @@ test("fighter-20 equipped through the Equipment step has its AC, hit points and 
   expect(sheet().weaponAttacks.find((w) => w.key === "longsword-1")).toMatchObject({ attackBonus: 12, damageModifier: 6 });
 
   // Quantity and Remove.
-  choose("Quantity: Plate", "2");
+  type("Quantity: Plate", "2");
   expect(engine().evaluate(entity()).built.armor!.plate["orcpub.dnd.e5.character.equipment/quantity"]).toBe(2);
   fireEvent.click(screen.getByText("Remove Plate"));
   expect(engine().evaluate(entity()).built.armor!.plate).toBeUndefined();
@@ -87,13 +94,13 @@ test("a custom item is added, renamed, counted and removed", () => {
   expect(customItems(entity(), "custom-treasure")).toEqual([]);
 });
 
-test("no more than 3 magic items are attuned at once", () => {
+test("no more than 3 magic items are attuned at once", async () => {
   open(engine().emptyCharacter());
   // Removing an item that is not attuned does not store the attuned items.
   fireEvent.click(screen.getByText("Remove Explorer's Pack"));
   expect(JSON.stringify(entity())).not.toContain("attuned-magic-items");
-  for (const key of ["amulet-of-health", "cloak-of-protection", "ring-of-protection", "bag-of-holding"]) {
-    choose("Add an item to Other Magic Items", key);
+  for (const name of ["Amulet of Health", "Cloak of Protection", "Ring of Protection", "Bag of Holding"]) {
+    await choose("Add an item to Other Magic Items", name);
   }
   for (const name of ["Amulet of Health", "Cloak of Protection", "Ring of Protection"]) fireEvent.click(labelled(`Attuned: ${name}`));
   const bag = labelled("Attuned: Bag of Holding");
@@ -115,12 +122,12 @@ test("an imported magic item is offered, and wearing it changes the build", asyn
     open(unequippedFighter20());
     const built = () => engine().evaluate(entity(), useHomebrew.getState().content).built;
     const wis = built().abilities["orcpub.dnd.e5.character/wis"];
-    choose("Add an item to Other Magic Items", "circlet-of-the-hawk");
+    await choose("Add an item to Other Magic Items", "Circlet of the Hawk");
     fireEvent.click(labelled("Attuned: Circlet of the Hawk"));
     expect(built().abilities["orcpub.dnd.e5.character/wis"]).toBe(wis + 2);
 
-    choose("Add an item to Magic Armor", "wardens-plate");
-    choose("Worn armor", "wardens-plate");
+    await choose("Add an item to Magic Armor", "Warden's Plate");
+    await choose("Worn armor", "Warden's Plate");
     expect(built()["worn-armor"]).toBe("wardens-plate");
     // Plate is 18, and Warden's Plate adds 2.
     expect(toSheet(built(), entity()).armorClass).toBe(20);

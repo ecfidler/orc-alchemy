@@ -1,7 +1,7 @@
 // The Equipment step (ORC-59): the inventory lists, as the old builder's
 // inventory selectors, and the worn armor, shield and weapons in hand, as
 // the old sheet's Equipped Items. Each change is an engine mutation.
-import { Button, Checkbox } from "@orc-alchemy/ui";
+import { Button, Checkbox, Combobox, Select } from "@orc-alchemy/ui";
 import { useId, useMemo } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import {
@@ -46,22 +46,13 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
       {error && <p role="alert">{error}</p>}
-      <select
+      <Combobox
         aria-label={`Add an item to ${selection.name}`}
-        value=""
-        onChange={(event) => {
-          const key = event.target.value;
-          if (key) run((e, entity) => e.addInventoryItem(entity, list, key));
-        }}
-        className="border border-black p-1"
-      >
-        <option value="">Add an item…</option>
-        {free.map((o) => (
-          <option key={o.key} value={o.key}>
-            {o.name}
-          </option>
-        ))}
-      </select>
+        placeholder="Add an item…"
+        options={free.map((o) => [o.key, o.name])}
+        onPick={(key) => run((e, entity) => e.addInventoryItem(entity, list, key))}
+        className="w-64"
+      />
       <ul className="space-y-1">
         {items.map((item) => {
           const name = nameOf(item.key);
@@ -170,14 +161,13 @@ export function Hands({ lists }: { lists: BuilderSelection[] }) {
   const dropdown = (label: string, key: Hand, value: string, keys: string[]) => (
     <label className="flex flex-col">
       <span>{label}</span>
-      <select aria-label={label} value={value} onChange={(event) => run((e, entity) => wield(e, entity, key, event.target.value))} className="border border-black p-1">
-        <option value="none">&lt;none&gt;</option>
-        {keys.map((k) => (
-          <option key={k} value={k}>
-            {nameOf(k)}
-          </option>
-        ))}
-      </select>
+      <Select
+        aria-label={label}
+        // A stored item that is no longer carried shows as none, as the old dropdowns did.
+        value={keys.includes(value) ? value : "none"}
+        options={[["none", "<none>"], ...keys.map((k): [string, string] => [k, nameOf(k)])]}
+        onValueChange={(next) => run((e, entity) => wield(e, entity, key, next))}
+      />
     </label>
   );
   return (

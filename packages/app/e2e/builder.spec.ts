@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
@@ -40,8 +41,8 @@ test("a new character becomes a dwarf acolyte fighter 1, and the preview follows
   // Class: a fighter's hit die is d10, so 10 + Con +2.
   await stepButton(page, "Class").click();
   // At level 1 there is nothing to lose, so the change does not ask first.
-  await builder.getByLabel("Class 1", { exact: true }).selectOption("Fighter");
-  await expect(builder.getByLabel("Class 1", { exact: true })).toHaveValue("fighter");
+  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
+  await expect(builder.getByLabel("Class 1", { exact: true })).toHaveText("Fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await expect(hp).toHaveText("12 / 12");
   await expect(builder.getByRole("region", { name: /^Fighting Style/ })).toBeVisible();
@@ -81,16 +82,16 @@ test("replacing a class with more than level 1 asks first", async ({ page }) => 
     name: "Replace Fighter with Wizard? Fighter's 5 levels and their choices are removed, and Wizard starts at level 1. This cannot be undone.",
   });
   const class1 = builder.getByLabel("Class 1", { exact: true });
-  await class1.selectOption("Wizard");
+  await pickOption(class1, "Wizard");
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(klass).toHaveText("Fighter 5 (Champion)");
-  await expect(class1).toHaveValue("fighter");
+  await expect(class1).toHaveText("Fighter");
 
-  await class1.selectOption("Wizard");
+  await pickOption(class1, "Wizard");
   await dialog.getByRole("button", { name: "Replace" }).click();
   await expect(klass).toHaveText("Wizard 1");
-  await expect(class1).toHaveValue("wizard");
+  await expect(class1).toHaveText("Wizard");
 });
 
 test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page }) => {
@@ -112,7 +113,7 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
 
   // Con 13 is +1: 10 + 1 at level 1, then the average 6 + 1 for each level after.
   await stepButton(page, "Class").click();
-  await builder.getByLabel("Class 1", { exact: true }).selectOption("Fighter");
+  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
   await expect(klass).toHaveText("Fighter 1");
   await expect(builder.getByRole("button", { name: "Remove a Fighter level" })).toBeDisabled();
   await expect(builder.getByRole("button", { name: "Remove Fighter", exact: true })).toBeDisabled();
@@ -129,10 +130,10 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await expect(hp).toHaveText("25 / 25");
 
   // A wizard's hit die is d6: the average is 4.
-  await builder.getByLabel("Add a class", { exact: true }).selectOption("Wizard");
+  await pickOption(builder.getByLabel("Add a class", { exact: true }), "Wizard");
   await builder.getByRole("button", { name: "Add class" }).click();
   await expect(klass).toHaveText("Fighter 3 (Champion) / Wizard 1");
-  await expect(builder.getByLabel("Class 2", { exact: true })).toHaveValue("wizard");
+  await expect(builder.getByLabel("Class 2", { exact: true })).toHaveText("Wizard");
   await region("Hit Points: Wizard 1").getByRole("button", { name: "Average (4)" }).click();
   await builder.getByRole("button", { name: "Add a Wizard level" }).click();
   await region("Hit Points: Wizard 2").getByRole("button", { name: "Average (4)" }).click();
@@ -159,7 +160,7 @@ test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepare
   // A barbarian has no spells, so the step appears with the wizard: 3 cantrips and 6 spells.
   await expect(stepButton(page, "Spells")).toHaveCount(0);
   await stepButton(page, "Class").click();
-  await builder.getByLabel("Class 1", { exact: true }).selectOption("Wizard");
+  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Wizard");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Wizard 1");
   await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells (9 to do)");
   await stepButton(page, "Spells").click();
@@ -332,13 +333,13 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
   await expect(ac).toHaveText("18");
   await stepButton(page, "Equipment").click();
 
-  await builder.getByLabel("Add an item to Armor").selectOption("Plate");
+  await pickOption(builder.getByLabel("Add an item to Armor"), "Plate");
   await expect(builder.getByRole("checkbox", { name: "Carried: Plate" })).toBeChecked();
-  await builder.getByLabel("Add an item to Magic Weapons").selectOption("Longsword +1");
-  await builder.getByLabel("Add an item to Other Magic Items").selectOption("Amulet of Health");
-  await builder.getByLabel("Worn armor").selectOption("Plate");
-  await builder.getByLabel("Wielded shield").selectOption("Shield");
-  await builder.getByLabel("Main hand").selectOption("Longsword +1");
+  await pickOption(builder.getByLabel("Add an item to Magic Weapons"), "Longsword +1");
+  await pickOption(builder.getByLabel("Add an item to Other Magic Items"), "Amulet of Health");
+  await pickOption(builder.getByLabel("Worn armor"), "Plate");
+  await pickOption(builder.getByLabel("Wielded shield"), "Shield");
+  await pickOption(builder.getByLabel("Main hand"), "Longsword +1");
   await builder.getByRole("checkbox", { name: "Attuned: Amulet of Health" }).check();
 
   await expect(ac).toHaveText("20");
@@ -390,7 +391,7 @@ test("fighter-1 built from New character through the steps matches its expected 
   await stepButton(page, "Background").click();
   await pick("Lawful Good", "Acolyte", "Elvish", "Giant");
   await stepButton(page, "Class").click();
-  await builder.getByLabel("Class 1", { exact: true }).selectOption("Fighter");
+  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await pick("Defense", "Athletics", "Perception");
   // The standard scores are the default.
@@ -399,11 +400,11 @@ test("fighter-1 built from New character through the steps matches its expected 
   await stepButton(page, "Equipment").click();
   // The starting equipment of the class and the background is on this step.
   await pick("Amulet", "Prayer Book", "Chain Mail", "Martial Weapon and Shield", "Longsword", "Two Handaxes", "Dungeoneer's Pack");
-  await builder.getByLabel("Worn armor").selectOption("Chain mail");
-  await builder.getByLabel("Wielded shield").selectOption("Shield");
+  await pickOption(builder.getByLabel("Worn armor"), "Chain mail");
+  await pickOption(builder.getByLabel("Wielded shield"), "Shield");
   // The main hand sets the off hand to none. The golden has the shield there, but the
   // off-hand list offers only dual-wield weapons. The values below do not change.
-  await builder.getByLabel("Main hand").selectOption("Longsword");
+  await pickOption(builder.getByLabel("Main hand"), "Longsword");
   await stepButton(page, "Description").click();
   const name = builder.getByLabel("Character Name");
   await name.fill(expected["character-name"]);

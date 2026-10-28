@@ -1,3 +1,4 @@
+import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test } from "@playwright/test";
 
 // ORC-74: a monster made in the monster form is listed on My Content.
@@ -5,11 +6,11 @@ test("a monster made in the monster form is listed on My Content", async ({ page
   await page.goto("/content/new/monster");
   await page.getByRole("textbox", { name: "Name" }).fill("Mud Imp");
   await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
-  await page.getByRole("combobox", { name: "Hit die count", exact: true }).selectOption("3");
-  await page.getByRole("combobox", { name: "Hit die", exact: true }).selectOption("6");
+  await pickOption(page.getByRole("combobox", { name: "Hit die count", exact: true }), "3");
+  await pickOption(page.getByRole("combobox", { name: "Hit die", exact: true }), "6");
   await page.getByRole("button", { name: "Add action / feature" }).click();
   await page.getByRole("textbox", { name: "Feature 1 name" }).fill("Claw");
-  await page.getByRole("combobox", { name: "Feature 1 type" }).selectOption("Action");
+  await pickOption(page.getByRole("combobox", { name: "Feature 1 type" }), "Action");
   await page.getByRole("button", { name: "Save" }).click();
 
   await expect(page).toHaveURL(/\/content$/);

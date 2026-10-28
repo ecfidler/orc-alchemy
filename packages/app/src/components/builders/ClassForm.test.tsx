@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { optionNames, pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -6,6 +7,7 @@ import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
+import { choose, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -64,14 +66,15 @@ test("each problem shows under its field, and Save is off until the class is val
   expect(screen.queryByRole("list", { name: "Problems" })).toBeNull();
 });
 
+// About 20 picks in a large form, and each pick renders the whole form again: it takes over 10 s, more under load.
 test("Save stores the class as the old app stores it, and Edit loads it back", async () => {
   await addRuneCarvings();
   const router = renderAt("/content/new/class");
   await screen.findByLabelText("Name");
   type("Name", "Rune Knight");
   type("Description", "A warrior of runes.");
-  type("Hit die", "10");
-  type("Subclass chosen at level", "3");
+  await choose("Hit die", "10");
+  await choose("Subclass chosen at level", "3");
   type("Subclass title, such as Path or Circle", "Rune Path");
   type("Subclass description", "The runes you follow.");
   click("Strength saving throw");
@@ -79,34 +82,34 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   click("Constitution saving throw");
   click("Ability increase at level 4");
   click("Ability increase at level 6");
-  type("Spell slots", "true");
-  type("Spell list", "~:wizard");
-  type("Spellcasting ability", "~:orcpub.dnd.e5.character/int");
-  type("First spell slots at level", "2");
-  type("Skill Proficiency Choice: choose", "2");
+  await choose("Spell slots", "Yes");
+  await choose("Spell list", "Wizard");
+  await choose("Spellcasting ability", "Intelligence");
+  await choose("First spell slots at level", "2");
+  await choose("Skill Proficiency Choice: choose", "2");
   for (const skill of ["Athletics", "History", "Arcana", "Arcana"]) clickIn("Skill Proficiency Choice: options", skill);
   clickIn("Skill Expertise Choice: options", "Stealth");
   for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Add modifier" }));
-  type("Modifier 1 type", "~:armor-prof");
+  await choose("Modifier 1 type", "Armor Proficiency");
   fireEvent.click(screen.getByRole("button", { name: "Delete modifier 1" }));
-  type("Modifier 1 type", "~:weapon-prof");
-  type("Modifier 1 value", "~:martial");
+  await choose("Modifier 1 type", "Weapon Proficiency");
+  await choose("Modifier 1 value", "All martial");
   // A new row's level shows "-", so level 1 can be picked and stored.
-  expect(screen.getByLabelText<HTMLSelectElement>("Modifier 1 level").value).toBe("");
-  type("Modifier 1 level", "1");
-  type("Modifier 2 type", "~:spell");
-  type("Modifier 2 level", "3");
-  type("Modifier 2 spell level", "0");
-  type("Modifier 2 spellcasting ability", "~:orcpub.dnd.e5.character/int");
-  type("Modifier 2 spell", "~:fire-bolt");
+  expect(shown("Modifier 1 level")).toBe("-");
+  await choose("Modifier 1 level", "1");
+  await choose("Modifier 2 type", "Spell");
+  await choose("Modifier 2 level", "3");
+  await choose("Modifier 2 spell level", "0");
+  await choose("Modifier 2 spellcasting ability", "Intelligence");
+  await choose("Modifier 2 spell", "Fire Bolt");
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
-  type("Selection 1 type", "~:rune-carvings");
-  type("Selection 1 level", "2");
-  type("Selection 1 amount", "2");
+  await choose("Selection 1 type", "Rune Carvings");
+  await choose("Selection 1 level", "2");
+  await choose("Selection 1 amount", "2");
   fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
   type("Feature 1 name", "Rune Carver");
-  type("Feature 1 type", "~:b-action");
-  type("Feature 1 level", "2");
+  await choose("Feature 1 type", "Bonus Action");
+  await choose("Feature 1 level", "2");
   type("Feature 1 description", "You carve a rune.");
   await saved(router);
 
@@ -146,29 +149,29 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   await screen.findByLabelText("Name");
   expect(screen.getByRole("form", { name: "Edit class" })).toBeTruthy();
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Rune Knight");
-  expect(screen.getByLabelText<HTMLSelectElement>("Hit die").value).toBe("10");
+  expect(shown("Hit die")).toBe("10");
   expect(screen.getByRole("checkbox", { name: "Strength saving throw" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "Ability increase at level 4" })).not.toBeChecked();
-  expect(screen.getByLabelText<HTMLSelectElement>("Spell list").value).toBe("~:wizard");
-  expect(screen.getByLabelText<HTMLSelectElement>("First spell slots at level").value).toBe("2");
+  expect(shown("Spell list")).toBe("Wizard");
+  expect(shown("First spell slots at level")).toBe("2");
   expect(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByRole("checkbox", { name: "History" })).toBeChecked();
-  expect(screen.getByLabelText<HTMLSelectElement>("Modifier 2 spell").value).toBe("~:fire-bolt");
-  expect(screen.getByLabelText<HTMLSelectElement>("Selection 1 type").value).toBe("~:rune-carvings");
-  expect(screen.getByLabelText<HTMLSelectElement>("Feature 1 type").value).toBe("~:b-action");
+  expect(shown("Modifier 2 spell")).toBe("Fire Bolt");
+  expect(shown("Selection 1 type")).toBe("Rune Carvings");
+  expect(shown("Feature 1 type")).toBe("Bonus Action");
   expect(save().disabled).toBe(false);
-});
+}, 40_000);
 
 test("a class with a custom spell list stores its cantrips and spells by level", async () => {
   const router = renderAt("/content/new/class");
   await screen.findByLabelText("Name");
   type("Name", "Hedge Mage");
-  type("Spell slots", "true");
-  type("First spell slots at level", "1");
-  type("Cantrips", "true");
-  type("Cantrips known at level 1", "2");
-  type("Add an extra cantrip at level", "4");
-  type("Add an extra cantrip at level", "12");
-  type("Extra cantrip 1 level", "10");
+  await choose("Spell slots", "Yes");
+  await choose("First spell slots at level", "1");
+  await choose("Cantrips", "Yes");
+  await choose("Cantrips known at level 1", "2");
+  await pickOption(screen.getByRole("button", { name: "Add an extra cantrip at level" }), "4");
+  await pickOption(screen.getByRole("button", { name: "Add an extra cantrip at level" }), "12");
+  await choose("Extra cantrip 1 level", "10");
   fireEvent.click(screen.getByRole("button", { name: "Remove extra cantrip 2" }));
   clickIn("Cantrips", "Fire Bolt");
   clickIn("Level 1 spells", "Magic Missile");
@@ -207,18 +210,7 @@ test("the spell lists include a list that a spell of an enabled pack is on, as t
   });
   renderAt("/content/new/class");
   await screen.findByLabelText("Name");
-  type("Spell slots", "true");
-  const lists = [...screen.getByLabelText<HTMLSelectElement>("Spell list").options].map((o) => [o.value, o.text]);
-  expect(lists).toEqual([
-    ["", "Custom"],
-    ["~:bard", "Bard"],
-    ["~:cleric", "Cleric"],
-    ["~:druid", "Druid"],
-    ["~:paladin", "Paladin"],
-    ["~:ranger", "Ranger"],
-    ["~:sorcerer", "Sorcerer"],
-    ["~:warlock", "Warlock"],
-    ["~:wizard", "Wizard"],
-    ["~:artificer", "Artificer"],
-  ]);
+  await choose("Spell slots", "Yes");
+  const lists = await optionNames(screen.getByRole("combobox", { name: "Spell list" }));
+  expect(lists).toEqual(["Custom", "Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock", "Wizard", "Artificer"]);
 });

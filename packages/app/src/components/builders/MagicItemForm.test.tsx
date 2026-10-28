@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { optionNames, pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -9,6 +10,7 @@ import { listMagicItems, type MagicItemRecord } from "../../storage/packs.ts";
 import { Builder } from "../Builder.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 import { MyContent } from "../MyContent.tsx";
+import { choose, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 
@@ -48,12 +50,12 @@ async function authorCirclet() {
   const router = renderAt("/content/new/magicItem");
   await form("New magic item");
   type("Name", "Hawk Eye Circlet");
-  type("Rarity", "uncommon");
+  await choose("Rarity", "Uncommon");
   type("Description", "Your Wisdom increases by 2.");
   fireEvent.click(screen.getByRole("checkbox", { name: "Requires attunement" }));
-  type("WIS change", "ability");
+  await choose("WIS change", "Increases by");
   type("WIS value", "2");
-  type("Walking speed change", "speed");
+  await choose("Walking speed change", "Increases by");
   type("Walking speed value", "10");
   fireEvent.click(group("Damage resistances").getByRole("checkbox", { name: "Fire" }));
   fireEvent.click(save());
@@ -103,7 +105,7 @@ test("Edit loads the stored item; a save keeps the enabled flag, and a rename re
   await form("Edit magic item");
   expect(screen.queryByLabelText("Option source (pack)")).toBeNull();
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Hawk Eye Circlet");
-  expect(screen.getByLabelText<HTMLSelectElement>("WIS change").value).toBe("ability");
+  expect(shown("WIS change")).toBe("Increases by");
   expect(screen.getByLabelText<HTMLInputElement>("WIS value").value).toBe("2");
   expect(group("Damage resistances").getByRole("checkbox", { name: "Fire" })).toBeChecked();
 
@@ -154,7 +156,7 @@ test("a weapon stores its base weapons, and All replaces the others", async () =
   renderAt("/content/new/magicItem");
   await form("New magic item");
   type("Name", "Flame Blade");
-  type("Type", "weapon");
+  await choose("Type", "Weapon");
   const base = group("Base weapon");
   fireEvent.click(await base.findByRole("checkbox", { name: "Longsword" }));
   fireEvent.click(base.getByRole("checkbox", { name: "All" }));
@@ -176,8 +178,8 @@ test("a weapon stores its base weapons, and All replaces the others", async () =
   useCharacter.getState().load("homebrew-magic-weapon", engine().emptyCharacter());
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Equipment/ }));
-  const add = document.querySelector<HTMLSelectElement>('[aria-label="Add an item to Magic Weapons"]')!;
-  expect([...add.options].map((o) => o.value).filter((v) => v.startsWith("flame-blade"))).toEqual(["flame-blade-longsword", "flame-blade-scimitar"]);
+  const add = document.querySelector<HTMLElement>('[aria-label="Add an item to Magic Weapons"]')!;
+  expect((await optionNames(add)).filter((name) => name.startsWith("Flame Blade"))).toHaveLength(2);
 }, 20_000);
 
 // The done-when of ORC-128: an item made in the form is in My Content, and a character can equip it.
@@ -193,9 +195,7 @@ test("a magic item authored in the form is offered in the Equipment step, and at
   const entity = () => useCharacter.getState().entity!;
   const built = () => e.evaluate(entity(), useHomebrew.getState().content).built;
   const wis = built().abilities["orcpub.dnd.e5.character/wis"];
-  const add = document.querySelector<HTMLSelectElement>('[aria-label="Add an item to Other Magic Items"]')!;
-  expect(add.querySelector('option[value="hawk-eye-circlet"]')).not.toBeNull();
-  fireEvent.change(add, { target: { value: "hawk-eye-circlet" } });
+  await pickOption(document.querySelector<HTMLElement>('[aria-label="Add an item to Other Magic Items"]')!, "Hawk Eye Circlet");
   fireEvent.click(document.querySelector<HTMLInputElement>('[aria-label="Attuned: Hawk Eye Circlet"]')!);
   await waitFor(() => expect(built().abilities["orcpub.dnd.e5.character/wis"]).toBe(wis + 2));
 }, 20_000);
@@ -203,7 +203,7 @@ test("a magic item authored in the form is offered in the Equipment step, and at
 test("the base weapons are Custom, the All choices, then the weapons by name, as the old list", async () => {
   renderAt("/content/new/magicItem");
   await form("New magic item");
-  type("Type", "weapon");
+  await choose("Type", "Weapon");
   const base = group("Base weapon");
   await base.findByRole("checkbox", { name: "Longsword" });
   const names = base.getAllByRole("checkbox").map((box) => box.parentElement!.textContent!.trim());
@@ -231,7 +231,7 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   renderAt("/content/new/magicItem");
   await form("New magic item");
   type("Name", "Bone Club");
-  type("Type", "weapon");
+  await choose("Type", "Weapon");
   const base = group("Base weapon");
   fireEvent.click(await base.findByRole("checkbox", { name: "Longsword" }));
   expect(screen.queryByRole("group", { name: "Base weapon details" })).toBeNull();
@@ -239,11 +239,8 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   expect(base.getByRole("checkbox", { name: "Longsword" })).not.toBeChecked();
   // The old first details (magic_items.cljc apply-subtype-toggle).
   const details = group("Base weapon details");
-  expect(details.getByLabelText<HTMLSelectElement>("Damage die number").value).toBe("1");
-  expect(details.getByLabelText<HTMLSelectElement>("Damage die").value).toBe("4");
-  expect(details.getByLabelText<HTMLSelectElement>("Simple / martial").value).toBe("~:simple");
-  expect(details.getByLabelText<HTMLSelectElement>("Melee / ranged").value).toBe("melee");
-  expect(details.getByLabelText<HTMLSelectElement>("Damage type").value).toBe("~:bludgeoning");
+  const detail = (label: string) => details.getByRole("combobox", { name: label }).textContent;
+  expect(["Damage die number", "Damage die", "Simple / martial", "Melee / ranged", "Damage type"].map(detail)).toEqual(["1", "d4", "Simple", "Melee", "bludgeoning"]);
   expect(details.queryByLabelText("Range min")).toBeNull();
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
@@ -270,12 +267,12 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   fireEvent.click(edit.getByRole("checkbox", { name: "Thrown?" }));
   fireEvent.click(edit.getByRole("checkbox", { name: "Thrown?" }));
   fireEvent.click(edit.getByRole("checkbox", { name: "Versatile?" }));
-  fireEvent.change(edit.getByLabelText("Versatile damage die"), { target: { value: "10" } });
-  fireEvent.change(edit.getByLabelText("Damage die number"), { target: { value: "2" } });
-  fireEvent.change(edit.getByLabelText("Damage die"), { target: { value: "6" } });
-  fireEvent.change(edit.getByLabelText("Simple / martial"), { target: { value: "~:martial" } });
-  fireEvent.change(edit.getByLabelText("Damage type"), { target: { value: "~:piercing" } });
-  fireEvent.change(edit.getByLabelText("Melee / ranged"), { target: { value: "ranged" } });
+  await pickOption(edit.getByRole("combobox", { name: "Versatile damage die" }), "d10");
+  await pickOption(edit.getByRole("combobox", { name: "Damage die number" }), "2");
+  await pickOption(edit.getByRole("combobox", { name: "Damage die" }), "d6");
+  await pickOption(edit.getByRole("combobox", { name: "Simple / martial" }), "Martial");
+  await pickOption(edit.getByRole("combobox", { name: "Damage type" }), "piercing");
+  await pickOption(edit.getByRole("combobox", { name: "Melee / ranged" }), "Ranged");
   fireEvent.change(edit.getByLabelText("Range min"), { target: { value: "20" } });
   fireEvent.change(edit.getByLabelText("Range max"), { target: { value: "60" } });
   fireEvent.click(save());
@@ -301,8 +298,7 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   useCharacter.getState().load("homebrew-custom-weapon", engine().emptyCharacter());
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Equipment/ }));
-  const add = document.querySelector<HTMLSelectElement>('[aria-label="Add an item to Magic Weapons"]')!;
-  expect(add.querySelector('option[value="bone-club"]')).not.toBeNull();
+  expect(await optionNames(document.querySelector<HTMLElement>('[aria-label="Add an item to Magic Weapons"]')!)).toContain("Bone Club");
   cleanup();
 
   // As the old save, Versatile without its dice is not stored. All, or a base weapon, removes the details.

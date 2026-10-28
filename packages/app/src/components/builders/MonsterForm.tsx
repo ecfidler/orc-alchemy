@@ -7,10 +7,10 @@
 // to bonus, the damage, condition and language checkboxes in :props, as
 // {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
 // and :description maps, :type absent, :action or :legendary-action.
-import { Button, Checkbox, Field, Fieldset, NumberField } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, Fieldset, NumberField, Select } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, numberOrNull, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, numberOrNull, orFirst, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -76,18 +76,16 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
         <input type="text" value={String(record[tag(name)] ?? "")} onChange={(e) => set(name, e.target.value)} className="border border-black px-1" />
       </label>,
     );
-  const select = (label: string, value: unknown, options: (string | number)[][], onSelect: (value: string) => void) => (
-    <label className="mr-4 inline-block">
-      {label}{" "}
-      <select value={value === undefined ? "" : String(value)} onChange={(e) => onSelect(e.target.value)} className="border border-black">
-        {options.map(([v, t]) => (
-          <option key={v} value={v}>
-            {t}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  // Each option's value is its text, as in the old dropdowns.
+  const select = (label: string, value: unknown, options: (string | number)[][], onSelect: (value: string) => void) => {
+    const all = options.map(([v, t]): [string, string] => [String(v), String(t)]);
+    return (
+      <label className="mr-4 inline-block">
+        {label}{" "}
+        <Select value={orFirst(value === undefined ? "" : String(value), all)} options={all} onValueChange={onSelect} />
+      </label>
+    );
+  };
   const numbers = (values: number[]) => values.map((n) => [n, n]);
   const orNone = (values: number[]) => [["", "-"], ...numbers(values)];
   const checkboxes = (legend: string, prop: string, keys: string[], label: (key: string) => string) => (

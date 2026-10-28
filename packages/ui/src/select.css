@@ -1,0 +1,71 @@
+/* The select, combobox, autocomplete and menu (docs/design/theme.md, "Controls"). Low specificity, so the app's layout utilities win. */
+
+@layer components {
+  .ui-select,
+  .ui-combobox {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--ink);
+    padding: 0 4px;
+  }
+  .ui-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 1.5em;
+    text-align: left;
+    cursor: pointer;
+  }
+  /* The down mark: a small ink triangle, drawn so that it adds no text. */
+  .ui-select::after {
+    content: "";
+    flex: none;
+    margin-left: auto;
+    border: 4px solid transparent;
+    border-top-color: var(--ink);
+    border-bottom-width: 0;
+  }
+  .ui-select:where([data-placeholder]) {
+    color: var(--ink-muted);
+  }
+  .ui-select:where([data-disabled]) {
+    color: var(--ink-muted);
+    border-color: var(--rule-strong);
+    cursor: default;
+  }
+  .ui-combobox::placeholder {
+    color: var(--ink-muted);
+  }
+  .ui-select-positioner {
+    z-index: 20;
+    outline: 0;
+  }
+  .ui-select-popup {
+    min-width: var(--anchor-width);
+    max-height: min(20rem, var(--available-height));
+    overflow-y: auto;
+    padding: 2px 0;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--ink);
+    outline: 0;
+  }
+  .ui-select-item {
+    padding: 1px 8px;
+    cursor: default;
+    outline: 0;
+    user-select: none;
+  }
+  .ui-select-item:where([data-highlighted]) {
+    color: var(--paper);
+    background: var(--ink);
+  }
+  .ui-select-item:where([data-selected]) {
+    font-weight: 600;
+  }
+  .ui-select-empty:where(:not(:empty)) {
+    padding: 1px 8px;
+    color: var(--ink-muted);
+  }
+}

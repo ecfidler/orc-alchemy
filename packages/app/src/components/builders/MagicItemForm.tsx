@@ -8,12 +8,12 @@
 // Custom base weapon (the subtype :other) has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
 // load use the magic items store.
-import { Checkbox, Field, FieldErrors, Fieldset, NumberField } from "@orc-alchemy/ui";
+import { Checkbox, Field, FieldErrors, Fieldset, NumberField, Select } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, nameToKw, numberOrNull, numbers, range, Select, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
+import { CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, nameToKw, numberOrNull, numbers, orFirst, range, SelectField, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
 const W = "orcpub.dnd.e5.weapons/";
@@ -129,15 +129,10 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       </label>
     </Field>
   );
-  const select = (name: string, values: string[], names: (v: string) => string, onSelect: (v: string) => void) => (
-    <select value={untag(get(name))} onChange={(e) => onSelect(e.target.value)} className="border border-black">
-      {values.map((v) => (
-        <option key={v} value={v}>
-          {names(v)}
-        </option>
-      ))}
-    </select>
-  );
+  const select = (name: string, values: string[], names: (v: string) => string, onSelect: (v: string) => void) => {
+    const options = values.map((v): [string, string] => [v, names(v)]);
+    return <Select value={orFirst(untag(get(name)), options)} options={options} onValueChange={onSelect} />;
+  };
   const bonus = (name: string, label: string) =>
     field(
       name,
@@ -165,22 +160,15 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       <div key={label}>
         <label>
           {label}{" "}
-          <select
+          <Select
             aria-label={`${label} change`}
             value={current?.key ?? ""}
-            onChange={(e) => {
-              const k = keys.find((k) => k.key === e.target.value);
+            options={[["", "None"], ...keys.map((k): [string, string] => [k.key, k.text])]}
+            onValueChange={(next) => {
+              const k = keys.find((k) => k.key === next);
               setMod(match, k ? (k.noValue ? modCfg(k.key, ...args) : modCfg(k.key, ...args, typeof value === "number" ? value : 0)) : null);
             }}
-            className="border border-black"
-          >
-            <option value="">None</option>
-            {keys.map((k) => (
-              <option key={k.key} value={k.key}>
-                {k.text}
-              </option>
-            ))}
-          </select>
+          />
         </label>{" "}
         {current && !current.noValue && (
           <NumberField
@@ -226,21 +214,21 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
                     : check(`${name}?`, edit.get(W + field) === true, () => edit.toggle([W + field])),
                 )}
               </div>
-              <Select label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
-              <Select label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
+              <SelectField label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
+              <SelectField label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
               {versatile !== undefined && (
                 <>
-                  <Select
+                  <SelectField
                     label="Versatile damage die number"
                     value={edit.get(W + "versatile", W + "damage-die-count")}
                     options={numbers(range(1, 10))}
                     onSelect={(n) => edit.set([W + "versatile", W + "damage-die-count"], n)}
                   />
-                  <Select label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
+                  <SelectField label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
                 </>
               )}
-              <Select label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
-              <Select
+              <SelectField label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
+              <SelectField
                 label="Melee / ranged"
                 value={edit.get(W + "melee?") === true ? "melee" : ranged ? "ranged" : undefined}
                 options={["melee", "ranged"].map((v) => [v, title(v)])}
@@ -257,7 +245,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
                     />
                   </label>
                 ))}
-              <Select label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
+              <SelectField label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
             </Fieldset>
           )}
           <Fieldset legend="Attunement" errors={fieldErrors(problems, MI + "attunement", "Attunement")}>
