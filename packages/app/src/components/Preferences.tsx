@@ -1,6 +1,3 @@
-// The Preferences page at /preferences (ORC-149, ORC-165). Each change applies
-// at once; there is no Save button. Later options get their own headings below
-// "Appearance". Preferences stay in this browser and are never exported.
 import { Select, useThemePreference, type SelectOption, type ThemePreference } from "@orc-alchemy/ui";
 import { useId } from "react";
 
@@ -10,6 +7,11 @@ const THEMES: SelectOption<ThemePreference>[] = [
   ["system", "Match System"],
 ];
 
+/**
+ * The Preferences page at `/preferences` (ORC-149). Each change applies at
+ * once; there is no Save button. Later options get their own headings below
+ * "Appearance". Preferences stay in this browser and are never exported.
+ */
 export function Preferences() {
   const appearance = useId();
   const [theme, setTheme] = useThemePreference();

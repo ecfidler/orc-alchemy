@@ -12,7 +12,7 @@ afterEach(() => {
 
 const theme = () => screen.getByRole("combobox", { name: "Theme" });
 
-test("the page has one heading, Appearance, with the theme choice; Match System is the default", async () => {
+test("the Appearance section holds the theme choice, Match System is the default, and there is no Save button", async () => {
   render(<Preferences />);
   expect(screen.getByRole("heading", { level: 1, name: "Preferences" })).toBeTruthy();
   const appearance = screen.getByRole("region", { name: "Appearance" });
@@ -35,7 +35,7 @@ test("Dark applies at once and is stored; Match System removes the key", async (
   expect(theme().textContent).toBe("Match System");
 });
 
-test("a change in another tab shows at once", () => {
+test("the page shows a change made in another tab at once", () => {
   render(<Preferences />);
   localStorage.setItem(THEME_STORAGE_KEY, "light");
   act(() => {

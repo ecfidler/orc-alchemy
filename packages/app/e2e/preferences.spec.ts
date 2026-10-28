@@ -6,7 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 const stored = (page: Page) => page.evaluate(() => localStorage.getItem("theme"));
 
-test("the orange tab opens Preferences, and Dark applies at once, here and in another tab", async ({ page, context }) => {
+test("the Preferences tab opens Preferences, and Dark applies at once, here and in another tab", async ({ page, context }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/");
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Preferences" }).click();
@@ -22,6 +22,7 @@ test("the orange tab opens Preferences, and Dark applies at once, here and in an
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   expect(await stored(page)).toBe("dark");
   await expect(other.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(other.getByRole("alert")).toHaveCount(0);
 
   await pickOption(theme, "Match System");
   await expect(page.locator("html")).not.toHaveAttribute("data-theme");
@@ -39,7 +40,7 @@ test("export everything has no preferences in it", async ({ page }) => {
   await page.goto("/characters");
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export everything" }).click();
-  const text = readFileSync(await (await downloading).path(), "utf8");
-  expect(JSON.parse(text).characters).toHaveLength(1);
-  expect(text).not.toMatch(/theme|preference/i);
+  const bundle = JSON.parse(readFileSync(await (await downloading).path(), "utf8"));
+  expect(Object.keys(bundle)).toEqual(["format", "version", "exportedFrom", "characters", "magicItems"]);
+  expect(bundle.characters).toHaveLength(1);
 });
