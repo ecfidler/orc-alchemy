@@ -68,7 +68,16 @@ function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => R
   });
   useEffect(() => {
     if (blocker.state !== "blocked") return;
-    confirm("Saving your changes to this browser failed. Leave anyway?", "Leave").then((leave) => (leave ? blocker.proceed() : blocker.reset()));
+    // A new blocker while the question is open asks again; the old answer is then dropped.
+    let live = true;
+    confirm("Saving your changes to this browser failed. Leave anyway?", "Leave").then((leave) => {
+      if (!live) return;
+      if (leave) blocker.proceed();
+      else blocker.reset();
+    });
+    return () => {
+      live = false;
+    };
   }, [blocker, confirm]);
 
   if (problem !== null) {

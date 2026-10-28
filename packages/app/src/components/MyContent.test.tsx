@@ -38,7 +38,6 @@ function renderPage(Page = MyContent) {
   render(<RouterProvider router={router} />);
 }
 
-
 test.each(orcbrewFiles)("%s: every pack shows the 13 lists, each with every item of its type", async (file) => {
   await load(file);
   renderPage();

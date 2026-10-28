@@ -97,7 +97,8 @@ bun run test       # vitest
     gives it its router's link.
   - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
   - `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
-- `./testing`: test helpers for Vitest with Testing Library.
+- `./testing`: test helpers for Vitest with Testing Library. An app that
+  uses them installs `@testing-library/react` (an optional peer).
   - `answerConfirmDialog(answer)`: waits for the confirm dialog, clicks
     the button named `answer` (the action, or "Cancel"), waits for the
     dialog to close, and returns its question.

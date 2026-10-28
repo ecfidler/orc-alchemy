@@ -47,7 +47,9 @@ type Question = { message: string; action: string };
  * an unmount, answers an open question with false.
  */
 export function useConfirm(): [Confirm, ReactNode] {
-  const [question, setQuestion] = useState<Question | null>(null);
+  // The last question stays while the dialog closes, so its text does not go blank.
+  const [question, setQuestion] = useState<Question>({ message: "", action: "" });
+  const [open, setOpen] = useState(false);
   const resolver = useRef<((yes: boolean) => void) | null>(null);
   const settle = useCallback((yes: boolean) => {
     resolver.current?.(yes);
@@ -59,18 +61,19 @@ export function useConfirm(): [Confirm, ReactNode] {
         settle(false);
         resolver.current = resolve;
         setQuestion({ message, action });
+        setOpen(true);
       }),
     [settle],
   );
   useEffect(() => () => settle(false), [settle]);
   const dialog = (
     <AlertDialog
-      open={question !== null}
-      message={question?.message ?? ""}
-      action={question?.action ?? ""}
+      open={open}
+      message={question.message}
+      action={question.action}
       onAnswer={(yes) => {
         settle(yes);
-        setQuestion(null);
+        setOpen(false);
       }}
     />
   );

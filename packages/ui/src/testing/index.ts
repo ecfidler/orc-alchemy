@@ -1,4 +1,4 @@
-// Test helpers for apps that use this package. The control tickets add them.
+// Test helpers for apps that use this package, for Vitest with Testing Library.
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 /**

@@ -1,7 +1,7 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, expect, test } from "vitest";
-import { useConfirm } from "./AlertDialog.tsx";
+import { afterEach, expect, test, vi } from "vitest";
+import { AlertDialog, useConfirm } from "./AlertDialog.tsx";
 import { answerConfirmDialog } from "./testing/index.ts";
 
 afterEach(cleanup);
@@ -22,8 +22,7 @@ test("the dialog asks the question, and the action answers yes", async () => {
   render(<Remove action="Remove row" />);
   expect(screen.queryByRole("alertdialog")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Remove" }));
-  const dialog = await screen.findByRole("alertdialog", { name: "Remove the row? This cannot be undone." });
-  expect(dialog.className).toBe("ui-dialog");
+  expect((await screen.findByRole("alertdialog")).className).toBe("ui-dialog");
   expect(await answerConfirmDialog("Remove row")).toBe("Remove the row? This cannot be undone.");
   expect(screen.getByRole("status").textContent).toBe("true");
 });
@@ -61,4 +60,22 @@ test("an unmount answers an open question with no", async () => {
   await screen.findByRole("alertdialog");
   unmount();
   expect(await answer).toBe(false);
+});
+
+test("closing the dialog gives the focus back to the button that opened it", async () => {
+  render(<Remove />);
+  const remove = screen.getByRole("button", { name: "Remove" });
+  remove.focus();
+  fireEvent.click(remove);
+  await answerConfirmDialog("Cancel");
+  await waitFor(() => expect(document.activeElement).toBe(remove));
+});
+
+test("AlertDialog alone is named by its message and reports each answer", async () => {
+  const answer = vi.fn();
+  render(<AlertDialog open message="Clear the list?" action="Clear" onAnswer={answer} />);
+  const dialog = await screen.findByRole("alertdialog", { name: "Clear the list?" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Clear" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  expect(answer.mock.calls).toEqual([[true], [false]]);
 });

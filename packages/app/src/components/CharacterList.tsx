@@ -1,4 +1,4 @@
-import { Button, useConfirm } from "@orc-alchemy/ui";
+import { Button, useConfirm, type Confirm } from "@orc-alchemy/ui";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { removeCharacter } from "../state/character.ts";
@@ -30,9 +30,11 @@ export function CharacterList() {
   // Keeps keyboard focus in the list when a deleted row goes.
   const listRef = useRef<HTMLDivElement>(null);
   const sorted = summaries && [...summaries].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+  const [confirm, confirmDialog] = useConfirm();
 
   return (
     <div ref={listRef} tabIndex={-1} className="outline-none">
+      {confirmDialog}
       {error !== null ? (
         <>
           <p role="alert">{error}</p>
@@ -47,7 +49,7 @@ export function CharacterList() {
       ) : (
         <ul aria-label="Characters" className="divide-y divide-black">
           {sorted.map((summary) => (
-            <CharacterRow key={summary.id} summary={summary} onDeleted={() => listRef.current?.focus()} />
+            <CharacterRow key={summary.id} summary={summary} confirm={confirm} onDeleted={() => listRef.current?.focus()} />
           ))}
         </ul>
       )}
@@ -55,10 +57,9 @@ export function CharacterList() {
   );
 }
 
-function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDeleted: () => void }) {
+function CharacterRow({ summary, confirm, onDeleted }: { summary: CharacterSummary; confirm: Confirm; onDeleted: () => void }) {
   const name = summary.name ?? "Unnamed character";
   const [error, setError] = useState<string | null>(null);
-  const [confirm, confirmDialog] = useConfirm();
 
   async function onDelete() {
     if (!(await confirm(`Delete ${name}? This cannot be undone.`, "Delete"))) return;
@@ -73,7 +74,6 @@ function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDel
 
   return (
     <li aria-label={name} className="flex flex-wrap items-center gap-3 py-2">
-      {confirmDialog}
       {summary.portrait && <img src={summary.portrait} alt="" className="h-12 w-12 object-cover" />}
       <div className="flex-1">
         <Link to={`/sheet/${summary.id}`} className="font-bold underline">

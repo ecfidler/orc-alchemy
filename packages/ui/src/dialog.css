@@ -16,8 +16,8 @@
     padding: 1rem;
     color: var(--ink);
     background: var(--paper-raised);
+    /* An ink border, as on the controls: it keeps the dialog clear of the washed page in both modes. */
     border: 1px solid var(--ink);
-    box-shadow: 0 2px 8px var(--note-shadow);
   }
   .ui-dialog-message {
     margin: 0 0 1rem;
