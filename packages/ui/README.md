@@ -34,8 +34,9 @@ bun run test       # vitest
   (`src/button.css`), the fieldset and field styles (`src/field.css`), the
   checkbox and radio styles (`src/check.css`), the number field styles
   (`src/number-field.css`), the alert dialog styles (`src/dialog.css`),
-  and the select, combobox, autocomplete and menu styles
-  (`src/select.css`).
+  the select, combobox, autocomplete and menu styles (`src/select.css`),
+  and the paper pattern, stuck note and use bubble styles
+  (`src/paper.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
@@ -111,6 +112,34 @@ bun run test       # vitest
     of actions. A pick of one of its `items` calls `onPick`.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`.
+  - The paper patterns (`src/Paper.tsx`). They have no game meaning. Each
+    box is a group named by its label, so a test finds it by its role and
+    name. `className`, where a pattern takes it, is for layout.
+    - `Label`: a label in the label style (Inter caps, 10.5px, muted).
+    - `FramedBox`: content in a box, with the label under it on a
+      hairline.
+    - `SmallBox`: a small `value` in a cell, with the label beside it.
+    - `StatBox`: a box with its label, a large `value` and an `oval` that
+      hangs from the bottom edge. `name` names the box when the label is
+      short.
+    - `ShadedPanel`: a shaded area that groups boxes.
+    - `SectionRule`: a section title on a rule, a heading of `level` 2
+      (or 3 or 4).
+    - `SlotCircles`: `count` plain circles; the first `marked` fill solid
+      in `color` ("ink", "success" or "caution"). It takes no clicks. Its
+      name is "{label}: {marked} of {count}".
+    - `CurrentMax`: `current`, then "/ `max`" in the muted ink.
+  - `StuckNote`: a tilted yellow note above its box (`children`), for
+    something the user must act on. A button in `note` is its action. The
+    note overlaps only the box's top edge, so it never covers the box's
+    content when the box has at least 8px of top padding inside its border,
+    as the package's boxes do. `packages/app/e2e/stuck-note.spec.ts`
+    measures this in a browser.
+  - `UseBubble`: the outline around something with limited uses: a
+    `title`, its text, a `tag` in the top right, and one circle for each of
+    its `uses`, or a `pool` with a large current / max. It is look only: a
+    click spends a use on the page, and nothing is stored. With every use
+    spent, the outline is dashed and the text is muted.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.
