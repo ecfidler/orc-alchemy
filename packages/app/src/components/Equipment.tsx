@@ -20,7 +20,7 @@ import {
   type Hand,
 } from "../engine/equipment.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { NumberField } from "./AbilityScores.tsx";
+import { ScoreField } from "./AbilityScores.tsx";
 import { Heading, useMutation } from "./Classes.tsx";
 
 const MAGIC_LISTS = ["magic-weapons", "magic-armor", "other-magic-items"];
@@ -83,7 +83,7 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                   onCheckedChange={(on) => run((e, entity) => setAttuned(e, entity, item.key, on))}
                 />
               )}
-              <NumberField
+              <ScoreField
                 label={`Quantity: ${name}`}
                 min={1}
                 score={item.quantity}
@@ -116,7 +116,7 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                 className="flex-grow border border-black p-1"
               />
             )}
-            <NumberField
+            <ScoreField
               label={`Quantity: ${item.name}`}
               min={1}
               score={item.quantity}

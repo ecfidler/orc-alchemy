@@ -31,8 +31,9 @@ bun run test       # vitest
 - `./theme.css`: the role tokens in light and dark, the `dark` variant, the
   fonts, the grain, the body defaults, the focus ring, the shell, flag
   tab and alert note styles (`src/shell.css`), the button and toggle styles
-  (`src/button.css`), the fieldset and field styles (`src/field.css`), and
-  the checkbox and radio styles (`src/check.css`).
+  (`src/button.css`), the fieldset and field styles (`src/field.css`), the
+  checkbox and radio styles (`src/check.css`), and the number field styles
+  (`src/number-field.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
@@ -60,6 +61,13 @@ bun run test       # vitest
     the box when the label is not the right name (it is not a form field
     name). A test finds a box by its role and name, and reads it with
     `toBeChecked()`. Styles: `src/check.css`.
+  - `NumberField`: Base UI NumberField, for a whole number. Its role is
+    textbox. It is controlled by `value` (a number, or null when it is
+    empty) and `onValueChange`, which gets each typed change. A typed
+    number outside `min` and `max` still reaches `onValueChange`, so the
+    app decides what to keep; the limits stop only the Up and Down arrow
+    keys. It shows numbers with no grouping. Put it in a label, or give it
+    an `aria-label`. Styles: `src/number-field.css`.
   - `RadioGroup` and `Radio`: Base UI RadioGroup and Radio. The group has a
     name (`aria-label` or `aria-labelledby`), a controlled `value`, and
     `onValueChange`. Each `Radio` has a `value` and a visible `label`. The

@@ -172,7 +172,7 @@ test("a magic item made on My Content is listed there, and Edit opens it", async
   await expect(page.getByLabel("Option source (pack)")).toHaveCount(0);
   await page.getByRole("textbox", { name: "Name" }).fill("Hawk Eye Circlet");
   await page.getByRole("combobox", { name: "WIS change" }).selectOption("Increases by");
-  await page.getByRole("spinbutton", { name: "WIS value" }).fill("2");
+  await page.getByRole("textbox", { name: "WIS value" }).fill("2");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);
   const items = page.getByRole("region", { name: "Magic items" });
@@ -180,5 +180,5 @@ test("a magic item made on My Content is listed there, and Edit opens it", async
 
   await items.getByRole("link", { name: "Edit Hawk Eye Circlet" }).click();
   await expect(page).toHaveURL(/\/content\/edit\/magicItem\/hawk-eye-circlet$/);
-  await expect(page.getByRole("spinbutton", { name: "WIS value" })).toHaveValue("2");
+  await expect(page.getByRole("textbox", { name: "WIS value" })).toHaveValue("2");
 });

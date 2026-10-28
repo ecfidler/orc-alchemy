@@ -17,6 +17,7 @@
 @import "./src/button.css";
 @import "./src/field.css";
 @import "./src/check.css";
+@import "./src/number-field.css";
 
 /* Tailwind resolves this path from this file, so each app finds the package's classes. */
 @source "./src";

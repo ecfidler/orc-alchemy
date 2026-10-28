@@ -29,3 +29,8 @@ test("the app sets no aria-pressed; its on-or-off buttons are the package Toggle
 test("the app has no native checkbox or radio input", () => {
   expect(sources.filter(({ text }) => /type="(checkbox|radio)"/.test(text)).map(({ file }) => file)).toEqual([]);
 });
+
+// ORC-162: every number field is the package NumberField.
+test("the app has no number input", () => {
+  expect(sources.filter(({ text }) => text.includes('type="number"')).map(({ file }) => file)).toEqual([]);
+});

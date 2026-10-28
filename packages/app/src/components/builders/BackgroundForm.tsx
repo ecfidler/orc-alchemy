@@ -8,7 +8,7 @@
 // :treasure :gp, the equipment checkboxes in :equipment {:key 1}, the "Any 1"
 // equipment choices in :equipment-choices [{:name :options {:key 1}}], and
 // :traits a vector of :name, :type and :description maps.
-import { Fieldset } from "@orc-alchemy/ui";
+import { Fieldset, NumberField } from "@orc-alchemy/ui";
 import { tag, untag } from "../../engine/content.ts";
 import type { Choice } from "../../engine/builder-choices.ts";
 import {
@@ -100,12 +100,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
       <Fieldset legend="Starting Equipment">
         <label className="block">
           Gold{" "}
-          <input
-            type="number"
-            value={typeof gold === "number" ? gold : ""}
-            onChange={(e) => edit.set(["treasure", "gp"], e.target.value === "" ? undefined : parseInt(e.target.value, 10))}
-            className="border border-black px-1"
-          />
+          <NumberField value={typeof gold === "number" ? gold : null} onValueChange={(n) => edit.set(["treasure", "gp"], n ?? undefined)} />
         </label>
         <KeyChecks edit={edit} legend="Clothing" path={["equipment"]} items={CLOTHES} on={1} />
         <Checks

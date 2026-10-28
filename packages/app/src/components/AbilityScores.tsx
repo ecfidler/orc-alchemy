@@ -1,6 +1,6 @@
 // The Abilities step (ORC-57): the base scores, set by one of the old
 // builder's four methods, and the increases the engine adds, read-only.
-import { Button, Toggle, ToggleGroup } from "@orc-alchemy/ui";
+import { Button, NumberField, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import {
   POINT_BUY_COSTS,
@@ -66,7 +66,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
     const score = scores[ability];
     if (method === "manual-entry")
       return (
-        <NumberField
+        <ScoreField
           label={`${abbr(ability)} base score`}
           min={1}
           max={30}
@@ -216,11 +216,11 @@ function Stepper({ score, note, left, right }: { score: number; note?: string; l
 }
 
 /**
- * A number typed in, such as a manual base score: the text can be cleared and
- * retyped, and is written only as a whole number from min to max. score is
- * null when there is none yet.
+ * A number typed in, such as a manual base score: the field can be cleared and
+ * retyped, and a number is written only as a whole number from min to max.
+ * score is null when there is none yet.
  */
-export function NumberField({
+export function ScoreField({
   label,
   min,
   max,
@@ -233,28 +233,16 @@ export function NumberField({
   score: number | null;
   onCommit: (score: number) => void;
 }) {
-  const [text, setText] = useState(score === null ? "" : String(score));
-  const [seen, setSeen] = useState(score);
-  // A score changed from elsewhere replaces the text, unless the text already says it.
-  if (score !== seen) {
-    setSeen(score);
-    if (score === null) setText("");
-    else if (Number(text) !== score) setText(String(score));
-  }
   return (
-    <input
-      type="number"
+    <NumberField
+      aria-label={label}
       min={min}
       max={max}
-      aria-label={label}
-      value={text}
-      onChange={(event) => {
-        const value = event.target.value;
-        setText(value);
-        const n = Number(value);
-        if (/^\d+$/.test(value) && n >= min && (max === undefined || n <= max) && n !== score) onCommit(n);
+      value={score}
+      onValueChange={(n) => {
+        if (n !== null && n >= min && (max === undefined || n <= max) && n !== score) onCommit(n);
       }}
-      className="w-14 border border-black text-center"
+      className="w-14 text-center"
     />
   );
 }

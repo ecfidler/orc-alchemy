@@ -8,7 +8,7 @@
 // Custom base weapon (the subtype :other) has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
 // load use the magic items store.
-import { Checkbox, Field, FieldErrors, Fieldset } from "@orc-alchemy/ui";
+import { Checkbox, Field, FieldErrors, Fieldset, NumberField } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
@@ -35,6 +35,8 @@ const ARMOR_SUBTYPES: [string, string][] = [["all", "All"], ["light", "All light
 const WEAPON_PROPERTIES = ["Finesse", "Versatile", "Reach", "Two-Handed", "Thrown", "Heavy", "Light", "Ammunition", "Special", "Loading"].map((name) => ({ name, field: `${name.toLowerCase()}?` }));
 /** The fields of a Custom base weapon, which each subtype toggle removes (magic_items.cljc remove-custom-weapon-fields). */
 const WEAPON_FIELDS = [...WEAPON_PROPERTIES.map((p) => p.field), "damage-die-count", "damage-die", "versatile", "melee?", "ranged?", "type", "range", "damage-type"];
+/** A stored number, or null for a number field when the value is not one. */
+const numberOrNull = (value: unknown) => (typeof value === "number" ? value : null);
 const DICE: Options = [4, 6, 8, 10, 12, 20, 100].map((die) => [die, `d${die}`]);
 const ALIGNMENTS = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"];
 const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
@@ -142,12 +144,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
     field(
       name,
       label,
-      <input
-        type="number"
-        value={String(get(name) ?? "")}
-        onChange={(e) => change({ [name]: e.target.value === "" ? undefined : parseInt(e.target.value, 10) })}
-        className="w-16 border border-black px-1"
-      />,
+      <NumberField value={numberOrNull(get(name))} onValueChange={(n) => change({ [name]: n ?? undefined })} />,
     );
   const check = (label: string, checked: boolean, onToggle: () => void, disabled = false) => (
     <Checkbox key={label} label={label} checked={checked} disabled={disabled} onCheckedChange={onToggle} className="mr-4" />
@@ -188,12 +185,10 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
           </select>
         </label>{" "}
         {current && !current.noValue && (
-          <input
-            type="number"
+          <NumberField
             aria-label={`${label} value`}
-            value={typeof value === "number" ? String(value) : ""}
-            onChange={(e) => setMod(match, modCfg(current.key, ...args, parseInt(e.target.value, 10) || 0))}
-            className="w-16 border border-black px-1"
+            value={typeof value === "number" ? value : null}
+            onValueChange={(n) => setMod(match, modCfg(current.key, ...args, n ?? 0))}
           />
         )}
       </div>
@@ -258,11 +253,9 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
                   <label key={end} className="mr-4 inline-block">
                     Range {end}{" "}
                     {/* As the old number field, only digits are a value. */}
-                    <input
-                      type="number"
-                      value={String(edit.get(W + "range", W + end) ?? "")}
-                      onChange={(e) => edit.set([W + "range", W + end], /^\d+$/.test(e.target.value) ? parseInt(e.target.value, 10) : undefined)}
-                      className="w-16 border border-black px-1"
+                    <NumberField
+                      value={numberOrNull(edit.get(W + "range", W + end))}
+                      onValueChange={(n) => edit.set([W + "range", W + end], n !== null && n >= 0 ? n : undefined)}
                     />
                   </label>
                 ))}
