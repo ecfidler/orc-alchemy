@@ -12,8 +12,8 @@ test("a chosen homebrew pack is listed until My Content deletes it", async ({ pa
   await expect(page.getByRole("region", { name: "Import log" })).toContainText("Import successful");
 
   await page.getByRole("link", { name: "My Content" }).first().click();
-  page.on("dialog", (dialog) => dialog.accept());
   await page.getByRole("region", { name: "warlock-test-content" }).getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
   await expect(page.getByRole("region", { name: "warlock-test-content" })).toHaveCount(0);
   await page.goto("/import");
   await expect(page.getByRole("list", { name: "Homebrew packs" })).toHaveCount(0);

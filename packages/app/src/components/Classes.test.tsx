@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { storedHitPoints } from "../engine/classes.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
@@ -26,18 +27,17 @@ function open(entity: StrictEntity, step: string) {
 const built = () => engine().evaluate(useCharacter.getState().entity!).built;
 const region = (name: string) => screen.getByRole("region", { name: new RegExp(`^${name}`) });
 
-test("removing the first class asks first when the next class is above level 1", () => {
+test("removing the first class asks first when the next class is above level 1", async () => {
   open(fighter3Wizard2(), "Class");
-  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
   fireEvent.click(screen.getByRole("button", { name: "Remove Fighter" }));
-  expect(confirm).toHaveBeenCalledWith(
+  expect(await answerConfirmDialog("Cancel")).toBe(
     "Remove Fighter? Wizard becomes the first class and returns to level 1, and its other levels and their choices are removed. This cannot be undone.",
   );
   expect(built().classes).toEqual(["fighter", "wizard"]);
 
-  confirm.mockReturnValue(true);
   fireEvent.click(screen.getByRole("button", { name: "Remove Fighter" }));
-  expect(built().classes).toEqual(["wizard"]);
+  await answerConfirmDialog("Remove");
+  await waitFor(() => expect(built().classes).toEqual(["wizard"]));
   expect(built().levels.wizard["class-level"]).toBe(1);
   expect((screen.getByLabelText("Class 1") as HTMLSelectElement).value).toBe("wizard");
   expect(screen.getByRole("button", { name: "Remove Wizard" }).hasAttribute("disabled")).toBe(true);

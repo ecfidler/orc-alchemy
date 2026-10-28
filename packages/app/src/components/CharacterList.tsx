@@ -1,4 +1,4 @@
-import { Button } from "@orc-alchemy/ui";
+import { Button, useConfirm, type Confirm } from "@orc-alchemy/ui";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { removeCharacter } from "../state/character.ts";
@@ -30,9 +30,11 @@ export function CharacterList() {
   // Keeps keyboard focus in the list when a deleted row goes.
   const listRef = useRef<HTMLDivElement>(null);
   const sorted = summaries && [...summaries].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+  const [confirm, confirmDialog] = useConfirm();
 
   return (
     <div ref={listRef} tabIndex={-1} className="outline-none">
+      {confirmDialog}
       {error !== null ? (
         <>
           <p role="alert">{error}</p>
@@ -47,7 +49,7 @@ export function CharacterList() {
       ) : (
         <ul aria-label="Characters" className="divide-y divide-black">
           {sorted.map((summary) => (
-            <CharacterRow key={summary.id} summary={summary} onDeleted={() => listRef.current?.focus()} />
+            <CharacterRow key={summary.id} summary={summary} confirm={confirm} onDeleted={() => listRef.current?.focus()} />
           ))}
         </ul>
       )}
@@ -55,12 +57,12 @@ export function CharacterList() {
   );
 }
 
-function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDeleted: () => void }) {
+function CharacterRow({ summary, confirm, onDeleted }: { summary: CharacterSummary; confirm: Confirm; onDeleted: () => void }) {
   const name = summary.name ?? "Unnamed character";
   const [error, setError] = useState<string | null>(null);
 
   async function onDelete() {
-    if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
+    if (!(await confirm(`Delete ${name}? This cannot be undone.`, "Delete"))) return;
     setError(null);
     try {
       await removeCharacter(summary.id);

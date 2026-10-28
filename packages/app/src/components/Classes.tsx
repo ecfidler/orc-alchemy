@@ -2,7 +2,7 @@
 // class rows, and the hit points and ability score improvements each level
 // asks for. Each change is an engine mutation, as in Selection. It also holds
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
-import { Button, Toggle, ToggleGroup } from "@orc-alchemy/ui";
+import { Button, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, rollHitPoints, storedHitPoints, type HitPointsMethod } from "../engine/classes.ts";
@@ -35,36 +35,39 @@ export function useMutation(): [error: string | null, run: (mutate: Mutation) =>
 export function Classes({ selection }: { selection: BuilderSelection }) {
   const [error, run] = useMutation();
   const [adding, setAdding] = useState("");
+  const [confirm, confirmDialog] = useConfirm();
   const option = (key: string) => selection.options.find((o) => o.key === key)!;
   const levelOf = (key: string) => option(key).selections.find((s) => s.key === "levels")?.selected.length ?? 1;
   const free = selection.options.filter((o) => !o.selected);
   const toAdd = free.find((o) => o.key === adding) ?? free[0];
 
-  function replace(index: number, from: string, to: string) {
+  async function replace(index: number, from: string, to: string) {
     const [old, next, levels] = [option(from).name, option(to).name, levelOf(from)];
     if (
       levels > 1 &&
-      !window.confirm(
+      !(await confirm(
         `Replace ${old} with ${next}? ${old}'s ${levels} levels and their choices are removed, and ${next} starts at level 1. This cannot be undone.`,
-      )
+        "Replace",
+      ))
     )
       return;
     run((e, entity, opts) => e.setClass(entity, index, to, opts));
   }
 
-  function remove(index: number, key: string) {
+  async function remove(index: number, key: string) {
     // Removing the first class makes the next one first, at level 1.
     const next = selection.selected[1];
     if (index === 0 && next !== undefined && levelOf(next) > 1) {
       const name = option(next).name;
       const message = `Remove ${option(key).name}? ${name} becomes the first class and returns to level 1, and its other levels and their choices are removed. This cannot be undone.`;
-      if (!window.confirm(message)) return;
+      if (!(await confirm(message, "Remove"))) return;
     }
     run((e, entity, opts) => e.removeClass(entity, key, opts));
   }
 
   return (
     <>
+      {confirmDialog}
       {error && <p role="alert">{error}</p>}
       <ol className="space-y-2">
         {selection.selected.map((key, i) => {

@@ -1,4 +1,4 @@
-import { Button } from "@orc-alchemy/ui";
+import { Button, useConfirm } from "@orc-alchemy/ui";
 import { useEffect, useState, type ReactNode } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useBlocker, useParams } from "react-router";
@@ -56,15 +56,29 @@ function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => R
 
   // Leaving the character's pages saves its pending changes at once; its draft keeps them until then,
   // so nothing is lost. It asks first only when a save has failed (beforeunload asks while one is pending too).
-  useBlocker(({ nextLocation }) => {
+  const [confirm, confirmDialog] = useConfirm();
+  const blocker = useBlocker(({ nextLocation }) => {
     const open = useCharacter.getState();
     if (!open.dirty || open.id !== id || [`/sheet/${id}`, `/build/${id}`].includes(nextLocation.pathname)) return false;
     if (!useStorage.getState().failed) {
       flushAutosave().catch(console.error);
       return false;
     }
-    return !window.confirm("Saving your changes to this browser failed. Leave anyway?");
+    return true;
   });
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    // A new blocker while the question is open asks again; the old answer is then dropped.
+    let live = true;
+    confirm("Saving your changes to this browser failed. Leave anyway?", "Leave").then((leave) => {
+      if (!live) return;
+      if (leave) blocker.proceed();
+      else blocker.reset();
+    });
+    return () => {
+      live = false;
+    };
+  }, [blocker, confirm]);
 
   if (problem !== null) {
     return (
@@ -79,6 +93,7 @@ function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => R
   if (openId !== id || sheet === null) return <p role="status">Opening the character…</p>;
   return (
     <>
+      {confirmDialog}
       <div className="flex flex-wrap items-center gap-3">
         {dirty && (
           <Button onClick={() => flushAutosave().catch(console.error)}>

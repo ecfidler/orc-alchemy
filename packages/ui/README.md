@@ -32,8 +32,9 @@ bun run test       # vitest
   fonts, the grain, the body defaults, the focus ring, the shell, flag
   tab and alert note styles (`src/shell.css`), the button and toggle styles
   (`src/button.css`), the fieldset and field styles (`src/field.css`), the
-  checkbox and radio styles (`src/check.css`), and the number field styles
-  (`src/number-field.css`).
+  checkbox and radio styles (`src/check.css`), the number field styles
+  (`src/number-field.css`), and the alert dialog styles
+  (`src/dialog.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
@@ -84,12 +85,23 @@ bun run test       # vitest
   - `FieldErrors`: the error list alone, for errors that belong to no
     field or group.
   - Styles for the three: `src/field.css`. A legend is semibold.
+  - `useConfirm()`: the themed stand-in for `window.confirm`. It returns
+    `[confirm, dialog]`. Render `dialog` in the component, and call
+    `await confirm(question, action)`: it is true when the user picks the
+    action button, and false on Cancel or Escape. `action` is the button
+    text, "OK" by default. Cancel has the focus when the dialog opens.
+  - `AlertDialog`: the dialog that `useConfirm()` shows. The owner sets
+    `open`, and closes it from `onAnswer`. Styles: `src/dialog.css`.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.
   - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
   - `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
-- `./testing`: test helpers (none yet).
+- `./testing`: test helpers for Vitest with Testing Library. An app that
+  uses them installs `@testing-library/react` (an optional peer).
+  - `answerConfirmDialog(answer)`: waits for the confirm dialog, clicks
+    the button named `answer` (the action, or "Cancel"), waits for the
+    dialog to close, and returns its question.
 
 ## Rules
 

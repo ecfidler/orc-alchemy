@@ -1,3 +1,4 @@
+export { AlertDialog, useConfirm, type AlertDialogProps, type Confirm } from "./AlertDialog.tsx";
 export { AlertNote, AlertNotes } from "./AlertNote.tsx";
 export { Button, ButtonLink, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button.tsx";
 export { Checkbox, type CheckboxProps } from "./Checkbox.tsx";
