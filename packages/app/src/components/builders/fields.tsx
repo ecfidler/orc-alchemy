@@ -70,6 +70,9 @@ interface BuilderBase {
 export const DAMAGE_TYPES = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
 export const CONDITIONS = ["Blinded", "Charmed", "Deafened", "Exhausted", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
 
+/** A stored number, or null for a number field when the value is not one. */
+export const numberOrNull = (value: unknown) => (typeof value === "number" ? value : null);
+
 /** A key as a title, such as "very-rare" to "Very Rare". */
 export const title = (key: string) => key.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
 export { nameToKw };

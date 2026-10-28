@@ -7,10 +7,10 @@
 // to bonus, the damage, condition and language checkboxes in :props, as
 // {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
 // and :description maps, :type absent, :action or :legendary-action.
-import { Button, Checkbox, Field, Fieldset } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, Fieldset, NumberField } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, numberOrNull, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -122,14 +122,10 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
         {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
         <label className="inline-block">
           Hit point modifier{" "}
-          <input
-            type="number"
-            value={String(hitPoints[tag("modifier")] ?? 0)}
-            onChange={(e) => {
-              const n = parseInt(e.target.value, 10);
-              setIn("hit-points", "modifier", Number.isNaN(n) ? undefined : n);
-            }}
-            className="w-20 border border-black px-1"
+          <NumberField
+            value={numberOrNull(hitPoints[tag("modifier")]) ?? 0}
+            onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)}
+            className="w-20"
           />
         </label>
       </Fieldset>

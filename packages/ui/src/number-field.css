@@ -1,0 +1,15 @@
+/* The number field (docs/design/theme.md, "Controls"). Low specificity, so the app's layout utilities win. */
+
+@layer components {
+  .ui-number {
+    display: inline-block;
+  }
+  .ui-number-input {
+    width: 4rem;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--ink);
+    padding: 0 4px;
+    font: inherit;
+  }
+}

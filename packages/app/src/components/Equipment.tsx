@@ -20,7 +20,7 @@ import {
   type Hand,
 } from "../engine/equipment.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { NumberField } from "./AbilityScores.tsx";
+import { BoundedNumberField } from "./AbilityScores.tsx";
 import { Heading, useMutation } from "./Classes.tsx";
 
 const MAGIC_LISTS = ["magic-weapons", "magic-armor", "other-magic-items"];
@@ -83,10 +83,10 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                   onCheckedChange={(on) => run((e, entity) => setAttuned(e, entity, item.key, on))}
                 />
               )}
-              <NumberField
+              <BoundedNumberField
                 label={`Quantity: ${name}`}
                 min={1}
-                score={item.quantity}
+                value={item.quantity}
                 onCommit={(n) => run((e, entity, opts) => setQuantity(e, entity, list, item.key, n, opts))}
               />
               <Button
@@ -116,10 +116,10 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                 className="flex-grow border border-black p-1"
               />
             )}
-            <NumberField
+            <BoundedNumberField
               label={`Quantity: ${item.name}`}
               min={1}
-              score={item.quantity}
+              value={item.quantity}
               onCommit={(n) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { quantity: n }))}
             />
             <Button onClick={() => run((e, entity) => removeCustomItem(e, entity, customKey, item.name))} size="small">
