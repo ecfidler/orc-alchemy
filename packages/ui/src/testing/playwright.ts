@@ -9,8 +9,13 @@ import type { Locator } from "@playwright/test";
  */
 export async function pickOption(control: Locator, name: string | RegExp): Promise<void> {
   const page = control.page();
-  if (await control.evaluate((element) => element instanceof HTMLInputElement)) await control.fill(typeof name === "string" ? name : "");
+  // A handle, not the locator: an open Select makes the rest of the page inert, so a role query no longer finds the control.
+  const element = await control.elementHandle();
+  if (await element!.evaluate((el) => el instanceof HTMLInputElement)) await control.fill(typeof name === "string" ? name : "");
   else await control.click();
-  await page.getByRole("option", { name, exact: true }).or(page.getByRole("menuitem", { name, exact: true })).click();
-  await page.getByRole("listbox").or(page.getByRole("menu")).waitFor({ state: "hidden" });
+  await page.waitForFunction((el) => el.getAttribute("aria-expanded") === "true", element);
+  // The list is the element that the control controls.
+  const list = page.locator(`[id="${await element!.getAttribute("aria-controls")}"]`);
+  await list.getByRole("option", { name, exact: true }).or(list.getByRole("menuitem", { name, exact: true })).click();
+  await list.waitFor({ state: "hidden" });
 }

@@ -98,8 +98,8 @@ bun run test       # vitest
     `value` (null while nothing is picked) and `onValueChange`. Each of
     its `options` is a `[value, label]` pair; an option with a null value
     gives null. `placeholder` shows while nothing is picked, and also for
-    a value that is not an option. Put it in a
-    label, or give it an `aria-label`. Styles: `src/select.css`.
+    a value that is not an option. Put it in a label, or give it an
+    `aria-label`. Styles: `src/select.css`.
   - `Combobox`: Base UI Combobox, for an action such as "add this" from a
     long list. The user types to filter the `options`, and a pick calls
     `onPick` and clears the field. It keeps no value.

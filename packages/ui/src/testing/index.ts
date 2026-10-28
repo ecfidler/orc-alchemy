@@ -1,5 +1,5 @@
 // Test helpers for apps that use this package, for Vitest with Testing Library.
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, isInaccessible, screen, waitFor, within } from "@testing-library/react";
 
 /**
  * Waits for the confirm dialog of `useConfirm()`, clicks its button named
@@ -16,26 +16,32 @@ export async function answerConfirmDialog(answer: string): Promise<string> {
   return question;
 }
 
-/** The open list's option or menu item named `name`, once it shows. */
-async function findChoice(name: string | RegExp): Promise<HTMLElement> {
+/** The option or menu item named `name` in `list`, once it shows. */
+async function findChoice(list: HTMLElement, name: string | RegExp): Promise<HTMLElement> {
   return waitFor(() => {
-    const choice = screen.queryByRole("option", { name }) ?? screen.queryByRole("menuitem", { name });
+    const choice = within(list).queryByRole("option", { name }) ?? within(list).queryByRole("menuitem", { name });
     if (!choice) throw new Error(`No option or menu item ${String(name)} shows.`);
     return choice;
   });
 }
 
-/** Opens the list of a Select, Combobox, Autocomplete or Menu. */
-function openList(control: HTMLElement): void {
+/** Opens the list of a Select, Combobox, Autocomplete or Menu, and returns the list: the element that `control` controls. */
+async function openList(control: HTMLElement): Promise<HTMLElement> {
   if (control instanceof HTMLInputElement) {
     control.focus();
     fireEvent.keyDown(control, { key: "ArrowDown" });
   } else fireEvent.click(control);
+  return waitFor(() => {
+    const list = document.getElementById(control.getAttribute("aria-controls") ?? "");
+    if (control.getAttribute("aria-expanded") !== "true" || !list) throw new Error("The list does not open.");
+    return list;
+  });
 }
 
-function listClosed(): Promise<void> {
+/** Waits for the list to close: it is gone or hidden. A pick can also replace the control, for example when the form changes. */
+function listClosed(control: HTMLElement, list: HTMLElement): Promise<void> {
   return waitFor(() => {
-    if (screen.queryByRole("listbox") ?? screen.queryByRole("menu")) throw new Error("The list is still open.");
+    if ((control.isConnected && control.getAttribute("aria-expanded") === "true") || (list.isConnected && !isInaccessible(list))) throw new Error("The list is still open.");
   });
 }
 
@@ -46,13 +52,13 @@ function listClosed(): Promise<void> {
  * Resolves once the list has closed.
  */
 export async function pickOption(control: HTMLElement, name: string | RegExp): Promise<void> {
-  openList(control);
+  const list = await openList(control);
   if (control instanceof HTMLInputElement && typeof name === "string") fireEvent.change(control, { target: { value: name } });
-  const choice = await findChoice(name);
+  const choice = await findChoice(list, name);
   // A press starts on the item, as a real click does; Base UI ignores a click that starts elsewhere.
   fireEvent.pointerDown(choice);
   fireEvent.click(choice);
-  await listClosed();
+  await listClosed(control, list);
 }
 
 /**
@@ -60,12 +66,11 @@ export async function pickOption(control: HTMLElement, name: string | RegExp): P
  * options or menu items, and closes it again.
  */
 export async function optionNames(control: HTMLElement): Promise<string[]> {
-  openList(control);
-  const list = await screen.findByRole(control.getAttribute("aria-haspopup") === "menu" ? "menu" : "listbox");
+  const list = await openList(control);
   const names = within(list)
-    .queryAllByRole(list.getAttribute("role") === "menu" ? "menuitem" : "option")
+    .queryAllByRole(control.getAttribute("aria-haspopup") === "menu" ? "menuitem" : "option")
     .map((choice) => choice.textContent ?? "");
   fireEvent.keyDown(list, { key: "Escape" });
-  await listClosed();
+  await listClosed(control, list);
   return names;
 }

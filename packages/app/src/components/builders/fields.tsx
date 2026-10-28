@@ -182,7 +182,7 @@ export function editor(record: ItemRecord, onChange: (record: ItemRecord) => voi
 
 /** The value when it is an option, and else the first option's value, as the old dropdowns showed. */
 export function orFirst<T>(value: unknown, options: readonly SelectOption<T>[]): T | null {
-  const option = options.find(([v]) => v === value) ?? options[0];
+  const option = options.find(([v]) => Object.is(v, value)) ?? options[0];
   return option ? option[0] : null;
 }
 
