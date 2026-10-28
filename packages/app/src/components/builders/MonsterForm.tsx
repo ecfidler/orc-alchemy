@@ -10,7 +10,7 @@
 import { Button, Checkbox, Field, Fieldset, NumberField } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, numberOrNull, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -123,7 +123,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
         <label className="inline-block">
           Hit point modifier{" "}
           <NumberField
-            value={typeof hitPoints[tag("modifier")] === "number" ? (hitPoints[tag("modifier")] as number) : 0}
+            value={numberOrNull(hitPoints[tag("modifier")]) ?? 0}
             onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)}
             className="w-20"
           />

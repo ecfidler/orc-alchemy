@@ -66,11 +66,11 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
     const score = scores[ability];
     if (method === "manual-entry")
       return (
-        <ScoreField
+        <BoundedNumberField
           label={`${abbr(ability)} base score`}
           min={1}
           max={30}
-          score={score}
+          value={score}
           onCommit={(n) => write(method, { ...scores, [ability]: n })}
         />
       );
@@ -216,31 +216,31 @@ function Stepper({ score, note, left, right }: { score: number; note?: string; l
 }
 
 /**
- * A number typed in, such as a manual base score: the field can be cleared and
- * retyped, and a number is written only as a whole number from min to max.
- * score is null when there is none yet.
+ * A number typed in, such as a manual base score, hit points or a quantity:
+ * the field can be cleared and retyped, and a number is written only as a
+ * whole number from min to max. value is null when there is none yet.
  */
-export function ScoreField({
+export function BoundedNumberField({
   label,
   min,
   max,
-  score,
+  value,
   onCommit,
 }: {
   label: string;
   min: number;
   max?: number;
-  score: number | null;
-  onCommit: (score: number) => void;
+  value: number | null;
+  onCommit: (value: number) => void;
 }) {
   return (
     <NumberField
       aria-label={label}
       min={min}
       max={max}
-      value={score}
+      value={value}
       onValueChange={(n) => {
-        if (n !== null && n >= min && (max === undefined || n <= max) && n !== score) onCommit(n);
+        if (n !== null && n >= min && (max === undefined || n <= max) && n !== value) onCommit(n);
       }}
       className="w-14 text-center"
     />

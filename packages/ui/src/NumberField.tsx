@@ -3,10 +3,11 @@ import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
 export type NumberFieldProps = {
   /** The number, or null for an empty field. */
   value: number | null;
-  /** Gets the whole number the user typed, or null when the field is empty or has no number. */
+  /** Gets the whole number in the field after each change, or null when the field is empty. */
   onValueChange: (value: number | null) => void;
-  /** The limits of the arrow keys. A typed number outside them still reaches onValueChange. */
+  /** The lower limit of the arrow keys. A typed number below it still reaches onValueChange. */
   min?: number;
+  /** The upper limit of the arrow keys. A typed number above it still reaches onValueChange. */
   max?: number;
   /** The name, when the field is not in a label. */
   "aria-label"?: string;
@@ -23,7 +24,8 @@ export function NumberField({ value, onValueChange, min, max, "aria-label": aria
   return (
     <BaseNumberField.Root
       value={value}
-      onValueChange={(next) => onValueChange(next === null ? null : Math.trunc(next))}
+      // "|| 0" turns -0 into 0.
+      onValueChange={(next) => onValueChange(next === null ? null : Math.trunc(next) || 0)}
       min={min}
       max={max}
       allowOutOfRange

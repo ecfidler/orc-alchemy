@@ -32,8 +32,8 @@ test("a number field is a named textbox that shows its value and takes layout cl
 test("each typed change reports the whole number, or null when the field is empty", () => {
   const change = vi.fn();
   render(<Count onChange={change} />);
-  for (const text of ["12", "", "7.9", "-3"]) fireEvent.change(field(), { target: { value: text } });
-  expect(change.mock.calls.map(([n]) => n)).toEqual([12, null, 7, -3]);
+  for (const text of ["12", "", "7.9", "-3", "-0"]) fireEvent.change(field(), { target: { value: text } });
+  expect(change.mock.calls.map(([n]) => n)).toEqual([12, null, 7, -3, 0]);
 });
 
 test("a typed number outside min and max still reaches onValueChange", () => {
@@ -55,8 +55,8 @@ test("the arrow keys step by 1 and stop at the limits", () => {
 });
 
 test("a large number shows with no grouping", () => {
-  render(<NumberField aria-label="Gold" value={12000} onValueChange={() => {}} />);
-  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Gold" }).value).toBe("12000");
+  render(<NumberField aria-label="Total" value={12000} onValueChange={() => {}} />);
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Total" }).value).toBe("12000");
 });
 
 test("in a label, the label names the field", () => {
@@ -66,4 +66,12 @@ test("in a label, the label names the field", () => {
     </label>,
   );
   expect(screen.getByLabelText<HTMLInputElement>("Speed").value).toBe("");
+});
+
+test("a new value from the owner replaces the shown number", () => {
+  const { rerender } = render(<NumberField aria-label="Count" value={5} onValueChange={() => {}} />);
+  rerender(<NumberField aria-label="Count" value={8} onValueChange={() => {}} />);
+  expect(field().value).toBe("8");
+  rerender(<NumberField aria-label="Count" value={null} onValueChange={() => {}} />);
+  expect(field().value).toBe("");
 });

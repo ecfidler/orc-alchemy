@@ -25,6 +25,7 @@ import {
   VEHICLES,
   named,
   nameToKw,
+  numberOrNull,
   type BuilderType,
   type Edit,
   type FormProps,
@@ -100,7 +101,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
       <Fieldset legend="Starting Equipment">
         <label className="block">
           Gold{" "}
-          <NumberField value={typeof gold === "number" ? gold : null} onValueChange={(n) => edit.set(["treasure", "gp"], n ?? undefined)} />
+          <NumberField value={numberOrNull(gold)} onValueChange={(n) => edit.set(["treasure", "gp"], n ?? undefined)} />
         </label>
         <KeyChecks edit={edit} legend="Clothing" path={["equipment"]} items={CLOTHES} on={1} />
         <Checks

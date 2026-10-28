@@ -71,6 +71,9 @@ export const DAMAGE_TYPES = ["acid", "bludgeoning", "cold", "fire", "force", "li
 export const CONDITIONS = ["Blinded", "Charmed", "Deafened", "Exhausted", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
 
 /** A key as a title, such as "very-rare" to "Very Rare". */
+/** A stored number, or null for a number field when the value is not one. */
+export const numberOrNull = (value: unknown) => (typeof value === "number" ? value : null);
+
 export const title = (key: string) => key.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
 export { nameToKw };
 /** The names as choices, each keyed by nameToKw. */

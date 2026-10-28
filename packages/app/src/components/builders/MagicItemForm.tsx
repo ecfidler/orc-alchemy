@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, nameToKw, numbers, range, Select, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
+import { CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, nameToKw, numberOrNull, numbers, range, Select, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
 const W = "orcpub.dnd.e5.weapons/";
@@ -35,8 +35,6 @@ const ARMOR_SUBTYPES: [string, string][] = [["all", "All"], ["light", "All light
 const WEAPON_PROPERTIES = ["Finesse", "Versatile", "Reach", "Two-Handed", "Thrown", "Heavy", "Light", "Ammunition", "Special", "Loading"].map((name) => ({ name, field: `${name.toLowerCase()}?` }));
 /** The fields of a Custom base weapon, which each subtype toggle removes (magic_items.cljc remove-custom-weapon-fields). */
 const WEAPON_FIELDS = [...WEAPON_PROPERTIES.map((p) => p.field), "damage-die-count", "damage-die", "versatile", "melee?", "ranged?", "type", "range", "damage-type"];
-/** A stored number, or null for a number field when the value is not one. */
-const numberOrNull = (value: unknown) => (typeof value === "number" ? value : null);
 const DICE: Options = [4, 6, 8, 10, 12, 20, 100].map((die) => [die, `d${die}`]);
 const ALIGNMENTS = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"];
 const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
@@ -187,7 +185,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
         {current && !current.noValue && (
           <NumberField
             aria-label={`${label} value`}
-            value={typeof value === "number" ? value : null}
+            value={numberOrNull(value)}
             onValueChange={(n) => setMod(match, modCfg(current.key, ...args, n ?? 0))}
           />
         )}
@@ -252,7 +250,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
                 ["min", "max"].map((end) => (
                   <label key={end} className="mr-4 inline-block">
                     Range {end}{" "}
-                    {/* As the old number field, only digits are a value. */}
+                    {/* Only a whole number of 0 or more is a value. */}
                     <NumberField
                       value={numberOrNull(edit.get(W + "range", W + end))}
                       onValueChange={(n) => edit.set([W + "range", W + end], n !== null && n >= 0 ? n : undefined)}

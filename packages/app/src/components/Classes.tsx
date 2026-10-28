@@ -10,7 +10,7 @@ import { engine, type Content, type Engine, type StrictEntity } from "../engine/
 import { ABILITIES, unqualify } from "../engine/sheet.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
-import { ScoreField } from "./AbilityScores.tsx";
+import { BoundedNumberField } from "./AbilityScores.tsx";
 
 const MAX_LEVEL = 20;
 
@@ -169,7 +169,7 @@ export function HitPoints({ selection }: { selection: BuilderSelection }) {
           {toggle("average", `Average (${averageHitPoints(die)})`, () => averageHitPoints(die))}
           {toggle("roll", `Roll (1d${die})`, () => rollHitPoints(die))}
         </ToggleGroup>
-        <ScoreField label="Hit points" min={1} score={stored?.value ?? null} onCommit={(n) => write("manual-entry", n)} />
+        <BoundedNumberField label="Hit points" min={1} value={stored?.value ?? null} onCommit={(n) => write("manual-entry", n)} />
       </div>
     </section>
   );
