@@ -22,12 +22,13 @@ test("the Preferences tab opens Preferences, and Dark applies at once, here and 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   expect(await stored(page)).toBe("dark");
   await expect(other.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(other.getByRole("alert")).toHaveCount(0);
 
   await pickOption(theme, "Match System");
   await expect(page.locator("html")).not.toHaveAttribute("data-theme");
   expect(await stored(page)).toBeNull();
   await expect(other.locator("html")).not.toHaveAttribute("data-theme");
+  // Both changes have reached the other tab by now. A theme change is not a data change, so it shows no alert note there.
+  await expect(other.getByRole("alert")).toHaveCount(0);
 });
 
 test("export everything has no preferences in it", async ({ page }) => {
