@@ -140,6 +140,13 @@
   .ui-stuck > :last-child {
     padding-top: 10px;
   }
+  /* A small box's value cell draws the divider at full height, so the cell takes the padding. */
+  .ui-stuck > .ui-small-box {
+    padding-top: 0;
+  }
+  .ui-stuck > .ui-small-box > .ui-small-box-value {
+    padding-top: 10px;
+  }
   /* The outer part tilts and casts the shadow. A clip-path would clip a box-shadow, so it uses a drop-shadow filter. */
   .ui-stuck-note {
     --focus-ring: var(--note-ink);

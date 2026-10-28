@@ -34,7 +34,7 @@ const markup: string[] = JSON.parse(
 );
 
 // The stuck note's hard placement rule (docs/design/theme.md, "Stuck note"), measured with the app's own CSS.
-cases.forEach(({ name, width }, i) => {
+cases.forEach(({ name, width, box: kind }, i) => {
   test(`a stuck note overlaps only the top edge of its box: ${name}, ${width}px column`, async ({ page }) => {
     await page.goto("/");
     const styles = await page.evaluate(() => [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map((link) => link.href));
@@ -45,9 +45,18 @@ cases.forEach(({ name, width }, i) => {
     await page.evaluate(() => document.fonts.ready);
 
     const rect = (selector: string) => page.locator(selector).evaluate((element) => element.getBoundingClientRect().toJSON() as DOMRect);
+    // The top of the content inside the box's first part, below that part's border and padding.
+    const contentTop = await page.locator(".ui-stuck > :last-child > :first-child").evaluate((element) => {
+      const style = getComputedStyle(element);
+      return element.getBoundingClientRect().top + parseFloat(style.borderTopWidth) + parseFloat(style.paddingTop);
+    });
     // The bounding box of the tilted note holds all of it, so this is the worst case.
-    const [noteBox, box, content] = [await rect(".ui-stuck-note"), await rect(".ui-stuck > :last-child"), await rect(".ui-stuck > :last-child > :first-child")];
+    const [noteBox, box] = [await rect(".ui-stuck-note"), await rect(".ui-stuck > :last-child")];
     expect(noteBox.bottom).toBeGreaterThan(box.top);
-    expect(noteBox.bottom).toBeLessThanOrEqual(content.top);
+    expect(noteBox.bottom).toBeLessThanOrEqual(contentTop);
+    if (kind === "SmallBox") {
+      // The value cell starts at the top of the box, so the divider runs to the box's top edge.
+      expect((await rect(".ui-small-box-value")).top - box.top).toBeLessThan(2);
+    }
   });
 });
