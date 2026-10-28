@@ -2,7 +2,7 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button, Checkbox, Field, Fieldset, Select as UiSelect, type SelectOption } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, Fieldset, Select, type SelectOption } from "@orc-alchemy/ui";
 import type { ComponentType, ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
 import { nameToKw, tag } from "../../engine/content.ts";
@@ -180,19 +180,24 @@ export function editor(record: ItemRecord, onChange: (record: ItemRecord) => voi
   return { get, set, toggle: (path) => set(path, get(...path) !== true) };
 }
 
+/** The value when it is an option, and else the first option's value, as the old dropdowns showed. */
+export function orFirst<T>(value: unknown, options: readonly SelectOption<T>[]): T | null {
+  const option = options.find(([v]) => v === value) ?? options[0];
+  return option ? option[0] : null;
+}
+
 /**
  * A labelled select, with the package Select inside. A number or a keyword
  * finds its option by its stored value. placeholder is an extra first option
  * for no value, which onSelect gets as undefined. Without one, a value that
  * is not an option shows the first option, as the old dropdowns did.
  */
-export function Select({ label, value, options, onSelect, placeholder }: { label: string; value: unknown; options: Options; onSelect: (value: unknown) => void; placeholder?: string }) {
-  const known = options.some(([v]) => v === value);
+export function SelectField({ label, value, options, onSelect, placeholder }: { label: string; value: unknown; options: Options; onSelect: (value: unknown) => void; placeholder?: string }) {
   const all: SelectOption<unknown>[] = placeholder === undefined ? options : [[null, placeholder], ...options];
   return (
     <label className="mr-4 inline-block">
       {label}{" "}
-      <UiSelect value={known ? value : placeholder === undefined ? (options[0]?.[0] ?? null) : null} options={all} onValueChange={(v) => onSelect(v ?? undefined)} />
+      <Select value={placeholder === undefined ? orFirst(value, options) : value} options={all} onValueChange={(v) => onSelect(v ?? undefined)} />
     </label>
   );
 }
@@ -234,7 +239,7 @@ export function TextArea({ edit, field, label }: { edit: Edit; field: string; la
 export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; legend: string; field: string; items: Choice[] }) {
   return (
     <Fieldset legend={legend}>
-      <Select label={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
+      <SelectField label={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
       <Checks legend={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
     </Fieldset>
   );
@@ -257,8 +262,8 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
               Feature {n} name{" "}
               <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => edit.set(["traits", i, "name"], e.target.value)} className="border border-black px-1" />
             </label>
-            <Select label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
-            {levels && <Select label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
+            <SelectField label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
+            {levels && <SelectField label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
             <Button onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} size="small">
               Delete feature {n}
             </Button>

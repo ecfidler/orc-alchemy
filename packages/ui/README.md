@@ -97,7 +97,8 @@ bun run test       # vitest
     combobox, and its text is the picked option. It is controlled by
     `value` (null while nothing is picked) and `onValueChange`. Each of
     its `options` is a `[value, label]` pair; an option with a null value
-    gives null. `placeholder` shows while nothing is picked. Put it in a
+    gives null. `placeholder` shows while nothing is picked, and also for
+    a value that is not an option. Put it in a
     label, or give it an `aria-label`. Styles: `src/select.css`.
   - `Combobox`: Base UI Combobox, for an action such as "add this" from a
     long list. The user types to filter the `options`, and a pick calls
@@ -127,7 +128,8 @@ bun run test       # vitest
   - `optionNames(control)`: opens the list, returns the names of its
     options or menu items, and closes it.
 - `./testing/playwright`: `pickOption(control, name)` for Playwright, as
-  above, where `control` is a locator. An app that uses it installs
+  above, where `control` is a locator. In a text field, a RegExp name
+  clears the field first. An app that uses it installs
   `@playwright/test` (an optional peer).
 
 ## Rules

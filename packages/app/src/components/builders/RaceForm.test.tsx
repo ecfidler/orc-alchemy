@@ -1,7 +1,6 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -10,6 +9,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
+import { choose, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -34,8 +34,6 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const choose = (label: string, option: string | RegExp) => pickOption(screen.getByRole("combobox", { name: label }), option);
-const shown = (label: string) => screen.getByRole("combobox", { name: label }).textContent;
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (pack: string, key: string) => {

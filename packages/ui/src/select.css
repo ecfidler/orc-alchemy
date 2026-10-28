@@ -42,6 +42,7 @@
     outline: 0;
   }
   .ui-select-popup {
+    min-width: var(--anchor-width);
     max-height: min(20rem, var(--available-height));
     overflow-y: auto;
     padding: 2px 0;
@@ -57,7 +58,8 @@
     user-select: none;
   }
   .ui-select-item:where([data-highlighted]) {
-    background: var(--panel);
+    color: var(--paper);
+    background: var(--ink);
   }
   .ui-select-item:where([data-selected]) {
     font-weight: 600;

@@ -156,8 +156,9 @@ The package is `@orc-alchemy/ui` at `packages/ui` (ORC-148). It is private
 and source-only: it ships TypeScript and CSS, with no build step. React is a
 peer dependency.
 
-* **Exports:** `./theme.css`, `.` (the components), and `./testing` (the
-  test helpers).
+* **Exports:** `./theme.css`, `.` (the components), `./testing` (the
+  test helpers for Vitest) and `./testing/playwright` (the test helpers for
+  Playwright).
 * **`theme.css`** holds the tokens, the `dark` variant, the fonts, the
   grain, the body defaults and `@source "./src";`. The `@source` line is
   in the package's file, so the app's Tailwind build finds the package's
@@ -179,7 +180,8 @@ peer dependency.
 # Controls
 
 One component for each control, with simple props, for example
-`<Select label value options onChange />` (ORC-152).
+`<Select value options onValueChange />` (ORC-152). The prop names follow
+Base UI, and a label around the control names it.
 
 | Today | Becomes |
 |---|---|

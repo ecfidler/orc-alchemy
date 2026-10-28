@@ -93,8 +93,8 @@ function NotFound({ text }: { text: string }) {
 function BuilderForm({ builder, initial, editing }: { builder: BuilderType; initial: ItemRecord; editing?: string }) {
   const { one, validator, fields, Form } = builder;
   const navigate = useNavigate();
-  const packList = useHomebrew((state) => state.packs.map((p) => p.id).join("\n"));
-  const packNames = useMemo(() => packList.split("\n").filter(Boolean), [packList]);
+  const packIds = useHomebrew((state) => state.packs.map((p) => p.id).join("\n"));
+  const packNames = useMemo(() => packIds.split("\n").filter(Boolean), [packIds]);
   const [record, setRecord] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

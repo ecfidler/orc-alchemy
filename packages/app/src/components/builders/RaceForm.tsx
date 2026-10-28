@@ -25,7 +25,7 @@ import {
   numbers,
   ProficiencyChoice,
   range,
-  Select,
+  SelectField,
   SKILLS,
   TextArea,
   TextField,
@@ -90,10 +90,10 @@ export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
         const options = lists.spells.filter((s) => s.level === level).map((s): [string, string] => [tag(s.key), s.name]);
         return (
           <div key={i}>
-            <Select label={`Spell ${n} unlock at level`} value={spell[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["spells", i, "level"], v)} placeholder="-" />
-            <Select label={`Spell ${n} level`} value={value[tag("level")]} options={numbers(range(0, 10))} onSelect={(v) => edit.set(["spells", i, "value", "level"], v)} />
-            <Select label={`Spell ${n} spellcasting ability`} value={value[tag("ability")]} options={ABILITY_OPTIONS} onSelect={(v) => edit.set(["spells", i, "value", "ability"], v)} placeholder="<select ability>" />
-            <Select label={`Spell ${n}`} value={value[tag("key")]} options={options} onSelect={(v) => edit.set(["spells", i, "value", "key"], v)} placeholder="<select spell>" />
+            <SelectField label={`Spell ${n} unlock at level`} value={spell[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["spells", i, "level"], v)} placeholder="-" />
+            <SelectField label={`Spell ${n} level`} value={value[tag("level")]} options={numbers(range(0, 10))} onSelect={(v) => edit.set(["spells", i, "value", "level"], v)} />
+            <SelectField label={`Spell ${n} spellcasting ability`} value={value[tag("ability")]} options={ABILITY_OPTIONS} onSelect={(v) => edit.set(["spells", i, "value", "ability"], v)} placeholder="<select ability>" />
+            <SelectField label={`Spell ${n}`} value={value[tag("key")]} options={options} onSelect={(v) => edit.set(["spells", i, "value", "key"], v)} placeholder="<select spell>" />
             {i < spells.length && (
               <Button onClick={() => edit.set(["spells"], spells.filter((_, j) => j !== i))} size="small">
                 Delete spell {n}
@@ -120,11 +120,11 @@ function RaceForm({ record, onChange, problems }: FormProps) {
           <TextField edit={edit} problems={problems} field="name" label="Name" />
           <TextArea edit={edit} field="help" label="Description" />
           <div>
-            <Select label="Size" value={edit.get("size") ?? tag("medium")} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
-            <Select label="Speed" value={edit.get("speed")} options={speeds} onSelect={(v) => edit.set(["speed"], v)} />
-            <Select label="Flying speed" value={edit.get("props", "flying-speed") ?? 0} options={speeds} onSelect={(v) => edit.set(["props", "flying-speed"], v)} />
-            <Select label="Swimming speed" value={edit.get("props", "swimming-speed") ?? 0} options={speeds} onSelect={(v) => edit.set(["props", "swimming-speed"], v)} />
-            <Select label="Darkvision" value={edit.get("darkvision")} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
+            <SelectField label="Size" value={edit.get("size") ?? tag("medium")} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
+            <SelectField label="Speed" value={edit.get("speed")} options={speeds} onSelect={(v) => edit.set(["speed"], v)} />
+            <SelectField label="Flying speed" value={edit.get("props", "flying-speed") ?? 0} options={speeds} onSelect={(v) => edit.set(["props", "flying-speed"], v)} />
+            <SelectField label="Swimming speed" value={edit.get("props", "swimming-speed") ?? 0} options={speeds} onSelect={(v) => edit.set(["props", "swimming-speed"], v)} />
+            <SelectField label="Darkvision" value={edit.get("darkvision")} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
           </div>
           <Checks
             legend="Armor Class"
@@ -137,7 +137,7 @@ function RaceForm({ record, onChange, problems }: FormProps) {
           />
           <Fieldset legend="Ability Score Increases">
             {ABILITIES.map(([key, name]) => (
-              <Select key={key} label={name} value={edit.get("abilities", abilityKey(key)) ?? 0} options={BONUSES} onSelect={(v) => edit.set(["abilities", abilityKey(key)], v)} />
+              <SelectField key={key} label={name} value={edit.get("abilities", abilityKey(key)) ?? 0} options={BONUSES} onSelect={(v) => edit.set(["abilities", abilityKey(key)], v)} />
             ))}
           </Fieldset>
           <Checks legend="Languages" items={lists.languages.map(({ name }) => ({ key: name, name }))} checked={(name) => languages.includes(name)} onToggle={toggleLanguage} />

@@ -7,6 +7,7 @@ import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
+import { choose, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -31,8 +32,6 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const choose = (label: string, option: string | RegExp) => pickOption(screen.getByRole("combobox", { name: label }), option);
-const shown = (label: string) => screen.getByRole("combobox", { name: label }).textContent;
 const click = (label: string) => fireEvent.click(screen.getByRole("checkbox", { name: label }));
 const clickIn = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
@@ -67,6 +66,7 @@ test("each problem shows under its field, and Save is off until the class is val
   expect(screen.queryByRole("list", { name: "Problems" })).toBeNull();
 });
 
+// About 20 picks in a large form, and each pick renders the whole form again: it takes over 10 s, more under load.
 test("Save stores the class as the old app stores it, and Edit loads it back", async () => {
   await addRuneCarvings();
   const router = renderAt("/content/new/class");
@@ -159,7 +159,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   expect(shown("Selection 1 type")).toBe("Rune Carvings");
   expect(shown("Feature 1 type")).toBe("Bonus Action");
   expect(save().disabled).toBe(false);
-});
+}, 40_000);
 
 test("a class with a custom spell list stores its cantrips and spells by level", async () => {
   const router = renderAt("/content/new/class");

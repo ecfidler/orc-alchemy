@@ -18,14 +18,15 @@ export type MenuProps<T> = {
 export function Menu<T>({ label, items, onPick, size = "small" }: MenuProps<T>) {
   return (
     <BaseMenu.Root>
+      {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
       <BaseMenu.Trigger data-variant="ghost" data-size={size} className="ui-button">
         {label}
       </BaseMenu.Trigger>
       <BaseMenu.Portal>
         <BaseMenu.Positioner sideOffset={2} align="start" className="ui-select-positioner">
           <BaseMenu.Popup className="ui-select-popup">
-            {items.map(([value, text]) => (
-              <BaseMenu.Item key={String(value)} onClick={() => onPick(value)} className="ui-select-item">
+            {items.map(([value, text], i) => (
+              <BaseMenu.Item key={i} onClick={() => onPick(value)} className="ui-select-item">
                 {text}
               </BaseMenu.Item>
             ))}

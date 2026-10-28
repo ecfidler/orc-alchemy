@@ -10,6 +10,7 @@ import { listMagicItems, type MagicItemRecord } from "../../storage/packs.ts";
 import { Builder } from "../Builder.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 import { MyContent } from "../MyContent.tsx";
+import { choose, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 
@@ -39,8 +40,6 @@ async function form(name: string) {
 }
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const choose = (label: string, option: string | RegExp) => pickOption(screen.getByRole("combobox", { name: label }), option);
-const shown = (label: string) => screen.getByRole("combobox", { name: label }).textContent;
 const group = (name: string) => within(screen.getByRole("group", { name }));
 const stored = (key: string) => useHomebrew.getState().magicItems.find((r) => r.id === key);
 const MI = "~:orcpub.dnd.e5.magic-items/";

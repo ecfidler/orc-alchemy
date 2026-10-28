@@ -163,7 +163,8 @@ export function Hands({ lists }: { lists: BuilderSelection[] }) {
       <span>{label}</span>
       <Select
         aria-label={label}
-        value={value}
+        // A stored item that is no longer carried shows as none, as the old dropdowns did.
+        value={keys.includes(value) ? value : "none"}
         options={[["none", "<none>"], ...keys.map((k): [string, string] => [k, nameOf(k)])]}
         onValueChange={(next) => run((e, entity) => wield(e, entity, key, next))}
       />

@@ -7,7 +7,7 @@
 // map of class keyword to true or false.
 import { Checkbox, Field, Fieldset, Select } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
-import { fieldErrors, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { fieldErrors, orFirst, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SCHOOLS = ["abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 /** The old builder's spellcasting classes. */
@@ -15,6 +15,8 @@ const CLASSES = ["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "wa
 const COMPONENTS = ["verbal", "somatic", "material"];
 
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
+const LEVELS = Array.from({ length: 10 }, (_, n): [number, string] => [n, n === 0 ? "Cantrip" : `${ordinal(n)}-level`]);
+const SCHOOL_OPTIONS = SCHOOLS.map((school): [string, string] => [school, school]);
 
 function SpellForm({ record, onChange, problems }: FormProps) {
   const set = (field: string, value: unknown) => onChange({ ...record, [tag(field)]: value });
@@ -38,17 +40,13 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       <Field label="Level" errors={fieldErrors(problems, "level", "Level")}>
         <label className="block">
           Level{" "}
-          <Select
-            value={typeof record[tag("level")] === "number" ? (record[tag("level")] as number) : null}
-            options={Array.from({ length: 10 }, (_, n) => [n, n === 0 ? "Cantrip" : `${ordinal(n)}-level`])}
-            onValueChange={(n) => set("level", n)}
-          />
+          <Select value={orFirst(record[tag("level")], LEVELS)} options={LEVELS} onValueChange={(n) => set("level", n)} />
         </label>
       </Field>
       <Field label="School" errors={fieldErrors(problems, "school", "School")}>
         <label className="block">
           School{" "}
-          <Select value={String(record[tag("school")] ?? "") || null} options={SCHOOLS.map((school) => [school, school])} onValueChange={(school) => set("school", school)} />
+          <Select value={orFirst(record[tag("school")], SCHOOL_OPTIONS)} options={SCHOOL_OPTIONS} onValueChange={(school) => set("school", school)} />
         </label>
       </Field>
       {checkbox("ritual", "Ritual")}

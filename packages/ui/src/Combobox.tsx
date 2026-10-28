@@ -2,7 +2,7 @@ import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
 import { useState } from "react";
 import type { SelectOption } from "./Select.tsx";
 
-type Item<T> = { value: T; label: string };
+type Item<T> = { value: T; label: string; key: number };
 
 export type ComboboxProps<T> = {
   options: readonly SelectOption<T>[];
@@ -23,7 +23,7 @@ export type ComboboxProps<T> = {
  */
 export function Combobox<T>({ options, onPick, placeholder, "aria-label": ariaLabel, className }: ComboboxProps<T>) {
   const [text, setText] = useState("");
-  const items: Item<T>[] = options.map(([value, label]) => ({ value, label }));
+  const items: Item<T>[] = options.map(([value, label], key) => ({ value, label, key }));
   return (
     <BaseCombobox.Root<Item<T>>
       items={items}
@@ -44,7 +44,7 @@ export function Combobox<T>({ options, onPick, placeholder, "aria-label": ariaLa
             <BaseCombobox.Empty className="ui-select-empty">No match.</BaseCombobox.Empty>
             <BaseCombobox.List>
               {(item: Item<T>) => (
-                <BaseCombobox.Item key={String(item.value)} value={item} className="ui-select-item">
+                <BaseCombobox.Item key={item.key} value={item} className="ui-select-item">
                   {item.label}
                 </BaseCombobox.Item>
               )}
