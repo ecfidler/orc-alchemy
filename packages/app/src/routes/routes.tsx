@@ -12,6 +12,7 @@ import { HomebrewBuilder } from "../components/HomebrewBuilder.tsx";
 import { Home } from "../components/Home.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
 import { MyContent } from "../components/MyContent.tsx";
+import { Preferences } from "../components/Preferences.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import type { Sheet } from "../engine/sheet.ts";
@@ -168,6 +169,7 @@ export const routes: RouteObject[] = [
       { path: "import", element: <ImportPage /> },
       { path: "import/dmv", element: <DmvExporter /> },
       { path: "content", element: <MyContent /> },
+      { path: "preferences", element: <Preferences /> },
       ...["content/new/:type", "content/edit/:type/:key", "content/edit/:type/:pack/:key"].map((path) => ({
         path,
         element: (
