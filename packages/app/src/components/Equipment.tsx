@@ -1,7 +1,7 @@
 // The Equipment step (ORC-59): the inventory lists, as the old builder's
 // inventory selectors, and the worn armor, shield and weapons in hand, as
 // the old sheet's Equipped Items. Each change is an engine mutation.
-import { Button } from "@orc-alchemy/ui";
+import { Button, Checkbox } from "@orc-alchemy/ui";
 import { useId, useMemo } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import {
@@ -68,24 +68,20 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
           const isAttuned = attuned.includes(item.key);
           return (
             <li key={item.key} className="flex flex-wrap items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 aria-label={`Carried: ${name}`}
                 checked={item.equipped}
-                onChange={(event) => run((e, entity, opts) => setCarried(e, entity, list, item.key, event.target.checked, opts))}
+                onCheckedChange={(carried) => run((e, entity, opts) => setCarried(e, entity, list, item.key, carried, opts))}
               />
               <span className="flex-grow">{name}</span>
               {magic && (
-                <label className="flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    aria-label={`Attuned: ${name}`}
-                    checked={isAttuned}
-                    disabled={!isAttuned && attuned.length >= MAX_ATTUNED}
-                    onChange={(event) => run((e, entity) => setAttuned(e, entity, item.key, event.target.checked))}
-                  />
-                  <span aria-hidden="true">Attuned</span>
-                </label>
+                <Checkbox
+                  label={<span aria-hidden="true">Attuned</span>}
+                  name={`Attuned: ${name}`}
+                  checked={isAttuned}
+                  disabled={!isAttuned && attuned.length >= MAX_ATTUNED}
+                  onCheckedChange={(on) => run((e, entity) => setAttuned(e, entity, item.key, on))}
+                />
               )}
               <NumberField
                 label={`Quantity: ${name}`}
@@ -105,11 +101,10 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
         })}
         {custom.map((item, i) => (
           <li key={`custom-${i}`} className="flex flex-wrap items-center gap-2">
-            <input
-              type="checkbox"
+            <Checkbox
               aria-label={`Carried: ${item.name}`}
               checked={item.equipped}
-              onChange={(event) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { equipped: event.target.checked }))}
+              onCheckedChange={(equipped) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { equipped }))}
             />
             {item.starting ? (
               <span className="flex-grow">{item.name}</span>

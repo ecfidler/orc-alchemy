@@ -1,0 +1,51 @@
+/* The checkbox and the radio (docs/design/theme.md, "Controls" and "Square marks"). Low specificity, so the app's layout utilities win. */
+
+@layer components {
+  .ui-check-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    /* Top, not baseline: a box's baseline moves when its mark shows. */
+    vertical-align: top;
+    cursor: pointer;
+  }
+  .ui-check-label:where(:has([data-disabled])) {
+    color: var(--ink-muted);
+    cursor: default;
+  }
+  .ui-check,
+  .ui-radio {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .ui-radio {
+    border-radius: 50%;
+  }
+  /* The square mark: a filled square for "has it". */
+  .ui-check-mark {
+    width: 8px;
+    height: 8px;
+    background: var(--ink);
+  }
+  .ui-radio-mark {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink);
+  }
+  .ui-check:where([data-disabled]) {
+    border-color: var(--rule-strong);
+    cursor: default;
+  }
+  .ui-check:where([data-disabled]) .ui-check-mark {
+    background: var(--ink-muted);
+  }
+}

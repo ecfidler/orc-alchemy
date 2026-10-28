@@ -33,7 +33,7 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByLabelText(label));
+const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (pack: string, key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === pack)?.plugin;
@@ -102,7 +102,7 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Mezzoloth");
   expect(screen.getByLabelText<HTMLSelectElement>("Darkvision").value).toBe("60");
   expect(screen.getByLabelText<HTMLSelectElement>("Constitution").value).toBe("2");
-  expect(within(screen.getByRole("group", { name: "Languages" })).getByLabelText<HTMLInputElement>("Infernal").checked).toBe(true);
+  expect(within(screen.getByRole("group", { name: "Languages" })).getByRole("checkbox", { name: "Infernal" })).toBeChecked();
   expect(screen.getByLabelText<HTMLSelectElement>("Spell 2").value).toBe("~:darkness");
   expect(screen.getByLabelText<HTMLTextAreaElement>("Feature 2 description").value).toMatch(/^You have four arms/);
   expect(save().disabled).toBe(false);

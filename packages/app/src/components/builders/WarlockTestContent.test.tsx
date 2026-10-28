@@ -35,7 +35,7 @@ function renderAt(path: string) {
 }
 
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByLabelText(label));
+const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 async function save(router: ReturnType<typeof renderAt>) {
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });

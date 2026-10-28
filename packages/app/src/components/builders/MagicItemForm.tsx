@@ -8,7 +8,7 @@
 // Custom base weapon (the subtype :other) has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
 // load use the magic items store.
-import { Field, FieldErrors, Fieldset } from "@orc-alchemy/ui";
+import { Checkbox, Field, FieldErrors, Fieldset } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
@@ -150,9 +150,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       />,
     );
   const check = (label: string, checked: boolean, onToggle: () => void, disabled = false) => (
-    <label key={label} className="mr-4 inline-block">
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={onToggle} /> {label}
-    </label>
+    <Checkbox key={label} label={label} checked={checked} disabled={disabled} onCheckedChange={onToggle} className="mr-4" />
   );
   /** A modifier with one keyword arg, on or off, such as a damage resistance (magic_items.cljc toggle-mods). */
   const toggles = (legend: string, key: string, values: string[]) => (

@@ -179,7 +179,7 @@ test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepare
   // emptyCharacter has Int 12: a wizard 1 prepares 2 spells.
   const prepared = builder.getByRole("region", { name: "Prepared spells: Wizard" });
   await expect(prepared).toContainText("0 of 2 prepared");
-  await prepared.getByLabel("Prepared: Magic Missile").check();
+  await prepared.getByRole("checkbox", { name: "Prepared: Magic Missile" }).check();
   await expect(prepared).toContainText("1 of 2 prepared");
 
   const firstLevel = preview.getByRole("table", { name: "1st Level" });
@@ -336,13 +336,13 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
   await stepButton(page, "Equipment").click();
 
   await builder.getByLabel("Add an item to Armor").selectOption("Plate");
-  await expect(builder.getByLabel("Carried: Plate")).toBeChecked();
+  await expect(builder.getByRole("checkbox", { name: "Carried: Plate" })).toBeChecked();
   await builder.getByLabel("Add an item to Magic Weapons").selectOption("Longsword +1");
   await builder.getByLabel("Add an item to Other Magic Items").selectOption("Amulet of Health");
   await builder.getByLabel("Worn armor").selectOption("Plate");
   await builder.getByLabel("Wielded shield").selectOption("Shield");
   await builder.getByLabel("Main hand").selectOption("Longsword +1");
-  await builder.getByLabel("Attuned: Amulet of Health").check();
+  await builder.getByRole("checkbox", { name: "Attuned: Amulet of Health" }).check();
 
   await expect(ac).toHaveText("20");
   await expect(preview.getByLabel("Hit Points", { exact: true })).toHaveText("204 / 204");

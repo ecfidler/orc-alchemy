@@ -30,8 +30,8 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
-const click = (label: string) => fireEvent.click(screen.getByLabelText(label));
-const clickIn = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByLabelText(label));
+const click = (label: string) => fireEvent.click(screen.getByRole("checkbox", { name: label }));
+const clickIn = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
   const pack = useHomebrew.getState().packs.find((p) => p.id === DEFAULT);
@@ -147,11 +147,11 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   expect(screen.getByRole("form", { name: "Edit class" })).toBeTruthy();
   expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Rune Knight");
   expect(screen.getByLabelText<HTMLSelectElement>("Hit die").value).toBe("10");
-  expect(screen.getByLabelText<HTMLInputElement>("Strength saving throw").checked).toBe(true);
-  expect(screen.getByLabelText<HTMLInputElement>("Ability increase at level 4").checked).toBe(false);
+  expect(screen.getByRole("checkbox", { name: "Strength saving throw" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Ability increase at level 4" })).not.toBeChecked();
   expect(screen.getByLabelText<HTMLSelectElement>("Spell list").value).toBe("~:wizard");
   expect(screen.getByLabelText<HTMLSelectElement>("First spell slots at level").value).toBe("2");
-  expect(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByLabelText<HTMLInputElement>("History").checked).toBe(true);
+  expect(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByRole("checkbox", { name: "History" })).toBeChecked();
   expect(screen.getByLabelText<HTMLSelectElement>("Modifier 2 spell").value).toBe("~:fire-bolt");
   expect(screen.getByLabelText<HTMLSelectElement>("Selection 1 type").value).toBe("~:rune-carvings");
   expect(screen.getByLabelText<HTMLSelectElement>("Feature 1 type").value).toBe("~:b-action");

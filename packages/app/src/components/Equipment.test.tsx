@@ -39,7 +39,7 @@ const entity = () => useCharacter.getState().entity!;
 const sheet = () => toSheet(engine().evaluate(entity()).built, entity());
 const region = (name: string) => within(screen.getByRole("region", { name: new RegExp(`^${name}`) }));
 // getByLabelText is slow on a page of four long item lists; every control here has an aria-label.
-const labelled = (label: string) => document.querySelector<HTMLInputElement>(`[aria-label="${label}"]`)!;
+const labelled = (label: string) => document.querySelector<HTMLElement>(`[aria-label="${label}"]`)!;
 const choose = (label: string, value: string) => fireEvent.change(labelled(label), { target: { value } });
 
 test("fighter-20 equipped through the Equipment step has its AC, hit points and attacks", () => {
@@ -50,7 +50,7 @@ test("fighter-20 equipped through the Equipment step has its AC, hit points and 
   choose("Add an item to Other Magic Items", "amulet-of-health");
   // An item in the list is not offered again.
   expect(labelled("Add an item to Armor").querySelector('option[value="plate"]')).toBeNull();
-  expect(labelled("Carried: Plate").checked).toBe(true);
+  expect(labelled("Carried: Plate")).toBeChecked();
   choose("Worn armor", "plate");
   choose("Wielded shield", "shield");
   choose("Main hand", "longsword-1");
@@ -81,7 +81,7 @@ test("a custom item is added, renamed, counted and removed", () => {
   fireEvent.click(treasure.getByRole("button", { name: "Add custom item" }));
   fireEvent.change(treasure.getByLabelText("Custom item 1 name"), { target: { value: "Ruby" } });
   fireEvent.change(treasure.getByLabelText("Quantity: Ruby"), { target: { value: "3" } });
-  fireEvent.click(treasure.getByLabelText("Carried: Ruby"));
+  fireEvent.click(treasure.getByRole("checkbox", { name: "Carried: Ruby" }));
   expect(customItems(entity(), "custom-treasure")).toEqual([{ name: "Ruby", quantity: 3, equipped: false, starting: false }]);
   fireEvent.click(treasure.getByRole("button", { name: "Remove Ruby" }));
   expect(customItems(entity(), "custom-treasure")).toEqual([]);
@@ -97,15 +97,15 @@ test("no more than 3 magic items are attuned at once", () => {
   }
   for (const name of ["Amulet of Health", "Cloak of Protection", "Ring of Protection"]) fireEvent.click(labelled(`Attuned: ${name}`));
   const bag = labelled("Attuned: Bag of Holding");
-  expect(bag.disabled).toBe(true);
+  expect(bag).toHaveAttribute("aria-disabled", "true");
   fireEvent.click(labelled("Attuned: Ring of Protection"));
-  expect(bag.disabled).toBe(false);
+  expect(bag).not.toHaveAttribute("aria-disabled", "true");
   // A removed item is no longer attuned, so it frees its place.
   fireEvent.click(labelled("Attuned: Ring of Protection"));
-  expect(labelled("Attuned: Bag of Holding").disabled).toBe(true);
+  expect(labelled("Attuned: Bag of Holding")).toHaveAttribute("aria-disabled", "true");
   fireEvent.click(screen.getByText("Remove Amulet of Health"));
   expect(attunedItems(entity())).toEqual(["cloak-of-protection", "ring-of-protection"]);
-  expect(labelled("Attuned: Bag of Holding").disabled).toBe(false);
+  expect(labelled("Attuned: Bag of Holding")).not.toHaveAttribute("aria-disabled", "true");
 });
 
 test("an imported magic item is offered, and wearing it changes the build", async () => {

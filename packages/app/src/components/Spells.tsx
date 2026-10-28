@@ -1,6 +1,7 @@
 // The Spells step (ORC-60): each spell selection's cards, with a level
 // filter and a name search, and the prepared spells of each class that
 // prepares. Each pick is an engine mutation, as in Options in Builder.tsx.
+import { Checkbox } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
@@ -120,16 +121,14 @@ export function PreparedSpells() {
               <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
                 {spells.map((spell) => (
                   <li key={spell.key}>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        aria-label={`Prepared: ${spell.name}`}
-                        checked={spell.prepared}
-                        disabled={spell.alwaysPrepared || (!spell.prepared && count >= canPrepare)}
-                        onChange={(event) => run((e, entity) => setPrepared(e, entity, name, spell.key, event.target.checked))}
-                      />
-                      {spell.name}
-                    </label>
+                    <Checkbox
+                      label={spell.name}
+                      name={`Prepared: ${spell.name}`}
+                      checked={spell.prepared}
+                      disabled={spell.alwaysPrepared || (!spell.prepared && count >= canPrepare)}
+                      onCheckedChange={(on) => run((e, entity) => setPrepared(e, entity, name, spell.key, on))}
+                      className="gap-2"
+                    />
                   </li>
                 ))}
               </ul>

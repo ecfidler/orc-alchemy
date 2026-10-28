@@ -2,7 +2,7 @@
 // (views.cljs my-content): the stored packs, each with its content lists, and
 // the .orcbrew export of one pack or of all of them; and the stored custom
 // magic items (ORC-77).
-import { Button } from "@orc-alchemy/ui";
+import { Button, Checkbox } from "@orc-alchemy/ui";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { CONTENT_TYPES, packItems, tag } from "../engine/content.ts";
@@ -83,9 +83,7 @@ export function MyContent() {
       {packs.length > 0 && (
         <>
           <div className="mt-4 flex flex-wrap items-center gap-4">
-            <label>
-              <input type="checkbox" checked={pretty} onChange={(e) => setPretty(e.target.checked)} /> Pretty-print exported files
-            </label>
+            <Checkbox label="Pretty-print exported files" checked={pretty} onCheckedChange={setPretty} />
             <OrcbrewExport label="Export all" pretty={pretty} />
           </div>
           <ul className="mt-4 space-y-4">
@@ -115,10 +113,7 @@ function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (acti
           const name = magicItemName(item) || id;
           return (
             <li key={id} className="flex flex-wrap items-center gap-2">
-              <label>
-                <input type="checkbox" checked={enabled} onChange={(e) => report(useHomebrew.getState().setMagicItemEnabled(id, e.target.checked))} />{" "}
-                {name}
-              </label>
+              <Checkbox label={name} checked={enabled} onCheckedChange={(on) => report(useHomebrew.getState().setMagicItemEnabled(id, on))} />
               <Link to={`/content/edit/magicItem/${encodeURIComponent(id)}`} aria-label={`Edit ${name}`} className="underline">
                 Edit
               </Link>
@@ -144,10 +139,7 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
     <section aria-label={id} className="border border-black p-2">
       <div className="flex flex-wrap items-center gap-4">
         <h2 className="text-lg font-bold">{id}</h2>
-        <label>
-          <input type="checkbox" checked={packOn(pack)} onChange={(e) => report(useHomebrew.getState().setPackEnabled(id, e.target.checked))} />{" "}
-          Enabled
-        </label>
+        <Checkbox label="Enabled" checked={packOn(pack)} onCheckedChange={(on) => report(useHomebrew.getState().setPackEnabled(id, on))} />
         <OrcbrewExport label="Export" pack={id} pretty={pretty} />
         <Button onClick={() => window.confirm(`Delete the pack ${id} from this browser?`) && report(useHomebrew.getState().remove(id))} variant="link">
           Delete
@@ -167,14 +159,7 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
                 const on = itemOn(pack, taggedType, tagged);
                 return (
                   <li key={key} className="flex flex-wrap items-center gap-2">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={(e) => report(useHomebrew.getState().setItemEnabled(id, taggedType, tagged, e.target.checked))}
-                      />{" "}
-                      {name}
-                    </label>
+                    <Checkbox label={name} checked={on} onCheckedChange={(next) => report(useHomebrew.getState().setItemEnabled(id, taggedType, tagged, next))} />
                     {builder && (
                       <Link to={`/content/edit/${builder}/${encodeURIComponent(id)}/${encodeURIComponent(key)}`} aria-label={`Edit ${name}`} className="underline">
                         Edit

@@ -275,7 +275,7 @@ test("Rename all, then Apply, imports the file with its keys renamed and lists t
   const step = await loadAThenB();
   fireEvent.click(within(step).getByRole("button", { name: "Rename all" }));
   const lineage = within(step).getByRole("group", { name: "races: custom-lineage" });
-  expect(within(lineage).getByRole<HTMLInputElement>("radio", { name: "Rename the imported one to custom-lineage-duplicate-external-b" }).checked).toBe(true);
+  expect(within(lineage).getByRole("radio", { name: "Rename the imported one to custom-lineage-duplicate-external-b" })).toBeChecked();
   fireEvent.click(apply());
 
   expect(await screen.findByRole("listitem", { name: "duplicate-external-b" })).toBeTruthy();
@@ -344,8 +344,8 @@ test("an internal conflict marks the copy that is off, and names the on pack as 
   const step = await screen.findByRole("region", { name: "Resolve key conflicts" });
 
   expect(within(step).getByText("In more than one pack of the file: Keen in A; Keen in B (off).")).toBeTruthy();
-  expect(within(step).getByLabelText("Rename the one in B to keen-b")).toBeTruthy();
-  expect(within(step).getByLabelText("Skip: keep only the one in A")).toBeTruthy();
+  expect(within(step).getByRole("radio", { name: "Rename the one in B to keen-b" })).toBeTruthy();
+  expect(within(step).getByRole("radio", { name: "Skip: keep only the one in A" })).toBeTruthy();
 });
 
 test("Cancel import stores nothing of the file", async () => {

@@ -70,12 +70,12 @@ test("turning an item off leaves it out of the next evaluate; turning it on brin
 
   const artificer = await screen.findByRole<HTMLInputElement>("checkbox", { name: "Artificer (Alternate) (duplicate-external-b)" });
   fireEvent.click(artificer);
-  await waitFor(() => expect(artificer.checked).toBe(false));
+  await waitFor(() => expect(artificer).not.toBeChecked());
   expect(classes()).toEqual([]);
   expect(missingContent(r8, useHomebrew.getState().content).map((u) => u.key)).toContain("artificer");
 
   fireEvent.click(artificer);
-  await waitFor(() => expect(artificer.checked).toBe(true));
+  await waitFor(() => expect(artificer).toBeChecked());
   expect(classes()).toEqual(["artificer"]);
 });
 
@@ -87,18 +87,18 @@ test("the old app's off flag in a file shows as off, and turning the item or pac
   await useHomebrew.getState().load("warlock-test-content.orcbrew", text);
   renderPage();
   const section = await screen.findByRole("region", { name: "warlock-test-content" });
-  const pack = within(section).getByRole<HTMLInputElement>("checkbox", { name: "Enabled" });
-  const keenMind = within(section).getByRole<HTMLInputElement>("checkbox", { name: "Keen Mind" });
-  expect(pack.checked).toBe(false);
-  expect(keenMind.checked).toBe(false);
+  const pack = within(section).getByRole("checkbox", { name: "Enabled" });
+  const keenMind = within(section).getByRole("checkbox", { name: "Keen Mind" });
+  expect(pack).not.toBeChecked();
+  expect(keenMind).not.toBeChecked();
   const feats = () => engine().buildTemplate(useHomebrew.getState().homebrew).content.feats;
   expect(feats()).not.toContain("keen-mind");
 
   fireEvent.click(pack);
-  await waitFor(() => expect(pack.checked).toBe(true));
+  await waitFor(() => expect(pack).toBeChecked());
   expect(feats()).not.toContain("keen-mind");
   fireEvent.click(keenMind);
-  await waitFor(() => expect(keenMind.checked).toBe(true));
+  await waitFor(() => expect(keenMind).toBeChecked());
   expect(feats()).toContain("keen-mind");
   const [stored] = (await listPacks()) as PackRecord[];
   expect(JSON.stringify(stored.plugin)).not.toContain("disabled?");
@@ -212,10 +212,10 @@ test("the stored magic items are listed by name; each can be turned off and dele
     "Warden's Plate",
   ]);
 
-  const pearl = section.getByRole<HTMLInputElement>("checkbox", { name: "Pearl of Stillwater" });
-  expect(pearl.checked).toBe(true);
+  const pearl = section.getByRole("checkbox", { name: "Pearl of Stillwater" });
+  expect(pearl).toBeChecked();
   fireEvent.click(pearl);
-  await waitFor(() => expect(pearl.checked).toBe(false));
+  await waitFor(() => expect(pearl).not.toBeChecked());
   expect(useHomebrew.getState().magicItemsOn).toHaveLength(3);
 
   yes();

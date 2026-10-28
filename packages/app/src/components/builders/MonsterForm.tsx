@@ -7,7 +7,7 @@
 // to bonus, the damage, condition and language checkboxes in :props, as
 // {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
 // and :description maps, :type absent, :action or :legendary-action.
-import { Button, Field, Fieldset } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, Fieldset } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
 import { ABILITIES, CONDITIONS, DAMAGE_TYPES, fieldErrors, nameToKw, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
@@ -93,9 +93,13 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   const checkboxes = (legend: string, prop: string, keys: string[], label: (key: string) => string) => (
     <Fieldset legend={legend}>
       {keys.map((key) => (
-        <label key={key} className="mr-4 inline-block">
-          <input type="checkbox" checked={((props[tag(prop)] ?? {}) as ItemRecord)[tag(key)] === true} onChange={() => toggle(prop, key)} /> {label(key)}
-        </label>
+        <Checkbox
+          key={key}
+          label={label(key)}
+          checked={((props[tag(prop)] ?? {}) as ItemRecord)[tag(key)] === true}
+          onCheckedChange={() => toggle(prop, key)}
+          className="mr-4"
+        />
       ))}
     </Fieldset>
   );
