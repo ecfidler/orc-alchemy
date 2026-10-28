@@ -58,18 +58,15 @@ test("deleting a character asks first, and it stays deleted after reload", async
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
   const brannor = page.getByRole("listitem", { name: "Brannor Ironfist" });
 
-  page.once("dialog", (dialog) => void dialog.dismiss());
+  const dialog = page.getByRole("alertdialog", { name: "Delete Brannor Ironfist? This cannot be undone." });
   await brannor.getByRole("button", { name: "Delete Brannor Ironfist" }).click();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toHaveCount(0);
   await expect(brannor).toBeVisible();
 
-  let message = "";
-  page.once("dialog", (dialog) => {
-    message = dialog.message();
-    void dialog.accept();
-  });
   await brannor.getByRole("button", { name: "Delete Brannor Ironfist" }).click();
+  await dialog.getByRole("button", { name: "Delete" }).click();
   await expect(page.getByText("No characters yet. Import a character file to add one.")).toBeVisible();
-  expect(message).toBe("Delete Brannor Ironfist? This cannot be undone.");
 
   await page.reload();
   await expect(page.getByText("No characters yet. Import a character file to add one.")).toBeVisible();

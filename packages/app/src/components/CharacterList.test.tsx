@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import type { Built2014 } from "@pubdoor/dmv";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
@@ -45,13 +46,12 @@ test("the list follows the summaries index, and delete asks first", async () => 
   expect(screen.getByRole("listitem", { name: "Fimble Nackle" }).querySelector("img")?.getAttribute("src")).toBe("https://example.com/fimble.png");
   expect(screen.getAllByRole("listitem").map((item) => item.getAttribute("aria-label"))).toEqual(["Corvin Half-Elven", "Fimble Nackle"]);
 
-  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
   fireEvent.click(within(corvin).getByRole("button", { name: "Delete Corvin Half-Elven" }));
-  expect(confirm).toHaveBeenCalledWith("Delete Corvin Half-Elven? This cannot be undone.");
+  expect(await answerConfirmDialog("Cancel")).toBe("Delete Corvin Half-Elven? This cannot be undone.");
   expect(await getCharacter("a")).toBeDefined();
 
-  confirm.mockReturnValue(true);
   fireEvent.click(within(corvin).getByRole("button", { name: "Delete Corvin Half-Elven" }));
+  await answerConfirmDialog("Delete");
   await vi.waitFor(() => expect(screen.queryByRole("listitem", { name: "Corvin Half-Elven" })).toBeNull());
   expect(await getCharacter("a")).toBeUndefined();
   expect((await listSummaries()).map((s) => s.id)).toEqual(["b"]);

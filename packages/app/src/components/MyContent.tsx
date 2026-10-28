@@ -2,7 +2,7 @@
 // (views.cljs my-content): the stored packs, each with its content lists, and
 // the .orcbrew export of one pack or of all of them; and the stored custom
 // magic items (ORC-77).
-import { Button, Checkbox } from "@orc-alchemy/ui";
+import { Button, Checkbox, useConfirm, type Confirm } from "@orc-alchemy/ui";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { CONTENT_TYPES, packItems, tag } from "../engine/content.ts";
@@ -30,6 +30,7 @@ export function MyContent() {
   const [error, setError] = useState<string | null>(null);
   // The old per-pack export pretty-printed.
   const [pretty, setPretty] = useState(true);
+  const [confirm, confirmDialog] = useConfirm();
 
   useEffect(() => {
     restorePacks()
@@ -45,6 +46,7 @@ export function MyContent() {
 
   return (
     <>
+      {confirmDialog}
       <h1 className="text-xl">My Content</h1>
       <p>
         Your homebrew packs. To add one, use the{" "}
@@ -72,7 +74,7 @@ export function MyContent() {
             {quarantined.map(({ id, reason }) => (
               <li key={id}>
                 The stored pack {id} could not be read, so it is not used. It is kept in this browser as it is. {reason}{" "}
-                <Button onClick={() => window.confirm(`Delete the unreadable pack ${id}?`) && report(useHomebrew.getState().removeQuarantined(id))} variant="link">
+                <Button onClick={async () => (await confirm(`Delete the unreadable pack ${id}?`, "Delete")) && report(useHomebrew.getState().removeQuarantined(id))} variant="link">
                   Delete {id}
                 </Button>
               </li>
@@ -89,13 +91,13 @@ export function MyContent() {
           <ul className="mt-4 space-y-4">
             {packs.map((pack) => (
               <li key={pack.id}>
-                <Pack pack={pack} pretty={pretty} report={report} />
+                <Pack pack={pack} pretty={pretty} report={report} confirm={confirm} />
               </li>
             ))}
           </ul>
         </>
       )}
-      {magicItems.length > 0 && <MagicItems items={magicItems} report={report} />}
+      {magicItems.length > 0 && <MagicItems items={magicItems} report={report} confirm={confirm} />}
       {restored && packs.length === 0 && quarantined.length === 0 && magicItems.length === 0 && (
         <p className="mt-4">There is no homebrew in this browser.</p>
       )}
@@ -104,7 +106,7 @@ export function MyContent() {
 }
 
 /** The stored magic items, each with its enabled checkbox, Edit and Delete. */
-function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (action: Promise<void>) => void }) {
+function MagicItems({ items, report, confirm }: { items: MagicItemRecord[]; report: (action: Promise<void>) => void; confirm: Confirm }) {
   return (
     <section aria-label="Magic items" className="mt-4 border border-black p-2">
       <h2 className="text-lg font-bold">Magic items</h2>
@@ -119,7 +121,7 @@ function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (acti
               </Link>
               <Button
                 aria-label={`Delete ${name}`}
-                onClick={() => window.confirm(`Delete the magic item ${name} from this browser?`) && report(useHomebrew.getState().removeMagicItem(id))}
+                onClick={async () => (await confirm(`Delete the magic item ${name} from this browser?`, "Delete")) && report(useHomebrew.getState().removeMagicItem(id))}
                 variant="link"
               >
                 Delete
@@ -133,7 +135,7 @@ function MagicItems({ items, report }: { items: MagicItemRecord[]; report: (acti
 }
 
 /** One pack: its enabled checkbox, Export and Delete, and its content lists. */
-function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; report: (action: Promise<void>) => void }) {
+function Pack({ pack, pretty, report, confirm }: { pack: PackRecord; pretty: boolean; report: (action: Promise<void>) => void; confirm: Confirm }) {
   const { id, plugin } = pack;
   return (
     <section aria-label={id} className="border border-black p-2">
@@ -141,7 +143,7 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
         <h2 className="text-lg font-bold">{id}</h2>
         <Checkbox label="Enabled" checked={packOn(pack)} onCheckedChange={(on) => report(useHomebrew.getState().setPackEnabled(id, on))} />
         <OrcbrewExport label="Export" pack={id} pretty={pretty} />
-        <Button onClick={() => window.confirm(`Delete the pack ${id} from this browser?`) && report(useHomebrew.getState().remove(id))} variant="link">
+        <Button onClick={async () => (await confirm(`Delete the pack ${id} from this browser?`, "Delete")) && report(useHomebrew.getState().remove(id))} variant="link">
           Delete
         </Button>
       </div>
@@ -167,7 +169,7 @@ function Pack({ pack, pretty, report }: { pack: PackRecord; pretty: boolean; rep
                     )}
                     <Button
                       aria-label={`Delete ${name}`}
-                      onClick={() => window.confirm(`Delete ${name} from ${id}?`) && report(useHomebrew.getState().removeItem(id, taggedType, tagged))}
+                      onClick={async () => (await confirm(`Delete ${name} from ${id}?`, "Delete")) && report(useHomebrew.getState().removeItem(id, taggedType, tagged))}
                       variant="link"
                     >
                       Delete

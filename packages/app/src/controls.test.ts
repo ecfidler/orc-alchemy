@@ -34,3 +34,8 @@ test("the app has no native checkbox or radio input", () => {
 test("the app has no number input", () => {
   expect(sources.filter(({ text }) => text.includes('type="number"')).map(({ file }) => file)).toEqual([]);
 });
+
+// ORC-163: every confirmation is the package confirm dialog.
+test("the app has no window.confirm; it asks with useConfirm", () => {
+  expect(sources.filter(({ text }) => text.includes("window.confirm")).map(({ file }) => file)).toEqual([]);
+});

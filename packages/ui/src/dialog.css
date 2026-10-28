@@ -1,0 +1,31 @@
+/* The alert dialog (docs/design/theme.md, "Controls"). Low specificity, so the app's layout utilities win. */
+
+@layer components {
+  .ui-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    /* A paper wash fades the page in both modes. */
+    background: color-mix(in srgb, var(--paper) 70%, transparent);
+  }
+  .ui-dialog {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    width: min(28rem, calc(100vw - 2rem));
+    transform: translateX(-50%);
+    padding: 1rem;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--ink);
+    box-shadow: 0 2px 8px var(--note-shadow);
+  }
+  .ui-dialog-message {
+    margin: 0 0 1rem;
+    font: inherit;
+  }
+  .ui-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+}

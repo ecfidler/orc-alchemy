@@ -77,21 +77,18 @@ test("replacing a class with more than level 1 asks first", async ({ page }) => 
   await expect(klass).toHaveText("Fighter 5 (Champion)");
   await stepButton(page, "Class").click();
 
-  let message = "";
-  page.once("dialog", (dialog) => {
-    message = dialog.message();
-    return dialog.dismiss();
+  const dialog = page.getByRole("alertdialog", {
+    name: "Replace Fighter with Wizard? Fighter's 5 levels and their choices are removed, and Wizard starts at level 1. This cannot be undone.",
   });
   const class1 = builder.getByLabel("Class 1", { exact: true });
   await class1.selectOption("Wizard");
-  await expect.poll(() => message).toBe(
-    "Replace Fighter with Wizard? Fighter's 5 levels and their choices are removed, and Wizard starts at level 1. This cannot be undone.",
-  );
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toHaveCount(0);
   await expect(klass).toHaveText("Fighter 5 (Champion)");
   await expect(class1).toHaveValue("fighter");
 
-  page.once("dialog", (dialog) => dialog.accept());
   await class1.selectOption("Wizard");
+  await dialog.getByRole("button", { name: "Replace" }).click();
   await expect(klass).toHaveText("Wizard 1");
   await expect(class1).toHaveValue("wizard");
 });

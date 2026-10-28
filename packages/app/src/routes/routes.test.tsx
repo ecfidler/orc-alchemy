@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
@@ -147,14 +148,13 @@ test("leaving the character after a failed save asks first", async () => {
   const preview = await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
   fireEvent.click(within(screen.getByRole("region", { name: /^Race/ })).getByRole("button", { name: "Elf" }));
   useStorage.setState({ failed: true });
-  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
 
   fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
-  expect(confirm).toHaveBeenCalledWith("Saving your changes to this browser failed. Leave anyway?");
+  expect(await answerConfirmDialog("Cancel")).toBe("Saving your changes to this browser failed. Leave anyway?");
   expect(screen.getByRole("region", { name: "Preview" })).toBe(preview);
 
-  confirm.mockReturnValue(true);
   fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
+  await answerConfirmDialog("Leave");
   expect(await screen.findByRole("heading", { level: 1, name: "Alchemy 5e" })).toBeTruthy();
 });
 

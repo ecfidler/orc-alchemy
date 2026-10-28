@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -37,7 +38,6 @@ function renderPage(Page = MyContent) {
   render(<RouterProvider router={router} />);
 }
 
-const yes = () => vi.stubGlobal("confirm", () => true);
 
 test.each(orcbrewFiles)("%s: every pack shows the 13 lists, each with every item of its type", async (file) => {
   await load(file);
@@ -111,11 +111,11 @@ test("a pack's checkbox turns it off, and Delete removes it from storage after a
   fireEvent.click(within(section).getByRole("checkbox", { name: "Enabled" }));
   await waitFor(() => expect(useHomebrew.getState().homebrew).toBeUndefined());
 
-  vi.stubGlobal("confirm", () => false);
   fireEvent.click(within(section).getByRole("button", { name: "Delete" }));
+  expect(await answerConfirmDialog("Cancel")).toBe("Delete the pack warlock-test-content from this browser?");
   expect(useHomebrew.getState().packs).toHaveLength(1);
-  yes();
   fireEvent.click(within(section).getByRole("button", { name: "Delete" }));
+  await answerConfirmDialog("Delete");
   await waitFor(() => expect(screen.queryByRole("region", { name: "warlock-test-content" })).toBeNull());
   expect(await listPacks()).toEqual([]);
 });
@@ -123,8 +123,8 @@ test("a pack's checkbox turns it off, and Delete removes it from storage after a
 test("Delete on an item removes it from the pack and from storage", async () => {
   await load("duplicate-external-b.orcbrew");
   renderPage();
-  yes();
   fireEvent.click(await screen.findByRole("button", { name: "Delete Artificer (Alternate) (duplicate-external-b)" }));
+  await answerConfirmDialog("Delete");
   await waitFor(() => expect(screen.queryByRole("checkbox", { name: "Artificer (Alternate) (duplicate-external-b)" })).toBeNull());
   const [stored] = (await listPacks()) as PackRecord[];
   expect(stored.plugin).not.toHaveProperty(["~:orcpub.dnd.e5/classes", "~:artificer"]);
@@ -195,8 +195,8 @@ test("a stored pack that could not be read is listed with its warning, and Delet
   renderPage(Page);
   const warning = await screen.findByRole("region", { name: "Unreadable homebrew packs" });
   expect(warning.textContent).toContain("The stored pack bad could not be read, so it is not used.");
-  yes();
   fireEvent.click(within(warning).getByRole("button", { name: "Delete bad" }));
+  await answerConfirmDialog("Delete");
   await waitFor(() => expect(screen.queryByRole("region", { name: "Unreadable homebrew packs" })).toBeNull());
   expect(((await list()) as PackRecord[]).map((p) => p.id)).toEqual(["good"]);
 });
@@ -218,8 +218,8 @@ test("the stored magic items are listed by name; each can be turned off and dele
   await waitFor(() => expect(pearl).not.toBeChecked());
   expect(useHomebrew.getState().magicItemsOn).toHaveLength(3);
 
-  yes();
   fireEvent.click(section.getByRole("button", { name: "Delete Warden's Plate" }));
+  await answerConfirmDialog("Delete");
   await waitFor(() => expect(section.queryByRole("checkbox", { name: "Warden's Plate" })).toBeNull());
   expect(useHomebrew.getState().magicItems.map((r) => r.id)).toEqual(["circlet-of-the-hawk", "emberbrand", "pearl-of-stillwater"]);
   expect(screen.queryByText("There is no homebrew in this browser.")).toBeNull();

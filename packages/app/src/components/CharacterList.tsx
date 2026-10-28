@@ -1,4 +1,4 @@
-import { Button } from "@orc-alchemy/ui";
+import { Button, useConfirm } from "@orc-alchemy/ui";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { removeCharacter } from "../state/character.ts";
@@ -58,9 +58,10 @@ export function CharacterList() {
 function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDeleted: () => void }) {
   const name = summary.name ?? "Unnamed character";
   const [error, setError] = useState<string | null>(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   async function onDelete() {
-    if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
+    if (!(await confirm(`Delete ${name}? This cannot be undone.`, "Delete"))) return;
     setError(null);
     try {
       await removeCharacter(summary.id);
@@ -72,6 +73,7 @@ function CharacterRow({ summary, onDeleted }: { summary: CharacterSummary; onDel
 
   return (
     <li aria-label={name} className="flex flex-wrap items-center gap-3 py-2">
+      {confirmDialog}
       {summary.portrait && <img src={summary.portrait} alt="" className="h-12 w-12 object-cover" />}
       <div className="flex-1">
         <Link to={`/sheet/${summary.id}`} className="font-bold underline">
