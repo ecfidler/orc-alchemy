@@ -68,7 +68,7 @@ test("the flag tab of the page's section is current", () => {
   cleanup();
   renderAt("/preferences");
   expect(current()).toEqual(["Preferences"]);
-  expect(screen.getByRole("heading", { name: "Page not found" })).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 1, name: "Preferences" })).toBeTruthy();
 });
 
 test("the storage alerts are alert notes, and the outdated one reloads the page", () => {
