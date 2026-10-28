@@ -1,43 +1,47 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
+import { CurrentMax } from "./Paper.tsx";
 
 export type UseBubbleProps = {
-  /** The name, on the first line. */
+  /** The name, on the first line. It names the bubble. */
   title: ReactNode;
   /** The text under the name. */
   children?: ReactNode;
   /** Small caps text in the top right, for example when the uses come back. */
   tag?: string;
-  /** One circle for each use, after the name. */
-  uses?: number;
-  /** A pool: its number shows large under the tag, as current / max. A click spends `step` (1 by default). */
-  pool?: { max: number; step?: number };
-};
+} & (
+  | { /** One circle for each use, after the name. */ uses: number; pool?: never }
+  | { /** A pool: its number shows large under the tag, as current / max. A click spends `step` (1 by default). */ pool: { max: number; step?: number }; uses?: never }
+  | { uses?: never; pool?: never }
+);
 
 /**
- * The outline around something with limited uses. It is look only: a
- * click changes the circles or the pool on the page, and nothing is
- * stored, so a reload resets it. When every use is spent, the outline is
- * dashed and the text is muted.
+ * The outline around something with limited uses. It is a group named by
+ * its title. It changes only what shows: a click spends a use on the page,
+ * and nothing is stored, so a reload resets it. When every use is spent,
+ * the outline is dashed and the text is muted.
  */
-export function UseBubble({ title, children, tag, uses = 0, pool }: UseBubbleProps) {
-  const [spent, setSpent] = useState(0);
-  const [poolSpent, setPoolSpent] = useState(0);
-  const allSpent = pool ? poolSpent >= pool.max : uses > 0 && spent >= uses;
-  const left = pool ? pool.max - poolSpent : 0;
+export function UseBubble({ title, children, tag, uses, pool }: UseBubbleProps) {
+  const id = useId();
+  const total = pool ? pool.max : (uses ?? 0);
+  const [spentState, setSpent] = useState(0);
+  // The total can change after a click, so the count never goes past it.
+  const spent = Math.min(spentState, total);
   const step = pool?.step ?? 1;
   return (
-    <div className="ui-use-bubble" data-spent={allSpent ? "" : undefined}>
+    <div role="group" aria-labelledby={id} className="ui-use-bubble" data-spent={total > 0 && spent >= total ? "" : undefined}>
       <span className="ui-use-bubble-head">
-        <span className="ui-use-bubble-title">{title}</span>
-        {uses > 0 && (
+        <span id={id} className="ui-use-bubble-title">
+          {title}
+        </span>
+        {uses !== undefined && uses > 0 && (
           <span role="group" aria-label={`${uses} ${uses === 1 ? "use" : "uses"}, ${uses - spent} left`} className="ui-use-circles">
             {Array.from({ length: uses }, (_, i) => (
               <button
                 key={i}
                 type="button"
-                aria-label={`Use ${i + 1}${i < spent ? ", spent" : ""}`}
+                aria-label={`Use ${i + 1}`}
+                aria-pressed={i < spent}
                 className="ui-use-circle"
-                data-spent={i < spent ? "" : undefined}
                 // A click on a spent circle gives it and the ones after it back.
                 onClick={() => setSpent(i < spent ? i : i + 1)}
               />
@@ -52,13 +56,12 @@ export function UseBubble({ title, children, tag, uses = 0, pool }: UseBubblePro
           {pool && (
             <button
               type="button"
-              aria-label={`${left} of ${pool.max} left. Click to spend ${step}.`}
+              aria-label={`${pool.max - spent} / ${pool.max} left. ${spent >= pool.max ? "Fill again" : `Spend ${step}`}`}
               className="ui-use-pool"
-              // A click on an empty pool fills it again.
-              onClick={() => setPoolSpent(poolSpent >= pool.max ? 0 : Math.min(pool.max, poolSpent + step))}
+              // An empty pool fills again.
+              onClick={() => setSpent((s) => (Math.min(s, pool.max) >= pool.max ? 0 : Math.min(pool.max, s + step)))}
             >
-              <span className="ui-use-pool-left">{left}</span>
-              <span className="ui-use-pool-of">/ {pool.max}</span>
+              <CurrentMax current={pool.max - spent} max={pool.max} />
             </button>
           )}
         </span>

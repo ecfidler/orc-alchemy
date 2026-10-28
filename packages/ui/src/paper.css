@@ -11,7 +11,7 @@
     color: var(--ink-muted);
   }
 
-  /* Boxes have 1.5px borders and at least 8px of top padding: a stuck note's overlap stops there. */
+  /* Boxes have 1.5px borders. A stuck note sets the top padding of the box under it to 10px. */
   .ui-framed-box {
     display: grid;
     gap: 6px;
@@ -130,14 +130,20 @@
   /*
    * The stuck note sits in its own row above the box. It overlaps the box by
    * 4px, and the 2deg tilt lowers its low corner by at most 4.2px (half of the
-   * 240px width times sin 2deg), so it stays inside the box's border and 8px
-   * top padding. e2e/stuck-note.spec.ts in the app measures it.
+   * 240px width times sin 2deg). The box's top padding is set to 10px, so
+   * the note never covers the box's content, whatever padding the box had.
+   * e2e/stuck-note.spec.ts in the app measures it.
    */
   .ui-stuck {
     display: grid;
   }
+  .ui-stuck > :last-child {
+    padding-top: 10px;
+  }
+  /* The outer part tilts and casts the shadow. A clip-path would clip a box-shadow, so it uses a drop-shadow filter. */
   .ui-stuck-note {
     --focus-ring: var(--note-ink);
+    /* Above the box's border and the content that follows it. */
     position: relative;
     z-index: 3;
     justify-self: end;
@@ -145,6 +151,12 @@
     width: fit-content;
     max-width: min(240px, calc(100% - 8px));
     margin: 0 -6px -4px 0;
+    transform: rotate(2deg);
+    filter: drop-shadow(0 3px 3px var(--note-shadow)) drop-shadow(0 1px 0 var(--note-edge));
+  }
+  /* The inner part is the paper, with its corner clipped and folded. */
+  .ui-stuck-note-paper {
+    position: relative;
     padding: 9px 11px 11px;
     color: var(--note-ink);
     background: var(--note);
@@ -152,14 +164,9 @@
     font-size: 12.5px;
     font-weight: 500;
     line-height: 1.35;
-    transform: rotate(2deg);
-    box-shadow:
-      0 6px 10px -4px var(--note-shadow),
-      0 1px 0 var(--note-edge);
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
   }
-  /* The folded corner. */
-  .ui-stuck-note::after {
+  .ui-stuck-note-paper::after {
     content: "";
     position: absolute;
     right: 0;
@@ -168,16 +175,18 @@
     height: 12px;
     background: linear-gradient(135deg, var(--note-edge) 50%, transparent 50%);
   }
-  .ui-stuck-note :where(button) {
-    all: unset;
-    cursor: pointer;
+  .ui-stuck-note :is(button, a) {
+    font: inherit;
     font-weight: 700;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
     text-decoration: underline;
     text-underline-offset: 2px;
   }
-
-  /* all: unset above also unsets the base focus ring, so these buttons set it again. */
-  .ui-stuck-note :where(button):focus-visible,
+  .ui-stuck-note :is(button, a):focus-visible,
   .ui-use-circle:focus-visible,
   .ui-use-pool:focus-visible {
     outline: 2px solid var(--focus-ring, var(--info));
@@ -226,23 +235,30 @@
     gap: 5px;
     align-items: center;
   }
+  .ui-use-circle,
+  .ui-use-pool {
+    appearance: none;
+    margin: 0;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
   .ui-use-circle {
-    all: unset;
     position: relative;
     box-sizing: border-box;
     width: 15px;
     height: 15px;
-    cursor: pointer;
     background: var(--bubble);
     border: 1.5px solid var(--info);
     border-radius: 50%;
   }
   /* A spent circle gets an ink slash. */
-  .ui-use-circle:where([data-spent]) {
+  .ui-use-circle:where([aria-pressed="true"]) {
     background: transparent;
     border-color: var(--ink-muted);
   }
-  .ui-use-circle:where([data-spent])::after {
+  .ui-use-circle:where([aria-pressed="true"])::after {
     content: "";
     position: absolute;
     left: -3px;
@@ -254,17 +270,11 @@
     transform: rotate(-52deg);
   }
   .ui-use-pool {
-    all: unset;
-    display: inline-flex;
-    gap: 4px;
-    align-items: baseline;
-    cursor: pointer;
+    background: none;
+    border: 0;
     font-size: 30px;
     font-weight: 500;
     line-height: 1;
-  }
-  .ui-use-pool-of {
-    color: var(--ink-muted);
   }
   /* All uses spent: a dashed muted outline and muted text, with no cross-out. */
   .ui-use-bubble:where([data-spent]) {
@@ -272,7 +282,7 @@
     border-style: dashed;
     border-color: var(--ink-muted);
   }
-  .ui-use-bubble:where([data-spent]) :where(.ui-use-bubble-title, .ui-use-bubble-body, .ui-use-pool-left) {
+  .ui-use-bubble:where([data-spent]) :where(.ui-use-bubble-title, .ui-use-bubble-body, .ui-use-pool) {
     color: var(--ink-muted);
   }
 }

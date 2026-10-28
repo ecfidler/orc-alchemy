@@ -65,10 +65,11 @@ export type CircleColor = "ink" | "success" | "caution";
 
 /**
  * A row of `count` plain circles. The first `marked` circles fill solid in
- * `color`. It shows a count and takes no clicks; its name is
- * "{label}: {marked} of {count}".
+ * `color`; a `marked` above `count` marks them all. It shows a count and
+ * takes no clicks; its name is "{label}: {marked} of {count}".
  */
-export function SlotCircles({ label, count, marked = 0, color = "ink" }: { label: string; count: number; marked?: number; color?: CircleColor }) {
+export function SlotCircles({ label, count, marked: markedProp = 0, color = "ink" }: { label: string; count: number; marked?: number; color?: CircleColor }) {
+  const marked = Math.min(markedProp, count);
   return (
     <span role="img" aria-label={`${label}: ${marked} of ${count}`} className="ui-slot-circles" data-color={color}>
       {Array.from({ length: count }, (_, i) => (

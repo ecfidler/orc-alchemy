@@ -30,6 +30,8 @@ test("a stuck note is a note above its box, and a button in it is its action", (
   // The note comes first, so it takes its own space above the box.
   expect(note.nextElementSibling).toBe(screen.getByRole("group", { name: "Rows" }));
   expect(note.parentElement!.className).toBe("ui-stuck");
+  // The paper is inside the note, so the note's shadow is not clipped with the paper's corner.
+  expect(note.firstElementChild!.className).toBe("ui-stuck-note-paper");
   fireEvent.click(screen.getByRole("button", { name: "Fix it" }));
   expect(fix).toHaveBeenCalledOnce();
 });

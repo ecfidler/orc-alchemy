@@ -71,6 +71,7 @@ test("slot circles show the count and the marked circles, in the given color", (
       <SlotCircles label="Charges" count={4} marked={1} />
       <SlotCircles label="Passes" count={3} marked={2} color="success" />
       <SlotCircles label="Misses" count={3} color="caution" />
+      <SlotCircles label="Spares" count={2} marked={5} />
     </>,
   );
   const charges = screen.getByRole("img", { name: "Charges: 1 of 4" });
@@ -78,6 +79,7 @@ test("slot circles show the count and the marked circles, in the given color", (
   expect([...charges.children].map((circle) => circle.hasAttribute("data-marked"))).toEqual([true, false, false, false]);
   expect(screen.getByRole("img", { name: "Passes: 2 of 3" }).getAttribute("data-color")).toBe("success");
   expect(screen.getByRole("img", { name: "Misses: 0 of 3" }).querySelectorAll("[data-marked]")).toHaveLength(0);
+  expect(screen.getByRole("img", { name: "Spares: 2 of 2" }).querySelectorAll("[data-marked]")).toHaveLength(2);
 });
 
 test("current / max shows the max in the muted part", () => {

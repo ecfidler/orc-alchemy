@@ -126,20 +126,21 @@ bun run test       # vitest
     - `SectionRule`: a section title on a rule, a heading of `level` 2
       (or 3 or 4).
     - `SlotCircles`: `count` plain circles; the first `marked` fill solid
-      in `color` ("ink", "success" or "caution"). It takes no clicks. Its
-      name is "{label}: {marked} of {count}".
+      in `color` ("ink", "success" or "caution"). A `marked` above `count`
+      marks them all. It takes no clicks. Its name is
+      "{label}: {marked} of {count}".
     - `CurrentMax`: `current`, then "/ `max`" in the muted ink.
   - `StuckNote`: a tilted yellow note above its box (`children`), for
-    something the user must act on. A button in `note` is its action. The
-    note overlaps only the box's top edge, so it never covers the box's
-    content when the box has at least 8px of top padding inside its border,
-    as the package's boxes do. `packages/app/e2e/stuck-note.spec.ts`
-    measures this in a browser.
+    something the user must act on. A button or link in `note` is its
+    action. The note overlaps only the box's top edge. It sets the box's top
+    padding to 10px, so it never covers the box's content.
+    `packages/app/e2e/stuck-note.spec.ts` measures this in a browser.
   - `UseBubble`: the outline around something with limited uses: a
     `title`, its text, a `tag` in the top right, and one circle for each of
-    its `uses`, or a `pool` with a large current / max. It is look only: a
-    click spends a use on the page, and nothing is stored. With every use
-    spent, the outline is dashed and the text is muted.
+    its `uses`, or a `pool` with a large current / max. It is a group named
+    by its title. A click spends a use on the page. Nothing is stored, so a
+    reload resets it. With every use spent, the outline is dashed and the
+    text is muted.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.
