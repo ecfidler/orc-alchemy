@@ -63,11 +63,11 @@ bun run test       # vitest
     `toBeChecked()`. Styles: `src/check.css`.
   - `NumberField`: Base UI NumberField, for a whole number. Its role is
     textbox. It is controlled by `value` (a number, or null when it is
-    empty) and `onValueChange`, which gets the number after each change. A typed
-    number outside `min` and `max` still reaches `onValueChange`, so the
-    app decides what to keep; the limits stop only the Up and Down arrow
-    keys. It shows numbers with no grouping. Put it in a label, or give it
-    an `aria-label`. Styles: `src/number-field.css`.
+    empty) and `onValueChange`, which gets the number after each change.
+    A typed number outside `min` and `max` still reaches `onValueChange`,
+    so the app decides what to keep; the limits stop only the Up and Down
+    arrow keys. It shows numbers with no grouping. Put it in a label, or
+    give it an `aria-label`. Styles: `src/number-field.css`.
   - `RadioGroup` and `Radio`: Base UI RadioGroup and Radio. The group has a
     name (`aria-label` or `aria-labelledby`), a controlled `value`, and
     `onValueChange`. Each `Radio` has a `value` and a visible `label`. The
