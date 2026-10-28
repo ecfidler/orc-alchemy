@@ -46,7 +46,7 @@ export function MyContent() {
     action.catch((e) => setError(message(e)));
   }
   /** A Delete click handler: asks the question, and on yes runs and reports the action. */
-  const askDelete = (question: string, action: () => Promise<void>) => async () => {
+  const askDelete: AskDelete = (question, action) => async () => {
     if (await confirm(question, "Delete")) report(action());
   };
 

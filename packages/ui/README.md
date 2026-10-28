@@ -90,8 +90,8 @@ bun run test       # vitest
     `await confirm(question, action)`: it is true when the user picks the
     action button, and false on Cancel or Escape. `action` is the button
     text, "OK" by default. Cancel has the focus when the dialog opens.
-  - `AlertDialog`: the dialog that `useConfirm()` shows, for a question
-    that the hook does not fit. Styles: `src/dialog.css`.
+  - `AlertDialog`: the dialog that `useConfirm()` shows. The owner sets
+    `open`, and closes it from `onAnswer`. Styles: `src/dialog.css`.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.
