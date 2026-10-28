@@ -58,9 +58,8 @@ bun run test       # vitest
     Give it a visible `label`. A click on the label also checks the box.
     Without a label, give it an `aria-label`. With `label`, `name` names
     the box when the label is not the right name (it is not a form field
-    name). A test finds a box by
-    its role and name, and reads it with `toBeChecked()`. Styles:
-    `src/check.css`.
+    name). A test finds a box by its role and name, and reads it with
+    `toBeChecked()`. Styles: `src/check.css`.
   - `RadioGroup` and `Radio`: Base UI RadioGroup and Radio. The group has a
     name (`aria-label` or `aria-labelledby`), a controlled `value`, and
     `onValueChange`. Each `Radio` has a `value` and a visible `label`. The
