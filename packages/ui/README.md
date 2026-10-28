@@ -55,9 +55,10 @@ bun run test       # vitest
     Left and Right, Home and End move in it, and Space or Enter presses.
   - `Checkbox`: Base UI Checkbox with a square mark: a filled square while
     it is checked. It is controlled by `checked` and `onCheckedChange`.
-    Give it a visible `label`, which a click also checks it by, or an
-    `aria-label` when no label is next to it. With `label`, `name` names
-    the box when the label is not the right name. A test finds a box by
+    Give it a visible `label`. A click on the label also checks the box.
+    Without a label, give it an `aria-label`. With `label`, `name` names
+    the box when the label is not the right name (it is not a form field
+    name). A test finds a box by
     its role and name, and reads it with `toBeChecked()`. Styles:
     `src/check.css`.
   - `RadioGroup` and `Radio`: Base UI RadioGroup and Radio. The group has a

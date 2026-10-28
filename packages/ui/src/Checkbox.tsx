@@ -11,7 +11,7 @@ export type CheckboxProps = {
   | {
       /** The visible label, after the box. A click on it checks the box too. */
       label: ReactNode;
-      /** The box's name, when the label is not the right name. The label stays visible. */
+      /** The box's accessible name, when the label is not the right name. The label stays visible. It is not a form field name. */
       name?: string;
       "aria-label"?: never;
     }
@@ -31,6 +31,7 @@ export function Checkbox({ checked, onCheckedChange, disabled, className, label,
       disabled={disabled}
       aria-label={name ?? ariaLabel}
       // In a label, Base UI names the box by the label. A box labelled by itself takes its own aria-label instead.
+      // Root's id prop goes to its hidden input, so render sets the id of the box itself.
       aria-labelledby={name === undefined ? undefined : id}
       render={name === undefined ? undefined : (props) => <span {...props} id={id} />}
       className={label === undefined && className ? `ui-check ${className}` : "ui-check"}

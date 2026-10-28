@@ -76,7 +76,7 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
               <span className="flex-grow">{name}</span>
               {magic && (
                 <Checkbox
-                  label="Attuned"
+                  label={<span aria-hidden="true">Attuned</span>}
                   name={`Attuned: ${name}`}
                   checked={isAttuned}
                   disabled={!isAttuned && attuned.length >= MAX_ATTUNED}

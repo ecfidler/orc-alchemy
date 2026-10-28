@@ -41,13 +41,11 @@
     border-radius: 50%;
     background: var(--ink);
   }
-  .ui-check:where([data-disabled]),
-  .ui-radio:where([data-disabled]) {
+  .ui-check:where([data-disabled]) {
     border-color: var(--rule-strong);
     cursor: default;
   }
-  .ui-check:where([data-disabled]) .ui-check-mark,
-  .ui-radio:where([data-disabled]) .ui-radio-mark {
+  .ui-check:where([data-disabled]) .ui-check-mark {
     background: var(--ink-muted);
   }
 }
