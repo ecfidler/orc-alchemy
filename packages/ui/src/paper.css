@@ -53,6 +53,8 @@
     display: grid;
     align-content: center;
     gap: 10px;
+    /* Without min-width: 0, a box whose content is taller than 10 : 9 grows wider than its column to keep the ratio. */
+    min-width: 0;
     aspect-ratio: 10 / 9;
     margin-bottom: 12px;
     padding: 8px 2px 14px;
