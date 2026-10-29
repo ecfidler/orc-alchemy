@@ -208,7 +208,8 @@ test("the builder lists the picks still to make, and a pick removes its message"
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race (1 to do)");
   // The count on a step is a small note; each selection still to make has a stuck note above its heading.
   await expect(stepButton(page, "Race").locator(".ui-note-count")).toHaveText("1");
-  const raceNote = page.getByRole("region", { name: "Builder" }).getByRole("region", { name: "Race (1 to choose)", exact: true }).getByRole("note").filter({ hasText: "to choose" }).first();
+  // The note is beside the heading it marks, in the same wrapper.
+  const raceNote = page.getByRole("region", { name: "Builder" }).getByRole("heading", { name: "Race (1 to choose)", exact: true }).locator("..").getByRole("note");
   await expect(raceNote).toHaveText("1 to choose.");
   await expectNoteClearOfContent(raceNote);
 

@@ -62,7 +62,13 @@ export function Builder() {
                         <NoteCount>{toDo}</NoteCount>
                       </>
                     )}
-                    {tooMany > 0 && <span className="ml-1.5 text-danger"> ({tooMany} too many)</span>}
+                    {/* On the paper's color, so the red keeps its contrast on the current step's dark button. */}
+                    {tooMany > 0 && (
+                      <>
+                        {" "}
+                        <span className="rounded-sm bg-paper px-1 text-danger">({tooMany} too many)</span>
+                      </>
+                    )}
                   </Button>
                 </li>
               );
