@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
+import { expectNoteClearOfContent } from "./notes.ts";
 
 const orcbrewDir = join(import.meta.dirname, "../../../fixtures/orcbrew");
 
@@ -140,7 +141,11 @@ test("a pack with key conflicts loads after Rename all and Apply", async ({ page
   const conflicts = page.getByRole("region", { name: "Resolve key conflicts" });
   await expect(conflicts.getByRole("group")).toHaveCount(4);
   await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toHaveCount(0);
+  const note = page.getByRole("note").filter({ hasText: "Choose for each conflict" });
+  await expect(note).toHaveText("Choose for each conflict (0 of 4) before import.");
+  await expectNoteClearOfContent(note);
   await conflicts.getByRole("button", { name: "Rename all" }).click();
+  await expect(note).toHaveCount(0);
   await conflicts.getByRole("button", { name: "Apply and import" }).click();
 
   await expect(page.getByRole("listitem", { name: "duplicate-external-b" })).toBeVisible();

@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { expectNoteClearOfContent } from "./notes.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 // A step button's name ends with its count of picks to do, when it has some.
@@ -205,6 +206,11 @@ test("the builder lists the picks still to make, and a pick removes its message"
   await expect(stepButton(page, "Class")).toHaveAccessibleName("Class (2 to do)");
   await expect(stepButton(page, "Equipment")).toHaveAccessibleName("Equipment (2 to do)");
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race (1 to do)");
+  // The count on a step is a small note; each selection still to make has a stuck note above its heading.
+  await expect(stepButton(page, "Race").locator(".ui-note-count")).toHaveText("1");
+  const raceNote = page.getByRole("region", { name: "Builder" }).getByRole("region", { name: "Race", exact: true }).getByRole("note").first();
+  await expect(raceNote).toHaveText("1 to choose.");
+  await expectNoteClearOfContent(raceNote);
 
   await page.getByRole("region", { name: "Builder" }).getByRole("button", { name: "Human", exact: true }).click();
   await expect(page.getByRole("region", { name: "Preview" }).getByLabel("Race", { exact: true })).toHaveText("Human");

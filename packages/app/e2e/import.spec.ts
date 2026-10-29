@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { expectNoteClearOfContent } from "./notes.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../fixtures");
 const strictFiles = ["characters", "legacy"].flatMap((dir) =>
@@ -151,4 +152,10 @@ test("the sheet marks the content that does not resolve", async ({ page }) => {
     "Class: artificer (class / artificer)",
     "Subclass: alchemist (class / artificer / levels / level-3 / artificer-specialization / alchemist)",
   ]);
+  // The user must act, so a stuck note above the list says how, with a link to the Import page.
+  const note = page.getByRole("note").filter({ hasText: "left out of the sheet" });
+  await expect(note).toHaveText("4 options are left out of the sheet. To use them, load the homebrew pack on the Import page.");
+  await expectNoteClearOfContent(note);
+  await note.getByRole("link", { name: "Import page" }).click();
+  await expect(page).toHaveURL("/import");
 });

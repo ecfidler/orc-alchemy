@@ -1,7 +1,7 @@
 // The builder (ORC-55): the open character's selections as steps of option
 // cards, beside its sheet as a live preview. Each pick is an engine mutation
 // through useCharacter's update, so it autosaves.
-import { Button, Toggle, ToggleGroup } from "@orc-alchemy/ui";
+import { Button, NoteCount, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
@@ -28,7 +28,7 @@ export function Builder() {
     .filter((s) => !s.tags.includes("starting-equipment"))
     .map(({ name, remaining: n }) => {
       const noun = Math.abs(n) === 1 ? "selection" : "selections";
-      return n > 0 ? `You have ${n} more '${name}' ${noun} to make.` : `You must remove ${-n} '${name}' ${noun}.`;
+      return n > 0 ? { text: `You have ${n} more '${name}' ${noun} to make.`, tooMany: false } : { text: `You must remove ${-n} '${name}' ${noun}.`, tooMany: true };
     });
 
   return (
@@ -40,7 +40,9 @@ export function Builder() {
           ) : (
             <ul className="list-disc pl-5">
               {messages.map((message, i) => (
-                <li key={i}>{message}</li>
+                <li key={i} className={message.tooMany ? "text-danger" : undefined}>
+                  {message.text}
+                </li>
               ))}
             </ul>
           )}
@@ -56,9 +58,7 @@ export function Builder() {
                     {remaining > 0 && (
                       <>
                         <span className="sr-only"> ({remaining} to do)</span>
-                        <span aria-hidden="true" className="ml-2 inline-block rounded-full bg-red-700 px-2 text-sm text-white">
-                          {remaining}
-                        </span>
+                        <NoteCount>{remaining}</NoteCount>
                       </>
                     )}
                   </Button>

@@ -2,7 +2,7 @@
 // class rows, and the hit points and ability score improvements each level
 // asks for. Each change is an engine mutation, as in Selection. It also holds
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
-import { Button, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
+import { Button, Select, StuckNote, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, rollHitPoints, storedHitPoints, type HitPointsMethod } from "../engine/classes.ts";
@@ -118,16 +118,19 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
   );
 }
 
-/** A selection's name and its picks to make or remove. */
+/**
+ * A selection's name and its picks to make or remove. Picks to make are a
+ * stuck note above the name; too many picks are danger text after it.
+ */
 export function Heading({ id, selection }: { id: string; selection: BuilderSelection }) {
   const { remaining } = selection;
   return (
-    <h3 id={id} className="font-bold">
-      {selection.name}
-      {remaining !== 0 && (
-        <span className="ml-2 font-normal">{remaining > 0 ? `(${remaining} to choose)` : `(${-remaining} too many)`}</span>
-      )}
-    </h3>
+    <StuckNote note={remaining > 0 && <b>{remaining} to choose.</b>}>
+      <h3 id={id} className="font-bold">
+        {selection.name}
+        {remaining < 0 && <span className="ml-2 font-normal text-danger">({-remaining} too many)</span>}
+      </h3>
+    </StuckNote>
   );
 }
 

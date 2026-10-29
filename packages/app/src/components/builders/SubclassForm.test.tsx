@@ -153,7 +153,9 @@ test("a class and a subclass authored in the forms are a character's choices, an
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Class/ }));
   const carvings = screen.getByRole("region", { name: /^Rune Carvings/ });
-  expect(within(carvings).getByRole("heading").textContent).toBe("Rune Carvings(2 to choose)");
+  expect(within(carvings).getByRole("heading").textContent).toBe("Rune Carvings");
+  // The picks to make are a stuck note above the heading.
+  expect(within(carvings).getAllByRole("note")[0].textContent).toBe("2 to choose.");
   expect(within(carvings).getByRole("button", { name: "Fire Rune" })).toBeTruthy();
   // Picking the subclass opens its level-3 selection.
   expect(screen.queryByRole("region", { name: /^Frost Gifts/ })).toBeNull();

@@ -188,6 +188,20 @@
     height: 12px;
     background: linear-gradient(135deg, var(--note-edge) 50%, transparent 50%);
   }
+  /* A small count on the note's yellow, tilted the other way from a stuck note. */
+  .ui-note-count {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 5px;
+    color: var(--note-ink);
+    background: var(--note);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+    transform: rotate(3deg);
+    box-shadow: 0 2px 3px -1px var(--note-shadow);
+  }
   .ui-stuck-note :is(button, a) {
     font: inherit;
     font-weight: 700;
