@@ -38,6 +38,8 @@ test("a small box's label names its value, which comes first", () => {
   expect(value.className).toBe("ui-small-box-value");
   expect(value.textContent).toBe("+2");
   expect(value.parentElement!.className).toBe("ui-small-box");
+  // A screen reader gets the name too: the value is a group named by the label.
+  expect(screen.getByRole("group", { name: "Bonus" })).toBe(value);
 });
 
 test("a stat box's label names the oval and the large value together; name replaces a short label", () => {
@@ -61,7 +63,7 @@ test("a shaded panel holds its boxes, and takes layout classes", () => {
       <SmallBox label="One" value="1" />
     </ShadedPanel>,
   );
-  const panel = screen.getByLabelText("One").parentElement!.parentElement!;
+  const panel = screen.getByText("One").closest(".ui-panel")!;
   expect(panel.className).toBe("ui-panel grid-cols-3");
 });
 

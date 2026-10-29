@@ -1,6 +1,6 @@
 // The read-only character sheet: layout F of the theme spec (docs/design/theme.md,
 // "Character sheet"), two columns that become one in a narrow container.
-// Each value is named by its label, so a test finds a value by its label.
+// Each value is a group named by its label, so a screen reader and a test find it by its label.
 import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, UseBubble } from "@orc-alchemy/ui";
 import { useId, type ReactNode } from "react";
 import { bonusStr, modStr, type Ability, type Sheet, type SheetFeature, type SheetItem } from "../engine/sheet.ts";
@@ -21,7 +21,7 @@ const paragraphs = (text: string) => text.split("\n").map((line, i) => <p key={i
 const COIN_GP: Record<string, number> = { cp: 0.01, sp: 0.1, ep: 0.5, gp: 1, pp: 10 };
 
 /** All coins as gold pieces, to two decimals. */
-export const goldOf = (treasure: SheetItem[]) =>
+const goldOf = (treasure: SheetItem[]) =>
   Math.round(treasure.reduce((gp, item) => gp + (COIN_GP[item.key] ?? 0) * item.quantity, 0) * 100) / 100;
 
 export function CharacterSheet({ sheet }: { sheet: Sheet }) {
@@ -53,7 +53,7 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
     ...equipment.armor,
     ...equipment.magicItems,
     ...equipment.other,
-    ...equipment.treasure.filter((item) => !(item.key in COIN_GP)),
+    ...equipment.treasure.filter((item) => !Object.hasOwn(COIN_GP, item.key)),
   ];
   // The leveled spell tables get a Prepared column when a class prepares spells.
   const prepares = spellcasting?.casters.some((caster) => caster.canPrepare !== null) ?? false;
@@ -61,11 +61,12 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
   return (
     <article className="@container mx-auto grid max-w-[960px] gap-4">
       <header className="grid items-start gap-3.5 @min-[720px]:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)]">
-        <FramedBox label="Character name" className="rounded-[6px_26px_26px_6px] px-[18px] [&>.ui-label:last-child]:border-0 [&>.ui-label:last-child]:pt-0 [&>.ui-label:last-child]:text-left">
+        <div className="grid content-end rounded-[6px_26px_26px_6px] border-[1.5px] border-rule-strong bg-paper-raised px-[18px] py-1.5">
           <h1 className="border-b border-rule-strong pb-0.5 text-[clamp(26px,4vw,36px)] leading-[1.05] font-medium">
             {sheet.name ?? "Unnamed character"}
           </h1>
-        </FramedBox>
+          <Label>Character name</Label>
+        </div>
         <div className="grid grid-cols-2 items-end gap-x-[18px] gap-y-1.5 rounded-md border-[1.5px] border-rule-strong px-3.5 py-2 @min-[720px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <Detail label="Class" className="col-span-2 @min-[720px]:col-span-1">
             {classes}
@@ -77,8 +78,9 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
 
       <div className="grid items-start gap-4 @min-[720px]:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
         <div className="grid min-w-0 content-start gap-3">
-          <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2.5">
-            <ShadedPanel className="content-start gap-4 px-1.5 pt-2 pb-[18px]">
+          {/* On a narrow sheet the ability boxes go in three columns above the saves and skills. */}
+          <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2.5 @max-[719px]:grid-cols-1">
+            <ShadedPanel className="content-start gap-4 px-1.5 pt-2 pb-[18px] @max-[719px]:grid-cols-3 @max-[719px]:gap-x-2.5 @max-[719px]:gap-y-5">
               {sheet.abilities.map((a) => (
                 <StatBox key={a.ability} label={abbr(a.ability)} value={bonusStr(a.modifier)} oval={a.score} />
               ))}
@@ -126,8 +128,8 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
                 ))}
               </RowBox>
             </div>
-            <div className="grid gap-2 @min-[480px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
-              <HitPoints current={sheet.currentHitPoints ?? sheet.maxHitPoints} max={sheet.maxHitPoints} />
+            <div className="grid grid-cols-2 gap-2 @min-[480px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
+              <HitPoints current={sheet.currentHitPoints ?? sheet.maxHitPoints} max={sheet.maxHitPoints} className="col-span-2 @min-[480px]:col-span-1" />
               <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
                 <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
               </FramedBox>
@@ -135,34 +137,22 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
                 {/* The app records no death saves, so the circles are empty. */}
                 <div className="grid content-evenly gap-1.5">
                   <div className="flex items-center justify-between gap-1.5">
-                    <Label>Successes</Label>
+                    {/* The circles say "Successes", so the visible label is not read twice. */}
+                    <span aria-hidden>
+                      <Label>Successes</Label>
+                    </span>
                     <SlotCircles label="Successes" count={3} color="success" />
                   </div>
                   <div className="flex items-center justify-between gap-1.5">
-                    <Label>Failures</Label>
+                    <span aria-hidden>
+                      <Label>Failures</Label>
+                    </span>
                     <SlotCircles label="Failures" count={3} color="caution" />
                   </div>
                 </div>
               </FramedBox>
             </div>
           </ShadedPanel>
-
-          {sheet.armorClassOptions.length > 0 && (
-            <FramedBox label="AC by armor">
-              <Table caption="Armor class options" headers={["Armor", "AC"]}>
-                {sheet.armorClassOptions.map((option, i) => (
-                  <tr key={i}>
-                    <Td>
-                      {option.armor
-                        ? `${option.armor.name}${option.shield ? ` + ${option.shield.name}` : ""}`
-                        : `Unarmored${option.shield ? ` + ${option.shield.name}` : ""}`}
-                    </Td>
-                    <Td>{option.ac}</Td>
-                  </tr>
-                ))}
-              </Table>
-            </FramedBox>
-          )}
 
           {(sheet.weaponAttacks.length > 0 || sheet.specialAttacks.length > 0) && (
             <FramedBox label="Attacks">
@@ -266,6 +256,24 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
             </FramedBox>
           )}
 
+          {/* Layout F has no place for these. They are not on the spec's list of items to remove, so they stay, after Defenses. */}
+          {sheet.armorClassOptions.length > 0 && (
+            <FramedBox label="AC by armor">
+              <Table caption="Armor class options" headers={["Armor", "AC"]}>
+                {sheet.armorClassOptions.map((option, i) => (
+                  <tr key={i}>
+                    <Td>
+                      {option.armor
+                        ? `${option.armor.name}${option.shield ? ` + ${option.shield.name}` : ""}`
+                        : `Unarmored${option.shield ? ` + ${option.shield.name}` : ""}`}
+                    </Td>
+                    <Td>{option.ac}</Td>
+                  </tr>
+                ))}
+              </Table>
+            </FramedBox>
+          )}
+
           {details.notes !== null && (
             <FramedBox label="Notes">
               <div className="grid gap-1 text-[14.5px]">{paragraphs(details.notes)}</div>
@@ -281,8 +289,8 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
 function Detail({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
   const id = useId();
   return (
-    <div className={`grid min-w-0 ${className ?? ""}`}>
-      <span aria-labelledby={id} className="min-h-[26px] border-b border-rule-strong">
+    <div className={className ? `grid min-w-0 ${className}` : "grid min-w-0"}>
+      <span role="group" aria-labelledby={id} className="min-h-[26px] border-b border-rule-strong">
         {children}
       </span>
       <Label id={id}>{label}</Label>
@@ -309,7 +317,11 @@ function Tag({ children }: { children: ReactNode }) {
   return <span className="ml-1 font-sans text-[9.5px] tracking-[0.04em] text-ink-muted uppercase">{children}</span>;
 }
 
-/** A box in the AC row: a large value, its label under it. It fits its content, at least 96px; on a phone the boxes share the width, up to 112px each. */
+/**
+ * A box in the AC row: a large value, its label under it. It fits its
+ * content, at least 96px. On a narrow sheet the boxes share the width, up to
+ * 112px each.
+ */
 function RowBox({ label, shield = false, children }: { label: string; shield?: boolean; children: ReactNode }) {
   const id = useId();
   return (
@@ -318,7 +330,7 @@ function RowBox({ label, shield = false, children }: { label: string; shield?: b
         shield ? "rounded-[8px_8px_50%_50%/8px_8px_34%_34%] pb-3.5" : "rounded-md"
       }`}
     >
-      <span aria-labelledby={id} className="text-[26px] leading-[1.1] font-medium tabular-nums">
+      <span role="group" aria-labelledby={id} className="text-[26px] leading-[1.1] font-medium tabular-nums">
         {children}
       </span>
       <Label id={id}>{label}</Label>
@@ -327,17 +339,17 @@ function RowBox({ label, shield = false, children }: { label: string; shield?: b
 }
 
 /** Hit points: temporary on the left (the sheet has none, so it is empty), then current / max. */
-function HitPoints({ current, max }: { current: number; max: number }) {
+function HitPoints({ current, max, className }: { current: number; max: number; className?: string }) {
   const id = useId();
   const temporary = useId();
   return (
-    <FramedBox label="Hit Points" labelId={id}>
+    <FramedBox label="Hit Points" labelId={id} className={className}>
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-end gap-2">
         <div className="grid border-r border-rule text-center">
-          <span aria-labelledby={temporary} className="min-h-9 text-2xl leading-normal" />
+          <span role="group" aria-labelledby={temporary} className="min-h-9 text-2xl leading-normal" />
           <Label id={temporary}>Temporary</Label>
         </div>
-        <span aria-labelledby={id} className="self-center text-center text-[34px] leading-[1.1] tabular-nums">
+        <span role="group" aria-labelledby={id} className="self-center text-center text-[34px] leading-[1.1] tabular-nums">
           <CurrentMax current={current} max={max} />
         </span>
       </div>
@@ -352,7 +364,7 @@ function Equipment({ gold, gear }: { gold: number; gear: SheetItem[] }) {
     <FramedBox label="Equipment">
       <div className="flow-root text-[14.5px]">
         <div className="float-right mb-1.5 ml-3 grid min-w-16 rounded-md border-[1.5px] border-rule-strong px-2.5 pt-1 pb-[3px] text-center">
-          <span aria-labelledby={id} className="text-[22px] leading-[1.15] tabular-nums">
+          <span role="group" aria-labelledby={id} className="text-[22px] leading-[1.15] tabular-nums">
             {gold.toLocaleString("en-US")}
           </span>
           <Label id={id}>Gold</Label>
@@ -410,13 +422,13 @@ const usesOrPool = (amount: number) => (amount > 8 ? { pool: { max: amount, step
 function Features({ items }: { items: SheetFeature[] }) {
   return (
     <div className="grid gap-2.5 text-[14.5px]">
-      {items.map((item, i) =>
+      {items.map((item) =>
         item.uses ? (
-          <UseBubble key={i} title={item.name} tag={item.uses.recharge} {...usesOrPool(item.uses.amount)}>
+          <UseBubble key={item.name} title={item.name} tag={item.uses.recharge} {...usesOrPool(item.uses.amount)}>
             {item.text}
           </UseBubble>
         ) : (
-          <p key={i} className="grid gap-px">
+          <p key={item.name} className="grid gap-px">
             <b className="font-semibold">{item.name}</b>
             <span>{item.text}</span>
           </p>

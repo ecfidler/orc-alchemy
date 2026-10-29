@@ -74,7 +74,7 @@ test("fighter-20", () => {
   expect(sheet.numberOfAttacks).toBe(4);
 
   expect(sheet.features.actions).toEqual([
-    { name: "Action Surge", text: "Take an extra action (use twice/rest).", uses: { amount: 2, recharge: "Short rest" } },
+    { name: "Action Surge", text: "Take an extra action.", uses: { amount: 2, recharge: "Short rest" } },
     { name: "Grappler", text: "Restrain a creature you are grappling." },
   ]);
   expect(sheet.features.bonusActions.map((f) => f.name)).toEqual(["Second Wind"]);

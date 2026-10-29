@@ -254,20 +254,21 @@ const recharge = (units: string) => {
   return `Each ${unit}`;
 };
 
-const timesWord = (amount: number) => (amount === 1 ? "once" : amount === 2 ? "twice" : `${amount} times`);
-
-/** The old display's action-description: text, then "(qualifier, range …, lasts …, use twice/long rest)". */
+/**
+ * The old display's action-description: text, then "(qualifier, range …, lasts …)".
+ * A limited-use feature gets its uses in `uses`, not in the text, because the
+ * sheet shows them in a use bubble.
+ */
 function toFeature(feature: Feature): SheetFeature {
   const { name, summary, description, frequency, duration } = feature;
   const { range, qualifier } = feature as Feature & { range?: Amount; qualifier?: string | null };
   let text = summary ?? description ?? "";
-  if (range || duration || frequency) {
+  if (range || duration) {
     const concentration = (duration as { concentration?: boolean } | undefined)?.concentration ? "conc. " : "";
     const parts = [
       qualifier,
       range && `range ${unitAmount(range)}`,
       duration && `lasts ${concentration}${unitAmount(duration)}`,
-      frequency && `use ${timesWord(frequency.amount ?? 1)}/${unqualify(frequency.units).replace(/-/g, " ")}`,
     ];
     text += ` (${parts.filter(Boolean).join(", ")})`;
   }

@@ -348,7 +348,7 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
   await expect(longsword.getByRole("cell")).toHaveText(["Longsword 1", "Yes", "+12 to hit", "+6"]);
 });
 
-test("the Description step writes a name on Enter and XP on blur, and the preview shows them", async ({ page }) => {
+test("the Description step writes a name on Enter, and XP on blur as an int", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "New character" }).click();
   const builder = page.getByRole("region", { name: "Builder" });
@@ -365,7 +365,7 @@ test("the Description step writes a name on Enter and XP on blur, and the previe
   await name.press("Enter");
   await expect(preview.getByRole("heading", { level: 1 })).toHaveText("Brannor Ironfist");
 
-  await builder.getByLabel("Experience Points").fill("900");
+  await builder.getByLabel("Experience Points").fill("900.9");
   await builder.getByRole("heading", { name: "Description" }).click();
   // The sheet does not show XP (theme spec, "Not on the sheet in M8"), so the field shows what is stored.
   await expect(builder.getByLabel("Experience Points")).toHaveValue("900");
