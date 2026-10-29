@@ -1,4 +1,4 @@
-import { Button, useConfirm } from "@orc-alchemy/ui";
+import { AlertNote, AlertNotes, Button, ButtonLink, useConfirm } from "@orc-alchemy/ui";
 import { useEffect, useState, type ReactNode } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useBlocker, useParams } from "react-router";
@@ -22,10 +22,12 @@ import { useStorage } from "../storage/characters.ts";
 
 /**
  * Opens the character at the route's :id, and renders children once it is
- * open and built, under its save status: Save while it has unsaved changes,
- * and a notice when those were recovered from a draft on open.
+ * open and built, under one row of buttons: Back to List on the left; on the
+ * right, the save status, Save while it has unsaved changes, then the page's
+ * `actions`. A note under the row says when unsaved changes were recovered
+ * from a draft on open.
  */
-function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => ReactNode }) {
+function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNode; children: (sheet: Sheet) => ReactNode }) {
   const { id } = useParams() as { id: string };
   const openId = useCharacter((state) => state.id);
   const { sheet, dirty } = useOpenCharacter();
@@ -95,31 +97,56 @@ function OpenCharacter({ children }: { children: (id: string, sheet: Sheet) => R
   return (
     <>
       {confirmDialog}
-      <div className="flex flex-wrap items-center gap-3">
-        {dirty && (
-          <Button onClick={() => flushAutosave().catch(console.error)}>
-            Save
-          </Button>
-        )}
-        <span role="status">{dirty ? "Unsaved changes" : "Saved"}</span>
-        {recovered && dirty && <span>Unsaved changes from your last visit were recovered.</span>}
+      <div className="mb-4 @container">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ButtonLink render={<Link to="/characters" aria-label="Back to List" />}>
+            Back<span className="@max-[719px]:hidden"> to List</span>
+          </ButtonLink>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+            <span role="status" aria-label="Save status" className="text-sm text-ink-muted">
+              {dirty ? (
+                <>
+                  Unsaved<span className="@max-[719px]:sr-only"> changes</span>
+                </>
+              ) : (
+                "Saved"
+              )}
+            </span>
+            {dirty && (
+              <Button onClick={() => flushAutosave().catch(console.error)}>
+                Save
+              </Button>
+            )}
+            {actions(id)}
+          </div>
+        </div>
       </div>
-      {children(id, sheet)}
+      {recovered && dirty && (
+        <AlertNotes>
+          <AlertNote tone="info" onDismiss={() => setRecovered(false)}>
+            Unsaved changes from your last visit were recovered.
+          </AlertNote>
+        </AlertNotes>
+      )}
+      {children(sheet)}
     </>
   );
 }
 
 function SheetPage() {
   return (
-    <OpenCharacter>
-      {(id, sheet) => (
+    <OpenCharacter
+      actions={(id) => (
         <>
-          <div className="flex flex-wrap gap-3">
-            <Link to={`/build/${id}`} className="underline">
-              Build
-            </Link>
-            <ExportCharacter id={id} />
-          </div>
+          <ButtonLink variant="solid" render={<Link to={`/build/${id}`} />}>
+            Edit
+          </ButtonLink>
+          <ExportCharacter id={id} label="Export" variant="ghost" />
+        </>
+      )}
+    >
+      {(sheet) => (
+        <>
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
           <CharacterSheet sheet={sheet} />
         </>
@@ -130,15 +157,14 @@ function SheetPage() {
 
 function BuildPage() {
   return (
-    <OpenCharacter>
-      {(id) => (
-        <>
-          <Link to={`/sheet/${id}`} className="underline">
-            Sheet
-          </Link>
-          <Builder />
-        </>
+    <OpenCharacter
+      actions={(id) => (
+        <ButtonLink variant="solid" render={<Link to={`/sheet/${id}`} />}>
+          Done
+        </ButtonLink>
       )}
+    >
+      {() => <Builder />}
     </OpenCharacter>
   );
 }

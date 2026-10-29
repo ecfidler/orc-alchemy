@@ -15,7 +15,7 @@ test("a character exports as a dmv-character file that imports back", async ({ p
   const firstUrl = page.url();
 
   const downloading = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export this character" }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
   const download = await downloading;
   expect(download.suggestedFilename()).toBe("Brannor Ironfist.json");
   const file = JSON.parse(readFileSync(await download.path(), "utf8"));
