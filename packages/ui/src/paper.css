@@ -188,7 +188,7 @@
     height: 12px;
     background: linear-gradient(135deg, var(--note-edge) 50%, transparent 50%);
   }
-  /* A small count on the note's yellow, tilted the other way from a stuck note. */
+  /* A small count on the note's yellow, tilted as a stuck note is. */
   .ui-note-count {
     display: inline-block;
     margin-left: 6px;

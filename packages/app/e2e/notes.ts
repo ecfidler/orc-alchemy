@@ -6,8 +6,10 @@ import { expect, type Locator } from "@playwright/test";
  * is above the box's content, under the box's top border and padding.
  */
 export async function expectNoteClearOfContent(note: Locator) {
+  // The note's size, and so its tilted corner, depends on the font.
+  await note.page().evaluate(() => document.fonts.ready);
   const { noteBottom, boxTop, contentTop } = await note.evaluate((element) => {
-    const box = element.parentElement!.lastElementChild!;
+    const box = element.closest(".ui-stuck")!.lastElementChild!;
     const style = getComputedStyle(box);
     const rect = box.getBoundingClientRect();
     return {
@@ -19,4 +21,6 @@ export async function expectNoteClearOfContent(note: Locator) {
   });
   expect(noteBottom).toBeGreaterThan(boxTop);
   expect(noteBottom).toBeLessThanOrEqual(contentTop);
+  // The package's 10px top padding applies: a padding utility on the box would beat it.
+  expect(contentTop - boxTop).toBeGreaterThanOrEqual(10);
 }

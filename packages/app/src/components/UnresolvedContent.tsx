@@ -111,7 +111,7 @@ export function OpenCharacterGaps({ characterName }: { characterName: string }) 
   );
   return (
     <StuckNote note={note}>
-      <section aria-label="Unresolved content" className="border border-black p-2">
+      <section aria-label="Unresolved content" className="border border-rule-strong px-2 pb-2">
         <UnresolvedContent characterName={characterName} unresolved={unresolved} />
       </section>
     </StuckNote>

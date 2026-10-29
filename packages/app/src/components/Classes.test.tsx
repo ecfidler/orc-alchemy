@@ -89,7 +89,7 @@ test("a selection heading: a stuck note for picks to make, danger text for too m
   const selection = (remaining: number) => ({ key: "languages", name: "Languages", remaining }) as BuilderSelection;
   const { rerender } = render(<Heading id="h" selection={selection(2)} />);
   expect(screen.getByRole("note").textContent).toBe("2 to choose.");
-  expect(screen.getByRole("heading").textContent).toBe("Languages");
+  expect(screen.getByRole("heading").textContent).toBe("Languages (2 to choose)");
   rerender(<Heading id="h" selection={selection(-1)} />);
   expect(screen.queryByRole("note")).toBeNull();
   const tooMany = screen.getByText("(1 too many)");
@@ -97,4 +97,13 @@ test("a selection heading: a stuck note for picks to make, danger text for too m
   rerender(<Heading id="h" selection={selection(0)} />);
   expect(screen.queryByRole("note")).toBeNull();
   expect(screen.getByRole("heading").textContent).toBe("Languages");
+});
+
+test("a step with only picks to remove shows them as danger text on the step bar, not as a note count", () => {
+  // fighter-3-wizard-2's half-elf has one language too many.
+  open(fighter3Wizard2(), "Race");
+  const race = within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ });
+  expect(race.textContent).toBe("Race (1 too many)");
+  expect(within(race).getByText("(1 too many)").className).toContain("text-danger");
+  expect(race.querySelector(".ui-note-count")).toBeNull();
 });

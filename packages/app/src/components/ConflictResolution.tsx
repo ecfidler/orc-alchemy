@@ -63,7 +63,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
   }
 
   const section = (
-    <section aria-label="Resolve key conflicts" className="space-y-2 border border-black p-2">
+    <section aria-label="Resolve key conflicts" className="space-y-2 border border-rule-strong px-2 pb-2">
       <h3 className="font-bold">Key conflicts in {fileName}</h3>
       <p>
         {conflicts.length} {conflicts.length === 1 ? "key is" : "keys are"} used by more than one item. Choose what to do with each before

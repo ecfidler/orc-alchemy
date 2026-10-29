@@ -5,12 +5,13 @@ import type { ReactNode } from "react";
  * `children` is the box. The note takes its own space above the box and
  * overlaps only the box's top edge: it sets the box's top padding to 10px,
  * so it never covers the box's content. The note stays yellow in dark mode.
- * A button or link in `note` is its action. With no `note` (null or
- * false), only the box shows, in the same place in the tree, so a note
- * that comes and goes does not mount the box again and lose its focus.
+ * A button or link in `note` is its action. With no `note` (null, a
+ * boolean or ""), the note does not show. The box stays in the same place in
+ * the tree, with the same 10px top padding, so a note that comes and goes
+ * does not mount the box again, lose its focus or move the page.
  */
 export function StuckNote({ note, children }: { note: ReactNode; children: ReactNode }) {
-  const shown = note !== null && note !== undefined && note !== false;
+  const shown = note != null && typeof note !== "boolean" && note !== "";
   return (
     <div className="ui-stuck">
       {/* The outer part casts the shadow; the inner part is clipped for the folded corner, which would clip a shadow too. */}

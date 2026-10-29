@@ -50,17 +50,19 @@ export function Builder() {
         <nav aria-label="Steps">
           <ol className="flex flex-wrap gap-2">
             {steps.map((s, i) => {
-              const remaining = counts[i];
+              const { toDo, tooMany } = counts[i];
+              // Picks to make are a note; picks to remove are danger text, not a note.
               return (
                 <li key={s.name}>
                   <Button aria-current={s === step ? "step" : undefined} onClick={() => setStepName(s.name)}>
                     {s.name}
-                    {remaining > 0 && (
+                    {toDo > 0 && (
                       <>
-                        <span className="sr-only"> ({remaining} to do)</span>
-                        <NoteCount>{remaining}</NoteCount>
+                        <span className="sr-only"> ({toDo} to do)</span>
+                        <NoteCount>{toDo}</NoteCount>
                       </>
                     )}
+                    {tooMany > 0 && <span className="ml-1.5 text-danger"> ({tooMany} too many)</span>}
                   </Button>
                 </li>
               );

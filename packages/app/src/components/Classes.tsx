@@ -128,6 +128,8 @@ export function Heading({ id, selection }: { id: string; selection: BuilderSelec
     <StuckNote note={remaining > 0 && <b>{remaining} to choose.</b>}>
       <h3 id={id} className="font-bold">
         {selection.name}
+        {/* The note comes before the heading, so the heading has the count too, for a screen reader that moves by heading. */}
+        {remaining > 0 && <span className="sr-only"> ({remaining} to choose)</span>}
         {remaining < 0 && <span className="ml-2 font-normal text-danger">({-remaining} too many)</span>}
       </h3>
     </StuckNote>

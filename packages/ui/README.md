@@ -136,8 +136,10 @@ bun run test       # vitest
   - `StuckNote`: a tilted yellow note above its box (`children`), for
     something the user must act on. A button or link in `note` is its
     action. The note overlaps only the box's top edge. It sets the box's top
-    padding to 10px, so it never covers the box's content. With no `note`,
-    only the box shows, and the box is not mounted again when a note comes
+    padding to 10px, so it never covers the box's content. Do not set the
+    box's top padding with a utility class: a utility beats the package's
+    10px. With no `note`, the note does not show. The box keeps its place
+    and its 10px top padding, so it is not mounted again when a note comes
     or goes.
     `packages/app/e2e/stuck-note.spec.ts` measures this in a browser.
   - `NoteCount`: a count of things the user must do, as a small tilted

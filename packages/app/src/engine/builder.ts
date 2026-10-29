@@ -176,14 +176,20 @@ export function unfilled(steps: BuilderStep[]): BuilderSelection[] {
 }
 
 /**
- * The picks to make or remove in each step, as the old sum-remaining. A
- * merged selection counts only in the first step that shows it. Unlike the
- * summary, this counts starting equipment, as the old section headings do.
- * The spells of a class or a subrace count on the Spells step, which shows them.
+ * The picks to make (toDo) and to remove (tooMany) in each step; the old
+ * sum-remaining is their sum. A merged selection counts only in the first
+ * step that shows it. Unlike the summary, this counts starting equipment, as
+ * the old section headings do. The spells of a class or a subrace count on
+ * the Spells step, which shows them.
  */
-export function remainingByStep(steps: BuilderStep[]): number[] {
+export function remainingByStep(steps: BuilderStep[]): { toDo: number; tooMany: number }[] {
   const seen = new Set<BuilderSelection>();
-  return steps.map((step) => nodes(step.selections, seen).reduce((sum, node) => sum + Math.abs(node.remaining), 0));
+  return steps.map((step) =>
+    nodes(step.selections, seen).reduce(
+      (count, { remaining }) => (remaining > 0 ? { ...count, toDo: count.toDo + remaining } : { ...count, tooMany: count.tooMany - remaining }),
+      { toDo: 0, tooMany: 0 },
+    ),
+  );
 }
 
 /** The builder steps for the open character's selections; the template is built once per content. */
