@@ -11,24 +11,35 @@ export function Label({ children, id }: { children: ReactNode; id?: string }) {
 
 /**
  * A box with its content and its label under it, on a hairline. It is a
- * group named by the label. `className` is for layout and spacing.
+ * group named by the label. With `labelId`, the label gets that id and the
+ * box is not a group: the caller names one value in the box with
+ * `role="group" aria-labelledby={labelId}`. `className` is for layout and
+ * spacing.
  */
-export function FramedBox({ label, children, className }: { label: ReactNode; children: ReactNode; className?: string }) {
-  const id = useId();
+export function FramedBox({ label, children, className, labelId }: { label: ReactNode; children: ReactNode; className?: string; labelId?: string }) {
+  const ownId = useId();
+  const grouped = labelId === undefined;
+  const id = labelId ?? ownId;
   return (
-    <div role="group" aria-labelledby={id} className={className ? `ui-framed-box ${className}` : "ui-framed-box"}>
+    <div
+      role={grouped ? "group" : undefined}
+      aria-labelledby={grouped ? id : undefined}
+      className={className ? `ui-framed-box ${className}` : "ui-framed-box"}
+    >
       {children}
       <Label id={id}>{label}</Label>
     </div>
   );
 }
 
-/** A small value in a cell, with its label beside it. It is a group named by the label. */
+/** A small value in a cell, with its label beside it. The value is a group named by the label. */
 export function SmallBox({ label, value }: { label: ReactNode; value: ReactNode }) {
   const id = useId();
   return (
-    <div role="group" aria-labelledby={id} className="ui-small-box">
-      <span className="ui-small-box-value">{value}</span>
+    <div className="ui-small-box">
+      <span role="group" aria-labelledby={id} className="ui-small-box-value">
+        {value}
+      </span>
       <Label id={id}>{label}</Label>
     </div>
   );
@@ -36,16 +47,20 @@ export function SmallBox({ label, value }: { label: ReactNode; value: ReactNode 
 
 /**
  * A box with its label, a large value and a hanging oval for a second
- * value. It is a group named by the label, or by `name` when the label is
- * short, for example an abbreviation.
+ * value. The two values are one group named by the label, the oval first: for
+ * example a score, then its modifier. `name` names them instead when the
+ * label is short, for example an abbreviation.
  */
 export function StatBox({ label, value, oval, name }: { label: ReactNode; value: ReactNode; oval: ReactNode; name?: string }) {
   const id = useId();
   return (
-    <div role="group" aria-label={name} aria-labelledby={name === undefined ? id : undefined} className="ui-stat-box">
+    <div className="ui-stat-box">
       <Label id={id}>{label}</Label>
-      <span className="ui-stat-box-value">{value}</span>
-      <span className="ui-stat-box-oval">{oval}</span>
+      {/* The oval is placed absolutely, so it comes first here without moving. */}
+      <span role="group" aria-label={name} aria-labelledby={name === undefined ? id : undefined} className="ui-stat-box-values">
+        <span className="ui-stat-box-oval">{oval}</span>
+        <span className="ui-stat-box-value">{value}</span>
+      </span>
     </div>
   );
 }

@@ -59,6 +59,8 @@ export interface SheetFeature {
   name: string;
   /** Summary or description, with the old sheet's usage parenthetical, sentence-cased. */
   text: string;
+  /** For a limited-use feature: how many uses, and when they come back ("Short rest", "Long rest", "Each day"). */
+  uses?: { amount: number; recharge: string };
 }
 
 export interface SheetItem extends Named {
@@ -244,23 +246,33 @@ const unitAmount = (value: Amount) => {
   return `${amount} ${plural ? unqualify(plural) : unit === "feet" ? unit : `${unit}s`}`;
 };
 
-const timesWord = (amount: number) => (amount === 1 ? "once" : amount === 2 ? "twice" : `${amount} times`);
+/** When a feature's uses come back. A DMV "rest" is a short or a long rest, so a short rest is enough. */
+const recharge = (units: string) => {
+  const unit = unqualify(units).replace(/-/g, " ");
+  if (unit === "rest" || unit === "short rest") return "Short rest";
+  if (unit === "long rest") return "Long rest";
+  return `Each ${unit}`;
+};
 
-/** The old display's action-description: text, then "(qualifier, range …, lasts …, use twice/long rest)". */
+/**
+ * The old display's action-description: text, then "(qualifier, range …, lasts …)".
+ * A limited-use feature gets its uses in `uses`, not in the text, because the
+ * sheet shows them in a use bubble.
+ */
 function toFeature(feature: Feature): SheetFeature {
   const { name, summary, description, frequency, duration } = feature;
   const { range, qualifier } = feature as Feature & { range?: Amount; qualifier?: string | null };
   let text = summary ?? description ?? "";
-  if (range || duration || frequency) {
+  if (range || duration) {
     const concentration = (duration as { concentration?: boolean } | undefined)?.concentration ? "conc. " : "";
     const parts = [
       qualifier,
       range && `range ${unitAmount(range)}`,
       duration && `lasts ${concentration}${unitAmount(duration)}`,
-      frequency && `use ${timesWord(frequency.amount ?? 1)}/${unqualify(frequency.units).replace(/-/g, " ")}`,
     ];
     text += ` (${parts.filter(Boolean).join(", ")})`;
   }
+  if (frequency) return { name, text: sentence(text), uses: { amount: frequency.amount ?? 1, recharge: recharge(frequency.units) } };
   return { name, text: sentence(text) };
 }
 

@@ -112,16 +112,19 @@ bun run test       # vitest
     of actions. A pick of one of its `items` calls `onPick`.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`.
-  - The paper patterns (`src/Paper.tsx`). They have no game meaning. Each
-    box is a group named by its label, so a test finds it by its role and
-    name. `className`, where a pattern takes it, is for layout.
+  - The paper patterns (`src/Paper.tsx`). They have no game meaning. A box
+    that holds content is a group named by its label. In a box that shows
+    a value, the value is the group named by the label, so a screen reader
+    reads the label with the value, and a test finds the value by its
+    label. `className`, where a pattern takes it, is for layout.
     - `Label`: a label in the label style (Inter caps, 10.5px, muted).
     - `FramedBox`: content in a box, with the label under it on a
-      hairline.
+      hairline. With `labelId`, the box is not a group, and the caller
+      makes a value in it a group with `aria-labelledby={labelId}`.
     - `SmallBox`: a small `value` in a cell, with the label beside it.
     - `StatBox`: a box with its label, a large `value` and an `oval` that
-      hangs from the bottom edge. `name` names the box when the label is
-      short.
+      hangs from the bottom edge. The label names the oval and the value
+      together, the oval first. `name` names them when the label is short.
     - `ShadedPanel`: a shaded area that groups boxes.
     - `SectionRule`: a section title on a rule, a heading of `level` 2
       (or 3 or 4).

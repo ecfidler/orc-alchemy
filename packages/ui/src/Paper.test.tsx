@@ -21,27 +21,40 @@ test("a framed box is a group named by its label, and the label comes after the 
   expect(box.lastElementChild!.className).toBe("ui-label");
 });
 
-test("a small box is a group named by its label, with its value first", () => {
-  render(<SmallBox label="Bonus" value="+2" />);
-  const box = screen.getByRole("group", { name: "Bonus" });
-  expect(box.className).toBe("ui-small-box");
-  expect(box.querySelector(".ui-small-box-value")!.textContent).toBe("+2");
+test("a framed box with labelId is not a group, and its label names what the caller points at it", () => {
+  render(
+    <FramedBox label="Total" labelId="total">
+      <span aria-labelledby="total">12</span>
+    </FramedBox>,
+  );
+  expect(screen.queryByRole("group")).toBeNull();
+  expect(screen.getByLabelText("Total").textContent).toBe("12");
+  expect(screen.getByText("Total").parentElement!.className).toBe("ui-framed-box");
 });
 
-test("a stat box has its label, a large value and the oval; name replaces a short label as its name", () => {
+test("a small box's label names its value, which comes first", () => {
+  render(<SmallBox label="Bonus" value="+2" />);
+  const value = screen.getByLabelText("Bonus");
+  expect(value.className).toBe("ui-small-box-value");
+  expect(value.textContent).toBe("+2");
+  expect(value.parentElement!.className).toBe("ui-small-box");
+  // A screen reader gets the name too: the value is a group named by the label.
+  expect(screen.getByRole("group", { name: "Bonus" })).toBe(value);
+});
+
+test("a stat box's label names the oval and the large value together; name replaces a short label", () => {
   render(
     <>
       <StatBox label="Score" value="+3" oval="16" />
       <StatBox label="SPD" name="Speed" value="9" oval="2" />
     </>,
   );
-  const score = screen.getByRole("group", { name: "Score" });
-  expect([...score.children].map((child) => [child.className, child.textContent])).toEqual([
-    ["ui-label", "Score"],
-    ["ui-stat-box-value", "+3"],
-    ["ui-stat-box-oval", "16"],
-  ]);
-  expect(within(screen.getByRole("group", { name: "Speed" })).getByText("SPD")).toBeTruthy();
+  const score = screen.getByLabelText("Score");
+  expect(score.textContent).toBe("16+3");
+  expect([...score.children].map((child) => child.className)).toEqual(["ui-stat-box-oval", "ui-stat-box-value"]);
+  expect(score.parentElement!.className).toBe("ui-stat-box");
+  expect(screen.getByLabelText("Speed").textContent).toBe("29");
+  expect(within(screen.getByLabelText("Speed").parentElement!).getByText("SPD")).toBeTruthy();
 });
 
 test("a shaded panel holds its boxes, and takes layout classes", () => {
@@ -50,7 +63,7 @@ test("a shaded panel holds its boxes, and takes layout classes", () => {
       <SmallBox label="One" value="1" />
     </ShadedPanel>,
   );
-  const panel = screen.getByRole("group", { name: "One" }).parentElement!;
+  const panel = screen.getByText("One").closest(".ui-panel")!;
   expect(panel.className).toBe("ui-panel grid-cols-3");
 });
 
