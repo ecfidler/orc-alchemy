@@ -26,7 +26,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
     <Field label={label} errors={fieldErrors(problems, field, label)}>
       <label className="block">
         {label}{" "}
-        <input type="text" value={String(record[tag(field)] ?? "")} onChange={(e) => set(field, e.target.value)} className="border border-black px-1" />
+        <input type="text" value={String(record[tag(field)] ?? "")} onChange={(e) => set(field, e.target.value)} className="border border-ink px-1" />
       </label>
     </Field>
   );
@@ -68,7 +68,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
           <textarea
             value={String(components[tag("material-component")] ?? "")}
             onChange={(e) => set("components", { ...components, [tag("material-component")]: e.target.value })}
-            className="block w-full border border-black"
+            className="block w-full border border-ink"
           />
         </label>
       </Fieldset>
@@ -76,7 +76,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       <Field label="Description" errors={fieldErrors(problems, "description", "Description")}>
         <label className="block">
           Description
-          <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-black" rows={6} />
+          <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-ink" rows={6} />
         </label>
       </Field>
       <Fieldset legend="Class spell lists" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>

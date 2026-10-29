@@ -44,7 +44,7 @@ export function DmvExporter() {
 
       <h2 className="mt-4 text-lg">2. Export your characters and magic items</h2>
       <p className="mt-2">
-        <a ref={link} className="border border-black px-3 py-1">
+        <a ref={link} className="border border-ink px-3 py-1">
           Export from Dungeon Master's Vault
         </a>
       </p>

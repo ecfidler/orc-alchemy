@@ -171,8 +171,9 @@ peer dependency.
 * **Base UI stays inside the package.** The app imports controls only from
   `@orc-alchemy/ui`, never from `@base-ui/react`. `@base-ui/react` moves from
   the app's dependencies to the package's.
-* **Tailwind's default colors** stay in the app until the last M8 ticket,
-  which removes them with `--color-*: initial`.
+* **Tailwind's default colors** are removed from the app with
+  `--color-*: initial` in its CSS (ORC-170). Only the role tokens make
+  color utilities.
 * **Note:** ORC-148 assumes that Demiplane's web pages become a sibling
   workspace package that uses this package. If they go to another
   repository, publishing the package is Demiplane work.

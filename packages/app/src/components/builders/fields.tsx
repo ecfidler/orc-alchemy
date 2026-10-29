@@ -219,7 +219,7 @@ export function TextField({ edit, problems, field, label }: { edit: Edit; proble
     <Field label={label} errors={fieldErrors(problems, field, label)}>
       <label className="block">
         {label}{" "}
-        <input type="text" value={String(edit.get(field) ?? "")} onChange={(e) => edit.set([field], e.target.value)} className="border border-black px-1" />
+        <input type="text" value={String(edit.get(field) ?? "")} onChange={(e) => edit.set([field], e.target.value)} className="border border-ink px-1" />
       </label>
     </Field>
   );
@@ -230,7 +230,7 @@ export function TextArea({ edit, field, label }: { edit: Edit; field: string; la
   return (
     <label className="block">
       {label}
-      <textarea value={String(edit.get(field) ?? "")} onChange={(e) => edit.set([field], e.target.value)} className="block w-full border border-black" rows={4} />
+      <textarea value={String(edit.get(field) ?? "")} onChange={(e) => edit.set([field], e.target.value)} className="block w-full border border-ink" rows={4} />
     </label>
   );
 }
@@ -260,7 +260,7 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
           <div key={i} className="mb-3">
             <label className="mr-4 inline-block">
               Feature {n} name{" "}
-              <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => edit.set(["traits", i, "name"], e.target.value)} className="border border-black px-1" />
+              <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => edit.set(["traits", i, "name"], e.target.value)} className="border border-ink px-1" />
             </label>
             <SelectField label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
             {levels && <SelectField label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
@@ -269,7 +269,7 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
             </Button>
             <label className="block">
               Feature {n} description
-              <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => edit.set(["traits", i, "description"], e.target.value)} className="block w-full border border-black" />
+              <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => edit.set(["traits", i, "description"], e.target.value)} className="block w-full border border-ink" />
             </label>
           </div>
         );

@@ -44,3 +44,16 @@ test("the app has no window.confirm; it asks with useConfirm", () => {
 test("the app has no native select or datalist", () => {
   expect(sources.filter(({ text }) => /(^|[^"'\w])<(select|datalist)[\s>]/m.test(text)).map(({ file }) => file)).toEqual([]);
 });
+
+// ORC-170: every color is a role token; Tailwind's default colors are gone.
+test("the app CSS removes Tailwind's default colors before the role tokens", () => {
+  const css = readFileSync(join(import.meta.dirname, "index.css"), "utf8");
+  expect(css.indexOf("--color-*: initial;")).toBeGreaterThan(css.indexOf('@import "tailwindcss";'));
+  expect(css.indexOf("--color-*: initial;")).toBeLessThan(css.indexOf('@import "@orc-alchemy/ui/theme.css";'));
+});
+
+test("the app uses no Tailwind default color class", () => {
+  const palette = "slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose";
+  const color = new RegExp(`\\b[a-z]+-(?:(?:${palette})-\\d{2,3}|black|white)\\b`);
+  expect(sources.filter(({ text }) => color.test(text)).map(({ file }) => file)).toEqual([]);
+});

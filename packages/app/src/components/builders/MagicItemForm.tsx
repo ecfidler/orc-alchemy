@@ -188,7 +188,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
           {field(
             "name",
             "Name",
-            <input type="text" value={String(get("name") ?? "")} onChange={(e) => change({ name: e.target.value })} className="border border-black px-1" />,
+            <input type="text" value={String(get("name") ?? "")} onChange={(e) => change({ name: e.target.value })} className="border border-ink px-1" />,
           )}
           {/* As the old set-item-type, a new type drops the subtypes. */}
           {field("type", "Type", select("type", TYPES, title, (v) => change({ type: tag(v), subtypes: undefined })))}
@@ -196,7 +196,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
           {field(
             "description",
             "Description",
-            <textarea value={String(get("description") ?? "")} onChange={(e) => change({ description: e.target.value })} className="block w-full border border-black" rows={6} />,
+            <textarea value={String(get("description") ?? "")} onChange={(e) => change({ description: e.target.value })} className="block w-full border border-ink" rows={6} />,
           )}
           {(type === "weapon" || type === "armor") && (
             <Fieldset legend={baseLegend} errors={fieldErrors(problems, MI + "subtypes", baseLegend)}>

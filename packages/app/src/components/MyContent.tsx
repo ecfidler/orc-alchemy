@@ -114,7 +114,7 @@ export function MyContent() {
 /** The stored magic items, each with its enabled checkbox, Edit and Delete. */
 function MagicItems({ items, report, askDelete }: { items: MagicItemRecord[]; report: Report; askDelete: AskDelete }) {
   return (
-    <section aria-label="Magic items" className="mt-4 border border-black p-2">
+    <section aria-label="Magic items" className="mt-4 border border-rule-strong p-2">
       <h2 className="text-lg font-bold">Magic items</h2>
       <ul className="ml-4">
         {items.map(({ id, enabled, item }) => {
@@ -144,7 +144,7 @@ function MagicItems({ items, report, askDelete }: { items: MagicItemRecord[]; re
 function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: boolean; report: Report; askDelete: AskDelete }) {
   const { id, plugin } = pack;
   return (
-    <section aria-label={id} className="border border-black p-2">
+    <section aria-label={id} className="border border-rule-strong p-2">
       <div className="flex flex-wrap items-center gap-4">
         <h2 className="text-lg font-bold">{id}</h2>
         <Checkbox label="Enabled" checked={packOn(pack)} onCheckedChange={(on) => report(useHomebrew.getState().setPackEnabled(id, on))} />

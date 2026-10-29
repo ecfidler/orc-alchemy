@@ -47,7 +47,7 @@ export function CharacterList() {
       ) : sorted.length === 0 ? (
         <p>No characters yet. Import a character file to add one.</p>
       ) : (
-        <ul aria-label="Characters" className="divide-y divide-black">
+        <ul aria-label="Characters" className="divide-y divide-rule">
           {sorted.map((summary) => (
             <CharacterRow key={summary.id} summary={summary} confirm={confirm} onDeleted={() => listRef.current?.focus()} />
           ))}

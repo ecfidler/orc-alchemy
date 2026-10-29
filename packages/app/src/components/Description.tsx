@@ -47,7 +47,7 @@ function TextField({ field, stored, onCommit }: { field: DescriptionField; store
     value: text,
     onChange: (event: { target: { value: string } }) => setText(event.target.value),
     onBlur: commit,
-    className: "w-full border border-black px-2 py-1",
+    className: "w-full border border-ink px-2 py-1",
   };
   return (
     <div className="space-y-1">
