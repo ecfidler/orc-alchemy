@@ -66,8 +66,9 @@
     font-weight: 500;
     letter-spacing: 0.1em;
   }
+  /* A real box, not display: contents, so every screen reader keeps its group role and name. The oval is placed against .ui-stat-box. */
   .ui-stat-box-values {
-    display: contents;
+    display: grid;
   }
   .ui-stat-box-value {
     font-size: 32px;

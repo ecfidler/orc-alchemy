@@ -422,13 +422,13 @@ const usesOrPool = (amount: number) => (amount > 8 ? { pool: { max: amount, step
 function Features({ items }: { items: SheetFeature[] }) {
   return (
     <div className="grid gap-2.5 text-[14.5px]">
-      {items.map((item) =>
+      {items.map((item, i) =>
         item.uses ? (
-          <UseBubble key={item.name} title={item.name} tag={item.uses.recharge} {...usesOrPool(item.uses.amount)}>
+          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={item.uses.recharge} {...usesOrPool(item.uses.amount)}>
             {item.text}
           </UseBubble>
         ) : (
-          <p key={item.name} className="grid gap-px">
+          <p key={`${i}-${item.name}`} className="grid gap-px">
             <b className="font-semibold">{item.name}</b>
             <span>{item.text}</span>
           </p>

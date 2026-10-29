@@ -13,7 +13,8 @@ export function Label({ children, id }: { children: ReactNode; id?: string }) {
  * A box with its content and its label under it, on a hairline. It is a
  * group named by the label. With `labelId`, the label gets that id and the
  * box is not a group: the caller names one value in the box with
- * `role="group" aria-labelledby={labelId}`. `className` is for layout and spacing.
+ * `role="group" aria-labelledby={labelId}`. `className` is for layout and
+ * spacing.
  */
 export function FramedBox({ label, children, className, labelId }: { label: ReactNode; children: ReactNode; className?: string; labelId?: string }) {
   const ownId = useId();
