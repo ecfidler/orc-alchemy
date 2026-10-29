@@ -7,27 +7,43 @@ const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 /**
  * The visible text that is below WCAG AA (4.5 : 1, or 3 : 1 for large text) against its
  * nearest opaque background. A gradient fill has no single color, so its text is skipped;
- * the package token test checks those pairs (the flag tabs).
+ * the package token test checks those pairs (the flag tabs). Out of scope: field values and
+ * placeholders (they are not text nodes) and text that an ancestor's opacity fades.
  */
 const lowContrastText = (page: Page) =>
   page.evaluate(() => {
+    // A canvas turns any CSS color (rgb, color-mix, color(srgb ...)) into RGB and alpha.
+    const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
     const rgb = (color: string) => {
-      const parts = color.match(/rgba?\(([^)]+)\)/)?.[1].split(/[\s,/]+/).filter(Boolean).map(Number);
-      return parts ? { r: parts[0], g: parts[1], b: parts[2], a: parts[3] ?? 1 } : null;
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+      return { r, g, b, a: a / 255 };
     };
-    const luminance = ({ r, g, b }: { r: number; g: number; b: number }) =>
+    type Rgb = ReturnType<typeof rgb>;
+    const over = (top: Rgb, below: Rgb) => ({
+      r: top.r * top.a + below.r * (1 - top.a),
+      g: top.g * top.a + below.g * (1 - top.a),
+      b: top.b * top.a + below.b * (1 - top.a),
+      a: 1,
+    });
+    const luminance = ({ r, g, b }: Rgb) =>
       [r, g, b]
         .map((value) => value / 255)
         .map((value) => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4))
         .reduce((sum, value, i) => sum + value * [0.2126, 0.7152, 0.0722][i], 0);
-    const background = (element: Element | null) => {
-      for (; element; element = element.parentElement) {
-        const style = getComputedStyle(element);
+    // The element's background: every layer from the page down, blended in order.
+    const background = (element: Element) => {
+      const layers: Element[] = [];
+      for (let e: Element | null = element; e && e !== document.documentElement; e = e.parentElement) layers.unshift(e);
+      let color = rgb(getComputedStyle(document.documentElement).backgroundColor);
+      for (const layer of layers) {
+        const style = getComputedStyle(layer);
         if (style.backgroundImage.includes("gradient")) return null;
-        const color = rgb(style.backgroundColor);
-        if (color && color.a > 0.5) return color;
+        color = over(rgb(style.backgroundColor), color);
       }
-      return rgb(getComputedStyle(document.documentElement).backgroundColor);
+      return color;
     };
     const low: string[] = [];
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -36,8 +52,8 @@ const lowContrastText = (page: Page) =>
       if (!node.textContent!.trim() || !element.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
       const style = getComputedStyle(element);
       const back = background(element);
-      const fore = rgb(style.color);
-      if (!back || !fore) continue;
+      if (!back) continue;
+      const fore = over(rgb(style.color), back);
       const [light, dark] = [luminance(fore), luminance(back)].sort((a, b) => b - a);
       const ratio = (light + 0.05) / (dark + 0.05);
       const size = parseFloat(style.fontSize);
