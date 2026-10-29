@@ -142,9 +142,13 @@ bun run test       # vitest
     and its 10px top padding, so it is not mounted again when a note comes
     or goes.
     `packages/app/e2e/stuck-note.spec.ts` measures this in a browser.
-  - `NoteCount`: a count of things the user must do, as a small tilted
-    yellow note, for example on a step button. It is hidden from screen
-    readers, so give the count in words too.
+  - `InlineNote`: a small tilted note in the line of text, for example
+    after a heading. `tone` is "act" (yellow, the default) when the user
+    must act, or "failed" (red) when something is wrong. The line grows to
+    fit it, so it never covers anything.
+  - `NoteCount`: an `InlineNote` that is only a mark, such as a count on a
+    step button. It is hidden from screen readers, so give the count in
+    words too.
   - `UseBubble`: the outline around something with limited uses: a
     `title`, its text, a `tag` in the top right, and one circle for each of
     its `uses`, or a `pool` with a large current / max. It is a group named

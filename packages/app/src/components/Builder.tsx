@@ -51,7 +51,7 @@ export function Builder() {
           <ol className="flex flex-wrap gap-2">
             {steps.map((s, i) => {
               const { toDo, tooMany } = counts[i];
-              // Picks to make are a note; picks to remove are danger text, not a note.
+              // Picks to make are a yellow note count; picks to remove are a red one.
               return (
                 <li key={s.name}>
                   <Button aria-current={s === step ? "step" : undefined} onClick={() => setStepName(s.name)}>
@@ -62,11 +62,10 @@ export function Builder() {
                         <NoteCount>{toDo}</NoteCount>
                       </>
                     )}
-                    {/* On the paper's color, so the red keeps its contrast on the current step's dark button. */}
                     {tooMany > 0 && (
                       <>
-                        {" "}
-                        <span className="rounded-sm bg-paper px-1 text-danger">({tooMany} too many)</span>
+                        <span className="sr-only"> ({tooMany} too many)</span>
+                        <NoteCount tone="failed">{tooMany} too many</NoteCount>
                       </>
                     )}
                   </Button>

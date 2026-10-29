@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { FramedBox } from "./Paper.tsx";
-import { NoteCount, StuckNote } from "./StuckNote.tsx";
+import { InlineNote, NoteCount, StuckNote } from "./StuckNote.tsx";
 
 afterEach(cleanup);
 
@@ -44,7 +44,8 @@ test("a note count is a mark only: a screen reader gets the count from the words
     </button>,
   );
   const count = screen.getByText("2");
-  expect(count.className).toBe("ui-note-count");
+  expect(count.className).toBe("ui-inline-note");
+  expect(count.dataset.tone).toBe("act");
   expect(count.getAttribute("aria-hidden")).toBe("true");
   // The name has no "2" from the count. (jsdom drops the space at the start of an inline span.)
   expect(screen.getByRole("button", { name: /^Rows ?\(2 to do\)$/ })).toBeTruthy();
@@ -64,4 +65,16 @@ test("with no note, the box shows alone, and a note that comes and goes keeps th
   rerender(<StuckNote note="1 row is missing.">{box}</StuckNote>);
   expect(screen.getByRole("note").textContent).toBe("1 row is missing.");
   expect(screen.getByRole("group", { name: "Rows" })).toBe(element);
+});
+
+test("an inline note is part of its line, for a screen reader too, and its tone gives the meaning", () => {
+  render(
+    <h3>
+      Rows<InlineNote>2 to add</InlineNote>
+      <InlineNote tone="failed">1 too many</InlineNote>
+    </h3>,
+  );
+  expect(screen.getByRole("heading", { name: /^Rows ?2 to add ?1 too many$/ })).toBeTruthy();
+  expect(screen.getByText("2 to add").dataset.tone).toBe("act");
+  expect(screen.getByText("1 too many").dataset.tone).toBe("failed");
 });

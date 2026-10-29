@@ -84,26 +84,23 @@ test("the half-elf's improvement takes two different abilities, and shows the en
   expect(asi.getByRole("button", { name: "Increase INT" }).hasAttribute("disabled")).toBe(false);
 });
 
-// The theme spec, "Stuck note": picks to make are a stuck note; too many picks are danger text, not a note.
-test("a selection heading: a stuck note for picks to make, danger text for too many, and neither when done", () => {
+// Picks to make are a yellow inline note in the heading; too many picks are a red one (Ethan, PR #65).
+test("a selection heading: a yellow note for picks to make, a red note for too many, and neither when done", () => {
   const selection = (remaining: number) => ({ key: "languages", name: "Languages", remaining }) as BuilderSelection;
   const { rerender } = render(<Heading id="h" selection={selection(2)} />);
-  expect(screen.getByRole("note").textContent).toBe("2 to choose.");
-  expect(screen.getByRole("heading").textContent).toBe("Languages (2 to choose)");
+  expect(screen.getByRole("heading").textContent).toBe("Languages 2 to choose");
+  expect(screen.getByText("2 to choose").dataset.tone).toBe("act");
   rerender(<Heading id="h" selection={selection(-1)} />);
-  expect(screen.queryByRole("note")).toBeNull();
-  const tooMany = screen.getByText("(1 too many)");
-  expect(tooMany.className).toContain("text-danger");
+  expect(screen.getByRole("heading").textContent).toBe("Languages 1 too many");
+  expect(screen.getByText("1 too many").dataset.tone).toBe("failed");
   rerender(<Heading id="h" selection={selection(0)} />);
-  expect(screen.queryByRole("note")).toBeNull();
   expect(screen.getByRole("heading").textContent).toBe("Languages");
 });
 
-test("a step with only picks to remove shows them as danger text on the step bar, not as a note count", () => {
+test("a step with only picks to remove shows them as a red note count on the step bar", () => {
   // fighter-3-wizard-2's half-elf has one language too many.
   open(fighter3Wizard2(), "Race");
   const race = within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ });
-  expect(race.textContent).toBe("Race (1 too many)");
-  expect(within(race).getByText("(1 too many)").className).toContain("text-danger");
-  expect(race.querySelector(".ui-note-count")).toBeNull();
+  expect(race.textContent).toBe("Race (1 too many)1 too many");
+  expect(within(race).getByText("1 too many").dataset.tone).toBe("failed");
 });

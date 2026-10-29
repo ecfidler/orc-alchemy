@@ -26,13 +26,26 @@ export function StuckNote({ note, children }: { note: ReactNode; children: React
 }
 
 /**
- * A count of things the user must do, as a small tilted yellow note, for
- * example on a step button. It is only a mark: give the count in words too,
- * for a screen reader.
+ * A small tilted note in the line of text, for example after a heading. Its
+ * tone gives the meaning: "act" (yellow) when the user must act, "failed"
+ * (red) when something is wrong. It takes no space of its own above or
+ * below the line: the line grows to fit it, so it never covers anything.
  */
-export function NoteCount({ children }: { children: ReactNode }) {
+export function InlineNote({ tone = "act", children }: { tone?: "act" | "failed"; children: ReactNode }) {
   return (
-    <span aria-hidden="true" className="ui-note-count">
+    <span className="ui-inline-note" data-tone={tone}>
+      {children}
+    </span>
+  );
+}
+
+/**
+ * An inline note that is only a mark, such as a count on a step button. It
+ * is hidden from a screen reader: give the count in words too.
+ */
+export function NoteCount({ tone = "act", children }: { tone?: "act" | "failed"; children: ReactNode }) {
+  return (
+    <span aria-hidden="true" className="ui-inline-note" data-tone={tone}>
       {children}
     </span>
   );
