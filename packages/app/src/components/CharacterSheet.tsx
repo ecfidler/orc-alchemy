@@ -360,9 +360,11 @@ function SpellcastingBox({ spellcasting }: { spellcasting: Spellcasting }) {
                 {slots > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slots} />}
               </td>
               <td className="py-1.5 pl-3 align-top @max-[719px]:pl-2">
-                <ul className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
+                {/* role="list": without bullets, Safari does not name a ul as a list. */}
+                <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
                   {spells.map((spell) => (
-                    <li key={`${spell.source}/${spell.key}`}>
+                    // With a tag, the name and its tag stay on one line.
+                    <li key={`${spell.source}/${spell.key}`} className={several ? "whitespace-nowrap" : undefined}>
                       {spell.name}
                       {several && <> <Tag>{spell.source}</Tag></>}
                     </li>
