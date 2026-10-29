@@ -92,7 +92,7 @@ export function Builder() {
         )}
       </section>
       <section aria-label="Preview" className="border-t border-rule-strong pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-        {sheet && <CharacterSheet sheet={sheet} />}
+        {sheet && <CharacterSheet sheet={sheet} preview />}
       </section>
     </div>
   );

@@ -24,7 +24,8 @@ const COIN_GP: Record<string, number> = { cp: 0.01, sp: 0.1, ep: 0.5, gp: 1, pp:
 const goldOf = (treasure: SheetItem[]) =>
   Math.round(treasure.reduce((gp, item) => gp + (COIN_GP[item.key] ?? 0) * item.quantity, 0) * 100) / 100;
 
-export function CharacterSheet({ sheet }: { sheet: Sheet }) {
+/** `preview`: the builder's preview leaves out what only matters in play (temporary hit points, death saves). */
+export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; preview?: boolean }) {
   const { spellcasting, features, equipment, details } = sheet;
   const race = sheet.subrace ? `${sheet.race} (${sheet.subrace})` : sheet.race;
   const classes = sheet.classes.map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ""}`).join(" / ");
@@ -112,7 +113,7 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
         </div>
 
         <div className="grid min-w-0 content-start gap-3">
-          <ShadedPanel>
+          <ShadedPanel className="@container/vitals">
             <div className="flex justify-evenly gap-2">
               <RowBox label="Armor Class" shield>
                 {sheet.armorClass}
@@ -126,29 +127,43 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
                 ))}
               </RowBox>
             </div>
-            <div className="grid grid-cols-2 gap-2 @min-[480px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
-              <HitPoints current={sheet.currentHitPoints ?? sheet.maxHitPoints} max={sheet.maxHitPoints} className="col-span-2 @min-[480px]:col-span-1" />
+            {/* The three boxes share a row only when the panel is wide enough for the death save circles. */}
+            <div
+              className={
+                preview
+                  ? "grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2"
+                  : "grid grid-cols-[minmax(0,4fr)_minmax(0,5fr)] gap-2 @min-[600px]/vitals:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)]"
+              }
+            >
+              <HitPoints
+                current={sheet.currentHitPoints ?? sheet.maxHitPoints}
+                max={sheet.maxHitPoints}
+                temporary={!preview}
+                className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
+              />
               <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
                 <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
               </FramedBox>
-              <FramedBox label="Death saves" className="grid-rows-[1fr_auto]">
-                {/* The app records no death saves, so the circles are empty. */}
-                <div className="grid content-evenly gap-1.5">
-                  <div className="flex items-center justify-between gap-1.5">
-                    {/* The circles say "Successes", so the visible label is not read twice. */}
-                    <span aria-hidden>
-                      <Label>Successes</Label>
-                    </span>
-                    <SlotCircles label="Successes" count={3} color="success" />
+              {!preview && (
+                <FramedBox label="Death saves" className="grid-rows-[1fr_auto]">
+                  {/* The app records no death saves, so the circles are empty. */}
+                  <div className="grid content-evenly gap-1.5">
+                    <div className="flex items-center justify-between gap-1.5">
+                      {/* The circles say "Successes", so the visible label is not read twice. */}
+                      <span aria-hidden>
+                        <Label>Successes</Label>
+                      </span>
+                      <SlotCircles label="Successes" count={3} color="success" />
+                    </div>
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span aria-hidden>
+                        <Label>Failures</Label>
+                      </span>
+                      <SlotCircles label="Failures" count={3} color="caution" />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between gap-1.5">
-                    <span aria-hidden>
-                      <Label>Failures</Label>
-                    </span>
-                    <SlotCircles label="Failures" count={3} color="caution" />
-                  </div>
-                </div>
-              </FramedBox>
+                </FramedBox>
+              )}
             </div>
           </ShadedPanel>
 
@@ -402,16 +417,18 @@ function CasterRow({ caster, named }: { caster: Spellcasting["casters"][number];
 }
 
 /** Hit points: temporary on the left (the sheet has none, so it is empty), then current / max. */
-function HitPoints({ current, max, className }: { current: number; max: number; className?: string }) {
+function HitPoints({ current, max, temporary, className }: { current: number; max: number; temporary: boolean; className?: string }) {
   const id = useId();
-  const temporary = useId();
+  const temporaryId = useId();
   return (
     <FramedBox label="Hit Points" labelId={id} className={className}>
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-end gap-2">
-        <div className="grid border-r border-rule text-center">
-          <span role="group" aria-labelledby={temporary} className="min-h-9 text-2xl leading-normal" />
-          <Label id={temporary}>Temporary</Label>
-        </div>
+      <div className={temporary ? "grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-end gap-2" : "grid"}>
+        {temporary && (
+          <div className="grid border-r border-rule text-center">
+            <span role="group" aria-labelledby={temporaryId} className="min-h-9 text-2xl leading-normal" />
+            <Label id={temporaryId}>Temporary</Label>
+          </div>
+        )}
         <span role="group" aria-labelledby={id} className="self-center text-center text-[34px] leading-[1.1] tabular-nums">
           <CurrentMax current={current} max={max} />
         </span>
