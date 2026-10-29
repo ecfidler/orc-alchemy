@@ -107,7 +107,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
               {dirty ? "Unsaved changes" : "Saved"}
             </span>
             {dirty && (
-              <Button size="small" onClick={() => flushAutosave().catch(console.error)}>
+              <Button onClick={() => flushAutosave().catch(console.error)}>
                 Save
               </Button>
             )}

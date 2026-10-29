@@ -370,8 +370,8 @@ same row.
   `/characters`. When the row is narrower than 720px, it shows "Back". Its
   accessible name stays "Back to List".
 * On the right, from left to right: the save status in muted text ("Saved"
-  or "Unsaved changes"), then a small ghost Save button. Save shows only
-  while there are unsaved changes.
+  or "Unsaved changes"), then a ghost Save button. Save is the same size as
+  the other buttons, and shows only while there are unsaved changes.
 * The page actions come after Save. On the sheet, they are a solid Edit (to
   the builder) and a ghost Export. In the builder, there is a solid Done (to
   the sheet).
