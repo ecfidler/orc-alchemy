@@ -12,6 +12,7 @@ export { Radio, RadioGroup, type RadioGroupProps } from "./Radio.tsx";
 export { Select, type SelectOption, type SelectProps } from "./Select.tsx";
 export { FlagTab, FlagTabs, Shell, type FlagColor } from "./Shell.tsx";
 export { InlineNote, NoteCount, StuckNote } from "./StuckNote.tsx";
+export { Tabs, type Tab } from "./Tabs.tsx";
 export { THEME_STORAGE_KEY, themeHeadScript, useThemePreference, type ThemePreference } from "./theme-preference.ts";
 export { Toggle, ToggleGroup, type ToggleGroupProps, type ToggleProps } from "./Toggle.tsx";
 export { UseBubble, type UseBubbleProps } from "./UseBubble.tsx";

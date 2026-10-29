@@ -1,11 +1,15 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import type { ReactElement } from "react";
 import { bonusStr, toSheet, type Sheet } from "../engine/sheet.ts";
 import { CharacterSheet, ordinal } from "./CharacterSheet.tsx";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const abilities = (["str", "dex", "con", "int", "wis", "cha"] as const).map((ability, i) => ({
   ability,
@@ -289,4 +293,54 @@ test("a limited-use feature sits in a use bubble, with circles, or a pool for mo
   expect(within(screen.getByRole("group", { name: "Lay on Hands" })).getByRole("button", { name: "25 / 25 left. Spend 5" })).toBeTruthy();
   expect(screen.queryByRole("group", { name: "Dash" })).toBeNull();
   expect(screen.getByText("Move again.")).toBeTruthy();
+});
+
+/** Renders the sheet as a phone does: the sheet is `width` pixels wide. */
+function renderAtWidth(width: number, element: ReactElement) {
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(width);
+  render(element);
+}
+
+test("under 720px the sheet is in tabs: Stats, Spells, Features and More, under the header", () => {
+  renderAtWidth(390, <CharacterSheet sheet={sheet} />);
+  const tabs = screen.getByRole("tablist", { name: "Sheet sections" });
+  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Stats", "Spells", "Features", "More"]);
+  expect(screen.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeTruthy();
+  expect(screen.getByLabelText("Race").textContent).toBe("Dwarf (Hill Dwarf)");
+
+  // Stats is open first: the vitals, the attacks, then the ability column.
+  let panel = screen.getByRole("tabpanel");
+  expect(within(panel).getByLabelText("Armor Class").textContent).toBe("19");
+  expect(within(panel).getByRole("group", { name: "Attacks" })).toBeTruthy();
+  expect(within(panel).getByLabelText("STR").textContent).toBe("16+3");
+  expect(within(panel).getByLabelText("Passive Perception").textContent).toBe("11");
+  expect(screen.queryByText("Second Wind")).toBeNull();
+
+  fireEvent.click(within(tabs).getByRole("tab", { name: "Spells" }));
+  expect(within(screen.getByRole("tabpanel")).getByRole("group", { name: "Spellcasting" })).toBeTruthy();
+
+  fireEvent.click(within(tabs).getByRole("tab", { name: "Features" }));
+  expect(within(screen.getByRole("tabpanel")).getByText("Second Wind")).toBeTruthy();
+
+  fireEvent.click(within(tabs).getByRole("tab", { name: "More" }));
+  panel = screen.getByRole("tabpanel");
+  expect(within(panel).getByRole("group", { name: "Equipment" })).toBeTruthy();
+  expect(within(panel).getByLabelText("Tools").textContent).toBe("Smith's Tools (+2)");
+  expect(within(panel).getByLabelText("Resistances").textContent).toBe("poison");
+  expect(within(panel).getByRole("group", { name: "AC by armor" })).toBeTruthy();
+  expect(within(panel).getByText("Hates boats")).toBeTruthy();
+});
+
+test("a tab with nothing in it does not show: no Spells tab for a non-caster, no Features tab without features", () => {
+  renderAtWidth(390, <CharacterSheet sheet={{ ...sheet, spellcasting: null, features: { ...sheet.features, actions: [] } }} />);
+  expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Stats", "More"]);
+});
+
+test("at 720px and wider, and in the builder preview, the sheet has no tabs", () => {
+  renderAtWidth(720, <CharacterSheet sheet={sheet} />);
+  expect(screen.queryByRole("tablist")).toBeNull();
+  expect(screen.getByText("Second Wind")).toBeTruthy();
+  cleanup();
+  renderAtWidth(390, <CharacterSheet sheet={sheet} preview />);
+  expect(screen.queryByRole("tablist")).toBeNull();
 });

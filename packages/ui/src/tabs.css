@@ -1,0 +1,60 @@
+/* Tabs: flag tabs in a row on a rule, like the shell's phone strip (docs/design/theme.md, "Small screens"). */
+
+@layer components {
+  .ui-tabs {
+    display: grid;
+    gap: 14px;
+  }
+
+  /* The row sticks to the top of the page, on the paper, so the panel scrolls under it. */
+  .ui-tabs-list {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: end;
+    gap: 6px;
+    padding-top: 6px;
+    background: var(--paper);
+    border-bottom: 1.5px solid var(--rule-strong);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .ui-tab {
+    --flag: var(--flag-yellow);
+    --focus-ring: var(--ink);
+    height: 40px;
+    padding: 6px 2px 0;
+    border: 0;
+    color: var(--flag-ink);
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--flag) 55%, #ffffff) 0 62%, var(--flag) 62% 100%);
+    cursor: pointer;
+  }
+  .ui-tab[data-flag="blue"] {
+    --flag: var(--flag-blue);
+  }
+  .ui-tab[data-flag="green"] {
+    --flag: var(--flag-green);
+  }
+  .ui-tab[data-flag="orange"] {
+    --flag: var(--flag-orange);
+  }
+  .ui-tab[data-active] {
+    height: 48px;
+    background: var(--flag);
+    box-shadow: 0 3px 6px -4px var(--note-shadow);
+  }
+
+  .ui-tabs-panel {
+    min-width: 0;
+  }
+}

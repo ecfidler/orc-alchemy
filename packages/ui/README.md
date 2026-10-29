@@ -35,8 +35,8 @@ bun run test       # vitest
   checkbox and radio styles (`src/check.css`), the number field styles
   (`src/number-field.css`), the alert dialog styles (`src/dialog.css`),
   the select, combobox, autocomplete and menu styles (`src/select.css`),
-  and the paper pattern, stuck note and use bubble styles
-  (`src/paper.css`).
+  the paper pattern, stuck note and use bubble styles
+  (`src/paper.css`), and the tabs styles (`src/tabs.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
     `size` ("small", "normal" or "large") and `type` ("button" or
