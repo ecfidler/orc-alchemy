@@ -1,4 +1,4 @@
-import { Button } from "@orc-alchemy/ui";
+import { Button, type ButtonVariant } from "@orc-alchemy/ui";
 import { useState, type ReactNode } from "react";
 import { loadEngine } from "../engine/engine.ts";
 import { characterFile, exportBundle } from "../engine/import.ts";
@@ -8,10 +8,11 @@ import { bundleHomebrew, orcbrewHomebrew, restorePacks, useHomebrew } from "../s
 import { getCharacter, listCharacters } from "../storage/characters.ts";
 
 /** Downloads a stored character as a dmv-character file, after saving any pending changes. Loads the engine on demand. */
-export function ExportCharacter({ id, label = "Export this character" }: { id: string; label?: ReactNode }) {
+export function ExportCharacter({ id, label = "Export this character", variant }: { id: string; label?: ReactNode; variant?: ButtonVariant }) {
   return (
     <ExportButton
       label={label}
+      variant={variant}
       onExport={async () => {
         await Promise.all([loadEngine(), flushAutosave()]);
         const record = await getCharacter(id);
@@ -66,7 +67,7 @@ export function ExportEverything() {
 }
 
 /** onExport returns a notice to show when the export is only partly done. */
-function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => Promise<string | void> }) {
+function ExportButton({ label, variant = "link", onExport }: { label: ReactNode; variant?: ButtonVariant; onExport: () => Promise<string | void> }) {
   /** Why the export failed, or the notice of a partial export. */
   const [message, setMessage] = useState<string | null>(null);
   async function onClick() {
@@ -79,7 +80,7 @@ function ExportButton({ label, onExport }: { label: ReactNode; onExport: () => P
   }
   return (
     <div className="space-y-1">
-      <Button onClick={onClick} variant="link">
+      <Button onClick={onClick} variant={variant}>
         {label}
       </Button>
       {message && <p role="alert">{message}</p>}

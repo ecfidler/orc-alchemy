@@ -48,13 +48,13 @@ test("a new character becomes a dwarf acolyte fighter 1, and the preview follows
   await expect(builder.getByRole("region", { name: /^Fighting Style/ })).toBeVisible();
 
   // The builder links to the sheet, which shows the same character.
-  await page.getByRole("link", { name: "Sheet" }).click();
+  await page.getByRole("link", { name: "Done" }).click();
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   // The URL changes before the page does, and the builder has a Class region too.
   await expect(page.getByRole("region", { name: "Builder" })).toHaveCount(0);
   await expect(page.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await expect(page.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
-  await page.getByRole("link", { name: "Build" }).click();
+  await page.getByRole("link", { name: "Edit" }).click();
   await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
 });
 
@@ -72,7 +72,7 @@ test("a pick the engine refuses shows its reason at the selection", async ({ pag
 test("replacing a class with more than level 1 asks first", async ({ page }) => {
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-5.strict.json"));
-  await page.getByRole("link", { name: "Build", exact: true }).click();
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
   const builder = page.getByRole("region", { name: "Builder" });
   const klass = page.getByRole("region", { name: "Preview" }).getByLabel("Class", { exact: true });
   await expect(klass).toHaveText("Fighter 5 (Champion)");
@@ -252,7 +252,7 @@ test("a reload mid-edit asks first, then recovers the draft", async ({ page }) =
   await page.reload();
   expect(dialogType).toBe("beforeunload");
   await expect(page.getByText("Unsaved changes from your last visit were recovered.")).toBeVisible();
-  await expect(page.getByRole("status")).toHaveText("Unsaved changes");
+  await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Unsaved changes");
   await expect(race).toHaveText("Dwarf");
 });
 
@@ -328,7 +328,7 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
 
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(file);
-  await page.getByRole("link", { name: "Build", exact: true }).click();
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
   const builder = page.getByRole("region", { name: "Builder" });
   const preview = page.getByRole("region", { name: "Preview" });
   const ac = preview.getByLabel("Armor Class", { exact: true });

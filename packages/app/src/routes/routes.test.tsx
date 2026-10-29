@@ -116,7 +116,8 @@ test("New character opens the builder, and a pick updates the preview", async ()
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
   const preview = await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
   expect(within(preview).getByText("Barbarian 1")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Sheet" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Done" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to List" }).getAttribute("href")).toBe("/characters");
 
   const race = screen.getByRole("region", { name: /^Race/ });
   fireEvent.click(within(race).getByRole("button", { name: "Dwarf" }));
@@ -163,7 +164,7 @@ test("opening a character with a draft recovers it and says so", async () => {
   await saveDraft({ id, entity: engine().select(engine().emptyCharacter(), ["race"], "gnome"), updatedAt: "2026-10-08T00:00:00.000Z" });
   renderAt(`/sheet/${id}`);
   expect(await screen.findByText("Unsaved changes from your last visit were recovered.", {}, { timeout: 5000 })).toBeTruthy();
-  expect(screen.getByRole("status").textContent).toBe("Unsaved changes");
+  expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Unsaved changes");
   expect(screen.getByLabelText("Race").textContent).toBe("Gnome");
 });
 

@@ -361,6 +361,28 @@ Layout F (ORC-145, ORC-153). Two columns at about 1 : 2, max width 960px.
 Labels are under values. Under 720px, the sections go in tabs (see Small
 screens and motion).
 
+## Action row
+
+One row of buttons above the sheet header (ORC-174). The builder has the
+same row.
+
+* On the left, "Back to List", a ghost button. It always goes to
+  `/characters`. When the row is narrower than 720px, it shows "Back". Its
+  accessible name stays "Back to List".
+* When the row is narrower than 720px, "Unsaved changes" shows "Unsaved".
+  Screen readers still read "Unsaved changes". The whole row stays on one
+  line at 390px.
+* On the right, from left to right: the save status in muted text ("Saved"
+  or "Unsaved changes"), then a ghost Save button. Save is the same size as
+  the other buttons, and shows only while there are unsaved changes.
+* The page actions come after Save. On the sheet, they are a solid Edit (to
+  the builder) and a ghost Export. In the builder, there is a solid Done (to
+  the sheet).
+* Back to List, Edit and Done are links with the look of buttons
+  (`ButtonLink`). Export is a button.
+* When unsaved changes come back from a draft, a blue info note under the
+  row says so.
+
 ## Header
 
 * A name box with the height of one line at the largest name size. A long
@@ -452,8 +474,8 @@ The phone layout of the character sheet is ORC-173. These rules apply:
 
 * When the sheet is narrower than 720px, its sections go in four tabs. At
   720px and wider, the sheet is layout F.
-* The sheet header and the Build and Export links are above the tabs, and
-  scroll away. The tab row sticks to the top of the page.
+* The action row and the sheet header are above the tabs, and scroll
+  away. The tab row sticks to the top of the page.
 * The tabs, in order:
   1. **Stats:** AC, initiative and speed, hit points, hit dice and death
      saves, then Attacks, then the ability column (abilities, inspiration,
