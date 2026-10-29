@@ -130,3 +130,20 @@ test("a long name gets smaller and wraps to two lines, and the name box keeps it
   expect(fitted.wraps).toBe(true);
   expect(fitted.overflows).toBe(false);
 });
+
+test("a long class truncates, and the proficiencies and AC by armor are in the left column under Equipment", async ({ page }) => {
+  await importGolden(page, "fighter-3-wizard-2");
+  const classes = page.getByLabel("Class", { exact: true });
+  await expect(classes).toHaveAttribute("title", "Fighter 3 (Champion) / Wizard 2 (School of Evocation)");
+  expect(await classes.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+
+  const box = (name: string) => page.getByRole("group", { name, exact: true }).boundingBox();
+  const equipment = (await box("Equipment"))!;
+  const proficiencies = (await box("Other proficiencies & languages"))!;
+  const armor = (await box("AC by armor"))!;
+  const attacks = (await box("Attacks"))!;
+  expect(proficiencies.x).toBe(equipment.x);
+  expect(proficiencies.y).toBeGreaterThan(equipment.y);
+  expect(armor.y).toBeGreaterThan(proficiencies.y);
+  expect(attacks.x).toBeGreaterThan(equipment.x);
+});

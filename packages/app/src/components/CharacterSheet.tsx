@@ -324,39 +324,46 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
  */
 function Name({ children }: { children: string }) {
   const heading = useRef<HTMLHeadingElement>(null);
-  const text = useRef<HTMLSpanElement>(null);
+  const nameText = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
-    const element = heading.current;
-    const span = text.current;
-    const box = element?.parentElement;
-    if (!element || !span || !box) return;
+    const box = heading.current?.parentElement;
+    if (!heading.current || !nameText.current || !box) return;
     const fit = () => {
+      const element = heading.current!;
+      const span = nameText.current!;
       element.style.cssText = "";
       // A width of 0 is a name that is not laid out (hidden, or in jsdom).
       if (element.clientWidth === 0) return;
-      const largest = parseFloat(getComputedStyle(element).fontSize);
-      // The height of one line at the largest size, less the 2px bottom padding.
-      const height = element.clientHeight - 2;
-      element.style.height = `${element.clientHeight}px`;
+      const style = getComputedStyle(element);
+      const largest = parseFloat(style.fontSize);
+      const leading = parseFloat(style.lineHeight) / largest;
+      // The space for text: one line at the largest size.
+      const height = element.clientHeight - parseFloat(style.paddingBottom);
+      element.style.height = `${element.offsetHeight}px`;
+      // 12px is the smallest size; a longer name is cut off.
       for (let size = largest; size >= 12; size--) {
         element.style.fontSize = `${size}px`;
-        // The name can wrap when two lines (leading-[1.05]) fit in the height.
-        element.style.whiteSpace = 2 * size * 1.05 <= height ? "normal" : "nowrap";
-        if (span.offsetWidth <= element.clientWidth && span.offsetHeight <= height) return;
+        const lines = 2 * size * leading <= height ? 2 : 1;
+        element.style.whiteSpace = lines === 2 ? "normal" : "nowrap";
+        if (span.offsetWidth <= element.clientWidth && span.offsetHeight <= lines * size * leading + 1) return;
       }
     };
     fit();
+    // The fallback font has other widths, so the name fits again when the fonts load.
+    document.fonts?.ready.then(fit);
+    // The box, not the name: fit sets the name's height, which would start the observer again.
     const observer = new ResizeObserver(fit);
     observer.observe(box);
     return () => observer.disconnect();
   }, [children]);
-  // The name sits on the rule, so a smaller name is at the bottom of the box.
+  // The name sits on the rule. A name too long for two lines at 12px keeps its start, and a hover shows all of it.
   return (
     <h1
       ref={heading}
-      className="flex items-end overflow-hidden border-b border-rule-strong pb-0.5 text-[clamp(26px,4vw,36px)] leading-[1.05] font-medium text-balance break-words whitespace-nowrap"
+      title={children}
+      className="flex items-end-safe overflow-hidden border-b border-rule-strong pb-0.5 text-[clamp(26px,4vw,36px)] leading-[1.05] font-medium text-balance break-words whitespace-nowrap"
     >
-      <span ref={text}>{children}</span>
+      <span ref={nameText}>{children}</span>
     </h1>
   );
 }
