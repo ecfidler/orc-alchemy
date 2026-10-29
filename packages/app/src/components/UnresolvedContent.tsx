@@ -1,5 +1,6 @@
-import { Button, Select } from "@orc-alchemy/ui";
+import { Button, Select, StuckNote } from "@orc-alchemy/ui";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import { missingContent, OPTION_LABEL, type ContentSuggestion, type UnresolvedKey } from "../engine/reconcile.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
@@ -91,16 +92,28 @@ function Remap({ unresolved, onRemap }: { unresolved: UnresolvedKey; onRemap: On
   );
 }
 
-/** The open character's unresolved content, checked against the loaded packs, for its sheet. */
+/**
+ * The open character's unresolved content, checked against the loaded packs,
+ * for its sheet. The user must act, so a stuck note says how.
+ */
 export function OpenCharacterGaps({ characterName }: { characterName: string }) {
   const entity = useCharacter((state) => state.entity);
   const content = useHomebrew((state) => state.content);
   const unresolved = useMemo(() => (entity === null ? [] : missingContent(entity, content)), [entity, content]);
   if (unresolved.length === 0) return null;
+  const note = (
+    <>
+      <b>
+        {unresolved.length} {unresolved.length === 1 ? "option is" : "options are"} left out of the sheet.
+      </b>{" "}
+      To use {unresolved.length === 1 ? "it" : "them"}, load the homebrew pack on the <Link to="/import">Import page</Link>.
+    </>
+  );
   return (
-    <section aria-label="Unresolved content" className="border border-black p-2">
-      <UnresolvedContent characterName={characterName} unresolved={unresolved} />
-      <p>To use it, load the homebrew pack that has it on the Import page.</p>
-    </section>
+    <StuckNote note={note}>
+      <section aria-label="Unresolved content" className="border border-rule-strong px-2 pb-2">
+        <UnresolvedContent characterName={characterName} unresolved={unresolved} />
+      </section>
+    </StuckNote>
   );
 }

@@ -1,4 +1,4 @@
-import { Button, Fieldset, Radio, RadioGroup } from "@orc-alchemy/ui";
+import { Button, Fieldset, Radio, RadioGroup, StuckNote } from "@orc-alchemy/ui";
 import { useState } from "react";
 import { conflictSources, copyOn, internalCopies, resolutionsFor, settledBy, conflictsToChoose, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
 import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
@@ -62,8 +62,8 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
     }
   }
 
-  return (
-    <section aria-label="Resolve key conflicts" className="space-y-2 border border-black p-2">
+  const section = (
+    <section aria-label="Resolve key conflicts" className="space-y-2 border border-rule-strong px-2 pb-2">
       <h3 className="font-bold">Key conflicts in {fileName}</h3>
       <p>
         {conflicts.length} {conflicts.length === 1 ? "key is" : "keys are"} used by more than one item. Choose what to do with each before
@@ -110,4 +110,11 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
       </div>
     </section>
   );
+  // The user must choose before the import goes on.
+  const note = decided < toChoose.length && (
+    <>
+      <b>Choose for each conflict</b> ({decided} of {toChoose.length}) before import.
+    </>
+  );
+  return <StuckNote note={note}>{section}</StuckNote>;
 }

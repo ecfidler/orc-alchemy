@@ -4,9 +4,11 @@ import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { storedHitPoints } from "../engine/classes.ts";
+import type { BuilderSelection } from "../engine/builder.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
+import { Heading } from "./Classes.tsx";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 const fighter3Wizard2 = (): StrictEntity => JSON.parse(readFileSync(join(charactersDir, "fighter-3-wizard-2.strict.json"), "utf8"));
@@ -80,4 +82,25 @@ test("the half-elf's improvement takes two different abilities, and shows the en
   fireEvent.click(asi.getByRole("button", { name: "Decrease STR" }));
   expect(asi.getByRole("button", { name: "Decrease STR" }).hasAttribute("disabled")).toBe(true);
   expect(asi.getByRole("button", { name: "Increase INT" }).hasAttribute("disabled")).toBe(false);
+});
+
+// Picks to make are a yellow inline note in the heading; too many picks are a red one (Ethan, PR #65).
+test("a selection heading: a yellow note for picks to make, a red note for too many, and neither when done", () => {
+  const selection = (remaining: number) => ({ key: "languages", name: "Languages", remaining }) as BuilderSelection;
+  const { rerender } = render(<Heading id="h" selection={selection(2)} />);
+  expect(screen.getByRole("heading").textContent).toBe("Languages 2 to choose");
+  expect(screen.getByText("2 to choose").dataset.tone).toBe("act");
+  rerender(<Heading id="h" selection={selection(-1)} />);
+  expect(screen.getByRole("heading").textContent).toBe("Languages 1 too many");
+  expect(screen.getByText("1 too many").dataset.tone).toBe("failed");
+  rerender(<Heading id="h" selection={selection(0)} />);
+  expect(screen.getByRole("heading").textContent).toBe("Languages");
+});
+
+test("a step with only picks to remove shows them as a red note count on the step bar", () => {
+  // fighter-3-wizard-2's half-elf has one language too many.
+  open(fighter3Wizard2(), "Race");
+  const race = within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ });
+  expect(race.textContent).toBe("Race (1 too many)1 too many");
+  expect(within(race).getByText("1 too many").dataset.tone).toBe("failed");
 });

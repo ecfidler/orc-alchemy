@@ -188,6 +188,25 @@
     height: 12px;
     background: linear-gradient(135deg, var(--note-edge) 50%, transparent 50%);
   }
+  /* A small note in the line of text, tilted as a stuck note is. Red for "failed". */
+  .ui-inline-note {
+    --fill: var(--note);
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 5px;
+    color: var(--note-ink);
+    background: var(--fill);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+    white-space: nowrap;
+    transform: rotate(3deg);
+    box-shadow: 0 2px 3px -1px var(--note-shadow);
+  }
+  .ui-inline-note:where([data-tone="failed"]) {
+    --fill: var(--note-red);
+  }
   .ui-stuck-note :is(button, a) {
     font: inherit;
     font-weight: 700;
