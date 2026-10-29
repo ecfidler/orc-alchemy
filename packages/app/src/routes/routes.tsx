@@ -104,7 +104,13 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
           </ButtonLink>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
             <span role="status" aria-label="Save status" className="text-sm text-ink-muted">
-              {dirty ? "Unsaved changes" : "Saved"}
+              {dirty ? (
+                <>
+                  Unsaved<span className="@max-[719px]:sr-only"> changes</span>
+                </>
+              ) : (
+                "Saved"
+              )}
             </span>
             {dirty && (
               <Button onClick={() => flushAutosave().catch(console.error)}>

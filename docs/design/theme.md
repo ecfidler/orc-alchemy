@@ -369,6 +369,9 @@ same row.
 * On the left, "Back to List", a ghost button. It always goes to
   `/characters`. When the row is narrower than 720px, it shows "Back". Its
   accessible name stays "Back to List".
+* When the row is narrower than 720px, "Unsaved changes" shows "Unsaved".
+  Screen readers still read "Unsaved changes". The whole row stays on one
+  line at 390px.
 * On the right, from left to right: the save status in muted text ("Saved"
   or "Unsaved changes"), then a ghost Save button. Save is the same size as
   the other buttons, and shows only while there are unsaved changes.
