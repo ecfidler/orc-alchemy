@@ -73,7 +73,7 @@ borders and marks. Every text pair passes in both modes.
 | `--ink` | Body text | #222222 | #FFFFFF | 15.53 / 21.00 |
 | `--ink-muted` | Labels, secondary text, the max of a current / max pair | #595959 | #ADADAD | 6.84 / 9.36 |
 | `--rule` | Hairlines (decoration only) | #E3DECE | #222222 | — |
-| `--rule-strong` | Field and box borders | #8A8578 | #6B6B6B | 3.59 / 3.94 |
+| `--rule-strong` | Box borders and disabled field borders (an active field's border is `--ink`) | #8A8578 | #6B6B6B | 3.59 / 3.94 |
 | `--danger` | Errors, "failed" (red) | #C2271D | #FF5C52 | 5.69 / 6.90 |
 | `--success` | Saved, death-save successes (green) | #1F7A3A | #4ED07A | 5.25 / 10.63 |
 | `--info` | Links, use bubbles, focus ring (blue) | #1E5FB4 | #5EA2FF | 6.12 / 8.09 |
