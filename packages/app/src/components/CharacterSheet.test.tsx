@@ -104,11 +104,12 @@ test("renders the key values of a sheet", () => {
   expect(screen.getByLabelText("Initiative").textContent).toBe("+0");
   expect(screen.getByLabelText("STR").textContent).toBe("16+3");
   expect(screen.getByLabelText("INT").textContent).toBe("8-1");
-  expect(screen.getByText("+5 Athletics").className).toContain("font-bold");
+  expect(within(screen.getByText("+5 Athletics").closest("li")!).getByRole("img", { name: "Proficient" })).toBeTruthy();
+  expect(within(screen.getByText("-1 History").closest("li")!).queryByRole("img")).toBeNull();
   expect(screen.getByLabelText("Tools").textContent).toBe("Smith's Tools (+2)");
   const cantrips = screen.getByRole("table", { name: "Cantrips" });
   expect(within(cantrips).getByRole("cell", { name: "Guidance" })).toBeTruthy();
-  expect(screen.getByText("Second Wind.")).toBeTruthy();
+  expect(screen.getByText("Second Wind")).toBeTruthy();
   expect(screen.getByText("Hates boats")).toBeTruthy();
 });
 
@@ -120,21 +121,27 @@ test("omits empty sections", () => {
   expect(screen.queryByLabelText("Darkvision")).toBeNull();
 });
 
-test("shows the player, the faction and the images only when set", () => {
+// The theme spec, "Not on the sheet in M8": the record keeps these, and the sheet does not show them.
+test("does not show the player, XP, alignment, faction, images, appearance or personality", () => {
   render(
     <CharacterSheet
-      sheet={{ ...sheet, playerName: "Ana", factionName: "Harpers", portrait: "https://example.com/p.png", factionImage: "https://example.com/f.png" }}
+      sheet={{
+        ...sheet,
+        playerName: "Ana",
+        factionName: "Harpers",
+        portrait: "https://example.com/p.png",
+        factionImage: "https://example.com/f.png",
+        details: { ...sheet.details, personalityTraits: ["Brave"], ideals: "Honor", bonds: "Kin", flaws: "Pride", description: "Tall", hair: "Red" },
+      }}
     />,
   );
-  expect(screen.getByLabelText("Player").textContent).toBe("Ana");
-  expect(screen.getByLabelText("Faction").textContent).toBe("Harpers");
-  expect(screen.getByAltText("Portrait").getAttribute("src")).toBe("https://example.com/p.png");
-  expect(screen.getByAltText("Faction image").getAttribute("src")).toBe("https://example.com/f.png");
-  cleanup();
-  render(<CharacterSheet sheet={sheet} />);
-  expect(screen.queryByLabelText("Player")).toBeNull();
-  expect(screen.queryByLabelText("Faction")).toBeNull();
-  expect(screen.queryByRole("img")).toBeNull();
+  for (const label of ["Player", "XP", "Alignment", "Faction", "Personality Traits", "Ideals", "Bonds", "Flaws", "Description", "Hair"]) {
+    expect(screen.queryByLabelText(label)).toBeNull();
+  }
+  for (const text of ["Ana", "900", "Lawful Good", "Harpers", "Brave", "Honor", "Kin", "Pride", "Tall", "Red"]) {
+    expect(screen.queryByText(text)).toBeNull();
+  }
+  expect(screen.queryByRole("img", { name: /Portrait|Faction/ })).toBeNull();
 });
 
 // On-screen spot checks against the oracle's built values (ORC-48 done-when).
@@ -193,4 +200,44 @@ test("wizard-1 marks its prepared spells in a Prepared column, which cantrips do
   expect(preparedOf("Detect Magic")).toBe("—");
   const cantrips = screen.getByRole("table", { name: "Cantrips" });
   expect(within(cantrips).queryByRole("columnheader", { name: "Prepared" })).toBeNull();
+});
+
+test("layout F: header details, hit dice, empty death saves, and HP as current / max", () => {
+  render(<CharacterSheet sheet={{ ...sheet, currentHitPoints: 20 }} />);
+  expect(screen.getByLabelText("Background").textContent).toBe("Soldier");
+  expect(screen.getByLabelText("Race").textContent).toBe("Dwarf (Hill Dwarf)");
+  expect(screen.getByLabelText("Hit Points").textContent).toBe("20 / 28");
+  expect(screen.getByLabelText("Temporary").textContent).toBe("");
+  expect(within(screen.getByRole("group", { name: "Hit dice" })).getByText("3d10")).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Successes: 0 of 3" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Failures: 0 of 3" })).toBeTruthy();
+  expect(screen.getByLabelText("Inspiration").textContent).toBe("");
+});
+
+test("the Gold box adds up the coins as gold pieces, and the coins leave the equipment list", () => {
+  const coin = (key: string, quantity: number) => ({ key, name: key.toUpperCase(), quantity, equipped: false });
+  const treasure = [coin("cp", 5), coin("sp", 14), coin("ep", 1), coin("gp", 37), coin("pp", 2), { key: "ruby", name: "Ruby", quantity: 1, equipped: false }];
+  render(<CharacterSheet sheet={{ ...sheet, equipment: { ...sheet.equipment, treasure } }} />);
+  // 0.05 + 1.4 + 0.5 + 37 + 20
+  expect(screen.getByLabelText("Gold").textContent).toBe("58.95");
+  const equipment = within(screen.getByRole("group", { name: "Equipment" }));
+  expect(equipment.getByText("Ruby")).toBeTruthy();
+  expect(equipment.queryByText("GP")).toBeNull();
+});
+
+test("a limited-use feature sits in a use bubble, with circles, or a pool for more than 8 uses", () => {
+  const features = {
+    ...sheet.features,
+    actions: [
+      { name: "Second Wind", text: "Regain hit points.", uses: { amount: 1, recharge: "Short rest" } },
+      { name: "Lay on Hands", text: "Restore hit points.", uses: { amount: 25, recharge: "Long rest" } },
+      { name: "Dash", text: "Move again." },
+    ],
+  };
+  render(<CharacterSheet sheet={{ ...sheet, features }} />);
+  expect(within(screen.getByRole("group", { name: "Second Wind" })).getByRole("button", { name: "Use 1" })).toBeTruthy();
+  expect(within(screen.getByRole("group", { name: "Second Wind" })).getByText("Short rest")).toBeTruthy();
+  expect(within(screen.getByRole("group", { name: "Lay on Hands" })).getByRole("button", { name: "25 / 25 left. Spend 5" })).toBeTruthy();
+  expect(screen.queryByRole("group", { name: "Dash" })).toBeNull();
+  expect(screen.getByText("Move again.")).toBeTruthy();
 });

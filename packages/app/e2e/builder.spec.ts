@@ -367,7 +367,8 @@ test("the Description step writes a name on Enter and XP on blur, and the previe
 
   await builder.getByLabel("Experience Points").fill("900");
   await builder.getByRole("heading", { name: "Description" }).click();
-  await expect(preview.getByLabel("XP", { exact: true })).toHaveText("900");
+  // The sheet does not show XP (theme spec, "Not on the sheet in M8"), so the field shows what is stored.
+  await expect(builder.getByLabel("Experience Points")).toHaveValue("900");
 });
 
 test("fighter-1 built from New character through the steps matches its expected values", async ({ page }) => {

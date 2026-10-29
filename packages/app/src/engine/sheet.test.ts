@@ -74,7 +74,7 @@ test("fighter-20", () => {
   expect(sheet.numberOfAttacks).toBe(4);
 
   expect(sheet.features.actions).toEqual([
-    { name: "Action Surge", text: "Take an extra action (use twice/rest)." },
+    { name: "Action Surge", text: "Take an extra action (use twice/rest).", uses: { amount: 2, recharge: "Short rest" } },
     { name: "Grappler", text: "Restrain a creature you are grappling." },
   ]);
   expect(sheet.features.bonusActions.map((f) => f.name)).toEqual(["Second Wind"]);
@@ -259,4 +259,15 @@ test("a class that does not prepare never marks a spell", () => {
   expect(built["prepares-spells"]).toBeNull();
   const keys = Object.values(built["spells-known"]).flatMap((level) => level.__entries.map(([[, key]]) => key));
   expect(markedPrepared(toSheet(built, preparing(strictOf("warlock-10-drow"), "Warlock", keys)))).toEqual([]);
+});
+
+test("a limited-use feature has its uses and when they come back", () => {
+  const usesOf = (name: string, feature: string) => {
+    const { features } = toSheet(builtOf(name), {});
+    return [...features.actions, ...features.bonusActions, ...features.reactions, ...features.traits].find((f) => f.name === feature)!.uses;
+  };
+  expect(usesOf("barbarian-5", "Rage")).toEqual({ amount: 3, recharge: "Long rest" });
+  expect(usesOf("fighter-5", "Second Wind")).toEqual({ amount: 1, recharge: "Short rest" });
+  expect(usesOf("wizard-1", "Arcane Recovery")).toEqual({ amount: 1, recharge: "Each day" });
+  expect(usesOf("fighter-5", "Dueling Fighting Style")).toBeUndefined();
 });

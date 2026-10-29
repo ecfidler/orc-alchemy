@@ -66,6 +66,9 @@
     font-weight: 500;
     letter-spacing: 0.1em;
   }
+  .ui-stat-box-values {
+    display: contents;
+  }
   .ui-stat-box-value {
     font-size: 32px;
     font-weight: 500;
@@ -239,6 +242,7 @@
   }
   .ui-use-circles {
     display: inline-flex;
+    flex-wrap: wrap;
     gap: 5px;
     align-items: center;
   }

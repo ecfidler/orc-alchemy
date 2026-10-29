@@ -36,7 +36,6 @@ test("XP is written on Enter, as an int", () => {
   fireEvent.change(field("Experience Points"), { target: { value: "900" } });
   fireEvent.keyDown(field("Experience Points"), { key: "Enter" });
   expect(engine().evaluate(useCharacter.getState().entity!).built.xps).toBe(900);
-  expect(preview().getByLabelText("XP").textContent).toBe("900");
   // A decimal is stored as its int, and the field shows what is stored. The same value does not write again.
   const before = useCharacter.getState().entity;
   fireEvent.change(field("Experience Points"), { target: { value: "900.9" } });
@@ -60,13 +59,14 @@ test("a field cleared is stored as an empty string", () => {
   expect(values["~:orcpub.entity.strict/values"]["~:orcpub.dnd.e5.character/bonds"]).toBe("");
 });
 
-test("the portrait shows under its URL when set", () => {
+test("the portrait shows in the builder under its URL when set", () => {
   open("description-portrait");
   expect(builder().queryByAltText("Portrait")).toBeNull();
   fireEvent.change(field("Image URL"), { target: { value: "https://example.com/p.png" } });
   fireEvent.keyDown(field("Image URL"), { key: "Enter" });
   expect(builder().getByAltText("Portrait").getAttribute("src")).toBe("https://example.com/p.png");
-  expect(preview().getByAltText("Portrait").getAttribute("src")).toBe("https://example.com/p.png");
+  // The sheet does not show the portrait (theme spec, "Not on the sheet in M8").
+  expect(preview().queryByAltText("Portrait")).toBeNull();
   fireEvent.change(field("Faction Image URL"), { target: { value: "https://example.com/f.png" } });
   fireEvent.keyDown(field("Faction Image URL"), { key: "Enter" });
   expect(builder().getByAltText("Faction image").getAttribute("src")).toBe("https://example.com/f.png");
