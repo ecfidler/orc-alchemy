@@ -21,6 +21,7 @@
 @import "./src/dialog.css";
 @import "./src/select.css";
 @import "./src/paper.css";
+@import "./src/tabs.css";
 
 /* Tailwind resolves this path from this file, so each app finds the package's classes. */
 @source "./src";

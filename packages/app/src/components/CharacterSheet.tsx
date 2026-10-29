@@ -1,8 +1,9 @@
 // The read-only character sheet: layout F of the theme spec (docs/design/theme.md,
-// "Character sheet"), two columns that become one in a narrow container.
+// "Character sheet"), two columns that become one in a narrow container. Under 720px
+// the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
-import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, UseBubble } from "@orc-alchemy/ui";
-import { useId, type ReactNode } from "react";
+import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, Tabs, UseBubble, type Tab } from "@orc-alchemy/ui";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { bonusStr, modStr, type Ability, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -27,6 +28,19 @@ const goldOf = (treasure: SheetItem[]) =>
 /** `preview`: the builder's preview leaves out what only matters in play (temporary hit points, death saves). */
 export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; preview?: boolean }) {
   const { spellcasting, features, equipment, details } = sheet;
+  const article = useRef<HTMLElement>(null);
+  const [narrow, setNarrow] = useState(false);
+  // Measured before paint, so a phone never shows layout F first. The builder preview keeps one long column.
+  // A width of 0 is a sheet that is not laid out (hidden, or in jsdom); it keeps layout F.
+  useLayoutEffect(() => {
+    const element = article.current;
+    if (preview || !element) return;
+    const measure = () => setNarrow(element.clientWidth > 0 && element.clientWidth < 720);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [preview]);
   const race = sheet.subrace ? `${sheet.race} (${sheet.subrace})` : sheet.race;
   const classes = sheet.classes.map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ""}`).join(" / ");
   const hitDice = sheet.classes.map((c) => `${c.level}d${c.hitDie}`).join(" + ");
@@ -57,8 +71,215 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
     ...equipment.treasure.filter((item) => !Object.hasOwn(COIN_GP, item.key)),
   ];
 
+  // Ability scores, saves, skills and passive perception: the left column of layout F, and part of the Stats tab.
+  // On a narrow sheet the ability boxes go in three columns above the saves and skills.
+  const abilitiesSection = (
+    <>
+      <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2.5 @max-[719px]:grid-cols-1">
+        <ShadedPanel className="content-start gap-4 px-1.5 pt-2 pb-[18px] @max-[719px]:grid-cols-3 @max-[719px]:gap-x-2.5 @max-[719px]:gap-y-5">
+          {sheet.abilities.map((a) => (
+            <StatBox key={a.ability} label={abbr(a.ability)} value={bonusStr(a.modifier)} oval={a.score} />
+          ))}
+        </ShadedPanel>
+        <div className="grid min-w-0 content-start gap-2.5">
+          <SmallBox label="Inspiration" value="" />
+          <SmallBox label="Proficiency Bonus" value={bonusStr(sheet.proficiencyBonus)} />
+          <FramedBox label="Saving Throws">
+            <ul className="grid gap-0.5">
+              {sheet.abilities.map((a) => (
+                <Line key={a.ability} proficient={a.saveProficient}>
+                  {bonusStr(a.save)} {ABILITY_NAMES[a.ability]}
+                </Line>
+              ))}
+            </ul>
+          </FramedBox>
+          <FramedBox label="Skills">
+            <ul className="grid gap-0.5">
+              {sheet.skills.map((skill) => (
+                <Line key={skill.key} proficient={skill.proficient}>
+                  {bonusStr(skill.bonus)} {skill.name} <Tag>{abbr(skill.ability)}</Tag>
+                  {skill.expertise && <Tag>expertise</Tag>}
+                </Line>
+              ))}
+            </ul>
+          </FramedBox>
+        </div>
+      </div>
+      <SmallBox label="Passive Perception" value={sheet.passivePerception} />
+    </>
+  );
+  const vitalsSection = (
+    <ShadedPanel className="@container/vitals">
+      <div className="flex justify-evenly gap-2">
+        <RowBox label="Armor Class" shield>
+          {sheet.armorClass}
+        </RowBox>
+        <RowBox label="Initiative">{modStr(sheet.initiative)}</RowBox>
+        <RowBox label="Speed">
+          {sheet.speeds.map((speed, i) => (
+            <div key={i} className={i > 0 ? "text-sm leading-snug" : undefined}>
+              {speed.feet} ft.{speed.label && ` (${speed.label})`}
+            </div>
+          ))}
+        </RowBox>
+      </div>
+      {/* The three boxes share a row only when the panel is wide enough for the death save circles. */}
+      <div
+        className={
+          preview
+            ? "grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2"
+            : "grid grid-cols-[minmax(0,4fr)_minmax(0,5fr)] gap-2 @min-[600px]/vitals:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)]"
+        }
+      >
+        <HitPoints
+          current={sheet.currentHitPoints ?? sheet.maxHitPoints}
+          max={sheet.maxHitPoints}
+          temporary={!preview}
+          className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
+        />
+        <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
+          <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
+        </FramedBox>
+        {!preview && (
+          <FramedBox label="Death saves" className="grid-rows-[1fr_auto]">
+            {/* The app records no death saves, so the circles are empty. */}
+            <div className="grid content-evenly gap-1.5">
+              <div className="flex items-center justify-between gap-1.5">
+                {/* The circles say "Successes", so the visible label is not read twice. */}
+                <span aria-hidden>
+                  <Label>Successes</Label>
+                </span>
+                <SlotCircles label="Successes" count={3} color="success" />
+              </div>
+              <div className="flex items-center justify-between gap-1.5">
+                <span aria-hidden>
+                  <Label>Failures</Label>
+                </span>
+                <SlotCircles label="Failures" count={3} color="caution" />
+              </div>
+            </div>
+          </FramedBox>
+        )}
+      </div>
+    </ShadedPanel>
+  );
+  const attacksSection =
+    (sheet.weaponAttacks.length > 0 || sheet.specialAttacks.length > 0) && (
+      <FramedBox label="Attacks">
+        {sheet.weaponAttacks.length > 0 && (
+          <>
+            <Table caption="Weapon attacks" headers={["Name", "Proficient?", "Attack", "Damage modifier"]}>
+              {sheet.weaponAttacks.map((weapon) => (
+                <tr key={weapon.key}>
+                  <Td>{weapon.name}</Td>
+                  <Td>{weapon.proficient ? "Yes" : "No"}</Td>
+                  <Td>{modStr(weapon.attackBonus)} to hit</Td>
+                  <Td>
+                    {modStr(weapon.damageModifier)}
+                    {weapon.offHandDamageModifier !== null && ` (off-hand ${modStr(weapon.offHandDamageModifier)})`}
+                  </Td>
+                </tr>
+              ))}
+            </Table>
+            <p className="text-sm text-ink-muted">Damage dice need content data, which is not available yet.</p>
+          </>
+        )}
+        {sheet.numberOfAttacks > 1 && (
+          <FieldList fields={[["Number of Attacks", [String(sheet.numberOfAttacks)]]]} />
+        )}
+        <Features items={sheet.specialAttacks} />
+      </FramedBox>
+    );
+  const featuresSection =
+    featureGroups.some(([, items]) => items.length > 0) && (
+      <FramedBox label="Features & traits">
+        <div className="grid gap-4">
+          {featureGroups.map(
+            ([title, items]) =>
+              items.length > 0 && (
+                <div key={title} className="grid gap-2.5">
+                  <h3 className="border-b border-rule font-sans text-[10.5px] font-medium tracking-[0.08em] text-ink-muted uppercase">
+                    {title}
+                  </h3>
+                  <Features items={items} />
+                </div>
+              ),
+          )}
+        </div>
+      </FramedBox>
+    );
+  const proficienciesSection =
+    proficiencies.some(([, values]) => values.length > 0) && (
+      <FramedBox label="Other proficiencies & languages">
+        <FieldList fields={proficiencies} />
+      </FramedBox>
+    );
+  const defensesSection =
+    defenses.some(([, values]) => values.length > 0) && (
+      <FramedBox label="Defenses">
+        <FieldList fields={defenses} />
+      </FramedBox>
+    );
+  const armorOptionsSection =
+    sheet.armorClassOptions.length > 0 && (
+      <FramedBox label="AC by armor">
+        <Table caption="Armor class options" headers={["Armor", "AC"]}>
+          {sheet.armorClassOptions.map((option, i) => (
+            <tr key={i}>
+              <Td>
+                {option.armor
+                  ? `${option.armor.name}${option.shield ? ` + ${option.shield.name}` : ""}`
+                  : `Unarmored${option.shield ? ` + ${option.shield.name}` : ""}`}
+              </Td>
+              <Td>{option.ac}</Td>
+            </tr>
+          ))}
+        </Table>
+      </FramedBox>
+    );
+  const notesSection =
+    details.notes !== null && (
+      <FramedBox label="Notes">
+        <div className="grid gap-1 text-[14.5px]">{paragraphs(details.notes)}</div>
+      </FramedBox>
+    );
+  const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
+  const spellcastingSection = spellcasting && <SpellcastingBox spellcasting={spellcasting} />;
+
+  // The phone layout (ORC-173): under 720px the sections go in tabs, without the empty ones.
+  const tabs: Tab[] = [
+    {
+      value: "stats",
+      label: "Stats",
+      color: "yellow",
+      content: (
+        <div className="grid gap-3">
+          {vitalsSection}
+          {attacksSection}
+          {abilitiesSection}
+        </div>
+      ),
+    },
+    { value: "spells", label: "Spells", color: "blue", content: spellcastingSection },
+    { value: "features", label: "Features", color: "green", content: featuresSection },
+    {
+      value: "more",
+      label: "More",
+      color: "orange",
+      content: (
+        <div className="grid gap-3">
+          {equipmentSection}
+          {proficienciesSection}
+          {defensesSection}
+          {armorOptionsSection}
+          {notesSection}
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <article className="@container mx-auto grid max-w-[960px] gap-4">
+    <article ref={article} className="@container mx-auto grid max-w-[960px] gap-4">
       <header className="grid items-start gap-3.5 @min-[720px]:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)]">
         <div className="grid content-end rounded-[6px_26px_26px_6px] border-[1.5px] border-rule-strong bg-paper-raised px-[18px] py-1.5">
           <h1 className="border-b border-rule-strong pb-0.5 text-[clamp(26px,4vw,36px)] leading-[1.05] font-medium">
@@ -75,182 +296,28 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
         </div>
       </header>
 
-      <div className="grid items-start gap-4 @min-[720px]:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
-        <div className="grid min-w-0 content-start gap-3">
-          {/* On a narrow sheet the ability boxes go in three columns above the saves and skills. */}
-          <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2.5 @max-[719px]:grid-cols-1">
-            <ShadedPanel className="content-start gap-4 px-1.5 pt-2 pb-[18px] @max-[719px]:grid-cols-3 @max-[719px]:gap-x-2.5 @max-[719px]:gap-y-5">
-              {sheet.abilities.map((a) => (
-                <StatBox key={a.ability} label={abbr(a.ability)} value={bonusStr(a.modifier)} oval={a.score} />
-              ))}
-            </ShadedPanel>
-            <div className="grid min-w-0 content-start gap-2.5">
-              <SmallBox label="Inspiration" value="" />
-              <SmallBox label="Proficiency Bonus" value={bonusStr(sheet.proficiencyBonus)} />
-              <FramedBox label="Saving Throws">
-                <ul className="grid gap-0.5">
-                  {sheet.abilities.map((a) => (
-                    <Line key={a.ability} proficient={a.saveProficient}>
-                      {bonusStr(a.save)} {ABILITY_NAMES[a.ability]}
-                    </Line>
-                  ))}
-                </ul>
-              </FramedBox>
-              <FramedBox label="Skills">
-                <ul className="grid gap-0.5">
-                  {sheet.skills.map((skill) => (
-                    <Line key={skill.key} proficient={skill.proficient}>
-                      {bonusStr(skill.bonus)} {skill.name} <Tag>{abbr(skill.ability)}</Tag>
-                      {skill.expertise && <Tag>expertise</Tag>}
-                    </Line>
-                  ))}
-                </ul>
-              </FramedBox>
-            </div>
+      {narrow ? (
+        <Tabs label="Sheet sections" tabs={tabs.filter((tab) => tab.content)} />
+      ) : (
+        <div className="grid items-start gap-4 @min-[720px]:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
+          <div className="grid min-w-0 content-start gap-3">
+            {abilitiesSection}
+            {equipmentSection}
           </div>
-          <SmallBox label="Passive Perception" value={sheet.passivePerception} />
-          <Equipment gold={goldOf(equipment.treasure)} gear={gear} />
+
+          <div className="grid min-w-0 content-start gap-3">
+            {vitalsSection}
+            {attacksSection}
+            {spellcastingSection}
+            {featuresSection}
+            {proficienciesSection}
+            {defensesSection}
+            {/* Layout F has no place for AC by armor. It is not on the spec's list of items to remove, so it stays, after Defenses. */}
+            {armorOptionsSection}
+            {notesSection}
+          </div>
         </div>
-
-        <div className="grid min-w-0 content-start gap-3">
-          <ShadedPanel className="@container/vitals">
-            <div className="flex justify-evenly gap-2">
-              <RowBox label="Armor Class" shield>
-                {sheet.armorClass}
-              </RowBox>
-              <RowBox label="Initiative">{modStr(sheet.initiative)}</RowBox>
-              <RowBox label="Speed">
-                {sheet.speeds.map((speed, i) => (
-                  <div key={i} className={i > 0 ? "text-sm leading-snug" : undefined}>
-                    {speed.feet} ft.{speed.label && ` (${speed.label})`}
-                  </div>
-                ))}
-              </RowBox>
-            </div>
-            {/* The three boxes share a row only when the panel is wide enough for the death save circles. */}
-            <div
-              className={
-                preview
-                  ? "grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2"
-                  : "grid grid-cols-[minmax(0,4fr)_minmax(0,5fr)] gap-2 @min-[600px]/vitals:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)]"
-              }
-            >
-              <HitPoints
-                current={sheet.currentHitPoints ?? sheet.maxHitPoints}
-                max={sheet.maxHitPoints}
-                temporary={!preview}
-                className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
-              />
-              <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
-                <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
-              </FramedBox>
-              {!preview && (
-                <FramedBox label="Death saves" className="grid-rows-[1fr_auto]">
-                  {/* The app records no death saves, so the circles are empty. */}
-                  <div className="grid content-evenly gap-1.5">
-                    <div className="flex items-center justify-between gap-1.5">
-                      {/* The circles say "Successes", so the visible label is not read twice. */}
-                      <span aria-hidden>
-                        <Label>Successes</Label>
-                      </span>
-                      <SlotCircles label="Successes" count={3} color="success" />
-                    </div>
-                    <div className="flex items-center justify-between gap-1.5">
-                      <span aria-hidden>
-                        <Label>Failures</Label>
-                      </span>
-                      <SlotCircles label="Failures" count={3} color="caution" />
-                    </div>
-                  </div>
-                </FramedBox>
-              )}
-            </div>
-          </ShadedPanel>
-
-          {(sheet.weaponAttacks.length > 0 || sheet.specialAttacks.length > 0) && (
-            <FramedBox label="Attacks">
-              {sheet.weaponAttacks.length > 0 && (
-                <>
-                  <Table caption="Weapon attacks" headers={["Name", "Proficient?", "Attack", "Damage modifier"]}>
-                    {sheet.weaponAttacks.map((weapon) => (
-                      <tr key={weapon.key}>
-                        <Td>{weapon.name}</Td>
-                        <Td>{weapon.proficient ? "Yes" : "No"}</Td>
-                        <Td>{modStr(weapon.attackBonus)} to hit</Td>
-                        <Td>
-                          {modStr(weapon.damageModifier)}
-                          {weapon.offHandDamageModifier !== null && ` (off-hand ${modStr(weapon.offHandDamageModifier)})`}
-                        </Td>
-                      </tr>
-                    ))}
-                  </Table>
-                  <p className="text-sm text-ink-muted">Damage dice need content data, which is not available yet.</p>
-                </>
-              )}
-              {sheet.numberOfAttacks > 1 && (
-                <FieldList fields={[["Number of Attacks", [String(sheet.numberOfAttacks)]]]} />
-              )}
-              <Features items={sheet.specialAttacks} />
-            </FramedBox>
-          )}
-
-          {spellcasting && <SpellcastingBox spellcasting={spellcasting} />}
-
-          {featureGroups.some(([, items]) => items.length > 0) && (
-            <FramedBox label="Features & traits">
-              <div className="grid gap-4">
-                {featureGroups.map(
-                  ([title, items]) =>
-                    items.length > 0 && (
-                      <div key={title} className="grid gap-2.5">
-                        <h3 className="border-b border-rule font-sans text-[10.5px] font-medium tracking-[0.08em] text-ink-muted uppercase">
-                          {title}
-                        </h3>
-                        <Features items={items} />
-                      </div>
-                    ),
-                )}
-              </div>
-            </FramedBox>
-          )}
-
-          {proficiencies.some(([, values]) => values.length > 0) && (
-            <FramedBox label="Other proficiencies & languages">
-              <FieldList fields={proficiencies} />
-            </FramedBox>
-          )}
-
-          {defenses.some(([, values]) => values.length > 0) && (
-            <FramedBox label="Defenses">
-              <FieldList fields={defenses} />
-            </FramedBox>
-          )}
-
-          {/* Layout F has no place for these. They are not on the spec's list of items to remove, so they stay, after Defenses. */}
-          {sheet.armorClassOptions.length > 0 && (
-            <FramedBox label="AC by armor">
-              <Table caption="Armor class options" headers={["Armor", "AC"]}>
-                {sheet.armorClassOptions.map((option, i) => (
-                  <tr key={i}>
-                    <Td>
-                      {option.armor
-                        ? `${option.armor.name}${option.shield ? ` + ${option.shield.name}` : ""}`
-                        : `Unarmored${option.shield ? ` + ${option.shield.name}` : ""}`}
-                    </Td>
-                    <Td>{option.ac}</Td>
-                  </tr>
-                ))}
-              </Table>
-            </FramedBox>
-          )}
-
-          {details.notes !== null && (
-            <FramedBox label="Notes">
-              <div className="grid gap-1 text-[14.5px]">{paragraphs(details.notes)}</div>
-            </FramedBox>
-          )}
-        </div>
-      </div>
+      )}
     </article>
   );
 }
