@@ -123,6 +123,7 @@ test("wizard-20 spellcasting", () => {
       ability: "int",
       saveDc: built["spell-modifiers"].Wizard!["spell-save-dc"],
       attackBonus: built["spell-modifiers"].Wizard!["spell-attack-modifier"],
+      prepares: true,
       canPrepare: built["prepare-spell-count"].Wizard,
     },
   ]);
@@ -132,7 +133,7 @@ test("wizard-20 spellcasting", () => {
 
 test("wizard-1 knows spells through its race, which does not prepare", () => {
   const casters = toSheet(builtOf("wizard-1"), {}).spellcasting!.casters;
-  expect(casters.find((c) => c.name === "High Elf")).toMatchObject({ ability: "int", canPrepare: null });
+  expect(casters.find((c) => c.name === "High Elf")).toMatchObject({ ability: "int", prepares: false, canPrepare: null });
 });
 
 test("barbarian-5 speed depends on armor", () => {

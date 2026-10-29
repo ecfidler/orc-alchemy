@@ -82,14 +82,19 @@ test("a bundle's custom magic items load, and the sheet shows the ones the chara
   await expect(page.getByRole("definition").filter({ hasText: "Fire" })).toBeVisible();
 });
 
-test("wizard-1 marks its prepared spells", async ({ page }) => {
+test("wizard-1 lists its prepared spells, with a source tag on each", async ({ page }) => {
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "wizard-1.strict.json"));
 
-  const first = page.getByRole("table", { name: "1st Level" });
-  await expect(first.getByRole("row", { name: /^Alarm / })).toContainText("Yes");
-  await expect(first.getByRole("row", { name: /^Detect Magic / })).toContainText("—");
-  await expect(first.getByRole("cell", { name: "Yes" })).toHaveCount(4);
+  const spells = page.getByRole("table", { name: "Spells by level" });
+  await expect(spells.getByRole("columnheader", { name: "Spells" })).toBeVisible();
+  await expect(spells.getByRole("row", { name: /^1st / }).getByRole("listitem")).toHaveText([
+    "Alarm Wizard",
+    "Burning Hands Wizard",
+    "Charm Person Wizard",
+    "Color Spray Wizard",
+  ]);
+  await expect(page.getByRole("group", { name: "High Elf" }).getByLabel("Spell save DC")).toHaveText("13");
 });
 
 test("without IndexedDB, import still opens the sheet and a notice says nothing is saved", async ({ page }) => {

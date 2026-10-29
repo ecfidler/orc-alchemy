@@ -3,7 +3,7 @@
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
 import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, UseBubble } from "@orc-alchemy/ui";
 import { useId, type ReactNode } from "react";
-import { bonusStr, modStr, type Ability, type Sheet, type SheetFeature, type SheetItem } from "../engine/sheet.ts";
+import { bonusStr, modStr, type Ability, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
 const ABILITY_NAMES: Record<Ability, string> = {
@@ -55,8 +55,6 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
     ...equipment.other,
     ...equipment.treasure.filter((item) => !Object.hasOwn(COIN_GP, item.key)),
   ];
-  // The leveled spell tables get a Prepared column when a class prepares spells.
-  const prepares = spellcasting?.casters.some((caster) => caster.canPrepare !== null) ?? false;
 
   return (
     <article className="@container mx-auto grid max-w-[960px] gap-4">
@@ -181,50 +179,7 @@ export function CharacterSheet({ sheet }: { sheet: Sheet }) {
             </FramedBox>
           )}
 
-          {/* The current spell section stays until the Spellcasting section is built (ORC-168). */}
-          {spellcasting && (
-            <FramedBox label="Spells">
-              <div className="grid gap-4">
-                {spellcasting.slots.length > 0 && (
-                  <Table caption="Spell Slots" showCaption headers={spellcasting.slots.map((slot) => ordinal(slot.level))}>
-                    <tr>
-                      {spellcasting.slots.map((slot) => (
-                        <Td key={slot.level}>{slot.count}</Td>
-                      ))}
-                    </tr>
-                  </Table>
-                )}
-                <Table caption="Spellcasting" showCaption headers={["Class", "Ability", "Save DC", "Attack", "Can Prepare"]}>
-                  {spellcasting.casters.map((caster) => (
-                    <tr key={caster.name}>
-                      <Td>{caster.name}</Td>
-                      <Td>{abbr(caster.ability)}</Td>
-                      <Td>{caster.saveDc}</Td>
-                      <Td>{bonusStr(caster.attackBonus)}</Td>
-                      <Td>{caster.canPrepare === null ? "—" : `${caster.canPrepare}/day`}</Td>
-                    </tr>
-                  ))}
-                </Table>
-                {spellcasting.byLevel.map(({ level, spells }) => (
-                  <Table
-                    key={level}
-                    caption={level === 0 ? "Cantrips" : `${ordinal(level)} Level`}
-                    showCaption
-                    headers={["Name", "Source", "Ability", ...(level > 0 && prepares ? ["Prepared"] : [])]}
-                  >
-                    {spells.map((spell) => (
-                      <tr key={`${spell.source}/${spell.key}`}>
-                        <Td>{spell.name}</Td>
-                        <Td>{spell.source}</Td>
-                        <Td>{abbr(spell.ability)}</Td>
-                        {level > 0 && prepares && <Td>{spell.prepared ? "Yes" : "—"}</Td>}
-                      </tr>
-                    ))}
-                  </Table>
-                ))}
-              </div>
-            </FramedBox>
-          )}
+          {spellcasting && <SpellcastingBox spellcasting={spellcasting} />}
 
           {featureGroups.some(([, items]) => items.length > 0) && (
             <FramedBox label="Features & traits">
@@ -338,6 +293,114 @@ function RowBox({ label, shield = false, children }: { label: string; shield?: b
   );
 }
 
+/**
+ * The Spellcasting section of the theme spec: a row of boxes for each source,
+ * then one table row for each level, with the shared slots and the spells.
+ * A source that prepares shows only its prepared spells. Other sources show
+ * all known spells.
+ */
+function SpellcastingBox({ spellcasting }: { spellcasting: Spellcasting }) {
+  const { casters, slots, byLevel } = spellcasting;
+  const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
+  // A spell's source can have no boxes, so the sources come from the spells too.
+  const sources = new Set([...casters.map((caster) => caster.name), ...byLevel.flatMap((row) => row.spells.map((spell) => spell.source))]);
+  const several = sources.size > 1;
+  const title = several ? "Spells" : prepares.get([...sources][0]) ? "Prepared spells" : "Known spells";
+  const rows = [...new Set([...slots.map((slot) => slot.level), ...byLevel.map((row) => row.level)])]
+    .sort((a, b) => a - b)
+    .map((level) => ({
+      level,
+      slots: slots.find((slot) => slot.level === level)?.count ?? 0,
+      spells: (byLevel.find((row) => row.level === level)?.spells ?? [])
+        .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .filter((row) => row.slots > 0 || row.spells.length > 0);
+  return (
+    <FramedBox label="Spellcasting" className="gap-2.5">
+      {casters.length > 0 && (
+        <ShadedPanel>
+          {casters.map((caster) => (
+            <CasterRow key={caster.name} caster={caster} named={several} />
+          ))}
+        </ShadedPanel>
+      )}
+      <table className="w-full table-fixed border-collapse text-left text-[14.5px]">
+        <caption className="sr-only">Spells by level</caption>
+        <colgroup>
+          <col className="w-20 @max-[719px]:w-[58px]" />
+          <col className="w-[98px]" />
+          <col />
+        </colgroup>
+        <thead>
+          <tr className="border-b border-rule-strong">
+            <th scope="col" className="pb-0.5 text-center font-normal">
+              <Label>Level</Label>
+            </th>
+            <th scope="col" className="pb-0.5 pl-2.5 font-normal">
+              <Label>Slots</Label>
+            </th>
+            <th scope="col" className="pb-0.5 pl-3 font-normal @max-[719px]:pl-2">
+              <Label>{title}</Label>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ level, slots, spells }) => (
+            <tr key={level} className="border-b border-rule last:border-0">
+              <th
+                scope="row"
+                className={`border-r border-rule py-1.5 pr-2.5 text-center leading-[1.1] font-medium ${
+                  level === 0 ? "text-base @max-[719px]:text-[13px]" : "text-2xl @max-[719px]:text-xl"
+                }`}
+              >
+                {level === 0 ? "Cantrips" : ordinal(level)}
+              </th>
+              <td className="border-r border-rule py-1.5 pl-2.5">
+                {slots > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slots} />}
+              </td>
+              <td className="py-1.5 pl-3 align-top @max-[719px]:pl-2">
+                {/* role="list": without bullets, Safari does not name a ul as a list. */}
+                <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
+                  {spells.map((spell) => (
+                    // With a tag, the name and its tag stay on one line.
+                    <li key={`${spell.source}/${spell.key}`} className={several ? "whitespace-nowrap" : undefined}>
+                      {spell.name}
+                      {several && <> <Tag>{spell.source}</Tag></>}
+                    </li>
+                  ))}
+                </ul>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </FramedBox>
+  );
+}
+
+/**
+ * One source's spell save DC, spell attack and spellcasting ability. With
+ * several sources, the row is a group named by its source.
+ */
+function CasterRow({ caster, named }: { caster: Spellcasting["casters"][number]; named: boolean }) {
+  const id = useId();
+  const boxes = (
+    <div className="flex justify-evenly gap-2">
+      <RowBox label="Spell save DC">{caster.saveDc}</RowBox>
+      <RowBox label="Spell attack">{bonusStr(caster.attackBonus)}</RowBox>
+      <RowBox label="Spellcasting ability">{abbr(caster.ability)}</RowBox>
+    </div>
+  );
+  if (!named) return boxes;
+  return (
+    <div role="group" aria-labelledby={id} className="grid gap-1">
+      <Label id={id}>{caster.name}</Label>
+      {boxes}
+    </div>
+  );
+}
+
 /** Hit points: temporary on the left (the sheet has none, so it is empty), then current / max. */
 function HitPoints({ current, max, className }: { current: number; max: number; className?: string }) {
   const id = useId();
@@ -438,10 +501,10 @@ function Features({ items }: { items: SheetFeature[] }) {
   );
 }
 
-function Table({ caption, headers, showCaption = false, children }: { caption: string; headers: string[]; showCaption?: boolean; children: ReactNode }) {
+function Table({ caption, headers, children }: { caption: string; headers: string[]; children: ReactNode }) {
   return (
     <table className="w-full border-collapse text-left text-[14.5px]">
-      <caption className={showCaption ? "text-left font-semibold" : "sr-only"}>{caption}</caption>
+      <caption className="sr-only">{caption}</caption>
       <thead>
         <tr>
           {headers.map((header) => (
