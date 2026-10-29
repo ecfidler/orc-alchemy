@@ -76,7 +76,7 @@ borders and marks. Every text pair passes in both modes.
 | `--rule-strong` | Box borders and disabled field borders (an active field's border is `--ink`) | #8A8578 | #6B6B6B | 3.59 / 3.94 |
 | `--danger` | Errors, "failed" (red) | #C2271D | #FF5C52 | 5.69 / 6.90 |
 | `--success` | Saved, death-save successes (green) | #1F7A3A | #4ED07A | 5.25 / 10.63 |
-| `--info` | Links, use bubbles, focus ring (blue) | #1E5FB4 | #5EA2FF | 6.12 / 8.09 |
+| `--info` | Use bubbles, focus ring (blue). Links stay `--ink` with an underline (Ethan, ORC-170) | #1E5FB4 | #5EA2FF | 6.12 / 8.09 |
 | `--warning` | Warning text (yellow) | #7F6200 | #FFD93D | 5.62 / 15.24 |
 | `--caution` | A bad mark that is not an error, for example death-save failures (orange) | #B85A00 | #FF9A3D | 4.55 / 9.94 |
 | `--note` | Stuck note and alert note fill (yellow) | #FFE45C | #FFE45C | — |
