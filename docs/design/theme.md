@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-25T19:00:00Z }
+generated: { by: claude-code/agent, at: 2026-10-29T19:40:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -358,7 +358,8 @@ ORC-149.
 # Character sheet
 
 Layout F (ORC-145, ORC-153). Two columns at about 1 : 2, max width 960px.
-Labels are under values. One column on a phone.
+Labels are under values. Under 720px, the sections go in tabs (see Small
+screens and motion).
 
 ## Header
 
@@ -442,10 +443,30 @@ and in exports. Only the sheet stops showing it.
 
 # Small screens and motion
 
-M8 does not design a phone layout. These rules from the prototypes apply:
+The phone layout of the character sheet is ORC-173. These rules apply:
 
-* The sheet is one column on a phone. The AC, initiative and speed boxes
-  share the width, up to 112px each.
+* When the sheet is narrower than 720px, its sections go in four tabs. At
+  720px and wider, the sheet is layout F.
+* The sheet header and the Build and Export links are above the tabs, and
+  scroll away. The tab row sticks to the top of the page.
+* The tabs, in order:
+  1. **Stats:** AC, initiative and speed, hit points, hit dice and death
+     saves, then Attacks, then the ability column (abilities, inspiration,
+     proficiency bonus, saving throws, skills, passive perception).
+  2. **Spells:** Spellcasting.
+  3. **Features:** Features & traits.
+  4. **More:** Equipment (with the Gold box), Other proficiencies &
+     languages, Defenses, AC by armor and Notes.
+* A tab with nothing in it does not show. A non-caster has no Spells tab.
+* The sheet always opens on Stats. The app does not remember the tab, and
+  the tab is not in the URL.
+* The tabs are flag tabs in a row on a rule, yellow, blue, green and
+  orange, and the current tab is taller (`Tabs` in `@orc-alchemy/ui`).
+  After a switch with the row stuck, the page scrolls back so the new tab
+  starts under the row. There are no swipe gestures.
+* The builder preview has no tabs. It keeps one long column.
+* In one column, the AC, initiative and speed boxes share the width, up to
+  112px each.
 * At 680px and below, the shell rail becomes a top strip with the margin
   rule along its bottom. The tabs stand in a row on the rule, and the
   current tab is taller.
@@ -485,8 +506,6 @@ tests, because font rendering differs between machines.
 * A page-by-page layout redesign of the builder, homebrew forms, import and
   export pages. It needs its own prototypes. M8 gives these pages the
   tokens, fonts, controls and notes only.
-* A phone layout. M8 keeps only the phone rules above. A real phone pass
-  needs its own prototypes.
 * Motion and the lead-to-gold animation. They need art and a reduced-motion
   plan first.
 * An icon set. The app uses text labels, and no M8 decision needs icons.
