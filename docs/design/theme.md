@@ -358,7 +358,8 @@ ORC-149.
 # Character sheet
 
 Layout F (ORC-145, ORC-153). Two columns at about 1 : 2, max width 960px.
-Labels are under values. One column on a phone.
+Labels are under values. Under 720px, the sections go in tabs (see Small
+screens and motion).
 
 ## Header
 
@@ -454,10 +455,11 @@ The phone layout of the character sheet is ORC-173. These rules apply:
      proficiency bonus, saving throws, skills, passive perception).
   2. **Spells:** Spellcasting.
   3. **Features:** Features & traits.
-  4. **More:** Equipment, Other proficiencies & languages, Defenses, AC by
-     armor and Notes.
+  4. **More:** Equipment (with the Gold box), Other proficiencies &
+     languages, Defenses, AC by armor and Notes.
 * A tab with nothing in it does not show. A non-caster has no Spells tab.
-* The sheet always opens on Stats. The app does not remember the tab.
+* The sheet always opens on Stats. The app does not remember the tab, and
+  the tab is not in the URL.
 * The tabs are flag tabs in a row on a rule, yellow, blue, green and
   orange, and the current tab is taller (`Tabs` in `@orc-alchemy/ui`).
   After a switch with the row stuck, the page scrolls back so the new tab

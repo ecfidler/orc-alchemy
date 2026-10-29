@@ -1,5 +1,6 @@
 // The read-only character sheet: layout F of the theme spec (docs/design/theme.md,
-// "Character sheet"), two columns that become one in a narrow container.
+// "Character sheet"), two columns that become one in a narrow container. Under 720px
+// the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
 import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, Tabs, UseBubble, type Tab } from "@orc-alchemy/ui";
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -71,7 +72,8 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
   ];
 
   // Ability scores, saves, skills and passive perception: the left column of layout F, and part of the Stats tab.
-  const abilities = (
+  // On a narrow sheet the ability boxes go in three columns above the saves and skills.
+  const abilitiesSection = (
     <>
       <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2.5 @max-[719px]:grid-cols-1">
         <ShadedPanel className="content-start gap-4 px-1.5 pt-2 pb-[18px] @max-[719px]:grid-cols-3 @max-[719px]:gap-x-2.5 @max-[719px]:gap-y-5">
@@ -106,7 +108,7 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       <SmallBox label="Passive Perception" value={sheet.passivePerception} />
     </>
   );
-  const vitals = (
+  const vitalsSection = (
     <ShadedPanel className="@container/vitals">
       <div className="flex justify-evenly gap-2">
         <RowBox label="Armor Class" shield>
@@ -161,7 +163,7 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       </div>
     </ShadedPanel>
   );
-  const attacks =
+  const attacksSection =
     (sheet.weaponAttacks.length > 0 || sheet.specialAttacks.length > 0) && (
       <FramedBox label="Attacks">
         {sheet.weaponAttacks.length > 0 && (
@@ -188,7 +190,7 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
         <Features items={sheet.specialAttacks} />
       </FramedBox>
     );
-  const featuresBox =
+  const featuresSection =
     featureGroups.some(([, items]) => items.length > 0) && (
       <FramedBox label="Features & traits">
         <div className="grid gap-4">
@@ -206,19 +208,19 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
         </div>
       </FramedBox>
     );
-  const otherProficiencies =
+  const proficienciesSection =
     proficiencies.some(([, values]) => values.length > 0) && (
       <FramedBox label="Other proficiencies & languages">
         <FieldList fields={proficiencies} />
       </FramedBox>
     );
-  const defensesBox =
+  const defensesSection =
     defenses.some(([, values]) => values.length > 0) && (
       <FramedBox label="Defenses">
         <FieldList fields={defenses} />
       </FramedBox>
     );
-  const armorOptions =
+  const armorOptionsSection =
     sheet.armorClassOptions.length > 0 && (
       <FramedBox label="AC by armor">
         <Table caption="Armor class options" headers={["Armor", "AC"]}>
@@ -235,14 +237,14 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
         </Table>
       </FramedBox>
     );
-  const notes =
+  const notesSection =
     details.notes !== null && (
       <FramedBox label="Notes">
         <div className="grid gap-1 text-[14.5px]">{paragraphs(details.notes)}</div>
       </FramedBox>
     );
-  const equipmentBox = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
-  const spellsBox = spellcasting && <SpellcastingBox spellcasting={spellcasting} />;
+  const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
+  const spellcastingSection = spellcasting && <SpellcastingBox spellcasting={spellcasting} />;
 
   // The phone layout (ORC-173): under 720px the sections go in tabs, without the empty ones.
   const tabs: Tab[] = [
@@ -252,25 +254,25 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       color: "yellow",
       content: (
         <div className="grid gap-3">
-          {vitals}
-          {attacks}
-          {abilities}
+          {vitalsSection}
+          {attacksSection}
+          {abilitiesSection}
         </div>
       ),
     },
-    { value: "spells", label: "Spells", color: "blue", content: spellsBox },
-    { value: "features", label: "Features", color: "green", content: featuresBox },
+    { value: "spells", label: "Spells", color: "blue", content: spellcastingSection },
+    { value: "features", label: "Features", color: "green", content: featuresSection },
     {
       value: "more",
       label: "More",
       color: "orange",
       content: (
         <div className="grid gap-3">
-          {equipmentBox}
-          {otherProficiencies}
-          {defensesBox}
-          {armorOptions}
-          {notes}
+          {equipmentSection}
+          {proficienciesSection}
+          {defensesSection}
+          {armorOptionsSection}
+          {notesSection}
         </div>
       ),
     },
@@ -299,20 +301,20 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       ) : (
         <div className="grid items-start gap-4 @min-[720px]:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
           <div className="grid min-w-0 content-start gap-3">
-            {abilities}
-            {equipmentBox}
+            {abilitiesSection}
+            {equipmentSection}
           </div>
 
           <div className="grid min-w-0 content-start gap-3">
-            {vitals}
-            {attacks}
-            {spellsBox}
-            {featuresBox}
-            {otherProficiencies}
-            {defensesBox}
+            {vitalsSection}
+            {attacksSection}
+            {spellcastingSection}
+            {featuresSection}
+            {proficienciesSection}
+            {defensesSection}
             {/* Layout F has no place for AC by armor. It is not on the spec's list of items to remove, so it stays, after Defenses. */}
-            {armorOptions}
-            {notes}
+            {armorOptionsSection}
+            {notesSection}
           </div>
         </div>
       )}

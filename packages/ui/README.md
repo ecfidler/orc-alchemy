@@ -158,6 +158,10 @@ bun run test       # vitest
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.
+  - `Tabs`: flag tabs that switch panels. It takes a `label` and `tabs`, each
+    `{ value, label, color, content }`. The first tab is open at first. The
+    tab row sticks to the top of the page, and after a switch with the row
+    stuck, the page scrolls back so the new panel starts under the row.
   - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
   - `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
 - `./testing`: test helpers for Vitest with Testing Library. An app that

@@ -5,6 +5,8 @@ import { Tabs } from "./Tabs.tsx";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  // jsdom has no scrollIntoView; one test stubs it.
+  delete (Element.prototype as Partial<Element>).scrollIntoView;
 });
 
 const tabs = [
