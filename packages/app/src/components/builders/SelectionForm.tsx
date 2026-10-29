@@ -40,7 +40,7 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
               >
                 <label className="mr-4 inline-block">
                   Option {n} name{" "}
-                  <input type="text" value={String(option[tag("name")] ?? "")} onChange={(e) => edit.set(["options", i, "name"], e.target.value)} className="border border-black px-1" />
+                  <input type="text" value={String(option[tag("name")] ?? "")} onChange={(e) => edit.set(["options", i, "name"], e.target.value)} className="border border-ink px-1" />
                 </label>
               </Field>
               <Button onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} size="small">
@@ -48,7 +48,7 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
               </Button>
               <label className="block">
                 Option {n} description
-                <textarea value={String(option[tag("description")] ?? "")} onChange={(e) => edit.set(["options", i, "description"], e.target.value)} className="block w-full border border-black" />
+                <textarea value={String(option[tag("description")] ?? "")} onChange={(e) => edit.set(["options", i, "description"], e.target.value)} className="block w-full border border-ink" />
               </label>
             </div>
           );

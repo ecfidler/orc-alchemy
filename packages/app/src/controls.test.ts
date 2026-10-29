@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 
@@ -43,4 +44,26 @@ test("the app has no window.confirm; it asks with useConfirm", () => {
 // ORC-164: every pick is the package Select, Combobox, Menu or Autocomplete.
 test("the app has no native select or datalist", () => {
   expect(sources.filter(({ text }) => /(^|[^"'\w])<(select|datalist)[\s>]/m.test(text)).map(({ file }) => file)).toEqual([]);
+});
+
+// ORC-170: every color is a role token; Tailwind's default colors are gone.
+test("the app CSS removes Tailwind's default colors before the role tokens", () => {
+  const css = readFileSync(join(import.meta.dirname, "index.css"), "utf8");
+  expect(css.indexOf("--color-*: initial;")).toBeGreaterThan(css.indexOf('@import "tailwindcss";'));
+  expect(css.indexOf("--color-*: initial;")).toBeLessThan(css.indexOf('@import "@orc-alchemy/ui/theme.css";'));
+});
+
+// The palette names come from the installed Tailwind, so a new palette is caught too.
+const palette = [...readFileSync(createRequire(import.meta.url).resolve("tailwindcss/theme.css"), "utf8").matchAll(/--color-([a-z]+)-50:/g)]
+  .map((match) => match[1])
+  .join("|");
+
+test("the app uses no Tailwind default color class or arbitrary color", () => {
+  const color = new RegExp(`\\b[a-z]+-(?:(?:${palette})-\\d{2,3}|black|white)\\b|-\\[(?:#|rgb|hsl|oklch|oklab|lab|lch|color)|--color-(?:${palette}|black|white)\\b`);
+  const styles = readdirSync(import.meta.dirname, { recursive: true, encoding: "utf8" })
+    .filter((file) => file.endsWith(".css"))
+    .map((file) => ({ file, text: readFileSync(join(import.meta.dirname, file), "utf8") }));
+  expect(palette).toContain("gray");
+  expect([...sources, ...styles].filter(({ text }) => color.test(text)).map(({ file }) => file)).toEqual([]);
+  expect(sources.filter(({ text }) => /style=\{\{[^}]*\b(?:color|background)/.test(text)).map(({ file }) => file)).toEqual([]);
 });

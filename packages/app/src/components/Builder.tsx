@@ -91,8 +91,8 @@ export function Builder() {
           </>
         )}
       </section>
-      <section aria-label="Preview" className="border-t border-black pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-        {sheet && <CharacterSheet sheet={sheet} />}
+      <section aria-label="Preview" className="border-t border-rule-strong pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        {sheet && <CharacterSheet sheet={sheet} preview />}
       </section>
     </div>
   );
@@ -128,7 +128,7 @@ function Options({ selection }: { selection: BuilderSelection }) {
       <Heading id={id} selection={selection} />
       {isClass ? <Classes selection={selection} /> : !selection.sequential && <OptionCards selection={selection} options={selection.options} />}
       {opened.map((option) => (
-        <div key={option.key} className="ml-2 space-y-4 border-l border-black pl-4">
+        <div key={option.key} className="ml-2 space-y-4 border-l border-rule-strong pl-4">
           <h4 className="italic">{option.name}</h4>
           {option.selections.map((child) => (
             <Selection key={JSON.stringify(child.actualPath)} selection={child} />

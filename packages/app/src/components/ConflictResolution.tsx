@@ -80,7 +80,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
       <ul className="space-y-2">
         {conflicts.map((conflict) => (
           <li key={conflict.id}>
-            <Fieldset legend={`${conflict["content-type-name"]}: ${conflict.key}`} className="border-l-4 border-black pl-2">
+            <Fieldset legend={`${conflict["content-type-name"]}: ${conflict.key}`} className="border-l-4 border-rule-strong pl-2">
               <ConflictText conflict={conflict} homebrew={pending.homebrew} />
               {settledBy(conflict, conflicts, pending.homebrew) ? (
                 <p>The choice for {conflict.key} in more than one pack of the file settles this one: it renames or removes this copy.</p>

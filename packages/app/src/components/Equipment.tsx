@@ -104,7 +104,7 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                 aria-label={`Custom item ${i + 1} name`}
                 value={item.name}
                 onChange={(event) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { name: event.target.value }))}
-                className="flex-grow border border-black p-1"
+                className="flex-grow border border-ink p-1"
               />
             )}
             <BoundedNumberField

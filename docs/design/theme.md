@@ -73,10 +73,10 @@ borders and marks. Every text pair passes in both modes.
 | `--ink` | Body text | #222222 | #FFFFFF | 15.53 / 21.00 |
 | `--ink-muted` | Labels, secondary text, the max of a current / max pair | #595959 | #ADADAD | 6.84 / 9.36 |
 | `--rule` | Hairlines (decoration only) | #E3DECE | #222222 | — |
-| `--rule-strong` | Field and box borders | #8A8578 | #6B6B6B | 3.59 / 3.94 |
+| `--rule-strong` | Box borders and disabled field borders (an active field's border is `--ink`) | #8A8578 | #6B6B6B | 3.59 / 3.94 |
 | `--danger` | Errors, "failed" (red) | #C2271D | #FF5C52 | 5.69 / 6.90 |
 | `--success` | Saved, death-save successes (green) | #1F7A3A | #4ED07A | 5.25 / 10.63 |
-| `--info` | Links, use bubbles, focus ring (blue) | #1E5FB4 | #5EA2FF | 6.12 / 8.09 |
+| `--info` | Use bubbles, focus ring (blue). Links stay `--ink` with an underline (Ethan, ORC-170) | #1E5FB4 | #5EA2FF | 6.12 / 8.09 |
 | `--warning` | Warning text (yellow) | #7F6200 | #FFD93D | 5.62 / 15.24 |
 | `--caution` | A bad mark that is not an error, for example death-save failures (orange) | #B85A00 | #FF9A3D | 4.55 / 9.94 |
 | `--note` | Stuck note and alert note fill (yellow) | #FFE45C | #FFE45C | — |
@@ -171,8 +171,9 @@ peer dependency.
 * **Base UI stays inside the package.** The app imports controls only from
   `@orc-alchemy/ui`, never from `@base-ui/react`. `@base-ui/react` moves from
   the app's dependencies to the package's.
-* **Tailwind's default colors** stay in the app until the last M8 ticket,
-  which removes them with `--color-*: initial`.
+* **Tailwind's default colors** are removed from the app with
+  `--color-*: initial` in its CSS (ORC-170). Only the role tokens make
+  color utilities.
 * **Note:** ORC-148 assumes that Demiplane's web pages become a sibling
   workspace package that uses this package. If they go to another
   repository, publishing the package is Demiplane work.

@@ -37,7 +37,7 @@ const show = (value: unknown) => (typeof value === "string" ? value : JSON.strin
 const bare = (value: unknown) => show(value).replace(/^.*\//, "");
 
 function Code({ children }: { children: ReactNode }) {
-  return <code className="bg-gray-100 px-1">{children}</code>;
+  return <code className="bg-panel px-1">{children}</code>;
 }
 
 /** One change, worded as the old import log words it (views/import_log.cljs, format-change-item). */
@@ -116,7 +116,7 @@ function ChangeList({ changes }: { changes: Change[] }) {
 /** A log section. A warning, which needs nothing from the user, has its title in the warning color, not a stuck note. */
 function Section({ title, open = true, warning = false, children }: { title: string; open?: boolean; warning?: boolean; children: ReactNode }) {
   return (
-    <details open={open} className="border-l-4 border-black pl-2">
+    <details open={open} className="border-l-4 border-rule-strong pl-2">
       <summary className={`cursor-pointer font-bold${warning ? " text-warning" : ""}`}>{title}</summary>
       {children}
     </details>
@@ -139,7 +139,7 @@ export function ImportLog({ result }: { result: LastImport }) {
   const clean = errors.length === 0 && skipped.length === 0 && changes.length === 0 && conflicts.length === 0 && backgroundKeyWarnings.length === 0;
 
   return (
-    <section aria-label="Import log" className="space-y-2 border border-black p-2">
+    <section aria-label="Import log" className="space-y-2 border border-rule-strong p-2">
       <h3 className="font-bold">Import log: {fileName}</h3>
       <p role="status" className="whitespace-pre-line">
         {log.message}

@@ -57,14 +57,14 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search"
-          className="border border-black p-1"
+          className="border border-ink p-1"
         />
       </div>
       <OptionCards selection={selection} options={shown} />
       {chosen
         .filter((o) => o.selections.length > 0)
         .map((option) => (
-          <div key={option.key} className="ml-2 space-y-4 border-l border-black pl-4">
+          <div key={option.key} className="ml-2 space-y-4 border-l border-rule-strong pl-4">
             <h4 className="italic">{option.name}</h4>
             {option.selections.map((child) =>
               child.tags.includes("spells") ? (

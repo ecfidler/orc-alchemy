@@ -167,7 +167,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
                 ))}
               </tr>
             ))}
-          <tr className="border-t border-black font-bold">
+          <tr className="border-t border-rule-strong font-bold">
             <th scope="row" className="text-left">
               Total
             </th>

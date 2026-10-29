@@ -133,7 +133,7 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
     >
       <h1 className="text-xl">{`${editing ? "Edit" : "New"} ${one}`}</h1>
       {others.length > 0 && (
-        <ul aria-label="Problems" className="text-red-700">
+        <ul aria-label="Problems" className="text-danger">
           {others.map((problem, i) => (
             <li key={i}>{problemText(problem.path.join(" "), problem)}</li>
           ))}

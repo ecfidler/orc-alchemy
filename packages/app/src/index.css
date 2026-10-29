@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* The app uses only the role tokens, so Tailwind's default colors go. */
+@theme {
+  --color-*: initial;
+}
 @import "@orc-alchemy/ui/theme.css";
 
 /* Base UI popups portal to the body; isolating the app root keeps them above it. */

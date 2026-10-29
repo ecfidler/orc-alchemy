@@ -73,7 +73,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       label,
       <label className="block">
         {label}{" "}
-        <input type="text" value={String(record[tag(name)] ?? "")} onChange={(e) => set(name, e.target.value)} className="border border-black px-1" />
+        <input type="text" value={String(record[tag(name)] ?? "")} onChange={(e) => set(name, e.target.value)} className="border border-ink px-1" />
       </label>,
     );
   // Each option's value is its text, as in the old dropdowns.
@@ -165,7 +165,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
         "Special traits",
         <label className="block">
           Special traits
-          <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-black" rows={4} />
+          <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-ink" rows={4} />
         </label>,
       )}
       <Fieldset legend="Actions / features" errors={fieldErrors(problems, "traits", "Actions / features")}>
@@ -175,7 +175,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
             <div key={i} className="mb-3">
               <label className="mr-4 inline-block">
                 Feature {n} name{" "}
-                <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => setTrait(i, tag("name"), e.target.value)} className="border border-black px-1" />
+                <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => setTrait(i, tag("name"), e.target.value)} className="border border-ink px-1" />
               </label>
               {select(`Feature ${n} type`, trait[tag("type")], TRAIT_TYPES, (v) => setTrait(i, tag("type"), v || undefined))}
               <Button onClick={() => set("traits", traits.filter((_, j) => j !== i))} size="small">
@@ -183,7 +183,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
               </Button>
               <label className="block">
                 Feature {n} description
-                <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => setTrait(i, tag("description"), e.target.value)} className="block w-full border border-black" />
+                <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => setTrait(i, tag("description"), e.target.value)} className="block w-full border border-ink" />
               </label>
             </div>
           );
@@ -200,7 +200,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
           <textarea
             value={String(map("legendary-actions")[tag("description")] ?? "")}
             onChange={(e) => setIn("legendary-actions", "description", e.target.value)}
-            className="block w-full border border-black"
+            className="block w-full border border-ink"
             rows={4}
           />
         </label>,

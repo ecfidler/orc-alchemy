@@ -255,6 +255,14 @@ test("layout F: header details, hit dice, empty death saves, and HP as current /
   expect(screen.getByLabelText("Inspiration").textContent).toBe("");
 });
 
+test("the builder preview leaves out temporary hit points and death saves", () => {
+  render(<CharacterSheet sheet={{ ...sheet, currentHitPoints: 20 }} preview />);
+  expect(screen.getByLabelText("Hit Points").textContent).toBe("20 / 28");
+  expect(screen.queryByLabelText("Temporary")).toBeNull();
+  expect(screen.queryByRole("img", { name: /^(Successes|Failures):/ })).toBeNull();
+  expect(screen.getByRole("group", { name: "Hit dice" })).toBeTruthy();
+});
+
 test("the Gold box adds up the coins as gold pieces, and the coins leave the equipment list", () => {
   const coin = (key: string, quantity: number) => ({ key, name: key.toUpperCase(), quantity, equipped: false });
   const treasure = [coin("cp", 5), coin("sp", 14), coin("ep", 1), coin("gp", 37), coin("pp", 2), { key: "ruby", name: "Ruby", quantity: 1, equipped: false }];
