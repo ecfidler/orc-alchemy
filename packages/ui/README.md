@@ -162,6 +162,8 @@ bun run test       # vitest
     `{ value, label, color, content }`. The first tab is open at first. The
     tab row sticks to the top of the page, and after a switch with the row
     stuck, the page scrolls back so the new panel starts under the row.
+    Left and Right, Home and End move between the tabs. Styles:
+    `src/tabs.css`.
   - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
   - `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
 - `./testing`: test helpers for Vitest with Testing Library. An app that
