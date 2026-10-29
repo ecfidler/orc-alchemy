@@ -2,7 +2,7 @@
 // class rows, and the hit points and ability score improvements each level
 // asks for. Each change is an engine mutation, as in Selection. It also holds
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
-import { Button, InlineNote, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
+import { Button, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, rollHitPoints, storedHitPoints, type HitPointsMethod } from "../engine/classes.ts";
@@ -118,20 +118,15 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
   );
 }
 
-/**
- * A selection's name and its picks to make or remove, as an inline note in
- * the heading: yellow for picks to make, red for too many. The heading grows
- * to fit the note, so the note covers nothing.
- */
+/** A selection's name and its picks to make or remove. */
 export function Heading({ id, selection }: { id: string; selection: BuilderSelection }) {
   const { remaining } = selection;
   return (
-    <h3 id={id} className="flex flex-wrap items-center gap-y-1 font-bold">
+    <h3 id={id} className="font-bold">
       {selection.name}
-      {/* A flex row shows no space, but the space keeps the words apart in the heading's name. */}
-      {remaining !== 0 && " "}
-      {remaining > 0 && <InlineNote>{remaining} to choose</InlineNote>}
-      {remaining < 0 && <InlineNote tone="failed">{-remaining} too many</InlineNote>}
+      {remaining !== 0 && (
+        <span className="ml-2 font-normal">{remaining > 0 ? `(${remaining} to choose)` : `(${-remaining} too many)`}</span>
+      )}
     </h3>
   );
 }

@@ -113,11 +113,10 @@ function ChangeList({ changes }: { changes: Change[] }) {
   );
 }
 
-/** A log section. A warning, which needs nothing from the user, has its title in the warning color, not a stuck note. */
-function Section({ title, open = true, warning = false, children }: { title: string; open?: boolean; warning?: boolean; children: ReactNode }) {
+function Section({ title, open = true, children }: { title: string; open?: boolean; children: ReactNode }) {
   return (
     <details open={open} className="border-l-4 border-black pl-2">
-      <summary className={`cursor-pointer font-bold${warning ? " text-warning" : ""}`}>{title}</summary>
+      <summary className="cursor-pointer font-bold">{title}</summary>
       {children}
     </details>
   );
@@ -181,7 +180,7 @@ export function ImportLog({ result }: { result: LastImport }) {
         </Section>
       )}
       {conflicts.length > 0 && (
-        <Section title={`Key conflicts (${conflicts.length})`} warning>
+        <Section title={`Key conflicts (${conflicts.length})`}>
           <p>More than one item uses each of these keys. The packs were loaded as they are.</p>
           <ul className="ml-6 list-disc">
             {conflicts.map((c) => (
@@ -196,7 +195,7 @@ export function ImportLog({ result }: { result: LastImport }) {
         </Section>
       )}
       {backgroundKeyWarnings.length > 0 && (
-        <Section title={`Background keys (${backgroundKeyWarnings.length})`} warning>
+        <Section title={`Background keys (${backgroundKeyWarnings.length})`}>
           <p>These backgrounds are in the loaded packs. A character always gets a background by the key of its name, not by the stored key.</p>
           <ul className="ml-6 list-disc">
             {backgroundKeyWarnings.map(({ pack, name, key, nameKey }, i) => (

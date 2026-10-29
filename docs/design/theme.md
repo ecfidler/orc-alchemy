@@ -238,16 +238,12 @@ the same yellow in dark mode.
 * **Placement rule (hard):** the note takes its own space above the box it
   marks. It overlaps only the box's top border. It must never cover the
   box's content.
-* **Where it goes:** only where the user must act. Unresolved content on
-  the sheet, and key conflicts before import.
-* **Inline note:** a small form of the note, in the line of text. The line
-  grows to fit it, so it covers nothing. The builder step bar shows its
-  count of choices left as an inline note. A selection with choices left
-  has "n to choose" as an inline note in its heading. Too many choices
-  picked is a red (`--note-red`) inline note, on the step bar and in the
-  heading (Ethan, on PR #65).
+* **Where it goes:** only where the user must act. The count of choices
+  left on the builder step bar and the unchosen selections, unresolved content on the sheet, and
+  key conflicts before import.
 * Information that needs no action, such as an import-log warning, stays as
-  `--warning` text.
+  `--warning` text. Too many choices picked uses `--danger` text, not a
+  note.
 
 ## Alert note
 

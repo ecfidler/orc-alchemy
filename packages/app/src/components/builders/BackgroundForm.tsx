@@ -75,7 +75,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
     <div className="space-y-3">
       <TextField edit={edit} problems={problems} field="name" label="Name" />
       {key !== "" && name !== "" && key !== nameToKw(name) && (
-        <p role="note" className="text-warning">
+        <p role="note" className="text-amber-700">
           The key of this background is {key}. The key of its name is {nameToKw(name)}. A character always gets a background by the key of its name, not by
           the stored key. Thus a character that has the key {key} does not find this background. To make the keys the same, change the name, or make a new background with this name.
         </p>

@@ -6,7 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 // A step button's name ends with its count of picks to do, when it has some.
 const stepButton = (page: Page, name: string) =>
-  page.getByRole("navigation", { name: "Steps" }).getByRole("button", { name: new RegExp(`^${name}( \\(\\d+ to do\\))?( \\(\\d+ too many\\))?$`) });
+  page.getByRole("navigation", { name: "Steps" }).getByRole("button", { name: new RegExp(`^${name}( \\(\\d+ to do\\))?$`) });
 
 test("a new character becomes a dwarf acolyte fighter 1, and the preview follows each pick", async ({ page }) => {
   await page.goto("/");
@@ -205,9 +205,6 @@ test("the builder lists the picks still to make, and a pick removes its message"
   await expect(stepButton(page, "Class")).toHaveAccessibleName("Class (2 to do)");
   await expect(stepButton(page, "Equipment")).toHaveAccessibleName("Equipment (2 to do)");
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race (1 to do)");
-  // The count on a step is a small note; each selection still to make has an inline note in its heading.
-  await expect(stepButton(page, "Race").locator(".ui-inline-note")).toHaveText("1");
-  await expect(page.getByRole("region", { name: "Builder" }).getByRole("heading", { name: "Race 1 to choose", exact: true })).toBeVisible();
 
   await page.getByRole("region", { name: "Builder" }).getByRole("button", { name: "Human", exact: true }).click();
   await expect(page.getByRole("region", { name: "Preview" }).getByLabel("Race", { exact: true })).toHaveText("Human");

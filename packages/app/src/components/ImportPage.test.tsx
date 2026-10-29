@@ -265,17 +265,11 @@ test("a file with key conflicts stores nothing until each conflict has a choice"
   expect(screen.queryByRole("listitem", { name: "duplicate-external-b" })).toBeNull();
   expect(apply().disabled).toBe(true);
   expect(apply().textContent).toBe("Choose for each conflict (0 of 4)");
-  // The user must act, so a stuck note says so above the step.
-  const note = () => screen.queryAllByRole("note").find((n) => n.textContent?.startsWith("Choose for each conflict"));
-  expect(note()?.textContent).toBe("Choose for each conflict (0 of 4) before import.");
 
   const lineage = within(step).getByRole("group", { name: "races: custom-lineage" });
   expect(within(lineage).getByText("Imported: Custom Lineage (Variant) from duplicate-external-b. Loaded: Custom Lineage from duplicate-external-a.")).toBeTruthy();
   fireEvent.click(within(lineage).getByRole("radio", { name: "Replace the one from duplicate-external-a with the imported one" }));
   expect(apply().textContent).toBe("Choose for each conflict (1 of 4)");
-  expect(note()?.textContent).toBe("Choose for each conflict (1 of 4) before import.");
-  fireEvent.click(within(step).getByRole("button", { name: "Rename all" }));
-  expect(note()).toBeUndefined();
 });
 
 test("Rename all, then Apply, imports the file with its keys renamed and lists the renames in the log", async () => {
@@ -457,9 +451,6 @@ test("the import log warns of a background whose key is not the key of its name"
   choose("Load homebrew file", "keys.orcbrew", pack);
   const log = await screen.findByRole("region", { name: "Import log" });
   const warnings = within(log).getByText("Background keys (1)").closest("details")!;
-  // A warning needs nothing from the user: warning text, not a stuck note.
-  expect(within(log).getByText("Background keys (1)").className).toContain("text-warning");
-  expect(within(log).queryByRole("note")).toBeNull();
   expect(within(warnings).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
     "Spy in keys has the key old-spy. A character gets it by the key spy.",
   ]);

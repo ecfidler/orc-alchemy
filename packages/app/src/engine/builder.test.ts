@@ -109,7 +109,7 @@ test("wizard-20's spell selections are on the Spells step, not under the wizard'
   const underLevels = levels.options.flatMap((o) => o.selections);
   expect(underLevels.filter((s) => s.tags.includes("spells"))).toEqual([]);
   expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Abilities", "Feats", "Spells", "Equipment"]);
-  expect(remainingByStep(steps)[5]).toEqual({ toDo: 0, tooMany: 0 });
+  expect(remainingByStep(steps)[5]).toBe(0);
 });
 
 test("a subrace's cantrips are on the Spells step too", () => {
@@ -123,7 +123,7 @@ test("the Spells step counts the picks it shows", () => {
   const entity = engine().setClass(engine().emptyCharacter(), 0, "wizard");
   const steps = stepsOf(entity);
   expect(steps.find((s) => s.name === "Spells")!.selections.map((s) => s.remaining)).toEqual([3, 6]);
-  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Spells")]).toEqual({ toDo: 9, tooMany: 0 });
+  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Spells")]).toBe(9);
 });
 
 test("a merged ref selection counts every pick once", () => {
@@ -278,12 +278,6 @@ test.each(metaFixtures)("%s has the picks its meta file records, with its packs 
   }
 });
 
-test("remainingByStep counts picks to remove apart from picks to make", () => {
-  // fighter-3-wizard-2's half-elf has Common and Elvish in its choice of 1 language: 1 too many.
-  const steps = stepsOf(engine().importCharacter(readJson("characters/fighter-3-wizard-2.strict.json")).entity);
-  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Race")]).toEqual({ toDo: 0, tooMany: 1 });
-});
-
 test("unfilled and remainingByStep count a merged selection once", () => {
   // Human gives 1 language and acolyte 2: one selection with 3 to choose.
   let entity = engine().select(engine().emptyCharacter(), ["race"], "human");
@@ -293,6 +287,5 @@ test("unfilled and remainingByStep count a merged selection once", () => {
   // Race: languages 3, subrace 1 and variant 1. Background: alignment 1; its
   // languages count under Race. Class: the barbarian's 2 skills. Equipment:
   // the barbarian's 2 weapons, and the acolyte's holy symbol and prayer book.
-  expect(remainingByStep(steps).map((count) => count.toDo)).toEqual([5, 1, 2, 0, 0, 4]);
-  expect(remainingByStep(steps).every((count) => count.tooMany === 0)).toBe(true);
+  expect(remainingByStep(steps)).toEqual([5, 1, 2, 0, 0, 4]);
 });

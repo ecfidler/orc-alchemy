@@ -120,7 +120,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
         ))}
       </ToggleGroup>
       {method === "point-buy" && (
-        <p className={left !== null && left < 0 ? "text-danger" : undefined}>
+        <p>
           {left === null
             ? "Points left cannot be counted: a base score is outside 8 to 15."
             : left >= 0
