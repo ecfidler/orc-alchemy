@@ -282,17 +282,13 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
     <article ref={article} className="@container mx-auto grid max-w-[960px] gap-4">
       <header className="grid items-start gap-3.5 @min-[720px]:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)]">
         <div className="grid content-end rounded-[6px_26px_26px_6px] border-[1.5px] border-rule-strong bg-paper-raised px-[18px] py-1.5">
-          <h1 className="border-b border-rule-strong pb-0.5 text-[clamp(26px,4vw,36px)] leading-[1.05] font-medium">
-            {sheet.name ?? "Unnamed character"}
-          </h1>
+          <Name>{sheet.name ?? "Unnamed character"}</Name>
           <Label>Character name</Label>
         </div>
         <div className="grid grid-cols-2 items-end gap-x-[18px] gap-y-1.5 rounded-md border-[1.5px] border-rule-strong px-3.5 py-2 @min-[720px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <Detail label="Class" className="col-span-2 @min-[720px]:col-span-1">
-            {classes}
-          </Detail>
-          <Detail label="Background">{sheet.background}</Detail>
-          <Detail label="Race">{race}</Detail>
+          <Detail label="Class" className="col-span-2 @min-[720px]:col-span-1" value={classes} />
+          <Detail label="Background" value={sheet.background} />
+          <Detail label="Race" value={race} />
         </div>
       </header>
 
@@ -303,6 +299,9 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
           <div className="grid min-w-0 content-start gap-3">
             {abilitiesSection}
             {equipmentSection}
+            {proficienciesSection}
+            {defensesSection}
+            {armorOptionsSection}
           </div>
 
           <div className="grid min-w-0 content-start gap-3">
@@ -310,10 +309,6 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
             {attacksSection}
             {spellcastingSection}
             {featuresSection}
-            {proficienciesSection}
-            {defensesSection}
-            {/* Layout F has no place for AC by armor. It is not on the spec's list of items to remove, so it stays, after Defenses. */}
-            {armorOptionsSection}
             {notesSection}
           </div>
         </div>
@@ -322,13 +317,57 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
   );
 }
 
-/** A header value on a line, with its label under it. */
-function Detail({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
+/**
+ * The character name. The box keeps the height of one line at the largest
+ * size: a long name gets smaller, and wraps to two lines only when two lines
+ * fit in that height.
+ */
+function Name({ children }: { children: string }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  const text = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const element = heading.current;
+    const span = text.current;
+    const box = element?.parentElement;
+    if (!element || !span || !box) return;
+    const fit = () => {
+      element.style.cssText = "";
+      // A width of 0 is a name that is not laid out (hidden, or in jsdom).
+      if (element.clientWidth === 0) return;
+      const largest = parseFloat(getComputedStyle(element).fontSize);
+      // The height of one line at the largest size, less the 2px bottom padding.
+      const height = element.clientHeight - 2;
+      element.style.height = `${element.clientHeight}px`;
+      for (let size = largest; size >= 12; size--) {
+        element.style.fontSize = `${size}px`;
+        // The name can wrap when two lines (leading-[1.05]) fit in the height.
+        element.style.whiteSpace = 2 * size * 1.05 <= height ? "normal" : "nowrap";
+        if (span.offsetWidth <= element.clientWidth && span.offsetHeight <= height) return;
+      }
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [children]);
+  // The name sits on the rule, so a smaller name is at the bottom of the box.
+  return (
+    <h1
+      ref={heading}
+      className="flex items-end overflow-hidden border-b border-rule-strong pb-0.5 text-[clamp(26px,4vw,36px)] leading-[1.05] font-medium text-balance break-words whitespace-nowrap"
+    >
+      <span ref={text}>{children}</span>
+    </h1>
+  );
+}
+
+/** A header value on one line, truncated, with its label under it. A hover shows the whole value. */
+function Detail({ label, className, value }: { label: string; className?: string; value: string | null }) {
   const id = useId();
   return (
     <div className={className ? `grid min-w-0 ${className}` : "grid min-w-0"}>
-      <span role="group" aria-labelledby={id} className="min-h-[26px] border-b border-rule-strong">
-        {children}
+      <span role="group" aria-labelledby={id} title={value ?? undefined} className="min-h-[26px] truncate border-b border-rule-strong">
+        {value}
       </span>
       <Label id={id}>{label}</Label>
     </div>
