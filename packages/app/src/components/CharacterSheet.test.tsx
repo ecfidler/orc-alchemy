@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
 import { bonusStr, toSheet, type Sheet } from "../engine/sheet.ts";
-import { CharacterSheet } from "./CharacterSheet.tsx";
+import { CharacterSheet, ordinal } from "./CharacterSheet.tsx";
 
 afterEach(cleanup);
 
@@ -107,8 +107,7 @@ test("renders the key values of a sheet", () => {
   expect(within(screen.getByText("+5 Athletics").closest("li")!).getByRole("img", { name: "Proficient" })).toBeTruthy();
   expect(within(screen.getByText("-1 History").closest("li")!).queryByRole("img")).toBeNull();
   expect(screen.getByLabelText("Tools").textContent).toBe("Smith's Tools (+2)");
-  const cantrips = screen.getByRole("table", { name: "Cantrips" });
-  expect(within(cantrips).getByRole("cell", { name: "Guidance" })).toBeTruthy();
+  expect(spellsRow("Cantrips").lastElementChild!.textContent).toBe("Guidance");
   expect(screen.getByText("Second Wind")).toBeTruthy();
   expect(screen.getByText("Hates boats")).toBeTruthy();
 });
@@ -116,7 +115,7 @@ test("renders the key values of a sheet", () => {
 test("omits empty sections", () => {
   render(<CharacterSheet sheet={{ ...sheet, name: null, spellcasting: null, darkvision: 0 }} />);
   expect(screen.getByRole("heading", { level: 1, name: "Unnamed character" })).toBeTruthy();
-  expect(screen.queryByRole("heading", { name: "Spells" })).toBeNull();
+  expect(screen.queryByRole("group", { name: "Spellcasting" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "Equipment" })).toBeNull();
   expect(screen.queryByLabelText("Darkvision")).toBeNull();
 });
@@ -145,8 +144,11 @@ test("does not show the player, XP, alignment, faction, images, appearance or pe
 });
 
 // On-screen spot checks against the oracle's built values (ORC-48 done-when).
-const expectedOf = (name: string) =>
-  JSON.parse(readFileSync(join(import.meta.dirname, `../../../../fixtures/characters/${name}.expected.json`), "utf8"));
+const fixture = (file: string) => JSON.parse(readFileSync(join(import.meta.dirname, `../../../../fixtures/characters/${file}`), "utf8"));
+const expectedOf = (name: string) => fixture(`${name}.expected.json`);
+const strictOf = (name: string) => fixture(`${name}.strict.json`);
+/** The Spellcasting table row whose level cell has this text. */
+const spellsRow = (level: string) => screen.getByRole("rowheader", { name: level }).closest("tr")!;
 
 test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (name) => {
   const built = expectedOf(name);
@@ -174,32 +176,46 @@ test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (nam
   );
 });
 
-test("wizard-20 shows its slots and every known spell", () => {
-  const built = expectedOf("wizard-20");
-  render(<CharacterSheet sheet={toSheet(built, {})} />);
-  const slots = within(screen.getByRole("table", { name: "Spell Slots" })).getAllByRole("cell");
-  expect(slots.map((cell) => Number(cell.textContent))).toEqual(Object.values(built["spell-slots"]));
-  const knownCount = Object.values(built["spells-known"] as Record<string, { __entries: unknown[] }>).reduce(
-    (n, level) => n + level.__entries.length,
-    0,
-  );
-  const spellRows = screen
-    .getAllByRole("table")
-    .filter((table) => /Cantrips|Level/.test(table.querySelector("caption")?.textContent ?? ""))
-    .flatMap((table) => within(table).getAllByRole("row").slice(1));
-  expect(spellRows).toHaveLength(knownCount);
+test("one source that prepares: one row of boxes, slots once for each level, and only prepared spells", () => {
+  const built = expectedOf("wizard-5");
+  render(<CharacterSheet sheet={toSheet(built, strictOf("wizard-5"))} />);
+  const section = screen.getByRole("group", { name: "Spellcasting" });
+  expect(within(section).getByLabelText("Spell save DC").textContent).toBe("15");
+  expect(within(section).getByLabelText("Spell attack").textContent).toBe("+7");
+  expect(within(section).getByLabelText("Spellcasting ability").textContent).toBe("INT");
+  expect(within(section).getByRole("columnheader", { name: "Prepared spells" })).toBeTruthy();
+  expect(within(section).getAllByRole("rowheader").map((cell) => cell.textContent)).toEqual(["Cantrips", "1st", "2nd", "3rd"]);
+  for (const [level, count] of Object.entries(built["spell-slots"] as Record<string, number>)) {
+    const name = `${ordinal(Number(level))}-level slots: 0 of ${count}`;
+    expect(within(spellsRow(ordinal(Number(level)))).getByRole("img", { name })).toBeTruthy();
+  }
+  expect(within(spellsRow("Cantrips")).queryByRole("img")).toBeNull();
+  // Prepared spells only, A to Z, with no source tags.
+  expect(spellsRow("2nd").lastElementChild!.textContent).toBe("Alter Self");
+  expect(spellsRow("3rd").lastElementChild!.textContent).toBe("");
+  expect(spellsRow("Cantrips").lastElementChild!.textContent).toBe("Acid Splash, Chill Touch, Dancing Lights, Fire Bolt");
 });
 
-test("wizard-1 marks its prepared spells in a Prepared column, which cantrips do not have", () => {
-  const strict = JSON.parse(readFileSync(join(import.meta.dirname, "../../../../fixtures/characters/wizard-1.strict.json"), "utf8"));
-  render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strict)} />);
-  const first = screen.getByRole("table", { name: "1st Level" });
-  expect(within(first).getByRole("columnheader", { name: "Prepared" })).toBeTruthy();
-  const preparedOf = (name: string) => within(first).getByRole("cell", { name }).closest("tr")!.lastElementChild!.textContent;
-  expect(preparedOf("Alarm")).toBe("Yes");
-  expect(preparedOf("Detect Magic")).toBe("—");
-  const cantrips = screen.getByRole("table", { name: "Cantrips" });
-  expect(within(cantrips).queryByRole("columnheader", { name: "Prepared" })).toBeNull();
+test("one source that does not prepare: the column is Known spells", () => {
+  render(<CharacterSheet sheet={sheet} />);
+  expect(screen.getByRole("columnheader", { name: "Known spells" })).toBeTruthy();
+  expect(screen.getByLabelText("Spell save DC").textContent).toBe("11");
+  expect(screen.queryByRole("group", { name: "Hill Dwarf" })).toBeNull();
+});
+
+test("a High Elf wizard: one row of boxes for each source, source tags, and the column is Spells", () => {
+  render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strictOf("wizard-1"))} />);
+  for (const source of ["High Elf", "Wizard"]) {
+    expect(within(screen.getByRole("group", { name: source })).getByLabelText("Spell save DC").textContent).toBe("13");
+  }
+  expect(screen.getByRole("columnheader", { name: "Spells" })).toBeTruthy();
+  expect(spellsRow("Cantrips").lastElementChild!.textContent).toBe(
+    "Acid SplashWizard, Chill TouchWizard, Dancing LightsWizard, Minor IllusionHigh Elf",
+  );
+  // The wizard's unprepared spellbook spells are not on the sheet.
+  expect(spellsRow("1st").lastElementChild!.textContent).toBe(
+    "AlarmWizard, Burning HandsWizard, Charm PersonWizard, Color SprayWizard",
+  );
 });
 
 test("layout F: header details, hit dice, empty death saves, and HP as current / max", () => {
