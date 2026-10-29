@@ -1,4 +1,4 @@
-import { AlertNote, Button, ButtonLink, useConfirm } from "@orc-alchemy/ui";
+import { AlertNote, AlertNotes, Button, ButtonLink, useConfirm } from "@orc-alchemy/ui";
 import { useEffect, useState, type ReactNode } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useBlocker, useParams } from "react-router";
@@ -27,7 +27,7 @@ import { useStorage } from "../storage/characters.ts";
  * `actions`. A note under the row says when unsaved changes were recovered
  * from a draft on open.
  */
-function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNode; children: (id: string, sheet: Sheet) => ReactNode }) {
+function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNode; children: (sheet: Sheet) => ReactNode }) {
   const { id } = useParams() as { id: string };
   const openId = useCharacter((state) => state.id);
   const { sheet, dirty } = useOpenCharacter();
@@ -116,13 +116,13 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
         </div>
       </div>
       {recovered && dirty && (
-        <div className="mb-4">
+        <AlertNotes>
           <AlertNote tone="info" onDismiss={() => setRecovered(false)}>
             Unsaved changes from your last visit were recovered.
           </AlertNote>
-        </div>
+        </AlertNotes>
       )}
-      {children(id, sheet)}
+      {children(sheet)}
     </>
   );
 }
@@ -139,7 +139,7 @@ function SheetPage() {
         </>
       )}
     >
-      {(_id, sheet) => (
+      {(sheet) => (
         <>
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
           <CharacterSheet sheet={sheet} />

@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-29T19:40:00Z }
+generated: { by: claude-code/agent, at: 2026-10-29T22:55:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -369,11 +369,12 @@ same row.
 * On the left, "Back to List", a ghost button. It always goes to
   `/characters`. When the row is narrower than 720px, it shows "Back". Its
   accessible name stays "Back to List".
-* On the right, from the inside out: the save status ("Saved" or "Unsaved
-  changes") in muted text, a small ghost Save button while there are
-  unsaved changes, then the page actions. On the sheet, these are a solid
-  Edit (to the builder) and a ghost Export. In the builder, it is a solid
-  Done (to the sheet).
+* On the right, from left to right: the save status in muted text ("Saved"
+  or "Unsaved changes"), then a small ghost Save button. Save shows only
+  while there are unsaved changes.
+* The page actions come after Save. On the sheet, they are a solid Edit (to
+  the builder) and a ghost Export. In the builder, there is a solid Done (to
+  the sheet).
 * Back to List, Edit and Done are links with the look of buttons
   (`ButtonLink`). Export is a button.
 * When unsaved changes come back from a draft, a blue info note under the
