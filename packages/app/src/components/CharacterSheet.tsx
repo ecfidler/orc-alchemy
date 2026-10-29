@@ -296,28 +296,35 @@ function RowBox({ label, shield = false, children }: { label: string; shield?: b
 /**
  * The Spellcasting section of the theme spec: a row of boxes for each source,
  * then one table row for each level, with the shared slots and the spells.
- * For a source that prepares, only its prepared spells; for others, all known spells.
+ * A source that prepares shows only its prepared spells. Other sources show
+ * all known spells.
  */
 function SpellcastingBox({ spellcasting }: { spellcasting: Spellcasting }) {
   const { casters, slots, byLevel } = spellcasting;
-  const prepares = new Map(casters.map((caster) => [caster.name, caster.canPrepare !== null]));
-  const several = casters.length > 1;
-  const title = several ? "Spells" : prepares.get(casters[0]?.name) ? "Prepared spells" : "Known spells";
-  const spellsAt = (level: number) =>
-    (byLevel.find((row) => row.level === level)?.spells ?? [])
-      .filter((spell) => level === 0 || !prepares.get(spell.source) || spell.prepared)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  const slotsAt = (level: number) => slots.find((slot) => slot.level === level)?.count ?? 0;
-  const levels = [...new Set([...slots.map((slot) => slot.level), ...byLevel.map((row) => row.level)])]
-    .filter((level) => slotsAt(level) > 0 || spellsAt(level).length > 0)
-    .sort((a, b) => a - b);
+  const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
+  // A spell's source can have no boxes, so the sources come from the spells too.
+  const sources = new Set([...casters.map((caster) => caster.name), ...byLevel.flatMap((row) => row.spells.map((spell) => spell.source))]);
+  const several = sources.size > 1;
+  const title = several ? "Spells" : prepares.get([...sources][0]) ? "Prepared spells" : "Known spells";
+  const rows = [...new Set([...slots.map((slot) => slot.level), ...byLevel.map((row) => row.level)])]
+    .sort((a, b) => a - b)
+    .map((level) => ({
+      level,
+      slots: slots.find((slot) => slot.level === level)?.count ?? 0,
+      spells: (byLevel.find((row) => row.level === level)?.spells ?? [])
+        .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .filter((row) => row.slots > 0 || row.spells.length > 0);
   return (
     <FramedBox label="Spellcasting" className="gap-2.5">
-      <ShadedPanel>
-        {casters.map((caster) => (
-          <CasterRow key={caster.name} caster={caster} named={several} />
-        ))}
-      </ShadedPanel>
+      {casters.length > 0 && (
+        <ShadedPanel>
+          {casters.map((caster) => (
+            <CasterRow key={caster.name} caster={caster} named={several} />
+          ))}
+        </ShadedPanel>
+      )}
       <table className="w-full table-fixed border-collapse text-left text-[14.5px]">
         <caption className="sr-only">Spells by level</caption>
         <colgroup>
@@ -327,15 +334,19 @@ function SpellcastingBox({ spellcasting }: { spellcasting: Spellcasting }) {
         </colgroup>
         <thead>
           <tr className="border-b border-rule-strong">
-            {["Level", "Slots", title].map((header, i) => (
-              <th key={header} scope="col" className={`pb-0.5 font-normal ${i === 0 ? "text-center" : i === 2 ? "pl-3 @max-[719px]:pl-2" : "pl-2.5"}`}>
-                <Label>{header}</Label>
-              </th>
-            ))}
+            <th scope="col" className="pb-0.5 text-center font-normal">
+              <Label>Level</Label>
+            </th>
+            <th scope="col" className="pb-0.5 pl-2.5 font-normal">
+              <Label>Slots</Label>
+            </th>
+            <th scope="col" className="pb-0.5 pl-3 font-normal @max-[719px]:pl-2">
+              <Label>{title}</Label>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {levels.map((level) => (
+          {rows.map(({ level, slots, spells }) => (
             <tr key={level} className="border-b border-rule last:border-0">
               <th
                 scope="row"
@@ -346,16 +357,17 @@ function SpellcastingBox({ spellcasting }: { spellcasting: Spellcasting }) {
                 {level === 0 ? "Cantrips" : ordinal(level)}
               </th>
               <td className="border-r border-rule py-1.5 pl-2.5">
-                {slotsAt(level) > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slotsAt(level)} />}
+                {slots > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slots} />}
               </td>
               <td className="py-1.5 pl-3 align-top @max-[719px]:pl-2">
-                {spellsAt(level).map((spell, i) => (
-                  <span key={`${spell.source}/${spell.key}`}>
-                    {i > 0 && ", "}
-                    {spell.name}
-                    {several && <Tag>{spell.source}</Tag>}
-                  </span>
-                ))}
+                <ul className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
+                  {spells.map((spell) => (
+                    <li key={`${spell.source}/${spell.key}`}>
+                      {spell.name}
+                      {several && <> <Tag>{spell.source}</Tag></>}
+                    </li>
+                  ))}
+                </ul>
               </td>
             </tr>
           ))}
@@ -365,7 +377,10 @@ function SpellcastingBox({ spellcasting }: { spellcasting: Spellcasting }) {
   );
 }
 
-/** One source's spell save DC, spell attack and spellcasting ability. With several sources, the row is a group named by its source. */
+/**
+ * One source's spell save DC, spell attack and spellcasting ability. With
+ * several sources, the row is a group named by its source.
+ */
 function CasterRow({ caster, named }: { caster: Spellcasting["casters"][number]; named: boolean }) {
   const id = useId();
   const boxes = (

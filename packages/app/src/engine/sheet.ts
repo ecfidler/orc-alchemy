@@ -74,7 +74,9 @@ export interface Spellcaster {
   ability: Ability;
   saveDc: number;
   attackBonus: number;
-  /** Spells it can prepare per day, or null when it does not prepare. */
+  /** True for a class that prepares spells, such as a cleric or a wizard. */
+  prepares: boolean;
+  /** Spells it can prepare per day, or null when it does not prepare or the count is not known. */
   canPrepare: number | null;
 }
 
@@ -370,6 +372,7 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
       ability: abilityOf(caster.ability),
       saveDc: caster["spell-save-dc"],
       attackBonus: caster["spell-attack-modifier"],
+      prepares: prepares[caster.class] === true,
       canPrepare: prepares[caster.class] ? (built["prepare-spell-count"]?.[caster.class] ?? null) : null,
     })),
     byLevel: known

@@ -88,9 +88,12 @@ test("wizard-1 lists its prepared spells, with a source tag on each", async ({ p
 
   const spells = page.getByRole("table", { name: "Spells by level" });
   await expect(spells.getByRole("columnheader", { name: "Spells" })).toBeVisible();
-  await expect(spells.getByRole("row", { name: /^1st / }).getByRole("cell").last()).toHaveText(
-    "AlarmWizard, Burning HandsWizard, Charm PersonWizard, Color SprayWizard",
-  );
+  await expect(spells.getByRole("row", { name: /^1st / }).getByRole("listitem")).toHaveText([
+    "Alarm Wizard",
+    "Burning Hands Wizard",
+    "Charm Person Wizard",
+    "Color Spray Wizard",
+  ]);
   await expect(page.getByRole("group", { name: "High Elf" }).getByLabel("Spell save DC")).toHaveText("13");
 });
 

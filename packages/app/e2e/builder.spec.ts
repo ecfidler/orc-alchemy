@@ -177,13 +177,13 @@ test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepare
   // emptyCharacter has Int 12: a wizard 1 prepares 2 spells.
   const prepared = builder.getByRole("region", { name: "Prepared spells: Wizard" });
   await expect(prepared).toContainText("0 of 2 prepared");
+  // The sheet lists only prepared spells: none yet, then Magic Missile.
+  const firstLevel = preview.getByRole("table", { name: "Spells by level" }).getByRole("row", { name: /^1st / });
+  await expect(firstLevel.getByRole("listitem")).toHaveCount(0);
   await prepared.getByRole("checkbox", { name: "Prepared: Magic Missile" }).check();
   await expect(prepared).toContainText("1 of 2 prepared");
-
-  // The sheet lists only prepared spells.
-  const sheetSpells = preview.getByRole("table", { name: "Spells by level" });
-  await expect(sheetSpells.getByRole("row", { name: /^1st / }).getByRole("cell").last()).toHaveText("Magic Missile");
-  await expect(sheetSpells.getByRole("row", { name: /^Cantrips / })).toContainText("Fire Bolt");
+  await expect(firstLevel.getByRole("listitem")).toHaveText(["Magic Missile"]);
+  await expect(preview.getByRole("table", { name: "Spells by level" }).getByRole("row", { name: /^Cantrips / })).toContainText("Fire Bolt");
 });
 
 test("Random character opens a complete character in the builder", async ({ page }) => {
