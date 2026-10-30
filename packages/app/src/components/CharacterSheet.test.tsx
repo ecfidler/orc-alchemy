@@ -251,6 +251,8 @@ test("layout F: header details, hit dice, empty death saves, and HP as current /
   render(<CharacterSheet sheet={{ ...sheet, currentHitPoints: 20 }} />);
   expect(screen.getByLabelText("Background").textContent).toBe("Soldier");
   expect(screen.getByLabelText("Race").textContent).toBe("Dwarf (Hill Dwarf)");
+  // A long value is truncated; a hover shows the whole value.
+  expect(screen.getByLabelText("Race").title).toBe("Dwarf (Hill Dwarf)");
   expect(screen.getByLabelText("Hit Points").textContent).toBe("20 / 28");
   expect(screen.getByLabelText("Temporary").textContent).toBe("");
   expect(within(screen.getByRole("group", { name: "Hit dice" })).getByText("3d10")).toBeTruthy();

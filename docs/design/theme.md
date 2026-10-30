@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-29T22:55:00Z }
+generated: { by: claude-code/agent, at: 2026-10-29T23:45:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -385,9 +385,12 @@ same row.
 
 ## Header
 
-* A name box that fits the name.
+* A name box with the height of one line at the largest name size. A long
+  name gets smaller to fit on one line. When the name is small enough that
+  two lines fit in the box, it can wrap to two lines. The box does not grow.
 * A details box with class & level (twice the width of the others),
-  background and race.
+  background and race. Each value stays on one line and truncates with an
+  ellipsis. A hover shows the whole value.
 
 ## Left column
 
@@ -405,6 +408,10 @@ The left column is at least 320px wide.
   Gold box shows all coins (`cp`, `sp`, `ep`, `gp`, `pp` treasure items)
   converted to gold pieces. The gear lines wrap beside it, then run the full
   width under it. Other treasure stays in the list.
+* **Other proficiencies & languages.**
+* **Defenses** (resistances and immunities), shown only when the character
+  has any.
+* **AC by armor**, a table of the AC with each armor the character has.
 
 ## Right column
 
@@ -423,9 +430,7 @@ The left column is at least 320px wide.
 * **Spellcasting** (see below).
 * **Features & traits.** Each feature's name is on its own line above its
   text. Limited-use features sit in a use bubble.
-* **Other proficiencies & languages.**
-* **Defenses** (resistances and immunities), shown only when the character
-  has any.
+* **Notes.**
 
 ## Spellcasting
 

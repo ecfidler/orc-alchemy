@@ -105,3 +105,45 @@ test("without IndexedDB, import still opens the sheet and a notice says nothing 
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveText(/kept only until you close this tab/);
 });
+
+test("a long name gets smaller and wraps to two lines, and the name box keeps its height", async ({ page }) => {
+  const name = "Brannor Ironfist";
+  const heading = page.getByRole("heading", { level: 1 });
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-1.strict.json"));
+  await expect(heading).toHaveText(name);
+  const short = await heading.evaluate((element) => ({ height: element.clientHeight, size: parseFloat(getComputedStyle(element).fontSize) }));
+
+  const long = `${name} the Unbroken, Shield of the Northern Marches`;
+  const file = readFileSync(join(charactersDir, "fighter-1.strict.json"), "utf8").replace(`"${name}"`, JSON.stringify(long));
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles({ name: "long.json", mimeType: "application/json", buffer: Buffer.from(file) });
+  await expect(heading).toHaveText(long);
+  const fitted = await heading.evaluate((element) => ({
+    height: element.clientHeight,
+    size: parseFloat(getComputedStyle(element).fontSize),
+    wraps: getComputedStyle(element).whiteSpace === "normal",
+    overflows: element.scrollWidth > element.clientWidth,
+  }));
+  expect(fitted.height).toBe(short.height);
+  expect(fitted.size).toBeLessThan(short.size);
+  expect(fitted.wraps).toBe(true);
+  expect(fitted.overflows).toBe(false);
+});
+
+test("a long class truncates, and the proficiencies and AC by armor are in the left column under Equipment", async ({ page }) => {
+  await importGolden(page, "fighter-3-wizard-2");
+  const classes = page.getByLabel("Class", { exact: true });
+  await expect(classes).toHaveAttribute("title", "Fighter 3 (Champion) / Wizard 2 (School of Evocation)");
+  expect(await classes.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+
+  const box = (name: string) => page.getByRole("group", { name, exact: true }).boundingBox();
+  const equipment = (await box("Equipment"))!;
+  const proficiencies = (await box("Other proficiencies & languages"))!;
+  const armor = (await box("AC by armor"))!;
+  const attacks = (await box("Attacks"))!;
+  expect(proficiencies.x).toBe(equipment.x);
+  expect(proficiencies.y).toBeGreaterThan(equipment.y);
+  expect(armor.y).toBeGreaterThan(proficiencies.y);
+  expect(attacks.x).toBeGreaterThan(equipment.x);
+});
