@@ -230,7 +230,7 @@ const sentence = (text: string) => {
 };
 
 const byName = <T extends { name: string }>(items: T[]) =>
-  items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  items.sort((a, b) => (a.name ?? "").toLowerCase().localeCompare((b.name ?? "").toLowerCase()));
 
 /** The old app's bonus-str, for ability, save, skill and other bonuses: "+3", "-1", and "0" for zero. */
 export const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
@@ -262,7 +262,9 @@ const recharge = (units: string) => {
  * sheet shows them in a use bubble.
  */
 function toFeature(feature: Feature): SheetFeature {
-  const { name, summary, description, frequency, duration } = feature;
+  const { summary, description, frequency, duration } = feature;
+  // Engine 0.3.1 gives the Hunter's Evasion trait no name (ORC-177).
+  const name = feature.name || "Unnamed feature";
   const { range, qualifier } = feature as Feature & { range?: Amount; qualifier?: string | null };
   let text = summary ?? description ?? "";
   if (range || duration) {

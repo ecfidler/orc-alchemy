@@ -272,3 +272,17 @@ test("a limited-use feature has its uses and when they come back", () => {
   expect(usesOf("wizard-1", "Arcane Recovery")).toEqual({ amount: 1, recharge: "Each day" });
   expect(usesOf("fighter-5", "Dueling Fighting Style")).toBeUndefined();
 });
+
+// ORC-177: the Hunter's Evasion option makes a trait with no name in engine 0.3.1.
+test("a feature with no name gets a fallback name and does not break the sort", () => {
+  const built: Built2014 = {
+    ...builtOf("fighter-1"),
+    traits: [
+      { name: "Darkvision", summary: "see in the dark" },
+      { page: 93, summary: "you take no damage on a successful DEX save" } as NonNullable<Built2014["traits"]>[number],
+    ],
+  };
+  const { traits } = toSheet(built, {}).features;
+  expect(traits.map((t) => t.name)).toEqual(["Darkvision", "Unnamed feature"]);
+  expect(traits[1]!.text).toBe("You take no damage on a successful DEX save.");
+});
