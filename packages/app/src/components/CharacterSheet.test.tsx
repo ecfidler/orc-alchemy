@@ -154,7 +154,9 @@ const strictOf = (name: string) => fixture(`${name}.strict.json`);
 /** The Spellcasting table row whose level cell has this text. */
 const spellsRow = (level: string) => screen.getByRole("rowheader", { name: level }).closest("tr")!;
 /** The text of each spell in that row, its source tag included. */
-const spellNames = (level: string) => within(spellsRow(level)).queryAllByRole("listitem").map((item) => item.textContent);
+// A non-breaking space keeps a tag on the line of the name's last word.
+const spellNames = (level: string) =>
+  within(spellsRow(level)).queryAllByRole("listitem").map((item) => item.textContent?.replace(/\u00a0/g, " "));
 
 test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (name) => {
   const built = expectedOf(name);
@@ -345,4 +347,28 @@ test("at 720px and wider, and in the builder preview, the sheet has no tabs", ()
   cleanup();
   renderAtWidth(390, <CharacterSheet sheet={sheet} preview />);
   expect(screen.queryByRole("tablist")).toBeNull();
+});
+
+// ORC-176: layout fixes from the level 20 audit.
+test("an expertise skill has a ringed mark named Expertise, and no text tag", () => {
+  const skills = sheet.skills.map((skill) => (skill.key === "athletics" ? { ...skill, expertise: true } : skill));
+  render(<CharacterSheet sheet={{ ...sheet, skills }} />);
+  const line = screen.getByText("+5 Athletics").closest("li")!;
+  expect(within(line).getByRole("img", { name: "Expertise" })).toBeTruthy();
+  expect(line.textContent).toBe("+5 Athletics STR");
+});
+
+test("the speed qualifier and the other speeds are separate small lines under the first speed", () => {
+  render(<CharacterSheet sheet={{ ...sheet, speeds: [{ feet: 60, label: "unarmored" }, { feet: 30, label: "armored" }] }} />);
+  const speed = screen.getByRole("group", { name: "Speed" });
+  expect(speed.textContent).toBe("60 ft. unarmored30 ft. armored");
+  // The qualifier is not in the large number font.
+  expect(within(speed).getByText("unarmored").className).toContain("text-[9.5px]");
+});
+
+test("a spell's source tag is kept on one line, and the list item itself can wrap", () => {
+  render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strictOf("wizard-1"))} />);
+  const item = within(spellsRow("Cantrips")).getAllByRole("listitem")[0]!;
+  expect(item.className).toBe("");
+  expect(within(item).getByText("Wizard").parentElement!.className).toBe("whitespace-nowrap");
 });

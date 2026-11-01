@@ -132,6 +132,8 @@ test("a long name gets smaller and wraps to two lines, and the name box keeps it
 });
 
 test("a long class truncates, and the proficiencies and AC by armor are in the left column under Equipment", async ({ page }) => {
+  // The header columns size from their content (ORC-176), so the class is cut only on a narrower sheet.
+  await page.setViewportSize({ width: 1024, height: 720 });
   await importGolden(page, "fighter-3-wizard-2");
   const classes = page.getByLabel("Class", { exact: true });
   await expect(classes).toHaveAttribute("title", "Fighter 3 (Champion) / Wizard 2 (School of Evocation)");
