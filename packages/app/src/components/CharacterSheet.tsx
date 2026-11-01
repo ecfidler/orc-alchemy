@@ -30,17 +30,18 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
   const { spellcasting, features, equipment, details } = sheet;
   const article = useRef<HTMLElement>(null);
   const [narrow, setNarrow] = useState(false);
-  // Measured before paint, so a phone never shows layout F first. The builder preview keeps one long column.
-  // A width of 0 is a sheet that is not laid out (hidden, or in jsdom); it keeps layout F.
+  // Measured before paint, so a phone never shows layout F first. A narrow sheet goes in tabs, but the builder
+  // preview keeps one long column. A width of 0 is a sheet that is not laid out (hidden, or in jsdom); it is not narrow.
   useLayoutEffect(() => {
     const element = article.current;
-    if (preview || !element) return;
+    if (!element) return;
     const measure = () => setNarrow(element.clientWidth > 0 && element.clientWidth < 720);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [preview]);
+  }, []);
+  const tabbed = narrow && !preview;
   const race = sheet.subrace ? `${sheet.race} (${sheet.subrace})` : sheet.race;
   const classes = sheet.classes.map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ""}`).join(" / ");
   const hitDice = sheet.classes.map((c) => `${c.level}d${c.hitDie}`).join(" + ");
@@ -176,15 +177,15 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       <FramedBox label="Attacks">
         {sheet.weaponAttacks.length > 0 && (
           <>
-            {/* Under 720px: no Proficient? column (a tag marks a weapon that is not proficient), the attack as "+11" under
-                "To hit", and the off-hand modifier on its own line. */}
+            {/* Under 720px the table has no Proficient? column. A tag marks a weapon that is not proficient. The attack
+                shows as "+11" under "To hit", and the off-hand modifier is on its own line. */}
             <Table
               caption="Weapon attacks"
               headers={[
                 "Name",
                 "Proficient?",
-                <Narrow key="attack" wide="Attack" narrow="To hit" />,
-                <Narrow key="damage" wide="Damage modifier" narrow="Damage" />,
+                <ShortWhenNarrow key="attack" text="Attack" short="To hit" />,
+                "Damage modifier",
               ]}
               hiddenNarrow={[1]}
             >
@@ -315,14 +316,15 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
           <Name>{sheet.name ?? "Unnamed character"}</Name>
           <Label>Character name</Label>
         </div>
-        <div className="grid grid-cols-[repeat(2,minmax(0,auto))] items-end gap-x-[18px] gap-y-1.5 rounded-md border-[1.5px] border-rule-strong px-3.5 py-2 @min-[720px]:grid-cols-[repeat(3,minmax(0,auto))]">
+        <div className="grid grid-cols-[repeat(2,minmax(0,auto))] items-end gap-x-[18px] gap-y-1.5 rounded-md border-[1.5px] border-rule-strong px-3.5 py-2 @min-[720px]:grid-cols-[minmax(0,1fr)_minmax(0,max-content)_minmax(0,max-content)]">
           <Detail label="Class" className="col-span-2 @min-[720px]:col-span-1" value={classes} />
-          <Detail label="Background" value={sheet.background} />
-          <Detail label="Race" value={race} />
+          {/* Background and race take at most a fifth of the sheet each, so the class gets the space first. */}
+          <Detail label="Background" className="@min-[720px]:max-w-[20cqw]" value={sheet.background} />
+          <Detail label="Race" className="@min-[720px]:max-w-[20cqw]" value={race} />
         </div>
       </header>
 
-      {narrow ? (
+      {tabbed ? (
         <Tabs label="Sheet sections" tabs={tabs.filter((tab) => tab.content)} />
       ) : (
         <div className="grid items-start gap-4 @min-[720px]:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
@@ -411,6 +413,9 @@ function Detail({ label, className, value }: { label: string; className?: string
   );
 }
 
+/** A proficiency mark: a 10px square, with space for the expertise ring around it. */
+const MARK = "ml-[3px] size-2.5 border-[1.5px]";
+
 /**
  * A save or skill line: a square proficiency mark, then the text, muted when
  * not proficient. Expertise is a ring around the filled square, as on the
@@ -420,11 +425,11 @@ function Line({ proficient, expertise = false, children }: { proficient: boolean
   return (
     <li className="grid grid-cols-[16px_minmax(0,1fr)] items-baseline gap-1 text-[14.5px]">
       {expertise ? (
-        <span role="img" aria-label="Expertise" className="ml-[3px] size-2.5 border-[1.5px] border-ink bg-ink outline-[1.5px] outline-offset-[1.5px] outline-ink outline-solid" />
+        <span role="img" aria-label="Expertise" className={`${MARK} border-ink bg-ink outline-[1.5px] outline-offset-[1.5px] outline-ink outline-solid`} />
       ) : proficient ? (
-        <span role="img" aria-label="Proficient" className="ml-[3px] size-2.5 border-[1.5px] border-ink bg-ink" />
+        <span role="img" aria-label="Proficient" className={`${MARK} border-ink bg-ink`} />
       ) : (
-        <span aria-hidden className="ml-[3px] size-2.5 border-[1.5px] border-ink-muted" />
+        <span aria-hidden className={`${MARK} border-ink-muted`} />
       )}
       <span className={`truncate tabular-nums ${proficient ? "" : "text-ink-muted"}`}>{children}</span>
     </li>
@@ -452,17 +457,10 @@ function RowBox({ label, shortLabel, shield = false, children }: { label: string
       <span role="group" aria-label={label} className="self-center text-[26px] leading-[1.1] font-medium tabular-nums">
         {children}
       </span>
-      {/* The group has the label as its name, so the visible label is not read twice. A grid, so a label on two
-          lines keeps the label's line height. */}
+      {/* The group has the label as its name, so the visible label is not read twice. The wrapper is a grid, so a
+          label on two lines keeps the line height of the label. */}
       <span aria-hidden className="grid">
-        {shortLabel ? (
-          <Label>
-            <span className="@max-[719px]:hidden">{label}</span>
-            <span className="@min-[720px]:hidden">{shortLabel}</span>
-          </Label>
-        ) : (
-          <Label>{label}</Label>
-        )}
+        <Label>{shortLabel ? <ShortWhenNarrow text={label} short={shortLabel} /> : label}</Label>
       </span>
     </div>
   );
@@ -518,7 +516,7 @@ function SpellcastingBox({ spellcasting, narrow }: { spellcasting: Spellcasting;
                 <Label>Slots</Label>
               </th>
             )}
-            <th scope="col" className="pb-0.5 pl-3 font-normal @max-[719px]:pl-2">
+            <th scope="col" className={`pb-0.5 font-normal ${narrow ? "pl-2" : "pl-3"}`}>
               <Label>{title}</Label>
             </th>
           </tr>
@@ -530,6 +528,8 @@ function SpellcastingBox({ spellcasting, narrow }: { spellcasting: Spellcasting;
               <tr key={level} className="border-b border-rule last:border-0">
                 <th
                   scope="row"
+                  // The row is named by its level only, so a screen reader does not read the slots with each spell.
+                  aria-label={narrow && circles ? (level === 0 ? "Cantrips" : ordinal(level)) : undefined}
                   className={`border-r border-rule py-1.5 text-center leading-[1.1] font-medium ${
                     narrow ? "pr-1.5 align-top" : "pr-2.5"
                   } ${level === 0 ? (narrow ? "text-[13px]" : "text-base") : narrow ? "text-lg" : "text-2xl"}`}
@@ -539,7 +539,7 @@ function SpellcastingBox({ spellcasting, narrow }: { spellcasting: Spellcasting;
                   {narrow && circles && <span className="mt-1 flex justify-center [&_.ui-slot-circles]:gap-[3px] [&_.ui-slot-circle]:size-3">{circles}</span>}
                 </th>
                 {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{circles}</td>}
-                <td className="py-1.5 pl-3 align-top @max-[719px]:pl-2">
+                <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>
                   {/* role="list": without bullets, Safari does not name a ul as a list. */}
                   <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
                     {spells.map((spell) => (
@@ -714,12 +714,12 @@ function Td({ className, children }: { className?: string; children: ReactNode }
   return <td className={`border-b border-rule-strong bg-panel py-[3px] pr-1.5 pl-1 ${className ?? ""}`}>{children}</td>;
 }
 
-/** Text that is shorter when the sheet is narrower than 720px. */
-function Narrow({ wide, narrow }: { wide: string; narrow: string }) {
+/** Text that shows `short` in its place when the sheet is narrower than 720px. */
+function ShortWhenNarrow({ text, short }: { text: string; short: string }) {
   return (
     <>
-      <span className="@max-[719px]:hidden">{wide}</span>
-      <span className="@min-[720px]:hidden">{narrow}</span>
+      <span className="@max-[719px]:hidden">{text}</span>
+      <span className="@min-[720px]:hidden">{short}</span>
     </>
   );
 }

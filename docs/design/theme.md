@@ -391,11 +391,10 @@ same row.
 * A name box with the height of one line at the largest name size. A long
   name gets smaller to fit on one line. When the name is small enough that
   two lines fit in the box, it can wrap to two lines. The box does not grow.
-* A details box with class & level, background and race. The columns get
-  their width from their values (ORC-176), so a long class uses the space
-  that a short background does not need. Each value stays on one line and
-  truncates with an ellipsis when there is no more space. A hover shows the
-  whole value.
+* A details box with class & level, background and race. Background and
+  race get the width of their values, up to a fifth of the sheet each. Class
+  gets the rest (ORC-176). Each value stays on one line and truncates with an
+  ellipsis when there is no more space. A hover shows the whole value.
 
 ## Left column
 
@@ -457,15 +456,15 @@ as the engine reports it. It does not split Pact Magic slots out.
 * **The boxes:** a shaded row of large boxes in the style of the AC row:
   spell save DC, spell attack and spellcasting ability. A character with
   more than one source gets one row for each source, with the source name
-  as a small label on the row. When the section is narrower than 720px, the
+  as a small label on the row. When the sheet is narrower than 720px, the
   ability box label is "Ability". Its accessible name stays "Spellcasting
   ability".
 * **The table** has three columns:
   * **Level:** a large ordinal. The word "Cantrips" is smaller. Cantrips are
     the first row.
   * **Slots:** the slot circles on one line, left-aligned. No circles for
-    cantrips. In the phone layout there is no Slots column: the circles are
-    under the ordinal, and the spells get the width.
+    cantrips. When the sheet is narrower than 720px, there is no Slots
+    column. The circles are under the ordinal, and the spells get the width.
   * **Prepared spells:** comma-separated, A to Z.
 * **Which spells:** for a class that prepares, only prepared spells
   (always-prepared domain and oath spells included, with no tag). For a
@@ -474,9 +473,9 @@ as the engine reports it. It does not split Pact Magic slots out.
   spells are not on the sheet.
 * **More than one source:** each spell gets a small Inter-caps source tag
   after its name, and the column title is "Spells". With one source there
-  are no tags. A tag stays on the line of the last word of its spell name,
-  but the list can wrap between spells and inside a long name, so the page
-  never scrolls sideways.
+  are no tags. A tag stays on the line of the last word of its spell name.
+  The list can wrap between spells and inside a long name. The page does
+  not scroll sideways.
 * The sheet does not show how many spells the character can prepare.
 
 ## Not on the sheet in M8
@@ -511,10 +510,12 @@ The phone layout of the character sheet is ORC-173. These rules apply:
 * The builder preview has no tabs. It keeps one long column.
 * In one column, the AC, initiative and speed boxes share the width, up to
   112px each.
-* Under 720px, the attacks table has no "Proficient?" column. A weapon that
-  is not proficient gets a "not proficient" tag after its name. The attack
-  column is "To hit" and shows "+11", and the off-hand modifier is a small
-  line under the damage modifier. The builder preview uses this table too.
+* When the sheet is narrower than 720px, the attacks table has no
+  "Proficient?" column. A weapon that is not proficient gets a "not
+  proficient" tag after its name. The attack column is "To hit" and shows
+  "+11". The off-hand modifier is a small line under the damage modifier.
+* These narrow rules (attacks, spell slots, the "Ability" label) apply in
+  the builder preview too. The preview does not use tabs.
 * At 680px and below, the shell rail becomes a top strip with the margin
   rule along its bottom. The tabs stand in a row on the rule, and the
   current tab is taller.

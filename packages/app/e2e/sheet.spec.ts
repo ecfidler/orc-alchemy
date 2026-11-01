@@ -149,3 +149,19 @@ test("a long class truncates, and the proficiencies and AC by armor are in the l
   expect(armor.y).toBeGreaterThan(proficiencies.y);
   expect(attacks.x).toBeGreaterThan(equipment.x);
 });
+
+// ORC-176: a Tiefling Warlock 20 from the level 20 audit, with a source tag on each spell. Its spell list made the
+// page scroll sideways.
+for (const width of [1440, 1024, 800, 390, 360]) {
+  test(`warlock-20 does not scroll sideways at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/import");
+    await page.getByLabel("Import character file").setInputFiles(join(import.meta.dirname, "warlock-20.strict.json"));
+    await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
+    const tabs = width < 760 ? await page.getByRole("tab").allTextContents() : [];
+    for (const tab of tabs.length > 0 ? tabs : [null]) {
+      if (tab) await page.getByRole("tab", { name: tab }).click();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth), `${tab ?? "sheet"} tab`).toBeLessThanOrEqual(width);
+    }
+  });
+}
