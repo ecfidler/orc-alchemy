@@ -230,7 +230,13 @@ const sentence = (text: string) => {
 };
 
 const byName = <T extends { name: string }>(items: T[]) =>
-  items.sort((a, b) => (a.name ?? "").toLowerCase().localeCompare((b.name ?? "").toLowerCase()));
+  items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+/** The name a feature or special attack shows when the engine gives it none. */
+export const UNNAMED_FEATURE = "Unnamed feature";
+// The engine's types say every feature has a name, but engine 0.3.1 gives the
+// Hunter's Evasion feature (Superior Hunter's Defense) none (ORC-177).
+const nameOf = (feature: { name?: string | null }) => feature.name || UNNAMED_FEATURE;
 
 /** The old app's bonus-str, for ability, save, skill and other bonuses: "+3", "-1", and "0" for zero. */
 export const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
@@ -263,8 +269,7 @@ const recharge = (units: string) => {
  */
 function toFeature(feature: Feature): SheetFeature {
   const { summary, description, frequency, duration } = feature;
-  // Engine 0.3.1 gives the Hunter's Evasion trait no name (ORC-177).
-  const name = feature.name || "Unnamed feature";
+  const name = nameOf(feature);
   const { range, qualifier } = feature as Feature & { range?: Amount; qualifier?: string | null };
   let text = summary ?? description ?? "";
   if (range || duration) {
@@ -357,7 +362,7 @@ function toSpecialAttack(attack: NonNullable<Built2014["attacks"]>[number]): She
       : null;
   const save = a.save ? `DC${a["save-dc"]} ${unqualify(a.save)} save` : null;
   const text = [a.summary ?? a.description, shape, toHit, damage, save].filter(Boolean).join(", ");
-  return { name: a.name, text: sentence(text) };
+  return { name: nameOf(a), text: sentence(text) };
 }
 
 function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | null {

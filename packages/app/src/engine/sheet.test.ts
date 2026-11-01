@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Built2014 } from "@pubdoor/dmv";
 import { expect, test } from "vitest";
-import { toSheet } from "./sheet.ts";
+import { toSheet, UNNAMED_FEATURE } from "./sheet.ts";
 
 // expected.json is evaluate(strict).built, so these tests need no engine.
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -273,16 +273,18 @@ test("a limited-use feature has its uses and when they come back", () => {
   expect(usesOf("fighter-5", "Dueling Fighting Style")).toBeUndefined();
 });
 
-// ORC-177: the Hunter's Evasion option makes a trait with no name in engine 0.3.1.
-test("a feature with no name gets a fallback name and does not break the sort", () => {
+// ORC-177: engine 0.3.1 gives the Hunter's Evasion feature no name.
+test("a feature or special attack with no name gets a fallback name", () => {
   const built: Built2014 = {
     ...builtOf("fighter-1"),
     traits: [
       { name: "Darkvision", summary: "see in the dark" },
       { page: 93, summary: "you take no damage on a successful DEX save" } as NonNullable<Built2014["traits"]>[number],
     ],
+    attacks: [{ summary: "a gust of wind" } as NonNullable<Built2014["attacks"]>[number]],
   };
-  const { traits } = toSheet(built, {}).features;
-  expect(traits.map((t) => t.name)).toEqual(["Darkvision", "Unnamed feature"]);
-  expect(traits[1]!.text).toBe("You take no damage on a successful DEX save.");
+  const sheet = toSheet(built, {});
+  expect(sheet.features.traits.map((t) => t.name)).toEqual(["Darkvision", UNNAMED_FEATURE]);
+  expect(sheet.features.traits[1]!.text).toBe("You take no damage on a successful DEX save.");
+  expect(sheet.specialAttacks.map((a) => a.name)).toEqual([UNNAMED_FEATURE]);
 });
