@@ -29,43 +29,46 @@ export function UseBubble({ title, children, tag, uses, pool }: UseBubbleProps) 
   const step = pool?.step ?? 1;
   return (
     <div role="group" aria-labelledby={id} className="ui-use-bubble" data-spent={total > 0 && spent >= total ? "" : undefined}>
-      <span className="ui-use-bubble-head">
-        <span id={id} className="ui-use-bubble-title">
-          {title}
-        </span>
-        {uses !== undefined && uses > 0 && (
-          <span role="group" aria-label={`${uses} ${uses === 1 ? "use" : "uses"}, ${uses - spent} left`} className="ui-use-circles">
-            {Array.from({ length: uses }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Use ${i + 1}`}
-                aria-pressed={i < spent}
-                className="ui-use-circle"
-                // A click on a spent circle gives it and the ones after it back.
-                onClick={() => setSpent(i < spent ? i : i + 1)}
-              />
-            ))}
+      {/* The bubble is a size container, so its own width sets the layout; the grid is inside it. */}
+      <div className="ui-use-bubble-grid">
+        <span className="ui-use-bubble-head">
+          <span id={id} className="ui-use-bubble-title">
+            {title}
           </span>
-        )}
-      </span>
-      {children !== undefined && <span className="ui-use-bubble-body">{children}</span>}
-      {(tag !== undefined || pool) && (
-        <span className="ui-use-bubble-side">
-          {tag !== undefined && <span className="ui-use-bubble-tag">{tag}</span>}
-          {pool && (
-            <button
-              type="button"
-              aria-label={`${pool.max - spent} / ${pool.max} left. ${spent >= pool.max ? "Fill again" : `Spend ${step}`}`}
-              className="ui-use-pool"
-              // An empty pool fills again.
-              onClick={() => setSpent((s) => (Math.min(s, pool.max) >= pool.max ? 0 : Math.min(pool.max, s + step)))}
-            >
-              <CurrentMax current={pool.max - spent} max={pool.max} />
-            </button>
+          {uses !== undefined && uses > 0 && (
+            <span role="group" aria-label={`${uses} ${uses === 1 ? "use" : "uses"}, ${uses - spent} left`} className="ui-use-circles">
+              {Array.from({ length: uses }, (_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Use ${i + 1}`}
+                  aria-pressed={i < spent}
+                  className="ui-use-circle"
+                  // A click on a spent circle gives it and the ones after it back.
+                  onClick={() => setSpent(i < spent ? i : i + 1)}
+                />
+              ))}
+            </span>
           )}
         </span>
-      )}
+        {children !== undefined && <span className="ui-use-bubble-body">{children}</span>}
+        {(tag !== undefined || pool) && (
+          <span className="ui-use-bubble-side">
+            {tag !== undefined && <span className="ui-use-bubble-tag">{tag}</span>}
+            {pool && (
+              <button
+                type="button"
+                aria-label={`${pool.max - spent} / ${pool.max} left. ${spent >= pool.max ? "Fill again" : `Spend ${step}`}`}
+                className="ui-use-pool"
+                // An empty pool fills again.
+                onClick={() => setSpent((s) => (Math.min(s, pool.max) >= pool.max ? 0 : Math.min(pool.max, s + step)))}
+              >
+                <CurrentMax current={pool.max - spent} max={pool.max} />
+              </button>
+            )}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

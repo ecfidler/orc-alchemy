@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-29T23:45:00Z }
+generated: { by: claude-code/agent, at: 2026-11-01T17:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -276,6 +276,9 @@ The outline around a limited-use feature (ORC-146).
   type, as current / max.
 * When all uses are spent, the outline becomes dashed `--ink-muted` and the
   text greys. There is no cross-out.
+* When the bubble is 380px wide or less, no column is kept free for the
+  rest type (ORC-176). The name and the text use the full width, and the
+  circles and the rest type share the line under the name.
 * **Look only.** The app does not record uses. A click changes the circles
   on the page only, until the page reloads.
 
@@ -388,9 +391,10 @@ same row.
 * A name box with the height of one line at the largest name size. A long
   name gets smaller to fit on one line. When the name is small enough that
   two lines fit in the box, it can wrap to two lines. The box does not grow.
-* A details box with class & level (twice the width of the others),
-  background and race. Each value stays on one line and truncates with an
-  ellipsis. A hover shows the whole value.
+* A details box with class & level, background and race. Background and
+  race get the width of their values, up to a fifth of the sheet each. Class
+  gets the rest (ORC-176). Each value stays on one line and truncates with an
+  ellipsis when there is no more space. A hover shows the whole value.
 
 ## Left column
 
@@ -401,8 +405,10 @@ The left column is at least 320px wide.
   oval.
 * Inspiration (an empty box) and proficiency bonus.
 * Saving throws and skills, one line each, with square proficiency marks.
-  The ability tag after a skill is small Inter caps. There is no underline
-  under a bonus.
+  Expertise is a ring around the filled square, as on the paper sheet, with
+  "Expertise" as its accessible name. There is no "expertise" text tag
+  (ORC-176). The ability tag after a skill is small Inter caps. There is no
+  underline under a bonus.
 * Passive perception.
 * **Equipment**, with one **Gold** box floated in its top-right corner. The
   Gold box shows all coins (`cp`, `sp`, `ep`, `gp`, `pp` treasure items)
@@ -416,7 +422,11 @@ The left column is at least 320px wide.
 ## Right column
 
 * A shaded panel with AC (in a shield shape), initiative and speed, each
-  sized to its content (at least 96px) and spaced evenly.
+  sized to its content (at least 96px) and spaced evenly. Each label is at
+  the bottom of its box, so a taller box does not move the other labels.
+* Speed: only the first speed's number is large ("60 ft."). Its qualifier
+  ("UNARMORED") is small Inter caps under it. Other speeds (armored, swim,
+  fly) are small lines under that (ORC-176).
 * Hit points: temporary on the left, then current / max on the right. The
   sheet model has no temporary HP, so that box is empty. When the record has
   no current HP, show the max as the current value, as the sheet does
@@ -427,6 +437,7 @@ The left column is at least 320px wide.
   two rows fill the space above it. The app records no death saves, so the
   circles are empty.
 * **Attacks**, as a table. Attack cantrips such as Sacred Flame stay in it.
+  The numbers do not wrap.
 * **Spellcasting** (see below).
 * **Features & traits.** Each feature's name is on its own line above its
   text. Limited-use features sit in a use bubble.
@@ -443,14 +454,22 @@ list (a Warlock 10 has two 5th-level slots there). The sheet shows the list
 as the engine reports it. It does not split Pact Magic slots out.
 
 * **The boxes:** a shaded row of large boxes in the style of the AC row:
-  spell save DC, spell attack and spellcasting ability. A character with
-  more than one source gets one row for each source, with the source name
-  as a small label on the row.
+  spell save DC, spell attack and spellcasting ability. Sources with the
+  same DC, attack and ability share one row (ORC-176). When there is more
+  than one row, or a row has more than one source, a small label on the row
+  gives the source names ("Tiefling · Warlock"). A screen reader reads
+  "Tiefling and Warlock". When the sheet is narrower than 720px, the ability
+  box label is "Ability". Its accessible name stays "Spellcasting ability".
+* **Cantrip-only sources:** a source that is not a class and knows only
+  cantrips (for example a High Elf's cantrip) has no boxes and no tags. It
+  is one line under the boxes: "Mending (High Elf, INT, DC 14, +6)". When
+  the character has no other spells, the section is only that line.
 * **The table** has three columns:
   * **Level:** a large ordinal. The word "Cantrips" is smaller. Cantrips are
     the first row.
   * **Slots:** the slot circles on one line, left-aligned. No circles for
-    cantrips.
+    cantrips. When the sheet is narrower than 720px, there is no Slots
+    column. The circles are under the ordinal, and the spells get the width.
   * **Prepared spells:** comma-separated, A to Z.
 * **Which spells:** for a class that prepares, only prepared spells
   (always-prepared domain and oath spells included, with no tag). For a
@@ -459,7 +478,9 @@ as the engine reports it. It does not split Pact Magic slots out.
   spells are not on the sheet.
 * **More than one source:** each spell gets a small Inter-caps source tag
   after its name, and the column title is "Spells". With one source there
-  are no tags.
+  are no tags. A tag stays on the line of the last word of its spell name.
+  The list can wrap between spells and inside a long name. The page does
+  not scroll sideways.
 * The sheet does not show how many spells the character can prepare.
 
 ## Not on the sheet in M8
@@ -494,6 +515,12 @@ The phone layout of the character sheet is ORC-173. These rules apply:
 * The builder preview has no tabs. It keeps one long column.
 * In one column, the AC, initiative and speed boxes share the width, up to
   112px each.
+* When the sheet is narrower than 720px, the attacks table has no
+  "Proficient?" column. A weapon that is not proficient gets a "not
+  proficient" tag after its name. The attack column is "To hit" and shows
+  "+11". The off-hand modifier is a small line under the damage modifier.
+* These narrow rules (attacks, spell slots, the "Ability" label) apply in
+  the builder preview too. The preview does not use tabs.
 * At 680px and below, the shell rail becomes a top strip with the margin
   rule along its bottom. The tabs stand in a row on the rule, and the
   current tab is taller.

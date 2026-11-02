@@ -226,13 +226,16 @@
   }
 
   .ui-use-bubble {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 2px 14px;
+    container-type: inline-size;
     padding: 8px 14px 10px;
     background: var(--bubble);
     border: 1.5px solid var(--info);
     border-radius: 18px;
+  }
+  .ui-use-bubble-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 14px;
   }
   .ui-use-bubble-head {
     display: flex;
@@ -308,6 +311,36 @@
     font-size: 30px;
     font-weight: 500;
     line-height: 1;
+  }
+  /*
+   * A narrow bubble keeps no column free for the tag: the name and the text
+   * use the full width, and the circles and the tag share the line under the
+   * name.
+   */
+  @container (max-width: 380px) {
+    .ui-use-bubble-grid {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas: "title title" "circles side" "body body";
+      column-gap: 10px;
+    }
+    .ui-use-bubble-head {
+      display: contents;
+    }
+    .ui-use-bubble-title {
+      grid-area: title;
+    }
+    .ui-use-circles {
+      grid-area: circles;
+    }
+    .ui-use-bubble-side {
+      grid-area: side;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ui-use-bubble-body {
+      grid-area: body;
+    }
   }
   /* All uses spent: a dashed muted outline and muted text, with no cross-out. */
   .ui-use-bubble:where([data-spent]) {

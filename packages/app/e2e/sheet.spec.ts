@@ -82,19 +82,15 @@ test("a bundle's custom magic items load, and the sheet shows the ones the chara
   await expect(page.getByRole("definition").filter({ hasText: "Fire" })).toBeVisible();
 });
 
-test("wizard-1 lists its prepared spells, with a source tag on each", async ({ page }) => {
+test("wizard-1 lists its prepared spells, and its High Elf cantrip on one line", async ({ page }) => {
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "wizard-1.strict.json"));
 
   const spells = page.getByRole("table", { name: "Spells by level" });
-  await expect(spells.getByRole("columnheader", { name: "Spells" })).toBeVisible();
-  await expect(spells.getByRole("row", { name: /^1st / }).getByRole("listitem")).toHaveText([
-    "Alarm Wizard",
-    "Burning Hands Wizard",
-    "Charm Person Wizard",
-    "Color Spray Wizard",
-  ]);
-  await expect(page.getByRole("group", { name: "High Elf" }).getByLabel("Spell save DC")).toHaveText("13");
+  await expect(spells.getByRole("columnheader", { name: "Prepared spells" })).toBeVisible();
+  await expect(spells.getByRole("row", { name: /^1st / }).getByRole("listitem")).toHaveText(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
+  // A race with only a cantrip has no boxes and no tags (ORC-176).
+  await expect(page.getByRole("listitem").filter({ hasText: "(High Elf, INT, DC 13, +5)" })).toHaveText("Minor Illusion (High Elf, INT, DC 13, +5)");
 });
 
 test("without IndexedDB, import still opens the sheet and a notice says nothing is saved", async ({ page }) => {
@@ -132,6 +128,8 @@ test("a long name gets smaller and wraps to two lines, and the name box keeps it
 });
 
 test("a long class truncates, and the proficiencies and AC by armor are in the left column under Equipment", async ({ page }) => {
+  // The header columns size from their content (ORC-176), so the class is cut only on a narrower sheet.
+  await page.setViewportSize({ width: 1024, height: 720 });
   await importGolden(page, "fighter-3-wizard-2");
   const classes = page.getByLabel("Class", { exact: true });
   await expect(classes).toHaveAttribute("title", "Fighter 3 (Champion) / Wizard 2 (School of Evocation)");
@@ -147,3 +145,19 @@ test("a long class truncates, and the proficiencies and AC by armor are in the l
   expect(armor.y).toBeGreaterThan(proficiencies.y);
   expect(attacks.x).toBeGreaterThan(equipment.x);
 });
+
+// ORC-176: a Tiefling Warlock 20 from the level 20 audit, with a source tag on each spell. Its spell list made the
+// page scroll sideways.
+for (const width of [1440, 1024, 800, 390, 360]) {
+  test(`warlock-20 does not scroll sideways at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/import");
+    await page.getByLabel("Import character file").setInputFiles(join(import.meta.dirname, "warlock-20.strict.json"));
+    await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
+    const tabs = width < 760 ? await page.getByRole("tab").allTextContents() : [];
+    for (const tab of tabs.length > 0 ? tabs : [null]) {
+      if (tab) await page.getByRole("tab", { name: tab }).click();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth), `${tab ?? "sheet"} tab`).toBeLessThanOrEqual(width);
+    }
+  });
+}
