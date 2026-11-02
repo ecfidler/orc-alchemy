@@ -30,17 +30,18 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
   const { spellcasting, features, equipment, details } = sheet;
   const article = useRef<HTMLElement>(null);
   const [narrow, setNarrow] = useState(false);
-  // Measured before paint, so a phone never shows layout F first. The builder preview keeps one long column.
-  // A width of 0 is a sheet that is not laid out (hidden, or in jsdom); it keeps layout F.
+  // Measured before paint, so a phone never shows layout F first. A narrow sheet goes in tabs, but the builder
+  // preview keeps one long column. A width of 0 is a sheet that is not laid out (hidden, or in jsdom); it is not narrow.
   useLayoutEffect(() => {
     const element = article.current;
-    if (preview || !element) return;
+    if (!element) return;
     const measure = () => setNarrow(element.clientWidth > 0 && element.clientWidth < 720);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [preview]);
+  }, []);
+  const tabbed = narrow && !preview;
   const race = sheet.subrace ? `${sheet.race} (${sheet.subrace})` : sheet.race;
   const classes = sheet.classes.map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ""}`).join(" / ");
   const hitDice = sheet.classes.map((c) => `${c.level}d${c.hitDie}`).join(" + ");
@@ -96,9 +97,8 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
           <FramedBox label="Skills">
             <ul className="grid gap-0.5">
               {sheet.skills.map((skill) => (
-                <Line key={skill.key} proficient={skill.proficient}>
+                <Line key={skill.key} proficient={skill.proficient} expertise={skill.expertise}>
                   {bonusStr(skill.bonus)} {skill.name} <Tag>{abbr(skill.ability)}</Tag>
-                  {skill.expertise && <Tag>expertise</Tag>}
                 </Line>
               ))}
             </ul>
@@ -116,10 +116,19 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
         </RowBox>
         <RowBox label="Initiative">{modStr(sheet.initiative)}</RowBox>
         <RowBox label="Speed">
+          {/* Only the first speed's number is large. Its qualifier and the other speeds are small lines under it. */}
           {sheet.speeds.map((speed, i) => (
-            <div key={i} className={i > 0 ? "text-sm leading-snug" : undefined}>
-              {speed.feet} ft.{speed.label && ` (${speed.label})`}
-            </div>
+            <span key={i} className={i === 0 ? "block" : "block font-sans text-[11px] leading-snug text-ink-muted"}>
+              {speed.feet} ft.
+              {speed.label && (
+                <>
+                  {" "}
+                  <span className={i === 0 ? "block font-sans text-[9.5px] leading-tight font-medium tracking-[0.08em] text-ink-muted uppercase" : undefined}>
+                    {speed.label}
+                  </span>
+                </>
+              )}
+            </span>
           ))}
         </RowBox>
       </div>
@@ -168,15 +177,37 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       <FramedBox label="Attacks">
         {sheet.weaponAttacks.length > 0 && (
           <>
-            <Table caption="Weapon attacks" headers={["Name", "Proficient?", "Attack", "Damage modifier"]}>
+            {/* Under 720px the table has no Proficient? column. A tag marks a weapon that is not proficient. The attack
+                shows as "+11" under "To hit", and the off-hand modifier is on its own line. */}
+            <Table
+              caption="Weapon attacks"
+              headers={[
+                "Name",
+                "Proficient?",
+                <ShortWhenNarrow key="attack" text="Attack" short="To hit" />,
+                "Damage modifier",
+              ]}
+              hiddenNarrow={[1]}
+            >
               {sheet.weaponAttacks.map((weapon) => (
                 <tr key={weapon.key}>
-                  <Td>{weapon.name}</Td>
-                  <Td>{weapon.proficient ? "Yes" : "No"}</Td>
-                  <Td>{modStr(weapon.attackBonus)} to hit</Td>
                   <Td>
+                    {weapon.name}
+                    {!weapon.proficient && <span className="@min-[720px]:hidden"> <Tag>not proficient</Tag></span>}
+                  </Td>
+                  <Td className="@max-[719px]:hidden">{weapon.proficient ? "Yes" : "No"}</Td>
+                  <Td className="whitespace-nowrap">
+                    {modStr(weapon.attackBonus)}
+                    <span className="@max-[719px]:hidden"> to hit</span>
+                  </Td>
+                  <Td className="whitespace-nowrap">
                     {modStr(weapon.damageModifier)}
-                    {weapon.offHandDamageModifier !== null && ` (off-hand ${modStr(weapon.offHandDamageModifier)})`}
+                    {weapon.offHandDamageModifier !== null && (
+                      <span className="@max-[719px]:block @max-[719px]:text-xs @max-[719px]:text-ink-muted">
+                        {" "}
+                        (off-hand {modStr(weapon.offHandDamageModifier)})
+                      </span>
+                    )}
                   </Td>
                 </tr>
               ))}
@@ -244,7 +275,9 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       </FramedBox>
     );
   const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
-  const spellcastingSection = spellcasting && <SpellcastingBox spellcasting={spellcasting} />;
+  const spellcastingSection = spellcasting && (
+    <SpellcastingBox spellcasting={spellcasting} classNames={new Set(sheet.classes.map((c) => c.name))} narrow={narrow} />
+  );
 
   // The phone layout (ORC-173): under 720px the sections go in tabs, without the empty ones.
   const tabs: Tab[] = [
@@ -285,14 +318,15 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
           <Name>{sheet.name ?? "Unnamed character"}</Name>
           <Label>Character name</Label>
         </div>
-        <div className="grid grid-cols-2 items-end gap-x-[18px] gap-y-1.5 rounded-md border-[1.5px] border-rule-strong px-3.5 py-2 @min-[720px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-[repeat(2,minmax(0,auto))] items-end gap-x-[18px] gap-y-1.5 rounded-md border-[1.5px] border-rule-strong px-3.5 py-2 @min-[720px]:grid-cols-[minmax(0,1fr)_minmax(0,max-content)_minmax(0,max-content)]">
           <Detail label="Class" className="col-span-2 @min-[720px]:col-span-1" value={classes} />
-          <Detail label="Background" value={sheet.background} />
-          <Detail label="Race" value={race} />
+          {/* Background and race take at most a fifth of the sheet each, so the class gets the space first. */}
+          <Detail label="Background" className="@min-[720px]:max-w-[20cqw]" value={sheet.background} />
+          <Detail label="Race" className="@min-[720px]:max-w-[20cqw]" value={race} />
         </div>
       </header>
 
-      {narrow ? (
+      {tabbed ? (
         <Tabs label="Sheet sections" tabs={tabs.filter((tab) => tab.content)} />
       ) : (
         <div className="grid items-start gap-4 @min-[720px]:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
@@ -381,14 +415,23 @@ function Detail({ label, className, value }: { label: string; className?: string
   );
 }
 
-/** A save or skill line: a square proficiency mark, then the text, muted when not proficient. */
-function Line({ proficient, children }: { proficient: boolean; children: ReactNode }) {
+/** A proficiency mark: a 10px square, with space for the expertise ring around it. */
+const MARK = "ml-[3px] size-2.5 border-[1.5px]";
+
+/**
+ * A save or skill line: a square proficiency mark, then the text, muted when
+ * not proficient. Expertise is a ring around the filled square, as on the
+ * paper sheet.
+ */
+function Line({ proficient, expertise = false, children }: { proficient: boolean; expertise?: boolean; children: ReactNode }) {
   return (
-    <li className="grid grid-cols-[14px_minmax(0,1fr)] items-baseline gap-1 text-[14.5px]">
-      {proficient ? (
-        <span role="img" aria-label="Proficient" className="size-2.5 border-[1.5px] border-ink bg-ink" />
+    <li className="grid grid-cols-[16px_minmax(0,1fr)] items-baseline gap-1 text-[14.5px]">
+      {expertise ? (
+        <span role="img" aria-label="Expertise" className={`${MARK} border-ink bg-ink outline-[1.5px] outline-offset-[1.5px] outline-ink outline-solid`} />
+      ) : proficient ? (
+        <span role="img" aria-label="Proficient" className={`${MARK} border-ink bg-ink`} />
       ) : (
-        <span aria-hidden className="size-2.5 border-[1.5px] border-ink-muted" />
+        <span aria-hidden className={`${MARK} border-ink-muted`} />
       )}
       <span className={`truncate tabular-nums ${proficient ? "" : "text-ink-muted"}`}>{children}</span>
     </li>
@@ -401,129 +444,200 @@ function Tag({ children }: { children: ReactNode }) {
 }
 
 /**
- * A box in the AC row: a large value, its label under it. It fits its
- * content, at least 96px. On a narrow sheet the boxes share the width, up to
- * 112px each.
+ * A box in the AC row: a large value, its label at the bottom, so a taller
+ * box in the row does not move the other labels. It fits its content, at
+ * least 96px. On a narrow sheet the boxes share the width, up to 112px each,
+ * and `shortLabel` replaces a label too long for that width.
  */
-function RowBox({ label, shield = false, children }: { label: string; shield?: boolean; children: ReactNode }) {
-  const id = useId();
+function RowBox({ label, shortLabel, shield = false, children }: { label: string; shortLabel?: string; shield?: boolean; children: ReactNode }) {
   return (
     <div
-      className={`grid min-w-24 flex-[0_0_auto] border-[1.5px] border-rule-strong bg-paper-raised px-3.5 py-2 text-center @max-[719px]:max-w-28 @max-[719px]:min-w-0 @max-[719px]:flex-[1_1_0] @max-[719px]:px-1.5 ${
+      className={`grid min-w-24 flex-[0_0_auto] grid-rows-[1fr_auto] border-[1.5px] border-rule-strong bg-paper-raised px-3.5 py-2 text-center @max-[719px]:max-w-28 @max-[719px]:min-w-0 @max-[719px]:flex-[1_1_0] @max-[719px]:px-1.5 ${
         shield ? "rounded-[8px_8px_50%_50%/8px_8px_34%_34%] pb-3.5" : "rounded-md"
       }`}
     >
-      <span role="group" aria-labelledby={id} className="text-[26px] leading-[1.1] font-medium tabular-nums">
+      <span role="group" aria-label={label} className="self-center text-[26px] leading-[1.1] font-medium tabular-nums">
         {children}
       </span>
-      <Label id={id}>{label}</Label>
+      {/* The group has the label as its name, so the visible label is not read twice. The wrapper is a grid, so a
+          label on two lines keeps the line height of the label. */}
+      <span aria-hidden className="grid">
+        <Label>{shortLabel ? <ShortWhenNarrow text={label} short={shortLabel} /> : label}</Label>
+      </span>
     </div>
   );
 }
 
 /**
- * The Spellcasting section of the theme spec: a row of boxes for each source,
+ * The Spellcasting section of the theme spec: a row of boxes for the sources,
  * then one table row for each level, with the shared slots and the spells.
  * A source that prepares shows only its prepared spells. Other sources show
- * all known spells.
+ * all known spells. Sources with the same DC, attack and ability share one
+ * row of boxes. A source that is not a class and knows only cantrips, such
+ * as a High Elf's cantrip, is one short line in place of boxes and tags
+ * (ORC-176). On a narrow sheet the slots go under the level, and the spells
+ * get the width of the Slots column.
  */
-function SpellcastingBox({ spellcasting }: { spellcasting: Spellcasting }) {
+function SpellcastingBox({ spellcasting, classNames, narrow }: { spellcasting: Spellcasting; classNames: Set<string>; narrow: boolean }) {
   const { casters, slots, byLevel } = spellcasting;
   const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
+  const spells = byLevel.flatMap((row) => row.spells.map((spell) => ({ ...spell, level: row.level })));
   // A spell's source can have no boxes, so the sources come from the spells too.
-  const sources = new Set([...casters.map((caster) => caster.name), ...byLevel.flatMap((row) => row.spells.map((spell) => spell.source))]);
-  const several = sources.size > 1;
-  const title = several ? "Spells" : prepares.get([...sources][0]) ? "Prepared spells" : "Known spells";
+  const allSources = new Set([...casters.map((caster) => caster.name), ...spells.map((spell) => spell.source)]);
+  const cantripOnly = (source: string) =>
+    !classNames.has(source) && spells.some((spell) => spell.source === source) && spells.every((spell) => spell.source !== source || spell.level === 0);
+  const lines = new Set([...allSources].filter(cantripOnly));
+  const sources = [...allSources].filter((source) => !lines.has(source));
+  const several = sources.length > 1;
+  const title = several ? "Spells" : prepares.get(sources[0]!) ? "Prepared spells" : "Known spells";
+  const groups = casterGroups(casters.filter((caster) => !lines.has(caster.name)));
   const rows = [...new Set([...slots.map((slot) => slot.level), ...byLevel.map((row) => row.level)])]
     .sort((a, b) => a - b)
     .map((level) => ({
       level,
       slots: slots.find((slot) => slot.level === level)?.count ?? 0,
       spells: (byLevel.find((row) => row.level === level)?.spells ?? [])
+        .filter((spell) => !lines.has(spell.source))
         .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
         .sort((a, b) => a.name.localeCompare(b.name)),
     }))
     .filter((row) => row.slots > 0 || row.spells.length > 0);
   return (
     <FramedBox label="Spellcasting" className="gap-2.5">
-      {casters.length > 0 && (
+      {groups.length > 0 && (
         <ShadedPanel>
-          {casters.map((caster) => (
-            <CasterRow key={caster.name} caster={caster} named={several} />
+          {groups.map((group) => (
+            <CasterRow key={group.names.join("/")} group={group} named={groups.length > 1 || group.names.length > 1} />
           ))}
         </ShadedPanel>
       )}
-      <table className="w-full table-fixed border-collapse text-left text-[14.5px]">
-        <caption className="sr-only">Spells by level</caption>
-        <colgroup>
-          <col className="w-20 @max-[719px]:w-[58px]" />
-          <col className="w-[98px]" />
-          <col />
-        </colgroup>
-        <thead>
-          <tr className="border-b border-rule-strong">
-            <th scope="col" className="pb-0.5 text-center font-normal">
-              <Label>Level</Label>
-            </th>
-            <th scope="col" className="pb-0.5 pl-2.5 font-normal">
-              <Label>Slots</Label>
-            </th>
-            <th scope="col" className="pb-0.5 pl-3 font-normal @max-[719px]:pl-2">
-              <Label>{title}</Label>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ level, slots, spells }) => (
-            <tr key={level} className="border-b border-rule last:border-0">
-              <th
-                scope="row"
-                className={`border-r border-rule py-1.5 pr-2.5 text-center leading-[1.1] font-medium ${
-                  level === 0 ? "text-base @max-[719px]:text-[13px]" : "text-2xl @max-[719px]:text-xl"
-                }`}
-              >
-                {level === 0 ? "Cantrips" : ordinal(level)}
-              </th>
-              <td className="border-r border-rule py-1.5 pl-2.5">
-                {slots > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slots} />}
-              </td>
-              <td className="py-1.5 pl-3 align-top @max-[719px]:pl-2">
-                {/* role="list": without bullets, Safari does not name a ul as a list. */}
-                <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
-                  {spells.map((spell) => (
-                    // With a tag, the name and its tag stay on one line.
-                    <li key={`${spell.source}/${spell.key}`} className={several ? "whitespace-nowrap" : undefined}>
-                      {spell.name}
-                      {several && <> <Tag>{spell.source}</Tag></>}
-                    </li>
-                  ))}
-                </ul>
-              </td>
-            </tr>
+      {lines.size > 0 && (
+        // role="list": without bullets, Safari does not name a ul as a list.
+        <ul role="list" className="grid gap-0.5 text-[14.5px]">
+          {[...lines].map((source) => (
+            <CantripLine
+              key={source}
+              source={source}
+              cantrips={spells.filter((spell) => spell.source === source).map((spell) => spell.name).sort((a, b) => a.localeCompare(b))}
+              caster={casters.find((caster) => caster.name === source)}
+            />
           ))}
-        </tbody>
-      </table>
+        </ul>
+      )}
+      {rows.length > 0 && (
+        <table className="w-full table-fixed border-collapse text-left text-[14.5px]">
+          <caption className="sr-only">Spells by level</caption>
+          <colgroup>
+            <col className={narrow ? "w-[76px]" : "w-20"} />
+            {!narrow && <col className="w-[98px]" />}
+            <col />
+          </colgroup>
+          <thead>
+            <tr className="border-b border-rule-strong">
+              <th scope="col" className="pb-0.5 text-center font-normal">
+                <Label>Level</Label>
+              </th>
+              {!narrow && (
+                <th scope="col" className="pb-0.5 pl-2.5 font-normal">
+                  <Label>Slots</Label>
+                </th>
+              )}
+              <th scope="col" className={`pb-0.5 font-normal ${narrow ? "pl-2" : "pl-3"}`}>
+                <Label>{title}</Label>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ level, slots, spells }) => {
+              const circles = slots > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slots} />;
+              return (
+                <tr key={level} className="border-b border-rule last:border-0">
+                  <th
+                    scope="row"
+                    // The row is named by its level only, so a screen reader does not read the slots with each spell.
+                    aria-label={narrow && circles ? (level === 0 ? "Cantrips" : ordinal(level)) : undefined}
+                    className={`border-r border-rule py-1.5 text-center leading-[1.1] font-medium ${
+                      narrow ? "pr-1.5 align-top" : "pr-2.5"
+                    } ${level === 0 ? (narrow ? "text-[13px]" : "text-base") : narrow ? "text-lg" : "text-2xl"}`}
+                  >
+                    {level === 0 ? "Cantrips" : ordinal(level)}
+                    {/* Four circles fit on one line in the narrow column. */}
+                    {narrow && circles && <span className="mt-1 flex justify-center [&_.ui-slot-circles]:gap-[3px] [&_.ui-slot-circle]:size-3">{circles}</span>}
+                  </th>
+                  {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{circles}</td>}
+                  <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>
+                    {/* role="list": without bullets, Safari does not name a ul as a list. */}
+                    <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
+                      {spells.map((spell) => (
+                        // A tag stays on the line of the name's last word, and does not wrap inside. A long name can wrap.
+                        <li key={`${spell.source}/${spell.key}`}>
+                          {spell.name}
+                          {several && (
+                            <>
+                              {"\u00a0"}
+                              <span className="whitespace-nowrap">
+                                <Tag>{spell.source}</Tag>
+                              </span>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </FramedBox>
   );
 }
 
+type Caster = Spellcasting["casters"][number];
+type CasterGroup = Pick<Caster, "saveDc" | "attackBonus" | "ability"> & { names: string[] };
+
+/** The casters, with the ones that have the same DC, attack and ability in one group, in the order they come. */
+function casterGroups(casters: Caster[]): CasterGroup[] {
+  const groups: CasterGroup[] = [];
+  for (const { name, saveDc, attackBonus, ability } of casters) {
+    const same = groups.find((g) => g.saveDc === saveDc && g.attackBonus === attackBonus && g.ability === ability);
+    if (same) same.names.push(name);
+    else groups.push({ names: [name], saveDc, attackBonus, ability });
+  }
+  return groups;
+}
+
+/** A source with only cantrips, on one line: "Mending (High Elf, INT, DC 14, +6)". */
+function CantripLine({ source, cantrips, caster }: { source: string; cantrips: string[]; caster: Caster | undefined }) {
+  const numbers = caster ? [abbr(caster.ability), `DC ${caster.saveDc}`, bonusStr(caster.attackBonus)] : [];
+  return (
+    <li>
+      {cantrips.join(", ")} <span className="text-ink-muted">({[source, ...numbers].join(", ")})</span>
+    </li>
+  );
+}
+
 /**
- * One source's spell save DC, spell attack and spellcasting ability. With
- * several sources, the row is a group named by its source.
+ * The spell save DC, spell attack and spellcasting ability of one or more
+ * sources. With `named`, the row is a group named by its sources. The label
+ * shows "Tiefling · Warlock".
  */
-function CasterRow({ caster, named }: { caster: Spellcasting["casters"][number]; named: boolean }) {
-  const id = useId();
+function CasterRow({ group, named }: { group: CasterGroup; named: boolean }) {
   const boxes = (
     <div className="flex justify-evenly gap-2">
-      <RowBox label="Spell save DC">{caster.saveDc}</RowBox>
-      <RowBox label="Spell attack">{bonusStr(caster.attackBonus)}</RowBox>
-      <RowBox label="Spellcasting ability">{abbr(caster.ability)}</RowBox>
+      <RowBox label="Spell save DC">{group.saveDc}</RowBox>
+      <RowBox label="Spell attack">{bonusStr(group.attackBonus)}</RowBox>
+      <RowBox label="Spellcasting ability" shortLabel="Ability">{abbr(group.ability)}</RowBox>
     </div>
   );
   if (!named) return boxes;
+  // A screen reader reads "Tiefling and Warlock", not the dot of the visible label.
   return (
-    <div role="group" aria-labelledby={id} className="grid gap-1">
-      <Label id={id}>{caster.name}</Label>
+    <div role="group" aria-label={group.names.join(" and ")} className="grid gap-1">
+      <span aria-hidden className="grid">
+        <Label>{group.names.join(" · ")}</Label>
+      </span>
       {boxes}
     </div>
   );
@@ -631,14 +745,15 @@ function Features({ items }: { items: SheetFeature[] }) {
   );
 }
 
-function Table({ caption, headers, children }: { caption: string; headers: string[]; children: ReactNode }) {
+/** `hiddenNarrow`: the indexes of the columns that do not show under 720px. Their cells must hide too. */
+function Table({ caption, headers, hiddenNarrow = [], children }: { caption: string; headers: ReactNode[]; hiddenNarrow?: number[]; children: ReactNode }) {
   return (
     <table className="w-full border-collapse text-left text-[14.5px]">
       <caption className="sr-only">{caption}</caption>
       <thead>
         <tr>
-          {headers.map((header) => (
-            <th key={header} scope="col" className="py-0.5 pr-1.5 font-normal">
+          {headers.map((header, i) => (
+            <th key={i} scope="col" className={`py-0.5 pr-1.5 font-normal ${hiddenNarrow.includes(i) ? "@max-[719px]:hidden" : ""}`}>
               <Label>{header}</Label>
             </th>
           ))}
@@ -649,6 +764,16 @@ function Table({ caption, headers, children }: { caption: string; headers: strin
   );
 }
 
-function Td({ children }: { children: ReactNode }) {
-  return <td className="border-b border-rule-strong bg-panel py-[3px] pr-1.5 pl-1">{children}</td>;
+function Td({ className, children }: { className?: string; children: ReactNode }) {
+  return <td className={`border-b border-rule-strong bg-panel py-[3px] pr-1.5 pl-1 ${className ?? ""}`}>{children}</td>;
+}
+
+/** Text that shows `short` in its place when the sheet is narrower than 720px. */
+function ShortWhenNarrow({ text, short }: { text: string; short: string }) {
+  return (
+    <>
+      <span className="@max-[719px]:hidden">{text}</span>
+      <span className="@min-[720px]:hidden">{short}</span>
+    </>
+  );
 }

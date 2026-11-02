@@ -348,7 +348,8 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
   await expect(ac).toHaveText("20");
   await expect(preview.getByLabel("Hit Points", { exact: true })).toHaveText("204 / 204");
   const longsword = preview.getByRole("table", { name: "Weapon attacks" }).getByRole("row", { name: /^Longsword 1 / });
-  await expect(longsword.getByRole("cell")).toHaveText(["Longsword 1", "Yes", "+12 to hit", "+6"]);
+  // The preview is narrower than 720px, so it has no Proficient? column (ORC-176).
+  await expect(longsword.getByRole("cell")).toHaveText(["Longsword 1", "+12 to hit", "+6"]);
 });
 
 test("the Description step writes a name on Enter, and XP on blur as an int", async ({ page }) => {
@@ -422,5 +423,6 @@ test("fighter-1 built from New character through the steps matches its expected 
   await expect(preview.getByLabel("Hit Points", { exact: true })).toHaveText(`${hp} / ${hp}`);
   const longsword = expected["weapon-modifiers"].longsword;
   const row = preview.getByRole("table", { name: "Weapon attacks" }).getByRole("row", { name: /^Longsword / });
-  await expect(row.getByRole("cell")).toHaveText(["Longsword", "Yes", `+${longsword["best-attack"]} to hit`, `+${longsword["best-damage"]}`]);
+  // The preview is narrower than 720px, so it has no Proficient? column (ORC-176).
+  await expect(row.getByRole("cell")).toHaveText(["Longsword", `+${longsword["best-attack"]} to hit`, `+${longsword["best-damage"]}`]);
 });
