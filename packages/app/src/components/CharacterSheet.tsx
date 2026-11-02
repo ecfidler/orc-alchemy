@@ -486,18 +486,18 @@ function SpellcastingBox({ spellcasting, classNames, narrow }: { spellcasting: S
   const allSources = new Set([...casters.map((caster) => caster.name), ...spells.map((spell) => spell.source)]);
   const cantripOnly = (source: string) =>
     !classNames.has(source) && spells.some((spell) => spell.source === source) && spells.every((spell) => spell.source !== source || spell.level === 0);
-  const lines = [...allSources].filter(cantripOnly);
-  const sources = [...allSources].filter((source) => !lines.includes(source));
+  const lines = new Set([...allSources].filter(cantripOnly));
+  const sources = [...allSources].filter((source) => !lines.has(source));
   const several = sources.length > 1;
   const title = several ? "Spells" : prepares.get(sources[0]!) ? "Prepared spells" : "Known spells";
-  const groups = casterGroups(casters.filter((caster) => !lines.includes(caster.name)));
+  const groups = casterGroups(casters.filter((caster) => !lines.has(caster.name)));
   const rows = [...new Set([...slots.map((slot) => slot.level), ...byLevel.map((row) => row.level)])]
     .sort((a, b) => a - b)
     .map((level) => ({
       level,
       slots: slots.find((slot) => slot.level === level)?.count ?? 0,
       spells: (byLevel.find((row) => row.level === level)?.spells ?? [])
-        .filter((spell) => !lines.includes(spell.source))
+        .filter((spell) => !lines.has(spell.source))
         .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
         .sort((a, b) => a.name.localeCompare(b.name)),
     }))
@@ -511,9 +511,10 @@ function SpellcastingBox({ spellcasting, classNames, narrow }: { spellcasting: S
           ))}
         </ShadedPanel>
       )}
-      {lines.length > 0 && (
-        <ul className="grid gap-0.5 text-[14.5px]">
-          {lines.map((source) => (
+      {lines.size > 0 && (
+        // role="list": without bullets, Safari does not name a ul as a list.
+        <ul role="list" className="grid gap-0.5 text-[14.5px]">
+          {[...lines].map((source) => (
             <CantripLine
               key={source}
               source={source}
@@ -619,22 +620,24 @@ function CantripLine({ source, cantrips, caster }: { source: string; cantrips: s
 
 /**
  * The spell save DC, spell attack and spellcasting ability of one or more
- * sources. With `named`, the row is a group named by its sources, such as
- * "Tiefling · Warlock".
+ * sources. With `named`, the row is a group named by its sources. The label
+ * shows "Tiefling · Warlock".
  */
-function CasterRow({ group: caster, named }: { group: CasterGroup; named: boolean }) {
-  const id = useId();
+function CasterRow({ group, named }: { group: CasterGroup; named: boolean }) {
   const boxes = (
     <div className="flex justify-evenly gap-2">
-      <RowBox label="Spell save DC">{caster.saveDc}</RowBox>
-      <RowBox label="Spell attack">{bonusStr(caster.attackBonus)}</RowBox>
-      <RowBox label="Spellcasting ability" shortLabel="Ability">{abbr(caster.ability)}</RowBox>
+      <RowBox label="Spell save DC">{group.saveDc}</RowBox>
+      <RowBox label="Spell attack">{bonusStr(group.attackBonus)}</RowBox>
+      <RowBox label="Spellcasting ability" shortLabel="Ability">{abbr(group.ability)}</RowBox>
     </div>
   );
   if (!named) return boxes;
+  // A screen reader reads "Tiefling and Warlock", not the dot of the visible label.
   return (
-    <div role="group" aria-labelledby={id} className="grid gap-1">
-      <Label id={id}>{caster.names.join(" · ")}</Label>
+    <div role="group" aria-label={group.names.join(" and ")} className="grid gap-1">
+      <span aria-hidden className="grid">
+        <Label>{group.names.join(" · ")}</Label>
+      </span>
       {boxes}
     </div>
   );

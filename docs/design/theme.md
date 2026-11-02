@@ -454,13 +454,12 @@ list (a Warlock 10 has two 5th-level slots there). The sheet shows the list
 as the engine reports it. It does not split Pact Magic slots out.
 
 * **The boxes:** a shaded row of large boxes in the style of the AC row:
-  spell save DC, spell attack and spellcasting ability. A character with
-  more than one row gets the source name as a small label on each row.
-  Sources with the same DC, attack and ability share one row, and its label
-  names each of them ("Tiefling · Warlock") (ORC-176). When the sheet is
-  narrower than 720px, the
-  ability box label is "Ability". Its accessible name stays "Spellcasting
-  ability".
+  spell save DC, spell attack and spellcasting ability. Sources with the
+  same DC, attack and ability share one row (ORC-176). When there is more
+  than one row, or a row has more than one source, a small label on the row
+  gives the source names ("Tiefling · Warlock"). A screen reader reads
+  "Tiefling and Warlock". When the sheet is narrower than 720px, the ability
+  box label is "Ability". Its accessible name stays "Spellcasting ability".
 * **Cantrip-only sources:** a source that is not a class and knows only
   cantrips (for example a High Elf's cantrip) has no boxes and no tags. It
   is one line under the boxes: "Mending (High Elf, INT, DC 14, +6)". When

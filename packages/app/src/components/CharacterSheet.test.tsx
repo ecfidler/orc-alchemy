@@ -271,11 +271,18 @@ const tieflingWarlock = (tieflingDc = 15) => {
 
 test("sources with the same DC, attack and ability share one row of boxes, named by both", () => {
   render(<CharacterSheet sheet={tieflingWarlock()} />);
-  const row = screen.getByRole("group", { name: "Tiefling · Warlock" });
+  // The label shows "Tiefling · Warlock". A screen reader reads "and" in place of the dot.
+  const row = screen.getByRole("group", { name: "Tiefling and Warlock" });
   expect(within(row).getByLabelText("Spell save DC").textContent).toBe("15");
   expect(screen.getAllByLabelText("Spell save DC")).toHaveLength(1);
   expect(screen.getByRole("columnheader", { name: "Spells" })).toBeTruthy();
   expect(spellNames("1st")).toEqual(["Hellish Rebuke Tiefling", "Hex Warlock"]);
+});
+
+test("a cantrip-only source with no caster numbers is a line with its name only", () => {
+  const spellcasting = { ...sheet.spellcasting!, casters: [] };
+  render(<CharacterSheet sheet={{ ...sheet, spellcasting }} />);
+  expect(within(screen.getByRole("group", { name: "Spellcasting" })).getByRole("listitem").textContent).toBe("Guidance (Hill Dwarf)");
 });
 
 test("sources with other numbers keep a row each", () => {
