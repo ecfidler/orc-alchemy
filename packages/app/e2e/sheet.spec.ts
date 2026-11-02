@@ -82,19 +82,15 @@ test("a bundle's custom magic items load, and the sheet shows the ones the chara
   await expect(page.getByRole("definition").filter({ hasText: "Fire" })).toBeVisible();
 });
 
-test("wizard-1 lists its prepared spells, with a source tag on each", async ({ page }) => {
+test("wizard-1 lists its prepared spells, and its High Elf cantrip on one line", async ({ page }) => {
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "wizard-1.strict.json"));
 
   const spells = page.getByRole("table", { name: "Spells by level" });
-  await expect(spells.getByRole("columnheader", { name: "Spells" })).toBeVisible();
-  await expect(spells.getByRole("row", { name: /^1st / }).getByRole("listitem")).toHaveText([
-    "Alarm Wizard",
-    "Burning Hands Wizard",
-    "Charm Person Wizard",
-    "Color Spray Wizard",
-  ]);
-  await expect(page.getByRole("group", { name: "High Elf" }).getByLabel("Spell save DC")).toHaveText("13");
+  await expect(spells.getByRole("columnheader", { name: "Prepared spells" })).toBeVisible();
+  await expect(spells.getByRole("row", { name: /^1st / }).getByRole("listitem")).toHaveText(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
+  // A race with only a cantrip has no boxes and no tags (ORC-176).
+  await expect(page.getByRole("listitem").filter({ hasText: "(High Elf, INT, DC 13, +5)" })).toHaveText("Minor Illusion (High Elf, INT, DC 13, +5)");
 });
 
 test("without IndexedDB, import still opens the sheet and a notice says nothing is saved", async ({ page }) => {

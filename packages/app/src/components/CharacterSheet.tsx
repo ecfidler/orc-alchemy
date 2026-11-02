@@ -275,7 +275,9 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       </FramedBox>
     );
   const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
-  const spellcastingSection = spellcasting && <SpellcastingBox spellcasting={spellcasting} narrow={narrow} />;
+  const spellcastingSection = spellcasting && (
+    <SpellcastingBox spellcasting={spellcasting} classNames={new Set(sheet.classes.map((c) => c.name))} narrow={narrow} />
+  );
 
   // The phone layout (ORC-173): under 720px the sections go in tabs, without the empty ones.
   const tabs: Tab[] = [
@@ -467,111 +469,160 @@ function RowBox({ label, shortLabel, shield = false, children }: { label: string
 }
 
 /**
- * The Spellcasting section of the theme spec: a row of boxes for each source,
+ * The Spellcasting section of the theme spec: a row of boxes for the sources,
  * then one table row for each level, with the shared slots and the spells.
  * A source that prepares shows only its prepared spells. Other sources show
- * all known spells. On a narrow sheet the slots go under the level, and the
- * spells get the width of the Slots column.
+ * all known spells. Sources with the same DC, attack and ability share one
+ * row of boxes. A source that is not a class and knows only cantrips, such
+ * as a High Elf's cantrip, is one short line in place of boxes and tags
+ * (ORC-176). On a narrow sheet the slots go under the level, and the spells
+ * get the width of the Slots column.
  */
-function SpellcastingBox({ spellcasting, narrow }: { spellcasting: Spellcasting; narrow: boolean }) {
+function SpellcastingBox({ spellcasting, classNames, narrow }: { spellcasting: Spellcasting; classNames: Set<string>; narrow: boolean }) {
   const { casters, slots, byLevel } = spellcasting;
   const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
+  const spells = byLevel.flatMap((row) => row.spells.map((spell) => ({ ...spell, level: row.level })));
   // A spell's source can have no boxes, so the sources come from the spells too.
-  const sources = new Set([...casters.map((caster) => caster.name), ...byLevel.flatMap((row) => row.spells.map((spell) => spell.source))]);
-  const several = sources.size > 1;
-  const title = several ? "Spells" : prepares.get([...sources][0]) ? "Prepared spells" : "Known spells";
+  const allSources = new Set([...casters.map((caster) => caster.name), ...spells.map((spell) => spell.source)]);
+  const cantripOnly = (source: string) =>
+    !classNames.has(source) && spells.some((spell) => spell.source === source) && spells.every((spell) => spell.source !== source || spell.level === 0);
+  const lines = [...allSources].filter(cantripOnly);
+  const sources = [...allSources].filter((source) => !lines.includes(source));
+  const several = sources.length > 1;
+  const title = several ? "Spells" : prepares.get(sources[0]!) ? "Prepared spells" : "Known spells";
+  const groups = casterGroups(casters.filter((caster) => !lines.includes(caster.name)));
   const rows = [...new Set([...slots.map((slot) => slot.level), ...byLevel.map((row) => row.level)])]
     .sort((a, b) => a - b)
     .map((level) => ({
       level,
       slots: slots.find((slot) => slot.level === level)?.count ?? 0,
       spells: (byLevel.find((row) => row.level === level)?.spells ?? [])
+        .filter((spell) => !lines.includes(spell.source))
         .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
         .sort((a, b) => a.name.localeCompare(b.name)),
     }))
     .filter((row) => row.slots > 0 || row.spells.length > 0);
   return (
     <FramedBox label="Spellcasting" className="gap-2.5">
-      {casters.length > 0 && (
+      {groups.length > 0 && (
         <ShadedPanel>
-          {casters.map((caster) => (
-            <CasterRow key={caster.name} caster={caster} named={several} />
+          {groups.map((group) => (
+            <CasterRow key={group.names.join("/")} group={group} named={groups.length > 1 || group.names.length > 1} />
           ))}
         </ShadedPanel>
       )}
-      <table className="w-full table-fixed border-collapse text-left text-[14.5px]">
-        <caption className="sr-only">Spells by level</caption>
-        <colgroup>
-          <col className={narrow ? "w-[76px]" : "w-20"} />
-          {!narrow && <col className="w-[98px]" />}
-          <col />
-        </colgroup>
-        <thead>
-          <tr className="border-b border-rule-strong">
-            <th scope="col" className="pb-0.5 text-center font-normal">
-              <Label>Level</Label>
-            </th>
-            {!narrow && (
-              <th scope="col" className="pb-0.5 pl-2.5 font-normal">
-                <Label>Slots</Label>
+      {lines.length > 0 && (
+        <ul className="grid gap-0.5 text-[14.5px]">
+          {lines.map((source) => (
+            <CantripLine
+              key={source}
+              source={source}
+              cantrips={spells.filter((spell) => spell.source === source).map((spell) => spell.name).sort((a, b) => a.localeCompare(b))}
+              caster={casters.find((caster) => caster.name === source)}
+            />
+          ))}
+        </ul>
+      )}
+      {rows.length > 0 && (
+        <table className="w-full table-fixed border-collapse text-left text-[14.5px]">
+          <caption className="sr-only">Spells by level</caption>
+          <colgroup>
+            <col className={narrow ? "w-[76px]" : "w-20"} />
+            {!narrow && <col className="w-[98px]" />}
+            <col />
+          </colgroup>
+          <thead>
+            <tr className="border-b border-rule-strong">
+              <th scope="col" className="pb-0.5 text-center font-normal">
+                <Label>Level</Label>
               </th>
-            )}
-            <th scope="col" className={`pb-0.5 font-normal ${narrow ? "pl-2" : "pl-3"}`}>
-              <Label>{title}</Label>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ level, slots, spells }) => {
-            const circles = slots > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slots} />;
-            return (
-              <tr key={level} className="border-b border-rule last:border-0">
-                <th
-                  scope="row"
-                  // The row is named by its level only, so a screen reader does not read the slots with each spell.
-                  aria-label={narrow && circles ? (level === 0 ? "Cantrips" : ordinal(level)) : undefined}
-                  className={`border-r border-rule py-1.5 text-center leading-[1.1] font-medium ${
-                    narrow ? "pr-1.5 align-top" : "pr-2.5"
-                  } ${level === 0 ? (narrow ? "text-[13px]" : "text-base") : narrow ? "text-lg" : "text-2xl"}`}
-                >
-                  {level === 0 ? "Cantrips" : ordinal(level)}
-                  {/* Four circles fit on one line in the narrow column. */}
-                  {narrow && circles && <span className="mt-1 flex justify-center [&_.ui-slot-circles]:gap-[3px] [&_.ui-slot-circle]:size-3">{circles}</span>}
+              {!narrow && (
+                <th scope="col" className="pb-0.5 pl-2.5 font-normal">
+                  <Label>Slots</Label>
                 </th>
-                {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{circles}</td>}
-                <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>
-                  {/* role="list": without bullets, Safari does not name a ul as a list. */}
-                  <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
-                    {spells.map((spell) => (
-                      // A tag stays on the line of the name's last word, and does not wrap inside. A long name can wrap.
-                      <li key={`${spell.source}/${spell.key}`}>
-                        {spell.name}
-                        {several && (
-                          <>
-                            {"\u00a0"}
-                            <span className="whitespace-nowrap">
-                              <Tag>{spell.source}</Tag>
-                            </span>
-                          </>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+              )}
+              <th scope="col" className={`pb-0.5 font-normal ${narrow ? "pl-2" : "pl-3"}`}>
+                <Label>{title}</Label>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ level, slots, spells }) => {
+              const circles = slots > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slots} />;
+              return (
+                <tr key={level} className="border-b border-rule last:border-0">
+                  <th
+                    scope="row"
+                    // The row is named by its level only, so a screen reader does not read the slots with each spell.
+                    aria-label={narrow && circles ? (level === 0 ? "Cantrips" : ordinal(level)) : undefined}
+                    className={`border-r border-rule py-1.5 text-center leading-[1.1] font-medium ${
+                      narrow ? "pr-1.5 align-top" : "pr-2.5"
+                    } ${level === 0 ? (narrow ? "text-[13px]" : "text-base") : narrow ? "text-lg" : "text-2xl"}`}
+                  >
+                    {level === 0 ? "Cantrips" : ordinal(level)}
+                    {/* Four circles fit on one line in the narrow column. */}
+                    {narrow && circles && <span className="mt-1 flex justify-center [&_.ui-slot-circles]:gap-[3px] [&_.ui-slot-circle]:size-3">{circles}</span>}
+                  </th>
+                  {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{circles}</td>}
+                  <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>
+                    {/* role="list": without bullets, Safari does not name a ul as a list. */}
+                    <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
+                      {spells.map((spell) => (
+                        // A tag stays on the line of the name's last word, and does not wrap inside. A long name can wrap.
+                        <li key={`${spell.source}/${spell.key}`}>
+                          {spell.name}
+                          {several && (
+                            <>
+                              {"\u00a0"}
+                              <span className="whitespace-nowrap">
+                                <Tag>{spell.source}</Tag>
+                              </span>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </FramedBox>
   );
 }
 
+type Caster = Spellcasting["casters"][number];
+type CasterGroup = Pick<Caster, "saveDc" | "attackBonus" | "ability"> & { names: string[] };
+
+/** The casters, with the ones that have the same DC, attack and ability in one group, in the order they come. */
+function casterGroups(casters: Caster[]): CasterGroup[] {
+  const groups: CasterGroup[] = [];
+  for (const { name, saveDc, attackBonus, ability } of casters) {
+    const same = groups.find((g) => g.saveDc === saveDc && g.attackBonus === attackBonus && g.ability === ability);
+    if (same) same.names.push(name);
+    else groups.push({ names: [name], saveDc, attackBonus, ability });
+  }
+  return groups;
+}
+
+/** A source with only cantrips, on one line: "Mending (High Elf, INT, DC 14, +6)". */
+function CantripLine({ source, cantrips, caster }: { source: string; cantrips: string[]; caster: Caster | undefined }) {
+  const numbers = caster ? [abbr(caster.ability), `DC ${caster.saveDc}`, bonusStr(caster.attackBonus)] : [];
+  return (
+    <li>
+      {cantrips.join(", ")} <span className="text-ink-muted">({[source, ...numbers].join(", ")})</span>
+    </li>
+  );
+}
+
 /**
- * One source's spell save DC, spell attack and spellcasting ability. With
- * several sources, the row is a group named by its source.
+ * The spell save DC, spell attack and spellcasting ability of one or more
+ * sources. With `named`, the row is a group named by its sources, such as
+ * "Tiefling · Warlock".
  */
-function CasterRow({ caster, named }: { caster: Spellcasting["casters"][number]; named: boolean }) {
+function CasterRow({ group: caster, named }: { group: CasterGroup; named: boolean }) {
   const id = useId();
   const boxes = (
     <div className="flex justify-evenly gap-2">
@@ -583,7 +634,7 @@ function CasterRow({ caster, named }: { caster: Spellcasting["casters"][number];
   if (!named) return boxes;
   return (
     <div role="group" aria-labelledby={id} className="grid gap-1">
-      <Label id={id}>{caster.name}</Label>
+      <Label id={id}>{caster.names.join(" · ")}</Label>
       {boxes}
     </div>
   );

@@ -111,7 +111,8 @@ test("renders the key values of a sheet", () => {
   expect(within(screen.getByText("+5 Athletics").closest("li")!).getByRole("img", { name: "Proficient" })).toBeTruthy();
   expect(within(screen.getByText("-1 History").closest("li")!).queryByRole("img")).toBeNull();
   expect(screen.getByLabelText("Tools").textContent).toBe("Smith's Tools (+2)");
-  expect(spellNames("Cantrips")).toEqual(["Guidance"]);
+  // A race with only a cantrip is one line, not boxes and a table (ORC-176).
+  expect(within(screen.getByRole("group", { name: "Spellcasting" })).getByRole("listitem").textContent).toBe("Guidance (Hill Dwarf, WIS, DC 11, +3)");
   expect(screen.getByText("Second Wind")).toBeTruthy();
   expect(screen.getByText("Hates boats")).toBeTruthy();
 });
@@ -238,15 +239,49 @@ test("warlock-10-drow: Pact Magic slots in the shared list, and rows with spells
   expect(spellNames("1st").length).toBeGreaterThan(0);
 });
 
-test("a High Elf wizard: one row of boxes for each source, source tags, and the column is Spells", () => {
+test("a High Elf wizard: the High Elf cantrip is one line, and the wizard's spells have no tags (ORC-176)", () => {
   render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strictOf("wizard-1"))} />);
-  for (const source of ["High Elf", "Wizard"]) {
-    expect(within(screen.getByRole("group", { name: source })).getByLabelText("Spell save DC").textContent).toBe("13");
-  }
-  expect(screen.getByRole("columnheader", { name: "Spells" })).toBeTruthy();
-  expect(spellNames("Cantrips")).toEqual(["Acid Splash Wizard", "Chill Touch Wizard", "Dancing Lights Wizard", "Minor Illusion High Elf"]);
+  const section = screen.getByRole("group", { name: "Spellcasting" });
+  expect(within(section).getAllByLabelText("Spell save DC").map((box) => box.textContent)).toEqual(["13"]);
+  expect(screen.queryByRole("group", { name: "High Elf" })).toBeNull();
+  expect(within(section).getByText(/^Minor Illusion/).closest("li")!.textContent).toBe("Minor Illusion (High Elf, INT, DC 13, +5)");
+  expect(screen.getByRole("columnheader", { name: "Prepared spells" })).toBeTruthy();
+  expect(spellNames("Cantrips")).toEqual(["Acid Splash", "Chill Touch", "Dancing Lights"]);
   // The wizard's unprepared spellbook spells are not on the sheet.
-  expect(spellNames("1st")).toEqual(["Alarm Wizard", "Burning Hands Wizard", "Charm Person Wizard", "Color Spray Wizard"]);
+  expect(spellNames("1st")).toEqual(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
+});
+
+/** A Tiefling warlock: two sources with the same numbers, and race spells past cantrips. */
+const tieflingWarlock = (tieflingDc = 15) => {
+  const spell = (key: string, name: string, source: string) => ({ key, name, source, ability: "cha" as const, alwaysPrepared: false, prepared: false });
+  const caster = (name: string, saveDc: number) => ({ name, ability: "cha" as const, saveDc, attackBonus: saveDc - 8, prepares: false, canPrepare: null });
+  return {
+    ...sheet,
+    spellcasting: {
+      slots: [{ level: 1, count: 2 }],
+      casters: [caster("Tiefling", tieflingDc), caster("Warlock", 15)],
+      byLevel: [
+        { level: 0, spells: [spell("thaumaturgy", "Thaumaturgy", "Tiefling"), spell("eldritch-blast", "Eldritch Blast", "Warlock")] },
+        { level: 1, spells: [spell("hellish-rebuke", "Hellish Rebuke", "Tiefling"), spell("hex", "Hex", "Warlock")] },
+      ],
+      knownModes: {},
+    },
+  };
+};
+
+test("sources with the same DC, attack and ability share one row of boxes, named by both", () => {
+  render(<CharacterSheet sheet={tieflingWarlock()} />);
+  const row = screen.getByRole("group", { name: "Tiefling · Warlock" });
+  expect(within(row).getByLabelText("Spell save DC").textContent).toBe("15");
+  expect(screen.getAllByLabelText("Spell save DC")).toHaveLength(1);
+  expect(screen.getByRole("columnheader", { name: "Spells" })).toBeTruthy();
+  expect(spellNames("1st")).toEqual(["Hellish Rebuke Tiefling", "Hex Warlock"]);
+});
+
+test("sources with other numbers keep a row each", () => {
+  render(<CharacterSheet sheet={tieflingWarlock(13)} />);
+  expect(within(screen.getByRole("group", { name: "Tiefling" })).getByLabelText("Spell save DC").textContent).toBe("13");
+  expect(within(screen.getByRole("group", { name: "Warlock" })).getByLabelText("Spell save DC").textContent).toBe("15");
 });
 
 test("layout F: header details, hit dice, empty death saves, and HP as current / max", () => {
@@ -367,8 +402,8 @@ test("the speed qualifier and the other speeds are separate small lines under th
 });
 
 test("a spell's source tag is kept on one line, and the list item itself can wrap", () => {
-  render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strictOf("wizard-1"))} />);
+  render(<CharacterSheet sheet={tieflingWarlock()} />);
   const item = within(spellsRow("Cantrips")).getAllByRole("listitem")[0]!;
   expect(item.className).toBe("");
-  expect(within(item).getByText("Wizard").parentElement!.className).toBe("whitespace-nowrap");
+  expect(within(item).getByText("Warlock").parentElement!.className).toBe("whitespace-nowrap");
 });
