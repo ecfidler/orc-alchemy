@@ -507,15 +507,14 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
   const marks = sourceMarks(
     rows.flatMap((row) => row.spells.map((spell) => spell.source)),
     classes,
-    // The names on the caster row labels. One group of one source has no label.
-    new Set(groups.filter((group) => groups.length > 1 || group.names.length > 1).flatMap((group) => group.names)),
+    new Set(groups.filter((group) => isNamed(group, groups)).flatMap((group) => group.names)),
   );
   return (
     <FramedBox label="Spellcasting" className="gap-2.5">
       {groups.length > 0 && (
         <ShadedPanel>
           {groups.map((group) => (
-            <CasterRow key={group.names.join("/")} group={group} named={groups.length > 1 || group.names.length > 1} marks={marks} />
+            <CasterRow key={group.names.join("/")} group={group} named={isNamed(group, groups)} marks={marks} />
           ))}
         </ShadedPanel>
       )}
@@ -597,6 +596,11 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
 type Caster = Spellcasting["casters"][number];
 type CasterGroup = Pick<Caster, "saveDc" | "attackBonus" | "ability"> & { names: string[] };
 
+/** A caster row has a label when there is more than one row, or when the row is for more than one source. */
+function isNamed(group: CasterGroup, groups: CasterGroup[]) {
+  return groups.length > 1 || group.names.length > 1;
+}
+
 /** The casters, with the ones that have the same DC, attack and ability in one group, in the order they come. */
 function casterGroups(casters: Caster[]): CasterGroup[] {
   const groups: CasterGroup[] = [];
@@ -609,18 +613,21 @@ function casterGroups(casters: Caster[]): CasterGroup[] {
 }
 
 /** How a spell shows its source: nothing, a mark keyed on the source's caster row, or the source name as a tag. */
-type Mark = { symbol: string } | "tag";
+type Mark = { kind: "symbol"; symbol: string } | { kind: "tag" };
+
+const symbols = ["\u2020", "\u2021"];
 
 /**
  * The marks of the sources in the table (ORC-179). `tableSources` has one
  * entry for each spell in the table. The main source, the one with the most
  * spells, has no mark. Ties go to a class over a race or feat, then to the
- * higher class level, then to the class taken first. With 2 or 3 sources,
- * the second gets † and the third ‡. With 4 or more, every source but the
- * main one gets its name as a tag. A source whose name is not on a caster row
- * label (`keyed`) has nowhere to put the key, so it gets a tag too.
+ * higher class level, then to the class taken first, then A to Z. With 2 or
+ * 3 sources, the second gets † and the third ‡. With 4 or more, every source
+ * but the main one gets its name as a tag. A source whose name is not in
+ * `labelled` (the names on the caster row labels) has nowhere to put the key,
+ * so it gets a tag too, and the symbols go to the sources that remain.
  */
-export function sourceMarks(tableSources: string[], classes: Sheet["classes"], keyed: Set<string>): Map<string, Mark> {
+export function sourceMarks(tableSources: string[], classes: Sheet["classes"], labelled: Set<string>): Map<string, Mark> {
   const counts = new Map<string, number>();
   for (const source of tableSources) counts.set(source, (counts.get(source) ?? 0) + 1);
   const classIndex = (source: string) => classes.findIndex((c) => c.name === source);
@@ -630,19 +637,24 @@ export function sourceMarks(tableSources: string[], classes: Sheet["classes"], k
       counts.get(b)! - counts.get(a)! ||
       Number(ib >= 0) - Number(ia >= 0) ||
       (classes[ib]?.level ?? 0) - (classes[ia]?.level ?? 0) ||
-      (ia >= 0 && ib >= 0 ? ia - ib : 0)
+      (ia >= 0 && ib >= 0 ? ia - ib : 0) ||
+      a.localeCompare(b)
     );
   });
-  const symbols = ["\u2020", "\u2021"];
+  const tagsOnly = ranked.length > symbols.length + 1;
+  let next = 0;
   return new Map(
-    ranked.slice(1).map((source, i): [string, Mark] => [source, ranked.length > 3 || !keyed.has(source) ? "tag" : { symbol: symbols[i]! }]),
+    ranked.slice(1).map((source): [string, Mark] => [
+      source,
+      tagsOnly || !labelled.has(source) ? { kind: "tag" } : { kind: "symbol", symbol: symbols[next++]! },
+    ]),
   );
 }
 
 /** The mark after a spell name. A screen reader reads the source name in place of the symbol. */
 function SourceMark({ source, mark }: { source: string; mark: Mark | undefined }) {
   if (!mark) return null;
-  if (mark === "tag")
+  if (mark.kind === "tag")
     // A tag stays on the line of the name's last word, and does not wrap inside. A long name can wrap.
     return (
       <>
@@ -675,8 +687,8 @@ function CantripLine({ source, cantrips, caster }: { source: string; cantrips: s
 /**
  * The spell save DC, spell attack and spellcasting ability of one or more
  * sources. With `named`, the row is a group named by its sources. The label
- * shows "Tiefling · Warlock", and a source with a mark has its symbol after
- * its name, as the key to the marks in the table: "Tiefling † · Warlock".
+ * shows "Tiefling · Warlock". A source with a mark has its symbol after its
+ * name: "Tiefling † · Warlock".
  */
 function CasterRow({ group, named, marks }: { group: CasterGroup; named: boolean; marks: Map<string, Mark> }) {
   const boxes = (
@@ -698,8 +710,9 @@ function CasterRow({ group, named, marks }: { group: CasterGroup; named: boolean
   );
 }
 
+/** A source name on a caster row label, with its symbol as the key to the marks in the table. */
 function withSymbol(name: string, mark: Mark | undefined) {
-  return mark && mark !== "tag" ? `${name} ${mark.symbol}` : name;
+  return mark?.kind === "symbol" ? `${name} ${mark.symbol}` : name;
 }
 
 /** Hit points: temporary on the left (the sheet has none, so it is empty), then current / max. */

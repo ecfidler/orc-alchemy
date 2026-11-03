@@ -480,19 +480,20 @@ as the engine reports it. It does not split Pact Magic slots out.
   sources with spells in the table count. A cantrip-only race line does not
   count.
   * The **main source** is the source with the most spells in the table.
-    Its spells have no mark. If two sources have the same count, a class
-    wins over a race or feat, then the higher class level wins, then the
-    class taken first.
+    Its spells have no mark. On a tie, a class wins over a race or feat.
+    Then the higher class level wins, then the class taken first, then A
+    to Z.
   * With **2 or 3 sources**, the second source gets † and the third gets ‡.
     The mark is a muted superscript right after the spell name, before the
     comma: "Hellish Rebuke†, Hex". A screen reader reads the source name.
   * The **key** is on the caster row label, after the source name:
     "Tiefling †", or "Tiefling † · Warlock" on a joined row. There is no
     legend line. A source on a joined row keeps its mark.
-  * With **4 or more sources**, or for a source with no caster row label,
-    each spell that is not from the main source gets a small Inter-caps
-    source tag after its name. A tag stays on the line of the last word of
-    its spell name.
+  * With **4 or more sources**, every source but the main one gets a small
+    Inter-caps source tag after each spell name. A source with no caster
+    row label also gets a tag, because it has no place for the key. The
+    symbols then go to the sources that remain.
+  * A tag stays on the line of the last word of its spell name.
   * The list can wrap between spells and inside a long name. The page does
     not scroll sideways.
 * The sheet does not show how many spells the character can prepare.
