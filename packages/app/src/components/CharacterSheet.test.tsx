@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import type { ReactElement } from "react";
 import { bonusStr, toSheet, type Sheet } from "../engine/sheet.ts";
-import { CharacterSheet, ordinal } from "./CharacterSheet.tsx";
+import { CharacterSheet, ordinal, sourceMarks } from "./CharacterSheet.tsx";
 
 afterEach(() => {
   cleanup();
@@ -154,7 +154,7 @@ const expectedOf = (name: string) => fixture(`${name}.expected.json`);
 const strictOf = (name: string) => fixture(`${name}.strict.json`);
 /** The Spellcasting table row whose level cell has this text. */
 const spellsRow = (level: string) => screen.getByRole("rowheader", { name: level }).closest("tr")!;
-/** The text of each spell in that row, its source tag included. */
+/** The text of each spell in that row, its source tag or mark included (a mark is read as the source in brackets). */
 // A non-breaking space keeps a tag on the line of the name's last word.
 const spellNames = (level: string) =>
   within(spellsRow(level)).queryAllByRole("listitem").map((item) => item.textContent?.replace(/\u00a0/g, " "));
@@ -251,18 +251,19 @@ test("a High Elf wizard: the High Elf cantrip is one line, and the wizard's spel
   expect(spellNames("1st")).toEqual(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
 });
 
-/** A Tiefling warlock: two sources with the same numbers, and race spells past cantrips. */
-const tieflingWarlock = (tieflingDc = 15) => {
+/** A Tiefling warlock: two sources with the same numbers, and race spells past cantrips. Warlock has more spells. */
+const tieflingWarlock = (tieflingDc = 15): Sheet => {
   const spell = (key: string, name: string, source: string) => ({ key, name, source, ability: "cha" as const, alwaysPrepared: false, prepared: false });
   const caster = (name: string, saveDc: number) => ({ name, ability: "cha" as const, saveDc, attackBonus: saveDc - 8, prepares: false, canPrepare: null });
   return {
     ...sheet,
+    classes: [{ key: "warlock", name: "Warlock", level: 3, hitDie: 8, subclass: "The Fiend" }],
     spellcasting: {
       slots: [{ level: 1, count: 2 }],
       casters: [caster("Tiefling", tieflingDc), caster("Warlock", 15)],
       byLevel: [
         { level: 0, spells: [spell("thaumaturgy", "Thaumaturgy", "Tiefling"), spell("eldritch-blast", "Eldritch Blast", "Warlock")] },
-        { level: 1, spells: [spell("hellish-rebuke", "Hellish Rebuke", "Tiefling"), spell("hex", "Hex", "Warlock")] },
+        { level: 1, spells: [spell("hellish-rebuke", "Hellish Rebuke", "Tiefling"), spell("hex", "Hex", "Warlock"), spell("armor-of-agathys", "Armor of Agathys", "Warlock")] },
       ],
       knownModes: {},
     },
@@ -276,7 +277,9 @@ test("sources with the same DC, attack and ability share one row of boxes, named
   expect(within(row).getByLabelText("Spell save DC").textContent).toBe("15");
   expect(screen.getAllByLabelText("Spell save DC")).toHaveLength(1);
   expect(screen.getByRole("columnheader", { name: "Spells" })).toBeTruthy();
-  expect(spellNames("1st")).toEqual(["Hellish Rebuke Tiefling", "Hex Warlock"]);
+  // Warlock is the main source and has no mark. Tiefling has †, keyed on the row label.
+  expect(spellNames("1st")).toEqual(["Armor of Agathys", "Hellish Rebuke† (Tiefling)", "Hex"]);
+  expect(within(row).getByText("Tiefling † · Warlock")).toBeTruthy();
 });
 
 test("a cantrip-only source with no caster numbers is a line with its name only", () => {
@@ -408,9 +411,76 @@ test("the speed qualifier and the other speeds are separate small lines under th
   expect(within(speed).getByText("unarmored").className).toContain("text-[9.5px]");
 });
 
-test("a spell's source tag is kept on one line, and the list item itself can wrap", () => {
+test("a spell's mark is a muted superscript before the comma, and a screen reader reads the source", () => {
   render(<CharacterSheet sheet={tieflingWarlock()} />);
-  const item = within(spellsRow("Cantrips")).getAllByRole("listitem")[0]!;
+  const item = within(spellsRow("Cantrips")).getAllByRole("listitem")[1]!;
   expect(item.className).toBe("");
-  expect(within(item).getByText("Warlock").parentElement!.className).toBe("whitespace-nowrap");
+  const mark = within(item).getByText("\u2020");
+  expect(mark.tagName).toBe("SUP");
+  expect(mark.getAttribute("aria-hidden")).toBe("true");
+  expect(mark.className).toContain("text-ink-muted");
+  expect(within(item).getByText("(Tiefling)").className).toBe("sr-only");
+});
+
+const cls = (name: string, level: number) => ({ key: name.toLowerCase(), name, level, hitDie: 8, subclass: null });
+const marksOf = (tableSources: string[], classes: Sheet["classes"], keyed = new Set(tableSources)) =>
+  Object.fromEntries([...sourceMarks(tableSources, classes, keyed)].map(([source, mark]) => [source, mark.kind === "tag" ? "tag" : mark.symbol]));
+
+test("the source with the most spells has no mark, the second has † and the third has ‡", () => {
+  const table = ["Wizard", "Wizard", "Wizard", "Tiefling", "Cleric", "Cleric"];
+  expect(marksOf(table, [cls("Wizard", 3), cls("Cleric", 3)])).toEqual({ Cleric: "\u2020", Tiefling: "\u2021" });
+  // One source: no marks.
+  expect(marksOf(["Wizard", "Wizard"], [cls("Wizard", 3)])).toEqual({});
+});
+
+test("a tie goes to a class over a race, then to the higher class level, then to the class taken first", () => {
+  expect(marksOf(["Tiefling", "Warlock"], [cls("Warlock", 1)])).toEqual({ Tiefling: "\u2020" });
+  expect(marksOf(["Cleric", "Wizard"], [cls("Cleric", 2), cls("Wizard", 3)])).toEqual({ Cleric: "\u2020" });
+  expect(marksOf(["Wizard", "Cleric"], [cls("Cleric", 3), cls("Wizard", 3)])).toEqual({ Wizard: "\u2020" });
+  // Two sources that are not classes: A to Z.
+  expect(marksOf(["Wizard", "Wizard", "Tiefling", "Magic Initiate"], [cls("Wizard", 3)])).toEqual({ "Magic Initiate": "\u2020", Tiefling: "\u2021" });
+});
+
+test("with 4 or more sources in the table, every source but the main one has its name as a tag", () => {
+  const table = ["Wizard", "Wizard", "Cleric", "Tiefling", "Magic Initiate"];
+  expect(marksOf(table, [cls("Wizard", 3), cls("Cleric", 1)])).toEqual({ Cleric: "tag", Tiefling: "tag", "Magic Initiate": "tag" });
+});
+
+test("a source with no caster row label to hold the key has a tag in place of a mark", () => {
+  expect(marksOf(["Wizard", "Wizard", "Tiefling"], [cls("Wizard", 3)], new Set(["Wizard"]))).toEqual({ Tiefling: "tag" });
+  // The next source with a label gets †, not ‡.
+  const table = ["Wizard", "Wizard", "Wizard", "Cleric", "Cleric", "Tiefling"];
+  expect(marksOf(table, [cls("Wizard", 3), cls("Cleric", 1)], new Set(["Wizard", "Tiefling"]))).toEqual({ Cleric: "tag", Tiefling: "\u2020" });
+});
+
+test("three sources and a cantrip-only race: ‡ in the table and on its row, and the race line does not count", () => {
+  const spell = (key: string, source: string, level = 1) => ({ key, name: key, source, ability: "int" as const, alwaysPrepared: false, prepared: false });
+  const caster = (name: string, saveDc: number) => ({ name, ability: "int" as const, saveDc, attackBonus: saveDc - 8, prepares: false, canPrepare: null });
+  const spellcasting = {
+    slots: [{ level: 1, count: 4 }],
+    casters: [caster("Wizard", 15), caster("Cleric", 13), caster("Tiefling", 12), caster("High Elf", 14)],
+    byLevel: [
+      { level: 0, spells: [spell("Mending", "High Elf", 0)] },
+      { level: 1, spells: [spell("Alarm", "Wizard"), spell("Sleep", "Wizard"), spell("Shield", "Wizard"), spell("Bless", "Cleric"), spell("Bane", "Cleric"), spell("Hellish Rebuke", "Tiefling")] },
+    ],
+    knownModes: {},
+  };
+  render(<CharacterSheet sheet={{ ...sheet, classes: [cls("Wizard", 5), cls("Cleric", 1)], spellcasting }} />);
+  expect(spellNames("1st")).toEqual(["Alarm", "Bane\u2020 (Cleric)", "Bless\u2020 (Cleric)", "Hellish Rebuke\u2021 (Tiefling)", "Shield", "Sleep"]);
+  expect(screen.getByText("Tiefling \u2021")).toBeTruthy();
+  expect(screen.getByText("Cleric \u2020")).toBeTruthy();
+  expect(screen.getByText("Mending").closest("li")!.textContent).toBe("Mending (High Elf, INT, DC 14, +6)");
+});
+
+test("a tag is kept on one line, and the list item itself can wrap", () => {
+  const four = tieflingWarlock();
+  const spell = (key: string, source: string) => ({ key, name: key, source, ability: "cha" as const, alwaysPrepared: false, prepared: false });
+  four.spellcasting!.byLevel[1]!.spells.push(spell("Bless", "Cleric"), spell("Sleep", "Magic Initiate"));
+  render(<CharacterSheet sheet={four} />);
+  expect(spellNames("1st")).toEqual(["Armor of Agathys", "Bless Cleric", "Hellish Rebuke Tiefling", "Hex", "Sleep Magic Initiate"]);
+  const item = within(spellsRow("1st")).getAllByRole("listitem")[2]!;
+  expect(item.className).toBe("");
+  expect(within(item).getByText("Tiefling").parentElement!.className).toBe("whitespace-nowrap");
+  // With tags, the row label has no symbol.
+  expect(screen.getByText("Tiefling · Warlock")).toBeTruthy();
 });

@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-01T17:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-03T03:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -476,11 +476,26 @@ as the engine reports it. It does not split Pact Magic slots out.
   source that does not prepare (a sorcerer, a bard, a race), all known
   spells, and the column title is "Known spells". Unprepared spellbook
   spells are not on the sheet.
-* **More than one source:** each spell gets a small Inter-caps source tag
-  after its name, and the column title is "Spells". With one source there
-  are no tags. A tag stays on the line of the last word of its spell name.
-  The list can wrap between spells and inside a long name. The page does
-  not scroll sideways.
+* **More than one source** (ORC-179): the column title is "Spells". Only
+  sources with spells in the table count. A cantrip-only race line does not
+  count.
+  * The **main source** is the source with the most spells in the table.
+    Its spells have no mark. On a tie, a class wins over a race or feat.
+    Then the higher class level wins, then the class taken first, then A
+    to Z.
+  * With **2 or 3 sources**, the second source gets † and the third gets ‡.
+    The mark is a muted superscript right after the spell name, before the
+    comma: "Hellish Rebuke†, Hex". A screen reader reads the source name.
+  * The **key** is on the caster row label, after the source name:
+    "Tiefling †", or "Tiefling † · Warlock" on a joined row. There is no
+    legend line. A source on a joined row keeps its mark.
+  * With **4 or more sources**, every source but the main one gets a small
+    Inter-caps source tag after each spell name. A source with no caster
+    row label also gets a tag, because it has no place for the key. The
+    symbols then go to the sources that remain.
+  * A tag stays on the line of the last word of its spell name.
+  * The list can wrap between spells and inside a long name. The page does
+    not scroll sideways.
 * The sheet does not show how many spells the character can prepare.
 
 ## Not on the sheet in M8
