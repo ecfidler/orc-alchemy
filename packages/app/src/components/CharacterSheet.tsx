@@ -276,7 +276,7 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
     );
   const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
   const spellcastingSection = spellcasting && (
-    <SpellcastingBox spellcasting={spellcasting} classNames={new Set(sheet.classes.map((c) => c.name))} narrow={narrow} />
+    <SpellcastingBox spellcasting={spellcasting} classes={sheet.classes} narrow={narrow} />
   );
 
   // The phone layout (ORC-173): under 720px the sections go in tabs, without the empty ones.
@@ -475,11 +475,13 @@ function RowBox({ label, shortLabel, shield = false, children }: { label: string
  * all known spells. Sources with the same DC, attack and ability share one
  * row of boxes. A source that is not a class and knows only cantrips, such
  * as a High Elf's cantrip, is one short line in place of boxes and tags
- * (ORC-176). On a narrow sheet the slots go under the level, and the spells
- * get the width of the Slots column.
+ * (ORC-176). With more than one source in the table, the smaller sources
+ * get marks (ORC-179, see `sourceMarks`). On a narrow sheet the slots go
+ * under the level, and the spells get the width of the Slots column.
  */
-function SpellcastingBox({ spellcasting, classNames, narrow }: { spellcasting: Spellcasting; classNames: Set<string>; narrow: boolean }) {
+function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spellcasting; classes: Sheet["classes"]; narrow: boolean }) {
   const { casters, slots, byLevel } = spellcasting;
+  const classNames = new Set(classes.map((c) => c.name));
   const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
   const spells = byLevel.flatMap((row) => row.spells.map((spell) => ({ ...spell, level: row.level })));
   // A spell's source can have no boxes, so the sources come from the spells too.
@@ -502,12 +504,18 @@ function SpellcastingBox({ spellcasting, classNames, narrow }: { spellcasting: S
         .sort((a, b) => a.name.localeCompare(b.name)),
     }))
     .filter((row) => row.slots > 0 || row.spells.length > 0);
+  const marks = sourceMarks(
+    rows.flatMap((row) => row.spells.map((spell) => spell.source)),
+    classes,
+    // The names on the caster row labels. One group of one source has no label.
+    new Set(groups.filter((group) => groups.length > 1 || group.names.length > 1).flatMap((group) => group.names)),
+  );
   return (
     <FramedBox label="Spellcasting" className="gap-2.5">
       {groups.length > 0 && (
         <ShadedPanel>
           {groups.map((group) => (
-            <CasterRow key={group.names.join("/")} group={group} named={groups.length > 1 || group.names.length > 1} />
+            <CasterRow key={group.names.join("/")} group={group} named={groups.length > 1 || group.names.length > 1} marks={marks} />
           ))}
         </ShadedPanel>
       )}
@@ -569,17 +577,9 @@ function SpellcastingBox({ spellcasting, classNames, narrow }: { spellcasting: S
                     {/* role="list": without bullets, Safari does not name a ul as a list. */}
                     <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
                       {spells.map((spell) => (
-                        // A tag stays on the line of the name's last word, and does not wrap inside. A long name can wrap.
                         <li key={`${spell.source}/${spell.key}`}>
                           {spell.name}
-                          {several && (
-                            <>
-                              {"\u00a0"}
-                              <span className="whitespace-nowrap">
-                                <Tag>{spell.source}</Tag>
-                              </span>
-                            </>
-                          )}
+                          <SourceMark source={spell.source} mark={marks.get(spell.source)} />
                         </li>
                       ))}
                     </ul>
@@ -608,6 +608,60 @@ function casterGroups(casters: Caster[]): CasterGroup[] {
   return groups;
 }
 
+/** How a spell shows its source: nothing, a mark keyed on the source's caster row, or the source name as a tag. */
+type Mark = { symbol: string } | "tag";
+
+/**
+ * The marks of the sources in the table (ORC-179). `tableSources` has one
+ * entry for each spell in the table. The main source, the one with the most
+ * spells, has no mark. Ties go to a class over a race or feat, then to the
+ * higher class level, then to the class taken first. With 2 or 3 sources,
+ * the second gets † and the third ‡. With 4 or more, every source but the
+ * main one gets its name as a tag. A source whose name is not on a caster row
+ * label (`keyed`) has nowhere to put the key, so it gets a tag too.
+ */
+export function sourceMarks(tableSources: string[], classes: Sheet["classes"], keyed: Set<string>): Map<string, Mark> {
+  const counts = new Map<string, number>();
+  for (const source of tableSources) counts.set(source, (counts.get(source) ?? 0) + 1);
+  const classIndex = (source: string) => classes.findIndex((c) => c.name === source);
+  const ranked = [...counts.keys()].sort((a, b) => {
+    const [ia, ib] = [classIndex(a), classIndex(b)];
+    return (
+      counts.get(b)! - counts.get(a)! ||
+      Number(ib >= 0) - Number(ia >= 0) ||
+      (classes[ib]?.level ?? 0) - (classes[ia]?.level ?? 0) ||
+      (ia >= 0 && ib >= 0 ? ia - ib : 0)
+    );
+  });
+  const symbols = ["\u2020", "\u2021"];
+  return new Map(
+    ranked.slice(1).map((source, i): [string, Mark] => [source, ranked.length > 3 || !keyed.has(source) ? "tag" : { symbol: symbols[i]! }]),
+  );
+}
+
+/** The mark after a spell name. A screen reader reads the source name in place of the symbol. */
+function SourceMark({ source, mark }: { source: string; mark: Mark | undefined }) {
+  if (!mark) return null;
+  if (mark === "tag")
+    // A tag stays on the line of the name's last word, and does not wrap inside. A long name can wrap.
+    return (
+      <>
+        {"\u00a0"}
+        <span className="whitespace-nowrap">
+          <Tag>{source}</Tag>
+        </span>
+      </>
+    );
+  return (
+    <>
+      <sup aria-hidden className="text-[0.9em] text-ink-muted">
+        {mark.symbol}
+      </sup>
+      <span className="sr-only"> ({source})</span>
+    </>
+  );
+}
+
 /** A source with only cantrips, on one line: "Mending (High Elf, INT, DC 14, +6)". */
 function CantripLine({ source, cantrips, caster }: { source: string; cantrips: string[]; caster: Caster | undefined }) {
   const numbers = caster ? [abbr(caster.ability), `DC ${caster.saveDc}`, bonusStr(caster.attackBonus)] : [];
@@ -621,9 +675,10 @@ function CantripLine({ source, cantrips, caster }: { source: string; cantrips: s
 /**
  * The spell save DC, spell attack and spellcasting ability of one or more
  * sources. With `named`, the row is a group named by its sources. The label
- * shows "Tiefling · Warlock".
+ * shows "Tiefling · Warlock", and a source with a mark has its symbol after
+ * its name, as the key to the marks in the table: "Tiefling † · Warlock".
  */
-function CasterRow({ group, named }: { group: CasterGroup; named: boolean }) {
+function CasterRow({ group, named, marks }: { group: CasterGroup; named: boolean; marks: Map<string, Mark> }) {
   const boxes = (
     <div className="flex justify-evenly gap-2">
       <RowBox label="Spell save DC">{group.saveDc}</RowBox>
@@ -636,11 +691,15 @@ function CasterRow({ group, named }: { group: CasterGroup; named: boolean }) {
   return (
     <div role="group" aria-label={group.names.join(" and ")} className="grid gap-1">
       <span aria-hidden className="grid">
-        <Label>{group.names.join(" · ")}</Label>
+        <Label>{group.names.map((name) => withSymbol(name, marks.get(name))).join(" · ")}</Label>
       </span>
       {boxes}
     </div>
   );
+}
+
+function withSymbol(name: string, mark: Mark | undefined) {
+  return mark && mark !== "tag" ? `${name} ${mark.symbol}` : name;
 }
 
 /** Hit points: temporary on the left (the sheet has none, so it is empty), then current / max. */
