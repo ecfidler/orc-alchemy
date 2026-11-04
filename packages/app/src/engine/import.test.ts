@@ -14,7 +14,7 @@ import {
   readCharacterFile,
   type CharacterFileEntry,
 } from "./import.ts";
-import { toSheet, UNNAMED_FEATURE } from "./sheet.ts";
+import { toSheet } from "./sheet.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const strictFiles = ["characters", "legacy"].flatMap((dir) =>
@@ -353,12 +353,13 @@ test.each([
   expect(readBundleHomebrew(text)).toBeNull();
 });
 
-// ORC-177: a Hunter Ranger with Evasion, from the level 20 layout audit. Engine 0.3.1 gives Evasion no name.
+// ORC-177: a Hunter Ranger with Evasion, from the level 20 layout audit. Engine 0.3.1 gave Evasion no name;
+// 0.3.2 names it (ORC-178).
 test("a Hunter Ranger with Evasion imports and builds a sheet", async () => {
   const text = readFileSync(join(import.meta.dirname, "ranger-20-evasion.strict.json"), "utf8");
   const { characters: [character], failures } = readCharacterFile(text);
   expect(failures).toEqual([]);
   const sheet = toSheet(engine().evaluate(character.entity).built, character.entity);
-  expect(sheet.features.traits.find((t) => t.text.startsWith("When you are subjected to an effect"))?.name).toBe(UNNAMED_FEATURE);
+  expect(sheet.features.traits.find((t) => t.text.startsWith("When you are subjected to an effect"))?.name).toBe("Evasion");
   expect(await getCharacter(await addCharacter(character.entity, character.rules, character.legacyId))).toBeDefined();
 });

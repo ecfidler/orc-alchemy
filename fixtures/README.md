@@ -2,8 +2,8 @@
 
 > **Snapshot provenance.** This directory is a verbatim snapshot of the
 > fork's `fixtures/`, copied with `git archive` from `ecfidler/orcpub`
-> branch `pubdoor` at commit **`b063d70ce248afcd25cd6443987aabfee4ff5939`** (tag `pubdoor-v0.3.1`), which
-> publishes **`@pubdoor/dmv@0.3.1`**. Only this note was added. Paths in the
+> branch `pubdoor` at commit **`e74253b9f8316084bf87623e0eb08581be95e120`** (tag `pubdoor-v0.3.2`), which
+> publishes **`@pubdoor/dmv@0.3.2`**. Only this note was added. Paths in the
 > rest of this file (`scripts/`, `src/`, `test/`, `engine-js/`) are fork paths.
 >
 > Do not edit the fixtures here. To refresh, regenerate in the fork (see
@@ -33,7 +33,8 @@ normalizations (findings 4 and 9), with `scripts/golden-characters.clj` and
 `import` and `templateDelta` of `drift-10-ability-key-forms`, and the
 `import` of `duplicate-external-b` changed, and `drift-11` and `drift-12`
 are new. The SRD
-baseline was not regenerated. Regenerate whenever
+baseline was not regenerated then. ORC-178 changed it in one place
+(finding 19). Regenerate whenever
 `src/cljc` or one of the files the engine reads from `src/cljs` changes (see
 *Regenerating*): `orcpub/dnd/e5.cljc`, `spell_subs.cljs`,
 `equipment_subs.cljs` (copied into `engine-js/src/orcpub/facade/template.cljs`),
@@ -651,3 +652,26 @@ Line numbers are for commit `bcd9d68`.
     keys under `unresolved` in its `.meta.json`. Plan doc 01 §C3 asks for
     zero unresolved keys across every golden character, which these
     fixtures cannot give without changing what they test.
+18. **Three goldens hold a value that the old server cannot store.**
+    `fighter-20`, `wizard-11`, and `fighter-5-custom-magic-items` hold
+    `:orcpub.dnd.e5.character/attuned-magic-items`. The old Datomic schema
+    has no such attribute, so the old server refuses to save them
+    (`:db.error/not-an-entity`). The old UI never sets the value, because
+    the `::char5e/attune-magic-item` event in `events.cljs` is commented
+    out. The engine reads the value (`character.cljc`,
+    `attuned-magic-items`), and Alchemy 5e sets it, so the goldens stay as
+    they are. They are code-only cases: a test that saves goldens to a real
+    old server, such as the orc-alchemy Docker test of the exporter
+    bookmarklet, must leave them out. ORC-67 found this, and ORC-127
+    records the choice.
+19. **The Hunter's Evasion trait had no name.** In `classes.cljc`, the
+    Hunter's level 15 option "Evasion" (Superior Hunter's Defense) gave a
+    `trait-cfg` with no `:name`. It also put the plain map from
+    `opt5e/evasion` in `:modifiers`. That map is not a modifier, so
+    `apply-modifiers` skipped it. The old app had the same bug. ORC-178
+    adds the name and removes the map. No golden character takes this
+    option, so no built value changes. The SRD baseline changes in one
+    place: the option's `modifiers` shape loses its `{"key": null}`
+    entry, the only one in the baseline. Each pack's `templateDelta` does
+    not change, because both sides of the diff lose the same entry. The
+    test character is `engine-js/test/fixtures/ranger-20-evasion.strict.json`.

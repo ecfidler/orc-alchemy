@@ -273,7 +273,7 @@ test("a limited-use feature has its uses and when they come back", () => {
   expect(usesOf("fighter-5", "Dueling Fighting Style")).toBeUndefined();
 });
 
-// ORC-177: engine 0.3.1 gives the Hunter's Evasion feature no name.
+// ORC-177: engine 0.3.1 gave the Hunter's Evasion feature no name, and homebrew can leave one out.
 test("a feature or special attack with no name gets a fallback name", () => {
   const built: Built2014 = {
     ...builtOf("fighter-1"),
