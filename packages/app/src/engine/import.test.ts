@@ -353,8 +353,7 @@ test.each([
   expect(readBundleHomebrew(text)).toBeNull();
 });
 
-// ORC-177: a Hunter Ranger with Evasion, from the level 20 layout audit. Engine 0.3.1 gave Evasion no name;
-// 0.3.2 names it (ORC-178).
+// ORC-177: a Hunter Ranger with Evasion, from the level 20 layout audit. Engine 0.3.2 names Evasion (ORC-178).
 test("a Hunter Ranger with Evasion imports and builds a sheet", async () => {
   const text = readFileSync(join(import.meta.dirname, "ranger-20-evasion.strict.json"), "utf8");
   const { characters: [character], failures } = readCharacterFile(text);

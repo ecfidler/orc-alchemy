@@ -234,9 +234,8 @@ const byName = <T extends { name: string }>(items: T[]) =>
 
 /** The name a feature or special attack shows when the engine gives it none. */
 export const UNNAMED_FEATURE = "Unnamed feature";
-// The engine's types say every feature has a name, but engine 0.3.1 gave the
-// Hunter's Evasion feature none (ORC-177, fixed in 0.3.2 by ORC-178), and
-// homebrew can still leave a name out.
+// The engine's types say every feature has a name, but homebrew can leave a
+// name out. Engine 0.3.1 also gave the Hunter's Evasion feature none (ORC-177).
 const nameOf = (feature: { name?: string | null }) => feature.name || UNNAMED_FEATURE;
 
 /** The old app's bonus-str, for ability, save, skill and other bonuses: "+3", "-1", and "0" for zero. */
