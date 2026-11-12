@@ -11,7 +11,7 @@ test("Add, Remove and Undo a feat modifier with the keyboard", async ({ page }) 
   await page.goto("/content/new/feat");
   const add = page.getByRole("button", { name: "Add a modifier" });
   await expect(add).toHaveAccessibleDescription("14 more");
-  await expect(page.getByRole("group", { name: "Hit Points" })).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Hit Points", exact: true })).toHaveCount(0);
 
   // Enter opens the list, with the focus on its first row. The arrow keys move to Hit Points, and Enter adds it.
   await add.focus();
@@ -25,14 +25,17 @@ test("Add, Remove and Undo a feat modifier with the keyboard", async ({ page }) 
   await expect(dialog).toBeHidden();
 
   // The section is in its place in form order, after the common modifiers, it flashes, and its first control has the focus.
-  const hp = page.getByRole("group", { name: "Hit Points" });
+  const hp = page.getByRole("group", { name: "Hit Points", exact: true });
   await expect(hp).toBeVisible();
-  await expect(page.locator("[data-modifier]").nth(3)).toHaveAttribute("data-modifier", "max-hp-bonus");
+  await expect(page.locator("[data-modifier]").nth(2)).toHaveAttribute("data-modifier", "max-hp-bonus");
   await expect(page.locator("[data-modifier='max-hp-bonus']")).toHaveClass(/ui-flash/);
-  const one = hp.getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" });
+  const none = hp.getByRole("button", { name: "None" });
+  const one = hp.getByRole("button", { name: "1", exact: true });
+  await expect(none).toBeFocused();
+  await page.keyboard.press("ArrowRight");
   await expect(one).toBeFocused();
   await page.keyboard.press("Space");
-  await expect(one).toBeChecked();
+  await expect(one).toHaveAttribute("aria-pressed", "true");
   await expect(add).toHaveAccessibleDescription("13 more");
 
   // The Remove link on the section rule is the control before it. Enter removes the section and puts the focus on Undo.
@@ -47,8 +50,8 @@ test("Add, Remove and Undo a feat modifier with the keyboard", async ({ page }) 
   // Undo puts the section and its value back, with the focus on its first control.
   await page.keyboard.press("Enter");
   await expect(note).toHaveCount(0);
-  await expect(hp.getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" })).toBeChecked();
-  await expect(hp.getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" })).toBeFocused();
+  await expect(one).toHaveAttribute("aria-pressed", "true");
+  await expect(none).toBeFocused();
 
   // Space on the Remove link removes the section too.
   await page.keyboard.press("Shift+Tab");
@@ -80,16 +83,17 @@ test("a new section flashes once, with rounded corners, and with reduced motion 
 test("the subrace form adds Hit Points from the list, and Remove and Undo keep its value", async ({ page }) => {
   await page.goto("/content/new/subrace");
   await expect(page.getByRole("button", { name: "Add a modifier" })).toHaveAccessibleDescription("10 more");
-  await expect(page.getByRole("group", { name: "Hit Points" })).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Hit Points", exact: true })).toHaveCount(0);
   await addModifier(page, "Hit Points");
   // The section is after Ability Score Increases, in form order.
   await expect(page.locator("[data-modifier]").nth(1)).toHaveAttribute("data-modifier", "max-hp-bonus");
-  const one = page.getByRole("group", { name: "Hit Points" }).getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" });
-  await one.check();
+  const one = page.getByRole("group", { name: "Hit Points", exact: true }).getByRole("button", { name: "1", exact: true });
+  await one.click();
+  await expect(one).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Remove Hit Points" }).click();
   await expect(one).toHaveCount(0);
   await page.getByRole("status").getByRole("button", { name: "Undo" }).click();
-  await expect(one).toBeChecked();
+  await expect(one).toHaveAttribute("aria-pressed", "true");
 });
 
 test("the subclass form shows the level modifiers always, and adds Selections from the list", async ({ page }) => {

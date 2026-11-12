@@ -4,7 +4,7 @@
 // :race the parent race's keyword. Size, speed and darkvision show the
 // parent race's value until the subrace has its own; the engine applies a
 // subrace's speed and darkvision only when they differ from the race's. The
-// languages are checkboxes in :props, as {:language {:elvish true}}, and
+// languages are picks in :props, as {:language {:elvish true}}, and
 // :props :max-hp-bonus is 1, 2 or absent. The form shows its common
 // modifiers always, and the user adds the other modifiers from a list
 // (modifiers.tsx).
@@ -12,21 +12,19 @@ import { Field } from "@orc-alchemy/ui";
 import type { BuilderChoices, RaceChoice } from "../../engine/builder-choices.ts";
 import { tag, untag } from "../../engine/content.ts";
 import { editor, fieldErrors, FieldRow, FormColumn, numbers, range, SelectField, SKILLS, TextField, Traits, WithChoices, type BuilderType, type Edit, type FormProps } from "./fields.tsx";
-import { valueModifier } from "./FeatForm.tsx";
-import { Modifiers, type Modifier } from "./modifiers.tsx";
 import {
-  AbilityIncreases,
-  ARMOR_CHOICES,
+  armorModifier,
   choiceModifier,
+  hitPointsModifier,
   IMMUNITY_CHOICES,
   propModifier,
   RESISTANCE_CHOICES,
-  savingThrowChoices,
-  SIZES,
-  Spells,
+  SAVING_THROW_CHOICES,
   toolModifier,
   weaponChoices,
-} from "./RaceForm.tsx";
+} from "./modifier-kinds.tsx";
+import { Modifiers, type Modifier } from "./modifiers.tsx";
+import { AbilityIncreases, SIZES, Spells } from "./RaceForm.tsx";
 
 /** The subrace's modifiers in form order (docs/design/homebrew-forms.md, "Subrace"). race is the parent race, for the totals. */
 function subraceModifiers(edit: Edit, lists: BuilderChoices, race: RaceChoice | undefined): Modifier[] {
@@ -46,16 +44,16 @@ function subraceModifiers(edit: Edit, lists: BuilderChoices, race: RaceChoice | 
         />
       ),
     },
-    valueModifier(edit, "max-hp-bonus", "Hit Points", "+1 or +2 hit point maximum for each level", [1, 2], (n) => `Your hit point maximum increases by ${n} for each of your levels`),
-    propModifier(edit, "damage-resistance", "Damage Resistances", "Resistance to fire, cold, damage from traps …", RESISTANCE_CHOICES),
-    propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", IMMUNITY_CHOICES),
-    propModifier(edit, "saving-throw-advantage", "Saving Throw Advantage", "Advantage on saves against being charmed, poisoned …", savingThrowChoices),
-    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists)),
-    propModifier(edit, "armor-prof", "Armor Proficiency", "Light, medium or heavy armor, shields", ARMOR_CHOICES),
+    hitPointsModifier(edit),
+    propModifier(edit, "damage-resistance", "Damage Resistances", "Resistance to fire, cold, damage from traps …", RESISTANCE_CHOICES, { add: "Add a damage resistance" }),
+    propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", IMMUNITY_CHOICES, { add: "Add a damage immunity" }),
+    propModifier(edit, "saving-throw-advantage", "Saving Throw Advantage", "Advantage on saves against being charmed, poisoned …", SAVING_THROW_CHOICES, { add: "Add a condition" }),
+    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists), { add: "Add a weapon", search: true }),
+    armorModifier(edit),
     toolModifier(edit),
-    propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS),
-    choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS),
-    propModifier(edit, "language", "Languages", "Elvish, Undercommon …", lists.languages),
+    propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS, { add: "Add a skill" }),
+    choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS, { add: "Add a skill option" }),
+    propModifier(edit, "language", "Languages", "Elvish, Undercommon …", lists.languages, { add: "Add a language", search: true }),
     { id: "spells", name: "Spells", common: true, render: ({ name }) => <Spells edit={edit} lists={lists} legend={name} /> },
   ];
 }

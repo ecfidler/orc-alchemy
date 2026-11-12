@@ -3,41 +3,39 @@
 // app's events stored it (events.cljs ::races/...), so an .orcbrew export
 // round-trips: :size a keyword, :speed and :darkvision integers, :help the
 // description, :abilities a map of namespaced ability keyword to bonus,
-// :languages a set of language names, the checkboxes in :props as
-// {:weapon-prof {:dart true}} (a second click stores false), the flying and
+// :languages a set of language names, the picks in :props as
+// {:weapon-prof {:dart true}} (a removed pick stores false, as the old
+// second click), :lizardfolk-ac and :tortle-ac true or false, the flying and
 // swimming speeds in :props as integers, the tool proficiencies and the
 // proficiency choices in :profs, :spells a vector of {:level unlock-level
 // :value {:level :ability :key}}, and :traits a vector of :name, :type and
 // :description maps. The form shows its common modifiers always, and the
 // user adds the other modifiers from a list (modifiers.tsx). The subrace
-// form (SubraceForm.tsx) and the feat form (FeatForm.tsx) use the parts
-// exported here.
+// form (SubraceForm.tsx) uses the parts exported here; the modifier kinds
+// that the forms share are in modifier-kinds.tsx.
 import { Fieldset, Select, SelectBox, XButton } from "@orc-alchemy/ui";
 import { useState, type ReactNode } from "react";
-import { asSet, setItems, tag } from "../../engine/content.ts";
-import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
+import { asSet, tag } from "../../engine/content.ts";
+import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import {
   ABILITIES,
   ABILITY_OPTIONS,
   abilityKey,
   AddButton,
-  Checks,
-  CONDITIONS,
-  DAMAGE_TYPES,
+  ChoicePicker,
   editor,
   FieldRow,
   FormColumn,
-  nameToKw,
   numbers,
   orFirst,
-  ProficiencyChoice,
+  PickerSection,
   range,
   RecordTextArea,
   SelectField,
+  SetPicker,
   SKILLS,
   SPELL_LEVELS,
   TextField,
-  TOOLS,
   Traits,
   WithChoices,
   type BuilderType,
@@ -45,47 +43,12 @@ import {
   type FormProps,
   type ItemRecord,
 } from "./fields.tsx";
+import { armorModifier, choiceModifier, IMMUNITY_CHOICES, propModifier, propPicker, RESISTANCE_CHOICES, toolModifier, weaponChoices } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier } from "./modifiers.tsx";
 
 export const SIZES = ["small", "medium", "large"];
 const bonus = (n: number) => `${n > 0 ? "+" : ""}${n}`;
 export const BONUSES = range(-2, 3).map((n): [number, string] => [n, bonus(n)]);
-
-/** Checkboxes of the map at :props prop, as {:prop {:key true}}. */
-export function PropChecks({ edit, legend, prop, items, action }: { edit: Edit; legend: string; prop: string; items: Choice[]; action?: ReactNode }) {
-  return <Checks legend={legend} action={action} items={items} checked={(key) => edit.get("props", prop, key) === true} onToggle={(key) => edit.toggle(["props", prop, key])} />;
-}
-
-/** A modifier of the map at :props prop, as checkboxes of the items. */
-export const propModifier = (edit: Edit, prop: string, name: string, example: string, items: Choice[]): Modifier => ({
-  id: prop,
-  name,
-  example,
-  paths: [["props", prop]],
-  render: ({ name, action }) => <PropChecks edit={edit} legend={name} action={action} prop={prop} items={items} />,
-});
-
-const choices = (keys: string[], name: (key: string) => string): Choice[] => keys.map((key) => ({ key, name: name(key) }));
-
-export const weaponChoices = (lists: BuilderChoices): Choice[] => [
-  { key: "simple", name: "All Simple Weapons" },
-  { key: "martial", name: "All Martial Weapons" },
-  ...lists.weapons,
-];
-export const ARMOR_CHOICES = choices(["light", "medium", "heavy", "shields"], (a) => `You gain proficiency with ${a}${a === "shields" ? "" : " armor"}`);
-/** The tool proficiencies in :profs :tool as a modifier. */
-export const toolModifier = (edit: Edit): Modifier => ({
-  id: "tool",
-  name: "Tool Proficiency",
-  example: "Smith's tools, thieves' tools …",
-  paths: [["profs", "tool"]],
-  render: ({ name, action }) => (
-    <Checks legend={name} action={action} items={TOOLS} checked={(key) => edit.get("profs", "tool", key) === true} onToggle={(key) => edit.toggle(["profs", "tool", key])} />
-  ),
-});
-export const RESISTANCE_CHOICES = choices(["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`));
-export const IMMUNITY_CHOICES = choices(DAMAGE_TYPES, (d) => `Immunity to ${d} damage`);
-export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKw(name), name: `You have advantage on saving throws against being ${name}` }));
 
 const UNLOCK_LEVELS = range(1, 21).map((n): [number, string] => [n, `Level ${n}`]);
 
@@ -187,24 +150,36 @@ const speedModifier = (edit: Edit, prop: string, name: string, example: string):
   ),
 });
 
-/** A proficiency choice in :profs field as a modifier. */
-export const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: Choice[]): Modifier => ({
-  id: field,
-  name,
-  example,
-  paths: [["profs", field]],
-  render: ({ name, action }) => <ProficiencyChoice edit={edit} legend={name} action={action} field={field} items={items} />,
-});
-
-const AC_CHOICES: Choice[] = [
-  { key: "lizardfolk-ac", name: "Without armor your AC becomes 13 + your DEX modifier." },
-  { key: "tortle-ac", name: "Your AC is 17, regardless of your DEX modifier or armor." },
+/** The Armor Class select's options: the old two checkboxes, :lizardfolk-ac and :tortle-ac, as one choice. */
+const AC_OPTIONS: [string, string][] = [
+  ["normal", "Normal"],
+  ["lizardfolk-ac", "13 + DEX"],
+  ["tortle-ac", "Always 17"],
 ];
+const AC_KEYS = ["lizardfolk-ac", "tortle-ac"];
+
+/**
+ * The Armor Class as one select. A pick stores what the old clicks stored
+ * for it: true for the picked key, and false for the other key only when it
+ * was true. A key that is not true stays as it is, so a race that never had
+ * it does not get it. A race from a pack with both keys true shows
+ * "Always 17", and nothing changes until the user picks.
+ */
+function ArmorClass({ edit, legend, action }: { edit: Edit; legend: string; action: ReactNode }) {
+  const on = (key: string) => edit.get("props", key) === true;
+  // :tortle-ac sets the AC to 17 whatever the armor, so it wins when both are true.
+  const value = on("tortle-ac") ? "tortle-ac" : on("lizardfolk-ac") ? "lizardfolk-ac" : "normal";
+  const pick = (choice: string) =>
+    edit.setAll(AC_KEYS.flatMap((key): [string[], boolean][] => (key === choice ? (on(key) ? [] : [[["props", key], true]]) : on(key) ? [[["props", key], false]] : [])));
+  return (
+    <Fieldset legend={legend} look="section" action={action}>
+      <Select aria-label={legend} value={value} options={AC_OPTIONS} onValueChange={(v) => v !== null && pick(v)} />
+    </Fieldset>
+  );
+}
 
 /** The race's modifiers in form order (docs/design/homebrew-forms.md, "Race"). */
 function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
-  const languages = setItems(edit.get("languages"));
-  const toggleLanguage = (name: string) => edit.set(["languages"], asSet(languages.includes(name) ? languages.filter((l) => l !== name) : [...languages, name]));
   return [
     speedModifier(edit, "flying-speed", "Flying speed", "A flying speed from 5 to 50 ft."),
     speedModifier(edit, "swimming-speed", "Swimming speed", "A swimming speed from 5 to 50 ft."),
@@ -212,30 +187,35 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       id: "armor-class",
       name: "Armor Class",
       example: "Natural armor: 13 + Dexterity, or always 17",
-      paths: AC_CHOICES.map(({ key }) => ["props", key]),
-      render: ({ name, action }) => <Checks legend={name} action={action} items={AC_CHOICES} checked={(key) => edit.get("props", key) === true} onToggle={(key) => edit.toggle(["props", key])} />,
+      paths: AC_KEYS.map((key) => ["props", key]),
+      render: ({ name, action }) => <ArmorClass edit={edit} legend={name} action={action} />,
     },
     { id: "abilities", name: "Ability Score Increases", common: true, render: ({ name }) => <AbilityIncreases edit={edit} legend={name} /> },
     {
       id: "languages",
       name: "Languages",
       common: true,
-      render: ({ name }) => <Checks legend={name} items={lists.languages.map(({ name }) => ({ key: name, name }))} checked={(name) => languages.includes(name)} onToggle={toggleLanguage} />,
+      // :languages is a set of language names, not of keywords.
+      render: ({ name }) => (
+        <PickerSection legend={name}>
+          <SetPicker edit={edit} field="languages" items={lists.languages} stored={(language) => language.name} text={{ add: "Add a language", search: true }} />
+        </PickerSection>
+      ),
     },
-    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists)),
-    propModifier(edit, "armor-prof", "Armor Proficiency", "Light, medium or heavy armor, shields", ARMOR_CHOICES),
+    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists), { add: "Add a weapon", search: true }),
+    armorModifier(edit),
     toolModifier(edit),
-    { id: "damage-resistance", name: "Damage Resistances", common: true, render: ({ name }) => <PropChecks edit={edit} legend={name} prop="damage-resistance" items={RESISTANCE_CHOICES} /> },
-    propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", IMMUNITY_CHOICES),
-    propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS),
-    choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS),
+    { id: "damage-resistance", name: "Damage Resistances", common: true, render: propPicker(edit, "damage-resistance", RESISTANCE_CHOICES, { add: "Add a damage resistance" }) },
+    propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", IMMUNITY_CHOICES, { add: "Add a damage immunity" }),
+    propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS, { add: "Add a skill" }),
+    choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS, { add: "Add a skill option" }),
     {
       id: "language-options",
       name: "Language Proficiency Choice",
       common: true,
-      render: ({ name }) => <ProficiencyChoice edit={edit} legend={name} field="language-options" items={lists.languages} />,
+      render: ({ name }) => <ChoicePicker edit={edit} legend={name} field="language-options" items={lists.languages} text={{ add: "Add a language option", search: true }} />,
     },
-    choiceModifier(edit, "weapon-proficiency-options", "Weapon Proficiency Choice", "Choose n weapons from a list", lists.weapons),
+    choiceModifier(edit, "weapon-proficiency-options", "Weapon Proficiency Choice", "Choose n weapons from a list", lists.weapons, { add: "Add a weapon option", search: true }),
     { id: "spells", name: "Spells", common: true, render: ({ name }) => <Spells edit={edit} lists={lists} legend={name} /> },
   ];
 }

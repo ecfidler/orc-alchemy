@@ -10,7 +10,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { addList, addModifier, choose, groups, shown } from "./test-picks.ts";
+import { addList, addModifier, choose, groups, pick, press, pressed, shown, tokens, unpick } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -83,8 +83,8 @@ test("the form recreates the Star Elf subrace of the community fixture, and Edit
   await choose("Wisdom", "+1");
   await addModifier("Weapon Proficiencies");
   await addModifier("Skill Proficiencies");
-  for (const weapon of ["Dart", "Morningstar", "Rapier", "Shortbow"]) check("Weapon Proficiencies", weapon);
-  check("Skill Proficiencies", "Insight");
+  await pick("Weapon Proficiencies", "Add a weapon", ["Dart", "Morningstar", "Rapier", "Shortbow"]);
+  await pick("Skill Proficiencies", "Add a skill", "Insight");
   fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 1 spellcasting ability", "Wisdom");
   await choose("Spell 1", "Guidance");
@@ -119,7 +119,8 @@ test("the form recreates the Star Elf subrace of the community fixture, and Edit
   await screen.findByRole("button", { name: "Add a spell" });
   expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Star Elf");
   expect([shown("Race"), shown("Wisdom"), shown("Spell 2 unlocks at"), shown("Spell 3")]).toEqual(["Elf", "+1", "Level 3", "Detect Thoughts"]);
-  expect(within(screen.getByRole("group", { name: "Weapon Proficiencies" })).getByRole("checkbox", { name: "Rapier" })).toBeChecked();
+  // In the order of the weapon list, not of the picks.
+  expect(tokens("Weapon Proficiencies")).toEqual(["Dart", "Shortbow", "Morningstar", "Rapier"]);
   expect(save().disabled).toBe(false);
 });
 
@@ -129,19 +130,19 @@ test("the subrace modifiers are stored as the old events store them", async () =
   type("Name", "Deep Dwarf");
   await choose("Darkvision", "120");
   for (const name of ADDED) await addModifier(name);
-  check("Hit Points", "Your hit point maximum increases by 1 for each of your levels");
-  check("Hit Points", "Your hit point maximum increases by 2 for each of your levels");
-  check("Saving Throw Advantage", "You have advantage on saving throws against being Poisoned");
-  check("Languages", "Undercommon");
-  check("Damage Resistances", "Resistance to damage from traps");
-  check("Damage Immunities", "Immunity to poison damage");
-  check("Weapon Proficiencies", "All Martial Weapons");
-  check("Weapon Proficiencies", "All Martial Weapons");
-  check("Armor Proficiency", "You gain proficiency with medium armor");
-  check("Tool Proficiency", "Smith's Tools");
-  check("Skill Proficiencies", "Perception");
+  press("Hit Points", "1");
+  press("Hit Points", "2");
+  await pick("Saving Throw Advantage", "Add a condition", "Poisoned");
+  await pick("Languages", "Add a language", "Undercommon");
+  await pick("Damage Resistances", "Add a damage resistance", "Damage from traps");
+  await pick("Damage Immunities", "Add a damage immunity", "Poison");
+  await pick("Weapon Proficiencies", "Add a weapon", "All martial weapons");
+  await unpick("Weapon Proficiencies", "All martial weapons");
+  check("Armor Proficiency", "Medium armor");
+  await pick("Tool Proficiency", "Add a tool", "Smith's Tools");
+  await pick("Skill Proficiencies", "Add a skill", "Perception");
   await choose("Skill Proficiency Choice: choose", "2");
-  check("Skill Proficiency Choice: options", "History");
+  await pick("Skill Proficiency Choice", "Add a skill option", "History");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
 
@@ -186,8 +187,10 @@ test("an imported subrace opens with each modifier that holds a value, and a sav
     "~:props": {
       "~:max-hp-bonus": 1,
       "~:weapon-prof": { "~:trident": false, "~:net": false },
-      "~:damage-resistance": { "~:cold": true },
+      "~:damage-resistance": { "~:cold": true, "~:fire": false },
+      "~:saving-throw-advantage": { "~:charmed": false },
       "~:language": { "~:aquan": false },
+      "~:armor-prof": { "~:light": false },
     },
     "~:profs": { "~:skill-options": { "~:options": { "~:stealth": false } }, "~:tool": { "~:navigators-tools": true } },
     "~:traits": [],
@@ -196,8 +199,52 @@ test("an imported subrace opens with each modifier that holds a value, and a sav
   const router = renderAt("/content/edit/subrace/Reef/sea-elf");
   await screen.findByRole("button", { name: "Add a spell" });
   expect(groups()).toEqual(["Ability Score Increases", "Hit Points", "Damage Resistances", "Tool Proficiency", "Spells", "Features / traits"]);
-  expect(within(screen.getByRole("group", { name: "Hit Points" })).getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" })).toBeChecked();
+  expect(pressed("Hit Points")).toBe("1");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
   expect(stored("Reef", "sea-elf")).toEqual(item);
+});
+
+test("in each subrace group a pick then a remove stores what the old double click stored", async () => {
+  const router = renderAt("/content/new/subrace");
+  await screen.findByRole("button", { name: "Add a spell" });
+  type("Name", "Glass Dwarf");
+  for (const name of ADDED) await addModifier(name);
+  press("Hit Points", "2");
+  press("Hit Points", "None");
+  check("Armor Proficiency", "Light armor");
+  check("Armor Proficiency", "Light armor");
+  for (const [group, add, name] of [
+    ["Damage Resistances", "Add a damage resistance", "Acid"],
+    ["Damage Immunities", "Add a damage immunity", "Cold"],
+    ["Saving Throw Advantage", "Add a condition", "Frightened"],
+    ["Weapon Proficiencies", "Add a weapon", "Warhammer"],
+    ["Tool Proficiency", "Add a tool", "Mason's Tools"],
+    ["Skill Proficiencies", "Add a skill", "History"],
+    ["Skill Proficiency Choice", "Add a skill option", "Insight"],
+    ["Languages", "Add a language", "Dwarvish"],
+  ]) {
+    await pick(group, add, name);
+    expect(tokens(group)).toEqual([name]);
+    await unpick(group, name);
+  }
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored("Default Option Source", "glass-dwarf")).toEqual({
+    "~:name": "Glass Dwarf",
+    "~:key": "~:glass-dwarf",
+    "~:option-pack": "Default Option Source",
+    "~:race": "~:dwarf",
+    "~:traits": [],
+    "~:props": {
+      "~:armor-prof": { "~:light": false },
+      "~:damage-resistance": { "~:acid": false },
+      "~:damage-immunity": { "~:cold": false },
+      "~:saving-throw-advantage": { "~:frightened": false },
+      "~:weapon-prof": { "~:warhammer": false },
+      "~:skill-prof": { "~:history": false },
+      "~:language": { "~:dwarvish": false },
+    },
+    "~:profs": { "~:tool": { "~:masons-tools": false }, "~:skill-options": { "~:options": { "~:insight": false } } },
+  });
 });
