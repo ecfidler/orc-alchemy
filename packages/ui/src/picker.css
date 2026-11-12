@@ -201,7 +201,7 @@
     gap: 8px;
   }
 
-  /* The chips' add menu: a dashed token-size button. */
+  /* The chips' add menu and AddChip: a dashed token-size button. */
   .ui-chip-add {
     min-height: 28px;
     padding: 3px 11px;

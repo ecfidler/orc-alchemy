@@ -48,7 +48,7 @@ type Slot = { level: number; slot: number };
  */
 function SpellsTable({ edit, parent, choices }: { edit: Edit; parent: string; choices: BuilderChoices }) {
   const { field, title, at } = CLASS_SPELLS[parent];
-  const className = choices.classes.find((c) => c.key === parent)?.name ?? parent;
+  const parentName = choices.classes.find((c) => c.key === parent)?.name ?? parent;
   // The slot that opened the picker. A pick goes to it, then to the other slot of the row while that is empty.
   const [open, setOpen] = useState<Slot | null>(null);
   const last = useRef<Slot | null>(null);
@@ -83,7 +83,7 @@ function SpellsTable({ edit, parent, choices }: { edit: Edit; parent: string; ch
           <tr className="border-b border-ink">
             {at && (
               <th scope="col" className={`${head} w-[1%]`}>
-                <Label>{className} level</Label>
+                <Label>{parentName} level</Label>
               </th>
             )}
             <th scope="col" className={`${head} w-[1%]`}>
