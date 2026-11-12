@@ -1,5 +1,5 @@
-// The select helpers of the builder form tests: each control is found by its label.
-import { pickOption } from "@orc-alchemy/ui/testing";
+// The helpers of the builder form tests: each select is found by its label, and a modifier by its name in the add list.
+import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing";
 import { screen } from "@testing-library/react";
 
 const combobox = (label: string) => screen.getByRole("combobox", { name: label });
@@ -9,3 +9,13 @@ export const choose = (label: string, option: string | RegExp) => pickOption(com
 
 /** The text of the select labelled `label`: its picked option. */
 export const shown = (label: string) => combobox(label).textContent;
+
+/** Adds the modifier named `name` from the "+ Add a modifier" list of the form. */
+export const addModifier = (name: string) => pickFromPicker(screen.getByRole("button", { name: "Add a modifier" }), name);
+
+/** The names of the form's sections, in their order: the groups at the top level of the form. */
+export const groups = () =>
+  screen
+    .getAllByRole("group")
+    .filter((g) => g.parentElement?.closest("fieldset, [role=group]") === null)
+    .map((g) => g.getAttribute("aria-label") ?? g.querySelector(".ui-fieldset-legend")?.textContent);

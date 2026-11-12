@@ -10,8 +10,9 @@
   .ui-fieldset-legend {
     font-weight: 600;
   }
-  /* A section: its title in Inter caps, then a rule to the end of the line. */
-  .ui-fieldset:where([data-look="section"]) > .ui-fieldset-legend {
+  /* A section: its title in Inter caps, then a rule to the end of the line. With an action, the title and the action are in one head row, and the rule ends at the action. */
+  .ui-fieldset:where([data-look="section"]) > .ui-fieldset-legend,
+  .ui-fieldset:where([data-look="section"]) > :where(.ui-fieldset-head) > .ui-fieldset-legend {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -23,13 +24,38 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
-  .ui-fieldset:where([data-look="section"]) > .ui-fieldset-legend::after {
+  .ui-fieldset:where([data-look="section"]) > .ui-fieldset-legend::after,
+  .ui-fieldset:where([data-look="section"]) > :where(.ui-fieldset-head) > .ui-fieldset-legend::after {
     content: "";
     flex: 1;
     border-top: 1px solid var(--rule-strong);
   }
+  .ui-fieldset-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .ui-fieldset-head > .ui-fieldset-legend {
+    flex: 1;
+    min-width: 0;
+  }
+  .ui-fieldset:where([data-look="section"]) > :where(.ui-fieldset-head) > .ui-fieldset-legend {
+    margin-bottom: 0;
+  }
+  .ui-fieldset-action {
+    flex: none;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--ink-muted);
+  }
+  .ui-fieldset-action :where(.ui-button[data-variant="link"]):hover {
+    color: var(--ink);
+  }
   /* A fieldset in a section is a part of it: its legend is a small label, with no rule. */
-  .ui-fieldset:where([data-look="section"]) .ui-fieldset > .ui-fieldset-legend {
+  .ui-fieldset:where([data-look="section"]) .ui-fieldset > .ui-fieldset-legend,
+  .ui-fieldset:where([data-look="section"]) .ui-fieldset > :where(.ui-fieldset-head) > .ui-fieldset-legend {
     display: block;
     margin: 8px 0 2px;
     font-family: var(--font-sans);
@@ -40,7 +66,8 @@
     text-transform: uppercase;
     color: var(--ink-muted);
   }
-  .ui-fieldset:where([data-look="section"]) .ui-fieldset > .ui-fieldset-legend::after {
+  .ui-fieldset:where([data-look="section"]) .ui-fieldset > .ui-fieldset-legend::after,
+  .ui-fieldset:where([data-look="section"]) .ui-fieldset > :where(.ui-fieldset-head) > .ui-fieldset-legend::after {
     content: none;
   }
 
