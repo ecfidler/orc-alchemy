@@ -1,0 +1,249 @@
+/* The list modal, the tokens, the add button's count, the number toggle and the chips (docs/design/homebrew-forms.md, "Controls"). Low specificity, so the app's layout utilities win. */
+
+@layer components {
+  /* The list modal's backdrop, as in the prototypes: a 40% ink wash. It is dark in light mode and light in dark mode, so the page steps back in both. */
+  .ui-list-backdrop {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--ink) 40%, transparent);
+  }
+  /* The list modal: a title row, an optional search row, the list that scrolls, and an optional footer. */
+  .ui-list-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    width: min(520px, calc(100vw - 32px));
+    max-height: min(680px, calc(100dvh - 32px));
+    transform: translate(-50%, -50%);
+    color: var(--ink);
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    /* The shadow token of the shell and the tabs. The prototype's raw black has no role token. */
+    box-shadow: 0 22px 50px -18px var(--note-shadow);
+    outline: 0;
+  }
+  /* On a phone the modal fills the screen. */
+  @media (max-width: 600px) {
+    .ui-list-modal {
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      transform: none;
+      border: 0;
+    }
+  }
+  .ui-list-head {
+    display: flex;
+    flex: none;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 12px 10px 20px;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .ui-list-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  .ui-list-search-row {
+    flex: none;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .ui-list-search {
+    max-width: none;
+  }
+  .ui-list-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .ui-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ui-list-group {
+    padding: 12px 20px 3px;
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+  .ui-list-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2px 16px;
+    width: 100%;
+    padding: 6px 20px;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+  }
+  .ui-list > li:last-child > .ui-list-row {
+    border-bottom: 0;
+  }
+  /* A row with an example is taller, and its name is semibold. */
+  .ui-list-row:where([data-example]) {
+    padding-block: 10px;
+  }
+  .ui-list-row:where([data-example]) .ui-list-name {
+    font-weight: 600;
+  }
+  /* The Add mark stands beside the name and the example. */
+  .ui-list-row:where([data-example]) .ui-list-add {
+    grid-row: 1 / span 2;
+  }
+  .ui-list-example {
+    grid-column: 1;
+    font-size: 14.5px;
+    line-height: 1.35;
+    color: var(--ink-muted);
+  }
+  .ui-list-add {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 1px 9px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+  }
+  .ui-list-row:where(:hover, :focus-visible) {
+    background: var(--panel);
+  }
+  .ui-list-row:where(:hover, :focus-visible) .ui-list-add {
+    color: var(--paper);
+    background: var(--ink);
+  }
+  .ui-list-row:focus-visible {
+    /* Inside the row: the list scrolls and clips an outline outside the row. */
+    outline-offset: -3px;
+  }
+  .ui-list-none {
+    margin: 0;
+    padding: 12px 20px;
+    font-size: 15px;
+    color: var(--ink-muted);
+  }
+  .ui-list-foot {
+    display: flex;
+    flex: none;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-top: 1.5px solid var(--ink);
+  }
+  .ui-list-count,
+  .ui-add-count {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-muted);
+  }
+
+  /* The add button: the text on the left, the count on the right. */
+  .ui-add-count {
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* Tokens: small boxes on one line that wraps. */
+  .ui-tokens {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .ui-tokens:empty {
+    display: none;
+  }
+  .ui-token {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    max-width: 100%;
+    min-height: 28px;
+    padding: 1px 2px 1px 9px;
+    font-size: 15.5px;
+    line-height: 1.4;
+    background: var(--paper-raised);
+    border: 1px solid var(--ink);
+  }
+  .ui-token-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ui-token > .ui-number-toggle {
+    flex: none;
+    margin-left: 6px;
+  }
+
+  /* The picker: its tokens above its add button. */
+  .ui-picker {
+    display: grid;
+    gap: 8px;
+  }
+
+  /* The chips' add menu: a dashed token-size button. */
+  .ui-chip-add {
+    min-height: 28px;
+    padding: 3px 11px;
+    font-size: 12.5px;
+    border-width: 1px;
+    border-style: dashed;
+    border-radius: 0;
+  }
+  .ui-chip-add::before {
+    content: "+ " / "";
+  }
+  .ui-chip-add:where(:hover, [data-popup-open]) {
+    border-style: solid;
+  }
+
+  /* The number toggle: segments in one box, the pressed one solid. */
+  .ui-number-toggle {
+    display: inline-flex;
+    flex-wrap: wrap;
+    overflow: hidden;
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+  }
+  .ui-segment {
+    padding: 3px 11px;
+    border: 0;
+    border-left: 1px solid var(--ink);
+    border-radius: 0;
+  }
+  .ui-segment:first-child {
+    border-left: 0;
+  }
+  .ui-segment:focus-visible {
+    /* Inside the segment: the toggle's box has overflow: hidden, which clips an outline outside it. */
+    outline-offset: -3px;
+  }
+  .ui-number-toggle:where([data-size="small"]) {
+    border-width: 1px;
+    border-radius: 4px;
+  }
+  .ui-number-toggle:where([data-size="small"]) > .ui-segment {
+    padding: 0 8px;
+    font-size: 12px;
+  }
+}
