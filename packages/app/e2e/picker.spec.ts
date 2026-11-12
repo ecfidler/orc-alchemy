@@ -6,78 +6,15 @@ import { pickFromPicker, removeToken } from "@orc-alchemy/ui/testing/playwright"
 
 // The picker controls of @orc-alchemy/ui (docs/design/homebrew-forms.md, "Controls") in a real browser, with the app's CSS.
 // No form uses them yet (ORC-197 to ORC-202), so this page renders them alone.
-// Playwright compiles JSX in the files it loads as component-test JSX, so Bun bundles the page's script, once for all tests.
-const DEMO = `
-import { createElement as h, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { Chips, Fieldset, ListModal, NumberToggle, Picker, Token, Tokens } from "@orc-alchemy/ui";
-
-const FRUIT = ["Apple", "Banana", "Cherry", "Damson", "Elderberry", "Fig", "Grape", "Kiwi", "Lemon", "Lime", "Mango", "Melon", "Orange", "Peach", "Pear", "Plum", "Quince", "Raspberry", "Strawberry", "Tangerine", "Watermelon"];
-const GROUPS = { Orchard: ["Apple", "Cherry", "Damson", "Peach", "Pear", "Plum", "Quince"], Citrus: ["Lemon", "Lime", "Orange", "Tangerine"] };
-const groupOf = (name) => Object.keys(GROUPS).find((g) => GROUPS[g].includes(name)) ?? "Other fruit";
-const OPTIONS = ["Orchard", "Citrus", "Other fruit"].flatMap((g) => FRUIT.filter((f) => groupOf(f) === g).map((f) => ({ value: f.toLowerCase(), label: f, group: g })));
-const BASKETS = [
-  { value: "any-melon", label: "Any melon", example: "The picker chooses 1 to 3 melons" },
-  { value: "berries", label: "Berries", example: "Raspberries, strawberries, elderberries …" },
-  { value: "any-citrus", label: "Any citrus fruit", example: "The picker chooses 1 to 3 citrus fruits" },
-  { value: "stone", label: "Stone fruit", example: "Cherries, damsons, peaches, plums" },
-];
-
-function Section({ legend, children }) {
-  return h(Fieldset, { legend, look: "section" }, children);
-}
-
-function PickerCase() {
-  const [value, setValue] = useState(["fig", "apple", "lime", "pear"]);
-  return h(Section, { legend: "Fruit in the bowl" }, h(Picker, { label: "Add a fruit", title: "Add fruit", options: OPTIONS, value, onValueChange: setValue, search: true }));
-}
-
-function ListCase() {
-  const [open, setOpen] = useState(false);
-  const [picks, setPicks] = useState([]);
-  return h(Section, { legend: "Baskets" },
-    h("output", { "data-testid": "baskets" }, picks.join(",")),
-    h("button", { className: "ui-button", "data-variant": "ghost", "data-size": "normal", onClick: () => setOpen(true) }, "Add a basket"),
-    h(ListModal, { open, onOpenChange: setOpen, title: "Add a basket", items: BASKETS.filter((b) => !picks.includes(b.value)), onPick: (v) => setPicks([...picks, v]) }));
-}
-
-function TokensCase() {
-  const [n, setN] = useState(2);
-  const [names, setNames] = useState(["Apple", "A basket of ripe pears from the far orchard, picked at dawn and packed in straw so that not one of them bruises on the road", "Kiwi", "Watermelon", "Fig"]);
-  return h(Section, { legend: "Picks" }, h(Tokens, null,
-    h(Token, { label: "Any melon", onRemove: () => {} }, h(NumberToggle, { "aria-label": "Any melon: how many", size: "small", values: [1, 2, 3], value: n, onValueChange: setN })),
-    ...names.map((name) => h(Token, { key: name, label: name, onRemove: () => setNames(names.filter((x) => x !== name)) }))));
-}
-
-function ToggleCase() {
-  const [value, setValue] = useState(1);
-  return h(Section, { legend: "Extra baskets" }, h("div", { style: { display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" } },
-    h(NumberToggle, { "aria-label": "Extra baskets", values: [null, 1, 2, 3], value, onValueChange: setValue }),
-    h("span", null, "baskets of the picker's choice")));
-}
-
-function ChipsCase() {
-  const [values, setValues] = useState([4, 8, 12, 16, 19]);
-  return h(Section, { legend: "Rows" }, h(Chips, { values, options: Array.from({ length: 20 }, (_, i) => i + 1), onValuesChange: setValues, addLabel: "Add a row", name: (n) => "Row " + n }));
-}
-
-const CASES = { picker: PickerCase, list: ListCase, tokens: TokensCase, toggle: ToggleCase, chips: ChipsCase };
-window.mount = (name) => createRoot(document.getElementById("root")).render(h("main", { style: { maxWidth: "720px", padding: "24px 16px" } }, h(CASES[name])));
-`;
-
+// Playwright compiles JSX in the files it loads as component-test JSX, so Bun bundles the page's script, e2e/picker-demo.ts, once for all tests.
+// For Bun 1.0, which CI runs: the entry point is a real file, because Bun 1.0 does not resolve an entry point through a
+// plugin; and React is the development build, because Bun 1.0 compiles the package's JSX to jsxDEV, which only that build has.
 const script: string = execFileSync(
   "bun",
   [
     "--eval",
     `
-    const result = await Bun.build({
-      entrypoints: ["demo"],
-      define: { "process.env.NODE_ENV": '"production"' },
-      plugins: [{ name: "demo", setup(build) {
-        build.onResolve({ filter: /^demo$/ }, () => ({ path: "demo", namespace: "demo" }));
-        build.onLoad({ filter: /.*/, namespace: "demo" }, () => ({ contents: ${JSON.stringify(DEMO)}, loader: "jsx", resolveDir: process.cwd() }));
-      } }],
-    });
+    const result = await Bun.build({ entrypoints: ["./picker-demo.ts"], define: { "process.env.NODE_ENV": '"development"' } });
     if (!result.success) throw new AggregateError(result.logs);
     process.stdout.write(await result.outputs[0].text());`,
   ],
@@ -90,7 +27,7 @@ async function show(page: Page, name: string, theme: "light" | "dark" = "light")
   const links = styles.map((href) => `<link rel="stylesheet" href="${href}">`).join("");
   await page.setContent(`<!doctype html><html data-theme="${theme}"><head>${links}</head><body><div id="root"></div></body></html>`);
   await page.addScriptTag({ content: script });
-  await page.evaluate((name) => (window as unknown as { mount: (name: string) => void }).mount(name), name);
+  await page.evaluate((name) => window.mount(name), name);
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -105,11 +42,13 @@ test("the picker with the keyboard: Enter opens it, the focus is in the search f
   await page.keyboard.type("an");
   await expect(dialog.locator(".ui-list-row")).toHaveText(["OrangeAdd", "TangerineAdd", "BananaAdd", "MangoAdd"]);
   await page.keyboard.press("ArrowDown");
+  const orange = await dialog.getByRole("button", { name: "Orange", exact: true }).elementHandle();
   await expect(dialog.getByRole("button", { name: "Orange", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
-  // The picked row leaves, and the focus goes to the next row.
+  // The picked row's button leaves, and the focus goes to the next row: another button.
   await expect(dialog.getByRole("button", { name: "Tangerine" })).toBeFocused();
-  await expect(dialog.getByRole("status")).toHaveText("5 picked");
+  expect(await orange!.evaluate((row) => row.isConnected)).toBe(false);
+  await expect(dialog.getByRole("status")).toHaveText("5 on the form");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(add).toBeFocused();
@@ -120,9 +59,11 @@ test("the Playwright helpers pick from a picker and remove a token", async ({ pa
   await show(page, "picker");
   await pickFromPicker(page.getByRole("button", { name: "Add a fruit" }), ["Plum", /^Kiwi$/]);
   await expect(page.locator(".ui-token-label")).toHaveText(["Apple", "Pear", "Plum", "Lime", "Fig", "Kiwi"]);
+  const pearX = await page.getByRole("button", { name: "Remove Pear" }).elementHandle();
   await removeToken(page.locator(".ui-picker"), "Pear");
   await expect(page.locator(".ui-token-label")).toHaveText(["Apple", "Plum", "Lime", "Fig", "Kiwi"]);
-  // The focus goes to the next token's X.
+  // The removed token's X leaves, and the focus goes to the next token's X.
+  expect(await pearX!.evaluate((x) => x.isConnected)).toBe(false);
   await expect(page.getByRole("button", { name: "Remove Plum" })).toBeFocused();
 });
 
@@ -136,6 +77,23 @@ test("a list that closes on a click: a click outside closes it, and a pick close
   await expect(dialog).toBeHidden();
   await pickFromPicker(add, "Berries");
   await expect(page.getByTestId("baskets")).toHaveText("berries");
+  await expect(add).toBeFocused();
+});
+
+test("the chips with the keyboard: Enter opens the add menu, the arrow keys move, and Enter adds a row", async ({ page }) => {
+  await show(page, "chips");
+  const add = page.getByRole("button", { name: "Add a row" });
+  await add.focus();
+  await page.keyboard.press("Enter");
+  const menu = page.getByRole("menu");
+  await expect(menu.getByRole("menuitem", { name: "Row 1", exact: true })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await expect(menu.getByRole("menuitem", { name: "Row 3", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(menu).toBeHidden();
+  await expect(page.getByTestId("rows")).toHaveText("4,8,12,16,19,3");
+  await expect(page.locator(".ui-token-label")).toHaveText(["3", "4", "8", "12", "16", "19"]);
   await expect(add).toBeFocused();
 });
 

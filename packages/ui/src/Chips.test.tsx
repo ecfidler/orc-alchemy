@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
 import { Chips } from "./Chips.tsx";
@@ -47,4 +47,20 @@ test("an X removes its chip, and the focus goes to the next X, then to the add m
 test("the add menu does not show when every option is on a chip", () => {
   render(<Rows start={[1, 2, 3, 4, 5]} />);
   expect(screen.queryByRole("button", { name: "Add a row" })).toBeNull();
+});
+
+test("the keyboard: Down on the add menu opens it on its first item, Down moves, and Enter adds the row; the focus goes back to the menu button", async () => {
+  render(<Rows start={[2, 4]} />);
+  const button = menu();
+  button.focus();
+  fireEvent.keyDown(button, { key: "ArrowDown" });
+  const list = await screen.findByRole("menu");
+  await waitFor(() => expect(document.activeElement).toBe(within(list).getByRole("menuitem", { name: "Row 1" })));
+  fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+  await waitFor(() => expect(document.activeElement).toBe(within(list).getByRole("menuitem", { name: "Row 3" })));
+  fireEvent.keyDown(document.activeElement!, { key: "Enter" });
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  expect(screen.getByText("Value: 2,4,3")).toBeTruthy();
+  expect(chips()).toEqual(["2", "3", "4"]);
+  await waitFor(() => expect(document.activeElement).toBe(menu()));
 });

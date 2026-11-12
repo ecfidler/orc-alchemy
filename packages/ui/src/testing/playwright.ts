@@ -1,5 +1,6 @@
 // Test helpers for apps that use this package, for Playwright.
 import type { Locator } from "@playwright/test";
+import { nameList, type Names } from "./names.ts";
 
 /**
  * Picks the option named `name` in a Select, Combobox, Autocomplete or
@@ -28,8 +29,8 @@ export async function pickOption(control: Locator, name: string | RegExp): Promi
  * clears the field. Then it clicks Done, if the modal has it, and resolves
  * once the modal has closed.
  */
-export async function pickFromPicker(button: Locator, names: string | RegExp | readonly (string | RegExp)[]): Promise<void> {
-  const list = typeof names === "string" || names instanceof RegExp ? [names] : names;
+export async function pickFromPicker(button: Locator, names: Names): Promise<void> {
+  const list = nameList(names);
   await button.click();
   // The page, not the button: an open modal makes the rest of the page inert.
   const dialog = button.page().getByRole("dialog");

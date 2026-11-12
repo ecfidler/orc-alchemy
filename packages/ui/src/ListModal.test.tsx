@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { useRef, useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { ListModal, type ListItem } from "./ListModal.tsx";
+import { Token } from "./Token.tsx";
 import { pickFromPicker } from "./testing/index.ts";
 
 afterEach(cleanup);
@@ -81,7 +82,7 @@ test("the X, Escape and a click outside close the list, with no pick", async () 
   fireEvent.keyDown(dialog, { key: "Escape" });
   await closed();
   await open();
-  const backdrop = document.querySelector(".ui-dialog-backdrop")!;
+  const backdrop = document.querySelector(".ui-list-backdrop")!;
   fireEvent.pointerDown(backdrop);
   fireEvent.mouseDown(backdrop);
   fireEvent.click(backdrop);
@@ -123,7 +124,7 @@ const FRUIT: ListItem<string>[] = [
 ];
 
 /** A list that stays open; a pick leaves the list. `full` closes it once that many are picked, as a caller with one slot does. */
-function FruitBowl({ search = false, full }: { search?: boolean; full?: number }) {
+function FruitBowl({ search = false, full, pickedText }: { search?: boolean; full?: number; pickedText?: (n: number) => string }) {
   const [open, setOpen] = useState(false);
   const [picks, setPicks] = useState<string[]>([]);
   const button = useRef<HTMLButtonElement>(null);
@@ -145,6 +146,7 @@ function FruitBowl({ search = false, full }: { search?: boolean; full?: number }
         }}
         stayOpen
         picked={picks.length}
+        pickedText={pickedText}
         search={search}
         finalFocus={button}
       />
@@ -168,16 +170,25 @@ test("a list that stays open: groups as headings, a picked row leaves, and the f
   await closed();
 });
 
-test("after a pick the focus goes to the next row, or to the row before at the end of the list", async () => {
+test("after a pick the picked row's button goes, and the focus goes to the next row, or to the row before at the end of the list", async () => {
   render(<FruitBowl />);
   const { dialog } = await open("Add fruit");
   const row = (name: string) => within(dialog).getByRole("button", { name });
-  await waitFor(() => expect(document.activeElement).toBe(row("Apple")));
-  fireEvent.click(row("Apple"));
+  const apple = row("Apple");
+  await waitFor(() => expect(document.activeElement).toBe(apple));
+  fireEvent.click(apple);
+  expect(apple.isConnected).toBe(false);
   await waitFor(() => expect(document.activeElement).toBe(row("Pear")));
-  row("Lemon").focus();
-  fireEvent.click(row("Lemon"));
+  const lemon = row("Lemon");
+  lemon.focus();
+  fireEvent.click(lemon);
+  expect(lemon.isConnected).toBe(false);
   await waitFor(() => expect(document.activeElement).toBe(row("Lime")));
+  // The last row of a group: its heading goes too, and the focus goes to the first row of the next group.
+  const lime = row("Lime");
+  fireEvent.click(lime);
+  expect(within(dialog).queryByRole("list", { name: "Citrus" })).toBeNull();
+  await waitFor(() => expect(document.activeElement).toBe(row("Plum")));
 });
 
 test("search filters as the user types, by name or group, and shows a line when nothing matches", async () => {
@@ -226,4 +237,57 @@ test("pickFromPicker picks several rows, types each name in the search field, an
   render(<FruitBowl search />);
   await pickFromPicker(screen.getByRole("button", { name: "Add fruit" }), ["Lemon", "Apple"]);
   expect(screen.getByText("Bowl: lemon,apple")).toBeTruthy();
+});
+
+test("pickedText sets the footer text", async () => {
+  render(<FruitBowl pickedText={(n) => `${n} on the form`} />);
+  const { dialog } = await open("Add fruit");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Plum" }));
+  expect(within(dialog).getByRole("status").textContent).toBe("1 on the form");
+});
+
+test("pickFromPicker clears the search field for a RegExp name", async () => {
+  render(<FruitBowl search />);
+  await pickFromPicker(screen.getByRole("button", { name: "Add fruit" }), ["Lemon", /Apple/]);
+  expect(screen.getByText("Bowl: lemon,apple")).toBeTruthy();
+});
+
+/** One slot: an add button while it is empty, a token once it holds a pick. The add button goes with the pick, so finalFocus finds the token's X. */
+function Slot() {
+  const [open, setOpen] = useState(false);
+  const [pick, setPick] = useState<string | null>(null);
+  const item = FRUIT.find((f) => f.value === pick);
+  const slot = useRef<HTMLDivElement>(null);
+  return (
+    <div ref={slot}>
+      {item ? (
+        <Token label={item.label} onRemove={() => setPick(null)} />
+      ) : (
+        <button onClick={() => setOpen(true)}>Add to the slot</button>
+      )}
+      <ListModal
+        open={open}
+        onOpenChange={setOpen}
+        title="Add to the slot"
+        items={FRUIT}
+        onPick={(value) => {
+          setPick(value);
+          setOpen(false);
+        }}
+        stayOpen
+        picked={pick ? 1 : 0}
+        // A DOM query, not a role query: the page is still inert while the modal closes.
+        finalFocus={() => slot.current?.querySelector<HTMLElement>(".ui-token .ui-x-button") ?? null}
+      />
+    </div>
+  );
+}
+
+test("finalFocus can be a function, for an element that the pick made", async () => {
+  render(<Slot />);
+  const { dialog } = await open("Add to the slot");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Lime" }));
+  await closed();
+  expect(screen.queryByRole("button", { name: "Add to the slot" })).toBeNull();
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Remove Lime" })));
 });

@@ -24,8 +24,15 @@ type ListModalBase<T> = {
   items: readonly ListItem<T>[];
   /** Gets the value of the row that the user clicks. */
   onPick: (value: T) => void;
-  /** The element that gets the focus back when the modal closes. By default, the element that had the focus before it opened. */
-  finalFocus?: RefObject<HTMLElement | null>;
+  /**
+   * The element that gets the focus when the modal closes. By default, the
+   * element that had the focus before it opened. A function runs at the
+   * close, so it can find an element that the pick made, for example a
+   * new token's X when the add button has gone. The rest of the page is
+   * still inert then, so find the element with a ref or a DOM query, not
+   * by its role.
+   */
+  finalFocus?: RefObject<HTMLElement | null> | (() => HTMLElement | null);
   /** The line that shows when `items` is empty. */
   emptyText?: string;
 };
@@ -37,13 +44,16 @@ export type ListModalProps<T> = ListModalBase<T> &
         stayOpen?: false;
         search?: never;
         picked?: never;
+        pickedText?: never;
       }
     | {
         /** The modal stays open after a pick. Its footer shows `picked` and a Done button. */
         stayOpen: true;
-        /** The number of picks, shown in the footer as "3 picked". */
+        /** The number of picks, shown in the footer. */
         picked: number;
-        /** A search field above the list. The spec gives one to a list of more than about 20 rows. */
+        /** The footer text for `picked`, for example `(n) => \`${n} on the form\``. By default it is "3 picked". */
+        pickedText?: (picked: number) => string;
+        /** A search field above the list. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 rows. */
         search?: boolean;
       }
   );
@@ -85,12 +95,12 @@ export function ListModal<T>(props: ListModalProps<T>) {
   return (
     <Dialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="ui-dialog-backdrop" />
+        <Dialog.Backdrop className="ui-list-backdrop" />
         <Dialog.Popup
           ref={popup}
           className="ui-list-modal"
           initialFocus={() => popup.current?.querySelector<HTMLElement>(`.ui-list-search, ${ROW}`) ?? true}
-          finalFocus={finalFocus ?? true}
+          finalFocus={typeof finalFocus === "function" ? () => finalFocus() : (finalFocus ?? true)}
         >
           <div className="ui-list-head">
             <Dialog.Title className="ui-list-title">{title}</Dialog.Title>
@@ -126,6 +136,8 @@ function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left
     else rows[Math.min(next, rows.length - 1)]!.focus();
   };
   let row = 0;
+  // Stable keys, so a picked row's button unmounts and the focus moves on to the next row; a run's key counts the earlier runs of its group.
+  const seen = new Map<string, number>();
   return (
     <>
       {props.stayOpen && props.search && (
@@ -137,8 +149,10 @@ function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left
         {runs.length === 0 && <p className="ui-list-none">{items.length > 0 ? "Nothing matches. Try another word." : emptyText}</p>}
         {runs.map((run, r) => {
           const headingId = `${id}-g${r}`;
+          const group = run.group ?? "";
+          seen.set(group, (seen.get(group) ?? -1) + 1);
           return (
-            <div key={`${r}-${run.group ?? ""}`}>
+            <div key={`${group}#${seen.get(group)}`}>
               {run.group && (
                 <div id={headingId} className="ui-list-group">
                   {run.group}
@@ -148,7 +162,7 @@ function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left
                 {run.rows.map((item) => {
                   const exampleId = `${id}-e${row++}`;
                   return (
-                    <li key={exampleId}>
+                    <li key={`${item.group ?? ""}:${item.label}`}>
                       <button
                         type="button"
                         className="ui-list-row"
@@ -178,7 +192,7 @@ function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left
       {props.stayOpen && (
         <div className="ui-list-foot">
           <span role="status" className="ui-list-count">
-            {props.picked} picked
+            {(props.pickedText ?? ((n: number) => `${n} picked`))(props.picked)}
           </span>
           <Dialog.Close data-variant="solid" data-size="normal" className="ui-button ui-list-done">
             Done

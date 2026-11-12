@@ -1,6 +1,12 @@
 /* The list modal, the tokens, the add button's count, the number toggle and the chips (docs/design/homebrew-forms.md, "Controls"). Low specificity, so the app's layout utilities win. */
 
 @layer components {
+  /* The list modal's backdrop, as in the prototypes: a 40% ink wash. It is dark in light mode and light in dark mode, so the page steps back in both. */
+  .ui-list-backdrop {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--ink) 40%, transparent);
+  }
   /* The list modal: a title row, an optional search row, the list that scrolls, and an optional footer. */
   .ui-list-modal {
     position: fixed;
@@ -14,7 +20,8 @@
     color: var(--ink);
     background: var(--paper);
     border: 1.5px solid var(--ink);
-    box-shadow: 0 22px 50px -18px var(--note-shadow);
+    /* The prototype's black shadow at 50%. --note-ink is the one dark token in both modes (#222 and #000). */
+    box-shadow: 0 22px 50px -18px color-mix(in srgb, var(--note-ink) 50%, transparent);
     outline: 0;
   }
   /* On a phone the modal fills the screen. */
@@ -125,6 +132,7 @@
     background: var(--ink);
   }
   .ui-list-row:focus-visible {
+    /* Inside the row: the list scrolls and clips an outline outside the row. */
     outline-offset: -3px;
   }
   .ui-list-none {
@@ -227,6 +235,7 @@
     border-left: 0;
   }
   .ui-segment:focus-visible {
+    /* Inside the segment: the toggle's box has overflow: hidden, which clips an outline outside it. */
     outline-offset: -3px;
   }
   .ui-number-toggle:where([data-size="small"]) {

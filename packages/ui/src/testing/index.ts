@@ -1,5 +1,6 @@
 // Test helpers for apps that use this package, for Vitest with Testing Library.
 import { fireEvent, isInaccessible, screen, waitFor, within } from "@testing-library/react";
+import { nameList, type Names } from "./names.ts";
 
 /**
  * Waits for the confirm dialog of `useConfirm()`, clicks its button named
@@ -75,14 +76,13 @@ export async function optionNames(control: HTMLElement): Promise<string[]> {
   return names;
 }
 
-type Names = string | RegExp | readonly (string | RegExp)[];
-const nameList = (names: Names): readonly (string | RegExp)[] => (typeof names === "string" || names instanceof RegExp ? [names] : names);
 
 /**
  * Picks the rows named `names` in the ListModal that `button` opens: the
  * add button of a Picker, or a button that opens a list that closes on a
  * click (then give one name). In a list with a search field, it types
- * each string name first, so the list filters to it. Then it clicks Done,
+ * each string name first, so the list filters to it; for a RegExp it
+ * clears the field. Then it clicks Done,
  * if the modal is still open, and resolves once the modal has closed.
  */
 export async function pickFromPicker(button: HTMLElement, names: Names): Promise<void> {
@@ -93,7 +93,8 @@ export async function pickFromPicker(button: HTMLElement, names: Names): Promise
   if (!done && list.length !== 1) throw new Error("This list closes on a click, so give one name.");
   for (const name of list) {
     const search = within(dialog).queryByRole("searchbox");
-    if (search && typeof name === "string") fireEvent.change(search, { target: { value: name } });
+    // A RegExp clears the field, so the whole list shows.
+    if (search) fireEvent.change(search, { target: { value: typeof name === "string" ? name : "" } });
     const row = await waitFor(() => within(dialog.querySelector<HTMLElement>(".ui-list-body")!).getByRole("button", { name }));
     fireEvent.click(row);
   }

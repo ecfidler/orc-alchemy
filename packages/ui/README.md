@@ -122,12 +122,18 @@ bun run test       # vitest
     and less it fills the screen. By default a pick calls `onPick` and
     closes the modal. With `stayOpen`, it stays open: the caller takes the
     picked item out of `items`, and the focus goes to the next row. Then
-    the footer shows `picked` ("3 picked", a polite status) and Done, and
+    the footer shows `picked` as a polite status and Done. The text is
+    "3 picked", or what `pickedText(n)` gives, for example "3 on the
+    form". In this mode,
     `search` adds a search field that filters by name, example or group.
     Rows of one `group` show under a small heading. The focus goes to the
     search field, or else to the first row, when it opens. Up and Down,
     Home and End move between the rows. When it closes, the focus goes to
     `finalFocus`, or else back to where it was before it opened.
+    `finalFocus` is a ref, or a function that runs at the close, for an
+    element that the pick made (the page is still inert then, so the
+    function finds it with a ref or a DOM query). The backdrop is a 40%
+    ink wash, as in the prototypes.
   - `Token`: a pick, a small box with its `label` and an X named
     "Remove {label}" (or "Remove {name}") that calls `onRemove`. A long
     label wraps inside it. Its `children` are a small control after the
@@ -140,8 +146,8 @@ bun run test       # vitest
     a ref.
   - `Picker`: some `value`s from a long list of `options` (ListModal
     items). The picks show as Tokens in the order of `options`, then an
-    AddButton opens a ListModal with `stayOpen`, and `search` when the app
-    wants it. `onValueChange` gets the new list: a pick goes at the end,
+    AddButton opens a ListModal with `stayOpen`, and `search` and
+    `pickedText` when the app gives them. `onValueChange` gets the new list: a pick goes at the end,
     and a value that is no option stays.
   - `NumberToggle`: a segmented toggle on ToggleGroup for one of `values`
     (numbers, and null for "None"). `size="small"` fits in a token. Name it

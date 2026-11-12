@@ -9,11 +9,11 @@ afterEach(cleanup);
 
 const FRUIT: ListItem<string>[] = ["Apple", "Banana", "Cherry", "Damson", "Elderberry", "Fig", "Grape"].map((label) => ({ value: label.toLowerCase(), label }));
 
-function Fruit({ start = [], search }: { start?: string[]; search?: boolean }) {
+function Fruit({ start = [], search, pickedText }: { start?: string[]; search?: boolean; pickedText?: (n: number) => string }) {
   const [value, setValue] = useState(start);
   return (
     <>
-      <Picker label="Add a fruit" title="Add fruit" options={FRUIT} value={value} onValueChange={setValue} search={search} />
+      <Picker label="Add a fruit" title="Add fruit" options={FRUIT} value={value} onValueChange={setValue} search={search} pickedText={pickedText} />
       <span>Value: {value.join(",")}</span>
     </>
   );
@@ -85,8 +85,11 @@ test("with the keyboard: the focus goes to the search field, Down to the rows, a
 test("after an X removes a token, the focus goes to the next X, then to the last one, then to the add button", async () => {
   render(<Fruit start={["apple", "cherry", "fig"]} />);
   const x = (name: string) => screen.getByRole("button", { name: `Remove ${name}` });
-  x("Cherry").focus();
-  fireEvent.click(x("Cherry"));
+  const cherry = x("Cherry");
+  cherry.focus();
+  fireEvent.click(cherry);
+  // The X of the removed token goes; the focus is on another button.
+  expect(cherry.isConnected).toBe(false);
   await waitFor(() => expect(document.activeElement).toBe(x("Fig")));
   fireEvent.click(x("Fig"));
   await waitFor(() => expect(document.activeElement).toBe(x("Apple")));
@@ -99,4 +102,10 @@ test("an AddButton with no count is a wide button with no description", () => {
   render(<AddButton label="Add a row" />);
   const button = screen.getByRole("button", { name: "Add a row" });
   expect([button.textContent, button.hasAttribute("aria-describedby")]).toEqual(["+ Add a row", false]);
+});
+
+test("the picker passes pickedText to its modal", async () => {
+  render(<Fruit start={["fig"]} pickedText={(n) => `${n} on the form`} />);
+  fireEvent.click(addButton());
+  expect(within(await screen.findByRole("dialog")).getByRole("status").textContent).toBe("1 on the form");
 });

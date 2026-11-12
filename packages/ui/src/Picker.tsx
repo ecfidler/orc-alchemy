@@ -59,8 +59,10 @@ export type PickerProps<T> = {
   value: readonly T[];
   /** Gets the new value: a pick goes at the end, and a removed value leaves. */
   onValueChange: (value: T[]) => void;
-  /** A search field in the modal. The spec gives one to a list of more than about 20 options. */
+  /** A search field in the modal. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 options. */
   search?: boolean;
+  /** The modal's footer text for the number of picks, as on ListModal. By default it is "3 picked". */
+  pickedText?: (picked: number) => string;
   /** Layout classes. */
   className?: string;
 };
@@ -73,17 +75,18 @@ export type PickerProps<T> = {
  * For other uses, such as one slot that a caller fills, use ListModal and
  * Token directly.
  */
-export function Picker<T>({ label, title, options, value, onValueChange, search, className }: PickerProps<T>) {
+export function Picker<T>({ label, title, options, value, onValueChange, search, pickedText, className }: PickerProps<T>) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const has = (v: T) => value.some((picked) => Object.is(picked, v));
-  const picked = options.filter((option) => has(option.value));
+  // Each token keeps the place of its option in `options` as its key, so the X of a removed token unmounts.
+  const picked = options.map((option, at) => ({ option, at })).filter(({ option }) => has(option.value));
   const left = options.filter((option) => !has(option.value));
   return (
     <div className={className ? `ui-picker ${className}` : "ui-picker"}>
       <Tokens>
-        {picked.map((option, i) => (
-          <Token key={i} label={option.label} onRemove={() => onValueChange(value.filter((v) => !Object.is(v, option.value)))} />
+        {picked.map(({ option, at }) => (
+          <Token key={at} label={option.label} onRemove={() => onValueChange(value.filter((v) => !Object.is(v, option.value)))} />
         ))}
       </Tokens>
       <AddButton ref={button} label={label} remaining={left.length} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)} />
@@ -95,6 +98,7 @@ export function Picker<T>({ label, title, options, value, onValueChange, search,
         onPick={(v) => onValueChange([...value, v])}
         stayOpen
         picked={picked.length}
+        pickedText={pickedText}
         search={search}
         finalFocus={button}
       />

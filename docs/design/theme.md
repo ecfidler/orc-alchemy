@@ -218,10 +218,12 @@ homebrew forms. They have no game words: the app gives the lists.
   Each row is a button with a name, an optional short example and an "Add"
   mark. Esc or a click outside closes it. At 600px and less it fills the
   screen. By default a pick closes it. With `stayOpen`, it stays open, and
-  its footer shows the number of picks and Done. Only this mode has a
+  its footer shows the number of picks and Done. The app can set the
+  footer text, for example "3 on the form". Only this mode has a
   search field. Rows with a group show under a small heading; the
   modifier list gives no groups. The owner sets `open`, so a caller
-  can open and close it itself, for example for one slot of a table.
+  can open and close it itself, for example for one slot of a table. Its
+  backdrop is a 40% ink wash, as in the prototypes.
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control.
