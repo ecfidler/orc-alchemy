@@ -9,7 +9,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { choose, shown } from "./test-picks.ts";
+import { addModifier, choose, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -36,6 +36,26 @@ const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" 
 const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
+/** The names of the form's sections, in their order: the groups at the top level of the form. */
+const groups = () =>
+  screen
+    .getAllByRole("group")
+    .filter((g) => g.parentElement?.closest("fieldset, [role=group]") === null)
+    .map((g) => g.getAttribute("aria-label") ?? g.querySelector(".ui-fieldset-legend")?.textContent);
+const COMMON = ["Ability Score Increases", "Languages", "Damage Resistances", "Language Proficiency Choice", "Spells"];
+/** The modifiers of the add list, in form order. */
+const ADDED = [
+  "Flying speed",
+  "Swimming speed",
+  "Armor Class",
+  "Weapon Proficiencies",
+  "Armor Proficiency",
+  "Tool Proficiency",
+  "Damage Immunities",
+  "Skill Proficiencies",
+  "Skill Proficiency Choice",
+  "Weapon Proficiency Choice",
+];
 const stored = (pack: string, key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === pack)?.plugin;
   return plugin && itemAt(plugin, "~:orcpub.dnd.e5/races", `~:${key}`);
@@ -119,6 +139,9 @@ test("the modifiers are stored as the old events store them", async () => {
   type("Description", "Scaly.");
   await choose("Size", "small");
   await choose("Speed", "25");
+  for (const name of ["Swimming speed", "Armor Class", "Weapon Proficiencies", "Armor Proficiency", "Tool Proficiency", "Damage Immunities", "Skill Proficiencies", "Skill Proficiency Choice", "Weapon Proficiency Choice"]) {
+    await addModifier(name);
+  }
   await choose("Swimming speed", "30");
   check("Armor Class", "Without armor your AC becomes 13 + your DEX modifier.");
   check("Weapon Proficiencies", "All Simple Weapons");
@@ -192,6 +215,84 @@ test("Add a spell alone shows a blank row and stores nothing; its X takes the ro
     "~:size": "~:medium",
     "~:speed": 30,
     "~:languages": { "~#set": [] },
+    "~:traits": [],
+  });
+});
+
+test("a new race shows only the common modifiers, with the add button after Spells and before Features", async () => {
+  renderAt("/content/new/race");
+  await screen.findByRole("button", { name: "Add a spell" });
+  expect(groups()).toEqual([...COMMON, "Features / traits"]);
+  expect(screen.queryByRole("combobox", { name: "Flying speed" })).toBeNull();
+  const add = screen.getByRole("button", { name: "Add a modifier" });
+  const spells = screen.getByRole("group", { name: "Spells" });
+  const features = screen.getByRole("group", { name: "Features / traits" });
+  expect(spells.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(add.compareDocumentPosition(features) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  fireEvent.click(add);
+  const dialog = await screen.findByRole("dialog", { name: "Add a modifier" });
+  const rows = within(dialog).getAllByRole("button").filter((b) => b.classList.contains("ui-list-row"));
+  expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual(ADDED);
+  fireEvent.click(rows[0]);
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  // Flying speed goes directly after the base fields, and its select takes the focus.
+  expect(groups()).toEqual(["Flying speed", ...COMMON, "Features / traits"]);
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "Flying speed" })));
+  expect(shown("Flying speed")).toBe("0");
+});
+
+test("an imported race opens with each modifier that holds a value, and a save keeps the values of the others", async () => {
+  const item = {
+    "~:name": "Reefborn",
+    "~:key": "~:reefborn",
+    "~:option-pack": "Reef",
+    "~:size": "~:medium",
+    "~:speed": 30,
+    "~:languages": { "~#set": [] },
+    "~:props": {
+      "~:flying-speed": 0,
+      "~:swimming-speed": 30,
+      "~:weapon-prof": { "~:dart": false, "~:simple": false },
+      "~:armor-prof": { "~:shields": true },
+      "~:tortle-ac": false,
+    },
+    "~:profs": { "~:skill-options": { "~:options": { "~:stealth": false } }, "~:tool": { "~:thieves-tools": true } },
+    "~:traits": [],
+  };
+  await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/races", item);
+  const router = renderAt("/content/edit/race/Reef/reefborn");
+  await screen.findByRole("button", { name: "Add a spell" });
+  expect(groups()).toEqual(["Swimming speed", "Ability Score Increases", "Languages", "Armor Proficiency", "Tool Proficiency", "Damage Resistances", "Language Proficiency Choice", "Spells", "Features / traits"]);
+  expect(shown("Swimming speed")).toBe("30");
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored("Reef", "reefborn")).toEqual(item);
+});
+
+test("Remove on a race modifier clears its values and leaves no empty map; Undo puts them back", async () => {
+  const router = renderAt("/content/new/race");
+  await screen.findByRole("button", { name: "Add a spell" });
+  type("Name", "Shellback");
+  await addModifier("Tool Proficiency");
+  check("Tool Proficiency", "Thieves' Tools");
+  await addModifier("Armor Class");
+  check("Armor Class", "Your AC is 17, regardless of your DEX modifier or armor.");
+  fireEvent.click(screen.getByRole("button", { name: "Remove Tool Proficiency" }));
+  expect(screen.getByRole("status").textContent).toMatch(/Removed Tool Proficiency\./);
+  fireEvent.click(screen.getByRole("button", { name: "Remove Armor Class" }));
+  expect(screen.getByRole("status").textContent).toMatch(/Removed Armor Class\./);
+  fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Undo" }));
+  expect(within(screen.getByRole("group", { name: "Armor Class" })).getByRole("checkbox", { name: "Your AC is 17, regardless of your DEX modifier or armor." })).toBeChecked();
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored("Default Option Source", "shellback")).toEqual({
+    "~:name": "Shellback",
+    "~:key": "~:shellback",
+    "~:option-pack": "Default Option Source",
+    "~:size": "~:medium",
+    "~:speed": 30,
+    "~:languages": { "~#set": [] },
+    "~:props": { "~:tortle-ac": true },
     "~:traits": [],
   });
 });

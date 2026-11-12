@@ -153,11 +153,12 @@ export type Path = (string | number)[];
 
 const transitKey = (k: string) => (k.startsWith("~") ? k : tag(k));
 
-const getIn = (value: unknown, path: Path): unknown =>
+/** The value at the path, or undefined. */
+export const getIn = (value: unknown, path: Path): unknown =>
   path.reduce<unknown>((v, k) => (v as Record<string | number, unknown> | undefined)?.[typeof k === "number" ? k : transitKey(k)], value);
 
 /** The value with the path set, or without its last key when the value is undefined; a missing map or vector is created. */
-function setIn(value: unknown, [k, ...rest]: Path, v: unknown): unknown {
+export function setIn(value: unknown, [k, ...rest]: Path, v: unknown): unknown {
   if (typeof k === "number") {
     const next = [...((value as unknown[] | undefined) ?? [])];
     next[k] = rest.length > 0 ? setIn(next[k], rest, v) : v;
@@ -167,6 +168,27 @@ function setIn(value: unknown, [k, ...rest]: Path, v: unknown): unknown {
   const next = { ...((value as ItemRecord | undefined) ?? {}) };
   next[key] = rest.length > 0 ? setIn(next[key], rest, v) : v;
   if (next[key] === undefined) delete next[key];
+  return next;
+}
+
+/**
+ * The value without the key at the path of map keys. A map that the
+ * removal empties goes too, so the value is as it was before the key was
+ * set. A map that was empty before stays. A missing key changes nothing.
+ */
+export function removeIn(value: unknown, [k, ...rest]: Path): unknown {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+  const key = typeof k === "number" ? String(k) : transitKey(k);
+  const map = value as ItemRecord;
+  if (!(key in map)) return value;
+  const next = { ...map };
+  if (rest.length === 0) delete next[key];
+  else {
+    const child = removeIn(map[key], rest);
+    if (child === map[key]) return value;
+    if (child !== null && typeof child === "object" && !Array.isArray(child) && Object.keys(child).length === 0) delete next[key];
+    else next[key] = child;
+  }
   return next;
 }
 
@@ -272,9 +294,24 @@ export function CheckGrid({ names, children }: { names: string[]; children: Reac
 }
 
 /** A group of checkboxes, one for each item, as a section of the form. name names the group when the legend is not the right name. */
-export function Checks({ legend, name, items, checked, onToggle }: { legend: string; name?: string; items: Choice[]; checked: (key: string) => boolean; onToggle: (key: string) => void }) {
+export function Checks({
+  legend,
+  name,
+  items,
+  checked,
+  onToggle,
+  action,
+}: {
+  legend: string;
+  name?: string;
+  items: Choice[];
+  checked: (key: string) => boolean;
+  onToggle: (key: string) => void;
+  /** A control on the section rule, such as the Remove link of a modifier (modifiers.tsx). */
+  action?: ReactNode;
+}) {
   return (
-    <Fieldset legend={legend} name={name} look="section">
+    <Fieldset legend={legend} name={name} look="section" action={action}>
       <CheckGrid names={items.map((item) => item.name)}>
         {items.map(({ key, name }) => (
           <Checkbox
@@ -311,9 +348,9 @@ export function RecordTextArea({ edit, field, label }: { edit: Edit; field: stri
 }
 
 /** A proficiency choice in :profs, as {:skill-options {:choose 2 :options {:arcana true}}}. Choose shows 1 until it is set. */
-export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; legend: string; field: string; items: Choice[] }) {
+export function ProficiencyChoice({ edit, legend, field, items, action }: { edit: Edit; legend: string; field: string; items: Choice[]; action?: ReactNode }) {
   return (
-    <Fieldset legend={legend} look="section">
+    <Fieldset legend={legend} look="section" action={action}>
       <SelectField label="Choose" name={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
       <Checks legend="Options" name={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
     </Fieldset>
@@ -382,11 +419,26 @@ export function WithChoices({ children }: { children: (choices: BuilderChoices) 
  * Checkboxes of one number at path, as the old toggle-value events: a click
  * stores the box's number, and a second click on it removes the key.
  */
-export function ValueChecks({ edit, legend, path, values, name }: { edit: Edit; legend: string; path: Path; values: number[]; name: (n: number) => string }) {
+export function ValueChecks({
+  edit,
+  legend,
+  path,
+  values,
+  name,
+  action,
+}: {
+  edit: Edit;
+  legend: string;
+  path: Path;
+  values: number[];
+  name: (n: number) => string;
+  action?: ReactNode;
+}) {
   const value = edit.get(...path);
   return (
     <Checks
       legend={legend}
+      action={action}
       items={values.map((n) => ({ key: String(n), name: name(n) }))}
       checked={(key) => value === Number(key)}
       onToggle={(key) => edit.set(path, value === Number(key) ? undefined : Number(key))}

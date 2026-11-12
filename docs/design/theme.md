@@ -210,6 +210,11 @@ The homebrew forms (ORC-195) add these parts. The
 * **Button `wide`** and **Fieldset `look="section"`:** a full-width button
   with the text on the left, and a section title in Inter caps, with a rule
   after it.
+* **Fieldset `action`:** a small control at the end of the section rule,
+  for example the "Remove" link of an added modifier (ORC-197). It is not a
+  part of the section's name.
+* **Flash (`ui-flash`):** a part that the user just added flashes once in
+  the note yellow (`--note`), 10px past its edges, with rounded corners.
 
 The picker controls (ORC-196) replace the groups of checkboxes on the
 homebrew forms. They have no game words: the app gives the lists.
@@ -599,6 +604,8 @@ The phone layout of the character sheet is ORC-173. These rules apply:
 * Under `prefers-reduced-motion: reduce`, the flag tabs do not move on hover.
 * Under `prefers-reduced-motion: reduce`, the potion does not swirl (see
   Logo).
+* Under `prefers-reduced-motion: reduce`, an added section does not flash
+  (`ui-flash`).
 
 # Build order
 

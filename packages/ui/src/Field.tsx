@@ -26,12 +26,16 @@ export function FieldErrors({ label, errors, id }: { label: string; errors: stri
  * the group. The errors belong to the group, not to the controls in it.
  * With `look="section"`, the legend is a section title in Inter caps on a
  * rule; a fieldset in a section shows its legend as a small label instead.
+ * `action` is a small control at the end of the legend row, after the
+ * rule, for example a link button that removes the section. It is not a
+ * part of the group's name, so give it its own name.
  */
 export function Fieldset({
   legend,
   name,
   errors = [],
   look = "plain",
+  action,
   className,
   children,
 }: {
@@ -39,10 +43,13 @@ export function Fieldset({
   name?: string;
   errors?: string[];
   look?: "plain" | "section";
+  action?: ReactNode;
   className?: string;
   children?: ReactNode;
 }) {
   const errorsId = useId();
+  // With a name, the legend is only shown, so it does not name the group.
+  const legendNode = name === undefined ? <BaseFieldset.Legend className="ui-fieldset-legend">{legend}</BaseFieldset.Legend> : <div className="ui-fieldset-legend">{legend}</div>;
   return (
     <BaseFieldset.Root
       data-look={look}
@@ -50,8 +57,14 @@ export function Fieldset({
       aria-label={name}
       aria-describedby={errors.length > 0 ? errorsId : undefined}
     >
-      {/* With a name, the legend is only shown, so it does not name the group. */}
-      {name === undefined ? <BaseFieldset.Legend className="ui-fieldset-legend">{legend}</BaseFieldset.Legend> : <div className="ui-fieldset-legend">{legend}</div>}
+      {action === undefined ? (
+        legendNode
+      ) : (
+        <div className="ui-fieldset-head">
+          {legendNode}
+          <span className="ui-fieldset-action">{action}</span>
+        </div>
+      )}
       {children}
       <FieldErrors id={errorsId} label={name ?? legend} errors={errors} />
     </BaseFieldset.Root>

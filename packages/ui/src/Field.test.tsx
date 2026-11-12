@@ -1,6 +1,6 @@
 import { Input } from "@base-ui/react/input";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
 import { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
 
 afterEach(cleanup);
@@ -91,6 +91,27 @@ test("a fieldset is plain by default; a section marks itself and keeps its legen
   const section = screen.getByRole("group", { name: "Fruits" });
   expect(section.dataset.look).toBe("section");
   expect(screen.getByRole("group", { name: "Fruits: options" }).parentElement).toBe(section);
+});
+
+test("an action goes on the legend row, after the legend, and is not a part of the group's name", () => {
+  const onClick = vi.fn();
+  render(
+    <Fieldset legend="Fruits" look="section" action={<button onClick={onClick}>Drop</button>}>
+      <input aria-label="Count" />
+    </Fieldset>,
+  );
+  const section = screen.getByRole("group", { name: "Fruits" });
+  const head = section.querySelector(".ui-fieldset-head")!;
+  expect(head.firstElementChild?.textContent).toBe("Fruits");
+  expect(head.querySelector(".ui-fieldset-action")?.textContent).toBe("Drop");
+  expect(head.nextElementSibling).toBe(screen.getByRole("textbox", { name: "Count" }));
+  fireEvent.click(within(section).getByRole("button", { name: "Drop" }));
+  expect(onClick).toHaveBeenCalledOnce();
+});
+
+test("without an action, a fieldset has no legend row", () => {
+  render(<Fieldset legend="Fruits" look="section" />);
+  expect(screen.getByRole("group", { name: "Fruits" }).querySelector(".ui-fieldset-head")).toBeNull();
 });
 
 test("a field label is a label above its control, in the label style, and names it", () => {

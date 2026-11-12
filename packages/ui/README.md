@@ -82,13 +82,21 @@ bun run test       # vitest
     legend names the group, or `name` does when the legend is not the
     right name. The legend is a `<div>`, not a `<legend>`, so a test finds
     a group by its role and name. `errors` show at the end of the group
-    and describe it.
+    and describe it. `action` is a small control at the end of the legend
+    row, after the rule, for example a `variant="link"` Button that removes
+    the section. It is not a part of the group's name, so give it its own
+    name.
   - `Field`: Base UI Field, for one control. It shows its `errors` after
     the control, as a list named "Problems: {label}", and is invalid while
     it has some. A Base UI control in it gets the list as its description.
   - `FieldErrors`: the error list alone, for errors that belong to no
     field or group.
   - Styles for the three: `src/field.css`. A legend is semibold.
+  - The `ui-flash` class: put it on a part that the user just added. The
+    part flashes once in the note yellow, 10px past its edges, with
+    rounded corners, and its layout does not move. With
+    `prefers-reduced-motion: reduce` it does not flash. Styles:
+    `src/field.css`.
   - `useConfirm()`: the themed stand-in for `window.confirm`. It returns
     `[confirm, dialog]`. Render `dialog` in the component, and call
     `await confirm(question, action)`: it is true when the user picks the
