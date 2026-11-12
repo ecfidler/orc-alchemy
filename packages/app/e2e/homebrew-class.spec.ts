@@ -6,7 +6,7 @@ test("a class made in the class form can be picked for a new character", async (
   await page.goto("/content/new/class");
   await page.getByRole("textbox", { name: "Name" }).fill("Rune Knight");
   await pickOption(page.getByRole("combobox", { name: "Hit die" }), "10");
-  await page.getByRole("checkbox", { name: "Strength saving throw" }).check();
+  await page.getByRole("group", { name: "Saving throws" }).getByRole("checkbox", { name: "Strength" }).check();
   await page.getByRole("button", { name: "Add feature / trait" }).click();
   await page.getByRole("textbox", { name: "Feature 1 name" }).fill("Rune Carver");
   await page.getByRole("button", { name: "Save" }).click();

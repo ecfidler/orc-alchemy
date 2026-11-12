@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { optionNames, pickOption } from "@orc-alchemy/ui/testing";
+import { optionNames, pickOption, removeToken } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -7,7 +7,7 @@ import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { choose, shown } from "./test-picks.ts";
+import { choose, pick, shown, tokens, unpick } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -32,7 +32,6 @@ function renderAt(path: string) {
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
-const click = (label: string) => fireEvent.click(screen.getByRole("checkbox", { name: label }));
 const clickIn = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
@@ -43,6 +42,9 @@ async function saved(router: ReturnType<typeof renderAt>) {
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
 }
+const group = (name: string) => screen.getByRole("group", { name });
+/** Adds the level named `level`, such as "Level 6", with the "+ Add a level" menu of the chips in the section `section`. */
+const addChip = (section: string, add: string, level: string) => pickOption(within(group(section)).getByRole("button", { name: add }), level);
 
 /** A selection in the default pack, so a class level can give it. */
 const addRuneCarvings = () =>
@@ -77,18 +79,20 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   await choose("Subclass chosen at level", "3");
   type("Subclass title, such as Path or Circle", "Rune Path");
   type("Subclass description", "The runes you follow.");
-  click("Strength saving throw");
-  click("Constitution saving throw");
-  click("Constitution saving throw");
-  click("Ability increase at level 4");
-  click("Ability increase at level 6");
+  clickIn("Saving throws", "Strength");
+  clickIn("Saving throws", "Constitution");
+  clickIn("Saving throws", "Constitution");
+  await removeToken(group("Ability increase levels"), "Level 4");
+  await addChip("Ability increase levels", "Add a level", "Level 6");
   await choose("Spell slots", "Yes");
   await choose("Spell list", "Wizard");
   await choose("Spellcasting ability", "Intelligence");
   await choose("First spell slots at level", "2");
   await choose("Skill Proficiency Choice: choose", "2");
-  for (const skill of ["Athletics", "History", "Arcana", "Arcana"]) clickIn("Skill Proficiency Choice: options", skill);
-  clickIn("Skill Expertise Choice: options", "Stealth");
+  // A removed token stores false, as the old second click on a checkbox.
+  await pick("Skill Proficiency Choice", "Add a skill option", ["Athletics", "History", "Arcana"]);
+  await unpick("Skill Proficiency Choice", "Arcana");
+  await pick("Skill Expertise Choice", "Add a skill option", "Stealth");
   for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Add a level modifier" }));
   await choose("Modifier 1 type", "Armor Proficiency");
   fireEvent.click(screen.getByRole("button", { name: "Delete modifier 1" }));
@@ -150,11 +154,12 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   expect(screen.getByRole("form", { name: "Edit class" })).toBeTruthy();
   expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Rune Knight");
   expect(shown("Hit die")).toBe("10");
-  expect(screen.getByRole("checkbox", { name: "Strength saving throw" })).toBeChecked();
-  expect(screen.getByRole("checkbox", { name: "Ability increase at level 4" })).not.toBeChecked();
+  expect(within(group("Saving throws")).getByRole("checkbox", { name: "Strength" })).toBeChecked();
+  expect(tokens("Ability increase levels")).toEqual(["6", "8", "12", "16", "19"]);
   expect(shown("Spell list")).toBe("Wizard");
   expect(shown("First spell slots at level")).toBe("2");
-  expect(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByRole("checkbox", { name: "History" })).toBeChecked();
+  expect(tokens("Skill Proficiency Choice")).toEqual(["Athletics", "History"]);
+  expect(tokens("Skill Expertise Choice")).toEqual(["Stealth"]);
   expect(shown("Modifier 2 spell")).toBe("Fire Bolt");
   expect(shown("Selection 1 type")).toBe("Rune Carvings");
   expect(shown("Feature 1 type")).toBe("Bonus Action");
@@ -169,15 +174,16 @@ test("a class with a custom spell list stores its cantrips and spells by level",
   await choose("First spell slots at level", "1");
   await choose("Cantrips", "Yes");
   await choose("Cantrips known at level 1", "2");
-  await pickOption(screen.getByRole("button", { name: "Add an extra cantrip at level" }), "4");
-  await pickOption(screen.getByRole("button", { name: "Add an extra cantrip at level" }), "12");
-  await choose("Extra cantrip 1 level", "10");
-  fireEvent.click(screen.getByRole("button", { name: "Remove extra cantrip 2" }));
-  clickIn("Cantrips", "Fire Bolt");
-  clickIn("Level 1 spells", "Magic Missile");
-  clickIn("Level 1 spells", "Shield");
-  clickIn("Level 1 spells", "Shield");
-  clickIn("Level 9 spells", "Wish");
+  await addChip("Extra cantrips at level", "Add a level", "Level 12");
+  await addChip("Extra cantrips at level", "Add a level", "Level 4");
+  await removeToken(group("Extra cantrips at level"), "Level 4");
+  await addChip("Extra cantrips at level", "Add a level", "Level 10");
+  expect(tokens("Extra cantrips at level")).toEqual(["10", "12"]);
+  await removeToken(group("Extra cantrips at level"), "Level 12");
+  await pick("Cantrips", "Add a cantrip", "Fire Bolt");
+  await pick("Level 1 spells", "Add a 1st-level spell", ["Magic Missile", "Shield"]);
+  await unpick("Level 1 spells", "Shield");
+  await pick("Level 9 spells", "Add a 9th-level spell", "Wish");
   await saved(router);
 
   expect(stored("hedge-mage")!["~:spellcasting"]).toEqual({
@@ -235,4 +241,107 @@ test("the level modifier types are in order of use, and the class form has no mo
     "Swimming Speed",
     "Tool Proficiency",
   ]);
+});
+
+test("a new class starts with the ability increase levels 4, 8, 12, 16 and 19, as the old default class", async () => {
+  const router = renderAt("/content/new/class");
+  await screen.findByRole("textbox", { name: "Name" });
+  type("Name", "Tide Caller");
+  expect(tokens("Ability increase levels")).toEqual(["4", "8", "12", "16", "19"]);
+  // The menu has the levels 4 to 20 that are not on a chip.
+  expect(await optionNames(within(group("Ability increase levels")).getByRole("button", { name: "Add a level" }))).toEqual(
+    [5, 6, 7, 9, 10, 11, 13, 14, 15, 17, 18, 20].map((n) => `Level ${n}`),
+  );
+  await removeToken(group("Ability increase levels"), "Level 19");
+  await addChip("Ability increase levels", "Add a level", "Level 20");
+  await addChip("Ability increase levels", "Add a level", "Level 5");
+  expect(tokens("Ability increase levels")).toEqual(["4", "5", "8", "12", "16", "20"]);
+  await saved(router);
+  expect(stored("tide-caller")!["~:ability-increase-levels"]).toEqual([4, 5, 8, 12, 16, 20]);
+});
+
+test("the class form: saving throws are one checkbox row, and the subclass fields have their labels above them", async () => {
+  renderAt("/content/new/class");
+  await screen.findByRole("textbox", { name: "Name" });
+  const saves = within(group("Saving throws")).getAllByRole("checkbox");
+  expect(saves.map((box) => box.closest("label")?.textContent)).toEqual(["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]);
+  for (const label of ["Subclass title, such as Path or Circle", "Subclass description"]) {
+    const field = screen.getByRole("textbox", { name: label }).closest("label")!;
+    // The label is its own line: the first child of the grid label, before the input.
+    expect(field.className).toContain("ui-field-label");
+    expect(field.firstElementChild!.textContent).toBe(label);
+  }
+  expect(screen.getByText(/Martial Maneuvers, Fighting Style or Eldritch Invocations/)).toBeTruthy();
+});
+
+test("an imported class opens with its spell list, levels and false values, and a save keeps it as it was", async () => {
+  const item = {
+    "~:name": "Tide Sage",
+    "~:key": "~:tide-sage",
+    "~:option-pack": "Reef",
+    "~:hit-die": 8,
+    "~:subclass-level": 2,
+    "~:ability-increase-levels": [3, 6, 9, 12, 15, 18],
+    "~:profs": {
+      "~:save": { "~:orcpub.dnd.e5.character/wis": true, "~:orcpub.dnd.e5.character/int": false },
+      "~:skill-options": { "~:choose": 2, "~:options": { "~:nature": true, "~:arcana": false, "~:survival": true } },
+      "~:skill-expertise-options": { "~:options": { "~:stealth": false } },
+    },
+    "~:spellcasting": {
+      "~:level-factor": 1,
+      "~:known-mode": "~:schedule",
+      "~:ability": "~:orcpub.dnd.e5.character/wis",
+      "~:spells-known": { "~i1": 2, "~i2": 1 },
+      "~:cantrips?": true,
+      "~:cantrips-known": { "~i1": 3, "~i4": 1, "~i10": 2 },
+      // A spell of a pack that is not here, an empty level and a level with spells.
+      "~:spell-list": { "~i0": { "~#set": ["~:shocking-grasp", "~:tide-call"] }, "~i1": { "~#set": [] }, "~i2": { "~#set": ["~:misty-step", "~:hold-person"] } },
+    },
+    "~:level-modifiers": [],
+    "~:traits": [],
+  };
+  await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/classes", item);
+  const router = renderAt("/content/edit/class/Reef/tide-sage");
+  await screen.findByRole("textbox", { name: "Name" });
+  expect(tokens("Ability increase levels")).toEqual(["3", "6", "9", "12", "15", "18"]);
+  expect(tokens("Extra cantrips at level")).toEqual(["4", "10"]);
+  // The key of a spell that no list has is its token. The tokens are in the order of the list.
+  expect(tokens("Cantrips")).toEqual(["Shocking Grasp", "tide-call"]);
+  expect(tokens("Level 1 spells")).toEqual([]);
+  expect(tokens("Level 2 spells")).toEqual(["Hold Person", "Misty Step"]);
+  expect(tokens("Skill Proficiency Choice")).toEqual(["Nature", "Survival"]);
+  expect(tokens("Skill Expertise Choice")).toEqual([]);
+  expect(within(group("Saving throws")).getByRole("checkbox", { name: "Wisdom" })).toBeChecked();
+  expect(within(group("Saving throws")).getByRole("checkbox", { name: "Intelligence" })).not.toBeChecked();
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  const pack = useHomebrew.getState().packs.find((p) => p.id === "Reef")!;
+  expect(itemAt(pack.plugin, "~:orcpub.dnd.e5/classes", "~:tide-sage")).toEqual(item);
+});
+
+test("a spell list picker has search, and a removed spell of another pack leaves the set while the others stay", async () => {
+  const item = {
+    "~:name": "Tide Sage",
+    "~:key": "~:tide-sage",
+    "~:option-pack": DEFAULT,
+    "~:hit-die": 8,
+    "~:ability-increase-levels": [4, 8, 12, 16, 19],
+    "~:spellcasting": { "~:level-factor": 1, "~:known-mode": "~:schedule", "~:ability": "~:orcpub.dnd.e5.character/wis", "~:spells-known": { "~i1": 2 }, "~:spell-list": { "~i1": { "~#set": ["~:tide-touch", "~:bless"] } } },
+    "~:level-modifiers": [],
+    "~:traits": [],
+  };
+  await useHomebrew.getState().saveItem(DEFAULT, "~:orcpub.dnd.e5/classes", item);
+  const router = renderAt(`/content/edit/class/${encodeURIComponent(DEFAULT)}/tide-sage`);
+  await screen.findByRole("textbox", { name: "Name" });
+  fireEvent.click(within(group("Level 1 spells")).getByRole("button", { name: "Add a 1st-level spell" }));
+  const dialog = await screen.findByRole("dialog", { name: "Add a 1st-level spell" });
+  fireEvent.change(within(dialog).getByRole("searchbox", { name: "Search" }), { target: { value: "cure" } });
+  expect([...dialog.querySelectorAll(".ui-list-row")].map((row) => row.getAttribute("aria-label"))).toEqual(["Cure Wounds"]);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cure Wounds" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await unpick("Level 1 spells", "tide-touch");
+  expect(tokens("Level 1 spells")).toEqual(["Bless", "Cure Wounds"]);
+  await saved(router);
+  expect(stored("tide-sage")!["~:spellcasting"]).toEqual({ ...item["~:spellcasting"], "~:spell-list": { "~i1": { "~#set": ["~:bless", "~:cure-wounds"] } } });
 });
