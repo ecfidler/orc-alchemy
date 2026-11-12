@@ -1,3 +1,4 @@
+import { pickFromPicker } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test } from "@playwright/test";
 
 // ORC-76: a background made in the background form is one of a new character's background choices.
@@ -5,7 +6,7 @@ test("a background made in the background form is a background choice of a new c
   await page.goto("/content/new/background");
   await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
   await page.getByRole("textbox", { name: "Name" }).fill("Spy");
-  await page.getByRole("group", { name: "Skill Proficiencies" }).getByRole("checkbox", { name: "Deception" }).check();
+  await pickFromPicker(page.getByRole("group", { name: "Skill proficiencies" }).getByRole("button", { name: "Add a skill" }), "Deception");
   await page.getByRole("button", { name: "Add feature / trait" }).click();
   await page.getByRole("textbox", { name: "Feature 1 name" }).fill("Criminal Contact");
   await page.getByRole("textbox", { name: "Feature 1 description" }).fill("reliable criminal underworld contact");

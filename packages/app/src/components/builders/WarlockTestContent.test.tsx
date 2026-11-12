@@ -57,8 +57,7 @@ test("the background, feat and subrace forms recreate the warlock test content p
     "Description",
     "Criminal variant. Ported from test/cljc/orcpub/dnd/e5/warlock_test.clj (spy-bg-cfg) so the warlock golden character can be built from an .orcbrew pack.",
   );
-  check("Skill Proficiencies", "Deception");
-  check("Skill Proficiencies", "Stealth");
+  await pick("Skill proficiencies", "Add a skill", ["Deception", "Stealth"]);
   addTrait("Criminal Contact", "reliable criminal underworld contact");
   await save(router);
 
