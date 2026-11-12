@@ -216,37 +216,37 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
                 </CheckGrid>
               </div>
               <FieldRow>
-              <SelectField label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
-              <SelectField label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
-              {versatile !== undefined && (
-                <>
-                  <SelectField
-                    label="Versatile damage die number"
-                    value={edit.get(W + "versatile", W + "damage-die-count")}
-                    options={numbers(range(1, 10))}
-                    onSelect={(n) => edit.set([W + "versatile", W + "damage-die-count"], n)}
-                  />
-                  <SelectField label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
-                </>
-              )}
-              <SelectField label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
-              <SelectField
-                label="Melee / ranged"
-                value={edit.get(W + "melee?") === true ? "melee" : ranged ? "ranged" : undefined}
-                options={["melee", "ranged"].map((v) => [v, title(v)])}
-                onSelect={(v) => onChange({ ...record, [tag(W + "melee?")]: v === "melee", [tag(W + "ranged?")]: v === "ranged" })}
-              />
-              {ranged &&
-                ["min", "max"].map((end) => (
-                  <FieldLabel key={end} label={`Range ${end}`}>
-                    {/* Only a whole number of 0 or more is a value. */}
-                    <NumberField
-                      value={numberOrNull(edit.get(W + "range", W + end))}
-                      onValueChange={(n) => edit.set([W + "range", W + end], n !== null && n >= 0 ? n : undefined)}
+                <SelectField label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
+                <SelectField label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
+                {versatile !== undefined && (
+                  <>
+                    <SelectField
+                      label="Versatile damage die number"
+                      value={edit.get(W + "versatile", W + "damage-die-count")}
+                      options={numbers(range(1, 10))}
+                      onSelect={(n) => edit.set([W + "versatile", W + "damage-die-count"], n)}
                     />
-                  </FieldLabel>
-                ))}
-              <SelectField label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
+                    <SelectField label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
+                  </>
+                )}
+                <SelectField label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
+                <SelectField
+                  label="Melee / ranged"
+                  value={edit.get(W + "melee?") === true ? "melee" : ranged ? "ranged" : undefined}
+                  options={["melee", "ranged"].map((v) => [v, title(v)])}
+                  onSelect={(v) => onChange({ ...record, [tag(W + "melee?")]: v === "melee", [tag(W + "ranged?")]: v === "ranged" })}
+                />
+                {ranged &&
+                  ["min", "max"].map((end) => (
+                    <FieldLabel key={end} label={`Range ${end}`}>
+                      {/* Only a whole number of 0 or more is a value. */}
+                      <NumberField
+                        value={numberOrNull(edit.get(W + "range", W + end))}
+                        onValueChange={(n) => edit.set([W + "range", W + end], n !== null && n >= 0 ? n : undefined)}
+                      />
+                    </FieldLabel>
+                  ))}
+                <SelectField label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
               </FieldRow>
             </Fieldset>
           )}
@@ -280,38 +280,38 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
           </Fieldset>
           <Fieldset legend="Ability scores" look="section">
             <FieldRow>
-            {ABILITIES.map((ability) => {
-              const arg = `orcpub.dnd.e5.character/${ability}`;
-              return modRow(
-                ability.toUpperCase(),
-                [
-                  { key: "ability-override", text: "Becomes at least" },
-                  { key: "ability", text: "Increases by" },
-                ],
-                (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
-                [arg],
-              );
-            })}
+              {ABILITIES.map((ability) => {
+                const arg = `orcpub.dnd.e5.character/${ability}`;
+                return modRow(
+                  ability.toUpperCase(),
+                  [
+                    { key: "ability-override", text: "Becomes at least" },
+                    { key: "ability", text: "Increases by" },
+                  ],
+                  (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
+                  [arg],
+                );
+              })}
             </FieldRow>
           </Fieldset>
           <Fieldset legend="Saving throw bonus" name="Saving throws" look="section">
             <FieldRow>
-            {ABILITIES.map((ability) => {
-              const arg = `orcpub.dnd.e5.character/${ability}`;
-              return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
-            })}
+              {ABILITIES.map((ability) => {
+                const arg = `orcpub.dnd.e5.character/${ability}`;
+                return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
+              })}
             </FieldRow>
           </Fieldset>
           <Fieldset legend="Speed bonus" name="Speeds" look="section">
             <FieldRow>
-            {SPEEDS.map(({ label, increases, atLeast, walking }) => {
-              const keys = [
-                { key: atLeast, text: "Becomes at least" },
-                { key: increases, text: "Increases by" },
-                ...(walking ? [{ key: walking, text: "Equals walking speed", noValue: true }] : []),
-              ];
-              return modRow(label, keys, (m) => keys.some((k) => k.key === modKey(m)), []);
-            })}
+              {SPEEDS.map(({ label, increases, atLeast, walking }) => {
+                const keys = [
+                  { key: atLeast, text: "Becomes at least" },
+                  { key: increases, text: "Increases by" },
+                  ...(walking ? [{ key: walking, text: "Equals walking speed", noValue: true }] : []),
+                ];
+                return modRow(label, keys, (m) => keys.some((k) => k.key === modKey(m)), []);
+              })}
             </FieldRow>
           </Fieldset>
           {toggles("Damage resistances", "damage-resistance", DAMAGE_TYPES)}

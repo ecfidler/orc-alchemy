@@ -33,10 +33,10 @@ import {
   numbers,
   ProficiencyChoice,
   range,
+  RecordTextArea,
   SelectField,
   SKILLS,
   SPELL_LEVELS,
-  RecordTextArea,
   TextField,
   title,
   TOOLS,
@@ -188,52 +188,52 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
   return (
     <Fieldset legend="Spellcasting" look="section" errors={fieldErrors(problems, "spellcasting", "Spellcasting")}>
       <FieldRow>
-      <SelectField
-        label="Spell slots"
-        value={spellcasting !== undefined}
-        options={YES_NO}
-        onSelect={(yes) =>
-          edit.set(
-            ["spellcasting"],
-            yes ? { [tag("level-factor")]: 3, [tag("known-mode")]: tag("schedule"), [tag("ability")]: tag(abilityKey("cha")), [tag("spells-known")]: transitSchedule(3) } : undefined,
-          )
-        }
-      />
-      {spellcasting && (
-        <>
-          <SelectField
-            label="Spell list"
-            value={spellcasting[tag("spell-list-kw")]}
-            options={choices.spellLists.map((key) => [tag(key), choices.classes.find((c) => c.key === key)?.name ?? title(key)])}
-            onSelect={(v) => edit.set(["spellcasting", "spell-list-kw"], v)}
-            placeholder="Custom"
-          />
-          <SelectField label="Spellcasting ability" value={spellcasting[tag("ability")]} options={ABILITY_OPTIONS} onSelect={(v) => edit.set(["spellcasting", "ability"], v)} placeholder="<select ability>" />
-          <SelectField
-            label="First spell slots at level"
-            value={factor}
-            options={numbers([1, 2, 3])}
-            onSelect={(v) => edit.set(["spellcasting"], { ...spellcasting, [tag("level-factor")]: v, [tag("spells-known")]: transitSchedule(v as number) })}
-          />
-        </>
-      )}
+        <SelectField
+          label="Spell slots"
+          value={spellcasting !== undefined}
+          options={YES_NO}
+          onSelect={(yes) =>
+            edit.set(
+              ["spellcasting"],
+              yes ? { [tag("level-factor")]: 3, [tag("known-mode")]: tag("schedule"), [tag("ability")]: tag(abilityKey("cha")), [tag("spells-known")]: transitSchedule(3) } : undefined,
+            )
+          }
+        />
+        {spellcasting && (
+          <>
+            <SelectField
+              label="Spell list"
+              value={spellcasting[tag("spell-list-kw")]}
+              options={choices.spellLists.map((key) => [tag(key), choices.classes.find((c) => c.key === key)?.name ?? title(key)])}
+              onSelect={(v) => edit.set(["spellcasting", "spell-list-kw"], v)}
+              placeholder="Custom"
+            />
+            <SelectField label="Spellcasting ability" value={spellcasting[tag("ability")]} options={ABILITY_OPTIONS} onSelect={(v) => edit.set(["spellcasting", "ability"], v)} placeholder="<select ability>" />
+            <SelectField
+              label="First spell slots at level"
+              value={factor}
+              options={numbers([1, 2, 3])}
+              onSelect={(v) => edit.set(["spellcasting"], { ...spellcasting, [tag("level-factor")]: v, [tag("spells-known")]: transitSchedule(v as number) })}
+            />
+          </>
+        )}
       </FieldRow>
       {spellcasting && spellcasting[tag("spell-list-kw")] === undefined && (
         <div className="mt-[10px]">
           <FieldRow>
-          <SelectField label="Cantrips" value={cantrips} options={YES_NO} onSelect={(v) => edit.set(["spellcasting", "cantrips?"], v)} />
-          {cantrips && (
-            <>
-              <SelectField label="Cantrips known at level 1" value={cantripsKnown[intKey(1)]} options={numbers(range(0, 6))} onSelect={(v) => edit.set(["spellcasting", "cantrips-known", intKey(1)], v)} />
-              {extraCantrips.map((level, i) => (
-                <FieldRow key={level} look="tight">
-                  <SelectField label={`Extra cantrip ${i + 1} level`} value={level} options={numbers(range(2, 21))} onSelect={(v) => setCantripLevel(level, v)} />
-                  <XButton aria-label={`Remove extra cantrip ${i + 1}`} onClick={() => setCantripLevel(level, undefined)} />
-                </FieldRow>
-              ))}
-              <Menu label="Add an extra cantrip at level" items={numbers(range(2, 21))} onPick={(v) => setCantripLevel(undefined, v)} />
-            </>
-          )}
+            <SelectField label="Cantrips" value={cantrips} options={YES_NO} onSelect={(v) => edit.set(["spellcasting", "cantrips?"], v)} />
+            {cantrips && (
+              <>
+                <SelectField label="Cantrips known at level 1" value={cantripsKnown[intKey(1)]} options={numbers(range(0, 6))} onSelect={(v) => edit.set(["spellcasting", "cantrips-known", intKey(1)], v)} />
+                {extraCantrips.map((level, i) => (
+                  <FieldRow key={level} look="tight">
+                    <SelectField label={`Extra cantrip ${i + 1} level`} value={level} options={numbers(range(2, 21))} onSelect={(v) => setCantripLevel(level, v)} />
+                    <XButton aria-label={`Remove extra cantrip ${i + 1}`} onClick={() => setCantripLevel(level, undefined)} />
+                  </FieldRow>
+                ))}
+                <Menu label="Add an extra cantrip at level" items={numbers(range(2, 21))} onPick={(v) => setCantripLevel(undefined, v)} />
+              </>
+            )}
           </FieldRow>
           {range(cantrips ? 0 : 1, maxLevel + 1).map((level) => (
             <Checks

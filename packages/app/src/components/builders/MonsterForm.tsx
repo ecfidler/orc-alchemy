@@ -111,33 +111,33 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       {text("armor-notes", "Armor notes")}
       <Fieldset legend="Hit points" look="section" errors={fieldErrors(problems, "hit-points", "Hit points")}>
         <FieldRow>
-        {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
-        {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
-        <FieldLabel label="Hit point modifier">
-          <NumberField value={numberOrNull(hitPoints[tag("modifier")]) ?? 0} onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)} className="w-20" />
-        </FieldLabel>
+          {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
+          {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
+          <FieldLabel label="Hit point modifier">
+            <NumberField value={numberOrNull(hitPoints[tag("modifier")]) ?? 0} onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)} className="w-20" />
+          </FieldLabel>
         </FieldRow>
       </Fieldset>
       {text("speed", "Speed")}
       <Fieldset legend="Abilities" look="section">
         <FieldRow>
-        {ABILITIES.map(([key, name]) => (
-          <Fragment key={key}>{select(name, record[tag(key)], numbers(range(1, 31)), (v) => set(key, Number(v)))}</Fragment>
-        ))}
+          {ABILITIES.map(([key, name]) => (
+            <Fragment key={key}>{select(name, record[tag(key)], numbers(range(1, 31)), (v) => set(key, Number(v)))}</Fragment>
+          ))}
         </FieldRow>
       </Fieldset>
       <Fieldset legend="Saving throws" look="section">
         <FieldRow>
-        {ABILITIES.map(([key, name]) => (
-          <Fragment key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</Fragment>
-        ))}
+          {ABILITIES.map(([key, name]) => (
+            <Fragment key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</Fragment>
+          ))}
         </FieldRow>
       </Fieldset>
       <Fieldset legend="Skills" look="section">
         <FieldRow>
-        {SKILLS.map(({ key, name }) => (
-          <Fragment key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</Fragment>
-        ))}
+          {SKILLS.map(({ key, name }) => (
+            <Fragment key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</Fragment>
+          ))}
         </FieldRow>
       </Fieldset>
       {checkboxes("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`)}

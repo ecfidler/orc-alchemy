@@ -47,20 +47,20 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
             // The old subclass spells table: two spells for each spell level from 1 to 5.
             <Fieldset legend={spells[1]} look="section">
               <div className="grid gap-[10px]">
-              {[1, 2, 3, 4, 5].map((level) => (
-                <FieldRow key={level}>
-                  {[0, 1].map((i) => (
-                    <SelectField
-                      key={i}
-                      label={`Level ${level} spell ${i + 1}`}
-                      value={edit.get(spells[0], intKey(level), intKey(i))}
-                      options={choices.spells.filter((s) => s.level === level).map(({ key, name }) => [tag(key), name])}
-                      onSelect={(v) => edit.set([spells[0], intKey(level), intKey(i)], v)}
-                      placeholder="<select spell>"
-                    />
-                  ))}
-                </FieldRow>
-              ))}
+                {[1, 2, 3, 4, 5].map((level) => (
+                  <FieldRow key={level}>
+                    {[0, 1].map((i) => (
+                      <SelectField
+                        key={i}
+                        label={`Level ${level} spell ${i + 1}`}
+                        value={edit.get(spells[0], intKey(level), intKey(i))}
+                        options={choices.spells.filter((s) => s.level === level).map(({ key, name }) => [tag(key), name])}
+                        onSelect={(v) => edit.set([spells[0], intKey(level), intKey(i)], v)}
+                        placeholder="<select spell>"
+                      />
+                    ))}
+                  </FieldRow>
+                ))}
               </div>
             </Fieldset>
           )}
