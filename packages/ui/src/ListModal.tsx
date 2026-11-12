@@ -136,8 +136,12 @@ function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left
     else rows[Math.min(next, rows.length - 1)]!.focus();
   };
   let row = 0;
-  // Stable keys, so a picked row's button unmounts and the focus moves on to the next row; a run's key counts the earlier runs of its group.
+  // Stable keys, so a picked row's button unmounts and the focus moves on to the next row. A run's key counts the earlier runs of its group, and a row's key counts the earlier rows with its group and label.
   const seen = new Map<string, number>();
+  const nth = (key: string) => {
+    seen.set(key, (seen.get(key) ?? -1) + 1);
+    return `${key}#${seen.get(key)}`;
+  };
   return (
     <>
       {props.stayOpen && props.search && (
@@ -150,9 +154,8 @@ function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left
         {runs.map((run, r) => {
           const headingId = `${id}-g${r}`;
           const group = run.group ?? "";
-          seen.set(group, (seen.get(group) ?? -1) + 1);
           return (
-            <div key={`${group}#${seen.get(group)}`}>
+            <div key={nth(`run:${group}`)}>
               {run.group && (
                 <div id={headingId} className="ui-list-group">
                   {run.group}
@@ -162,7 +165,7 @@ function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left
                 {run.rows.map((item) => {
                   const exampleId = `${id}-e${row++}`;
                   return (
-                    <li key={`${item.group ?? ""}:${item.label}`}>
+                    <li key={nth(`row:${item.group ?? ""}:${item.label}`)}>
                       <button
                         type="button"
                         className="ui-list-row"

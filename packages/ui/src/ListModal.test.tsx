@@ -115,6 +115,19 @@ test("an empty list shows its empty line", async () => {
   expect(within(await screen.findByRole("dialog")).getByText("Every basket is on the table.")).toBeTruthy();
 });
 
+test("two rows with the same name are two rows", async () => {
+  const onPick = vi.fn();
+  const twins: ListItem<string>[] = [
+    { value: "pack", label: "Apples" },
+    { value: "own", label: "Apples" },
+  ];
+  render(<ListModal open onOpenChange={() => {}} title="Add a basket" items={twins} onPick={onPick} />);
+  const rows = within(await screen.findByRole("dialog")).getAllByRole("button", { name: "Apples" });
+  expect(rows).toHaveLength(2);
+  fireEvent.click(rows[1]!);
+  expect(onPick).toHaveBeenCalledWith("own");
+});
+
 const FRUIT: ListItem<string>[] = [
   { value: "apple", label: "Apple", group: "Orchard" },
   { value: "pear", label: "Pear", group: "Orchard" },

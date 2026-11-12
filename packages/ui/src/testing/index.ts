@@ -76,14 +76,13 @@ export async function optionNames(control: HTMLElement): Promise<string[]> {
   return names;
 }
 
-
 /**
  * Picks the rows named `names` in the ListModal that `button` opens: the
  * add button of a Picker, or a button that opens a list that closes on a
  * click (then give one name). In a list with a search field, it types
  * each string name first, so the list filters to it; for a RegExp it
- * clears the field. Then it clicks Done,
- * if the modal is still open, and resolves once the modal has closed.
+ * clears the field. Then it clicks Done, if the modal is still open, and
+ * resolves once the modal has closed.
  */
 export async function pickFromPicker(button: HTMLElement, names: Names): Promise<void> {
   fireEvent.click(button);

@@ -20,8 +20,8 @@
     color: var(--ink);
     background: var(--paper);
     border: 1.5px solid var(--ink);
-    /* The prototype's black shadow at 50%. --note-ink is the one dark token in both modes (#222 and #000). */
-    box-shadow: 0 22px 50px -18px color-mix(in srgb, var(--note-ink) 50%, transparent);
+    /* The shadow token of the shell and the tabs. The prototype's raw black has no role token. */
+    box-shadow: 0 22px 50px -18px var(--note-shadow);
     outline: 0;
   }
   /* On a phone the modal fills the screen. */

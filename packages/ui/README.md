@@ -124,8 +124,8 @@ bun run test       # vitest
     picked item out of `items`, and the focus goes to the next row. Then
     the footer shows `picked` as a polite status and Done. The text is
     "3 picked", or what `pickedText(n)` gives, for example "3 on the
-    form". In this mode,
-    `search` adds a search field that filters by name, example or group.
+    form". In this mode, `search` adds a search field that filters by
+    name, example or group.
     Rows of one `group` show under a small heading. The focus goes to the
     search field, or else to the first row, when it opens. Up and Down,
     Home and End move between the rows. When it closes, the focus goes to
@@ -147,8 +147,8 @@ bun run test       # vitest
   - `Picker`: some `value`s from a long list of `options` (ListModal
     items). The picks show as Tokens in the order of `options`, then an
     AddButton opens a ListModal with `stayOpen`, and `search` and
-    `pickedText` when the app gives them. `onValueChange` gets the new list: a pick goes at the end,
-    and a value that is no option stays.
+    `pickedText` when the app gives them. `onValueChange` gets the new
+    list: a pick goes at the end, and a value that is no option stays.
   - `NumberToggle`: a segmented toggle on ToggleGroup for one of `values`
     (numbers, and null for "None"). `size="small"` fits in a token. Name it
     with `aria-label` or `aria-labelledby`.
