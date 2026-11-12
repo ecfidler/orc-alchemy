@@ -326,7 +326,8 @@ variant A, "Stir"). The rules are:
   drawn.
 * Under `prefers-reduced-motion: reduce`, the logo does not move and shows
   the art as drawn.
-* `logo-swirl/gen.py` in the project files makes the frames from the art.
+* `packages/app/scripts/potion-swirl.py` makes the frames from
+  `potion-16.png`.
 
 The ingot and the lead-to-gold animation are not in M8.
 
@@ -554,6 +555,8 @@ The phone layout of the character sheet is ORC-173. These rules apply:
   rule along its bottom. The tabs stand in a row on the rule, and the
   current tab is taller.
 * Under `prefers-reduced-motion: reduce`, the flag tabs do not move on hover.
+* Under `prefers-reduced-motion: reduce`, the potion does not swirl (see
+  Logo).
 
 # Build order
 
@@ -589,8 +592,7 @@ tests, because font rendering differs between machines.
 * A page-by-page layout redesign of the builder, homebrew forms, import and
   export pages. It needs its own prototypes. M8 gives these pages the
   tokens, fonts, controls and notes only.
-* Motion and the lead-to-gold animation. They need art and a reduced-motion
-  plan first.
+* The lead-to-gold animation. It needs art and a reduced-motion plan first.
 * An icon set. The app uses text labels, and no M8 decision needs icons.
 * A print stylesheet. The sheet layout comes first, and printing is a
   separate feature.

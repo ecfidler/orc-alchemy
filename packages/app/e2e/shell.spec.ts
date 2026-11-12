@@ -50,6 +50,7 @@ test("the potion swirls, and stays still under reduced motion", async ({ page })
   const mark = page.getByRole("main").getByTestId("potion");
   await expect(mark).toHaveCSS("width", "64px");
   await expect(mark).toHaveCSS("animation-name", "potion-swirl");
+  await expect(mark).toHaveCSS("animation-timing-function", "steps(12)");
   await expect(mark).toHaveCSS("background-image", /potion-swirl\.png/);
   // Twelve 64px frames in a row.
   await expect(mark).toHaveCSS("background-size", "768px 100%");
