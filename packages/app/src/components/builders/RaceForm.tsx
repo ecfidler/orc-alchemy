@@ -56,9 +56,6 @@ export function PropChecks({ edit, legend, prop, items, action }: { edit: Edit; 
   return <Checks legend={legend} action={action} items={items} checked={(key) => edit.get("props", prop, key) === true} onToggle={(key) => edit.toggle(["props", prop, key])} />;
 }
 
-/** The props of a group: its legend and the control on its rule, such as the Remove link of a modifier (modifiers.tsx), when it is one. */
-type SectionProps = { edit: Edit; legend?: string; action?: ReactNode };
-
 /** A modifier of the map at :props prop, as checkboxes of the items. */
 export const propModifier = (edit: Edit, prop: string, name: string, example: string, items: Choice[]): Modifier => ({
   id: prop,
@@ -76,17 +73,18 @@ export const weaponChoices = (lists: BuilderChoices): Choice[] => [
   ...lists.weapons,
 ];
 export const ARMOR_CHOICES = choices(["light", "medium", "heavy", "shields"], (a) => `You gain proficiency with ${a}${a === "shields" ? "" : " armor"}`);
-export const ArmorChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Armor Proficiency" prop="armor-prof" items={ARMOR_CHOICES} />;
-export const ToolChecks = ({ edit, legend = "Tool Proficiency", action }: SectionProps) => (
-  <Checks legend={legend} action={action} items={TOOLS} checked={(key) => edit.get("profs", "tool", key) === true} onToggle={(key) => edit.toggle(["profs", "tool", key])} />
-);
+/** The tool proficiencies in :profs :tool as a modifier. */
+export const toolModifier = (edit: Edit): Modifier => ({
+  id: "tool",
+  name: "Tool Proficiency",
+  example: "Smith's tools, thieves' tools …",
+  paths: [["profs", "tool"]],
+  render: ({ name, action }) => (
+    <Checks legend={name} action={action} items={TOOLS} checked={(key) => edit.get("profs", "tool", key) === true} onToggle={(key) => edit.toggle(["profs", "tool", key])} />
+  ),
+});
 export const RESISTANCE_CHOICES = choices(["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`));
-export const ResistanceChecks = ({ edit, legend = "Damage Resistances", action }: SectionProps) => (
-  <PropChecks edit={edit} legend={legend} action={action} prop="damage-resistance" items={RESISTANCE_CHOICES} />
-);
 export const IMMUNITY_CHOICES = choices(DAMAGE_TYPES, (d) => `Immunity to ${d} damage`);
-export const ImmunityChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Damage Immunities" prop="damage-immunity" items={IMMUNITY_CHOICES} />;
-export const SkillChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Skill Proficiencies" prop="skill-prof" items={SKILLS} />;
 export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKw(name), name: `You have advantage on saving throws against being ${name}` }));
 
 const UNLOCK_LEVELS = range(1, 21).map((n): [number, string] => [n, `Level ${n}`]);
@@ -190,7 +188,7 @@ const speedModifier = (edit: Edit, prop: string, name: string, example: string):
 });
 
 /** A proficiency choice in :profs field as a modifier. */
-const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: Choice[]): Modifier => ({
+export const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: Choice[]): Modifier => ({
   id: field,
   name,
   example,
@@ -226,14 +224,8 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
     },
     propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists)),
     propModifier(edit, "armor-prof", "Armor Proficiency", "Light, medium or heavy armor, shields", ARMOR_CHOICES),
-    {
-      id: "tool",
-      name: "Tool Proficiency",
-      example: "Smith's tools, thieves' tools …",
-      paths: [["profs", "tool"]],
-      render: ({ name, action }) => <ToolChecks edit={edit} legend={name} action={action} />,
-    },
-    { id: "damage-resistance", name: "Damage Resistances", common: true, render: ({ name }) => <ResistanceChecks edit={edit} legend={name} /> },
+    toolModifier(edit),
+    { id: "damage-resistance", name: "Damage Resistances", common: true, render: ({ name }) => <PropChecks edit={edit} legend={name} prop="damage-resistance" items={RESISTANCE_CHOICES} /> },
     propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", IMMUNITY_CHOICES),
     propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS),
     choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS),

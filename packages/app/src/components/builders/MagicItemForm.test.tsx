@@ -10,7 +10,7 @@ import { listMagicItems, type MagicItemRecord } from "../../storage/packs.ts";
 import { Builder } from "../Builder.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 import { MyContent } from "../MyContent.tsx";
-import { choose, shown } from "./test-picks.ts";
+import { addList, addModifier, choose, groups, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 
@@ -44,6 +44,16 @@ const group = (name: string) => within(screen.getByRole("group", { name }));
 const stored = (key: string) => useHomebrew.getState().magicItems.find((r) => r.id === key);
 const MI = "~:orcpub.dnd.e5.magic-items/";
 const W = "~:orcpub.dnd.e5.weapons/";
+/** The modifiers of the add list, in form order. */
+const ADDED = ["Ability scores", "Saving throw bonus", "Speed bonus", "Damage resistances", "Damage vulnerabilities", "Damage immunities", "Condition immunities"];
+/** A stored modifier entry, as the old save stores it: keyword args, then int args. */
+const mod = (key: string, keywords: string[] = [], ints: number[] = []) => ({
+  "~:orcpub.modifiers/key": `~:${key}`,
+  ...(keywords.length + ints.length > 0 && {
+    "~:orcpub.modifiers/args": [...keywords.map((k) => ({ "~:orcpub.modifiers/keyword-arg": `~:${k}` })), ...ints.map((n) => ({ "~:orcpub.modifiers/int-arg": n }))],
+  }),
+});
+const wis = (n: number) => mod("ability", ["orcpub.dnd.e5.character/wis"], [n]);
 
 /** Fills the new magic item form with Hawk Eye Circlet: attuned, WIS +2, fire resistance. */
 async function authorCirclet() {
@@ -53,6 +63,7 @@ async function authorCirclet() {
   await choose("Rarity", "Uncommon");
   type("Description", "Your Wisdom increases by 2.");
   fireEvent.click(screen.getByRole("checkbox", { name: "Requires attunement" }));
+  for (const name of ["Ability scores", "Speed bonus", "Damage resistances"]) await addModifier(name);
   await choose("WIS change", "Increases by");
   type("WIS value", "2");
   await choose("Walking speed change", "Increases by");
@@ -326,3 +337,81 @@ test("a Custom base weapon stores the old details, and another base weapon remov
     expect(stored("bone-club")!.item).toEqual({ [`${MI}name`]: "Bone Club", [`${MI}type`]: "~:weapon", [`${MI}rarity`]: "~:common", [`${MI}subtypes`]: subtypes });
   }
 }, 30_000);
+
+test("a new item shows only its base groups, and the add list has the modifiers in form order", async () => {
+  renderAt("/content/new/magicItem");
+  await form("New magic item");
+  expect(groups()).toEqual(["Attunement", "Item properties"]);
+  expect(await addList()).toEqual(ADDED);
+  await addModifier("Condition immunities");
+  await addModifier("Saving throw bonus");
+  expect(groups()).toEqual(["Attunement", "Item properties", "Saving throws", "Condition immunities"]);
+  expect(await addList()).toEqual(ADDED.filter((name) => name !== "Condition immunities" && name !== "Saving throw bonus"));
+});
+
+test("an item opens with each modifier that has an entry, also one with a 0 bonus", async () => {
+  const item = { [`${MI}name`]: "Plain Ring", [`${MI}type`]: "~:ring", [`${MI}rarity`]: "~:common", [`${MI}modifiers`]: [mod("saving-throw-bonus", ["orcpub.dnd.e5.character/dex"], [0]), mod("condition-immunity", ["charmed"])] };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/plain-ring");
+  await form("Edit magic item");
+  expect(groups()).toEqual(["Attunement", "Item properties", "Saving throws", "Condition immunities"]);
+  expect(shown("DEX save change")).toBe("Increases by");
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("plain-ring")!.item).toEqual(item);
+});
+
+test("Remove takes out only the modifier's entries, and Undo puts each back in its place", async () => {
+  const item = {
+    [`${MI}name`]: "Tide Ring",
+    [`${MI}type`]: "~:ring",
+    [`${MI}rarity`]: "~:rare",
+    [`${MI}modifiers`]: [wis(2), mod("damage-resistance", ["fire"]), mod("speed", [], [10]), mod("damage-resistance", ["cold"])],
+  };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/tide-ring");
+  await form("Edit magic item");
+  expect(groups()).toEqual(["Attunement", "Item properties", "Ability scores", "Speeds", "Damage resistances"]);
+  fireEvent.click(screen.getByRole("button", { name: "Remove Damage resistances" }));
+  expect(screen.queryByRole("group", { name: "Damage resistances" })).toBeNull();
+  // Another modifier gets an entry, at the end, before Undo.
+  await choose("STR change", "Becomes at least");
+  type("STR value", "19");
+  fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Undo" }));
+  expect(group("Damage resistances").getByRole("checkbox", { name: "Cold" })).toBeChecked();
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect((stored("tide-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([
+    wis(2),
+    mod("damage-resistance", ["fire"]),
+    mod("speed", [], [10]),
+    mod("damage-resistance", ["cold"]),
+    mod("ability-override", ["orcpub.dnd.e5.character/str"], [19]),
+  ]);
+});
+
+test("Remove of the last entries leaves no modifiers key, and a new entry after Remove comes after the restored ones", async () => {
+  const item = { [`${MI}name`]: "Ember Ring", [`${MI}type`]: "~:ring", [`${MI}rarity`]: "~:rare", [`${MI}modifiers`]: [mod("damage-immunity", ["fire"])] };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/ember-ring");
+  await form("Edit magic item");
+  fireEvent.click(screen.getByRole("button", { name: "Remove Damage immunities" }));
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("ember-ring")!.item).toEqual({ [`${MI}name`]: "Ember Ring", [`${MI}type`]: "~:ring", [`${MI}rarity`]: "~:rare" });
+  cleanup();
+
+  await useHomebrew.getState().loadMagicItems([{ ...item, [`${MI}modifiers`]: [mod("damage-immunity", ["fire"]), mod("saving-throw-bonus", ["orcpub.dnd.e5.character/con"], [1])] }]);
+  renderAt("/content/edit/magicItem/ember-ring");
+  await form("Edit magic item");
+  fireEvent.click(screen.getByRole("button", { name: "Remove Damage immunities" }));
+  await choose("WIS save change", "Increases by");
+  fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Undo" }));
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect((stored("ember-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([
+    mod("damage-immunity", ["fire"]),
+    mod("saving-throw-bonus", ["orcpub.dnd.e5.character/con"], [1]),
+    mod("saving-throw-bonus", ["orcpub.dnd.e5.character/wis"], [0]),
+  ]);
+});

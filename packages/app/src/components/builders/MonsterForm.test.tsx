@@ -6,7 +6,7 @@ import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { choose, shown } from "./test-picks.ts";
+import { addList, addModifier, choose, groups, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -32,6 +32,9 @@ function renderAt(path: string) {
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
+/** The groups of the add list, in form order. */
+const ADDED = ["Armor notes", "Damage vulnerabilities", "Senses", "Special traits", "Legendary actions"];
+const COMMON = ["Hit points", "Abilities", "Saving throws", "Skills", "Damage resistances", "Damage immunities", "Condition immunities", "Languages"];
 const stored = () => {
   const pack = useHomebrew.getState().packs.find((p) => p.id === DEFAULT);
   return pack && (itemAt(pack.plugin, "~:orcpub.dnd.e5/monsters", "~:mud-imp") as Record<string, unknown> | undefined);
@@ -64,6 +67,7 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   await choose("Type", "Fiend");
   await choose("Alignment", "chaotic evil");
   await choose("Armor class", "13");
+  for (const name of ADDED) await addModifier(name);
   type("Armor notes", "natural armor");
   await choose("Hit die count", "3");
   await choose("Hit die", "6");
@@ -144,7 +148,45 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   expect(screen.getByRole("checkbox", { name: "Resistance to fire damage" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "Deep Speech" })).not.toBeChecked();
   expect(shown("Feature 2 type")).toBe("Legendary Action");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Senses" }).value).toBe("darkvision 60 ft.");
   expect(save().disabled).toBe(false);
+});
+
+test("a new monster shows only the common groups, and the add list has the others in form order", async () => {
+  renderAt("/content/new/monster");
+  await screen.findByRole("checkbox", { name: "Abyssal" });
+  expect(groups()).toEqual([...COMMON, "Actions / features"]);
+  expect(screen.queryByRole("textbox", { name: "Armor notes" })).toBeNull();
+  expect(await addList()).toEqual(ADDED);
+  // Legendary actions is before Actions / features now, because Actions / features is last.
+  await addModifier("Legendary actions");
+  await addModifier("Armor notes");
+  expect(groups()).toEqual(["Armor notes", ...COMMON, "Legendary actions", "Actions / features"]);
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Armor notes" })));
+});
+
+test("an imported monster opens with each group that holds a value; Remove clears it and Undo puts it back", async () => {
+  const item = {
+    "~:name": "Mud Imp",
+    "~:key": "~:mud-imp",
+    "~:option-pack": DEFAULT,
+    "~:hit-points": { "~:die-count": 3, "~:die": 6 },
+    "~:armor-notes": "natural armor",
+    "~:senses": "",
+    "~:props": { "~:damage-vulnerability": { "~:fire": false } },
+    "~:legendary-actions": { "~:description": "" },
+  };
+  await useHomebrew.getState().saveItem(DEFAULT, "~:orcpub.dnd.e5/monsters", item);
+  const router = renderAt(`/content/edit/monster/${encodeURIComponent(DEFAULT)}/mud-imp`);
+  await screen.findByRole("checkbox", { name: "Abyssal" });
+  expect(groups()).toEqual(["Armor notes", ...COMMON, "Actions / features"]);
+  fireEvent.click(screen.getByRole("button", { name: "Remove Armor notes" }));
+  expect(screen.queryByRole("textbox", { name: "Armor notes" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Armor notes" }).value).toBe("natural armor");
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored()).toEqual(item);
 });
 
 test("the languages include a language of an enabled pack", async () => {

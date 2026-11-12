@@ -4,11 +4,16 @@
 // :class the parent class keyword, :spellcasting {:level-factor 3} for a
 // fighter or rogue subclass that casts wizard spells, and :paladin-spells,
 // :cleric-spells or :warlock-spells as {spell-level {index spell}}. The skill
-// choices, modifiers, selections and traits are as in the class form.
+// choices, modifiers, selections and traits are as in the class form. The
+// form shows the level modifiers always, and the user adds the skill choices
+// and the selections from a list (modifiers.tsx).
 import { Field, Fieldset } from "@orc-alchemy/ui";
+import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { intKey, tag, untag } from "../../engine/content.ts";
 import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
-import { editor, fieldErrors, FieldRow, FormColumn, ProficiencyChoice, SelectField, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type FormProps } from "./fields.tsx";
+import { editor, fieldErrors, FieldRow, FormColumn, SelectField, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type Edit, type FormProps, type Problem } from "./fields.tsx";
+import { Modifiers, type Modifier } from "./modifiers.tsx";
+import { choiceModifier } from "./RaceForm.tsx";
 
 /** The parent classes whose subclasses add spells, with the field and its title. */
 const CLASS_SPELLS: Record<string, [field: string, title: string]> = {
@@ -16,6 +21,22 @@ const CLASS_SPELLS: Record<string, [field: string, title: string]> = {
   cleric: ["cleric-spells", "Domain Spells"],
   warlock: ["warlock-spells", "Expanded Spells"],
 };
+
+/** The subclass's modifiers in form order (docs/design/homebrew-forms.md, "Subclass"). */
+function subclassModifiers(edit: Edit, problems: Problem[], choices: BuilderChoices): Modifier[] {
+  return [
+    choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS),
+    choiceModifier(edit, "skill-expertise-options", "Skill Expertise Choice", "Choose n skills for expertise", SKILLS),
+    { id: "level-modifiers", name: "Modifiers", common: true, render: ({ name }) => <LevelModifiers edit={edit} problems={problems} choices={choices} legend={name} /> },
+    {
+      id: "level-selections",
+      name: "Selections",
+      example: "Options to pick at a level, such as Martial Maneuvers",
+      paths: [["level-selections"]],
+      render: ({ name, action }) => <LevelSelections edit={edit} problems={problems} choices={choices} legend={name} action={action} />,
+    },
+  ];
+}
 
 function SubclassForm({ record, onChange, problems }: FormProps) {
   const edit = editor(record, onChange);
@@ -64,10 +85,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
               </div>
             </Fieldset>
           )}
-          <ProficiencyChoice edit={edit} legend="Skill Proficiency Choice" field="skill-options" items={SKILLS} />
-          <ProficiencyChoice edit={edit} legend="Skill Expertise Choice" field="skill-expertise-options" items={SKILLS} />
-          <LevelModifiers edit={edit} problems={problems} choices={choices} />
-          <LevelSelections edit={edit} problems={problems} choices={choices} />
+          <Modifiers record={record} onChange={onChange} modifiers={subclassModifiers(edit, problems, choices)} />
           <Traits edit={edit} problems={problems} levels />
         </FormColumn>
       )}

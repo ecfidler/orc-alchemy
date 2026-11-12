@@ -89,7 +89,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   await choose("Skill Proficiency Choice: choose", "2");
   for (const skill of ["Athletics", "History", "Arcana", "Arcana"]) clickIn("Skill Proficiency Choice: options", skill);
   clickIn("Skill Expertise Choice: options", "Stealth");
-  for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Add modifier" }));
+  for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Add a level modifier" }));
   await choose("Modifier 1 type", "Armor Proficiency");
   fireEvent.click(screen.getByRole("button", { name: "Delete modifier 1" }));
   await choose("Modifier 1 type", "Weapon Proficiency");
@@ -213,4 +213,26 @@ test("the spell lists include a list that a spell of an enabled pack is on, as t
   await choose("Spell slots", "Yes");
   const lists = await optionNames(screen.getByRole("combobox", { name: "Spell list" }));
   expect(lists).toEqual(["Custom", "Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock", "Wizard", "Artificer"]);
+});
+
+test("the level modifier types are in order of use, and the class form has no modifier list", async () => {
+  renderAt("/content/new/class");
+  await screen.findByRole("textbox", { name: "Name" });
+  expect(screen.queryByRole("button", { name: "Add a modifier" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Add a level modifier" }));
+  expect(await optionNames(screen.getByRole("combobox", { name: "Modifier 1 type" }))).toEqual([
+    "<select type>",
+    "Spell",
+    "Armor Proficiency",
+    "Weapon Proficiency",
+    "Damage Resistance",
+    "Damage Immunity",
+    "Flying Speed",
+    "Flying Speed Equals Walking Speed",
+    "Number of Attacks",
+    "Saving Throw Advantage",
+    "Skill Proficiency",
+    "Swimming Speed",
+    "Tool Proficiency",
+  ]);
 });

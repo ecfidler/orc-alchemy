@@ -7,13 +7,15 @@
 // weapon or armor with subtypes into one option for each base item. A
 // Custom base weapon (the subtype :other) has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
-// load use the magic items store.
+// load use the magic items store. The form shows the base fields always, and
+// the user adds the other modifiers from a list (modifiers.tsx).
 import { Checkbox, Field, FieldErrors, FieldLabel, Fieldset, Label, NumberField, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { CheckGrid, CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, FieldRow, FormColumn, nameToKw, numberOrNull, numbers, orFirst, range, SelectField, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
+import { Modifiers, type Modifier, type ModifierValues } from "./modifiers.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
 const W = "orcpub.dnd.e5.weapons/";
@@ -38,6 +40,7 @@ const WEAPON_FIELDS = [...WEAPON_PROPERTIES.map((p) => p.field), "damage-die-cou
 const DICE: Options = [4, 6, 8, 10, 12, 20, 100].map((die) => [die, `d${die}`]);
 const ALIGNMENTS = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"];
 const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
+const ABILITY_ARGS = ABILITIES.map((ability) => `orcpub.dnd.e5.character/${ability}`);
 /** The modifier keys of each speed for each kind of change (magic_items.cljc speed-mod-fn). */
 const SPEEDS: { label: string; increases: string; atLeast: string; walking?: string }[] = [
   { label: "Walking speed", increases: "speed", atLeast: "speed-override" },
@@ -64,6 +67,44 @@ const modArgs = (mod: Mod) =>
       : untag(arg[tag("orcpub.modifiers/keyword-arg")] ?? arg[tag("orcpub.modifiers/string-arg")]),
   );
 
+const MODS = tag(MI + "modifiers");
+const modsOf = (record: ItemRecord) => (record[MODS] ?? []) as Mod[];
+/** The record with the mods; with none, without the key, as setMod stores it. */
+function withMods(record: ItemRecord, mods: Mod[]): ItemRecord {
+  const next = { ...record, [MODS]: mods };
+  if (mods.length === 0) delete next[MODS];
+  return next;
+}
+/** The same entry: the same object, or an equal copy. */
+const sameMod = (a: Mod, b: Mod) => a === b || JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Where a modifier of the form keeps its values: the entries of the shared
+ * :modifiers vector that belongs picks. Each such entry is a value, also one
+ * with an int arg of 0, because its control then shows a change, not None.
+ */
+function modEntries(belongs: (mod: Mod) => boolean): ModifierValues {
+  return {
+    holds: (record) => modsOf(record).some(belongs),
+    clear: (record) => withMods(record, modsOf(record).filter((m) => !belongs(m))),
+    // Each entry goes back after the entry that was before it at Remove and is
+    // still there. Thus the entries added since Remove stay after them, and
+    // the other entries keep their order.
+    restore: (record, before) => {
+      const mods = modsOf(record).filter((m) => !belongs(m));
+      let at = 0;
+      for (const mod of modsOf(before)) {
+        if (belongs(mod)) mods.splice(at++, 0, mod);
+        else {
+          const i = mods.findIndex((m) => sameMod(m, mod));
+          if (i >= 0) at = i + 1;
+        }
+      }
+      return withMods(record, mods);
+    },
+  };
+}
+
 function MagicItemForm({ record, onChange, problems }: FormProps) {
   const get = (field: string) => record[tag(MI + field)];
   const change = (fields: Record<string, unknown>) => {
@@ -78,7 +119,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
   const baseLegend = type === "weapon" ? "Base weapon" : "Base armor";
   const subtypes = (get("subtypes") ?? []) as string[];
   const attunement = (get("attunement") ?? []) as string[];
-  const mods = (get("modifiers") ?? []) as Mod[];
+  const mods = modsOf(record);
   // The details of a Custom base weapon.
   const edit = editor(record, onChange);
   const versatile = edit.get(W + "versatile");
@@ -88,7 +129,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
   function setMod(match: (mod: Mod) => boolean, next: Mod | null) {
     const i = mods.findIndex(match);
     const changed = i < 0 ? (next ? [...mods, next] : mods) : next ? mods.map((m, j) => (j === i ? next : m)) : mods.filter((_, j) => j !== i);
-    change({ modifiers: changed.length === 0 ? undefined : changed });
+    onChange(withMods(record, changed));
   }
   const findMod = (match: (mod: Mod) => boolean) => mods.find(match);
 
@@ -141,8 +182,8 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
     <Checkbox key={label} label={label} checked={checked} disabled={disabled} onCheckedChange={onToggle} />
   );
   /** A modifier with one keyword arg, on or off, such as a damage resistance (magic_items.cljc toggle-mods). */
-  const toggles = (legend: string, key: string, values: string[]) => (
-    <Fieldset legend={legend} look="section">
+  const toggles = (legend: string, key: string, values: string[], action: ReactNode) => (
+    <Fieldset legend={legend} look="section" action={action}>
       <CheckGrid names={values.map(title)}>
         {values.map((value) => {
           const match = (m: Mod) => modKey(m) === key && modArgs(m)[0] === value;
@@ -179,6 +220,78 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       </FieldRow>
     );
   };
+
+  /** A modifier of the toggles of one modifier key. */
+  const toggleModifier = (id: string, name: string, example: string, values: string[]): Modifier => ({
+    id,
+    name,
+    example,
+    ...modEntries((m) => modKey(m) === id && values.includes(String(modArgs(m)[0]))),
+    render: ({ name, action }) => toggles(name, id, values, action),
+  });
+  const speedKeys = SPEEDS.map(({ increases, atLeast, walking }) => [
+    { key: atLeast, text: "Becomes at least" },
+    { key: increases, text: "Increases by" },
+    ...(walking ? [{ key: walking, text: "Equals walking speed", noValue: true }] : []),
+  ]);
+  /** The modifiers in form order (docs/design/homebrew-forms.md, "Magic item"). */
+  const modifiers: Modifier[] = [
+    {
+      id: "ability",
+      name: "Ability scores",
+      example: "Strength becomes at least 19, Wisdom increases by 2",
+      ...modEntries((m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && ABILITY_ARGS.includes(String(modArgs(m)[0]))),
+      render: ({ name, action }) => (
+        <Fieldset legend={name} look="section" action={action}>
+          <FieldRow>
+            {ABILITIES.map((ability, i) => {
+              const arg = ABILITY_ARGS[i];
+              return modRow(
+                ability.toUpperCase(),
+                [
+                  { key: "ability-override", text: "Becomes at least" },
+                  { key: "ability", text: "Increases by" },
+                ],
+                (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
+                [arg],
+              );
+            })}
+          </FieldRow>
+        </Fieldset>
+      ),
+    },
+    {
+      id: "saving-throw-bonus",
+      name: "Saving throw bonus",
+      example: "+1 to Dexterity saving throws",
+      ...modEntries((m) => modKey(m) === "saving-throw-bonus" && ABILITY_ARGS.includes(String(modArgs(m)[0]))),
+      render: ({ name, action }) => (
+        <Fieldset legend={name} name="Saving throws" look="section" action={action}>
+          <FieldRow>
+            {ABILITIES.map((ability, i) => {
+              const arg = ABILITY_ARGS[i];
+              return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
+            })}
+          </FieldRow>
+        </Fieldset>
+      ),
+    },
+    {
+      id: "speed",
+      name: "Speed bonus",
+      example: "+10 ft. walking speed, a flying speed",
+      ...modEntries((m) => speedKeys.some((keys) => keys.some((k) => k.key === modKey(m)))),
+      render: ({ name, action }) => (
+        <Fieldset legend={name} name="Speeds" look="section" action={action}>
+          <FieldRow>{SPEEDS.map(({ label }, i) => modRow(label, speedKeys[i], (m) => speedKeys[i].some((k) => k.key === modKey(m)), []))}</FieldRow>
+        </Fieldset>
+      ),
+    },
+    toggleModifier("damage-resistance", "Damage resistances", "Fire, cold …", DAMAGE_TYPES),
+    toggleModifier("damage-vulnerability", "Damage vulnerabilities", "Radiant, necrotic …", DAMAGE_TYPES),
+    toggleModifier("damage-immunity", "Damage immunities", "Poison, psychic …", DAMAGE_TYPES),
+    toggleModifier("condition-immunity", "Condition immunities", "Charmed, frightened …", CONDITIONS.map(nameToKw)),
+  ];
 
   return (
     <WithChoices>
@@ -278,46 +391,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
               {bonus("magical-ac-bonus", "Magical AC bonus")}
             </FieldRow>
           </Fieldset>
-          <Fieldset legend="Ability scores" look="section">
-            <FieldRow>
-              {ABILITIES.map((ability) => {
-                const arg = `orcpub.dnd.e5.character/${ability}`;
-                return modRow(
-                  ability.toUpperCase(),
-                  [
-                    { key: "ability-override", text: "Becomes at least" },
-                    { key: "ability", text: "Increases by" },
-                  ],
-                  (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
-                  [arg],
-                );
-              })}
-            </FieldRow>
-          </Fieldset>
-          <Fieldset legend="Saving throw bonus" name="Saving throws" look="section">
-            <FieldRow>
-              {ABILITIES.map((ability) => {
-                const arg = `orcpub.dnd.e5.character/${ability}`;
-                return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
-              })}
-            </FieldRow>
-          </Fieldset>
-          <Fieldset legend="Speed bonus" name="Speeds" look="section">
-            <FieldRow>
-              {SPEEDS.map(({ label, increases, atLeast, walking }) => {
-                const keys = [
-                  { key: atLeast, text: "Becomes at least" },
-                  { key: increases, text: "Increases by" },
-                  ...(walking ? [{ key: walking, text: "Equals walking speed", noValue: true }] : []),
-                ];
-                return modRow(label, keys, (m) => keys.some((k) => k.key === modKey(m)), []);
-              })}
-            </FieldRow>
-          </Fieldset>
-          {toggles("Damage resistances", "damage-resistance", DAMAGE_TYPES)}
-          {toggles("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES)}
-          {toggles("Damage immunities", "damage-immunity", DAMAGE_TYPES)}
-          {toggles("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw))}
+          <Modifiers record={record} onChange={onChange} modifiers={modifiers} />
           <FieldErrors label="Modifiers" errors={fieldErrors(problems, MI + "modifiers", "Modifiers")} />
         </FormColumn>
       )}

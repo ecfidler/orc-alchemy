@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pickOption } from "@orc-alchemy/ui/testing/playwright";
+import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { expectNoteClearOfContent } from "./notes.ts";
 
@@ -177,6 +177,7 @@ test("a magic item made on My Content is listed there, and Edit opens it", async
   await page.getByRole("link", { name: "New magic item" }).click();
   await expect(page.getByLabel("Option source (pack)")).toHaveCount(0);
   await page.getByRole("textbox", { name: "Name" }).fill("Hawk Eye Circlet");
+  await pickFromPicker(page.getByRole("button", { name: "Add a modifier" }), "Ability scores");
   await pickOption(page.getByRole("combobox", { name: "WIS change" }), "Increases by");
   await page.getByRole("textbox", { name: "WIS value" }).fill("2");
   await page.getByRole("button", { name: "Save" }).click();

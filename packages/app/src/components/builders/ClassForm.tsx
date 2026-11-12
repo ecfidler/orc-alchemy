@@ -14,6 +14,7 @@
 // treat a nil as a problem. The modifiers and selections are also the
 // subclass form's.
 import { FieldErrors, Fieldset, Menu, XButton } from "@orc-alchemy/ui";
+import type { ReactNode } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { asSet, intKey, intKeyValue, setItems, tag } from "../../engine/content.ts";
 import {
@@ -62,21 +63,16 @@ const LEVELS = numbers(range(1, 21));
 const transitSchedule = (factor: number) => Object.fromEntries(Object.entries(SCHEDULES[factor]).map(([level, n]) => [intKey(Number(level)), n]));
 const keywords = (keys: string[], text: (key: string) => string = (k) => k): Options => keys.map((key) => [tag(key), text(key)]);
 
-/** The old modifier types (views.cljs modifier-values), by name, with the options of their value. */
+/**
+ * The old modifier types (views.cljs modifier-values), with the options of
+ * their value. The most used types are first (docs/design/homebrew-forms.md,
+ * "Level modifiers"); the others are by name.
+ */
 function modifierTypes(choices: BuilderChoices): [key: string, name: string, values?: Options][] {
   const speeds = range(10, 130, 10).map((n): [number, string] => [n, `${n} ft.`]);
   return [
-    ["armor-prof", "Armor Proficiency", keywords(["light", "medium", "heavy", "shields"])],
-    ["damage-immunity", "Damage Immunity", keywords(DAMAGE_TYPES)],
-    ["damage-resistance", "Damage Resistance", keywords(DAMAGE_TYPES)],
-    ["flying-speed", "Flying Speed", speeds],
-    ["flying-speed-equals-walking-speed", "Flying Speed Equals Walking Speed"],
-    ["num-attacks", "Number of Attacks", numbers(range(2, 5))],
-    ["saving-throw-advantage", "Saving Throw Advantage", CONDITIONS.map((c) => [tag(nameToKw(c)), c])],
-    ["skill-prof", "Skill Proficiency", SKILLS.map(({ key, name }) => [tag(key), name])],
     ["spell", "Spell"],
-    ["swimming-speed", "Swimming Speed", speeds],
-    ["tool-prof", "Tool Proficiency", TOOLS.map(({ key, name }) => [tag(key), name])],
+    ["armor-prof", "Armor Proficiency", keywords(["light", "medium", "heavy", "shields"])],
     [
       "weapon-prof",
       "Weapon Proficiency",
@@ -84,6 +80,15 @@ function modifierTypes(choices: BuilderChoices): [key: string, name: string, val
         a[1].localeCompare(b[1]),
       ),
     ],
+    ["damage-resistance", "Damage Resistance", keywords(DAMAGE_TYPES)],
+    ["damage-immunity", "Damage Immunity", keywords(DAMAGE_TYPES)],
+    ["flying-speed", "Flying Speed", speeds],
+    ["flying-speed-equals-walking-speed", "Flying Speed Equals Walking Speed"],
+    ["num-attacks", "Number of Attacks", numbers(range(2, 5))],
+    ["saving-throw-advantage", "Saving Throw Advantage", CONDITIONS.map((c) => [tag(nameToKw(c)), c])],
+    ["skill-prof", "Skill Proficiency", SKILLS.map(({ key, name }) => [tag(key), name])],
+    ["swimming-speed", "Swimming Speed", speeds],
+    ["tool-prof", "Tool Proficiency", TOOLS.map(({ key, name }) => [tag(key), name])],
   ];
 }
 
@@ -93,13 +98,19 @@ interface ListProps {
   choices: BuilderChoices;
 }
 
+/** A row list as a section: its title, and the control on its rule, such as the Remove link of a modifier (modifiers.tsx). */
+interface SectionProps extends ListProps {
+  legend?: string;
+  action?: ReactNode;
+}
+
 /** :level-modifiers, each a :type, the :level it unlocks at and a :value. */
-export function LevelModifiers({ edit, problems, choices }: ListProps) {
+export function LevelModifiers({ edit, problems, choices, legend = "Modifiers", action }: SectionProps) {
   const rows = (edit.get("level-modifiers") ?? []) as ItemRecord[];
   const types = modifierTypes(choices);
   const spells: Options = choices.spells.map(({ key, name }) => [tag(key), name]);
   return (
-    <Fieldset legend="Modifiers" look="section" errors={fieldErrors(problems, "level-modifiers", "Modifiers")}>
+    <Fieldset legend={legend} look="section" action={action} errors={fieldErrors(problems, "level-modifiers", legend)}>
       {rows.map((row, i) => {
         const n = i + 1;
         const at = (...path: (string | number)[]) => ["level-modifiers", i, ...path];
@@ -128,16 +139,16 @@ export function LevelModifiers({ edit, problems, choices }: ListProps) {
           </FieldRow>
         );
       })}
-      <AddButton onClick={() => edit.set(["level-modifiers"], [...rows, {}])}>Add modifier</AddButton>
+      <AddButton onClick={() => edit.set(["level-modifiers"], [...rows, {}])}>Add a level modifier</AddButton>
     </Fieldset>
   );
 }
 
 /** :level-selections, each a selection :type of the packs, the :level it is given at and the :num to select. */
-export function LevelSelections({ edit, problems, choices }: ListProps) {
+export function LevelSelections({ edit, problems, choices, legend = "Selections", action }: SectionProps) {
   const rows = (edit.get("level-selections") ?? []) as ItemRecord[];
   return (
-    <Fieldset legend="Selections" look="section" errors={fieldErrors(problems, "level-selections", "Selections")}>
+    <Fieldset legend={legend} look="section" action={action} errors={fieldErrors(problems, "level-selections", legend)}>
       <Help>A selection gives options to pick at a level, such as Martial Maneuvers. Make the selection first; it is then a type here.</Help>
       {rows.map((row, i) => {
         const n = i + 1;
