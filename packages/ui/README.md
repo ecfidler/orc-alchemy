@@ -35,6 +35,8 @@ bun run test       # vitest
   checkbox and radio styles (`src/check.css`), the number field styles
   (`src/number-field.css`), the alert dialog styles (`src/dialog.css`),
   the select, combobox, autocomplete and menu styles (`src/select.css`),
+  the list modal, token, picker, number toggle and chips styles
+  (`src/picker.css`),
   the paper pattern, stuck note and use bubble styles
   (`src/paper.css`), and the tabs styles (`src/tabs.css`).
 - `.`: the components and hooks.
@@ -111,7 +113,44 @@ bun run test       # vitest
   - `Menu`: Base UI Menu, a ghost button named `label` that opens a list
     of actions. A pick of one of its `items` calls `onPick`.
   - Combobox, Autocomplete and Menu take their list styles from
-    `src/select.css`.
+    `src/select.css`. Menu takes `className` for its button.
+  - `ListModal`: Base UI Dialog with a title, a close X and one list of
+    `items` that scrolls. Each item is `{ value, label, example?, group? }`.
+    Each row is a button named by its `label` and described by its
+    `example`, with an "Add" mark. The owner sets `open` and gets
+    `onOpenChange`. The X, Escape and a click outside close it. At 600px
+    and less it fills the screen. By default a pick calls `onPick` and
+    closes the modal. With `stayOpen`, it stays open: the caller takes the
+    picked item out of `items`, and the focus goes to the next row. Then
+    the footer shows `picked` ("3 picked", a polite status) and Done, and
+    `search` adds a search field that filters by name, example or group.
+    Rows of one `group` show under a small heading. The focus goes to the
+    search field, or else to the first row, when it opens. Up and Down,
+    Home and End move between the rows. When it closes, the focus goes to
+    `finalFocus`, or else back to where it was before it opened.
+  - `Token`: a pick, a small box with its `label` and an X named
+    "Remove {label}" (or "Remove {name}") that calls `onRemove`. A long
+    label wraps inside it. Its `children` are a small control after the
+    label, for example a small NumberToggle.
+  - `Tokens`: tokens on one line that wraps. After an X removes its token,
+    the focus goes to the next X, or else to the first button after the
+    tokens.
+  - `AddButton`: a wide ghost button, "+ {label}" on the left, and
+    "{remaining} more" on the right, which describes the button. It gives
+    a ref.
+  - `Picker`: some `value`s from a long list of `options` (ListModal
+    items). The picks show as Tokens in the order of `options`, then an
+    AddButton opens a ListModal with `stayOpen`, and `search` when the app
+    wants it. `onValueChange` gets the new list: a pick goes at the end,
+    and a value that is no option stays.
+  - `NumberToggle`: a segmented toggle on ToggleGroup for one of `values`
+    (numbers, and null for "None"). `size="small"` fits in a token. Name it
+    with `aria-label` or `aria-labelledby`.
+  - `Chips`: number chips from low to high, each a Token, and a
+    "+ {addLabel}" Menu of the `options` that are not on a chip. `name`
+    gives a number's name for the X and the menu, for example "Row 4".
+  - `XButton` takes `size="small"` (24px), as in a token.
+  - Styles for these: `src/picker.css`.
   - The paper patterns (`src/Paper.tsx`). They have no game meaning. A box
     that holds content is a group named by its label. In a box that shows
     a value, the value is the group named by the label, so a screen reader
@@ -177,10 +216,20 @@ bun run test       # vitest
     a string name first, so that the list filters to it.
   - `optionNames(control)`: opens the list, returns the names of its
     options or menu items, and closes it.
-- `./testing/playwright`: `pickOption(control, name)` for Playwright, as
-  above, where `control` is a locator. In a text field, a RegExp name
-  clears the field first. An app that uses it installs
-  `@playwright/test` (an optional peer).
+  - `pickFromPicker(button, names)`: clicks `button`, picks each of
+    `names` (one name or a list, strings or RegExps) in the ListModal that
+    opens, then clicks Done if the modal is still open, and waits for it
+    to close. In a list with search, it types each string name first. For
+    a list that closes on a click, give one name.
+  - `removeToken(scope, name)`: clicks "Remove {name}" in `scope`, and
+    waits for the token to go.
+- `./testing/playwright`: `pickOption(control, name)`,
+  `pickFromPicker(button, names)` and `removeToken(scope, name)` for
+  Playwright, as above, where `control`, `button` and `scope` are
+  locators. In a text field or a search field, a RegExp name clears the
+  field first. An app that uses it installs `@playwright/test` (an
+  optional peer). `packages/app/e2e/picker.spec.ts` runs the picker
+  controls and these helpers in a browser.
 
 ## Rules
 

@@ -211,6 +211,31 @@ The homebrew forms (ORC-195) add these parts. The
   with the text on the left, and a section title in Inter caps, with a rule
   after it.
 
+The picker controls (ORC-196) replace the groups of checkboxes on the
+homebrew forms. They have no game words: the app gives the lists.
+
+* **ListModal:** a modal with a title, a close X and one list that scrolls.
+  Each row is a button with a name, an optional short example and an "Add"
+  mark. Esc or a click outside closes it. At 600px and less it fills the
+  screen. By default a pick closes it. With `stayOpen`, it stays open, and
+  its footer shows the number of picks and Done. Only this mode has a
+  search field. Rows with a group show under a small heading; the
+  modifier list gives no groups. The owner sets `open`, so a caller
+  can open and close it itself, for example for one slot of a table.
+* **Token** and **Tokens:** a pick as a small box with its name and an X
+  named "Remove {name}". Tokens sit on one line that wraps, and a long name
+  wraps inside its token. A token can hold a small control.
+* **AddButton:** a `wide` button, "+ Add a part" on the left and the number
+  of options that remain ("15 more") on the right.
+* **Picker:** Tokens, in the order of the options, then an AddButton that
+  opens a ListModal with `stayOpen`.
+* **NumberToggle:** a segmented toggle, for example None / 1 / 2 / 3, on
+  ToggleGroup. The numbers are a prop.
+* **Chips:** number chips with an X, and a "+ Add" Menu.
+
+**Test helpers** for these: `pickFromPicker` and `removeToken`, for Vitest
+and for Playwright.
+
 Every Select, Combobox and NumberField in the app is boxed, not only in the
 homebrew forms: a 1px ink border on `--paper-raised`.
 

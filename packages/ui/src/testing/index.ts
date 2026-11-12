@@ -74,3 +74,40 @@ export async function optionNames(control: HTMLElement): Promise<string[]> {
   await listClosed(control, list);
   return names;
 }
+
+type Names = string | RegExp | readonly (string | RegExp)[];
+const nameList = (names: Names): readonly (string | RegExp)[] => (typeof names === "string" || names instanceof RegExp ? [names] : names);
+
+/**
+ * Picks the rows named `names` in the ListModal that `button` opens: the
+ * add button of a Picker, or a button that opens a list that closes on a
+ * click (then give one name). In a list with a search field, it types
+ * each string name first, so the list filters to it. Then it clicks Done,
+ * if the modal is still open, and resolves once the modal has closed.
+ */
+export async function pickFromPicker(button: HTMLElement, names: Names): Promise<void> {
+  fireEvent.click(button);
+  const dialog = await screen.findByRole("dialog");
+  const done = within(dialog).queryByRole("button", { name: "Done" });
+  const list = nameList(names);
+  if (!done && list.length !== 1) throw new Error("This list closes on a click, so give one name.");
+  for (const name of list) {
+    const search = within(dialog).queryByRole("searchbox");
+    if (search && typeof name === "string") fireEvent.change(search, { target: { value: name } });
+    const row = await waitFor(() => within(dialog.querySelector<HTMLElement>(".ui-list-body")!).getByRole("button", { name }));
+    fireEvent.click(row);
+  }
+  if (done?.isConnected) fireEvent.click(done);
+  await waitFor(() => {
+    if (screen.queryByRole("dialog")) throw new Error("The list modal is still open.");
+  });
+}
+
+/** Clicks the X of the token named `name` in `scope` (its button "Remove {name}"), and waits for the token to go. */
+export async function removeToken(scope: HTMLElement, name: string): Promise<void> {
+  const x = within(scope).getByRole("button", { name: `Remove ${name}` });
+  fireEvent.click(x);
+  await waitFor(() => {
+    if (within(scope).queryByRole("button", { name: `Remove ${name}` })) throw new Error(`The token ${name} is still there.`);
+  });
+}

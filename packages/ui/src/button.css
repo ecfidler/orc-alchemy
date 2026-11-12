@@ -87,6 +87,15 @@
   .ui-x-button::after {
     transform: translate(-50%, -50%) rotate(-45deg);
   }
+  .ui-x-button:where([data-size="small"]) {
+    width: 24px;
+    height: 24px;
+  }
+  .ui-x-button:where([data-size="small"])::before,
+  .ui-x-button:where([data-size="small"])::after {
+    width: 11px;
+    height: 1.5px;
+  }
   .ui-x-button:where(:not([data-disabled]):hover) {
     color: var(--danger);
     border-color: currentColor;

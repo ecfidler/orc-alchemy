@@ -9,17 +9,19 @@ export type MenuProps<T> = {
   /** Gets the value of the item the user picks. */
   onPick: (value: T) => void;
   size?: ButtonSize;
+  /** Layout classes for the button, as on Button. */
+  className?: string;
 };
 
 /**
  * A button that opens a list of actions, with Base UI Menu inside. The
  * button has the ghost look. A pick calls `onPick` and closes the menu.
  */
-export function Menu<T>({ label, items, onPick, size = "small" }: MenuProps<T>) {
+export function Menu<T>({ label, items, onPick, size = "small", className }: MenuProps<T>) {
   return (
     <BaseMenu.Root>
       {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
-      <BaseMenu.Trigger data-variant="ghost" data-size={size} className="ui-button">
+      <BaseMenu.Trigger data-variant="ghost" data-size={size} className={className ? `ui-button ${className}` : "ui-button"}>
         {label}
       </BaseMenu.Trigger>
       <BaseMenu.Portal>
