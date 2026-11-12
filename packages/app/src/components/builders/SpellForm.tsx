@@ -7,14 +7,14 @@
 // map of class keyword to true or false.
 import { Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
-import { CheckGrid, fieldErrors, FormColumn, orFirst, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ordinal } from "../CharacterSheet.tsx";
+import { CheckGrid, fieldErrors, FieldRow, FormColumn, orFirst, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SCHOOLS = ["abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 /** The old builder's spellcasting classes. */
 const CLASSES = ["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"];
 const COMPONENTS = ["verbal", "somatic", "material"];
 
-const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 const LEVELS = Array.from({ length: 10 }, (_, n): [number, string] => [n, n === 0 ? "Cantrip" : `${ordinal(n)}-level`]);
 const SCHOOL_OPTIONS = SCHOOLS.map((school): [string, string] => [school, school]);
 
@@ -36,7 +36,12 @@ function SpellForm({ record, onChange, problems }: FormProps) {
   return (
     <FormColumn>
       {text("name", "Name")}
-      <div className="flex flex-wrap gap-x-[18px] gap-y-[10px]">
+      <Field label="Description" errors={fieldErrors(problems, "description", "Description")}>
+        <FieldLabel label="Description">
+          <TextArea value={String(record[tag("description")] ?? "")} onValueChange={(value) => set("description", value)} rows={6} />
+        </FieldLabel>
+      </Field>
+      <FieldRow>
         <Field label="Level" errors={fieldErrors(problems, "level", "Level")}>
           <FieldLabel label="Level">
             <Select value={orFirst(record[tag("level")], LEVELS)} options={LEVELS} onValueChange={(n) => set("level", n)} />
@@ -47,15 +52,15 @@ function SpellForm({ record, onChange, problems }: FormProps) {
             <Select value={orFirst(record[tag("school")], SCHOOL_OPTIONS)} options={SCHOOL_OPTIONS} onValueChange={(school) => set("school", school)} />
           </FieldLabel>
         </Field>
-      </div>
-      <div className="flex flex-wrap gap-x-[18px] gap-y-[6px]">
+      </FieldRow>
+      <FieldRow>
         {checkbox("ritual", "Ritual")}
         {checkbox("attack-roll?", "Requires an attack roll")}
-      </div>
+      </FieldRow>
       {text("casting-time", "Casting time")}
       {text("range", "Range")}
       <Fieldset legend="Components" look="section" errors={fieldErrors(problems, "components", "Components")}>
-        <div className="mb-[10px] flex flex-wrap gap-x-[18px] gap-y-[6px]">
+        <FieldRow>
           {COMPONENTS.map((component) => (
             <Checkbox
               key={component}
@@ -64,8 +69,8 @@ function SpellForm({ record, onChange, problems }: FormProps) {
               onCheckedChange={(on) => set("components", { ...components, [tag(component)]: on })}
             />
           ))}
-        </div>
-        <FieldLabel label="Material component">
+        </FieldRow>
+        <FieldLabel label="Material component" className="mt-[10px]">
           <TextArea
             value={String(components[tag("material-component")] ?? "")}
             onValueChange={(value) => set("components", { ...components, [tag("material-component")]: value })}
@@ -74,11 +79,6 @@ function SpellForm({ record, onChange, problems }: FormProps) {
         </FieldLabel>
       </Fieldset>
       {text("duration", "Duration")}
-      <Field label="Description" errors={fieldErrors(problems, "description", "Description")}>
-        <FieldLabel label="Description">
-          <TextArea value={String(record[tag("description")] ?? "")} onValueChange={(value) => set("description", value)} rows={6} />
-        </FieldLabel>
-      </Field>
       <Fieldset legend="Class spell lists" look="section" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>
         <CheckGrid names={CLASSES}>
           {CLASSES.map((klass) => (

@@ -71,7 +71,7 @@ test("the background, feat and subrace forms recreate the warlock test content p
   await save(router);
 
   router = renderAt("/content/new/subrace");
-  await screen.findByLabelText("Spell 1");
+  await screen.findByRole("button", { name: "Add a spell" });
   type("Option source (pack)", PACK);
   type("Name", "Dark Elf (Drow)");
   await choose("Race", "Elf");

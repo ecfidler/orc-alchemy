@@ -2,12 +2,13 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button, Checkbox, Field, FieldLabel, Fieldset, Select, TextArea as TextBox, TextInput, XButton, type SelectOption } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput, XButton, type SelectOption } from "@orc-alchemy/ui";
 import type { ComponentType, ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
 import { nameToKw, tag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
+import { ordinal } from "../CharacterSheet.tsx";
 
 /**
  * One item as the form edits it: verbose Transit-JSON, as a stored pack has
@@ -124,6 +125,9 @@ export const TOOLS: Choice[] = [...MUSICAL_INSTRUMENTS, ...ARTISANS_TOOLS, ...MI
 /** A select's options: the stored value and its text. */
 export type Options = [value: unknown, text: string][];
 
+/** The spell levels, with their stored numbers: Cantrip, 1st, 2nd … 9th. */
+export const SPELL_LEVELS: Options = Array.from({ length: 10 }, (_, n) => [n, n === 0 ? "Cantrip" : ordinal(n)]);
+
 /** The abilities as their stored keywords, for a select. */
 export const ABILITY_OPTIONS: Options = ABILITIES.map(([key, name]) => [tag(abilityKey(key)), name]);
 export const TRAIT_TYPES: Options = [
@@ -214,14 +218,27 @@ export function SelectField({
 }) {
   const all: SelectOption<unknown>[] = placeholder === undefined ? options : [[null, placeholder], ...options];
   return (
-    <FieldLabel label={label} className={className ?? INLINE}>
+    <FieldLabel label={label} className={className}>
       <Select aria-label={name} value={placeholder === undefined ? orFirst(value, options) : value} options={all} onValueChange={(v) => onSelect(v ?? undefined)} />
     </FieldLabel>
   );
 }
 
-/** The spacing of a field in a row of fields: the fields wrap, with their labels above them. */
-export const INLINE = "mr-[18px] mb-[10px] inline-grid align-top";
+const ROW_LOOKS = {
+  fields: "gap-x-[18px] gap-y-[10px]",
+  list: "gap-x-[10px] gap-y-2 border-b border-rule py-2",
+  tight: "gap-x-[10px] gap-y-2",
+};
+
+/**
+ * A row of fields that wrap, aligned at their bottom edge. The row owns the
+ * gaps, so a field has no margin. "fields" is a row of a form or a section,
+ * "tight" a row of fields that belong together, such as the top row of a
+ * Card, and "list" one row of a list, tight with a rule under it.
+ */
+export function FieldRow({ look = "fields", children }: { look?: keyof typeof ROW_LOOKS; children: ReactNode }) {
+  return <div className={`flex flex-wrap items-end ${ROW_LOOKS[look]}`}>{children}</div>;
+}
 
 /** The one column of a form: about 720px wide, with space between its fields and sections. */
 export function FormColumn({ children }: { children: ReactNode }) {
@@ -250,7 +267,7 @@ const SENTENCE = 44;
 export function CheckGrid({ names, children }: { names: string[]; children: ReactNode }) {
   const short = names.filter((name) => name.length <= SENTENCE);
   const longest = short.length === 0 ? Infinity : Math.max(0, ...short.map((name) => name.length));
-  const columns = longest <= 24 ? "grid-cols-[repeat(auto-fill,minmax(160px,1fr))]" : longest <= 44 ? "grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))]" : "grid-cols-1";
+  const columns = longest <= 24 ? "grid-cols-[repeat(auto-fill,minmax(160px,1fr))]" : longest <= SENTENCE ? "grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))]" : "grid-cols-1";
   return <div className={`grid gap-x-[14px] gap-y-[3px] ${columns}`}>{children}</div>;
 }
 
@@ -285,10 +302,10 @@ export function TextField({ edit, problems, field, label }: { edit: Edit; proble
 }
 
 /** A text area of the record's field, such as :description or :help, of the full width. */
-export function TextArea({ edit, field, label }: { edit: Edit; field: string; label: string }) {
+export function RecordTextArea({ edit, field, label }: { edit: Edit; field: string; label: string }) {
   return (
     <FieldLabel label={label}>
-      <TextBox value={String(edit.get(field) ?? "")} onValueChange={(text) => edit.set([field], text)} />
+      <TextArea value={String(edit.get(field) ?? "")} onValueChange={(text) => edit.set([field], text)} />
     </FieldLabel>
   );
 }
@@ -310,7 +327,7 @@ export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; 
 export function Card({ top, children }: { top: ReactNode; children?: ReactNode }) {
   return (
     <div className="grid gap-2 border border-rule-strong bg-paper-raised px-3 py-[10px] [&+&]:mt-[10px]">
-      <div className="flex flex-wrap items-end gap-x-[10px] gap-y-2">{top}</div>
+      <FieldRow look="tight">{top}</FieldRow>
       {children}
     </div>
   );
@@ -335,16 +352,16 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
                 <FieldLabel label="Name" className="min-w-[12rem] flex-1">
                   <TextInput aria-label={`Feature ${n} name`} value={String(trait[tag("name")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "name"], text)} width="full" />
                 </FieldLabel>
-                <SelectField label="Type" name={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} className="" />
+                <SelectField label="Type" name={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
                 {levels && (
-                  <SelectField label="Level" name={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" className="" />
+                  <SelectField label="Level" name={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />
                 )}
                 <XButton aria-label={`Delete feature ${n}`} onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} />
               </>
             }
           >
             <FieldLabel label="Description">
-              <TextBox aria-label={`Feature ${n} description`} value={String(trait[tag("description")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "description"], text)} rows={3} />
+              <TextArea aria-label={`Feature ${n} description`} value={String(trait[tag("description")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "description"], text)} rows={3} />
             </FieldLabel>
           </Card>
         );
@@ -383,7 +400,7 @@ export function NameDescriptionForm({ record, onChange, problems }: FormProps) {
   return (
     <FormColumn>
       <TextField edit={edit} problems={problems} field="name" label="Name" />
-      <TextArea edit={edit} field="description" label="Description" />
+      <RecordTextArea edit={edit} field="description" label="Description" />
     </FormColumn>
   );
 }

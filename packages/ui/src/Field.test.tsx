@@ -82,24 +82,24 @@ test("a fieldset is plain by default; a section marks itself and keeps its legen
   render(
     <>
       <Fieldset legend="Speed" />
-      <Fieldset legend="Languages" look="section">
-        <Fieldset legend="Options" name="Languages: options" look="section" />
+      <Fieldset legend="Fruits" look="section">
+        <Fieldset legend="Options" name="Fruits: options" look="section" />
       </Fieldset>
     </>,
   );
   expect(screen.getByRole("group", { name: "Speed" }).dataset.look).toBe("plain");
-  const section = screen.getByRole("group", { name: "Languages" });
+  const section = screen.getByRole("group", { name: "Fruits" });
   expect(section.dataset.look).toBe("section");
-  expect(screen.getByRole("group", { name: "Languages: options" }).parentElement).toBe(section);
+  expect(screen.getByRole("group", { name: "Fruits: options" }).parentElement).toBe(section);
 });
 
 test("a field label is a label above its control, in the label style, and names it", () => {
   render(
-    <FieldLabel label="Gold" className="mr-4">
+    <FieldLabel label="Price" className="mr-4">
       <input />
     </FieldLabel>,
   );
-  const input = screen.getByRole("textbox", { name: "Gold" });
+  const input = screen.getByRole("textbox", { name: "Price" });
   const label = input.parentElement!;
   expect([label.tagName, label.className]).toEqual(["LABEL", "ui-field-label mr-4"]);
   expect(label.firstElementChild!.className).toBe("ui-label");

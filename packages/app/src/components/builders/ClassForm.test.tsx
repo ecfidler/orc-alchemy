@@ -99,7 +99,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   await choose("Modifier 1 level", "1");
   await choose("Modifier 2 type", "Spell");
   await choose("Modifier 2 level", "3");
-  await choose("Modifier 2 spell level", "0");
+  await choose("Modifier 2 spell level", "Cantrip");
   await choose("Modifier 2 spellcasting ability", "Intelligence");
   await choose("Modifier 2 spell", "Fire Bolt");
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));

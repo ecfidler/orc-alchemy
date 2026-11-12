@@ -19,7 +19,7 @@ import {
   MISC_TOOLS,
   MUSICAL_INSTRUMENTS,
   SKILLS,
-  TextArea,
+  RecordTextArea,
   TextField,
   Traits,
   ValueChecks,
@@ -81,7 +81,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
           the stored key. Thus a character that has the key {key} does not find this background. To make the keys the same, change the name, or make a new background with this name.
         </p>
       )}
-      <TextArea edit={edit} field="help" label="Description" />
+      <RecordTextArea edit={edit} field="help" label="Description" />
       <KeyChecks edit={edit} legend="Skill Proficiencies" path={["profs", "skill"]} items={SKILLS} />
       <Checks
         legend="Languages"

@@ -8,9 +8,9 @@
 // {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
 // and :description maps, :type absent, :action or :legendary-action.
 import { Checkbox, Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput, XButton } from "@orc-alchemy/ui";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, AddButton, Card, CheckGrid, CONDITIONS, DAMAGE_TYPES, fieldErrors, FormColumn, INLINE, nameToKw, numberOrNull, orFirst, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, AddButton, Card, CheckGrid, CONDITIONS, DAMAGE_TYPES, fieldErrors, FieldRow, FormColumn, nameToKw, numberOrNull, orFirst, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -76,11 +76,11 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       </FieldLabel>,
     );
   // Each option's value is its text, as in the old dropdowns.
-  const select = (label: string, value: unknown, options: (string | number)[][], onSelect: (value: string) => void, visible = label) => {
+  const select = (label: string, value: unknown, options: (string | number)[][], onSelect: (value: string) => void) => {
     const all = options.map(([v, t]): [string, string] => [String(v), String(t)]);
     return (
-      <FieldLabel label={visible} className={INLINE}>
-        <Select aria-label={visible === label ? undefined : label} value={orFirst(value === undefined ? "" : String(value), all)} options={all} onValueChange={onSelect} />
+      <FieldLabel label={label}>
+        <Select value={orFirst(value === undefined ? "" : String(value), all)} options={all} onValueChange={onSelect} />
       </FieldLabel>
     );
   };
@@ -102,35 +102,43 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   return (
     <FormColumn>
       {text("name", "Name")}
-      <div className="-mb-[10px]">
+      <FieldRow>
         {select("Size", record[tag("size")], SIZES.map((s) => [tag(s), title(s)]), (v) => set("size", v))}
         {select("Type", record[tag("type")], TYPES.map((t) => [tag(t), title(t)]), (v) => set("type", v))}
         {select("Alignment", record[tag("alignment")], ALIGNMENTS.map((a) => [a, a]), (v) => set("alignment", v))}
-      </div>
+      </FieldRow>
       {field("armor-class", "Armor class", select("Armor class", record[tag("armor-class")], numbers(range(5, 25)), (v) => set("armor-class", Number(v))))}
       {text("armor-notes", "Armor notes")}
       <Fieldset legend="Hit points" look="section" errors={fieldErrors(problems, "hit-points", "Hit points")}>
+        <FieldRow>
         {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
         {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
-        <FieldLabel label="Hit point modifier" className={INLINE}>
+        <FieldLabel label="Hit point modifier">
           <NumberField value={numberOrNull(hitPoints[tag("modifier")]) ?? 0} onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)} className="w-20" />
         </FieldLabel>
+        </FieldRow>
       </Fieldset>
       {text("speed", "Speed")}
       <Fieldset legend="Abilities" look="section">
+        <FieldRow>
         {ABILITIES.map(([key, name]) => (
-          <span key={key}>{select(name, record[tag(key)], numbers(range(1, 31)), (v) => set(key, Number(v)))}</span>
+          <Fragment key={key}>{select(name, record[tag(key)], numbers(range(1, 31)), (v) => set(key, Number(v)))}</Fragment>
         ))}
+        </FieldRow>
       </Fieldset>
       <Fieldset legend="Saving throws" look="section">
+        <FieldRow>
         {ABILITIES.map(([key, name]) => (
-          <span key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</span>
+          <Fragment key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</Fragment>
         ))}
+        </FieldRow>
       </Fieldset>
       <Fieldset legend="Skills" look="section">
+        <FieldRow>
         {SKILLS.map(({ key, name }) => (
-          <span key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</span>
+          <Fragment key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</Fragment>
         ))}
+        </FieldRow>
       </Fieldset>
       {checkboxes("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`)}
       {checkboxes("Damage resistances", "damage-resistance", ["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`))}

@@ -12,6 +12,7 @@ import {
   Checks,
   editor,
   fieldErrors,
+  FieldRow,
   FormColumn,
   numbers,
   ProficiencyChoice,
@@ -39,11 +40,11 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
             <Field label="Race" errors={fieldErrors(problems, "race", "Race")}>
               <SelectField label="Race" value={edit.get("race")} options={lists.races.map((r) => [tag(r.key), r.name])} onSelect={(v) => edit.set(["race"], v)} />
             </Field>
-            <div className="-mb-[10px]">
+            <FieldRow>
               <SelectField label="Size" value={edit.get("size") ?? (race?.size && tag(race.size))} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
               <SelectField label="Speed" value={edit.get("speed") ?? race?.speed} options={numbers(range(5, 55, 5))} onSelect={(v) => edit.set(["speed"], v)} />
               <SelectField label="Darkvision" value={edit.get("darkvision") ?? race?.darkvision} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
-            </div>
+            </FieldRow>
             <AbilityIncreases
               edit={edit}
               note={(key, bonus) => {

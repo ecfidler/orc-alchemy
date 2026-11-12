@@ -11,16 +11,19 @@
 // :description maps. The subrace form (SubraceForm.tsx) and the feat form
 // (FeatForm.tsx) use the parts exported here.
 import { Fieldset, SelectBox, XButton } from "@orc-alchemy/ui";
+import { useState } from "react";
 import { asSet, setItems, tag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
   ABILITIES,
   ABILITY_OPTIONS,
   abilityKey,
+  AddButton,
   Checks,
   CONDITIONS,
   DAMAGE_TYPES,
   editor,
+  FieldRow,
   FormColumn,
   nameToKw,
   numbers,
@@ -29,7 +32,8 @@ import {
   range,
   SelectField,
   SKILLS,
-  TextArea,
+  SPELL_LEVELS,
+  RecordTextArea,
   TextField,
   TOOLS,
   Traits,
@@ -76,24 +80,29 @@ export const ImmunityChecks = ({ edit }: { edit: Edit }) => (
 export const SkillChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Skill Proficiencies" prop="skill-prof" items={SKILLS} />;
 export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKw(name), name: `You have advantage on saving throws against being ${name}` }));
 
-const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
-/** The spell levels, with their stored numbers: Cantrip, 1st, 2nd … */
-export const SPELL_LEVELS = range(0, 10).map((n): [number, string] => [n, n === 0 ? "Cantrip" : ordinal(n)]);
 const UNLOCK_LEVELS = range(1, 21).map((n): [number, string] => [n, `Level ${n}`]);
 
 /**
- * The spells, as the old option-spells: one row for each, and a blank row
- * that adds a spell when it is set. "Unlocks at" gates the spell by
- * character level; the spell's own level only filters the spell list. On a
- * phone, the spell select goes on its own line.
+ * The spells, as the old option-spells: one row for each. "Add a spell"
+ * shows a blank row, which is stored only when one of its fields is set, as
+ * the old blank last row. "Unlocks at" gates the spell by character level;
+ * the spell's own level only filters the spell list. On a phone, the spell
+ * select goes on its own line.
  */
 export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
   const spells = (edit.get("spells") ?? []) as ItemRecord[];
+  const [blank, setBlank] = useState(false);
   return (
     <Fieldset legend="Spells" look="section">
       <div className="grid gap-2">
-        {[...spells, {}].map((spell, i) => {
+        {(blank ? [...spells, {}] : spells).map((spell, i) => {
           const n = i + 1;
+          const stored = i < spells.length;
+          // A field set on the blank row stores the row, which is then a spell like the others.
+          const set = (path: (string | number)[], v: unknown) => {
+            edit.set(["spells", i, ...path], v);
+            if (!stored) setBlank(false);
+          };
           const value = (spell[tag("value")] ?? {}) as ItemRecord;
           const level = (value[tag("level")] as number | undefined) ?? 0;
           const options = lists.spells.filter((s) => s.level === level).map((s): [string, string] => [tag(s.key), s.name]);
@@ -102,14 +111,14 @@ export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
               key={i}
               className="grid grid-cols-[max-content_max-content_minmax(0,1fr)_auto] items-end gap-x-[10px] gap-y-2 border-b border-rule pb-2 sm:grid-cols-[max-content_max-content_max-content_minmax(0,1fr)_auto] sm:border-b-0 sm:pb-0"
             >
-              <SelectField label="Unlocks at" name={`Spell ${n} unlocks at`} value={spell[tag("level")]} options={UNLOCK_LEVELS} onSelect={(v) => edit.set(["spells", i, "level"], v)} placeholder="-" className="" />
-              <SelectField label="Spell level" name={`Spell ${n} spell level`} value={value[tag("level")]} options={SPELL_LEVELS} onSelect={(v) => edit.set(["spells", i, "value", "level"], v)} className="" />
+              <SelectField label="Unlocks at" name={`Spell ${n} unlocks at`} value={spell[tag("level")]} options={UNLOCK_LEVELS} onSelect={(v) => set(["level"], v)} placeholder="-" />
+              <SelectField label="Spell level" name={`Spell ${n} spell level`} value={value[tag("level")]} options={SPELL_LEVELS} onSelect={(v) => set(["value", "level"], v)} />
               <SelectField
                 label="Ability"
                 name={`Spell ${n} spellcasting ability`}
                 value={value[tag("ability")]}
                 options={ABILITY_OPTIONS}
-                onSelect={(v) => edit.set(["spells", i, "value", "ability"], v)}
+                onSelect={(v) => set(["value", "ability"], v)}
                 placeholder="<select ability>"
                 className="[&>.ui-select]:max-w-full"
               />
@@ -118,15 +127,20 @@ export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
                 name={`Spell ${n}`}
                 value={value[tag("key")]}
                 options={options}
-                onSelect={(v) => edit.set(["spells", i, "value", "key"], v)}
+                onSelect={(v) => set(["value", "key"], v)}
                 placeholder="<select spell>"
                 className="col-span-full row-start-2 sm:col-span-1 sm:row-start-auto [&>.ui-select]:w-full"
               />
-              {i < spells.length && <XButton aria-label={`Delete spell ${n}`} onClick={() => edit.set(["spells"], spells.filter((_, j) => j !== i))} className="col-start-4 row-start-1 sm:col-start-auto sm:row-start-auto" />}
+              <XButton
+                aria-label={`Delete spell ${n}`}
+                onClick={() => (stored ? edit.set(["spells"], spells.filter((_, j) => j !== i)) : setBlank(false))}
+                className="col-start-4 row-start-1 sm:col-start-auto sm:row-start-auto"
+              />
             </div>
           );
         })}
       </div>
+      <AddButton onClick={() => setBlank(true)}>Add a spell</AddButton>
     </Fieldset>
   );
 }
@@ -162,14 +176,14 @@ function RaceForm({ record, onChange, problems }: FormProps) {
       {(lists) => (
         <FormColumn>
           <TextField edit={edit} problems={problems} field="name" label="Name" />
-          <TextArea edit={edit} field="help" label="Description" />
-          <div className="-mb-[10px]">
+          <RecordTextArea edit={edit} field="help" label="Description" />
+          <FieldRow>
             <SelectField label="Size" value={edit.get("size") ?? tag("medium")} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
             <SelectField label="Speed" value={edit.get("speed")} options={speeds} onSelect={(v) => edit.set(["speed"], v)} />
             <SelectField label="Flying speed" value={edit.get("props", "flying-speed") ?? 0} options={speeds} onSelect={(v) => edit.set(["props", "flying-speed"], v)} />
             <SelectField label="Swimming speed" value={edit.get("props", "swimming-speed") ?? 0} options={speeds} onSelect={(v) => edit.set(["props", "swimming-speed"], v)} />
             <SelectField label="Darkvision" value={edit.get("darkvision")} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
-          </div>
+          </FieldRow>
           <Checks
             legend="Armor Class"
             items={[

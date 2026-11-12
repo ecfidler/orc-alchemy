@@ -33,10 +33,10 @@ test("a text input is a boxed textbox named by its label, and gives the whole te
 test("aria-label names a text input instead of its label; width and layout classes reach it", () => {
   render(
     <FieldLabel label="Name">
-      <TextInput aria-label="Feature 1 name" value="" onValueChange={() => {}} width="full" className="flex-1" />
+      <TextInput aria-label="Row 1 name" value="" onValueChange={() => {}} width="full" className="flex-1" />
     </FieldLabel>,
   );
-  const input = screen.getByRole("textbox", { name: "Feature 1 name" });
+  const input = screen.getByRole("textbox", { name: "Row 1 name" });
   expect([input.className, input.dataset.width]).toEqual(["ui-input flex-1", "full"]);
 });
 

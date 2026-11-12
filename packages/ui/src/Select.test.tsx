@@ -73,12 +73,12 @@ test("optionNames reads the options and closes the list", async () => {
 });
 
 test("a select box is a combobox named by its label, inside the labelled box, and picks a value", async () => {
-  function Score() {
+  function Count() {
     const [value, setValue] = useState(0);
-    return <SelectBox label="Strength" value={value} options={[[-1, "-1"], [0, "0"], [1, "+1"]]} onValueChange={setValue} className="w-24" />;
+    return <SelectBox label="Apples" value={value} options={[[-1, "-1"], [0, "0"], [1, "+1"]]} onValueChange={setValue} className="w-24" />;
   }
-  render(<Score />);
-  const select = screen.getByRole("combobox", { name: "Strength" });
+  render(<Count />);
+  const select = screen.getByRole("combobox", { name: "Apples" });
   const box = select.parentElement!;
   expect([box.tagName, box.className, box.firstElementChild!.className, select.className]).toEqual(["LABEL", "ui-select-box w-24", "ui-label", "ui-select"]);
   expect(select.textContent).toBe("0");
@@ -87,6 +87,6 @@ test("a select box is a combobox named by its label, inside the labelled box, an
 });
 
 test("aria-label names a select box instead of its label", () => {
-  render(<SelectBox label="STR" aria-label="Strength bonus" value={null} options={FRUIT} onValueChange={() => {}} />);
-  expect(screen.getByRole("combobox", { name: "Strength bonus" })).toBeTruthy();
+  render(<SelectBox label="APL" aria-label="Apples picked" value={null} options={FRUIT} onValueChange={() => {}} />);
+  expect(screen.getByRole("combobox", { name: "Apples picked" })).toBeTruthy();
 });

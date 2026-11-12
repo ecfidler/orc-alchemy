@@ -43,7 +43,7 @@ const stored = (pack: string, key: string) => {
 
 test("the name problem shows under its field, and Save is off until the race has a name", async () => {
   renderAt("/content/new/race");
-  await screen.findByLabelText("Spell 1");
+  await screen.findByRole("button", { name: "Add a spell" });
   expect(problems("Name")).toBe("Name is required.");
   expect(save().disabled).toBe(true);
   type("Name", "1 Bad");
@@ -55,19 +55,22 @@ test("the name problem shows under its field, and Save is off until the race has
 
 test("the form recreates the Mezzoloth race of the community fixture, and Edit loads it back", async () => {
   const router = renderAt("/content/new/race");
-  await screen.findByLabelText("Spell 1");
+  await screen.findByRole("button", { name: "Add a spell" });
   type("Option source (pack)", "me");
   type("Name", "Mezzoloth");
   await choose("Darkvision", "60");
   await choose("Constitution", "+2");
   check("Languages", "Common");
   check("Languages", "Infernal");
+  fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 1 spellcasting ability", "Charisma");
   await choose("Spell 1", "Message");
+  fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 2 spell level", "2nd");
   await choose("Spell 2 spellcasting ability", "Charisma");
   await choose("Spell 2", "Darkness");
   // A third spell, deleted again.
+  fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 3", "Light");
   fireEvent.click(screen.getByRole("button", { name: "Delete spell 3" }));
   fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
@@ -99,7 +102,7 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   cleanup();
   renderAt("/content/edit/race/me/mezzoloth");
   await screen.findByRole("form", { name: "Edit race" });
-  await screen.findByLabelText("Spell 1");
+  await screen.findByRole("button", { name: "Add a spell" });
   expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Mezzoloth");
   expect(shown("Darkvision")).toBe("60");
   expect(shown("Constitution")).toBe("+2");
@@ -111,7 +114,7 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
 
 test("the modifiers are stored as the old events store them", async () => {
   const router = renderAt("/content/new/race");
-  await screen.findByLabelText("Spell 1");
+  await screen.findByRole("button", { name: "Add a spell" });
   type("Name", "Lizard");
   type("Description", "Scaly.");
   await choose("Size", "small");
@@ -130,6 +133,7 @@ test("the modifiers are stored as the old events store them", async () => {
   check("Skill Proficiency Choice: options", "Survival");
   check("Language Proficiency Choice: options", "Draconic");
   check("Weapon Proficiency Choice: options", "Rapier");
+  fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 1 unlocks at", "Level 3");
   await choose("Spell 1 spell level", "1st");
   await choose("Spell 1", "Shield");
@@ -166,4 +170,28 @@ test("the modifiers are stored as the old events store them", async () => {
     "~:traits": [{ "~:name": "Bite", "~:type": "~:b-action" }],
   });
   expect(engine().validateForExport(useHomebrew.getState().homebrew!).valid).toBe(true);
+});
+
+test("Add a spell alone shows a blank row and stores nothing; its X takes the row away", async () => {
+  const router = renderAt("/content/new/race");
+  const add = await screen.findByRole("button", { name: "Add a spell" });
+  type("Name", "Tidekin");
+  expect(screen.queryByRole("combobox", { name: "Spell 1" })).toBeNull();
+  fireEvent.click(add);
+  expect(screen.getByRole("combobox", { name: "Spell 1" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Delete spell 1" }));
+  expect(screen.queryByRole("combobox", { name: "Spell 1" })).toBeNull();
+  fireEvent.click(add);
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+
+  expect(stored("Default Option Source", "tidekin")).toEqual({
+    "~:name": "Tidekin",
+    "~:key": "~:tidekin",
+    "~:option-pack": "Default Option Source",
+    "~:size": "~:medium",
+    "~:speed": 30,
+    "~:languages": { "~#set": [] },
+    "~:traits": [],
+  });
 });

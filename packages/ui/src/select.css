@@ -84,11 +84,11 @@
     border: 1.5px solid var(--ink);
     cursor: pointer;
   }
-  .ui-select-box:hover {
+  .ui-select-box:where(:hover) {
     background: var(--panel);
   }
-  .ui-select-box:focus-within {
-    outline: 2px solid var(--info);
+  .ui-select-box:where(:focus-within) {
+    outline: 2px solid var(--focus-ring, var(--info));
     outline-offset: 2px;
   }
   .ui-select-box > .ui-label {
