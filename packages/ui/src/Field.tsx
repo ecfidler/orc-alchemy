@@ -24,23 +24,28 @@ export function FieldErrors({ label, errors, id }: { label: string; errors: stri
  * not the right name. `errors` are the group's errors: a list named
  * "Problems: {name or legend}" at the end of the group, which describes
  * the group. The errors belong to the group, not to the controls in it.
+ * With `look="section"`, the legend is a section title in Inter caps on a
+ * rule; a fieldset in a section shows its legend as a small label instead.
  */
 export function Fieldset({
   legend,
   name,
   errors = [],
+  look = "plain",
   className,
   children,
 }: {
   legend: string;
   name?: string;
   errors?: string[];
+  look?: "plain" | "section";
   className?: string;
   children?: ReactNode;
 }) {
   const errorsId = useId();
   return (
     <BaseFieldset.Root
+      data-look={look}
       className={className ? `ui-fieldset ${className}` : "ui-fieldset"}
       aria-label={name}
       aria-describedby={errors.length > 0 ? errorsId : undefined}
@@ -50,6 +55,21 @@ export function Fieldset({
       {children}
       <FieldErrors id={errorsId} label={name ?? legend} errors={errors} />
     </BaseFieldset.Root>
+  );
+}
+
+/**
+ * A label above its control, in Inter caps: a `<label>` around both, so
+ * the label names the control and a click on it goes to the control. A
+ * control with its own `aria-label` keeps that name; then put the visible
+ * label's words in it. `className` is for layout and spacing.
+ */
+export function FieldLabel({ label, children, className }: { label: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <label className={className ? `ui-field-label ${className}` : "ui-field-label"}>
+      <span className="ui-label">{label}</span>
+      {children}
+    </label>
   );
 }
 

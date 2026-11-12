@@ -5,9 +5,9 @@
 // :attack-roll? booleans, :components a map of :verbal, :somatic and
 // :material booleans and the :material-component text, and :spell-lists a
 // map of class keyword to true or false.
-import { Checkbox, Field, Fieldset, Select } from "@orc-alchemy/ui";
+import { Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
-import { fieldErrors, orFirst, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { CheckGrid, fieldErrors, FormColumn, orFirst, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
 
 const SCHOOLS = ["abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 /** The old builder's spellcasting classes. */
@@ -24,73 +24,74 @@ function SpellForm({ record, onChange, problems }: FormProps) {
   const lists = (record[tag("spell-lists")] ?? {}) as ItemRecord;
   const text = (field: string, label: string) => (
     <Field label={label} errors={fieldErrors(problems, field, label)}>
-      <label className="block">
-        {label}{" "}
-        <input type="text" value={String(record[tag(field)] ?? "")} onChange={(e) => set(field, e.target.value)} className="border border-ink px-1" />
-      </label>
+      <FieldLabel label={label}>
+        <TextInput value={String(record[tag(field)] ?? "")} onValueChange={(value) => set(field, value)} />
+      </FieldLabel>
     </Field>
   );
   const checkbox = (field: string, label: string) => (
-    <Checkbox label={label} checked={record[tag(field)] === true} onCheckedChange={(on) => set(field, on)} className="flex" />
+    <Checkbox label={label} checked={record[tag(field)] === true} onCheckedChange={(on) => set(field, on)} />
   );
 
   return (
-    <div className="space-y-3">
+    <FormColumn>
       {text("name", "Name")}
-      <Field label="Level" errors={fieldErrors(problems, "level", "Level")}>
-        <label className="block">
-          Level{" "}
-          <Select value={orFirst(record[tag("level")], LEVELS)} options={LEVELS} onValueChange={(n) => set("level", n)} />
-        </label>
-      </Field>
-      <Field label="School" errors={fieldErrors(problems, "school", "School")}>
-        <label className="block">
-          School{" "}
-          <Select value={orFirst(record[tag("school")], SCHOOL_OPTIONS)} options={SCHOOL_OPTIONS} onValueChange={(school) => set("school", school)} />
-        </label>
-      </Field>
-      {checkbox("ritual", "Ritual")}
-      {checkbox("attack-roll?", "Requires an attack roll")}
+      <div className="flex flex-wrap gap-x-[18px] gap-y-[10px]">
+        <Field label="Level" errors={fieldErrors(problems, "level", "Level")}>
+          <FieldLabel label="Level">
+            <Select value={orFirst(record[tag("level")], LEVELS)} options={LEVELS} onValueChange={(n) => set("level", n)} />
+          </FieldLabel>
+        </Field>
+        <Field label="School" errors={fieldErrors(problems, "school", "School")}>
+          <FieldLabel label="School">
+            <Select value={orFirst(record[tag("school")], SCHOOL_OPTIONS)} options={SCHOOL_OPTIONS} onValueChange={(school) => set("school", school)} />
+          </FieldLabel>
+        </Field>
+      </div>
+      <div className="flex flex-wrap gap-x-[18px] gap-y-[6px]">
+        {checkbox("ritual", "Ritual")}
+        {checkbox("attack-roll?", "Requires an attack roll")}
+      </div>
       {text("casting-time", "Casting time")}
       {text("range", "Range")}
-      <Fieldset legend="Components" errors={fieldErrors(problems, "components", "Components")}>
-        {COMPONENTS.map((component) => (
-          <Checkbox
-            key={component}
-            label={title(component)}
-            checked={components[tag(component)] === true}
-            onCheckedChange={(on) => set("components", { ...components, [tag(component)]: on })}
-            className="mr-4"
-          />
-        ))}
-        <label className="block">
-          Material component{" "}
-          <textarea
+      <Fieldset legend="Components" look="section" errors={fieldErrors(problems, "components", "Components")}>
+        <div className="mb-[10px] flex flex-wrap gap-x-[18px] gap-y-[6px]">
+          {COMPONENTS.map((component) => (
+            <Checkbox
+              key={component}
+              label={title(component)}
+              checked={components[tag(component)] === true}
+              onCheckedChange={(on) => set("components", { ...components, [tag(component)]: on })}
+            />
+          ))}
+        </div>
+        <FieldLabel label="Material component">
+          <TextArea
             value={String(components[tag("material-component")] ?? "")}
-            onChange={(e) => set("components", { ...components, [tag("material-component")]: e.target.value })}
-            className="block w-full border border-ink"
+            onValueChange={(value) => set("components", { ...components, [tag("material-component")]: value })}
+            rows={2}
           />
-        </label>
+        </FieldLabel>
       </Fieldset>
       {text("duration", "Duration")}
       <Field label="Description" errors={fieldErrors(problems, "description", "Description")}>
-        <label className="block">
-          Description
-          <textarea value={String(record[tag("description")] ?? "")} onChange={(e) => set("description", e.target.value)} className="block w-full border border-ink" rows={6} />
-        </label>
+        <FieldLabel label="Description">
+          <TextArea value={String(record[tag("description")] ?? "")} onValueChange={(value) => set("description", value)} rows={6} />
+        </FieldLabel>
       </Field>
-      <Fieldset legend="Class spell lists" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>
-        {CLASSES.map((klass) => (
-          <Checkbox
-            key={klass}
-            label={title(klass)}
-            checked={lists[tag(klass)] === true}
-            onCheckedChange={(on) => set("spell-lists", { ...lists, [tag(klass)]: on })}
-            className="mr-4"
-          />
-        ))}
+      <Fieldset legend="Class spell lists" look="section" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>
+        <CheckGrid names={CLASSES}>
+          {CLASSES.map((klass) => (
+            <Checkbox
+              key={klass}
+              label={title(klass)}
+              checked={lists[tag(klass)] === true}
+              onCheckedChange={(on) => set("spell-lists", { ...lists, [tag(klass)]: on })}
+            />
+          ))}
+        </CheckGrid>
       </Fieldset>
-    </div>
+    </FormColumn>
   );
 }
 

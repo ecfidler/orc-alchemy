@@ -30,7 +30,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = () => {
   const pack = useHomebrew.getState().packs.find((p) => p.id === DEFAULT);
@@ -136,7 +136,7 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   cleanup();
   renderAt(`/content/edit/monster/${encodeURIComponent(DEFAULT)}/mud-imp`);
   await screen.findByRole("form", { name: "Edit monster" });
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Mud Imp");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Mud Imp");
   expect(shown("Size")).toBe("Small");
   expect(shown("Hit die")).toBe("6");
   expect(shown("Challenge rating")).toBe("1/2");

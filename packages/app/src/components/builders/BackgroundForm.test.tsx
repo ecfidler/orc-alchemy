@@ -29,7 +29,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 /** Whether the checkbox is checked, for a check of several boxes at once. */
 const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
@@ -45,7 +45,7 @@ async function saved(router: ReturnType<typeof renderAt>) {
 
 test("the name problem shows under its field, and Save is off until the background has a name", async () => {
   renderAt("/content/new/background");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(problems("Name")).toBe("Name is required.");
   expect(save().disabled).toBe(true);
   type("Name", "1 Spy");
@@ -57,7 +57,7 @@ test("the name problem shows under its field, and Save is off until the backgrou
 
 test("each field is stored as the old events store it, and Edit loads it back", async () => {
   const router = renderAt("/content/new/background");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Sailor's Life");
   type("Description", "At sea.");
   check("Skill Proficiencies", "Athletics");
@@ -110,8 +110,8 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   cleanup();
   renderAt(`/content/edit/background/${encodeURIComponent(DEFAULT)}/sailors-life`);
   await screen.findByRole("form", { name: "Edit background" });
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Sailor's Life");
-  expect(screen.getByLabelText<HTMLTextAreaElement>("Description").value).toBe("At sea.");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Sailor's Life");
+  expect(screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Description" }).value).toBe("At sea.");
   expect(screen.getByLabelText<HTMLInputElement>("Gold").value).toBe("10");
   expect([checked("Skill Proficiencies", "Athletics"), checked("Skill Proficiencies", "Perception"), checked("Languages", "Any 2")]).toEqual([true, false, true]);
   expect([checked("Gaming Set: proficiency choice", "Any 3"), checked("Equipment choices", "Any 1 of the musical instruments"), checked("Other Equipment", "Rope, silk")]).toEqual([

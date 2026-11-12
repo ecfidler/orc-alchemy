@@ -33,7 +33,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (pack: string, key: string) => {
@@ -64,7 +64,7 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   check("Languages", "Infernal");
   await choose("Spell 1 spellcasting ability", "Charisma");
   await choose("Spell 1", "Message");
-  await choose("Spell 2 level", "2");
+  await choose("Spell 2 spell level", "2nd");
   await choose("Spell 2 spellcasting ability", "Charisma");
   await choose("Spell 2", "Darkness");
   // A third spell, deleted again.
@@ -100,7 +100,7 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   renderAt("/content/edit/race/me/mezzoloth");
   await screen.findByRole("form", { name: "Edit race" });
   await screen.findByLabelText("Spell 1");
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Mezzoloth");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Mezzoloth");
   expect(shown("Darkvision")).toBe("60");
   expect(shown("Constitution")).toBe("+2");
   expect(within(screen.getByRole("group", { name: "Languages" })).getByRole("checkbox", { name: "Infernal" })).toBeChecked();
@@ -130,8 +130,8 @@ test("the modifiers are stored as the old events store them", async () => {
   check("Skill Proficiency Choice: options", "Survival");
   check("Language Proficiency Choice: options", "Draconic");
   check("Weapon Proficiency Choice: options", "Rapier");
-  await choose("Spell 1 unlock at level", "3");
-  await choose("Spell 1 level", "1");
+  await choose("Spell 1 unlocks at", "Level 3");
+  await choose("Spell 1 spell level", "1st");
   await choose("Spell 1", "Shield");
   fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
   type("Feature 1 name", "Bite");

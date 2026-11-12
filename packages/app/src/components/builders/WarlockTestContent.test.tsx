@@ -35,7 +35,7 @@ function renderAt(path: string) {
   return router;
 }
 
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 async function save(router: ReturnType<typeof renderAt>) {
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -50,7 +50,7 @@ function addTrait(name: string, description: string) {
 
 test("the background, feat and subrace forms recreate the warlock test content pack", async () => {
   let router = renderAt("/content/new/background");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Option source (pack)", PACK);
   type("Name", "Spy");
   type(

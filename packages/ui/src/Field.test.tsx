@@ -1,7 +1,7 @@
 import { Input } from "@base-ui/react/input";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
-import { Field, FieldErrors, Fieldset } from "./Field.tsx";
+import { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
 
 afterEach(cleanup);
 
@@ -76,4 +76,32 @@ test("errors alone are a list, or nothing when there are none", () => {
   cleanup();
   render(<FieldErrors label="Modifiers" errors={["Modifiers is not valid."]} />);
   expect(screen.getByRole("list", { name: "Problems: Modifiers" }).textContent).toBe("Modifiers is not valid.");
+});
+
+test("a fieldset is plain by default; a section marks itself and keeps its legend as its name", () => {
+  render(
+    <>
+      <Fieldset legend="Speed" />
+      <Fieldset legend="Languages" look="section">
+        <Fieldset legend="Options" name="Languages: options" look="section" />
+      </Fieldset>
+    </>,
+  );
+  expect(screen.getByRole("group", { name: "Speed" }).dataset.look).toBe("plain");
+  const section = screen.getByRole("group", { name: "Languages" });
+  expect(section.dataset.look).toBe("section");
+  expect(screen.getByRole("group", { name: "Languages: options" }).parentElement).toBe(section);
+});
+
+test("a field label is a label above its control, in the label style, and names it", () => {
+  render(
+    <FieldLabel label="Gold" className="mr-4">
+      <input />
+    </FieldLabel>,
+  );
+  const input = screen.getByRole("textbox", { name: "Gold" });
+  const label = input.parentElement!;
+  expect([label.tagName, label.className]).toEqual(["LABEL", "ui-field-label mr-4"]);
+  expect(label.firstElementChild!.className).toBe("ui-label");
+  expect(label.firstElementChild!.nextElementSibling).toBe(input);
 });

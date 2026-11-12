@@ -1,4 +1,4 @@
-/* The fieldset and the field errors (docs/design/theme.md, "Controls"). Low specificity, so the app's layout utilities win. */
+/* The fieldset, the label above a field, the text fields and the field errors (docs/design/theme.md, "Controls"). Low specificity, so the app's layout utilities win. */
 
 @layer components {
   .ui-fieldset {
@@ -10,6 +10,83 @@
   .ui-fieldset-legend {
     font-weight: 600;
   }
+  /* A section: its title in Inter caps, then a rule to the end of the line. */
+  .ui-fieldset:where([data-look="section"]) > .ui-fieldset-legend {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ui-fieldset:where([data-look="section"]) > .ui-fieldset-legend::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--rule-strong);
+  }
+  /* A fieldset in a section is a part of it: its legend is a small label, with no rule. */
+  .ui-fieldset:where([data-look="section"]) .ui-fieldset > .ui-fieldset-legend {
+    display: block;
+    margin: 8px 0 2px;
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+  .ui-fieldset:where([data-look="section"]) .ui-fieldset > .ui-fieldset-legend::after {
+    content: none;
+  }
+
+  /* The label above its control. The control is as wide as it is, not as the column. */
+  .ui-field-label {
+    display: grid;
+    justify-items: start;
+    align-content: start;
+    gap: 3px;
+  }
+  .ui-field-label > .ui-label {
+    font-weight: 500;
+  }
+
+  /* Boxed fields: a 1px ink border on the raised paper. */
+  .ui-input,
+  .ui-textarea {
+    min-width: 0;
+    font: inherit;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    padding: 3px 8px;
+  }
+  .ui-input {
+    width: 100%;
+    max-width: 26rem;
+  }
+  .ui-input:where([data-width="short"]) {
+    max-width: 7rem;
+  }
+  .ui-input:where([data-width="full"]) {
+    max-width: none;
+  }
+  .ui-textarea {
+    display: block;
+    width: 100%;
+    min-height: 6.2em;
+    line-height: 1.45;
+    resize: vertical;
+  }
+  .ui-field-label > :where(.ui-input, .ui-textarea) {
+    justify-self: stretch;
+  }
+
   .ui-field-errors {
     color: var(--danger);
   }

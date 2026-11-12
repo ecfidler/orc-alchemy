@@ -33,7 +33,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
   const pack = useHomebrew.getState().packs.find((p) => p.id === DEFAULT);
@@ -46,7 +46,7 @@ async function saved(router: ReturnType<typeof renderAt>) {
 
 test("each problem shows under its field, and Save is off until the subclass is valid", async () => {
   renderAt("/content/new/subclass");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(problems("Name")).toBe("Name is required.");
   expect(shown("Class")).toBe("Barbarian");
   type("Name", "Path of Frost");
@@ -60,7 +60,7 @@ test("each problem shows under its field, and Save is off until the subclass is 
 
 test("a cleric subclass stores its domain spells as the old app stores them, and Edit loads them back", async () => {
   const router = renderAt("/content/new/subclass");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Waves Domain");
   expect(screen.queryByRole("group", { name: "Domain Spells" })).toBeNull();
   await choose("Class", "Cleric");
@@ -89,7 +89,7 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
 
   cleanup();
   renderAt(`/content/edit/subclass/${encodeURIComponent(DEFAULT)}/waves-domain`);
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(shown("Class")).toBe("Cleric");
   expect(shown("Level 1 spell 2")).toBe("Bless");
   expect(shown("Modifier 1 value")).toBe("30 ft.");
@@ -97,7 +97,7 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
 
 test("a fighter subclass can cast wizard spells", async () => {
   const router = renderAt("/content/new/subclass");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Spell Blade");
   await choose("Class", "Fighter");
   await choose("Casts wizard spells", "Yes");
@@ -118,7 +118,7 @@ test("a class and a subclass authored in the forms are a character's choices, an
   await selection("Rune Carvings", ["Fire Rune", "Stone Rune", "Hill Rune"]);
   await selection("Frost Gifts", ["Ice Skin", "Cold Breath"]);
   let router = renderAt("/content/new/class");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Rune Knight");
   await choose("Hit die", "10");
   await choose("Subclass chosen at level", "3");
@@ -131,7 +131,7 @@ test("a class and a subclass authored in the forms are a character's choices, an
 
   cleanup();
   router = renderAt("/content/new/subclass");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   // The new class is a parent the subclass can have.
   await choose("Class", "Rune Knight");
   type("Name", "Frost Path");

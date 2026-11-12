@@ -13,18 +13,21 @@
 // "Custom", the form removes the key: the importer and the export check
 // treat a nil as a problem. The modifiers and selections are also the
 // subclass form's.
-import { Button, FieldErrors, Fieldset, Menu } from "@orc-alchemy/ui";
+import { FieldErrors, Fieldset, Menu, XButton } from "@orc-alchemy/ui";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { asSet, intKey, intKeyValue, setItems, tag } from "../../engine/content.ts";
 import {
   ABILITIES,
   ABILITY_OPTIONS,
   abilityKey,
+  AddButton,
   Checks,
   CONDITIONS,
   DAMAGE_TYPES,
   editor,
   fieldErrors,
+  FormColumn,
+  Help,
   nameToKw,
   numbers,
   ProficiencyChoice,
@@ -82,6 +85,9 @@ function modifierTypes(choices: BuilderChoices): [key: string, name: string, val
   ];
 }
 
+/** A row of a list: its fields, then its X button at the end. */
+const ROW = "flex flex-wrap items-end gap-x-[10px] gap-y-2 border-b border-rule py-2";
+
 interface ListProps {
   edit: Edit;
   problems: Problem[];
@@ -94,39 +100,37 @@ export function LevelModifiers({ edit, problems, choices }: ListProps) {
   const types = modifierTypes(choices);
   const spells: Options = choices.spells.map(({ key, name }) => [tag(key), name]);
   return (
-    <Fieldset legend="Modifiers" errors={fieldErrors(problems, "level-modifiers", "Modifiers")}>
+    <Fieldset legend="Modifiers" look="section" errors={fieldErrors(problems, "level-modifiers", "Modifiers")}>
       {rows.map((row, i) => {
         const n = i + 1;
         const at = (...path: (string | number)[]) => ["level-modifiers", i, ...path];
         const type = types.find(([key]) => tag(key) === row[tag("type")]);
         return (
-          <div key={i} className="mb-2">
+          <div key={i} className={ROW}>
             {/* A new type keeps the value, as the old event does. */}
-            <SelectField label={`Modifier ${n} type`} value={row[tag("type")]} options={types.map(([key, name]) => [tag(key), name])} onSelect={(t) => edit.set(at("type"), t)} placeholder="<select type>" />
-            <SelectField label={`Modifier ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(at("level"), v)} placeholder="-" />
-            {type?.[2] && <SelectField label={`Modifier ${n} value`} value={row[tag("value")]} options={type[2]} onSelect={(v) => edit.set(at("value"), v)} placeholder="<select value>" />}
+            <SelectField label="Type" name={`Modifier ${n} type`} value={row[tag("type")]} options={types.map(([key, name]) => [tag(key), name])} onSelect={(t) => edit.set(at("type"), t)} placeholder="<select type>" className="" />
+            <SelectField label="Level" name={`Modifier ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(at("level"), v)} placeholder="-" className="" />
+            {type?.[2] && <SelectField label="Value" name={`Modifier ${n} value`} value={row[tag("value")]} options={type[2]} onSelect={(v) => edit.set(at("value"), v)} placeholder="<select value>" className="" />}
             {type?.[0] === "spell" && (
               <>
-                <SelectField label={`Modifier ${n} spell level`} value={edit.get(...at("value", "level"))} options={numbers(range(0, 10))} onSelect={(v) => edit.set(at("value", "level"), v)} />
+                <SelectField label="Spell level" name={`Modifier ${n} spell level`} value={edit.get(...at("value", "level"))} options={numbers(range(0, 10))} onSelect={(v) => edit.set(at("value", "level"), v)} className="" />
                 <SelectField
-                  label={`Modifier ${n} spellcasting ability`}
+                  label="Ability"
+                  name={`Modifier ${n} spellcasting ability`}
+                  className=""
                   value={edit.get(...at("value", "ability"))}
                   options={ABILITY_OPTIONS}
                   onSelect={(v) => edit.set(at("value", "ability"), v)}
                   placeholder="<select ability>"
                 />
-                <SelectField label={`Modifier ${n} spell`} value={edit.get(...at("value", "key"))} options={spells} onSelect={(v) => edit.set(at("value", "key"), v)} placeholder="<select spell>" />
+                <SelectField label="Spell" name={`Modifier ${n} spell`} value={edit.get(...at("value", "key"))} options={spells} onSelect={(v) => edit.set(at("value", "key"), v)} placeholder="<select spell>" className="" />
               </>
             )}
-            <Button onClick={() => edit.set(["level-modifiers"], rows.filter((_, j) => j !== i))} size="small">
-              Delete modifier {n}
-            </Button>
+            <XButton aria-label={`Delete modifier ${n}`} onClick={() => edit.set(["level-modifiers"], rows.filter((_, j) => j !== i))} className="ml-auto" />
           </div>
         );
       })}
-      <Button onClick={() => edit.set(["level-modifiers"], [...rows, {}])} size="small">
-        Add modifier
-      </Button>
+      <AddButton onClick={() => edit.set(["level-modifiers"], [...rows, {}])}>Add modifier</AddButton>
     </Fieldset>
   );
 }
@@ -135,30 +139,28 @@ export function LevelModifiers({ edit, problems, choices }: ListProps) {
 export function LevelSelections({ edit, problems, choices }: ListProps) {
   const rows = (edit.get("level-selections") ?? []) as ItemRecord[];
   return (
-    <Fieldset legend="Selections" errors={fieldErrors(problems, "level-selections", "Selections")}>
-      <p>A selection gives options to pick at a level, such as Martial Maneuvers. Make the selection first; it is then a type here.</p>
+    <Fieldset legend="Selections" look="section" errors={fieldErrors(problems, "level-selections", "Selections")}>
+      <Help>A selection gives options to pick at a level, such as Martial Maneuvers. Make the selection first; it is then a type here.</Help>
       {rows.map((row, i) => {
         const n = i + 1;
         return (
-          <div key={i} className="mb-2">
+          <div key={i} className={ROW}>
             <SelectField
-              label={`Selection ${n} type`}
+              label="Type"
+              name={`Selection ${n} type`}
+              className=""
               value={row[tag("type")]}
               options={choices.selections.map(({ key, name }) => [tag(key), name])}
               onSelect={(v) => edit.set(["level-selections", i, "type"], v)}
               placeholder="<select type>"
             />
-            <SelectField label={`Selection ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(["level-selections", i, "level"], v)} placeholder="-" />
-            <SelectField label={`Selection ${n} amount`} value={row[tag("num")]} options={numbers(range(1, 11))} onSelect={(v) => edit.set(["level-selections", i, "num"], v)} placeholder="-" />
-            <Button onClick={() => edit.set(["level-selections"], rows.filter((_, j) => j !== i))} size="small">
-              Delete selection {n}
-            </Button>
+            <SelectField label="Level" name={`Selection ${n} level`} value={row[tag("level")]} options={LEVELS} onSelect={(v) => edit.set(["level-selections", i, "level"], v)} placeholder="-" className="" />
+            <SelectField label="Amount" name={`Selection ${n} amount`} value={row[tag("num")]} options={numbers(range(1, 11))} onSelect={(v) => edit.set(["level-selections", i, "num"], v)} placeholder="-" className="" />
+            <XButton aria-label={`Delete selection ${n}`} onClick={() => edit.set(["level-selections"], rows.filter((_, j) => j !== i))} className="ml-auto" />
           </div>
         );
       })}
-      <Button onClick={() => edit.set(["level-selections"], [...rows, {}])} size="small">
-        Add selection
-      </Button>
+      <AddButton onClick={() => edit.set(["level-selections"], [...rows, {}])}>Add selection</AddButton>
     </Fieldset>
   );
 }
@@ -187,7 +189,7 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
   const maxLevel = factor === 2 ? 5 : factor === 3 ? 4 : 9;
 
   return (
-    <Fieldset legend="Spellcasting" errors={fieldErrors(problems, "spellcasting", "Spellcasting")}>
+    <Fieldset legend="Spellcasting" look="section" errors={fieldErrors(problems, "spellcasting", "Spellcasting")}>
       <SelectField
         label="Spell slots"
         value={spellcasting !== undefined}
@@ -224,11 +226,9 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
             <>
               <SelectField label="Cantrips known at level 1" value={cantripsKnown[intKey(1)]} options={numbers(range(0, 6))} onSelect={(v) => edit.set(["spellcasting", "cantrips-known", intKey(1)], v)} />
               {extraCantrips.map((level, i) => (
-                <div key={level}>
-                  <SelectField label={`Extra cantrip ${i + 1} level`} value={level} options={numbers(range(2, 21))} onSelect={(v) => setCantripLevel(level, v)} />
-                  <Button onClick={() => setCantripLevel(level, undefined)} size="small">
-                    Remove extra cantrip {i + 1}
-                  </Button>
+                <div key={level} className="flex items-end gap-[10px]">
+                  <SelectField label={`Extra cantrip ${i + 1} level`} value={level} options={numbers(range(2, 21))} onSelect={(v) => setCantripLevel(level, v)} className="mb-[10px]" />
+                  <XButton aria-label={`Remove extra cantrip ${i + 1}`} onClick={() => setCantripLevel(level, undefined)} className="mb-[10px]" />
                 </div>
               ))}
               <Menu label="Add an extra cantrip at level" items={numbers(range(2, 21))} onPick={(v) => setCantripLevel(undefined, v)} />
@@ -255,10 +255,10 @@ function ClassForm({ record, onChange, problems }: FormProps) {
   return (
     <WithChoices>
       {(choices) => (
-        <div className="space-y-3">
+        <FormColumn>
           <TextField edit={edit} problems={problems} field="name" label="Name" />
           <TextArea edit={edit} field="help" label="Description" />
-          <div>
+          <div className="-mb-[10px]">
             <SelectField label="Hit die" value={edit.get("hit-die")} options={numbers([6, 8, 10, 12])} onSelect={(v) => edit.set(["hit-die"], v)} />
             <SelectField label="Subclass chosen at level" value={edit.get("subclass-level")} options={numbers([1, 2, 3])} onSelect={(v) => edit.set(["subclass-level"], v)} placeholder="-" />
           </div>
@@ -287,7 +287,7 @@ function ClassForm({ record, onChange, problems }: FormProps) {
           <LevelSelections edit={edit} problems={problems} choices={choices} />
           <Traits edit={edit} problems={problems} levels />
           <FieldErrors label="Proficiencies" errors={fieldErrors(problems, "profs", "Proficiencies")} />
-        </div>
+        </FormColumn>
       )}
     </WithChoices>
   );

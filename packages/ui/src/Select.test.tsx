@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
-import { Select, type SelectOption } from "./Select.tsx";
+import { Select, SelectBox, type SelectOption } from "./Select.tsx";
 import { optionNames, pickOption } from "./testing/index.ts";
 
 afterEach(cleanup);
@@ -70,4 +70,23 @@ test("optionNames reads the options and closes the list", async () => {
   render(<Fruit initial="pear" />);
   expect(await optionNames(screen.getByRole("combobox", { name: "Fruit" }))).toEqual(["Apple", "Pear"]);
   expect(screen.queryByRole("listbox")).toBeNull();
+});
+
+test("a select box is a combobox named by its label, inside the labelled box, and picks a value", async () => {
+  function Score() {
+    const [value, setValue] = useState(0);
+    return <SelectBox label="Strength" value={value} options={[[-1, "-1"], [0, "0"], [1, "+1"]]} onValueChange={setValue} className="w-24" />;
+  }
+  render(<Score />);
+  const select = screen.getByRole("combobox", { name: "Strength" });
+  const box = select.parentElement!;
+  expect([box.tagName, box.className, box.firstElementChild!.className, select.className]).toEqual(["LABEL", "ui-select-box w-24", "ui-label", "ui-select"]);
+  expect(select.textContent).toBe("0");
+  await pickOption(select, "+1");
+  expect(select.textContent).toBe("+1");
+});
+
+test("aria-label names a select box instead of its label", () => {
+  render(<SelectBox label="STR" aria-label="Strength bonus" value={null} options={FRUIT} onValueChange={() => {}} />);
+  expect(screen.getByRole("combobox", { name: "Strength bonus" })).toBeTruthy();
 });

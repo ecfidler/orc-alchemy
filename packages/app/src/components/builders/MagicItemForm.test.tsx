@@ -39,7 +39,7 @@ async function form(name: string) {
   await screen.findByLabelText("Rarity");
 }
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const group = (name: string) => within(screen.getByRole("group", { name }));
 const stored = (key: string) => useHomebrew.getState().magicItems.find((r) => r.id === key);
 const MI = "~:orcpub.dnd.e5.magic-items/";
@@ -104,7 +104,7 @@ test("Edit loads the stored item; a save keeps the enabled flag, and a rename re
   fireEvent.click(screen.getByRole("link", { name: "Edit Hawk Eye Circlet" }));
   await form("Edit magic item");
   expect(screen.queryByLabelText("Option source (pack)")).toBeNull();
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Hawk Eye Circlet");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Hawk Eye Circlet");
   expect(shown("WIS change")).toBe("Increases by");
   expect(screen.getByLabelText<HTMLInputElement>("WIS value").value).toBe("2");
   expect(group("Damage resistances").getByRole("checkbox", { name: "Fire" })).toBeChecked();

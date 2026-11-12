@@ -52,3 +52,24 @@ export function Select<T>({ value, options, onValueChange, placeholder, "aria-la
     </BaseSelect.Root>
   );
 }
+
+export type SelectBoxProps<T> = Omit<SelectProps<T>, "className" | "placeholder"> & {
+  /** The visible label, at the top of the box. It names the select, unless `aria-label` is given. */
+  label: string;
+  /** Layout classes for the box, for example a width. */
+  className?: string;
+};
+
+/**
+ * A select in a box, with its label at the top of the box and its value
+ * large under it. The select fills the box, so a click anywhere in the box
+ * opens it. Use a row of them for a set of short values.
+ */
+export function SelectBox<T>({ label, className, ...props }: SelectBoxProps<T>) {
+  return (
+    <label className={className ? `ui-select-box ${className}` : "ui-select-box"}>
+      <span className="ui-label">{label}</span>
+      <Select {...props} />
+    </label>
+  );
+}

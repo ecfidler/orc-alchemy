@@ -8,7 +8,7 @@
 import { Field, Fieldset } from "@orc-alchemy/ui";
 import { intKey, tag, untag } from "../../engine/content.ts";
 import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
-import { editor, fieldErrors, ProficiencyChoice, SelectField, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type FormProps } from "./fields.tsx";
+import { editor, fieldErrors, FormColumn, ProficiencyChoice, SelectField, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type FormProps } from "./fields.tsx";
 
 /** The parent classes whose subclasses add spells, with the field and its title. */
 const CLASS_SPELLS: Record<string, [field: string, title: string]> = {
@@ -24,7 +24,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
   return (
     <WithChoices>
       {(choices) => (
-        <div className="space-y-3">
+        <FormColumn>
           <TextField edit={edit} problems={problems} field="name" label="Name" />
           <Field label="Class" errors={fieldErrors(problems, "class", "Class")}>
             <SelectField
@@ -45,7 +45,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
           )}
           {spells && (
             // The old subclass spells table: two spells for each spell level from 1 to 5.
-            <Fieldset legend={spells[1]}>
+            <Fieldset legend={spells[1]} look="section">
               {[1, 2, 3, 4, 5].map((level) => (
                 <div key={level}>
                   {[0, 1].map((i) => (
@@ -67,7 +67,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
           <LevelModifiers edit={edit} problems={problems} choices={choices} />
           <LevelSelections edit={edit} problems={problems} choices={choices} />
           <Traits edit={edit} problems={problems} levels />
-        </div>
+        </FormColumn>
       )}
     </WithChoices>
   );
