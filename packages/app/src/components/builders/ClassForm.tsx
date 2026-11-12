@@ -283,7 +283,6 @@ function ClassForm({ record, onChange, problems }: FormProps) {
           <TextField edit={edit} problems={problems} field="subclass-help" label="Subclass description" />
           <Checks
             legend="Saving throws"
-            row
             items={ABILITIES.map(([key, name]) => ({ key: abilityKey(key), name }))}
             checked={(key) => edit.get("profs", "save", key) === true}
             // The old toggle removes the key, not stores false.

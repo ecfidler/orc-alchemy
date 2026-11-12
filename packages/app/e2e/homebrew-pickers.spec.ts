@@ -6,6 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 // ORC-199: the pickers, number toggles and the Armor Class select of the feat, race and subrace forms (docs/design/homebrew-forms.md, "Controls").
 // ORC-200: the tool sub-selections and the equipment picker of the background form.
 // ORC-201: the class form's chips and spell list pickers, and the subclass spells table.
+// ORC-202: the pickers of the magic item, monster and spell forms, and the base weapon select.
 
 /** Adds the modifier named `name` from the "+ Add a modifier" list. */
 const addModifier = (page: Page, name: string) => pickFromPicker(page.getByRole("button", { name: "Add a modifier" }), name);
@@ -171,6 +172,104 @@ test("the subclass form: two slots of a spells row filled, one removed, and the 
   await expect(slot(page, "2nd", "first")).toBeVisible();
 });
 
+test("the magic item form: a base weapon select and picker, an attunement picker with search, and a damage picker", async ({ page }) => {
+  await page.goto("/content/new/magicItem");
+  await page.getByRole("textbox", { name: "Name" }).fill("Tide Blade");
+  await pickOption(page.getByRole("combobox", { name: "Type" }), "Weapon");
+  const base = page.getByRole("combobox", { name: "Base weapon" });
+  await expect(base).toHaveText("Specific");
+  await section(page, "Base weapon").getByRole("button", { name: "Add a base weapon", exact: true }).click();
+  const weapons = page.getByRole("dialog", { name: "Add a base weapon" });
+  await expect(weapons.getByRole("searchbox", { name: "Search" })).toBeFocused();
+  await page.keyboard.type("trid");
+  await expect(weapons.locator(".ui-list-row")).toHaveText(["TridentAdd"]);
+  await page.keyboard.press("Escape");
+  await pick(page, "Base weapon", "Add a base weapon", ["Trident", "Scimitar"]);
+  await expect(tokens(page, "Base weapon")).toHaveText(["Scimitar", "Trident"]);
+  await removeToken(section(page, "Base weapon"), "Scimitar");
+  await pickOption(base, "New weapon");
+  await expect(section(page, "Base weapon details")).toBeVisible();
+  await expect(section(page, "Base weapon")).not.toContainText("Add a base weapon");
+  await pickOption(base, "Specific");
+  await expect(section(page, "Base weapon details")).toHaveCount(0);
+  await pick(page, "Base weapon", "Add a base weapon", "Trident");
+
+  await page.getByRole("checkbox", { name: "Requires attunement" }).check();
+  await expect(section(page, "Attunement")).toContainText("No limits: any creature can attune to it.");
+  await section(page, "Attunement").getByRole("button", { name: "Add an attunement limit", exact: true }).click();
+  const limits = page.getByRole("dialog", { name: "Add an attunement limit" });
+  await expect(limits.getByRole("searchbox", { name: "Search" })).toBeFocused();
+  await page.keyboard.type("good");
+  await expect(limits.locator(".ui-list-row")).toHaveText(["GoodAdd", "Lawful GoodAdd", "Neutral GoodAdd", "Chaotic GoodAdd"]);
+  await page.keyboard.press("Escape");
+  await pick(page, "Attunement", "Add an attunement limit", ["Neutral Good", "Druid"]);
+  await expect(tokens(page, "Attunement")).toHaveText(["Druid", "Neutral Good"]);
+
+  await addModifier(page, "Damage resistances");
+  await pick(page, "Damage resistances", "Add a damage resistance", ["Lightning", "Cold"]);
+  await expect(tokens(page, "Damage resistances")).toHaveText(["Cold", "Lightning"]);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/\/content$/);
+
+  await page.goto("/content/edit/magicItem/tide-blade");
+  await expect(base).toHaveText("Specific");
+  await expect(tokens(page, "Base weapon")).toHaveText(["Trident"]);
+  await expect(tokens(page, "Attunement")).toHaveText(["Druid", "Neutral Good"]);
+  await expect(tokens(page, "Damage resistances")).toHaveText(["Cold", "Lightning"]);
+});
+
+test("the monster form: damage and condition pickers, and a language picker with search", async ({ page }) => {
+  await page.goto("/content/new/monster");
+  await page.getByRole("textbox", { name: "Name" }).fill("Reef Hag");
+  await pickOption(page.getByRole("combobox", { name: "Hit die count", exact: true }), "4");
+  await pickOption(page.getByRole("combobox", { name: "Hit die", exact: true }), "8");
+  await addModifier(page, "Damage vulnerabilities");
+  await pick(page, "Damage vulnerabilities", "Add a damage vulnerability", "Fire");
+  await pick(page, "Damage resistances", "Add a damage resistance", ["Damage from traps", "Cold"]);
+  await expect(tokens(page, "Damage resistances")).toHaveText(["Damage from traps", "Cold"]);
+  await pick(page, "Damage immunities", "Add a damage immunity", "Poison");
+  const conditions = section(page, "Condition immunities").getByRole("button", { name: "Add a condition", exact: true });
+  await expect(conditions).toHaveAccessibleDescription("15 more");
+  await pick(page, "Condition immunities", "Add a condition", ["Poisoned", "Charmed"]);
+  await expect(conditions).toHaveAccessibleDescription("13 more");
+  await section(page, "Languages").getByRole("button", { name: "Add a language", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a language" });
+  await expect(dialog.getByRole("searchbox", { name: "Search" })).toBeFocused();
+  await page.keyboard.type("sylv");
+  await expect(dialog.locator(".ui-list-row")).toHaveText(["SylvanAdd"]);
+  await page.keyboard.press("Escape");
+  await pick(page, "Languages", "Add a language", ["Sylvan", "Common"]);
+  await removeToken(section(page, "Languages"), "Common");
+  await expect(tokens(page, "Languages")).toHaveText(["Sylvan"]);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/\/content$/);
+
+  await page.goto(`/content/edit/monster/${encodeURIComponent("Default Option Source")}/reef-hag`);
+  await expect(tokens(page, "Damage vulnerabilities")).toHaveText(["Fire"]);
+  await expect(tokens(page, "Damage resistances")).toHaveText(["Damage from traps", "Cold"]);
+  await expect(tokens(page, "Damage immunities")).toHaveText(["Poison"]);
+  await expect(tokens(page, "Condition immunities")).toHaveText(["Charmed", "Poisoned"]);
+  await expect(tokens(page, "Languages")).toHaveText(["Sylvan"]);
+});
+
+test("the spell form: a new spell is on no class list, and a class picker", async ({ page }) => {
+  await page.goto("/content/new/spell");
+  await page.getByRole("textbox", { name: "Name" }).fill("Brine Bolt");
+  await expect(tokens(page, "Class spell lists")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+  const add = section(page, "Class spell lists").getByRole("button", { name: "Add a class", exact: true });
+  await expect(add).toHaveAccessibleDescription("8 more");
+  await pick(page, "Class spell lists", "Add a class", ["Wizard", "Druid", "Sorcerer"]);
+  await expect(tokens(page, "Class spell lists")).toHaveText(["Druid", "Sorcerer", "Wizard"]);
+  await removeToken(section(page, "Class spell lists"), "Sorcerer");
+  await expect(add).toHaveAccessibleDescription("6 more");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/\/content$/);
+
+  await page.goto(`/content/edit/spell/${encodeURIComponent("Default Option Source")}/brine-bolt`);
+  await expect(tokens(page, "Class spell lists")).toHaveText(["Druid", "Wizard"]);
+});
+
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -307,6 +406,72 @@ test.describe("screenshots", () => {
       await open();
       await fill();
       await main.screenshot({ path: shot("background-phone") });
+    });
+
+    test(`orc-202 the magic item, monster and spell forms, ${theme}`, async ({ page }) => {
+      test.setTimeout(90_000);
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-202-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      const main = page.locator("main");
+      const open = async (type: string) => {
+        await page.goto(`/content/new/${type}`);
+        await page.getByRole("textbox", { name: "Name" }).waitFor();
+        await page.evaluate(() => document.fonts.ready);
+      };
+      const noFlash = () => page.locator(".ui-flash").evaluateAll((all) => all.forEach((el) => el.classList.remove("ui-flash")));
+      const choose = (label: string, option: string) => pickOption(page.getByRole("combobox", { name: label, exact: true }), option);
+
+      await open("magicItem");
+      await page.getByRole("textbox", { name: "Name" }).fill("Tide Blade");
+      await page.getByRole("textbox", { name: "Description" }).fill("A blade of sea-green steel that drips with brine.");
+      await choose("Type", "Weapon");
+      await choose("Rarity", "Rare");
+      await pick(page, "Base weapon", "Add a base weapon", ["Scimitar", "Trident"]);
+      await page.getByRole("checkbox", { name: "Requires attunement" }).check();
+      await pick(page, "Attunement", "Add an attunement limit", ["Druid", "Ranger", "Neutral Good"]);
+      await page.getByLabel("Magical attack bonus").fill("1");
+      await page.getByLabel("Magical damage bonus").fill("1");
+      await addModifier(page, "Damage resistances");
+      await pick(page, "Damage resistances", "Add a damage resistance", ["Cold", "Lightning"]);
+      await noFlash();
+      await main.screenshot({ path: shot("magic-item-filled") });
+      await section(page, "Attunement").getByRole("button", { name: "Add an attunement limit", exact: true }).click();
+      await page.getByRole("dialog", { name: "Add an attunement limit" }).getByRole("searchbox").fill("good");
+      await page.screenshot({ path: shot("attunement-search") });
+
+      await open("monster");
+      await page.getByRole("textbox", { name: "Name" }).fill("Reef Hag");
+      await choose("Hit die count", "4");
+      await choose("Hit die", "8");
+      await addModifier(page, "Damage vulnerabilities");
+      await pick(page, "Damage vulnerabilities", "Add a damage vulnerability", "Fire");
+      await pick(page, "Damage resistances", "Add a damage resistance", ["Cold", "Damage from traps"]);
+      await pick(page, "Damage immunities", "Add a damage immunity", "Poison");
+      await pick(page, "Condition immunities", "Add a condition", ["Charmed", "Poisoned"]);
+      await pick(page, "Languages", "Add a language", ["Common", "Primordial", "Sylvan"]);
+      await noFlash();
+      await main.screenshot({ path: shot("monster-filled") });
+      await section(page, "Languages").getByRole("button", { name: "Add a language", exact: true }).click();
+      await page.getByRole("dialog", { name: "Add a language" }).waitFor();
+      await page.screenshot({ path: shot("monster-languages") });
+
+      await open("spell");
+      await page.getByRole("textbox", { name: "Name" }).fill("Brine Bolt");
+      await choose("Level", "1st-level");
+      await choose("School", "evocation");
+      await page.getByRole("textbox", { name: "Casting time" }).fill("1 action");
+      await page.getByRole("textbox", { name: "Range" }).fill("60 feet");
+      await page.getByRole("textbox", { name: "Duration" }).fill("Instantaneous");
+      await page.getByRole("textbox", { name: "Description" }).fill("A bolt of sea water strikes a creature you can see.");
+      await page.getByRole("checkbox", { name: "Verbal" }).check();
+      await page.getByRole("checkbox", { name: "Somatic" }).check();
+      await page.getByRole("checkbox", { name: "Requires an attack roll" }).check();
+      await pick(page, "Class spell lists", "Add a class", ["Druid", "Sorcerer", "Wizard"]);
+      await main.screenshot({ path: shot("spell-filled") });
+      await section(page, "Class spell lists").getByRole("button", { name: "Add a class", exact: true }).click();
+      await page.getByRole("dialog", { name: "Add a class" }).waitFor();
+      await page.screenshot({ path: shot("spell-classes") });
     });
 
     test(`orc-201 the class and subclass forms, ${theme}`, async ({ page }) => {

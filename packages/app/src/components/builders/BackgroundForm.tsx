@@ -70,7 +70,6 @@ function ToolChecks({ edit, legend, items, action }: { edit: Edit; legend: strin
     <Checks
       legend={legend}
       look="block"
-      row
       action={action}
       items={items}
       checked={(key) => Boolean(edit.get(...TOOL, key))}
