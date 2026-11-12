@@ -5,6 +5,8 @@
 // section rule. An item opens with each modifier that holds a value. The
 // modifiers that the user added in this visit are local state: an empty one
 // stays on the form until the form closes, and nothing about it is stored.
+// The module also has useAddList: the add, flash and focus logic of such a
+// list. The tool proficiencies of the background form use it too.
 import { AddButton, AlertNote, Button, ListModal } from "@orc-alchemy/ui";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { isSet, setItems } from "../../engine/content.ts";
@@ -113,7 +115,7 @@ const CONTROL = 'button:not([disabled]), input:not([type="hidden"]):not([tabinde
  * section rule. Only the part's own hidden parts count: while the list
  * modal closes, the page around it is still hidden.
  */
-export function firstControl(section: HTMLElement | null | undefined): HTMLElement | null {
+function firstControl(section: HTMLElement | null | undefined): HTMLElement | null {
   if (!section) return null;
   const skipped = (el: HTMLElement) => {
     const part = el.closest(".ui-fieldset-action, [aria-hidden='true'], [hidden]");
