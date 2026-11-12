@@ -1,0 +1,577 @@
+<title>Feature Uses Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..700&display=swap">
+<style>
+/* PROTOTYPE (ORC-186), throwaway. The uses control on a homebrew feature, the sentences that say
+   what the sheet shows, and a preview of the sheet entry. Built on layout D, boxed fields (ORC-184). */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --danger: #c2271d; --info: #1e5fb4;
+  --note-blue: #a9ccff; --note-yellow: #ffe45c; --note-ink: #222222; --margin-rule: #c2271d;
+  --flag-yellow: #ffe45c; --flag-blue: #7fb6ff; --flag-green: #7ee08f; --flag-orange: #ffae5c; --flag-ink: #222222;
+  --note-shadow: rgba(60, 45, 0, 0.2);
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --bubble: color-mix(in srgb, var(--info) 12%, var(--paper-raised));
+  --proto-bg: #1c2b4a; --proto-fg: #ffffff;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --info: #5ea2ff; --note-blue: #9cc4ff; --note-yellow: #ffe45c;
+  --note-ink: #000000; --margin-rule: #ff5c52; --flag-ink: #000000; --note-shadow: rgba(255,255,255,0.1);
+  --bubble: color-mix(in srgb, var(--info) 18%, var(--paper-raised));
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+} }
+:root[data-theme="dark"] {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --info: #5ea2ff; --note-blue: #9cc4ff; --note-yellow: #ffe45c;
+  --note-ink: #000000; --margin-rule: #ff5c52; --flag-ink: #000000; --note-shadow: rgba(255,255,255,0.1);
+  --bubble: color-mix(in srgb, var(--info) 18%, var(--paper-raised));
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-serif); font-size: 17px; line-height: 1.5;
+  font-weight: 450; font-optical-sizing: auto; font-variant-numeric: lining-nums tabular-nums; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* ---------- prototype chrome (not part of the design) ---------- */
+.proto-top { font-family: var(--font-sans); font-size: 12.5px; background: var(--proto-bg); color: var(--proto-fg);
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.proto-top b { font-weight: 600; }
+.proto-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.proto-group > span { opacity: .75; margin-right: 2px; }
+.proto-top button { background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; cursor: pointer; font-size: 12px; }
+.proto-top button[aria-pressed="true"] { background: var(--proto-fg); color: var(--proto-bg); }
+.proto-notes { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; background: var(--panel); border-bottom: 1px solid var(--rule);
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.proto-notes summary { cursor: pointer; font-weight: 600; }
+.proto-notes ul { margin: 6px 0 2px; padding-left: 18px; max-width: 86ch; }
+.proto-notes table { border-collapse: collapse; margin: 6px 0 4px; max-width: 100ch; }
+.proto-notes td, .proto-notes th { border-top: 1px solid var(--rule); padding: 4px 10px 4px 0; vertical-align: top; text-align: left; }
+.proto-notes th { font-weight: 600; white-space: nowrap; }
+.proto-notes .tblwrap { overflow-x: auto; }
+.proto-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  display: flex; align-items: center; gap: 4px; background: var(--proto-bg); color: var(--proto-fg); border-radius: 999px;
+  padding: 5px 6px; box-shadow: 0 6px 20px rgba(0,0,0,.3); font-family: var(--font-sans); font-size: 13px; max-width: calc(100vw - 24px); }
+.proto-bar button { background: transparent; border: 0; color: inherit; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+.proto-bar button:hover { background: color-mix(in srgb, var(--proto-fg) 18%, transparent); }
+.proto-bar .lbl { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage { container-type: inline-size; margin: 0 auto; padding-bottom: 90px; }
+.stage.phone { max-width: 390px; border-inline: 1px dashed var(--rule-strong); }
+
+/* ---------- shell ---------- */
+.shell { display: grid; grid-template-columns: 200px minmax(0, 1fr); min-height: 100vh; }
+.rail { position: relative; display: grid; align-content: start; gap: 22px; padding: 20px 16px; border-right: 1.5px solid var(--margin-rule); }
+.rail::after { content: ""; position: absolute; top: 0; bottom: 0; right: 4px; border-right: 1px solid color-mix(in srgb, var(--margin-rule) 45%, transparent); }
+.logo { font-size: 20px; font-weight: 500; display: flex; gap: 8px; align-items: center; }
+.logo i { width: 22px; height: 22px; border-radius: 50% 50% 45% 45%; background: #2f8a3a; display: inline-block; }
+.logo sup { font-family: var(--font-sans); font-size: 10px; letter-spacing: .08em; }
+.flags { position: relative; z-index: 2; display: grid; justify-items: end; gap: 9px; margin-right: -17.5px;
+  font-family: var(--font-sans); font-size: 13.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.flag { --flag: var(--flag-yellow); display: block; width: calc(100% - 14px); padding: 11px 14px 11px 16px; color: var(--flag-ink); text-decoration: none;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--flag) 55%, #fff) 0 68%, var(--flag) 68% 100%); }
+.flag.blue { --flag: var(--flag-blue); } .flag.green { --flag: var(--flag-green); } .flag.orange { --flag: var(--flag-orange); }
+.flag[aria-current] { width: calc(100% + 4px); background: var(--flag); box-shadow: 0 3px 6px -4px var(--note-shadow); }
+.main { min-width: 0; padding: 20px 16px 48px 28px; }
+@container (max-width: 680px) {
+  .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .rail { gap: 8px; padding: 14px 16px 10px; border-right: 0; border-bottom: 1.5px solid var(--margin-rule); }
+  .rail::after { top: auto; bottom: 3px; left: 0; right: 0; border-right: 0; border-bottom: 1px solid color-mix(in srgb, var(--margin-rule) 45%, transparent); }
+  .main { padding: 16px 16px 48px; }
+  .flags { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); justify-items: stretch; align-items: end; gap: 6px; margin: 0 0 -11.5px; font-size: 10px; letter-spacing: .02em; }
+  .flag, .flag[aria-current] { width: auto; height: 54px; padding: 10px 2px 0; text-align: center;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--flag) 55%, #fff) 0 62%, var(--flag) 62% 100%); }
+  .flag[aria-current] { height: 64px; background: var(--flag); }
+}
+
+/* ---------- fields (boxed, from ORC-184) ---------- */
+.lab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.inp, .sel, .ta { border: 1px solid var(--ink); background: var(--paper-raised); padding: 3px 8px; border-radius: 0; min-width: 0; }
+.ta { display: block; width: 100%; min-height: 4.6em; resize: vertical; line-height: 1.45; }
+.inp { width: 100%; max-width: 26rem; }
+.sel { appearance: none; padding-right: 22px; cursor: pointer; max-width: 100%;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position: calc(100% - 12px) 55%, calc(100% - 8px) 55%; background-size: 4px 4px; background-repeat: no-repeat; }
+.sub { display: inline-flex; flex-direction: column; gap: 2px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+.help { font-size: 14.5px; color: var(--ink-muted); margin: 0 0 6px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1.5px solid var(--ink); border-radius: 6px; overflow: hidden; font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; padding: 3px 11px; border-left: 1px solid var(--ink); }
+.seg label:first-child span { border-left: 0; }
+.seg input:checked + span { background: var(--ink); color: var(--paper); }
+.seg input:focus-visible + span { outline: 2px solid var(--info); outline-offset: -3px; }
+.btn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; line-height: 1.4; background: transparent; border: 1.5px solid var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.btn:hover { background: var(--panel); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn.add { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 12px; text-align: left; }
+.btn.small { padding: 1px 8px; border-radius: 4px; font-size: 12px; }
+.link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+.xbtn { position: relative; flex: none; width: 30px; height: 30px; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--ink-muted); }
+.xbtn::before, .xbtn::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 1.75px; background: currentColor; }
+.xbtn::before { transform: translate(-50%, -50%) rotate(45deg); } .xbtn::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.xbtn:hover { color: var(--danger); border-color: currentColor; background: var(--panel); }
+.srule { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.srule h3 { margin: 0; font-family: var(--font-sans); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.srule::after { content: ""; flex: 1; border-top: 1px solid var(--rule-strong); }
+.page-head { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.page-head h1 { font-size: 26px; font-weight: 500; margin: 0; text-wrap: balance; }
+.actions { display: flex; gap: 14px; align-items: center; margin-top: 26px; }
+.saved { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+.va { max-width: 760px; display: grid; gap: 22px; }
+.va .fld { display: grid; gap: 3px; }
+.folded { font-size: 14.5px; color: var(--ink-muted); border: 1px dashed var(--rule-strong); padding: 8px 12px; }
+
+/* ---------- the feature card ---------- */
+.feature { border: 1px solid var(--rule-strong); padding: 10px 12px 12px; display: grid; gap: 10px; background: var(--paper-raised); }
+.feature + .feature { margin-top: 12px; }
+.feature .top { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: end; }
+@container (max-width: 520px) { .feature .top { grid-template-columns: minmax(0, 1fr) auto; } .feature .top .xbtn { grid-column: 2; grid-row: 1; } .feature .top .sub:nth-child(2) { grid-column: 1 / -1; } }
+.usesbox { border-top: 1px dashed var(--rule-strong); padding-top: 10px; display: grid; gap: 8px; }
+.uline { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.uline .word { font-size: 15.5px; }
+.inline-sel { padding-block: 1px; }
+
+/* The suggestion from the text (ORC-185): a small yellow note with one button. */
+.suggest { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; background: color-mix(in srgb, var(--note-yellow) 70%, var(--paper-raised)); color: var(--note-ink); padding: 6px 10px; font-size: 14.5px; }
+.suggest q { font-style: italic; }
+.suggest .btn { border-color: var(--note-ink); color: var(--note-ink); }
+
+/* The sentences: what the sheet shows. */
+.says { margin: 0; padding: 0; font-size: 14.5px; color: var(--ink-muted); line-height: 1.45; display: grid; gap: 2px; list-style: none; }
+.says li.first { font-weight: 600; }
+.says li.warn { color: var(--danger); }
+.says li.tip { color: var(--ink-muted); }
+
+/* ---------- the preview ---------- */
+.preview { display: grid; gap: 6px; }
+.pv-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; justify-content: space-between; }
+.excon { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+.excon .sel { font-size: 12px; padding: 0 20px 0 6px; }
+.sheetbox { border: 1.5px solid var(--ink); background: var(--paper); padding: 8px 12px 12px; display: grid; gap: 6px; font-size: 14.5px; }
+.sheetbox .slab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.sheetbox .slab + * { margin-top: 0; }
+.sheetbox .sec + .sec { margin-top: 8px; }
+.plain { display: grid; gap: 1px; margin: 0; }
+.plain b { font-weight: 600; }
+
+/* UseBubble, as in @orc-alchemy/ui paper.css */
+.ub { container-type: inline-size; padding: 8px 14px 10px; background: var(--bubble); border: 1.5px solid var(--info); border-radius: 18px; }
+.ub-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; }
+.ub-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; min-width: 0; font-weight: 600; }
+.ub-body { grid-column: 1; min-width: 0; }
+.ub-side { grid-column: 2; grid-row: 1 / span 2; display: grid; justify-items: end; align-content: start; gap: 4px; }
+.ub-tag { font-family: var(--font-sans); font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.ub-circles { display: inline-flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.ub-circle, .ub-pool { appearance: none; margin: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.ub-circle { position: relative; width: 15px; height: 15px; background: var(--bubble); border: 1.5px solid var(--info); border-radius: 50%; }
+.ub-circle[aria-pressed="true"] { background: transparent; border-color: var(--ink-muted); }
+.ub-circle[aria-pressed="true"]::after { content: ""; position: absolute; left: -3px; right: -3px; top: 50%; height: 2px; background: var(--ink); border-radius: 2px; transform: rotate(-52deg); }
+.ub-pool { background: none; border: 0; font-size: 30px; font-weight: 500; line-height: 1; }
+.ub-pool .of { color: var(--ink-muted); }
+@container (max-width: 380px) {
+  .ub-grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "title title" "circles side" "body body"; column-gap: 10px; }
+  .ub-head { display: contents; } .ub-title { grid-area: title; } .ub-circles { grid-area: circles; }
+  .ub-side { grid-area: side; display: flex; align-items: center; gap: 10px; } .ub-body { grid-area: body; }
+}
+.ub[data-spent] { background: transparent; border-style: dashed; border-color: var(--ink-muted); }
+.ub[data-spent] :is(.ub-title, .ub-body, .ub-pool) { color: var(--ink-muted); }
+
+/* Variant C: the sheet preview of the whole item at the side. */
+.vc { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; max-width: 1120px; }
+.vc .side { position: sticky; top: 12px; display: grid; gap: 8px; }
+.vc .side h2 { margin: 0; font-family: var(--font-sans); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+@container (max-width: 960px) { .vc { grid-template-columns: minmax(0, 1fr); } .vc .side { position: static; order: 2; } }
+/* The confirm dialog for deleting a feature that has content (as AlertDialog in @orc-alchemy/ui). */
+.mback { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--ink) 40%, transparent); display: grid; place-items: center; padding: 16px; }
+.cdlg { width: min(420px, 100%); background: var(--paper); border: 1.5px solid var(--ink); box-shadow: 0 22px 50px -18px rgba(0,0,0,.5); padding: 18px 20px 16px; display: grid; gap: 10px; }
+.cdlg h2 { margin: 0; font-size: 22px; font-weight: 500; text-wrap: balance; }
+.cdlg p { margin: 0; font-size: 15.5px; }
+.cdlg .row { justify-content: flex-end; margin-top: 6px; }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+</style>
+
+<div class="proto-top" role="toolbar" aria-label="Prototype controls">
+  <b>PROTOTYPE · ORC-186</b>
+  <span class="proto-group"><span>Form</span><button data-form="race">Race</button><button data-form="subclass">Subclass</button><button data-form="feat">Feat</button></span>
+  <span class="proto-group"><span>Item</span><button data-sample="new">New</button><button data-sample="imported">Imported</button></span>
+  <span class="proto-group"><span>Width</span><button data-width="full">Full</button><button data-width="phone">Phone 390</button></span>
+  <span class="proto-group"><span>Theme</span><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></span>
+</div>
+<details class="proto-notes" open>
+  <summary>What to look at</summary>
+  <ul>
+    <li><b>Three variants</b>, switched with the bar at the bottom (or the ← → keys). A: a "None / Fixed / Scaled" toggle and fields. B: one sentence line, "[3] uses, recharges [on a long rest]", with the scaled amounts in the same list as the numbers. C: the control from A, and the sheet preview for the whole item at the side, sorted into sections.</li>
+    <li><b>Imported</b> opens a pack item with every case: fixed, a pool, proficiency bonus, a level × 5 pool (subclass), an ability modifier (feat), a feature with no uses whose text has a suggestion, and a rest from an old pack (Each round).</li>
+    <li>The <b>preview</b> shows the bubble, its tag and its sheet section. For scaled uses only, one line under it says how the amount is worked out for the example character.</li>
+    <li><b>Example character</b> for scaled uses: level 5 and 16 in the ability, as the ticket suggests. Change both on the preview. A class or subclass feature counts the class level; others count the character level.</li>
+    <li><b>Delete (X)</b> on a feature with content (a name, text, uses, or a type) asks first. An empty feature goes at once.</li>
+    <li>Leave artifact comments on wording you want changed, or on the variant to keep.</li>
+  </ul>
+
+</details>
+<div class="stage" id="stage"></div>
+<div id="modal-root"></div>
+<div class="proto-bar" aria-label="Variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span class="lbl" id="vlabel"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+const VARIANTS = [["A", "Toggle and fields"], ["B", "One sentence line"], ["C", "Toggle, preview at the side"]];
+const ABIL = [["str", "Strength"], ["dex", "Dexterity"], ["con", "Constitution"], ["int", "Intelligence"], ["wis", "Wisdom"], ["cha", "Charisma"]];
+const ABN = Object.fromEntries(ABIL);
+const RESTS = [["short", "Short rest"], ["long", "Long rest"], ["day", "Day"], ["turn", "Turn"]];
+const LEGACY = { round: "Round", minute: "Minute", hour: "Hour" };
+const TYPES = ["Other", "Action", "Bonus Action", "Reaction"];
+const SECTION = { Action: "Actions", "Bonus Action": "Bonus Actions", Reaction: "Reactions", Other: "Features, Traits, and Feats" };
+const FIXED = [...Array.from({ length: 20 }, (_, i) => i + 1), 25, 30, 40, 50, 100];
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const none = () => ({ kind: "none", rest: "long" });
+
+// ---------- samples ----------
+const SAMPLES = {
+  race: { one: "race", cls: null,
+    new: { name: "", desc: "", features: [] },
+    imported: { name: "Tidekin", desc: "Sea folk of the Sunken Isles.", features: [
+      { name: "Hold Breath", type: "Other", desc: "You can hold your breath for up to 1 hour.", uses: none() },
+      { name: "Tide Surge", type: "Other", desc: "As a bonus action, you move up to your swimming speed toward a creature you can see. Once you use this trait, you can't use it again until you finish a short or long rest.", uses: none() },
+      { name: "Brine Blessing", type: "Action", desc: "You touch a creature and end one disease or poison on it.", uses: { kind: "fixed", n: 1, rest: "long" } },
+      { name: "Deep Reserves", type: "Other", desc: "You have a pool of healing. As an action, you can touch a creature and restore hit points from the pool.", uses: { kind: "fixed", n: 25, rest: "long" } },
+    ] } },
+  subclass: { one: "subclass", cls: "paladin",
+    new: { name: "", desc: "", features: [] },
+    imported: { name: "Oath of the Tide", desc: "Paladin subclass.", features: [
+      { name: "Tidal Reserve", type: "Action", desc: "You have a pool of power that you can spend to heal. As an action, you touch a creature and restore hit points from the pool.", uses: { kind: "scaled", base: "level", times: 5, plus: 0, min: "", rest: "long" } },
+      { name: "Undertow", type: "Reaction", desc: "When a creature you can see moves within 10 feet of you, you can use your reaction to pull it 5 feet toward you. You can use this feature a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.", uses: { kind: "scaled", base: "prof", times: 1, plus: 0, min: "", rest: "long" } },
+      { name: "Guardian Wave", type: "Reaction", desc: "When an ally within 5 feet of you is hit, you can halve the damage.", uses: { kind: "fixed", n: 1, rest: "round" } },
+      { name: "Riptide Aura", type: "Other", desc: "Creatures of your choice within 10 feet of you have advantage on Strength saving throws.", uses: none() },
+    ] } },
+  feat: { one: "feat", cls: null,
+    new: { name: "", desc: "", uses: none(), type: "Other", features: [] },
+    imported: { name: "Sea Luck", desc: "When you fail a saving throw, you can use your reaction to reroll it. You can do this a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a long rest.",
+      uses: { kind: "scaled", base: "ability", ability: "wis", times: 1, plus: 0, min: 1, rest: "long" }, type: "Reaction",
+      features: [{ name: "Salt Sense", type: "Other", desc: "You always know which way is north while you are at sea.", uses: none() }] } },
+};
+
+// ---------- the numbers ----------
+const mod = (score) => Math.floor((score - 10) / 2);
+const prof = (lvl) => 2 + Math.floor((lvl - 1) / 4);
+function amount(u, lvl, score) {
+  if (u.kind === "none") return null;
+  if (u.kind === "fixed") return +u.n;
+  const base = u.base === "ability" ? mod(score) : u.base === "prof" ? prof(lvl) : lvl * (+u.times || 1);
+  let n = base + (+u.plus || 0);
+  if (u.min !== "" && u.min !== undefined && u.min !== null) n = Math.max(n, +u.min);
+  return n;
+}
+const step = (n) => (n >= 20 ? 5 : 1);
+const tagOf = (rest) => ({ short: "Short rest", long: "Long rest", day: "Each day", turn: "Each turn" })[rest] || `Each ${rest}`;
+
+// ---------- the sentences ----------
+function levelWord(cls) { return cls ? `your ${cls} level` : "your character level"; }
+function formula(u, cls) {
+  let f = u.base === "ability" ? `your ${ABN[u.ability]} modifier` : u.base === "prof" ? "your proficiency bonus" : `${+u.times === 1 ? "" : `${u.times} × `}${levelWord(cls)}`;
+  if (+u.plus) f += ` ${+u.plus > 0 ? "+" : "−"} ${Math.abs(+u.plus)}`;
+  if (u.min !== "" && u.min !== undefined && u.min !== null) f += ` (minimum ${u.min})`;
+  return f;
+}
+function shapeOf(n) { return n === null || n <= 0 ? "none" : n > 8 ? "pool" : "circles"; }
+function says(u, type, cls) {
+  const L = S.level, sc = S.score, out = [];
+  const n = amount(u, L, sc);
+  const section = SECTION[type] || SECTION.Other;
+  if (u.kind === "none") {
+    out.push(["dup", "No use bubble. The sheet shows this feature as plain text."]);
+    out.push(["dup", `It shows under ${section} on the sheet.`]);
+    return out;
+  }
+  if (u.kind === "fixed") {
+    out.push(["dup", n > 8 ? `Shows a use bubble with a pool of ${n}.` : `Shows a use bubble with ${n} ${n === 1 ? "circle" : "circles"}.`]);
+    if (n > 8) out.push(["dup", `More than 8 uses show as a number. A click spends ${step(n)}.`]);
+  } else {
+    const ab = u.base === "ability" ? ABN[u.ability] : null;
+    const ex = `A level ${L} character${ab ? ` with ${sc} ${ab}` : ""}`;
+    if (n <= 0) {
+      out.push(["dup", "Shows a use bubble when the amount is 1 or more."]);
+      out.push(["", `Uses equal ${formula(u, cls)}. ${ex} gets ${n}.`]);
+      out.push(["dup", `${ab ? `With ${sc} ${ab}` : `At level ${L}`} this gives ${n} uses, so the sheet shows no bubble. Set a minimum of 1 to keep one use.`]);
+    } else {
+      out.push(["dup", n > 8 ? `Shows a use bubble with a pool of ${n} for the example character.` : `Shows a use bubble with ${n} ${n === 1 ? "circle" : "circles"} for the example character.`]);
+      out.push(["", `Uses equal ${formula(u, cls)}. ${ex} gets ${n}.`]);
+    }
+    if (u.base !== "ability") {
+      const lo = amount(u, 1, sc), hi = amount(u, 20, sc);
+      if (lo !== hi) {
+        const at = u.base === "prof" ? [1, 5, 9, 13, 17].find((l) => amount(u, l, sc) === hi) : 20;
+        out.push(["dup", `It goes from ${lo} at level 1 to ${hi} at level ${at}.`]);
+      }
+      const shapes = Array.from({ length: 20 }, (_, i) => shapeOf(amount(u, i + 1, sc)));
+      const first = shapes.indexOf("pool");
+      if (first > 0 && shapes[0] === "circles") out.push(["dup", `It shows circles to level ${first} and a pool from level ${first + 1}. More than 8 uses show as a number.`]);
+      else if (first === 0 && n > 8) out.push(["dup", `More than 8 uses show as a number. A click spends ${step(n)}.`]);
+    } else if (n > 8) out.push(["dup", `More than 8 uses show as a number. A click spends ${step(n)}.`]);
+  }
+  const back = { short: "when you finish a short or long rest", long: "when you finish a long rest", day: "each day, at dawn", turn: "at the start of each of your turns" }[u.rest] || `each ${u.rest}`;
+  out.push(["dup", `The uses come back ${back}.`]);
+  if (u.rest === "turn") out.push(["dup", "Most “once per turn” features need no bubble."]);
+  if (LEGACY[u.rest]) out.push(["dup", "This rest comes from the pack. The form offers short rest, long rest, day and turn."]);
+  out.push(["dup", `It shows under ${section} on the sheet.`]);
+  return out;
+}
+// Only what the preview cannot show: how a scaled amount is worked out and changes, and warnings. The preview shows the rest.
+const saysHtml = (u, type, cls) => { const ls = says(u, type, cls).filter(([c]) => c !== "dup"); return ls.length ? `<ul class="says" aria-live="polite">${ls.map(([c, t]) => `<li class="${c}">${esc(t)}</li>`).join("")}</ul>` : ""; };
+
+// ---------- suggestions from the text (ORC-185 rules) ----------
+const WORDS = { once: 1, twice: 2, "three times": 3 };
+function suggest(f) {
+  const t = f.desc || "", res = [];
+  if (f.uses.kind === "none") {
+    let m;
+    if ((m = t.match(/a number of times equal to your proficiency bonus[^.]*?(short or long rest|long rest)/i)))
+      res.push({ phrase: m[0], uses: { kind: "scaled", base: "prof", times: 1, plus: 0, min: "", rest: /short/.test(m[1]) ? "short" : "long" }, label: `proficiency bonus, ${/short/.test(m[1]) ? "short rest" : "long rest"}` });
+    else if ((m = t.match(/a number of times equal to your (Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) modifier[^.]*?(short or long rest|long rest)/i))) {
+      const ab = ABIL.find(([, n]) => n.toLowerCase() === m[1].toLowerCase())[0];
+      res.push({ phrase: m[0], uses: { kind: "scaled", base: "ability", ability: ab, times: 1, plus: 0, min: 1, rest: /short/.test(m[2]) ? "short" : "long" }, label: `${m[1]} modifier (minimum 1), ${/short/.test(m[2]) ? "short rest" : "long rest"}` });
+    } else if ((m = t.match(/can't use (?:it|this \w+) again until you finish a (short or long rest|long rest)/i)))
+      res.push({ phrase: m[0], uses: { kind: "fixed", n: 1, rest: /short/.test(m[1]) ? "short" : "long" }, label: `1 use, ${/short/.test(m[1]) ? "short rest" : "long rest"}` });
+    else if ((m = t.match(/(once|twice|three times) per day/i)))
+      res.push({ phrase: m[0], uses: { kind: "fixed", n: WORDS[m[1].toLowerCase()], rest: "day" }, label: `${WORDS[m[1].toLowerCase()]} per day` });
+  }
+  if (f.type === "Other") {
+    const hits = [[/as a bonus action/i, "Bonus Action"], [/as an action/i, "Action"], [/(use your reaction|as a reaction)/i, "Reaction"]].filter(([r]) => r.test(t));
+    if (hits.length === 1) res.push({ phrase: t.match(hits[0][0])[0], type: hits[0][1], label: `type ${hits[0][1]}` });
+  }
+  return res;
+}
+const suggestHtml = (path, f) => suggest(f).map((s, i) => `<div class="suggest" role="note"><span>The text says <q>${esc(s.phrase)}</q>. Suggested: ${esc(s.label)}.</span><button class="btn small" data-accept="${path}:${i}">Use this</button></div>`).join("");
+
+// ---------- the uses controls ----------
+function sel(key, options, value, attrs = "") {
+  return `<select class="sel" data-u="${key}" ${attrs}>${options.map(([v, t]) => `<option value="${esc(v)}" ${String(value) === String(v) ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>`;
+}
+const sub = (label, control) => `<label class="sub"><span class="lab">${esc(label)}</span>${control}</label>`;
+const restOptions = (u) => [...RESTS, ...(LEGACY[u.rest] ? [[u.rest, `${LEGACY[u.rest]} (from the pack)`]] : [])];
+const plusOpts = [-3, -2, -1, 0, 1, 2, 3, 4, 5].map((n) => [n, n === 0 ? "+ 0" : n > 0 ? `+ ${n}` : `− ${-n}`]);
+const minOpts = [["", "None"], ...[0, 1, 2, 3, 4, 5].map((n) => [n, String(n)])];
+const baseOpts = (cls) => [["prof", "Proficiency bonus"], ...ABIL.map(([k, n]) => [`ab-${k}`, `${n} modifier`]), ["level", cls ? `${cls[0].toUpperCase()}${cls.slice(1)} level × n` : "Character level × n"]];
+const baseVal = (u) => (u.base === "ability" ? `ab-${u.ability}` : u.base);
+
+function controlA(path, u, cls) {
+  const kinds = [["none", "None"], ["fixed", "Fixed"], ["scaled", "Scaled"]];
+  const segH = `<div class="seg" role="radiogroup" aria-label="Uses">${kinds.map(([v, t]) => `<label><input type="radio" name="${path}-kind" data-u="${path}.kind" value="${v}" ${u.kind === v ? "checked" : ""}><span>${t}</span></label>`).join("")}</div>`;
+  let fields = "";
+  if (u.kind === "fixed") fields = sub("Amount", sel(`${path}.n`, FIXED.map((n) => [n, String(n)]), u.n));
+  if (u.kind === "scaled") fields = sub("Equal to", sel(`${path}.base`, baseOpts(cls), baseVal(u)))
+    + (u.base === "level" ? sub("n", sel(`${path}.times`, [1, 2, 3, 4, 5, 10].map((n) => [n, String(n)]), u.times)) : "")
+    + sub("Plus", sel(`${path}.plus`, plusOpts, u.plus || 0)) + sub("Minimum", sel(`${path}.min`, minOpts, u.min ?? ""));
+  const rest = u.kind === "none" ? "" : sub("Recharges", `<div class="seg" role="radiogroup" aria-label="Recharges">${restOptions(u).map(([v, t]) => `<label><input type="radio" name="${path}-rest" data-u="${path}.rest" value="${v}" ${u.rest === v ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div>`);
+  return `<div class="row">${sub("Uses", segH)}${fields}</div>${rest ? `<div class="row">${rest}</div>` : ""}`;
+}
+function controlB(path, u, cls) {
+  const val = u.kind === "none" ? "none" : u.kind === "fixed" ? `n-${u.n}` : `s-${baseVal(u)}`;
+  const amountSel = `<select class="sel inline-sel" data-u="${path}.amount" aria-label="Uses">
+    <option value="none" ${val === "none" ? "selected" : ""}>No uses</option>
+    <optgroup label="A fixed number">${FIXED.map((n) => `<option value="n-${n}" ${val === `n-${n}` ? "selected" : ""}>${n}</option>`).join("")}</optgroup>
+    <optgroup label="Scaled">${baseOpts(cls).map(([v, t]) => `<option value="s-${v}" ${val === `s-${v}` ? "selected" : ""}>${esc(t)}</option>`).join("")}</optgroup></select>`;
+  if (u.kind === "none") return `<div class="uline"><span class="lab">Uses</span>${amountSel}</div>`;
+  const more = u.kind === "scaled" ? `${u.base === "level" ? `<span class="word">n =</span>${sel(`${path}.times`, [1, 2, 3, 4, 5, 10].map((n) => [n, String(n)]), u.times, 'class="sel inline-sel" aria-label="n"')}` : ""}
+    ${sel(`${path}.plus`, plusOpts, u.plus || 0, 'class="sel inline-sel" aria-label="Plus"')}<span class="word">minimum</span>${sel(`${path}.min`, minOpts, u.min ?? "", 'class="sel inline-sel" aria-label="Minimum"')}` : "";
+  return `<div class="uline"><span class="lab">Uses</span>${amountSel}${more}<span class="word">${u.kind === "fixed" && +u.n === 1 ? "use" : "uses"}, recharges</span>${sel(`${path}.rest`, restOptions(u).map(([v, t]) => [v, ({ short: "on a short rest", long: "on a long rest", day: "each day", turn: "each turn" })[v] || `each ${v} (from the pack)`]), u.rest, 'class="sel inline-sel" aria-label="Recharges"')}</div>`;
+}
+
+// ---------- the preview ----------
+let spent = {};
+function bubble(id, name, text, u) {
+  const n = amount(u, S.level, S.score);
+  if (n === null || n <= 0) return `<p class="plain"><b>${esc(name || "Unnamed feature")}</b><span>${esc(text)}</span></p>`;
+  const sp = Math.min(spent[id] || 0, n), all = sp >= n;
+  const head = n <= 8 ? `<span class="ub-circles" role="group" aria-label="${n} uses, ${n - sp} left">${Array.from({ length: n }, (_, i) => `<button class="ub-circle" data-circle="${id}:${i}" aria-label="Use ${i + 1}" aria-pressed="${i < sp}"></button>`).join("")}</span>` : "";
+  const pool = n > 8 ? `<button class="ub-pool" data-pool="${id}:${n}" aria-label="${n - sp} / ${n} left">${n - sp}<span class="of"> / ${n}</span></button>` : "";
+  return `<div class="ub" role="group" ${all ? "data-spent" : ""}><div class="ub-grid"><span class="ub-head"><span class="ub-title">${esc(name || "Unnamed feature")}</span>${head}</span>
+    <span class="ub-body">${esc(text)}</span><span class="ub-side"><span class="ub-tag">${esc(tagOf(u.rest))}</span>${pool}</span></div></div>`;
+}
+const isScaled = (us) => us.some((u) => u.kind === "scaled");
+function exampleControls(us) {
+  if (!isScaled(us)) return "";
+  const ab = us.find((u) => u.kind === "scaled" && u.base === "ability");
+  return `<span class="excon">Example: level ${sel("ex.level", Array.from({ length: 20 }, (_, i) => [i + 1, String(i + 1)]), S.level, 'class="sel" aria-label="Example level"')}${ab ? ` · ${esc(ABN[ab.ability])} ${sel("ex.score", Array.from({ length: 23 }, (_, i) => [i + 8, String(i + 8)]), S.score, 'class="sel" aria-label="Example score"')}` : ""}</span>`;
+}
+function previewOne(id, name, text, type, u) {
+  return `<div class="preview"><div class="pv-head"><span class="lab">Preview</span>${exampleControls([u])}</div>
+    <div class="sheetbox"><div class="sec"><div class="slab">${esc(SECTION[type] || SECTION.Other)}</div>${bubble(id, name, text, u)}</div></div></div>`;
+}
+function entries() {
+  const e = [];
+  if (S.form === "feat") e.push({ id: "feat", name: V.name || "Unnamed feat", text: V.desc, type: V.type, u: V.uses });
+  V.features.forEach((f, i) => e.push({ id: `f${i}`, name: f.name, text: f.desc, type: f.type, u: f.uses }));
+  return e;
+}
+function previewAll() {
+  const es = entries();
+  const secs = ["Action", "Bonus Action", "Reaction", "Other"].map((t) => [t, es.filter((x) => (x.type || "Other") === t)]).filter(([, xs]) => xs.length);
+  return `<div class="side"><div class="pv-head"><h2>Preview</h2>${exampleControls(es.map((x) => x.u))}</div>
+    <div class="sheetbox">${secs.length ? secs.map(([t, xs]) => `<div class="sec"><div class="slab">${esc(SECTION[t])}</div><div style="display:grid;gap:10px">${xs.map((x) => bubble(x.id, x.name, x.text, x.u)).join("")}</div></div>`).join("") : `<p class="help" style="margin:0">Nothing yet. Add a feature.</p>`}</div>
+    <p class="help" style="font-size:13.5px">Sorted by type, as the sheet does. A click spends a use here; nothing is saved.</p></div>`;
+}
+
+// ---------- the form ----------
+const V0 = () => structuredClone(SAMPLES[S.form][S.sample]);
+const store = (() => { try { return window.localStorage; } catch { return null; } })();
+const get = (k, d) => { try { return store?.getItem("orc186-" + k) ?? d; } catch { return d; } };
+const put = (k, v) => { try { store?.setItem("orc186-" + k, v); } catch {} };
+const S = { variant: +get("variant", 0) || 0, form: get("form", "subclass"), sample: get("sample", "imported"), width: "full", level: 5, score: 16 };
+if (!SAMPLES[S.form]) S.form = "subclass";
+if (!SAMPLES.race[S.sample]) S.sample = "imported";
+let V = V0();
+
+function usesBlock(path, u, type, id, name, text, inlinePreview) {
+  const cls = SAMPLES[S.form].cls;
+  const ctl = S.variant === 1 ? controlB(path, u, cls) : controlA(path, u, cls);
+  const f = path === "feat" ? { desc: V.desc, type: V.type, uses: V.uses } : V.features[+path.slice(2)];
+  return `<div class="usesbox">${ctl}${suggestHtml(path, f)}${inlinePreview ? previewOne(id, name, text, type, u) : ""}${saysHtml(u, type, cls)}</div>`;
+}
+function featureCards(inline) {
+  const fs = V.features;
+  return `${fs.length ? "" : `<p class="help">No features yet.</p>`}${fs.map((f, i) => `<div class="feature">
+    <div class="top">${sub("Feature name", `<input class="inp" data-f="${i}.name" value="${esc(f.name)}">`)}${sub("Type", `<select class="sel" data-f="${i}.type">${TYPES.map((t) => `<option ${f.type === t ? "selected" : ""}>${t}</option>`).join("")}</select>`)}<button class="xbtn" data-delf="${i}" aria-label="Delete feature ${i + 1}" title="Delete feature"></button></div>
+    ${sub("Description", `<textarea class="ta" data-f="${i}.desc" rows="3">${esc(f.desc)}</textarea>`)}
+    ${usesBlock(`f.${i}`, f.uses, f.type, `f${i}`, f.name, f.desc, inline)}</div>`).join("")}
+    <div style="margin-top:12px"><button class="btn add" data-addf>+ Add a feature</button></div>`;
+}
+function form(inline) {
+  const one = SAMPLES[S.form].one;
+  const featOwn = S.form === "feat" ? `<section><div class="srule"><h3>Uses of the feat</h3></div>
+    <p class="help">For a feat with one part, set its uses here. The feat's own entry on the sheet gets the bubble. Use the feature list for a feat with more than one part.</p>
+    <div class="feature" style="background:transparent;border-style:dashed">${sub("Type", `<select class="sel" data-k="type" style="width:max-content">${TYPES.map((t) => `<option ${V.type === t ? "selected" : ""}>${t}</option>`).join("")}</select>`)}
+    ${usesBlock("feat", V.uses, V.type, "feat", V.name || "Unnamed feat", V.desc, inline)}</div></section>` : "";
+  return `<div class="va">
+    <div class="fld"><span class="lab">Name</span><input class="inp" data-k="name" value="${esc(V.name)}"></div>
+    <div class="fld"><span class="lab">Description</span><textarea class="ta" data-k="desc" rows="3">${esc(V.desc)}</textarea></div>
+    <div class="folded">Other fields and modifiers of the ${one} form: as in the layout prototype, left out here.</div>
+    ${featOwn}
+    <section><div class="srule"><h3>Features</h3></div>${featureCards(inline)}</section>
+  </div>`;
+}
+
+function render() {
+  const active = document.activeElement;
+  const key = active && (active.dataset?.u || active.dataset?.f || active.dataset?.k);
+  const keyAttr = active?.dataset?.u ? "data-u" : active?.dataset?.f ? "data-f" : "data-k";
+  const keyVal = active?.type === "radio" ? active.value : null;
+  const one = SAMPLES[S.form].one;
+  const body = S.variant === 2 ? `<div class="vc"><div>${form(false)}</div>${previewAll()}</div>` : form(true);
+  const stage = document.getElementById("stage");
+  stage.className = `stage ${S.width === "phone" ? "phone" : ""}`;
+  stage.innerHTML = `<div class="shell"><nav class="rail"><div class="logo"><i></i>Alchemy <sup>5E</sup></div>
+    <div class="flags"><a class="flag" href="#characters">Characters</a><a class="flag blue" href="#import">Import</a><a class="flag green" aria-current="page" href="#my-content">My content</a><a class="flag orange" href="#preferences">Preferences</a></div></nav>
+    <main class="main"><div class="page-head"><h1>${S.sample === "imported" ? `Edit ${one}: ${esc(V.name)}` : `New ${one}`}</h1>
+    <label class="sub"><span class="lab">Option source (pack)</span><select class="sel"><option>${S.sample === "imported" ? "Sunken Isles" : "Default Option Source"}</option></select></label></div>
+    ${body}<div class="actions"><button class="btn solid" data-save>Save</button><button class="link" style="font-size:14px">Cancel</button><span class="saved" id="saved"></span></div></main></div>`;
+  document.getElementById("vlabel").textContent = `${VARIANTS[S.variant][0]} · ${VARIANTS[S.variant][1]}`;
+  for (const b of document.querySelectorAll("[data-form]")) b.setAttribute("aria-pressed", b.dataset.form === S.form);
+  for (const b of document.querySelectorAll("[data-sample]")) b.setAttribute("aria-pressed", b.dataset.sample === S.sample);
+  for (const b of document.querySelectorAll("[data-width]")) b.setAttribute("aria-pressed", b.dataset.width === S.width);
+  const th = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  for (const b of document.querySelectorAll("[data-theme-set]")) b.setAttribute("aria-pressed", b.dataset.themeSet === th);
+  if (key) {
+    const sel = `[${keyAttr}="${CSS.escape(key)}"]${keyVal ? `[value="${CSS.escape(keyVal)}"]` : ""}`;
+    document.querySelector(sel)?.focus({ preventScroll: true });
+  }
+}
+
+// ---------- delete with confirmation ----------
+// A feature with content (a name, a description, uses, or a type other than Other) asks first. An empty one goes at once.
+const hasContent = (f) => !!(f.name.trim() || f.desc.trim() || f.uses.kind !== "none" || f.type !== "Other");
+let confirmDel = null;
+function renderModal() {
+  const root = document.getElementById("modal-root");
+  if (confirmDel === null) { root.innerHTML = ""; return; }
+  const f = V.features[confirmDel];
+  root.innerHTML = `<div class="mback" data-cancel-del><div class="cdlg" role="alertdialog" aria-modal="true" aria-labelledby="cd-h" aria-describedby="cd-p">
+    <h2 id="cd-h">Delete ${f.name.trim() ? `“${esc(f.name.trim())}”` : "this feature"}?</h2>
+    <p id="cd-p">Its name, description and uses go too. You can still cancel the whole form without saving.</p>
+    <div class="row"><button class="btn" data-cancel-del>Cancel</button><button class="btn danger" data-confirm-del>Delete feature</button></div></div></div>`;
+  root.querySelector("[data-confirm-del]").focus();
+}
+function closeDel() { const i = confirmDel; confirmDel = null; renderModal(); document.querySelector(`[data-delf="${i}"]`)?.focus(); }
+
+// ---------- events ----------
+function usesAt(path) { return path === "feat" ? V.uses : V.features[+path.split(".")[1]].uses; }
+function setUses(path, u) { if (path === "feat") V.uses = u; else V.features[+path.split(".")[1]].uses = u; }
+function setBase(u, v) {
+  if (v.startsWith("ab-")) { u.base = "ability"; u.ability = v.slice(3); if (u.min === "" || u.min === undefined) u.min = 1; }
+  else { if (u.base === "ability" && +u.min === 1) u.min = ""; u.base = v; }
+  u.times ||= 1;
+}
+function changeUses(full, value) {
+  const i = full.lastIndexOf("."), path = full.slice(0, i), field = full.slice(i + 1);
+  const u = usesAt(path);
+  if (field === "kind") {
+    if (value === "fixed") setUses(path, { kind: "fixed", n: 1, rest: u.rest || "long" });
+    else if (value === "scaled") setUses(path, { kind: "scaled", base: "prof", times: 1, plus: 0, min: "", rest: u.rest || "long" });
+    else setUses(path, { kind: "none", rest: u.rest || "long" });
+  } else if (field === "amount") {
+    if (value === "none") setUses(path, { kind: "none", rest: u.rest || "long" });
+    else if (value.startsWith("n-")) setUses(path, { kind: "fixed", n: +value.slice(2), rest: u.rest || "long" });
+    else { const nu = u.kind === "scaled" ? u : { kind: "scaled", times: 1, plus: 0, min: "", rest: u.rest || "long" }; setBase(nu, value.slice(2)); setUses(path, nu); }
+  } else if (field === "base") setBase(u, value);
+  else if (field === "min") u.min = value === "" ? "" : +value;
+  else u[field] = field === "rest" ? value : +value;
+  spent = {};
+}
+document.addEventListener("click", (e) => {
+  if (confirmDel !== null) {
+    if (e.target.closest("[data-confirm-del]")) { V.features.splice(confirmDel, 1); confirmDel = null; spent = {}; renderModal(); render(); }
+    else if (e.target.matches("[data-cancel-del]") || e.target.closest("button[data-cancel-del]")) closeDel();
+    return;
+  }
+  const t = e.target.closest("button");
+  if (!t) return;
+  const d = t.dataset;
+  if (d.form) { S.form = d.form; put("form", d.form); V = V0(); spent = {}; render(); }
+  else if (d.sample) { S.sample = d.sample; put("sample", d.sample); V = V0(); spent = {}; render(); }
+  else if (d.width) { S.width = d.width; render(); }
+  else if (d.themeSet) { document.documentElement.dataset.theme = d.themeSet; render(); }
+  else if ("addf" in d) { V.features.push({ name: "", type: "Other", desc: "", uses: none() }); render(); document.querySelectorAll('[data-f$=".name"]')[V.features.length - 1]?.focus(); }
+  else if (d.delf) { if (hasContent(V.features[+d.delf])) { confirmDel = +d.delf; renderModal(); } else { V.features.splice(+d.delf, 1); spent = {}; render(); } }
+  else if (d.accept) {
+    const [path, i] = d.accept.split(":");
+    const f = path === "feat" ? { desc: V.desc, type: V.type, uses: V.uses } : V.features[+path.slice(2)];
+    const s = suggest(f)[+i];
+    if (s.uses) setUses(path, structuredClone(s.uses));
+    if (s.type) { if (path === "feat") V.type = s.type; else f.type = s.type; }
+    render();
+  }
+  else if (d.circle) { const [id, i] = d.circle.split(":"); const sp = spent[id] || 0; spent[id] = +i < sp ? +i : +i + 1; render(); }
+  else if (d.pool) { const [id, n] = d.pool.split(":"); const sp = spent[id] || 0; spent[id] = sp >= +n ? 0 : Math.min(+n, sp + step(+n)); render(); }
+  else if ("save" in d) document.getElementById("saved").textContent = "Prototype: nothing is saved.";
+  else if (t.id === "prev" || t.id === "next") { S.variant = (S.variant + (t.id === "next" ? 1 : VARIANTS.length - 1)) % VARIANTS.length; put("variant", S.variant); render(); }
+});
+document.addEventListener("change", (e) => {
+  const t = e.target, d = t.dataset;
+  if (d.u === "ex.level") { S.level = +t.value; render(); return; }
+  if (d.u === "ex.score") { S.score = +t.value; render(); return; }
+  if (d.u) { changeUses(d.u, t.value); render(); return; }
+  if (d.f) { const [i, k] = d.f.split("."); V.features[+i][k] = t.value; render(); return; }
+  if (d.k) { V[d.k] = t.value; render(); }
+});
+document.addEventListener("input", (e) => {
+  const t = e.target, d = t.dataset;
+  if (t.tagName === "SELECT") return;
+  if (d.f) { const [i, k] = d.f.split("."); V.features[+i][k] = t.value; }
+  if (d.k) V[d.k] = t.value;
+});
+document.addEventListener("keydown", (e) => {
+  if (confirmDel !== null) { if (e.key === "Escape") closeDel(); if (e.key === "Tab") { const bs = [...document.querySelectorAll(".cdlg button")]; const i = bs.indexOf(document.activeElement); e.preventDefault(); bs[(i + (e.shiftKey ? bs.length - 1 : 1)) % bs.length].focus(); } return; }
+  if (e.target.matches("input, textarea, select, [contenteditable]")) return;
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") { S.variant = (S.variant + (e.key === "ArrowRight" ? 1 : VARIANTS.length - 1)) % VARIANTS.length; put("variant", S.variant); render(); }
+});
+render();
+</script>

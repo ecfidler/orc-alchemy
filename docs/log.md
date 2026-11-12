@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-11-12
+
+* **Creation**: Added the [Homebrew forms spec](design/homebrew-forms.md), with copies of the four homebrew form prototypes (ORC-187).
+
 ## 2026-10-25
 
 * **Creation**: Added the `design/` directory and the [Theme spec](design/theme.md), with copies of the M8 prototypes (ORC-151).

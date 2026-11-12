@@ -1,0 +1,581 @@
+<title>Homebrew Form Layouts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..700&display=swap">
+<style>
+/* PROTOTYPE (ORC-184), throwaway. Three layouts of the feat and race homebrew forms,
+   on the M8 paper theme (docs/design/theme.md). Layout: binder shell, form in the page column,
+   variant switcher floating at the bottom. */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --danger: #c2271d; --info: #1e5fb4;
+  --note-blue: #a9ccff; --note-ink: #222222; --margin-rule: #c2271d;
+  --flag-yellow: #ffe45c; --flag-blue: #7fb6ff; --flag-green: #7ee08f; --flag-orange: #ffae5c; --flag-ink: #222222;
+  --note-shadow: rgba(60, 45, 0, 0.2);
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --proto-bg: #1c2b4a; --proto-fg: #ffffff;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --info: #5ea2ff; --note-blue: #9cc4ff;
+  --note-ink: #000000; --margin-rule: #ff5c52; --flag-ink: #000000; --note-shadow: rgba(255,255,255,0.1);
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+} }
+:root[data-theme="dark"] {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --info: #5ea2ff; --note-blue: #9cc4ff;
+  --note-ink: #000000; --margin-rule: #ff5c52; --flag-ink: #000000; --note-shadow: rgba(255,255,255,0.1);
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-serif); font-size: 17px; line-height: 1.5;
+  font-weight: 450; font-optical-sizing: auto; font-variant-numeric: lining-nums tabular-nums; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* ---------- prototype chrome (not part of the design) ---------- */
+.proto-top { font-family: var(--font-sans); font-size: 12.5px; background: var(--proto-bg); color: var(--proto-fg);
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.proto-top b { font-weight: 600; }
+.proto-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.proto-group > span { opacity: .75; margin-right: 2px; }
+.proto-top button { background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; cursor: pointer; font-size: 12px; }
+.proto-top button[aria-pressed="true"] { background: var(--proto-fg); color: var(--proto-bg); }
+.proto-notes { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; background: var(--panel); border-bottom: 1px solid var(--rule);
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.proto-notes summary { cursor: pointer; font-weight: 600; }
+.proto-notes ul { margin: 6px 0 2px; padding-left: 18px; max-width: 80ch; }
+.proto-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  display: flex; align-items: center; gap: 4px; background: var(--proto-bg); color: var(--proto-fg); border-radius: 999px;
+  padding: 5px 6px; box-shadow: 0 6px 20px rgba(0,0,0,.3); font-family: var(--font-sans); font-size: 13px; max-width: calc(100vw - 24px); }
+.proto-bar button { background: transparent; border: 0; color: inherit; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+.proto-bar button:hover { background: color-mix(in srgb, var(--proto-fg) 18%, transparent); }
+.proto-bar .lbl { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proto-bar .lbl small { opacity: .7; margin-left: 6px; }
+
+.stage { container-type: inline-size; margin: 0 auto; padding-bottom: 90px; }
+.stage.phone { max-width: 390px; border-inline: 1px dashed var(--rule-strong); }
+
+/* ---------- shell (from @orc-alchemy/ui shell.css) ---------- */
+.shell { display: grid; grid-template-columns: 200px minmax(0, 1fr); min-height: 100vh; }
+.rail { position: relative; display: grid; align-content: start; gap: 22px; padding: 20px 16px; border-right: 1.5px solid var(--margin-rule); }
+.rail::after { content: ""; position: absolute; top: 0; bottom: 0; right: 4px; border-right: 1px solid color-mix(in srgb, var(--margin-rule) 45%, transparent); }
+.logo { font-size: 20px; font-weight: 500; display: flex; gap: 8px; align-items: center; }
+.logo i { width: 22px; height: 22px; border-radius: 50% 50% 45% 45%; background: #2f8a3a; display: inline-block; }
+.logo sup { font-family: var(--font-sans); font-size: 10px; letter-spacing: .08em; }
+.flags { position: relative; z-index: 2; display: grid; justify-items: end; gap: 9px; margin-right: -17.5px;
+  font-family: var(--font-sans); font-size: 13.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.flag { --flag: var(--flag-yellow); display: block; width: calc(100% - 14px); padding: 11px 14px 11px 16px; color: var(--flag-ink); text-decoration: none;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--flag) 55%, #fff) 0 68%, var(--flag) 68% 100%); }
+.flag.blue { --flag: var(--flag-blue); } .flag.green { --flag: var(--flag-green); } .flag.orange { --flag: var(--flag-orange); }
+.flag[aria-current] { width: calc(100% + 4px); background: var(--flag); box-shadow: 0 3px 6px -4px var(--note-shadow); }
+.main { min-width: 0; padding: 20px 16px 48px 28px; }
+@container (max-width: 680px) {
+  .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .rail { gap: 8px; padding: 14px 16px 10px; border-right: 0; border-bottom: 1.5px solid var(--margin-rule); }
+  .rail::after { top: auto; bottom: 3px; left: 0; right: 0; border-right: 0; border-bottom: 1px solid color-mix(in srgb, var(--margin-rule) 45%, transparent); }
+  .main { padding: 16px 16px 48px; }
+  .flags { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); justify-items: stretch; align-items: end; gap: 6px; margin: 0 0 -11.5px; font-size: 10px; letter-spacing: .02em; }
+  .flag, .flag[aria-current] { width: auto; height: 54px; padding: 10px 2px 0; text-align: center;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--flag) 55%, #fff) 0 62%, var(--flag) 62% 100%); }
+  .flag[aria-current] { height: 64px; background: var(--flag); }
+}
+
+/* ---------- shared field styling (the proposal) ---------- */
+.lab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.inp, .sel, .ta { border: 1px solid var(--ink); background: var(--paper-raised); padding: 3px 8px; border-radius: 0; min-width: 0; }
+.ta { display: block; width: 100%; min-height: 6.2em; resize: vertical; line-height: 1.45; }
+.inp { width: 100%; max-width: 26rem; }
+.inp.short { max-width: 7rem; }
+.sel { appearance: none; padding-right: 22px; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position: calc(100% - 12px) 55%, calc(100% - 8px) 55%; background-size: 4px 4px; background-repeat: no-repeat; }
+.ruled .inp, .ruled .sel, .ruled .ta { border: 0; border-bottom: 1px solid var(--rule-strong); background-color: transparent; padding-left: 2px; }
+.ruled .ta { border: 1px solid var(--rule); background: repeating-linear-gradient(transparent 0 calc(1.45em - 1px), var(--rule) calc(1.45em - 1px) 1.45em); background-origin: content-box; padding: 0 6px; }
+.ruled .inp:focus, .ruled .sel:focus { border-bottom-color: var(--ink); }
+.sub { display: inline-flex; flex-direction: column; gap: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: end; }
+.help { font-size: 14.5px; color: var(--ink-muted); margin: 0 0 6px; }
+
+/* checkbox grid with square marks */
+.checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--cw, 150px), 1fr)); gap: 3px 14px; }
+.checks.wide { --cw: 260px; }
+.chk { display: inline-flex; gap: 7px; align-items: flex-start; cursor: pointer; font-size: 15.5px; line-height: 1.35; }
+.chk input { appearance: none; flex: none; width: 14px; height: 14px; margin: 3px 0 0; border: 1.5px solid var(--ink); border-radius: 2px; display: grid; place-content: center; cursor: pointer; background: transparent; }
+.chk input::before { content: ""; width: 8px; height: 8px; background: var(--ink); transform: scale(0); }
+.chk input:checked::before { transform: scale(1); }
+.subhead { font-family: var(--font-sans); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); margin: 8px 0 2px; grid-column: 1 / -1; }
+
+/* "one number or none": a segmented toggle */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1.5px solid var(--ink); border-radius: 6px; overflow: hidden; font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; padding: 3px 11px; border-left: 1px solid var(--ink); }
+.seg label:first-child span { border-left: 0; }
+.seg input:checked + span { background: var(--ink); color: var(--paper); }
+.seg input:focus-visible + span { outline: 2px solid var(--info); outline-offset: -3px; }
+.seg-line { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+
+.btn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; line-height: 1.4; background: transparent; border: 1.5px solid var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.btn:hover { background: var(--panel); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+/* An "add" button: the full width of its column, normal height, text on the left. */
+.btn.add { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 12px; text-align: left; }
+.btn.small { padding: 1px 7px; border-radius: 4px; font-size: 12px; }
+.link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+.link:hover { color: var(--ink); }
+
+.asi { display: grid; grid-template-columns: repeat(6, minmax(0, 72px)); gap: 8px; }
+/* The select fills the whole box, so a click anywhere in the box opens it. The label sits on top and lets clicks through. */
+.asi .box { position: relative; height: 58px; border: 1.5px solid var(--ink); background: var(--paper-raised); cursor: pointer; }
+.asi .box .lab { position: absolute; top: 5px; left: 0; right: 0; text-align: center; pointer-events: none; z-index: 1; }
+.asi .box .sel { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background-color: transparent; font-size: 19px; padding: 18px 18px 0 18px; text-align: center; text-align-last: center; background-position: calc(100% - 12px) 68%, calc(100% - 8px) 68%; }
+.asi .box:hover { background: var(--panel); }
+.asi .box:focus-within { outline: 2px solid var(--info); outline-offset: 2px; }
+.asi .box .sel:focus-visible { outline: 0; }
+@container (max-width: 520px) { .asi { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.feature { border: 1px solid var(--rule-strong); padding: 10px 12px; display: grid; gap: 8px; background: var(--paper-raised); }
+.feature + .feature { margin-top: 10px; }
+.feature .top { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: end; }
+/* The remove mark: an X drawn with two lines, a square hit area, no text. */
+.xbtn { position: relative; flex: none; width: 30px; height: 30px; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--ink-muted); }
+.xbtn::before, .xbtn::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 1.75px; background: currentColor; }
+.xbtn::before { transform: translate(-50%, -50%) rotate(45deg); } .xbtn::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.xbtn:hover { color: var(--danger); border-color: currentColor; background: var(--panel); }
+.feature .uses { font-size: 14px; color: var(--ink-muted); border-top: 1px dashed var(--rule); padding-top: 6px; }
+@container (max-width: 520px) { .feature .top { grid-template-columns: minmax(0, 1fr) auto; } .feature .top .xbtn { grid-column: 2; grid-row: 1; } .feature .top .sub:nth-child(2) { grid-column: 1 / -1; } }
+
+.spells { display: grid; gap: 8px; }
+.spell { display: grid; grid-template-columns: max-content max-content max-content minmax(0, 1fr) auto; gap: 8px 10px; align-items: end; }
+@container (max-width: 640px) { .spell { grid-template-columns: max-content max-content minmax(0, 1fr) auto; border-bottom: 1px solid var(--rule); padding-bottom: 8px; } .spell .sub:nth-child(4) { grid-column: 1 / -1; grid-row: 2; } }
+.spell .sub:nth-child(3) .sel, .spell .sub:nth-child(4) .sel { width: 100%; }
+
+.page-head { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.page-head h1 { font-size: 26px; font-weight: 500; margin: 0; text-wrap: balance; }
+.actions { display: flex; gap: 14px; align-items: center; margin-top: 26px; }
+.saved { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+
+.undo { display: flex; gap: 10px; align-items: center; background: var(--note-blue); color: var(--note-ink); padding: 6px 12px; font-size: 15px; margin: 10px 0; }
+.undo .link { color: var(--note-ink); font-size: 13px; }
+.flash { animation: flash 1.2s ease-out; }
+/* The flash reaches 10px past the section on each side (a spread shadow in the same color), so it does not hug the fields. */
+.flash { border-radius: 4px; }
+@keyframes flash {
+  from { background: color-mix(in srgb, var(--flag-yellow) 55%, transparent); box-shadow: 0 0 0 10px color-mix(in srgb, var(--flag-yellow) 55%, transparent); }
+  to { background: transparent; box-shadow: 0 0 0 10px transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
+.count { font-family: var(--font-sans); font-size: 11px; color: var(--ink-muted); }
+
+/* ---------- Variant A: index card, one column, search-and-groups menu ---------- */
+.va { max-width: 720px; display: grid; gap: 22px; }
+.va .fld { display: grid; gap: 3px; }
+.srule { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.srule h3 { margin: 0; font-family: var(--font-sans); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.srule::after { content: ""; flex: 1; border-top: 1px solid var(--rule-strong); order: 1; }
+.srule .link { order: 2; }
+.addwrap { position: relative; }
+.adder { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(440px, 100%); background: var(--paper-raised); border: 1px solid var(--ink);
+  box-shadow: 0 8px 22px -10px var(--note-shadow); }
+.adder .inp { max-width: none; border: 0; border-bottom: 1px solid var(--rule-strong); padding: 8px 10px; }
+.adder .list { max-height: 330px; overflow: auto; padding: 4px 0 6px; }
+.adder .grp { font-family: var(--font-sans); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); padding: 8px 12px 2px; }
+.adder .opt { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 4px 12px; cursor: pointer; line-height: 1.3; }
+.adder .opt small { display: block; font-size: 13.5px; color: var(--ink-muted); }
+.adder .opt:hover, .adder .opt.hi { background: var(--ink); color: var(--paper); }
+.adder .opt:hover small, .adder .opt.hi small { color: var(--paper); opacity: .8; }
+.adder .none { padding: 8px 12px; color: var(--ink-muted); font-size: 15px; }
+
+/* ---------- Variant D: variant A, and the button opens a modal list of modifiers ----------
+   One list of the modifiers that can be added, in form order, no groups and no search. A click adds one and closes. */
+.mback { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--ink) 40%, transparent); display: grid; place-items: center; grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.mdl { width: min(560px, 100%); max-height: min(720px, 100%); display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--paper); border: 1.5px solid var(--ink); box-shadow: 0 22px 50px -18px rgba(0,0,0,.5); }
+.mdl-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 14px 12px 20px; border-bottom: 1.5px solid var(--ink); }
+.mdl-head h2 { margin: 0; font-size: 22px; font-weight: 500; text-wrap: balance; }
+.mdl-list { overflow: auto; margin: 0; padding: 6px 0; list-style: none; }
+.mdl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 16px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--rule); padding: 10px 20px; cursor: pointer; }
+.mdl-list li:last-child .mdl-row { border-bottom: 0; }
+.mdl-row b { font-weight: 600; font-size: 17px; }
+.mdl-row small { grid-column: 1; font-size: 14.5px; color: var(--ink-muted); line-height: 1.35; }
+.mdl-row .plus { grid-column: 2; grid-row: 1 / span 2; font-family: var(--font-sans); font-size: 12px; font-weight: 600; border: 1.5px solid var(--ink); border-radius: 6px; padding: 2px 9px; }
+.mdl-row:hover { background: var(--panel); }
+.mdl-row:hover .plus { background: var(--ink); color: var(--paper); }
+.mdl-row:focus-visible { outline-offset: -3px; }
+@media (max-width: 600px) { .mback { padding: 0; } .mdl { width: 100%; height: 100%; max-height: none; border: 0; } }
+.mback.phone .mdl { width: min(390px, 100%); }
+
+/* ---------- Variant B: ledger, labels in a left column, chip tray ---------- */
+.vb { max-width: 900px; }
+.lrow { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 4px 22px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.lrow:first-child { border-top: 0; }
+.lcell { text-align: right; padding-top: 4px; display: grid; justify-items: end; align-content: start; gap: 2px; }
+.lcell .lab { color: var(--ink); font-size: 11px; font-weight: 600; }
+.lcell .x { background: none; border: 0; cursor: pointer; font-family: var(--font-sans); font-size: 11px; color: var(--ink-muted); text-decoration: underline; padding: 0; }
+.ledger-group { font-family: var(--font-sans); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); padding: 18px 0 4px; border-bottom: 1.5px solid var(--ink); }
+.tray { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 4px 22px; padding: 14px 0; border-top: 1.5px solid var(--ink); margin-top: 6px; }
+.tray .chips { display: grid; gap: 8px; }
+.chiprow { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.chiprow .lab { width: 100%; }
+.chip { font-family: var(--font-sans); font-size: 12.5px; font-weight: 500; border: 1px dashed var(--ink); background: transparent; border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.chip:hover { border-style: solid; background: var(--panel); }
+@container (max-width: 600px) {
+  .lrow, .tray { grid-template-columns: minmax(0, 1fr); }
+  .lcell { text-align: left; justify-items: start; grid-auto-flow: column; justify-content: space-between; display: flex; }
+}
+
+/* ---------- Variant C: document title, grouped sections, modifier checklist on the side ---------- */
+.vc { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 32px; align-items: start; max-width: 1040px; }
+.vc .doc { display: grid; gap: 18px; min-width: 0; }
+.titlein { font-size: 30px; font-weight: 500; border: 0; border-bottom: 1.5px solid var(--ink); background: transparent; width: 100%; padding: 0 0 2px; }
+.titlein::placeholder { color: var(--ink-muted); font-style: italic; }
+.vc .desc .ta { border-color: var(--rule-strong); }
+.vc h2.g { font-family: var(--font-sans); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 14px 0 0; padding: 6px 10px; background: var(--panel); border-left: 3px solid var(--ink); }
+.vc .csec { padding: 0 2px; }
+.vc .csec h3 { font-size: 18px; font-weight: 600; margin: 0 0 4px; display: flex; gap: 10px; align-items: baseline; }
+.aside { position: sticky; top: 12px; border: 1.5px solid var(--ink); background: var(--paper-raised); padding: 12px 14px; display: grid; gap: 6px; }
+.aside h2 { margin: 0; font-family: var(--font-sans); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; }
+.aside .grp { font-family: var(--font-sans); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); margin-top: 6px; }
+.aside .chk { font-size: 15px; }
+.aside .always { font-size: 13.5px; color: var(--ink-muted); border-top: 1px solid var(--rule); padding-top: 6px; margin-top: 4px; }
+.aside-phone { display: none; }
+@container (max-width: 900px) {
+  .vc { grid-template-columns: minmax(0, 1fr); }
+  .vc > .aside { display: none; }
+  .aside-phone { display: block; border: 1.5px solid var(--ink); background: var(--paper-raised); }
+  .aside-phone summary { cursor: pointer; padding: 8px 12px; font-family: var(--font-sans); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .aside-phone .aside { position: static; border: 0; border-top: 1px solid var(--rule); }
+}
+</style>
+
+<div class="proto-top" role="toolbar" aria-label="Prototype controls">
+  <b>PROTOTYPE · ORC-184</b>
+  <span class="proto-group"><span>Form</span><button id="f-feat" data-form="feat">Feat</button><button id="f-race" data-form="race">Race</button></span>
+  <span class="proto-group"><span>Item</span><button id="s-new" data-sample="new">New</button><button id="s-imp" data-sample="imported">Imported</button></span>
+  <span class="proto-group"><span>Fields</span><button id="st-box" data-style="boxed">Boxed</button><button id="st-ruled" data-style="ruled">Ruled line</button></span>
+  <span class="proto-group"><span>Width</span><button id="w-full" data-width="full">Full</button><button id="w-phone" data-width="phone">Phone 390</button></span>
+  <span class="proto-group"><span>Theme</span><button id="t-light" data-theme-set="light">Light</button><button id="t-dark" data-theme-set="dark">Dark</button></span>
+</div>
+<details class="proto-notes" open>
+  <summary>What to look at</summary>
+  <ul>
+    <li><b>Three layouts</b>, switched with the bar at the bottom (or the ← → keys). A: one column with an "Add a modifier" menu that has search and groups. B: a ledger with labels on the left and a tray of modifier chips. C: a document title, sections under group headings, and a modifier checklist at the side. D: layout A, but the button opens a modal with one scrolling list of the modifiers that can be added. A click adds one.</li>
+    <li><b>Common modifiers</b> always show (feat: race prerequisites, ability increase; race: the 7 from the modifier counts). Every other modifier is added from the list, and a remove link takes it off again (with Undo).</li>
+    <li><b>Imported</b> opens a pack item. Its modifiers that hold a value show at once, and leave the add list.</li>
+    <li>An added modifier goes to its fixed place in the form, not to the end, so a built item and an imported item look the same.</li>
+    <li><b>Field styling</b>: boxed or ruled line. Long checkbox lists use short names in a grid ("Fire", not "Resistance to fire damage"). "One number or none" groups are a segmented toggle. Feature uses are left for the uses prototype.</li>
+    <li>Leave artifact comments on what to keep. "The header from B with the list from A" is a good answer.</li>
+  </ul>
+</details>
+<div class="stage" id="stage"></div>
+<div id="modal-root"></div>
+<div class="proto-bar" aria-label="Variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span class="lbl" id="vlabel"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+const VARIANTS = [["A", "Index card + add menu"], ["B", "Ledger + chip tray"], ["C", "Grouped + side checklist"], ["D", "Index card + add modal"]];
+const ABIL = [["str", "Strength", "STR"], ["dex", "Dexterity", "DEX"], ["con", "Constitution", "CON"], ["int", "Intelligence", "INT"], ["wis", "Wisdom", "WIS"], ["cha", "Charisma", "CHA"]];
+const SKILLS = ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"];
+const LANGS = ["Common", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc", "Abyssal", "Celestial", "Deep Speech", "Draconic", "Infernal", "Primordial", "Sylvan", "Undercommon"];
+const DMG = ["Acid", "Bludgeoning", "Cold", "Fire", "Force", "Lightning", "Necrotic", "Piercing", "Poison", "Psychic", "Radiant", "Slashing", "Thunder"];
+const RACES = ["Dragonborn", "Dwarf", "Elf", "Gnome", "Half-Elf", "Half-Orc", "Halfling", "Human", "Tiefling", "Tidekin (pack)", "Goliath (pack)"];
+const TOOLS = [
+  ["Artisan's tools", ["Alchemist's Supplies", "Brewer's Supplies", "Calligrapher's Supplies", "Carpenter's Tools", "Cartographer's Tools", "Cobbler's Tools", "Cook's Utensils", "Glassblower's Tools", "Jeweler's Tools", "Leatherworker's Tools", "Mason's Tools", "Painter's Supplies", "Potter's Tools", "Smith's Tools", "Tinker's Tools", "Weaver's Tools", "Woodcarver's Tools"]],
+  ["Musical instruments", ["Bagpipes", "Drum", "Dulcimer", "Flute", "Lute", "Lyre", "Horn", "Pan Flute", "Shawm", "Viol"]],
+  ["Kits and other tools", ["Disguise Kit", "Forgery Kit", "Herbalism Kit", "Navigator's Tools", "Poisoner's Kit", "Thieves' Tools"]],
+  ["Gaming sets and vehicles", ["Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set", "Water Vehicles", "Land Vehicles"]],
+];
+const WEAPONS = [
+  ["Categories", ["All simple weapons", "All martial weapons"]],
+  ["Simple", ["Club", "Dagger", "Greatclub", "Handaxe", "Javelin", "Light Hammer", "Mace", "Quarterstaff", "Sickle", "Spear", "Light Crossbow", "Dart", "Shortbow", "Sling"]],
+  ["Martial", ["Battleaxe", "Flail", "Glaive", "Greataxe", "Greatsword", "Halberd", "Lance", "Longsword", "Maul", "Morningstar", "Pike", "Rapier", "Scimitar", "Shortsword", "Trident", "War Pick", "Warhammer", "Whip", "Blowgun", "Hand Crossbow", "Heavy Crossbow", "Longbow", "Net"]],
+];
+const SPELLS = { 0: ["Druidcraft", "Light", "Mending", "Shape Water", "Thaumaturgy"], 1: ["Create or Destroy Water", "Fog Cloud", "Hellish Rebuke", "Jump"], 2: ["Darkness", "Misty Step", "Levitate"], 3: ["Water Breathing", "Water Walk"] };
+const kw = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+
+// ---------- widgets: flat keys in values ----------
+let V = {}; // current form's values
+const checks = (prefix, names, opts = {}) => `<div class="checks ${opts.wide ? "wide" : ""}">${names.map((n) => {
+  const k = `${prefix}.${kw(n)}`; return `<label class="chk"><input type="checkbox" data-k="${k}" ${V[k] ? "checked" : ""}><span>${esc(opts.name ? opts.name(n) : n)}</span></label>`;
+}).join("")}</div>`;
+const groupedChecks = (prefix, groups) => `<div class="checks">${groups.map(([g, names]) => `<div class="subhead">${esc(g)}</div>${names.map((n) => {
+  const k = `${prefix}.${kw(n)}`; return `<label class="chk"><input type="checkbox" data-k="${k}" ${V[k] ? "checked" : ""}><span>${esc(n)}</span></label>`;
+}).join("")}`).join("")}</div>`;
+const seg = (key, values, fmt = String) => `<div class="seg" role="radiogroup">${["", ...values].map((v) =>
+  `<label><input type="radio" name="${key}" data-k="${key}" value="${v}" ${String(V[key] ?? "") === String(v) ? "checked" : ""}><span>${v === "" ? "None" : esc(fmt(v))}</span></label>`).join("")}</div>`;
+const select = (key, options, cls = "", def = options[0][0]) => `<select class="sel ${cls}" data-k="${key}">${options.map(([v, t]) => `<option value="${esc(v)}" ${String(V[key] ?? def) === String(v) ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>`;
+const sub = (label, control) => `<label class="sub"><span class="lab">${esc(label)}</span>${control}</label>`;
+const nums = (a, b, step = 1, fmt = String) => { const o = []; for (let i = a; i <= b; i += step) o.push([i, fmt(i)]); return o; };
+const help = (t) => `<p class="help">${t}</p>`;
+const chooseN = (key, names, grouped) => `<div class="seg-line"><span>Choose</span>${select(key + ".n", nums(1, 5), "short")}<span>from:</span></div><div style="margin-top:6px">${grouped ? groupedChecks(key, grouped) : checks(key, names)}</div>`;
+
+function features() {
+  const fs = V.features || [];
+  return `${fs.length ? "" : help("No features yet. Packs put most race text here, not in the description.")}${fs.map((f, i) => `<div class="feature">
+    <div class="top">${sub("Feature name", `<input class="inp" data-f="${i}.name" value="${esc(f.name)}">`)}${sub("Type", `<select class="sel" data-f="${i}.type">${["Other", "Action", "Bonus Action", "Reaction"].map((t) => `<option ${f.type === t ? "selected" : ""}>${t}</option>`).join("")}</select>`)}<button class="xbtn" data-delf="${i}" aria-label="Delete feature ${i + 1}" title="Delete feature"></button></div>
+    ${sub("Description", `<textarea class="ta" data-f="${i}.desc" rows="3">${esc(f.desc)}</textarea>`)}
+    <div class="uses">Uses and the use bubble: the next prototype (uses control, use bubble sentences and sheet preview).</div></div>`).join("")}
+    <div style="margin-top:10px"><button class="btn add" data-addf>+ Add a feature</button></div>`;
+}
+function spells() {
+  const ss = V.spells || [];
+  return `${ss.length ? "" : help("No spells.")}<div class="spells">${ss.map((s, i) => `<div class="spell">
+    ${sub("Unlocks at", `<select class="sel" data-s="${i}.unlock">${nums(1, 20).map(([v]) => `<option value="${v}" ${+s.unlock === v ? "selected" : ""}>Level ${v}</option>`).join("")}</select>`)}
+    ${sub("Spell level", `<select class="sel" data-s="${i}.level" data-rerender>${[0, 1, 2, 3].map((v) => `<option value="${v}" ${+s.level === v ? "selected" : ""}>${["Cantrip", "1st", "2nd", "3rd"][v]}</option>`).join("")}</select>`)}
+    ${sub("Ability", `<select class="sel" data-s="${i}.ability">${ABIL.map(([k, n]) => `<option value="${k}" ${s.ability === k ? "selected" : ""}>${n}</option>`).join("")}</select>`)}
+    ${sub("Spell", `<select class="sel" data-s="${i}.spell">${(SPELLS[+s.level] || []).map((n) => `<option ${s.spell === n ? "selected" : ""}>${n}</option>`).join("")}</select>`)}
+    <button class="xbtn" data-dels="${i}" aria-label="Delete spell ${i + 1}" title="Delete spell"></button></div>`).join("")}</div>
+    <div style="margin-top:10px"><button class="btn add" data-adds>+ Add a spell</button></div>`;
+}
+
+// ---------- forms ----------
+const has = (prefix) => () => Object.keys(V).some((k) => k.startsWith(prefix + ".") && V[k] === true);
+const val = (key) => () => V[key] !== undefined && V[key] !== "" && String(V[key]) !== "0";
+const FORMS = {
+  feat: {
+    one: "feat",
+    groups: ["Prerequisites", "Ability scores", "Proficiencies", "Armor and defense", "Spells"],
+    base: [
+      { id: "name", label: "Name", body: () => `<input class="inp" id="i-name" data-k="name" value="${esc(V.name)}">`, title: true },
+      { id: "description", label: "Description", body: () => `<textarea class="ta" data-k="description" rows="4">${esc(V.description)}</textarea>`, desc: true },
+    ],
+    mods: [
+      { id: "race-prereq", label: "Race prerequisites", group: "Prerequisites", common: true, hint: "Only a dwarf or an elf can take this feat", body: () => help("Leave all clear for a feat that any race can take.") + checks("race-prereq", RACES), isSet: has("race-prereq") },
+      { id: "prereqs", label: "Other prerequisites", group: "Prerequisites", hint: "Strength 13 or higher, can cast a spell, armor proficiency", body: () => checks("prereqs", ["Can cast at least one spell", ...ABIL.map(([, n]) => `${n} 13 or higher`), "Proficiency with light armor", "Proficiency with medium armor", "Proficiency with heavy armor"], { wide: true }), isSet: has("prereqs") },
+      { id: "asi", label: "Ability increase", group: "Ability scores", common: true, hint: "Increase one ability score of the player's choice by 1", body: () => help("The player increases one of the checked abilities by 1.") + checks("asi", ABIL.map(([, n]) => n)) + `<div style="margin-top:6px">${checks("asi-save", ["Also gain saving throw proficiency in the chosen ability"], { wide: true })}</div>`, isSet: has("asi") },
+      { id: "skill-tool", label: "Skills or tools of choice", group: "Proficiencies", hint: "Proficiency in 1 to 3 skills or tools of choice", body: () => `<div class="seg-line">${seg("skill-tool", [1, 2, 3])}<span>skills or tools of the player's choice</span></div>`, isSet: val("skill-tool") },
+      { id: "lang-choice", label: "Languages of choice", group: "Proficiencies", hint: "Learn 1 to 3 languages of choice", body: () => `<div class="seg-line">${seg("lang-choice", [1, 2, 3])}<span>languages of the player's choice</span></div>`, isSet: val("lang-choice") },
+      { id: "armor-prof", label: "Armor proficiency", group: "Proficiencies", hint: "Light, medium, heavy armor, shields", body: () => checks("armor-prof", ["Light armor", "Medium armor", "Heavy armor", "Shields"]), isSet: has("armor-prof") },
+      { id: "improvised", label: "Improvised weapons", group: "Proficiencies", hint: "Proficiency with improvised weapons", body: () => checks("improvised", ["Proficiency with improvised weapons"], { wide: true }), isSet: has("improvised") },
+      { id: "weapon-choice", label: "Weapons of choice", group: "Proficiencies", hint: "Proficiency with 3 or 4 weapons of choice", body: () => `<div class="seg-line">${seg("weapon-choice", [3, 4])}<span>weapons of the player's choice</span></div>`, isSet: val("weapon-choice") },
+      { id: "skill-exp", label: "Skill proficiency or expertise", group: "Proficiencies", hint: "Proficiency in a skill, or expertise if already proficient", body: () => help("Proficiency in a checked skill, or expertise when the character already has it.") + checks("skill-exp", SKILLS), isSet: has("skill-exp") },
+      { id: "tool-exp", label: "Tool proficiency or expertise", group: "Proficiencies", hint: "Proficiency in a tool, or expertise if already proficient", body: () => groupedChecks("tool-exp", TOOLS), isSet: has("tool-exp") },
+      { id: "medium-armor", label: "Medium armor", group: "Armor and defense", hint: "No Stealth disadvantage, +3 Dexterity to AC", body: () => checks("medium-armor", ["Medium armor gives no disadvantage on Stealth checks", "In medium armor, add 3 to AC with Dexterity 16 or higher"], { wide: true }), isSet: has("medium-armor") },
+      { id: "hp", label: "Hit points", group: "Armor and defense", hint: "+1 or +2 hit point maximum per level", body: () => `<div class="seg-line">${seg("hp", [1, 2], (n) => "+" + n)}<span>to the hit point maximum for each level</span></div>`, isSet: val("hp") },
+      { id: "resist", label: "Damage resistances", group: "Armor and defense", hint: "Resistance to fire, cold, damage from traps …", body: () => checks("resist", ["Traps", ...DMG]), isSet: has("resist") },
+      { id: "speed", label: "Speed", group: "Armor and defense", hint: "+5, +10 or +15 ft. speed", body: () => `<div class="seg-line">${seg("speed", [5, 10, 15], (n) => `+${n} ft.`)}</div>`, isSet: val("speed") },
+      { id: "init", label: "Initiative", group: "Armor and defense", hint: "+1 to +5 to initiative", body: () => `<div class="seg-line">${seg("init", [1, 2, 3, 4, 5], (n) => "+" + n)}</div>`, isSet: val("init") },
+      { id: "misc", label: "Other bonuses", group: "Armor and defense", hint: "Two-weapon fighting, passive Perception +5, traps", body: () => checks("misc", ["+1 AC while wielding two melee weapons", "Two-weapon fighting with any one-handed melee weapon", "Advantage on saving throws against traps", "+5 to passive Perception", "+5 to passive Investigation"], { wide: true }), isSet: has("misc") },
+      { id: "spellcasting", label: "Spellcasting", group: "Spells", hint: "Cantrips and a 1st-level spell, ritual spells, an attack cantrip", body: () => help("The player chooses the class when they take the feat.") + checks("spellcasting", ["2 cantrips and one 1st-level spell from a class list", "Two 1st-level ritual spells from a class list", "A cantrip that needs an attack roll, from a class list"], { wide: true }), isSet: has("spellcasting") },
+    ],
+    samples: {
+      new: {},
+      imported: { name: "Iron Hide", description: "Your skin is as tough as old leather.\n\nYour Constitution score increases by 1. You have resistance to poison damage, and your hit point maximum increases by 1 for each of your levels.",
+        "race-prereq.dwarf": true, "race-prereq.goliath-pack": true, "asi.constitution": true, "resist.poison": true, hp: "1" },
+    },
+  },
+  race: {
+    one: "race",
+    groups: ["Size, speed and senses", "Ability scores", "Languages", "Proficiencies", "Defense", "Spells and features"],
+    base: [
+      { id: "name", label: "Name", body: () => `<input class="inp" id="i-name" data-k="name" value="${esc(V.name)}">`, title: true },
+      { id: "description", label: "Description", body: () => `<textarea class="ta" data-k="description" rows="3">${esc(V.description)}</textarea>`, desc: true },
+      { id: "size-speed", label: "Size and speed", body: () => `<div class="row">${sub("Size", select("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]))}${sub("Speed", select("speed", nums(0, 50, 5, (n) => n + " ft."), "short"))}</div>` },
+    ],
+    mods: [
+      { id: "darkvision", label: "Darkvision", group: "Size, speed and senses", common: true, hint: "60 or 120 ft.", body: () => seg("darkvision", [60, 120], (n) => n + " ft."), isSet: val("darkvision") },
+      { id: "fly", label: "Flying speed", group: "Size, speed and senses", hint: "A flying speed from 5 to 50 ft.", body: () => select("fly", nums(0, 50, 5, (n) => n ? n + " ft." : "None"), "short"), isSet: val("fly") },
+      { id: "swim", label: "Swimming speed", group: "Size, speed and senses", hint: "A swimming speed from 5 to 50 ft.", body: () => select("swim", nums(0, 50, 5, (n) => n ? n + " ft." : "None"), "short"), isSet: val("swim") },
+      { id: "asi", label: "Ability score increases", group: "Ability scores", common: true, hint: "+2 Constitution, +1 Wisdom", body: () => `<div class="asi">${ABIL.map(([k, , s]) => `<label class="box"><span class="lab">${s}</span>${select("asi." + k, nums(-2, 2, 1, (n) => (n > 0 ? "+" : "") + n), "", 0)}</label>`).join("")}</div>`, isSet: () => ABIL.some(([k]) => val("asi." + k)()) },
+      { id: "ac", label: "Armor class", group: "Defense", hint: "Natural armor: 13 + Dex, or a flat 17", body: () => checks("ac", ["Without armor, AC is 13 + Dexterity modifier", "AC is 17, whatever the Dexterity modifier or armor"], { wide: true }), isSet: has("ac") },
+      { id: "languages", label: "Languages", group: "Languages", common: true, hint: "Common, Elvish …", body: () => checks("languages", LANGS), isSet: has("languages") },
+      { id: "lang-choice", label: "Languages of choice", group: "Languages", common: true, hint: "Learn n languages of choice", body: () => chooseN("lang-choice", LANGS), isSet: has("lang-choice") },
+      { id: "skill-prof", label: "Skill proficiencies", group: "Proficiencies", hint: "Perception, Stealth …", body: () => checks("skill-prof", SKILLS), isSet: has("skill-prof") },
+      { id: "skill-choice", label: "Skills of choice", group: "Proficiencies", hint: "Choose n skills from a list", body: () => chooseN("skill-choice", SKILLS), isSet: has("skill-choice") },
+      { id: "weapon-prof", label: "Weapon proficiencies", group: "Proficiencies", hint: "Longsword, shortbow, all simple weapons …", body: () => groupedChecks("weapon-prof", WEAPONS), isSet: has("weapon-prof") },
+      { id: "weapon-choice", label: "Weapons of choice", group: "Proficiencies", hint: "Choose n weapons from a list", body: () => chooseN("weapon-choice", null, WEAPONS.slice(1)), isSet: has("weapon-choice") },
+      { id: "armor-prof", label: "Armor proficiency", group: "Proficiencies", hint: "Light, medium, heavy armor, shields", body: () => checks("armor-prof", ["Light armor", "Medium armor", "Heavy armor", "Shields"]), isSet: has("armor-prof") },
+      { id: "tool-prof", label: "Tool proficiencies", group: "Proficiencies", hint: "Smith's tools, thieves' tools …", body: () => groupedChecks("tool-prof", TOOLS), isSet: has("tool-prof") },
+      { id: "resist", label: "Damage resistances", group: "Defense", common: true, hint: "Fire, poison, damage from traps …", body: () => checks("resist", ["Traps", ...DMG]), isSet: has("resist") },
+      { id: "immune", label: "Damage immunities", group: "Defense", hint: "Poison, necrotic …", body: () => checks("immune", DMG), isSet: has("immune") },
+      { id: "spells", label: "Spells", group: "Spells and features", common: true, hint: "Innate spells unlocked at a level", body: spells, isSet: () => (V.spells || []).length > 0 },
+      { id: "features", label: "Features", group: "Spells and features", common: true, hint: "Traits with a name, type and text", body: features, isSet: () => (V.features || []).length > 0 },
+    ],
+    samples: {
+      new: { size: "medium", speed: "30" },
+      imported: { name: "Tidekin", description: "", size: "medium", speed: "30", "asi.con": "2", "asi.wis": "1", "languages.common": true, "languages.primordial": true,
+        darkvision: "60", swim: "30", "skill-prof.athletics": true, "resist.cold": true,
+        spells: [{ unlock: 3, level: 1, ability: "wis", spell: "Fog Cloud" }],
+        features: [{ name: "Hold Breath", type: "Other", desc: "You can hold your breath for up to 1 hour." }, { name: "Tide Surge", type: "Bonus Action", desc: "You move up to your swimming speed toward a creature you can see. Once you use this trait, you can't use it again until you finish a short or long rest." }] },
+    },
+  },
+};
+
+// ---------- state ----------
+const store = (() => { try { return window.localStorage; } catch { return null; } })();
+const get = (k, d) => { try { return store?.getItem("orc184-" + k) ?? d; } catch { return d; } };
+const put = (k, v) => { try { store?.setItem("orc184-" + k, v); } catch {} };
+const S = { variant: +get("variant", 0) || 0, form: get("form", "feat"), sample: get("sample", "new"), style: get("style", "boxed"), width: "full", added: new Set(), undo: null, adderOpen: false, modal: false, query: "" };
+if (!FORMS[S.form]) S.form = "feat";
+function load() {
+  const f = FORMS[S.form];
+  V = structuredClone(f.samples[S.sample] || {});
+  S.added = new Set(f.mods.filter((m) => !m.common && m.isSet()).map((m) => m.id));
+  S.undo = null; S.adderOpen = false; S.query = "";
+}
+const shown = (m) => m.common || S.added.has(m.id);
+
+// ---------- variant rendering ----------
+const rm = (m) => (m.common ? "" : `<button class="link" data-rm="${m.id}">Remove</button>`);
+const undoNote = () => (S.undo ? `<div class="undo" role="status">Removed “${esc(S.undo.label)}”. <button class="link" data-undo>Undo</button></div>` : "");
+const head = (f) => `<div class="page-head"><h1>${S.sample === "imported" ? `Edit ${f.one}: ${esc(V.name)}` : `New ${f.one}`}</h1>
+  <label class="sub"><span class="lab">Option source (pack)</span>${select("pack", [["d", S.sample === "imported" ? "Sunken Isles" : "Default Option Source"], ["n", "New pack…"]])}</label></div>`;
+const actions = () => `<div class="actions"><button class="btn solid" data-save>Save</button><button class="link" style="font-size:14px">Cancel</button><span class="saved" id="saved"></span></div>`;
+const hidden = (f) => f.mods.filter((m) => !shown(m));
+
+function adderList(f) {
+  const q = S.query.trim().toLowerCase();
+  const opts = hidden(f).filter((m) => !q || (m.label + " " + m.hint + " " + m.group).toLowerCase().includes(q));
+  if (!opts.length) return `<div class="none">${hidden(f).length ? "No modifier matches. Try another word, such as “speed” or “fire”." : "Every modifier is on the form."}</div>`;
+  let html = "", g = null;
+  opts.forEach((m, i) => { if (m.group !== g) { g = m.group; html += `<div class="grp">${esc(g)}</div>`; } html += `<button class="opt ${i === 0 && q ? "hi" : ""}" data-add="${m.id}">${esc(m.label)}<small>${esc(m.hint)}</small></button>`; });
+  return html;
+}
+
+function modal(f) {
+  if (!S.modal) return "";
+  const ms = hidden(f);
+  return `<div class="mback ${S.width === "phone" ? "phone" : ""}" data-close-modal><div class="mdl" role="dialog" aria-modal="true" aria-labelledby="modal-h">
+    <div class="mdl-head"><h2 id="modal-h">Add a modifier</h2><button class="xbtn" data-close-modal aria-label="Close"></button></div>
+    <ul class="mdl-list">${ms.length ? ms.map((m) => `<li><button class="mdl-row" data-add="${m.id}"><b>${esc(m.label)}</b><small>${esc(m.hint)}</small><span class="plus" aria-hidden="true">Add</span></button></li>`).join("") : `<li class="help" style="padding:10px 20px">Every modifier is on the form.</li>`}</ul></div></div>`;
+}
+
+function variantA(f, useModal = false) {
+  const base = f.base.map((b) => `<div class="fld"><span class="lab">${esc(b.label)}</span>${b.body()}</div>`).join("");
+  const mods = f.mods.filter(shown).map((m) => `<section id="m-${m.id}"><div class="srule"><h3>${esc(m.label)}</h3>${rm(m)}</div>${m.body()}</section>`).join("");
+  const n = hidden(f).length;
+  return `<div class="va">${base}${mods}${undoNote()}
+    <div class="addwrap"><button class="btn add" ${useModal ? `data-open-modal aria-haspopup="dialog"` : `data-toggle-adder aria-expanded="${S.adderOpen}"`}><span>+ Add a modifier</span><span class="count">${n} more available</span></button>
+    ${S.adderOpen && !useModal ? `<div class="adder"><input class="inp" id="adder-q" placeholder="Search modifiers, such as “speed” or “fire”" value="${esc(S.query)}" autocomplete="off"><div class="list" id="adder-list">${adderList(f)}</div></div>` : ""}</div>
+  </div>`;
+}
+
+function variantB(f) {
+  const row = (label, body, id = "", x = "") => `<div class="lrow" ${id ? `id="m-${id}"` : ""}><div class="lcell"><span class="lab">${esc(label)}</span>${x}</div><div>${body}</div></div>`;
+  let html = f.base.map((b) => row(b.label, b.body())).join("");
+  let g = null;
+  f.mods.filter(shown).forEach((m) => {
+    if (m.group !== g) { g = m.group; html += `<div class="ledger-group">${esc(g)}</div>`; }
+    html += row(m.label, m.body(), m.id, m.common ? "" : `<button class="x" data-rm="${m.id}">Remove</button>`);
+  });
+  const hid = hidden(f);
+  const groups = f.groups.map((gr) => [gr, hid.filter((m) => m.group === gr)]).filter(([, ms]) => ms.length);
+  const tray = `<div class="tray"><div class="lcell"><span class="lab">More modifiers</span><span class="count">${hid.length} available</span></div><div class="chips">${
+    groups.length ? groups.map(([gr, ms]) => `<div class="chiprow"><span class="lab">${esc(gr)}</span>${ms.map((m) => `<button class="chip" data-add="${m.id}" title="${esc(m.hint)}">+ ${esc(m.label)}</button>`).join("")}</div>`).join("") : `<span class="help">Every modifier is on the form.</span>`
+  }</div></div>`;
+  return `<div class="vb">${html}${undoNote()}${tray}</div>`;
+}
+
+function variantC(f) {
+  const title = f.base.find((b) => b.title), desc = f.base.find((b) => b.desc), rest = f.base.filter((b) => !b.title && !b.desc);
+  let body = `<input class="titlein" data-k="name" id="i-name" placeholder="Name this ${f.one}" value="${esc(V.name)}" aria-label="Name">
+    <div class="desc">${desc.body()}</div>${rest.map((b) => b.body()).join("")}
+    <details class="aside-phone"><summary>Modifiers · ${S.added.size} added, ${f.mods.filter((m) => !m.common).length - S.added.size} more</summary>${"@@ASIDE@@"}</details>`;
+  let g = null;
+  f.mods.filter(shown).forEach((m) => {
+    if (m.group !== g) { g = m.group; body += `<h2 class="g">${esc(g)}</h2>`; }
+    body += `<section class="csec" id="m-${m.id}"><h3>${esc(m.label)} ${rm(m)}</h3>${m.body()}</section>`;
+  });
+  const extra = f.mods.filter((m) => !m.common);
+  const list = (pre) => {
+    let h = "", gg = null;
+    extra.forEach((m) => { if (m.group !== gg) { gg = m.group; h += `<div class="grp">${esc(gg)}</div>`; } h += `<label class="chk"><input type="checkbox" id="${pre}-${m.id}" data-addtoggle="${m.id}" ${S.added.has(m.id) ? "checked" : ""}><span>${esc(m.label)}</span></label>`; });
+    return h;
+  };
+  const always = f.mods.filter((m) => m.common).map((m) => m.label).join(", ");
+  const aside = (pre) => `<div class="aside"><h2>Modifiers on this ${f.one}</h2>${list(pre)}<div class="always">Always shown: ${esc(always)}.</div></div>`;
+  return `<div class="vc"><div class="doc">${body}
+    ${undoNote()}</div>${aside("d")}</div>`.replace("@@ASIDE@@", aside("p"));
+}
+
+function render(focusAdded) {
+  const f = FORMS[S.form];
+  const v = [variantA, variantB, variantC, (x) => variantA(x, true)][S.variant](f);
+  const stage = document.getElementById("stage");
+  stage.className = `stage ${S.width === "phone" ? "phone" : ""}`;
+  stage.innerHTML = `<div class="shell"><nav class="rail"><div class="logo"><i></i>Alchemy <sup>5E</sup></div>
+    <div class="flags"><a class="flag" href="#characters">Characters</a><a class="flag blue" href="#import">Import</a><a class="flag green" aria-current="page" href="#my-content">My content</a><a class="flag orange" href="#preferences">Preferences</a></div></nav>
+    <main class="main ${S.style === "ruled" ? "ruled" : ""}">${head(f)}${v}${actions()}</main></div>`;
+  const [k, name] = VARIANTS[S.variant];
+  const nShown = f.mods.filter(shown).length;
+  document.getElementById("vlabel").innerHTML = `${k} · ${name}<small>${nShown} shown, ${f.mods.length - nShown} in the list</small>`;
+  for (const b of document.querySelectorAll("[data-form]")) b.setAttribute("aria-pressed", b.dataset.form === S.form);
+  for (const b of document.querySelectorAll("[data-sample]")) b.setAttribute("aria-pressed", b.dataset.sample === S.sample);
+  for (const b of document.querySelectorAll("[data-style]")) b.setAttribute("aria-pressed", b.dataset.style === S.style);
+  for (const b of document.querySelectorAll("[data-width]")) b.setAttribute("aria-pressed", b.dataset.width === S.width);
+  const th = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  for (const b of document.querySelectorAll("[data-theme-set]")) b.setAttribute("aria-pressed", b.dataset.themeSet === th);
+  document.getElementById("modal-root").innerHTML = modal(f);
+  if (S.modal) document.querySelector(".mdl-row")?.focus();
+  if (S.adderOpen) { const q = document.getElementById("adder-q"); q?.focus(); q?.setSelectionRange(q.value.length, q.value.length); }
+  if (focusAdded) { const el = document.getElementById("m-" + focusAdded); if (el) { el.scrollIntoView({ block: "nearest", behavior: "smooth" }); el.classList.add("flash"); el.querySelector("input, select, textarea")?.focus({ preventScroll: true }); } }
+}
+
+// ---------- events ----------
+function add(id) { S.added.add(id); S.undo = null; S.adderOpen = false; S.modal = false; S.query = ""; render(id); }
+function remove(id) {
+  const m = FORMS[S.form].mods.find((x) => x.id === id);
+  const snap = {}; for (const k of Object.keys(V)) if (k === id || k.startsWith(id + ".")) { snap[k] = V[k]; delete V[k]; }
+  S.added.delete(id); S.undo = { id, label: m.label, snap }; render();
+}
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button, [data-addtoggle]");
+  if (e.target.matches?.("[data-close-modal]") || e.target.closest?.("button[data-close-modal]")) { closeModal(); return; }
+  if (!t) { if (S.adderOpen && !e.target.closest(".adder")) { S.adderOpen = false; render(); } return; }
+  const d = t.dataset;
+  if (d.form) { S.form = d.form; put("form", d.form); load(); render(); }
+  else if (d.sample) { S.sample = d.sample; put("sample", d.sample); load(); render(); }
+  else if (d.style) { S.style = d.style; put("style", d.style); render(); }
+  else if (d.width) { S.width = d.width; render(); }
+  else if (d.themeSet) { document.documentElement.dataset.theme = d.themeSet; render(); }
+  else if (d.add) add(d.add);
+  else if (d.rm) remove(d.rm);
+  else if ("undo" in d) { Object.assign(V, S.undo.snap); const id = S.undo.id; S.undo = null; S.added.add(id); render(id); }
+  else if ("openModal" in d) { S.modal = true; render(); }
+  else if ("toggleAdder" in d) { S.adderOpen = !S.adderOpen; S.query = ""; render(); }
+  else if ("addf" in d) { (V.features ||= []).push({ name: "", type: "Other", desc: "" }); render(); }
+  else if (d.delf) { V.features.splice(+d.delf, 1); render(); }
+  else if ("adds" in d) { (V.spells ||= []).push({ unlock: 1, level: 0, ability: "wis", spell: SPELLS[0][0] }); render(); }
+  else if (d.dels) { V.spells.splice(+d.dels, 1); render(); }
+  else if ("save" in d) { document.getElementById("saved").textContent = "Prototype: nothing is saved."; }
+  else if (t.id === "prev" || t.id === "next") { S.variant = (S.variant + (t.id === "next" ? 1 : VARIANTS.length - 1)) % VARIANTS.length; put("variant", S.variant); S.adderOpen = false; render(); }
+});
+document.addEventListener("change", (e) => {
+  const t = e.target, d = t.dataset;
+  if (d.addtoggle) { t.checked ? add(d.addtoggle) : remove(d.addtoggle); return; }
+  if (d.k) V[d.k] = t.type === "checkbox" ? t.checked : t.value;
+  if (d.f) { const [i, k] = d.f.split("."); V.features[+i][k] = t.value; }
+  if (d.s) { const [i, k] = d.s.split("."); V.spells[+i][k] = t.value; if (k === "level") { V.spells[+i].spell = (SPELLS[+t.value] || [])[0]; render(); } }
+});
+document.addEventListener("input", (e) => {
+  const t = e.target, d = t.dataset;
+  if (t.id === "adder-q") { S.query = t.value; document.getElementById("adder-list").innerHTML = adderList(FORMS[S.form]); return; }
+  if (d.k && (t.tagName === "TEXTAREA" || t.type === "text" || !t.type || t.tagName === "INPUT" && t.type !== "checkbox" && t.type !== "radio")) V[d.k] = t.value;
+  if (d.f && t.tagName !== "SELECT") { const [i, k] = d.f.split("."); V.features[+i][k] = t.value; }
+});
+document.addEventListener("keydown", (e) => {
+  if (S.modal) {
+    if (e.key === "Escape") { closeModal(); return; }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const rows = [...document.querySelectorAll(".mdl-row")]; const i = rows.indexOf(document.activeElement); rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))]?.focus(); }
+    return;
+  }
+  if (e.target.id === "adder-q") {
+    if (e.key === "Escape") { S.adderOpen = false; render(); document.querySelector("[data-toggle-adder]")?.focus(); }
+    if (e.key === "Enter") { const first = document.querySelector("#adder-list .opt"); if (first) add(first.dataset.add); }
+    if (e.key === "ArrowDown") { e.preventDefault(); document.querySelector("#adder-list .opt")?.focus(); }
+    return;
+  }
+  if (e.target.matches("input, textarea, select, [contenteditable]")) return;
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") { S.variant = (S.variant + (e.key === "ArrowRight" ? 1 : VARIANTS.length - 1)) % VARIANTS.length; put("variant", S.variant); S.adderOpen = false; render(); }
+});
+function closeModal() { S.modal = false; S.query = ""; render(); document.querySelector("[data-open-modal]")?.focus(); }
+load(); render();
+</script>
