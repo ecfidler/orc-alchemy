@@ -63,9 +63,9 @@ const ARMOR: [string, string][] = [
  */
 const WEAPON_BASES: [string, string][] = [["all", "Any"], ["specific", "Specific"], ["other", "New weapon"]];
 const ARMOR_BASES: [string, string][] = [["all", "Any"], ["specific", "Specific"]];
-/** The kinds that the old weapon selector offers after New weapon and Any. The weapons follow, sorted by name. */
+/** The kinds that the old weapon selector offers after Custom and All (now New weapon and Any). The weapons follow, sorted by name. */
 const WEAPON_KINDS: PickItem[] = [["sword", "All Swords"], ["axe", "All Axes"]].map(([key, name]) => ({ key, name, group: "Kinds" }));
-/** The old armor selector's choices after All: the kinds, then the armor. */
+/** The old armor selector's choices after All (now Any): the kinds, then the armor. */
 const ARMOR_ITEMS: PickItem[] = [
   ...[["light", "All light"], ["medium", "All medium"], ["heavy", "All heavy"]].map(([key, name]) => ({ key, name, group: "Kinds" })),
   ...ARMOR.map(([key, name]) => ({ key, name, group: "Armor" })),
