@@ -316,14 +316,14 @@ whole power-of-two scale with nearest-neighbor scaling
 | Home screen and install icon | 256, 512 | 16×, 32× | No |
 
 The liquid swirls in the rail mark and in the Home title row (ORC-208,
-variant A, "Stir"). The rules are:
+variant B, "Soft spiral"). The rules are:
 
 * The swirl is `potion-swirl.png`, a row of twelve 16 × 16 frames. CSS shows
   one whole frame at a time, and one loop takes 2.4 seconds.
-* Only the liquid changes. Each frame turns the liquid pixels of the art
-  around the middle of the flask, so the swirl adds no colors. The glass,
-  the highlights and the cork do not move. The first frame is the art as
-  drawn.
+* Only the liquid changes. A faint light arm in the shape of a spiral turns
+  through the liquid, on top of the shading of the art. It makes a pixel
+  lighter or darker by 10 of 255 at most. The glass, the highlights and the
+  cork do not change.
 * Under `prefers-reduced-motion: reduce`, the logo does not move and shows
   the art as drawn.
 * `packages/app/scripts/potion-swirl.py` makes the frames from
