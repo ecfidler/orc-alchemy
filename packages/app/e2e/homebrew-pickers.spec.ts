@@ -5,6 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 // ORC-199: the pickers, number toggles and the Armor Class select of the feat, race and subrace forms (docs/design/homebrew-forms.md, "Controls").
 // ORC-200: the tool sub-selections and the equipment picker of the background form.
+// ORC-201: the class form's chips and spell list pickers, and the subclass spells table.
 
 /** Adds the modifier named `name` from the "+ Add a modifier" list. */
 const addModifier = (page: Page, name: string) => pickFromPicker(page.getByRole("button", { name: "Add a modifier" }), name);
@@ -14,6 +15,10 @@ const section = (page: Page, name: string) => page.getByRole("group", { name, ex
 const pick = (page: Page, group: string, add: string, names: string | string[]) => pickFromPicker(section(page, group).getByRole("button", { name: add, exact: true }), names);
 const tokens = (page: Page, group: string) => section(page, group).locator(".ui-token-label");
 const segment = (page: Page, group: string, value: string) => section(page, group).getByRole("button", { name: value, exact: true });
+/** The "+ Add a spell" button of a slot of the subclass spells table. */
+const slot = (page: Page, level: string, which: "first" | "second") => page.getByRole("button", { name: `Add a spell: ${level} level, ${which} spell`, exact: true });
+/** The cells of a row of the spells table, by its spell level, such as "2nd". */
+const spellRow = (page: Page, level: string) => page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: level, exact: true }) });
 
 test("the feat form: a prerequisite picker with the races at the end, a damage resistance picker, and a number toggle", async ({ page }) => {
   await page.goto("/content/new/feat");
@@ -110,6 +115,77 @@ test("the background form: tool sub-selections and an equipment picker with sear
   await expect(tokens(page, "Artisan's tools")).toHaveText(["Brewer's Supplies", "Smith's Tools"]);
   await expect(section(page, "Vehicles")).toHaveCount(0);
   await expect(tokens(page, "Starting equipment")).toHaveText(["Amulet", "Rope, silk"]);
+});
+
+test("the class form: a spell list picker with search, and ability increase chips", async ({ page }) => {
+  await page.goto("/content/new/class");
+  await page.getByRole("textbox", { name: "Name" }).fill("Tide Caller");
+  const levels = section(page, "Ability increase levels");
+  await expect(tokens(page, "Ability increase levels")).toHaveText(["4", "8", "12", "16", "19"]);
+  await pickOption(levels.getByRole("button", { name: "Add a level", exact: true }), "Level 6");
+  await expect(tokens(page, "Ability increase levels")).toHaveText(["4", "6", "8", "12", "16", "19"]);
+  await removeToken(levels, "Level 19");
+  await expect(tokens(page, "Ability increase levels")).toHaveText(["4", "6", "8", "12", "16"]);
+
+  await pickOption(page.getByRole("combobox", { name: "Spell slots" }), "Yes");
+  await section(page, "Level 1 spells").getByRole("button", { name: "Add a 1st-level spell", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a 1st-level spell" });
+  await expect(dialog.getByRole("searchbox", { name: "Search" })).toBeFocused();
+  await page.keyboard.type("cure");
+  await expect(dialog.locator(".ui-list-row")).toHaveText(["Cure WoundsAdd"]);
+  await dialog.getByRole("button", { name: "Cure Wounds" }).click();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await pick(page, "Level 1 spells", "Add a 1st-level spell", "Bless");
+  await expect(tokens(page, "Level 1 spells")).toHaveText(["Bless", "Cure Wounds"]);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/\/content$/);
+
+  await page.goto(`/content/edit/class/${encodeURIComponent("Default Option Source")}/tide-caller`);
+  await expect(tokens(page, "Ability increase levels")).toHaveText(["4", "6", "8", "12", "16"]);
+  await expect(tokens(page, "Level 1 spells")).toHaveText(["Bless", "Cure Wounds"]);
+});
+
+test("the subclass form: two slots of a spells row filled, one removed, and the rest kept on save", async ({ page }) => {
+  await page.goto("/content/new/subclass");
+  await page.getByRole("textbox", { name: "Name" }).fill("Oath of the Lantern");
+  await pickOption(page.getByRole("combobox", { name: "Class" }), "Paladin");
+  await slot(page, "2nd", "first").click();
+  const dialog = page.getByRole("dialog", { name: "Add a 2nd-level spell" });
+  await expect(dialog.getByRole("searchbox", { name: "Search" })).toBeFocused();
+  await page.keyboard.type("zone");
+  await dialog.getByRole("button", { name: "Zone of Truth" }).click();
+  await expect(dialog.getByRole("status")).toHaveText("1 of 2 in this row");
+  await dialog.getByRole("searchbox").fill("lesser");
+  await dialog.getByRole("button", { name: "Lesser Restoration" }).click();
+  // The row has two spells, so the picker closes.
+  await expect(dialog).toHaveCount(0);
+  await expect(spellRow(page, "2nd").locator(".ui-token-label")).toHaveText(["Zone of Truth", "Lesser Restoration"]);
+  await removeToken(spellRow(page, "2nd"), "Zone of Truth");
+  await expect(spellRow(page, "2nd").locator(".ui-token-label")).toHaveText(["Lesser Restoration"]);
+  await expect(slot(page, "2nd", "first")).toBeVisible();
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/\/content$/);
+
+  await page.goto(`/content/edit/subclass/${encodeURIComponent("Default Option Source")}/oath-of-the-lantern`);
+  await expect(spellRow(page, "2nd").locator(".ui-token-label")).toHaveText(["Lesser Restoration"]);
+  await expect(slot(page, "2nd", "first")).toBeVisible();
+});
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("the subclass spells table stacks the second slot of a row under the first", async ({ page }) => {
+    await page.goto("/content/new/subclass");
+    await pickOption(page.getByRole("combobox", { name: "Class" }), "Cleric");
+    // Two picks from the first slot fill the row, and the picker closes itself.
+    await pickFromPicker(slot(page, "1st", "first"), ["Bless", "Cure Wounds"]);
+    const tokens = spellRow(page, "1st").locator(".ui-token");
+    await expect(tokens).toHaveCount(2);
+    const first = (await tokens.nth(0).boundingBox())!;
+    const second = (await tokens.nth(1).boundingBox())!;
+    expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+    expect(Math.abs(second.x - first.x)).toBeLessThan(2);
+  });
 });
 
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- homebrew-pickers.spec.ts
@@ -231,6 +307,86 @@ test.describe("screenshots", () => {
       await open();
       await fill();
       await main.screenshot({ path: shot("background-phone") });
+    });
+
+    test(`orc-201 the class and subclass forms, ${theme}`, async ({ page }) => {
+      test.setTimeout(90_000);
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-201-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      const main = page.locator("main");
+      const open = async (type: string) => {
+        await page.goto(`/content/new/${type}`);
+        await page.getByRole("textbox", { name: "Name" }).waitFor();
+        await page.evaluate(() => document.fonts.ready);
+      };
+      const noFlash = () => page.locator(".ui-flash").evaluateAll((all) => all.forEach((el) => el.classList.remove("ui-flash")));
+      const choose = (label: string, option: string) => pickOption(page.getByRole("combobox", { name: label }), option);
+
+      await open("class");
+      await page.getByRole("textbox", { name: "Name" }).fill("Tide Caller");
+      await page.getByRole("textbox", { name: "Description", exact: true }).fill("A caster who bends the sea to their will.");
+      await choose("Hit die", "8");
+      await choose("Subclass chosen at level", "2");
+      await page.getByRole("textbox", { name: "Subclass title, such as Path or Circle" }).fill("Current");
+      await page.getByRole("textbox", { name: "Subclass description" }).fill("The current that guides you.");
+      for (const name of ["Wisdom", "Charisma"]) await section(page, "Saving throws").getByRole("checkbox", { name }).check();
+      await pickOption(section(page, "Ability increase levels").getByRole("button", { name: "Add a level", exact: true }), "Level 10");
+      await choose("Spell slots", "Yes");
+      await choose("First spell slots at level", "1");
+      await choose("Cantrips", "Yes");
+      await choose("Cantrips known at level 1", "2");
+      await pickOption(section(page, "Extra cantrips at level").getByRole("button", { name: "Add a level", exact: true }), "Level 4");
+      await pickOption(section(page, "Extra cantrips at level").getByRole("button", { name: "Add a level", exact: true }), "Level 10");
+      await pick(page, "Cantrips", "Add a cantrip", ["Ray of Frost", "Shocking Grasp", "Thaumaturgy"]);
+      await pick(page, "Level 1 spells", "Add a 1st-level spell", ["Fog Cloud", "Create or Destroy Water", "Thunderwave"]);
+      await pick(page, "Level 2 spells", "Add a 2nd-level spell", ["Misty Step", "Gust of Wind"]);
+      await choose("Skill Proficiency Choice: choose", "2");
+      await pick(page, "Skill Proficiency Choice", "Add a skill option", ["Athletics", "Nature", "Survival", "Insight"]);
+      await noFlash();
+      await main.screenshot({ path: shot("class-filled") });
+      await section(page, "Level 3 spells").getByRole("button", { name: "Add a 3rd-level spell", exact: true }).click();
+      await page.getByRole("dialog", { name: "Add a 3rd-level spell" }).getByRole("searchbox").fill("water");
+      await page.screenshot({ path: shot("class-spell-search") });
+
+      const subclass = async (cls: string, name: string, spells: [string, "first" | "second", string[]][]) => {
+        await open("subclass");
+        await page.getByRole("textbox", { name: "Name" }).fill(name);
+        await choose("Class", cls);
+        for (const [level, which, names] of spells) await pickFromPicker(slot(page, level, which), names);
+        await noFlash();
+      };
+      const paladin = () =>
+        subclass("Paladin", "Oath of the Lantern", [
+          ["1st", "first", ["Protection from Evil and Good", "Sanctuary"]],
+          ["2nd", "first", ["Lesser Restoration"]],
+          ["3rd", "second", ["Dispel Magic"]],
+        ]);
+      await paladin();
+      await main.screenshot({ path: shot("paladin-table") });
+      await slot(page, "2nd", "second").click();
+      await page.getByRole("dialog", { name: "Add a 2nd-level spell" }).waitFor();
+      await page.screenshot({ path: shot("subclass-spell-picker") });
+
+      await subclass("Cleric", "Harvest Domain", [
+        ["1st", "first", ["Bless", "Cure Wounds"]],
+        ["2nd", "first", ["Lesser Restoration", "Spiritual Weapon"]],
+        ["3rd", "first", ["Beacon of Hope", "Revivify"]],
+        ["4th", "first", ["Death Ward", "Guardian of Faith"]],
+        ["5th", "first", ["Mass Cure Wounds", "Raise Dead"]],
+      ]);
+      await main.screenshot({ path: shot("cleric-table") });
+      await subclass("Warlock", "The Ember Court", [
+        ["1st", "first", ["Burning Hands", "Command"]],
+        ["2nd", "first", ["Blindness/Deafness", "Scorching Ray"]],
+        ["3rd", "first", ["Fireball"]],
+        ["5th", "second", ["Flame Strike"]],
+      ]);
+      await main.screenshot({ path: shot("warlock-table") });
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await paladin();
+      await main.screenshot({ path: shot("paladin-phone") });
     });
   }
 });

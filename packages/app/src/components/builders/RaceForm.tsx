@@ -205,7 +205,7 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       // :languages is a set of language names, not of keywords.
       render: ({ name }) => (
         <Section legend={name}>
-          <SetPicker edit={edit} field="languages" items={lists.languages} stored={(language) => language.name} picker={{ add: "Add a language", search: true }} />
+          <SetPicker edit={edit} path={["languages"]} items={lists.languages} stored={(language) => language.name} picker={{ add: "Add a language", search: true }} />
         </Section>
       ),
     },

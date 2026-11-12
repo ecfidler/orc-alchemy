@@ -3,7 +3,7 @@ export { AlertNote, AlertNotes } from "./AlertNote.tsx";
 export { Autocomplete, type AutocompleteProps } from "./Autocomplete.tsx";
 export { Button, ButtonLink, XButton, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button.tsx";
 export { Checkbox, type CheckboxProps } from "./Checkbox.tsx";
-export { Chips, type ChipsProps } from "./Chips.tsx";
+export { AddChip, Chips, type AddChipProps, type ChipsProps } from "./Chips.tsx";
 export { Combobox, type ComboboxProps } from "./Combobox.tsx";
 export { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
 export { ListModal, type ListItem, type ListModalProps } from "./ListModal.tsx";

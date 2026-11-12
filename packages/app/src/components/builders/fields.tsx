@@ -391,20 +391,21 @@ export function MapPicker({ edit, path, items, picker, removeKey = false }: { ed
 }
 
 /**
- * A picker of the set at field, as the old checkboxes stored it: a pick
- * adds the item's stored value at the end, and a removed token takes it
- * out. stored is the value the set holds for an item, such as its keyword.
- * A stored value that is no option stays in the set.
+ * A picker of the set at path, such as ["languages"] or
+ * ["spellcasting", "spell-list", intKey(1)], as the old checkboxes stored
+ * it: a pick adds the item's stored value at the end, and a removed token
+ * takes it out. stored is the value the set holds for an item, such as its
+ * keyword. A stored value that is no option stays in the set.
  */
-export function SetPicker({ edit, field, items, picker, stored = (item) => tag(item.key) }: { edit: Edit; field: string; items: PickItem[]; picker: PickerOptions; stored?: (item: PickItem) => string }) {
+export function SetPicker({ edit, path, items, picker, stored = (item) => tag(item.key) }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions; stored?: (item: PickItem) => string }) {
   return (
     <Picker
       label={picker.add}
       options={listItems(items, stored)}
-      value={setItems(edit.get(field)) as string[]}
+      value={setItems(edit.get(...path)) as string[]}
       search={picker.search}
       pickedText={pickedText}
-      onValueChange={(next) => edit.set([field], asSet(next))}
+      onValueChange={(next) => edit.set(path, asSet(next))}
     />
   );
 }
@@ -477,20 +478,11 @@ export function RecordTextArea({ edit, field, label }: { edit: Edit; field: stri
   );
 }
 
-/** A proficiency choice in :profs, as {:skill-options {:choose 2 :options {:arcana true}}}. Choose shows 1 until it is set. */
-export function ProficiencyChoice({ edit, legend, field, items, action }: { edit: Edit; legend: string; field: string; items: Choice[]; action?: ReactNode }) {
-  return (
-    <Section legend={legend} action={action}>
-      <SelectField label="Choose" name={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
-      <Checks legend="Options" name={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
-    </Section>
-  );
-}
-
 /**
- * A proficiency choice in :profs as ProficiencyChoice stores it, with a
- * picker for the options: {:skill-options {:choose 2 :options {:arcana true}}}.
- * A removed token stores false, as the old second click.
+ * A proficiency choice in :profs: a "Choose n" select, then a picker for
+ * the options, as {:skill-options {:choose 2 :options {:arcana true}}}.
+ * Choose shows 1 until it is set. A pick stores true, and a removed token
+ * stores false, as the old checkboxes' second click.
  */
 export function ChoicePicker({ edit, legend, field, items, picker, action }: { edit: Edit; legend: string; field: string; items: PickItem[]; picker: PickerOptions; action?: ReactNode }) {
   return (

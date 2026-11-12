@@ -166,6 +166,9 @@ bun run test       # vitest
   - `Chips`: number chips from low to high, each a Token, and a
     "+ {addLabel}" Menu of the `options` that are not on a chip. `name`
     gives a number's name for the X and the menu, for example "Row 4".
+  - `AddChip`: a dashed token-size button, "+ {label}", with the look of
+    the Chips add menu, for one empty slot that the caller fills, for
+    example from a ListModal. The "+" is not a part of its name.
   - `XButton` takes `size="small"` (24px), as in a token.
   - Styles for these: `src/picker.css`.
   - The paper patterns (`src/Paper.tsx`). They have no game meaning. A box

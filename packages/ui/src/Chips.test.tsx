@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
-import { Chips } from "./Chips.tsx";
+import { AddChip, Chips } from "./Chips.tsx";
 import { optionNames, pickOption, removeToken } from "./testing/index.ts";
 
 afterEach(cleanup);
@@ -63,4 +63,20 @@ test("the keyboard: Down on the add menu opens it on its first item, Down moves,
   expect(screen.getByText("Value: 2,4,3")).toBeTruthy();
   expect(chips()).toEqual(["2", "3", "4"]);
   await waitFor(() => expect(document.activeElement).toBe(menu()));
+});
+
+test("an add chip is a dashed button with the add menu's look, named by its label or its aria-label without the +", () => {
+  let clicks = 0;
+  render(
+    <>
+      <AddChip label="Add a row" onClick={() => clicks++} />
+      <AddChip label="Add a row" aria-label="Add a row: slot 2" className="ml-2" />
+    </>,
+  );
+  const button = screen.getByRole("button", { name: "Add a row" });
+  expect(button.className).toBe("ui-button ui-chip-add");
+  expect(button.getAttribute("type")).toBe("button");
+  fireEvent.click(button);
+  expect(clicks).toBe(1);
+  expect(screen.getByRole("button", { name: "Add a row: slot 2" }).className).toBe("ui-button ui-chip-add ml-2");
 });

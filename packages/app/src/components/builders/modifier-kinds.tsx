@@ -18,7 +18,6 @@ import {
   nameToKw,
   NumberChoice,
   Section,
-  ProficiencyChoice,
   title,
   VEHICLES,
   type Edit,
@@ -88,22 +87,13 @@ export const toolModifier = (edit: Edit): Modifier => ({
   render: mapPicker(edit, ["profs", "tool"], TOOL_ITEMS, { add: "Add a tool", search: true }),
 });
 
-/**
- * A proficiency choice in :profs field as a modifier: "Choose n", then a
- * picker of the options. Without picker options, the options are checkboxes, as the
- * subclass form keeps them until ORC-201.
- */
-export const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: PickItem[], picker?: PickerOptions): Modifier => ({
+/** A proficiency choice in :profs field as a modifier: "Choose n", then a picker of the options. */
+export const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: PickItem[], picker: PickerOptions): Modifier => ({
   id: field,
   name,
   example,
   paths: [["profs", field]],
-  render: ({ name, action }) =>
-    picker ? (
-      <ChoicePicker edit={edit} legend={name} action={action} field={field} items={items} picker={picker} />
-    ) : (
-      <ProficiencyChoice edit={edit} legend={name} action={action} field={field} items={items} />
-    ),
+  render: ({ name, action }) => <ChoicePicker edit={edit} legend={name} action={action} field={field} items={items} picker={picker} />,
 });
 
 /** A modifier of one number at :props prop, as a None / n toggle. line is the text after the toggle. */

@@ -1,3 +1,4 @@
+import { Button, type ButtonProps } from "./Button.tsx";
 import { Menu } from "./Menu.tsx";
 import { Token, Tokens } from "./Token.tsx";
 
@@ -32,5 +33,24 @@ export function Chips({ values, options, onValuesChange, addLabel, name = String
         <Menu label={addLabel} items={rest.map((value) => [value, name(value)] as const)} onPick={(value) => onValuesChange([...values, value])} className="ui-chip-add" />
       )}
     </Tokens>
+  );
+}
+
+export type AddChipProps = Omit<ButtonProps, "variant" | "size" | "wide" | "children"> & {
+  /** The text after the "+", for example "Add a row". It is the button's name, unless `aria-label` gives a longer one. */
+  label: string;
+};
+
+/**
+ * A dashed button of the size of a token: "+ {label}", the look of the
+ * Chips add menu. Use it to fill one empty cell or slot that a caller
+ * owns, for example a button that opens a ListModal. The "+" is not a
+ * part of its name.
+ */
+export function AddChip({ label, className, ...props }: AddChipProps) {
+  return (
+    <Button {...props} size="small" className={className ? `ui-chip-add ${className}` : "ui-chip-add"}>
+      {label}
+    </Button>
   );
 }

@@ -13,16 +13,18 @@
 // "Custom", the form removes the key: the importer and the export check
 // treat a nil as a problem. The modifiers and selections are also the
 // subclass form's.
-import { FieldErrors, Fieldset, Menu, XButton } from "@orc-alchemy/ui";
+import { Chips, FieldErrors, Fieldset, XButton } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
-import { asSet, intKey, intKeyValue, setItems, tag } from "../../engine/content.ts";
+import { intKey, intKeyValue, setItems, tag, untag } from "../../engine/content.ts";
+import { ordinal } from "../CharacterSheet.tsx";
 import {
   ABILITIES,
   ABILITY_OPTIONS,
   abilityKey,
   AddButton,
   Checks,
+  ChoicePicker,
   CONDITIONS,
   DAMAGE_TYPES,
   editor,
@@ -32,10 +34,10 @@ import {
   Help,
   nameToKw,
   numbers,
-  ProficiencyChoice,
   range,
   RecordTextArea,
   SelectField,
+  SetPicker,
   SKILLS,
   SPELL_LEVELS,
   TextField,
@@ -49,6 +51,7 @@ import {
   type FormProps,
   type ItemRecord,
   type Options,
+  type PickItem,
   type Problem,
 } from "./fields.tsx";
 
@@ -149,7 +152,7 @@ export function LevelSelections({ edit, problems, choices, legend = "Selections"
   const rows = (edit.get("level-selections") ?? []) as ItemRecord[];
   return (
     <Fieldset legend={legend} look="section" action={action} errors={fieldErrors(problems, "level-selections", legend)}>
-      <Help>A selection gives options to pick at a level, such as Martial Maneuvers. Make the selection first; it is then a type here.</Help>
+      <Help>A selection gives options to pick at a level, such as Martial Maneuvers, Fighting Style or Eldritch Invocations. Make the selection first; it is then a type here.</Help>
       {rows.map((row, i) => {
         const n = i + 1;
         return (
@@ -183,16 +186,19 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
     .map(intKeyValue)
     .filter((level) => level !== 1)
     .sort((a, b) => a - b);
-  const setCantripLevel = (from: number | undefined, to: unknown) => {
-    const next = { ...cantripsKnown };
-    if (from !== undefined) delete next[intKey(from)];
-    if (to !== undefined) next[intKey(to as number)] = 1;
-    edit.set(["spellcasting", "cantrips-known"], next);
+  // An added level stores 1 and a removed level loses its key, as the old level select and its remove button did. The other levels keep their values.
+  const setExtraCantrips = (next: number[]) => {
+    const map = { ...cantripsKnown };
+    for (const level of extraCantrips) if (!next.includes(level)) delete map[intKey(level)];
+    for (const level of next) if (!extraCantrips.includes(level)) map[intKey(level)] = 1;
+    edit.set(["spellcasting", "cantrips-known"], map);
   };
-  const spellsAt = (level: number) => setItems(edit.get("spellcasting", "spell-list", intKey(level)));
-  const toggleSpell = (level: number, key: string) => {
-    const spells = spellsAt(level);
-    edit.set(["spellcasting", "spell-list", intKey(level)], asSet(spells.includes(key) ? spells.filter((s) => s !== key) : [...spells, key]));
+  // A stored spell that no list has, such as one of a pack that is not enabled, shows as a token with its key, and stays.
+  const spellItems = (level: number): PickItem[] => {
+    const items: PickItem[] = choices.spells.filter((s) => s.level === level);
+    const known = new Set(items.map((s) => tag(s.key)));
+    const others = setItems(edit.get("spellcasting", "spell-list", intKey(level))).filter((v): v is string => typeof v === "string" && !known.has(v));
+    return [...items, ...others.map((v) => ({ key: untag(v), name: untag(v) }))];
   };
   const maxLevel = factor === 2 ? 5 : factor === 3 ? 4 : 9;
 
@@ -236,25 +242,24 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
             {cantrips && (
               <>
                 <SelectField label="Cantrips known at level 1" value={cantripsKnown[intKey(1)]} options={numbers(range(0, 6))} onSelect={(v) => edit.set(["spellcasting", "cantrips-known", intKey(1)], v)} />
-                {extraCantrips.map((level, i) => (
-                  <FieldRow key={level} look="tight">
-                    <SelectField label={`Extra cantrip ${i + 1} level`} value={level} options={numbers(range(2, 21))} onSelect={(v) => setCantripLevel(level, v)} />
-                    <XButton aria-label={`Remove extra cantrip ${i + 1}`} onClick={() => setCantripLevel(level, undefined)} />
-                  </FieldRow>
-                ))}
-                <Menu label="Add an extra cantrip at level" items={numbers(range(2, 21))} onPick={(v) => setCantripLevel(undefined, v)} />
+                <Fieldset legend="Extra cantrips at level">
+                  <Chips values={extraCantrips} options={range(2, 21)} onValuesChange={setExtraCantrips} addLabel="Add a level" name={(level) => `Level ${level}`} />
+                </Fieldset>
               </>
             )}
           </FieldRow>
-          {range(cantrips ? 0 : 1, maxLevel + 1).map((level) => (
-            <Checks
-              key={level}
-              legend={level === 0 ? "Cantrips" : `Level ${level} spells`}
-              items={choices.spells.filter((s) => s.level === level)}
-              checked={(key) => spellsAt(level).includes(tag(key))}
-              onToggle={(key) => toggleSpell(level, tag(key))}
-            />
-          ))}
+          <div className="mt-[10px] grid gap-[14px]">
+            {range(cantrips ? 0 : 1, maxLevel + 1).map((level) => (
+              <Fieldset key={level} legend={level === 0 ? "Cantrips" : `Level ${level} spells`}>
+                <SetPicker
+                  edit={edit}
+                  path={["spellcasting", "spell-list", intKey(level)]}
+                  items={spellItems(level)}
+                  picker={{ add: level === 0 ? "Add a cantrip" : `Add a ${ordinal(level)}-level spell`, search: true }}
+                />
+              </Fieldset>
+            ))}
+          </div>
         </div>
       )}
     </Fieldset>
@@ -278,23 +283,25 @@ function ClassForm({ record, onChange, problems }: FormProps) {
           <TextField edit={edit} problems={problems} field="subclass-help" label="Subclass description" />
           <Checks
             legend="Saving throws"
-            items={ABILITIES.map(([key, name]) => ({ key: abilityKey(key), name: `${name} saving throw` }))}
+            row
+            items={ABILITIES.map(([key, name]) => ({ key: abilityKey(key), name }))}
             checked={(key) => edit.get("profs", "save", key) === true}
             // The old toggle removes the key, not stores false.
             onToggle={(key) => edit.set(["profs", "save", key], edit.get("profs", "save", key) === true ? undefined : true)}
           />
-          <Checks
-            legend="Ability increase levels"
-            items={range(4, 21).map((level) => ({ key: String(level), name: `Ability increase at level ${level}` }))}
-            checked={(key) => asiLevels.includes(Number(key))}
-            onToggle={(key) => {
-              const level = Number(key);
-              edit.set(["ability-increase-levels"], (asiLevels.includes(level) ? asiLevels.filter((l) => l !== level) : [...asiLevels, level]).sort((a, b) => a - b));
-            }}
-          />
+          <Fieldset legend="Ability increase levels" look="section">
+            {/* The old toggle stores a sorted vector with no repeats (classes/toggle-ability-increase-level). */}
+            <Chips
+              values={asiLevels}
+              options={range(4, 21)}
+              onValuesChange={(next) => edit.set(["ability-increase-levels"], [...new Set(next)].sort((a, b) => a - b))}
+              addLabel="Add a level"
+              name={(level) => `Level ${level}`}
+            />
+          </Fieldset>
           <Spellcasting edit={edit} problems={problems} choices={choices} />
-          <ProficiencyChoice edit={edit} legend="Skill Proficiency Choice" field="skill-options" items={SKILLS} />
-          <ProficiencyChoice edit={edit} legend="Skill Expertise Choice" field="skill-expertise-options" items={SKILLS} />
+          <ChoicePicker edit={edit} legend="Skill Proficiency Choice" field="skill-options" items={SKILLS} picker={{ add: "Add a skill option" }} />
+          <ChoicePicker edit={edit} legend="Skill Expertise Choice" field="skill-expertise-options" items={SKILLS} picker={{ add: "Add a skill option" }} />
           <LevelModifiers edit={edit} problems={problems} choices={choices} />
           <LevelSelections edit={edit} problems={problems} choices={choices} />
           <Traits edit={edit} problems={problems} levels />
