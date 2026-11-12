@@ -2,10 +2,10 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button, Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput, XButton, type SelectOption } from "@orc-alchemy/ui";
-import type { ComponentType, ReactNode } from "react";
+import { Button, Checkbox, Field, FieldLabel, Fieldset, NumberToggle, Picker, Select, TextArea, TextInput, XButton, type ListItem, type SelectOption } from "@orc-alchemy/ui";
+import { useId, type ComponentType, type ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
-import { nameToKw, tag } from "../../engine/content.ts";
+import { asSet, nameToKw, setItems, tag, untag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { ordinal } from "../CharacterSheet.tsx";
@@ -117,7 +117,7 @@ export const ARTISANS_TOOLS = named([
   "Potter's Tools", "Smith's Tools", "Tinker's Tools", "Weaver's Tools", "Woodcarver's Tools",
 ]);
 export const MISC_TOOLS = named(["Disguise Kit", "Forgery Kit", "Herbalism Kit", "Navigator's Tools", "Poisoner's Kit", "Thieves' Tools"]);
-const GAMING_SETS = named(["Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set"]);
+export const GAMING_SETS = named(["Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set"]);
 export const VEHICLES = named(["Water Vehicles", "Land Vehicles"]);
 /** The old tools (equipment.cljc tools). */
 export const TOOLS: Choice[] = [...MUSICAL_INSTRUMENTS, ...ARTISANS_TOOLS, ...MISC_TOOLS, ...GAMING_SETS, ...VEHICLES];
@@ -198,12 +198,17 @@ export interface Edit {
   set: (path: Path, value: unknown) => void;
   /** As the old toggle events: a missing or false value becomes true, and true becomes false. */
   toggle: (path: Path) => void;
+  /** Sets each path to its value, in one change of the record. */
+  setAll: (changes: [Path, unknown][]) => void;
 }
 
 export function editor(record: ItemRecord, onChange: (record: ItemRecord) => void): Edit {
   const get = (...path: Path) => getIn(record, path);
   const set = (path: Path, value: unknown) => onChange(setIn(record, path, value) as ItemRecord);
-  return { get, set, toggle: (path) => set(path, get(...path) !== true) };
+  const setAll = (changes: [Path, unknown][]) => {
+    if (changes.length > 0) onChange(changes.reduce<ItemRecord>((r, [path, value]) => setIn(r, path, value) as ItemRecord, record));
+  };
+  return { get, set, toggle: (path) => set(path, get(...path) !== true), setAll };
 }
 
 /** The value when it is an option, and else the first option's value, as the old dropdowns showed. */
@@ -293,7 +298,13 @@ export function CheckGrid({ names, children }: { names: string[]; children: Reac
   return <div className={`grid gap-x-[14px] gap-y-[3px] ${columns}`}>{children}</div>;
 }
 
-/** A group of checkboxes, one for each item, as a section of the form. name names the group when the legend is not the right name. */
+/**
+ * A group of checkboxes, one for each item, as a section of the form. name
+ * names the group when the legend is not the right name. With row, the
+ * boxes are on one line that wraps: the look of a short fixed list
+ * (docs/design/homebrew-forms.md, "Checkboxes that stay"). children go
+ * after the boxes, such as one more checkbox on its own line.
+ */
 export function Checks({
   legend,
   name,
@@ -301,6 +312,8 @@ export function Checks({
   checked,
   onToggle,
   action,
+  row = false,
+  children,
 }: {
   legend: string;
   name?: string;
@@ -309,21 +322,114 @@ export function Checks({
   onToggle: (key: string) => void;
   /** A control on the section rule, such as the Remove link of a modifier (modifiers.tsx). */
   action?: ReactNode;
+  row?: boolean;
+  children?: ReactNode;
 }) {
+  const boxes = items.map(({ key, name }) => (
+    <Checkbox
+      key={key}
+      label={name}
+      checked={checked(key)}
+      onCheckedChange={() => onToggle(key)}
+      className={`items-start [&>.ui-check]:mt-[4px] ${!row && name.length > SENTENCE ? "col-span-full" : ""}`}
+    />
+  ));
   return (
     <Fieldset legend={legend} name={name} look="section" action={action}>
-      <CheckGrid names={items.map((item) => item.name)}>
-        {items.map(({ key, name }) => (
-          <Checkbox
-            key={key}
-            label={name}
-            checked={checked(key)}
-            onCheckedChange={() => onToggle(key)}
-            className={`items-start [&>.ui-check]:mt-[4px] ${name.length > SENTENCE ? "col-span-full" : ""}`}
-          />
-        ))}
-      </CheckGrid>
+      {row ? <div className="flex flex-wrap gap-x-[18px] gap-y-1">{boxes}</div> : <CheckGrid names={items.map((item) => item.name)}>{boxes}</CheckGrid>}
+      {children}
     </Fieldset>
+  );
+}
+
+/** One option of a picker group: a Choice, with the small heading of its run in the list. */
+export type PickItem = Choice & { group?: string };
+
+/** The add button and the list of a picker group. */
+export interface PickerOptions {
+  /** The add button's text after the "+", such as "Add a skill". */
+  add: string;
+  /** A search field in the list. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 options. */
+  search?: boolean;
+}
+
+/** The footer text of a form's picker list: the number of picks on the form. */
+export const pickedText = (n: number) => `${n} on the form`;
+const listItems = (items: PickItem[], value: (item: PickItem) => string = (item) => item.key): ListItem<string>[] =>
+  items.map((item) => ({ value: value(item), label: item.name, group: item.group }));
+
+/**
+ * A picker of the map at path, as {:path {:key true}}, as the old
+ * checkboxes stored it: a pick stores true, and a removed token stores
+ * false, as the old second click. Only the picked or removed key changes,
+ * so a key that is no option keeps its value.
+ */
+export function MapPicker({ edit, path, items, picker }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions }) {
+  const map = (edit.get(...path) ?? {}) as ItemRecord;
+  const value = Object.keys(map)
+    .filter((key) => map[key] === true)
+    .map(untag);
+  return (
+    <Picker
+      label={picker.add}
+      options={listItems(items)}
+      value={value}
+      search={picker.search}
+      pickedText={pickedText}
+      onValueChange={(next) => {
+        const added = next.filter((key) => !value.includes(key)).map((key): [Path, unknown] => [[...path, key], true]);
+        const removed = value.filter((key) => !next.includes(key)).map((key): [Path, unknown] => [[...path, key], false]);
+        edit.setAll([...added, ...removed]);
+      }}
+    />
+  );
+}
+
+/**
+ * A picker of the set at field, as the old checkboxes stored it: a pick
+ * adds the item's stored value at the end, and a removed token takes it
+ * out. stored is the value the set holds for an item, such as its keyword.
+ * A stored value that is no option stays in the set.
+ */
+export function SetPicker({ edit, field, items, picker, stored = (item) => tag(item.key) }: { edit: Edit; field: string; items: PickItem[]; picker: PickerOptions; stored?: (item: PickItem) => string }) {
+  return (
+    <Picker
+      label={picker.add}
+      options={listItems(items, stored)}
+      value={setItems(edit.get(field)) as string[]}
+      search={picker.search}
+      pickedText={pickedText}
+      onValueChange={(next) => edit.set([field], asSet(next))}
+    />
+  );
+}
+
+/** A section of a form: its title on a section rule, and the Remove link of a modifier as action. */
+export function Section({ legend, action, children }: { legend: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <Fieldset legend={legend} look="section" action={action}>
+      {children}
+    </Fieldset>
+  );
+}
+
+/**
+ * One number at path as a None / 1 / 2 … toggle, as the old toggle-value
+ * checkboxes: a number stores it, and None removes the key, as the old
+ * second click did. line is the text after the toggle, which names it. A
+ * stored number that is no segment presses none, and stays until the user
+ * presses one.
+ */
+export function NumberChoice({ edit, legend, path, values, line, action }: { edit: Edit; legend: string; path: Path; values: number[]; line: string; action?: ReactNode }) {
+  const id = useId();
+  const value = edit.get(...path);
+  return (
+    <Section legend={legend} action={action}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <NumberToggle aria-labelledby={id} values={[null, ...values]} value={typeof value === "number" ? value : null} onValueChange={(n) => edit.set(path, n ?? undefined)} />
+        <span id={id}>{line}</span>
+      </div>
+    </Section>
   );
 }
 
@@ -350,10 +456,33 @@ export function RecordTextArea({ edit, field, label }: { edit: Edit; field: stri
 /** A proficiency choice in :profs, as {:skill-options {:choose 2 :options {:arcana true}}}. Choose shows 1 until it is set. */
 export function ProficiencyChoice({ edit, legend, field, items, action }: { edit: Edit; legend: string; field: string; items: Choice[]; action?: ReactNode }) {
   return (
-    <Fieldset legend={legend} look="section" action={action}>
+    <Section legend={legend} action={action}>
       <SelectField label="Choose" name={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
       <Checks legend="Options" name={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
-    </Fieldset>
+    </Section>
+  );
+}
+
+/**
+ * A proficiency choice in :profs as ProficiencyChoice stores it, with a
+ * picker for the options: {:skill-options {:choose 2 :options {:arcana true}}}.
+ * A removed token stores false, as the old second click.
+ */
+export function ChoicePicker({ edit, legend, field, items, picker, action }: { edit: Edit; legend: string; field: string; items: PickItem[]; picker: PickerOptions; action?: ReactNode }) {
+  return (
+    <Section legend={legend} action={action}>
+      <div className="grid gap-[10px]">
+        <SelectField
+          label="Choose"
+          name={`${legend}: choose`}
+          value={edit.get("profs", field, "choose")}
+          options={numbers(range(1, 6))}
+          onSelect={(n) => edit.set(["profs", field, "choose"], n)}
+          className="justify-self-start"
+        />
+        <MapPicker edit={edit} path={["profs", field, "options"]} items={items} picker={picker} />
+      </div>
+    </Section>
   );
 }
 

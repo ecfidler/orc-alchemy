@@ -1,5 +1,5 @@
-// The helpers of the builder form tests: each select is found by its label, and a modifier by its name in the add list.
-import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing";
+// The helpers of the builder form tests: each select is found by its label, a modifier by its name in the add list, and a picker or a number toggle by its section.
+import { pickFromPicker, pickOption, removeToken } from "@orc-alchemy/ui/testing";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 const combobox = (label: string) => screen.getByRole("combobox", { name: label });
@@ -12,6 +12,24 @@ export const shown = (label: string) => combobox(label).textContent;
 
 /** Adds the modifier named `name` from the "+ Add a modifier" list of the form. */
 export const addModifier = (name: string) => pickFromPicker(screen.getByRole("button", { name: "Add a modifier" }), name);
+
+/** The section of the form named `group`. */
+const section = (group: string) => screen.getByRole("group", { name: group });
+
+/** Picks the options named `names` with the picker of the section `group`, whose add button reads `add`. */
+export const pick = (group: string, add: string, names: string | string[]) => pickFromPicker(within(section(group)).getByRole("button", { name: add }), names);
+
+/** Removes the token named `name` from the section `group`. */
+export const unpick = (group: string, name: string) => removeToken(section(group), name);
+
+/** The texts of the tokens in the section `group`, in their order. */
+export const tokens = (group: string) => [...section(group).querySelectorAll(".ui-token-label")].map((token) => token.textContent);
+
+/** Presses the segment `value`, such as "None" or "2", of the number toggle in the section `group`. */
+export const press = (group: string, value: string) => fireEvent.click(within(section(group)).getByRole("button", { name: value }));
+
+/** The pressed segment of the number toggle in the section `group`, or undefined when none is. Base UI marks it with data-pressed. */
+export const pressed = (group: string) => section(group).querySelector(".ui-segment[data-pressed]")?.textContent ?? undefined;
 
 /** The names in the "+ Add a modifier" list, in their order. It opens the list and closes it again with its X. */
 export async function addList(): Promise<string[]> {

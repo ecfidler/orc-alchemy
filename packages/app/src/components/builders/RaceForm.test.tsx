@@ -9,7 +9,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { addModifier, choose, groups, shown } from "./test-picks.ts";
+import { addModifier, choose, groups, pick, shown, tokens, unpick } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -35,6 +35,7 @@ function renderAt(path: string) {
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
+const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const COMMON = ["Ability Score Increases", "Languages", "Damage Resistances", "Language Proficiency Choice", "Spells"];
 /** The modifiers of the add list, in form order. */
@@ -74,8 +75,7 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   type("Name", "Mezzoloth");
   await choose("Darkvision", "60");
   await choose("Constitution", "+2");
-  check("Languages", "Common");
-  check("Languages", "Infernal");
+  await pick("Languages", "Add a language", ["Common", "Infernal"]);
   fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 1 spellcasting ability", "Charisma");
   await choose("Spell 1", "Message");
@@ -120,7 +120,7 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Mezzoloth");
   expect(shown("Darkvision")).toBe("60");
   expect(shown("Constitution")).toBe("+2");
-  expect(within(screen.getByRole("group", { name: "Languages" })).getByRole("checkbox", { name: "Infernal" })).toBeChecked();
+  expect(tokens("Languages")).toEqual(["Common", "Infernal"]);
   expect(shown("Spell 2")).toBe("Darkness");
   expect(screen.getByLabelText<HTMLTextAreaElement>("Feature 2 description").value).toMatch(/^You have four arms/);
   expect(save().disabled).toBe(false);
@@ -137,19 +137,18 @@ test("the modifiers are stored as the old events store them", async () => {
     await addModifier(name);
   }
   await choose("Swimming speed", "30");
-  check("Armor Class", "Without armor your AC becomes 13 + your DEX modifier.");
-  check("Weapon Proficiencies", "All Simple Weapons");
-  check("Weapon Proficiencies", "Dart");
-  check("Weapon Proficiencies", "Dart");
-  check("Armor Proficiency", "You gain proficiency with shields");
-  check("Tool Proficiency", "Thieves' Tools");
-  check("Damage Resistances", "Resistance to poison damage");
-  check("Damage Immunities", "Immunity to fire damage");
-  check("Skill Proficiencies", "Stealth");
+  await choose("Armor Class", "13 + DEX");
+  await pick("Weapon Proficiencies", "Add a weapon", ["All simple weapons", "Dart"]);
+  await unpick("Weapon Proficiencies", "Dart");
+  check("Armor Proficiency", "Shields");
+  await pick("Tool Proficiency", "Add a tool", "Thieves' Tools");
+  await pick("Damage Resistances", "Add a damage resistance", "Poison");
+  await pick("Damage Immunities", "Add a damage immunity", "Fire");
+  await pick("Skill Proficiencies", "Add a skill", "Stealth");
   await choose("Skill Proficiency Choice: choose", "2");
-  check("Skill Proficiency Choice: options", "Survival");
-  check("Language Proficiency Choice: options", "Draconic");
-  check("Weapon Proficiency Choice: options", "Rapier");
+  await pick("Skill Proficiency Choice", "Add a skill option", "Survival");
+  await pick("Language Proficiency Choice", "Add a language option", "Draconic");
+  await pick("Weapon Proficiency Choice", "Add a weapon option", "Rapier");
   fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 1 unlocks at", "Level 3");
   await choose("Spell 1 spell level", "1st");
@@ -268,15 +267,15 @@ test("Remove on a race modifier clears its values and leaves no empty map; Undo 
   await screen.findByRole("button", { name: "Add a spell" });
   type("Name", "Shellback");
   await addModifier("Tool Proficiency");
-  check("Tool Proficiency", "Thieves' Tools");
+  await pick("Tool Proficiency", "Add a tool", "Thieves' Tools");
   await addModifier("Armor Class");
-  check("Armor Class", "Your AC is 17, regardless of your DEX modifier or armor.");
+  await choose("Armor Class", "Always 17");
   fireEvent.click(screen.getByRole("button", { name: "Remove Tool Proficiency" }));
   expect(screen.getByRole("status").textContent).toMatch(/Removed Tool Proficiency\./);
   fireEvent.click(screen.getByRole("button", { name: "Remove Armor Class" }));
   expect(screen.getByRole("status").textContent).toMatch(/Removed Armor Class\./);
   fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Undo" }));
-  expect(within(screen.getByRole("group", { name: "Armor Class" })).getByRole("checkbox", { name: "Your AC is 17, regardless of your DEX modifier or armor." })).toBeChecked();
+  expect(shown("Armor Class")).toBe("Always 17");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
   expect(stored("Default Option Source", "shellback")).toEqual({
@@ -287,6 +286,127 @@ test("Remove on a race modifier clears its values and leaves no empty map; Undo 
     "~:speed": 30,
     "~:languages": { "~#set": [] },
     "~:props": { "~:tortle-ac": true },
+    "~:traits": [],
+  });
+});
+
+test("an imported race with both Armor Class values true and false values opens, saves and stays equal; a pick of the select then changes the stored values", async () => {
+  const item = {
+    "~:name": "Shellkin",
+    "~:key": "~:shellkin",
+    "~:option-pack": "Reef",
+    "~:size": "~:medium",
+    "~:speed": 30,
+    "~:languages": { "~#set": ["Aquan", "Common"] },
+    "~:props": {
+      "~:lizardfolk-ac": true,
+      "~:tortle-ac": true,
+      "~:weapon-prof": { "~:simple": false, "~:trident": true, "~:an-old-weapon": true },
+      "~:armor-prof": { "~:light": false, "~:shields": true },
+      "~:damage-resistance": { "~:fire": false, "~:cold": true },
+      "~:damage-immunity": { "~:poison": false },
+      "~:skill-prof": { "~:athletics": true, "~:stealth": false },
+    },
+    "~:profs": {
+      "~:tool": { "~:thieves-tools": false, "~:navigators-tools": true },
+      "~:skill-options": { "~:choose": 2, "~:options": { "~:survival": true, "~:history": false } },
+      "~:language-options": { "~:options": { "~:aquan": false } },
+      "~:weapon-proficiency-options": { "~:choose": 1, "~:options": { "~:net": true } },
+    },
+    "~:traits": [],
+  };
+  await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/races", item);
+  let router = renderAt("/content/edit/race/Reef/shellkin");
+  await screen.findByRole("button", { name: "Add a spell" });
+  expect(groups()).toEqual([
+    "Armor Class",
+    "Ability Score Increases",
+    "Languages",
+    "Weapon Proficiencies",
+    "Armor Proficiency",
+    "Tool Proficiency",
+    "Damage Resistances",
+    "Skill Proficiencies",
+    "Skill Proficiency Choice",
+    "Language Proficiency Choice",
+    "Weapon Proficiency Choice",
+    "Spells",
+    "Features / traits",
+  ]);
+  // :tortle-ac sets the AC to 17 whatever the armor, so the select shows it.
+  expect(shown("Armor Class")).toBe("Always 17");
+  // Aquan is not an SRD language; it shows no token, and stays in the set.
+  expect(tokens("Languages")).toEqual(["Common"]);
+  expect(tokens("Weapon Proficiencies")).toEqual(["Trident"]);
+  expect(tokens("Tool Proficiency")).toEqual(["Navigator's Tools"]);
+  expect([tokens("Skill Proficiency Choice"), tokens("Weapon Proficiency Choice"), tokens("Language Proficiency Choice")]).toEqual([["Survival"], ["Net"], []]);
+  expect([shown("Skill Proficiency Choice: choose"), checked("Armor Proficiency", "Shields"), checked("Armor Proficiency", "Light armor")]).toEqual(["2", true, false]);
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored("Reef", "shellkin")).toEqual(item);
+
+  cleanup();
+  router = renderAt("/content/edit/race/Reef/shellkin");
+  await screen.findByRole("button", { name: "Add a spell" });
+  await choose("Armor Class", "13 + DEX");
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  // As the old second click on the 17 box: the picked key stays true, and the other becomes false.
+  expect(stored("Reef", "shellkin")).toEqual({ ...item, "~:props": { ...item["~:props"], "~:tortle-ac": false } });
+});
+
+test("in each race group a pick then a remove stores what the old double click stored", async () => {
+  const router = renderAt("/content/new/race");
+  await screen.findByRole("button", { name: "Add a spell" });
+  type("Name", "Glassback");
+  for (const name of ADDED.filter((name) => name !== "Flying speed" && name !== "Swimming speed")) await addModifier(name);
+  // 13 + DEX, then Always 17, then Normal: as the clicks on, off, on, off of the two old boxes.
+  await choose("Armor Class", "13 + DEX");
+  await choose("Armor Class", "Always 17");
+  await choose("Armor Class", "Normal");
+  await pick("Languages", "Add a language", ["Elvish", "Common"]);
+  await unpick("Languages", "Elvish");
+  await unpick("Languages", "Common");
+  check("Armor Proficiency", "Heavy armor");
+  check("Armor Proficiency", "Heavy armor");
+  for (const [group, add, name] of [
+    ["Weapon Proficiencies", "Add a weapon", "All martial weapons"],
+    ["Tool Proficiency", "Add a tool", "Smith's Tools"],
+    ["Damage Resistances", "Add a damage resistance", "Damage from traps"],
+    ["Damage Immunities", "Add a damage immunity", "Necrotic"],
+    ["Skill Proficiencies", "Add a skill", "Arcana"],
+    ["Skill Proficiency Choice", "Add a skill option", "Nature"],
+    ["Language Proficiency Choice", "Add a language option", "Giant"],
+    ["Weapon Proficiency Choice", "Add a weapon option", "Whip"],
+  ]) {
+    await pick(group, add, name);
+    expect(tokens(group)).toEqual([name]);
+    await unpick(group, name);
+  }
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored("Default Option Source", "glassback")).toEqual({
+    "~:name": "Glassback",
+    "~:key": "~:glassback",
+    "~:option-pack": "Default Option Source",
+    "~:size": "~:medium",
+    "~:speed": 30,
+    "~:languages": { "~#set": [] },
+    "~:props": {
+      "~:lizardfolk-ac": false,
+      "~:tortle-ac": false,
+      "~:weapon-prof": { "~:martial": false },
+      "~:armor-prof": { "~:heavy": false },
+      "~:damage-resistance": { "~:traps": false },
+      "~:damage-immunity": { "~:necrotic": false },
+      "~:skill-prof": { "~:arcana": false },
+    },
+    "~:profs": {
+      "~:tool": { "~:smiths-tools": false },
+      "~:skill-options": { "~:options": { "~:nature": false } },
+      "~:language-options": { "~:options": { "~:giant": false } },
+      "~:weapon-proficiency-options": { "~:options": { "~:whip": false } },
+    },
     "~:traits": [],
   });
 });

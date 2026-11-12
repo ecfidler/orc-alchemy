@@ -7,7 +7,7 @@ import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { addList, addModifier, groups } from "./test-picks.ts";
+import { addList, addModifier, groups, pick, press, pressed, tokens, unpick } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -36,7 +36,7 @@ const check = (group: string, label: string) => fireEvent.click(within(screen.ge
 /** Whether the checkbox is checked, for a check of several boxes at once. */
 const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
-const COMMON = ["Prerequisites", "Race prerequisites", "Ability Increase Options"];
+const COMMON = ["Prerequisites", "Ability Increase Options"];
 /** The modifiers of the add list, in form order. */
 const ADDED = [
   "Skill or Tool Proficiency",
@@ -54,14 +54,14 @@ const ADDED = [
   "Skill Proficiency or Expertise",
   "Tool Proficiency or Expertise",
 ];
-const stored = (key: string) => {
-  const plugin = useHomebrew.getState().packs.find((p) => p.id === DEFAULT)?.plugin;
+const stored = (key: string, pack = DEFAULT) => {
+  const plugin = useHomebrew.getState().packs.find((p) => p.id === pack)?.plugin;
   return plugin && itemAt(plugin, "~:orcpub.dnd.e5/feats", `~:${key}`);
 };
 
 test("the name problem shows under its field, and Save is off until the feat has a name", async () => {
   renderAt("/content/new/feat");
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   expect(problems("Name")).toBe("Name is required.");
   expect(save().disabled).toBe(true);
   type("Name", "1 Mind");
@@ -73,36 +73,32 @@ test("the name problem shows under its field, and Save is off until the feat has
 
 test("each field is stored as the old events store it, and Edit loads it back", async () => {
   const router = renderAt("/content/new/feat");
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   type("Name", "Sea Legs");
   type("Description", "Steady on deck.");
-  check("Prerequisites", "The ability to cast at least one spell");
-  check("Prerequisites", "Dexterity 13 or higher");
-  check("Prerequisites", "Proficiency with medium armor");
-  check("Prerequisites", "The ability to cast at least one spell");
-  check("Race prerequisites", "Elf race");
-  check("Race prerequisites", "Dwarf race");
-  check("Race prerequisites", "Dwarf race");
+  await pick("Prerequisites", "Add a prerequisite", ["The ability to cast at least one spell", "Dexterity 13 or higher", "Proficiency with medium armor", "Elf race", "Dwarf race"]);
+  await unpick("Prerequisites", "The ability to cast at least one spell");
+  await unpick("Prerequisites", "Dwarf race");
   check("Ability Increase Options", "Strength");
   check("Ability Increase Options", "Constitution");
   check("Ability Increase Options", "You also gain proficiency in saving throws with the above chosen abilities");
   for (const name of ADDED) await addModifier(name);
-  check("Skill or Tool Proficiency", "You gain proficiency in 2 skills or tools of your choice");
-  check("Languages", "You learn 1 languages of your choice.");
-  check("Languages", "You learn 1 languages of your choice.");
-  check("Weapon Proficiency", "You gain proficiency with improvised weapons");
-  check("Weapon Proficiency Choice", "You gain proficiency with 4 weapons of your choice");
-  check("Armor Proficiency", "You gain proficiency with light armor");
-  check("Medium Armor", "Wearing medium armor doesn't give disadvantage on Stealth checks");
-  check("Medium Armor", "Wearing medium armor doesn't give disadvantage on Stealth checks");
-  check("Hit Points", "Your hit point maximum increases by 2 for each of your levels");
-  check("Damage Resistances", "Resistance to cold damage");
-  check("Speed Bonuses", "Your speed is increased by 10 ft.");
-  check("Initiative Bonuses", "You gain a +5 bonus to initiative");
-  check("Misc. Modifiers", "You gain a +5 to your passive Perception");
-  check("Spellcasting", "Choose a class, gain (2) 1st-level ritual spells from that class's spell list");
-  check("Skill Proficiency or Expertise", "Athletics");
-  check("Tool Proficiency or Expertise", "Navigator's Tools");
+  press("Skill or Tool Proficiency", "2");
+  press("Languages", "1");
+  press("Languages", "None");
+  await pick("Weapon Proficiency", "Add a weapon proficiency", "You gain proficiency with improvised weapons");
+  press("Weapon Proficiency Choice", "4");
+  check("Armor Proficiency", "Light armor");
+  await pick("Medium Armor", "Add a medium armor benefit", "Wearing medium armor doesn't give disadvantage on Stealth checks");
+  await unpick("Medium Armor", "Wearing medium armor doesn't give disadvantage on Stealth checks");
+  press("Hit Points", "2");
+  await pick("Damage Resistances", "Add a damage resistance", "Cold");
+  press("Speed Bonuses", "10");
+  press("Initiative Bonuses", "5");
+  await pick("Misc. Modifiers", "Add a misc. modifier", "You gain a +5 to your passive Perception");
+  await pick("Spellcasting", "Add a spellcasting benefit", "Choose a class, gain (2) 1st-level ritual spells from that class's spell list");
+  await pick("Skill Proficiency or Expertise", "Add a skill", "Athletics");
+  await pick("Tool Proficiency or Expertise", "Add a tool", "Navigator's Tools");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
 
@@ -135,17 +131,14 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   cleanup();
   const edit = renderAt(`/content/edit/feat/${encodeURIComponent(DEFAULT)}/sea-legs`);
   await screen.findByRole("form", { name: "Edit feat" });
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Sea Legs");
   expect(screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Description" }).value).toBe("Steady on deck.");
-  expect([
-    checked("Prerequisites", "Dexterity 13 or higher"),
-    checked("Prerequisites", "The ability to cast at least one spell"),
-    checked("Race prerequisites", "Elf race"),
-    checked("Ability Increase Options", "Constitution"),
-    checked("Initiative Bonuses", "You gain a +5 bonus to initiative"),
-    checked("Tool Proficiency or Expertise", "Navigator's Tools"),
-  ]).toEqual([true, false, true, true, true, true]);
+  // The tokens are in the order of the picker list: the races at the end.
+  expect(tokens("Prerequisites")).toEqual(["Dexterity 13 or higher", "Proficiency with medium armor", "Elf race"]);
+  expect([checked("Ability Increase Options", "Constitution"), checked("Ability Increase Options", "Dexterity")]).toEqual([true, false]);
+  expect([pressed("Initiative Bonuses"), pressed("Skill or Tool Proficiency")]).toEqual(["5", "2"]);
+  expect(tokens("Tool Proficiency or Expertise")).toEqual(["Navigator's Tools"]);
   // Medium Armor holds only false, and Languages nothing, so they are not on the form.
   expect(groups()).toEqual([...COMMON, ...ADDED.filter((name) => name !== "Languages" && name !== "Medium Armor")]);
   // A save keeps the values of a modifier that is not on the form.
@@ -157,7 +150,7 @@ test("each field is stored as the old events store it, and Edit loads it back", 
 
 test("a new feat shows only the common modifiers; the add list has the others in form order, each with a short example", async () => {
   renderAt("/content/new/feat");
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   expect(groups()).toEqual(COMMON);
   expect(screen.queryByRole("heading", { name: "Modifiers" })).toBeNull();
   // A common modifier has no Remove link.
@@ -183,27 +176,28 @@ test("a new feat shows only the common modifiers; the add list has the others in
 
 test("an added modifier goes to its place in form order, flashes once and takes the focus; it leaves the add list", async () => {
   renderAt("/content/new/feat");
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   await addModifier("Speed Bonuses");
   await addModifier("Hit Points");
   expect(groups()).toEqual([...COMMON, "Hit Points", "Speed Bonuses"]);
   const hp = screen.getByRole("group", { name: "Hit Points" });
   expect(hp.closest("[data-modifier]")?.classList.contains("ui-flash")).toBe(true);
   expect(screen.getByRole("group", { name: "Speed Bonuses" }).closest("[data-modifier]")?.classList.contains("ui-flash")).toBe(false);
-  await waitFor(() => expect(document.activeElement).toBe(within(hp).getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" })));
+  // The first control is the None segment of the number toggle.
+  await waitFor(() => expect(document.activeElement).toBe(within(hp).getByRole("button", { name: "None" })));
   expect(within(hp).getByRole("button", { name: "Remove Hit Points" }).textContent).toBe("Remove");
   expect(await addList()).toEqual(ADDED.filter((name) => name !== "Hit Points" && name !== "Speed Bonuses"));
 });
 
 test("the stored feat after Add and a pick is as the old layout stored it; Remove clears the values, and Undo puts them back", async () => {
   const router = renderAt("/content/new/feat");
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   type("Name", "Tough Hide");
   await addModifier("Hit Points");
-  check("Hit Points", "Your hit point maximum increases by 2 for each of your levels");
+  press("Hit Points", "2");
   await addModifier("Damage Resistances");
-  check("Damage Resistances", "Resistance to fire damage");
-  check("Damage Resistances", "Resistance to fire damage");
+  await pick("Damage Resistances", "Add a damage resistance", "Fire");
+  await unpick("Damage Resistances", "Fire");
 
   // Remove: the section goes, an info note with Undo shows, and the focus goes to Undo.
   fireEvent.click(screen.getByRole("button", { name: "Remove Hit Points" }));
@@ -216,8 +210,8 @@ test("the stored feat after Add and a pick is as the old layout stored it; Remov
   // Undo: the section and its value come back, with the focus on its first control.
   fireEvent.click(undo);
   const hp = screen.getByRole("group", { name: "Hit Points" });
-  expect(within(hp).getByRole("checkbox", { name: "Your hit point maximum increases by 2 for each of your levels" })).toBeChecked();
-  await waitFor(() => expect(document.activeElement).toBe(within(hp).getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" })));
+  expect(pressed("Hit Points")).toBe("2");
+  await waitFor(() => expect(document.activeElement).toBe(within(hp).getByRole("button", { name: "None" })));
   expect(screen.queryByRole("status")).toBeNull();
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
@@ -233,7 +227,7 @@ test("the stored feat after Add and a pick is as the old layout stored it; Remov
   // Remove both, and the item is as if they were never set.
   cleanup();
   const edit = renderAt(`/content/edit/feat/${encodeURIComponent(DEFAULT)}/tough-hide`);
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   // The resistances hold only false, so the feat opens without them.
   expect(groups()).toEqual([...COMMON, "Hit Points"]);
   fireEvent.click(screen.getByRole("button", { name: "Remove Hit Points" }));
@@ -254,16 +248,149 @@ test("the stored feat after Add and a pick is as the old layout stored it; Remov
 
 test("an added modifier stays on the form while it is empty, and a saved item opens without it", async () => {
   const router = renderAt("/content/new/feat");
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   type("Name", "Quiet Step");
   await addModifier("Initiative Bonuses");
-  check("Initiative Bonuses", "You gain a +2 bonus to initiative");
-  check("Initiative Bonuses", "You gain a +2 bonus to initiative");
+  press("Initiative Bonuses", "2");
+  press("Initiative Bonuses", "None");
   expect(screen.getByRole("group", { name: "Initiative Bonuses" })).toBeTruthy();
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
   cleanup();
   renderAt(`/content/edit/feat/${encodeURIComponent(DEFAULT)}/quiet-step`);
-  await screen.findByRole("group", { name: "Race prerequisites" });
+  await screen.findByRole("button", { name: "Add a prerequisite" });
   expect(groups()).toEqual(COMMON);
+});
+
+test("an imported feat with false values, unknown keys and a number that is no segment opens, saves and stays equal", async () => {
+  const item = {
+    "~:name": "Old Salt",
+    "~:key": "~:old-salt",
+    "~:option-pack": "Reef",
+    "~:prereqs": { "~#set": ["~:orcpub.dnd.e5.character/wis", "~:from-an-old-pack"] },
+    "~:path-prereqs": { "~:race": { "~:elf": false, "~:dwarf": true } },
+    "~:ability-increases": { "~#set": ["~:saves?", "~:orcpub.dnd.e5.character/wis"] },
+    "~:props": {
+      "~:skill-tool-choice": 2,
+      "~:language-choice": 0,
+      "~:initiative": 7,
+      "~:improvised-weapons-prof": false,
+      "~:armor-prof": { "~:light": false, "~:heavy": true },
+      "~:medium-armor-stealth": false,
+      "~:medium-armor-max-dex-3": true,
+      "~:damage-resistance": { "~:fire": false, "~:cold": true },
+      "~:two-weapon-ac-1": true,
+      "~:passive-perception-5": false,
+      "~:skill-prof-or-expertise": { "~:arcana": false },
+      "~:tool-prof-or-expertise": { "~:thieves-tools": false, "~:an-old-kit": true },
+    },
+  };
+  await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/feats", item);
+  const router = renderAt("/content/edit/feat/Reef/old-salt");
+  await screen.findByRole("button", { name: "Add a prerequisite" });
+  expect(groups()).toEqual([...COMMON, "Skill or Tool Proficiency", "Armor Proficiency", "Medium Armor", "Damage Resistances", "Initiative Bonuses", "Misc. Modifiers", "Tool Proficiency or Expertise"]);
+  expect(tokens("Prerequisites")).toEqual(["Wisdom 13 or higher", "Dwarf race"]);
+  expect(tokens("Medium Armor")).toEqual(["When wearing medium armor, you can add 3 to your AC if your Dexterity is 16+"]);
+  expect(tokens("Damage Resistances")).toEqual(["Cold"]);
+  // 7 is no segment, so none is pressed; the key that is no tool shows no token.
+  expect(pressed("Initiative Bonuses")).toBeUndefined();
+  expect(tokens("Tool Proficiency or Expertise")).toEqual([]);
+  expect([checked("Armor Proficiency", "Heavy armor"), checked("Ability Increase Options", "Wisdom")]).toEqual([true, true]);
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored("old-salt", "Reef")).toEqual(item);
+});
+
+test("in each group a pick then a remove stores what the old double click stored", async () => {
+  await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/feats", {
+    "~:name": "Old Salt",
+    "~:key": "~:old-salt",
+    "~:option-pack": "Reef",
+    "~:prereqs": { "~#set": ["~:from-an-old-pack"] },
+    "~:ability-increases": { "~#set": [] },
+    "~:props": { "~:initiative": 7, "~:tool-prof-or-expertise": { "~:an-old-kit": true } },
+  });
+  const router = renderAt("/content/edit/feat/Reef/old-salt");
+  await screen.findByRole("button", { name: "Add a prerequisite" });
+  for (const name of ADDED.filter((name) => !groups().includes(name))) await addModifier(name);
+  await pick("Prerequisites", "Add a prerequisite", ["Strength 13 or higher", "Elf race"]);
+  await unpick("Prerequisites", "Strength 13 or higher");
+  await unpick("Prerequisites", "Elf race");
+  check("Ability Increase Options", "Charisma");
+  check("Ability Increase Options", "Charisma");
+  check("Ability Increase Options", "You also gain proficiency in saving throws with the above chosen abilities");
+  check("Ability Increase Options", "You also gain proficiency in saving throws with the above chosen abilities");
+  for (const [group, n] of [
+    ["Skill or Tool Proficiency", "3"],
+    ["Languages", "2"],
+    ["Weapon Proficiency Choice", "3"],
+    ["Hit Points", "1"],
+    ["Speed Bonuses", "15"],
+    ["Initiative Bonuses", "1"],
+  ]) {
+    press(group, n);
+    expect(pressed(group)).toBe(n);
+    press(group, "None");
+  }
+  check("Armor Proficiency", "Shields");
+  check("Armor Proficiency", "Shields");
+  for (const [group, add, name] of [
+    ["Weapon Proficiency", "Add a weapon proficiency", "You gain proficiency with improvised weapons"],
+    ["Medium Armor", "Add a medium armor benefit", "When wearing medium armor, you can add 3 to your AC if your Dexterity is 16+"],
+    ["Damage Resistances", "Add a damage resistance", "Damage from traps"],
+    ["Misc. Modifiers", "Add a misc. modifier", "+1 AC Bonus while wielding two melee weapons"],
+    ["Spellcasting", "Add a spellcasting benefit", "Choose a class, gain a cantrip requiring an attack roll from that class's spell list"],
+    ["Skill Proficiency or Expertise", "Add a skill", "Stealth"],
+    ["Tool Proficiency or Expertise", "Add a tool", "Lute"],
+  ]) {
+    await pick(group, add, name);
+    expect(tokens(group)).toEqual([name]);
+    await unpick(group, name);
+  }
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored("old-salt", "Reef")).toEqual({
+    "~:name": "Old Salt",
+    "~:key": "~:old-salt",
+    "~:option-pack": "Reef",
+    // The pick went at the end of the set, and the remove took it out; the old value stays.
+    "~:prereqs": { "~#set": ["~:from-an-old-pack"] },
+    "~:path-prereqs": { "~:race": { "~:elf": false } },
+    "~:ability-increases": { "~#set": [] },
+    // None removes a number, also one that is no segment, as the old second click did.
+    "~:props": {
+      "~:armor-prof": { "~:shields": false },
+      "~:improvised-weapons-prof": false,
+      "~:medium-armor-max-dex-3": false,
+      "~:damage-resistance": { "~:traps": false },
+      "~:two-weapon-ac-1": false,
+      "~:attack-spell": false,
+      "~:skill-prof-or-expertise": { "~:stealth": false },
+      "~:tool-prof-or-expertise": { "~:an-old-kit": true, "~:lute": false },
+    },
+  });
+});
+
+test("the prerequisite picker lists the prerequisites, then the races under a heading, with search only past 20 options", async () => {
+  renderAt("/content/new/feat");
+  const add = await screen.findByRole("button", { name: "Add a prerequisite" });
+  // 10 prerequisites and the 9 SRD races.
+  expect(add.textContent).toMatch(/19 more$/);
+  fireEvent.click(add);
+  const dialog = await screen.findByRole("dialog", { name: "Add a prerequisite" });
+  expect(within(dialog).queryByRole("searchbox")).toBeNull();
+  const rows = [...dialog.querySelectorAll(".ui-list-row")].map((row) => row.getAttribute("aria-label"));
+  expect(rows.slice(0, 2)).toEqual(["The ability to cast at least one spell", "Strength 13 or higher"]);
+  expect(rows.slice(10)).toEqual(expect.arrayContaining(["Elf race", "Dwarf race"]));
+  expect(rows.slice(0, 10).every((row) => !row?.endsWith(" race"))).toBe(true);
+  expect(within(dialog).getByRole("list", { name: "Races" })).toBeTruthy();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+  cleanup();
+  await useHomebrew.getState().saveItem("Lizards", "~:orcpub.dnd.e5/races", { "~:key": "~:lizard", "~:name": "Lizard", "~:option-pack": "Lizards" });
+  await useHomebrew.getState().saveItem("Lizards", "~:orcpub.dnd.e5/races", { "~:key": "~:newt", "~:name": "Newt", "~:option-pack": "Lizards" });
+  renderAt("/content/new/feat");
+  fireEvent.click(await screen.findByRole("button", { name: "Add a prerequisite" }));
+  expect(within(await screen.findByRole("dialog", { name: "Add a prerequisite" })).getByRole("searchbox")).toBeTruthy();
 });

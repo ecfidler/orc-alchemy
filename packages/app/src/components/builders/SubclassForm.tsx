@@ -13,7 +13,7 @@ import { intKey, tag, untag } from "../../engine/content.ts";
 import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
 import { editor, fieldErrors, FieldRow, FormColumn, SelectField, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type Edit, type FormProps, type Problem } from "./fields.tsx";
 import { Modifiers, type Modifier } from "./modifiers.tsx";
-import { choiceModifier } from "./RaceForm.tsx";
+import { choiceModifier } from "./modifier-kinds.tsx";
 
 /** The parent classes whose subclasses add spells, with the field and its title. */
 const CLASS_SPELLS: Record<string, [field: string, title: string]> = {
