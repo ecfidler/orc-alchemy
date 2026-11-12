@@ -5,6 +5,8 @@
 // section rule. An item opens with each modifier that holds a value. The
 // modifiers that the user added in this visit are local state: an empty one
 // stays on the form until the form closes, and nothing about it is stored.
+// The module also has useAddList: the add, flash and focus logic of such a
+// list. The tool proficiencies of the background form use it too.
 import { AddButton, AlertNote, Button, ListModal } from "@orc-alchemy/ui";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { isSet, setItems } from "../../engine/content.ts";
@@ -109,9 +111,9 @@ function restore(m: Added, record: ItemRecord, before: ItemRecord): ItemRecord {
 const CONTROL = 'button:not([disabled]), input:not([type="hidden"]):not([tabindex="-1"]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
- * The first control in a section, after the Remove link. Only the section's
- * own hidden parts count: while the list modal closes, the page around it is
- * still hidden.
+ * The first control in a part of a form, after the Remove link or X on its
+ * section rule. Only the part's own hidden parts count: while the list
+ * modal closes, the page around it is still hidden.
  */
 function firstControl(section: HTMLElement | null | undefined): HTMLElement | null {
   if (!section) return null;
@@ -120,6 +122,77 @@ function firstControl(section: HTMLElement | null | undefined): HTMLElement | nu
     return part !== null && section.contains(part);
   };
   return [...section.querySelectorAll<HTMLElement>(CONTROL)].find((el) => !skipped(el)) ?? null;
+}
+
+/**
+ * The state of a form's parts that the user adds from a list that closes on
+ * a click, such as the modifiers: which parts show, the flash of the last
+ * one, the list modal, and the focus. The added parts are local state: an
+ * empty one stays until the form closes, and nothing about it is stored.
+ */
+export function useAddList(initial: () => Iterable<string>) {
+  const [added, setAdded] = useState(() => new Set(initial()));
+  const [open, setOpen] = useState(false);
+  const [flash, setFlash] = useState<string>();
+  const parts = useRef(new Map<string, HTMLElement>());
+  const addButton = useRef<HTMLButtonElement>(null);
+  // The part that the list picked, for the focus when the list closes.
+  const picked = useRef<string>();
+  // The element that gets the focus after the next render.
+  const focusNext = useRef<() => HTMLElement | null | undefined>();
+  useEffect(() => {
+    const target = focusNext.current;
+    focusNext.current = undefined;
+    target?.()?.focus();
+  });
+  /** Shows the part, and flashes it once. */
+  const show = (id: string) => {
+    setAdded((ids) => new Set(ids).add(id));
+    setFlash(id);
+  };
+  return {
+    added,
+    show,
+    hide: (id: string) =>
+      setAdded((ids) => {
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      }),
+    /** The class of the part: the flash, when it is the last one added. */
+    flashClass: (id: string) => (flash === id ? "ui-flash" : undefined),
+    /** The ref of the part's element, for its first control. */
+    part: (id: string) => (el: HTMLElement | null) => {
+      if (el) parts.current.set(id, el);
+      else parts.current.delete(id);
+    },
+    /** The first control of the part, as a focus target. */
+    firstControlOf: (id: string) => () => firstControl(parts.current.get(id)),
+    /** Gives the focus to the target after the next render. */
+    focusAfterRender: (target: () => HTMLElement | null | undefined) => {
+      focusNext.current = target;
+    },
+    addButton,
+    openList: () => setOpen(true),
+    /**
+     * The ListModal props. A pick calls onPick, which shows the part. After
+     * a pick, the focus goes to the new part's first control; else back to
+     * the add button.
+     */
+    modal: (onPick: (id: string) => void) => ({
+      open,
+      onOpenChange: setOpen,
+      onPick: (id: string) => {
+        picked.current = id;
+        onPick(id);
+      },
+      finalFocus: () => {
+        const id = picked.current;
+        picked.current = undefined;
+        return id === undefined ? null : firstControl(parts.current.get(id));
+      },
+    }),
+  };
 }
 
 /** A removed modifier and the record at the time of Remove, for Undo. */
@@ -138,49 +211,31 @@ interface Removed {
  */
 export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord; onChange: (record: ItemRecord) => void; modifiers: Modifier[] }) {
   // The added modifiers: at first, the ones that hold a value.
-  const [added, setAdded] = useState(() => new Set(modifiers.filter((m): m is Added => !m.common).filter((m) => holds(m, record)).map((m) => m.id)));
-  const [open, setOpen] = useState(false);
-  const [flash, setFlash] = useState<string>();
+  const list = useAddList(() => modifiers.filter((m): m is Added => !m.common).filter((m) => holds(m, record)).map((m) => m.id));
   const [removed, setRemoved] = useState<Removed>();
-  const sections = useRef(new Map<string, HTMLElement>());
   const note = useRef<HTMLDivElement>(null);
-  const addButton = useRef<HTMLButtonElement>(null);
-  // The modifier that the list picked, for the focus when the list closes.
-  const picked = useRef<string>();
-  // The element that gets the focus after the next render.
-  const focusNext = useRef<() => HTMLElement | null | undefined>();
-  useEffect(() => {
-    const target = focusNext.current;
-    focusNext.current = undefined;
-    target?.()?.focus();
-  });
 
-  const shown = (m: Modifier) => m.common === true || added.has(m.id);
+  const shown = (m: Modifier) => m.common === true || list.added.has(m.id);
   const hidden = modifiers.filter((m) => !shown(m));
 
   const show = (id: string) => {
-    setAdded((ids) => new Set(ids).add(id));
-    setFlash(id);
+    list.show(id);
     setRemoved(undefined);
   };
   const remove = (m: Added) => {
     setRemoved({ modifier: m, before: record });
     onChange(clear(m, record));
-    setAdded((ids) => {
-      const next = new Set(ids);
-      next.delete(m.id);
-      return next;
-    });
-    focusNext.current = () => note.current?.querySelector<HTMLElement>(".ui-alert-note-message button");
+    list.hide(m.id);
+    list.focusAfterRender(() => note.current?.querySelector<HTMLElement>(".ui-alert-note-message button"));
   };
   const undo = (r: Removed) => {
     onChange(restore(r.modifier, record, r.before));
     show(r.modifier.id);
-    focusNext.current = () => firstControl(sections.current.get(r.modifier.id));
+    list.focusAfterRender(list.firstControlOf(r.modifier.id));
   };
   const dismiss = () => {
     setRemoved(undefined);
-    focusNext.current = () => addButton.current;
+    list.focusAfterRender(() => list.addButton.current);
   };
 
   return (
@@ -189,11 +244,8 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
         <div
           key={m.id}
           data-modifier={m.id}
-          className={flash === m.id ? "ui-flash" : undefined}
-          ref={(el) => {
-            if (el) sections.current.set(m.id, el);
-            else sections.current.delete(m.id);
-          }}
+          className={list.flashClass(m.id)}
+          ref={list.part(m.id)}
         >
           {m.render({
             name: m.name,
@@ -215,23 +267,8 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
           </AlertNote>
         </div>
       )}
-      {hidden.length > 0 && <AddButton ref={addButton} label="Add a modifier" remaining={hidden.length} aria-haspopup="dialog" onClick={() => setOpen(true)} />}
-      <ListModal
-        open={open}
-        onOpenChange={setOpen}
-        title="Add a modifier"
-        items={hidden.map((m) => ({ value: m.id, label: m.name, example: m.example }))}
-        onPick={(id) => {
-          picked.current = id;
-          show(id);
-        }}
-        // After a pick, the focus goes to the new section's first control; else back to the add button.
-        finalFocus={() => {
-          const id = picked.current;
-          picked.current = undefined;
-          return id === undefined ? null : firstControl(sections.current.get(id));
-        }}
-      />
+      {hidden.length > 0 && <AddButton ref={list.addButton} label="Add a modifier" remaining={hidden.length} aria-haspopup="dialog" onClick={list.openList} />}
+      <ListModal title="Add a modifier" items={hidden.map((m) => ({ value: m.id, label: m.name, example: m.example }))} {...list.modal(show)} />
     </>
   );
 }

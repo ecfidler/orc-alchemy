@@ -26,6 +26,8 @@ export function FieldErrors({ label, errors, id }: { label: string; errors: stri
  * the group. The errors belong to the group, not to the controls in it.
  * With `look="section"`, the legend is a section title in Inter caps on a
  * rule; a fieldset in a section shows its legend as a small label instead.
+ * With `look="block"`, the group is a part of a section, such as a part the
+ * user added: a rule on its left and a plain bold legend, also in a section.
  * `action` is a small control at the end of the legend row, after the
  * rule, for example a link button that removes the section. It is not a
  * part of the group's name, so give it its own name.
@@ -42,7 +44,7 @@ export function Fieldset({
   legend: string;
   name?: string;
   errors?: string[];
-  look?: "plain" | "section";
+  look?: "plain" | "section" | "block";
   action?: ReactNode;
   className?: string;
   children?: ReactNode;

@@ -1,5 +1,7 @@
 import { Input } from "@base-ui/react/input";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
 
@@ -107,6 +109,28 @@ test("an action goes on the legend row, after the legend, and is not a part of t
   expect(head.nextElementSibling).toBe(screen.getByRole("textbox", { name: "Count" }));
   fireEvent.click(within(section).getByRole("button", { name: "Drop" }));
   expect(onClick).toHaveBeenCalledOnce();
+});
+
+test("a block is a part of a section: it marks itself, keeps its legend as its name, and has its action on the legend row", () => {
+  render(
+    <Fieldset legend="Fruits" look="section">
+      <Fieldset legend="Apples" look="block" action={<button>Remove apples</button>}>
+        <input aria-label="Count" />
+      </Fieldset>
+    </Fieldset>,
+  );
+  const block = screen.getByRole("group", { name: "Apples" });
+  expect(block.dataset.look).toBe("block");
+  expect(block.querySelector(".ui-fieldset-head .ui-fieldset-action")?.textContent).toBe("Remove apples");
+  expect(within(block).getByRole("textbox", { name: "Count" })).toBeTruthy();
+});
+
+test("the block look has a left rule and a plain bold legend, which wins over the small label of a fieldset in a section", () => {
+  const css = readFileSync(join(import.meta.dirname, "field.css"), "utf8");
+  expect(css).toMatch(/\.ui-fieldset\[data-look="block"\] \{[^}]*border-left: 2px solid var\(--ink\);/);
+  expect(css).toMatch(/\.ui-fieldset\[data-look="block"\] > \.ui-fieldset-head > \.ui-fieldset-legend \{[^}]*text-transform: none;[^}]*color: var\(--ink\);/);
+  // Later in the file than the small label rule, at a higher specificity.
+  expect(css.indexOf('[data-look="block"]')).toBeGreaterThan(css.indexOf("A fieldset in a section is a part of it"));
 });
 
 test("without an action, a fieldset has no legend row", () => {

@@ -302,8 +302,9 @@ export function CheckGrid({ names, children }: { names: string[]; children: Reac
  * A group of checkboxes, one for each item, as a section of the form. name
  * names the group when the legend is not the right name. With row, the
  * boxes are on one line that wraps: the look of a short fixed list
- * (docs/design/homebrew-forms.md, "Checkboxes that stay"). children go
- * after the boxes, such as one more checkbox on its own line.
+ * (docs/design/homebrew-forms.md, "Checkboxes that stay"). look "block"
+ * is a part of a section that the user added, with a rule on its left.
+ * children go after the boxes, such as one more checkbox on its own line.
  */
 export function Checks({
   legend,
@@ -313,6 +314,7 @@ export function Checks({
   onToggle,
   action,
   row = false,
+  look = "section",
   children,
 }: {
   legend: string;
@@ -323,6 +325,7 @@ export function Checks({
   /** A control on the section rule, such as the Remove link of a modifier (modifiers.tsx). */
   action?: ReactNode;
   row?: boolean;
+  look?: "section" | "block";
   children?: ReactNode;
 }) {
   const boxes = items.map(({ key, name }) => (
@@ -335,7 +338,7 @@ export function Checks({
     />
   ));
   return (
-    <Fieldset legend={legend} name={name} look="section" action={action}>
+    <Fieldset legend={legend} name={name} look={look} action={action}>
       {row ? <div className="flex flex-wrap gap-x-[18px] gap-y-1">{boxes}</div> : <CheckGrid names={items.map((item) => item.name)}>{boxes}</CheckGrid>}
       {children}
     </Fieldset>
@@ -361,13 +364,15 @@ const listItems = (items: PickItem[], value: (item: PickItem) => string = (item)
 /**
  * A picker of the map at path, as {:path {:key true}}, as the old
  * checkboxes stored it: a pick stores true, and a removed token stores
- * false, as the old second click. Only the picked or removed key changes,
- * so a key that is no option keeps its value.
+ * false, as the old second click. With removeKey, a removed token removes
+ * the key, and a key with a truthy value shows as a token, as the old
+ * checkboxes of the background builder did. Only the picked or removed key
+ * changes, so a key that is no option keeps its value.
  */
-export function MapPicker({ edit, path, items, picker }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions }) {
+export function MapPicker({ edit, path, items, picker, removeKey = false }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions; removeKey?: boolean }) {
   const map = (edit.get(...path) ?? {}) as ItemRecord;
   const value = Object.keys(map)
-    .filter((key) => map[key] === true)
+    .filter((key) => (removeKey ? Boolean(map[key]) : map[key] === true))
     .map(untag);
   return (
     <Picker
@@ -378,7 +383,7 @@ export function MapPicker({ edit, path, items, picker }: { edit: Edit; path: Pat
       pickedText={pickedText}
       onValueChange={(next) => {
         const added = next.filter((key) => !value.includes(key)).map((key): [Path, unknown] => [[...path, key], true]);
-        const removed = value.filter((key) => !next.includes(key)).map((key): [Path, unknown] => [[...path, key], false]);
+        const removed = value.filter((key) => !next.includes(key)).map((key): [Path, unknown] => [[...path, key], removeKey ? undefined : false]);
         edit.setAll([...added, ...removed]);
       }}
     />
@@ -418,15 +423,34 @@ export function Section({ legend, action, children }: { legend: string; action?:
  * checkboxes: a number stores it, and None removes the key, as the old
  * second click did. line is the text after the toggle, which names it. A
  * stored number that is no segment presses none, and stays until the user
- * presses one.
+ * presses one. read and write are for a number inside the stored value:
+ * read gets the number from the value at path, and write makes the value
+ * to store for a number.
  */
-export function NumberChoice({ edit, legend, path, values, line, action }: { edit: Edit; legend: string; path: Path; values: number[]; line: string; action?: ReactNode }) {
+export function NumberChoice({
+  edit,
+  legend,
+  path,
+  values,
+  line,
+  action,
+  read = (stored) => stored,
+  write = (n) => n,
+}: {
+  edit: Edit;
+  legend: string;
+  path: Path;
+  values: number[];
+  line: string;
+  action?: ReactNode;
+  read?: (stored: unknown) => unknown;
+  write?: (n: number) => unknown;
+}) {
   const id = useId();
-  const value = edit.get(...path);
   return (
     <Section legend={legend} action={action}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <NumberToggle aria-labelledby={id} values={[null, ...values]} value={typeof value === "number" ? value : null} onValueChange={(n) => edit.set(path, n ?? undefined)} />
+        <NumberToggle aria-labelledby={id} values={[null, ...values]} value={numberOrNull(read(edit.get(...path)))} onValueChange={(n) => edit.set(path, n === null ? undefined : write(n))} />
         <span id={id}>{line}</span>
       </div>
     </Section>
@@ -542,37 +566,6 @@ export function WithChoices({ children }: { children: (choices: BuilderChoices) 
   const homebrew = useHomebrew((state) => state.homebrew);
   const choices = useBuilderChoices(homebrew);
   return choices === null ? <p role="status">Reading the content lists…</p> : children(choices);
-}
-
-/**
- * Checkboxes of one number at path, as the old toggle-value events: a click
- * stores the box's number, and a second click on it removes the key.
- */
-export function ValueChecks({
-  edit,
-  legend,
-  path,
-  values,
-  name,
-  action,
-}: {
-  edit: Edit;
-  legend: string;
-  path: Path;
-  values: number[];
-  name: (n: number) => string;
-  action?: ReactNode;
-}) {
-  const value = edit.get(...path);
-  return (
-    <Checks
-      legend={legend}
-      action={action}
-      items={values.map((n) => ({ key: String(n), name: name(n) }))}
-      checked={(key) => value === Number(key)}
-      onToggle={(key) => edit.set(path, value === Number(key) ? undefined : Number(key))}
-    />
-  );
 }
 
 /** A name and a :description, as the old language, invocation and boon builders have them. */

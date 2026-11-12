@@ -71,6 +71,32 @@
     content: none;
   }
 
+  /* A block: a part of a section, such as a part the user added. A rule on its left, and a plain bold legend in the body font, also in a section. Later than the rules above, so it wins over the small label of a fieldset in a section. */
+  .ui-fieldset[data-look="block"] {
+    padding-left: 12px;
+    border-left: 2px solid var(--ink);
+  }
+  .ui-fieldset[data-look="block"] > .ui-fieldset-legend,
+  .ui-fieldset[data-look="block"] > .ui-fieldset-head > .ui-fieldset-legend {
+    display: block;
+    margin: 0;
+    font: inherit;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--ink);
+  }
+  .ui-fieldset[data-look="block"] > .ui-fieldset-legend {
+    margin-bottom: 6px;
+  }
+  .ui-fieldset[data-look="block"] > .ui-fieldset-head {
+    margin-bottom: 6px;
+  }
+  .ui-fieldset[data-look="block"] > .ui-fieldset-legend::after,
+  .ui-fieldset[data-look="block"] > .ui-fieldset-head > .ui-fieldset-legend::after {
+    content: none;
+  }
+
   /* The label above its control. The control is as wide as it is, not as the column. */
   .ui-field-label {
     display: grid;

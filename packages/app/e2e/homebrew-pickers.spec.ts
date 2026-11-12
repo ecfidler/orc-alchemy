@@ -4,6 +4,7 @@ import { pickFromPicker, pickOption, removeToken } from "@orc-alchemy/ui/testing
 import { expect, test, type Page } from "@playwright/test";
 
 // ORC-199: the pickers, number toggles and the Armor Class select of the feat, race and subrace forms (docs/design/homebrew-forms.md, "Controls").
+// ORC-200: the tool sub-selections and the equipment picker of the background form.
 
 /** Adds the modifier named `name` from the "+ Add a modifier" list. */
 const addModifier = (page: Page, name: string) => pickFromPicker(page.getByRole("button", { name: "Add a modifier" }), name);
@@ -82,6 +83,35 @@ test("the subrace form: a saving throw picker and the Hit Points toggle", async 
   await expect(segment(page, "Hit Points", "None")).toHaveAttribute("aria-pressed", "false");
 });
 
+test("the background form: tool sub-selections and an equipment picker with search", async ({ page }) => {
+  await page.goto("/content/new/background");
+  await page.getByRole("textbox", { name: "Name" }).fill("Tidewatch");
+  const tools = section(page, "Tool proficiencies");
+  const addTool = tools.getByRole("button", { name: "Add a tool proficiency", exact: true });
+  await expect(addTool).toHaveAccessibleDescription("6 more");
+  await pickFromPicker(addTool, "Vehicles");
+  await pickFromPicker(addTool, "Artisan's tools");
+  await expect(addTool).toHaveAccessibleDescription("4 more");
+  // The blocks are in the fixed order, not in the order of the clicks.
+  await expect(tools.locator("[data-sub]")).toHaveText([/^Artisan's tools/, /^Vehicles/]);
+  await pick(page, "Artisan's tools", "Add an artisan's tool", ["Smith's Tools", "Brewer's Supplies"]);
+  await expect(tokens(page, "Artisan's tools")).toHaveText(["Brewer's Supplies", "Smith's Tools"]);
+  await section(page, "Vehicles").getByRole("checkbox", { name: "Water Vehicles" }).check();
+  // The X removes the block and its picks, with no confirmation, and the focus goes to the add button.
+  await tools.getByRole("button", { name: "Remove Vehicles", exact: true }).click();
+  await expect(section(page, "Vehicles")).toHaveCount(0);
+  await expect(addTool).toBeFocused();
+  await pick(page, "Starting equipment", "Add equipment", ["Rope, silk", "Amulet"]);
+  await expect(tokens(page, "Starting equipment")).toHaveText(["Amulet", "Rope, silk"]);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/\/content$/);
+
+  await page.goto(`/content/edit/background/${encodeURIComponent("Default Option Source")}/tidewatch`);
+  await expect(tokens(page, "Artisan's tools")).toHaveText(["Brewer's Supplies", "Smith's Tools"]);
+  await expect(section(page, "Vehicles")).toHaveCount(0);
+  await expect(tokens(page, "Starting equipment")).toHaveText(["Amulet", "Rope, silk"]);
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- homebrew-pickers.spec.ts
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -148,6 +178,59 @@ test.describe("screenshots", () => {
       await open("race");
       await fillRace();
       await main.screenshot({ path: shot("race-phone") });
+    });
+
+    test(`the background form, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-200-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      const main = page.locator("main");
+      const open = async () => {
+        await page.goto("/content/new/background");
+        await page.getByRole("button", { name: "Add a tool proficiency" }).waitFor();
+        await page.evaluate(() => document.fonts.ready);
+      };
+      const noFlash = () => page.locator(".ui-flash").evaluateAll((all) => all.forEach((el) => el.classList.remove("ui-flash")));
+      const addTool = () => section(page, "Tool proficiencies").getByRole("button", { name: "Add a tool proficiency", exact: true });
+      const fill = async () => {
+        await page.getByRole("textbox", { name: "Name" }).fill("Tidewatch Sailor");
+        await page.getByRole("textbox", { name: "Description" }).fill("You stood watch on a coast ship through storms and long nights. You know ropes, tides and the talk of the docks.");
+        await pick(page, "Skill proficiencies", "Add a skill", ["Athletics", "Perception"]);
+        await segment(page, "Languages", "1").click();
+        for (const name of ["Any artisan's tool", "Artisan's tools", "Any musical instrument", "Any gaming set", "Vehicles", "Other tools"]) await pickFromPicker(addTool(), name);
+        await page.getByRole("group", { name: "Any musical instrument: number" }).getByRole("button", { name: "2" }).click();
+        await pick(page, "Artisan's tools", "Add an artisan's tool", ["Carpenter's Tools", "Cartographer's Tools"]);
+        await section(page, "Vehicles").getByRole("checkbox", { name: "Water Vehicles" }).check();
+        await section(page, "Other tools").getByRole("checkbox", { name: "Navigator's Tools" }).check();
+        await page.getByLabel("Gold").fill("10");
+        await pick(page, "Starting equipment", "Add equipment", ["Any 1 musical instrument", "Clothes, common", "Pouch", "Rope, silk", "Signal whistle"]);
+        await page.getByRole("button", { name: "Add feature / trait" }).click();
+        await page.getByRole("textbox", { name: "Feature 1 name" }).fill("Ship's Passage");
+        await page.getByRole("textbox", { name: "Feature 1 description" }).fill("You can get free passage on a sailing ship for yourself and your companions.");
+        await noFlash();
+      };
+
+      await open();
+      await main.screenshot({ path: shot("background-empty") });
+      await fill();
+      await main.screenshot({ path: shot("background-filled") });
+
+      await open();
+      await pickFromPicker(addTool(), "Vehicles");
+      await noFlash();
+      await addTool().click();
+      await page.getByRole("dialog", { name: "Add a tool proficiency" }).waitFor();
+      await page.screenshot({ path: shot("tool-list") });
+
+      await page.keyboard.press("Escape");
+      await section(page, "Starting equipment").getByRole("button", { name: "Add equipment", exact: true }).click();
+      await page.getByRole("dialog", { name: "Add equipment" }).getByRole("searchbox").fill("tools");
+      await page.screenshot({ path: shot("equipment-search") });
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await open();
+      await fill();
+      await main.screenshot({ path: shot("background-phone") });
     });
   }
 });

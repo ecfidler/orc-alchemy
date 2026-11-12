@@ -86,7 +86,9 @@ bun run test       # vitest
     and describe it. `action` is a small control at the end of the legend
     row, after the rule, for example a `variant="link"` Button that removes
     the section. It is not a part of the group's name, so give it its own
-    name.
+    name. `look="section"` shows the legend as a section title on a rule;
+    `look="block"` is a part of a section, for example a part the user
+    added, with a rule on its left, a plain bold legend and an X `action`.
   - `Field`: Base UI Field, for one control. It shows its `errors` after
     the control, as a list named "Problems: {label}", and is invalid while
     it has some. A Base UI control in it gets the list as its description.
