@@ -12,3 +12,10 @@ export const shown = (label: string) => combobox(label).textContent;
 
 /** Adds the modifier named `name` from the "+ Add a modifier" list of the form. */
 export const addModifier = (name: string) => pickFromPicker(screen.getByRole("button", { name: "Add a modifier" }), name);
+
+/** The names of the form's sections, in their order: the groups at the top level of the form. */
+export const groups = () =>
+  screen
+    .getAllByRole("group")
+    .filter((g) => g.parentElement?.closest("fieldset, [role=group]") === null)
+    .map((g) => g.getAttribute("aria-label") ?? g.querySelector(".ui-fieldset-legend")?.textContent);

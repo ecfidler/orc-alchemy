@@ -12,10 +12,10 @@
 // user adds the other modifiers from a list (modifiers.tsx).
 import type { ReactNode } from "react";
 import { asSet, setItems, tag } from "../../engine/content.ts";
-import { ABILITIES, abilityKey, Checks, editor, FormColumn, RecordTextArea, SKILLS, TextField, TOOLS, ValueChecks, WithChoices, type BuilderType, type Edit, type FormProps, type Path } from "./fields.tsx";
+import { ABILITIES, abilityKey, Checks, editor, FormColumn, RecordTextArea, SKILLS, TextField, TOOLS, ValueChecks, WithChoices, type BuilderType, type Edit, type FormProps } from "./fields.tsx";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import { Modifiers, type Modifier } from "./modifiers.tsx";
-import { ArmorChecks, PropChecks, ResistanceChecks } from "./RaceForm.tsx";
+import { ARMOR_CHOICES, propModifier, RESISTANCE_CHOICES } from "./RaceForm.tsx";
 
 /** Checkboxes of the set at field: a click adds the item's keyword, and a second click removes it. */
 function SetChecks({ edit, legend, field, items }: { edit: Edit; legend: string; field: string; items: Choice[] }) {
@@ -45,9 +45,6 @@ function Toggles({ edit, legend, items, action }: { edit: Edit; legend: string; 
 
 const ABILITY_CHOICES: Choice[] = ABILITIES.map(([key, name]) => ({ key: abilityKey(key), name }));
 
-/** The paths of the keys in :props. */
-const inProps = (...keys: string[]): Path[] => keys.map((key) => ["props", key]);
-
 const WEAPON_TOGGLES: [string, string][] = [["improvised-weapons-prof", "You gain proficiency with improvised weapons"]];
 const MEDIUM_ARMOR: [string, string][] = [
   ["medium-armor-stealth", "Wearing medium armor doesn't give disadvantage on Stealth checks"],
@@ -66,6 +63,24 @@ const SPELLCASTING: [string, string][] = [
   ["attack-spell", "Choose a class, gain a cantrip requiring an attack roll from that class's spell list"],
 ];
 
+/** A modifier of one number at :props prop: a click on a box stores its number. */
+const valueModifier = (edit: Edit, prop: string, name: string, example: string, values: number[], text: (n: number) => string): Modifier => ({
+  id: prop,
+  name,
+  example,
+  paths: [["props", prop]],
+  render: ({ name, action }) => <ValueChecks edit={edit} legend={name} action={action} path={["props", prop]} values={values} name={text} />,
+});
+
+/** A modifier of true or false values in :props, one for each item. */
+const toggleModifier = (edit: Edit, id: string, name: string, example: string, items: [key: string, name: string][]): Modifier => ({
+  id,
+  name,
+  example,
+  paths: items.map(([key]) => ["props", key]),
+  render: ({ name, action }) => <Toggles edit={edit} legend={name} action={action} items={items} />,
+});
+
 /** The feat's modifiers in form order (docs/design/homebrew-forms.md, "Feat"). */
 function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
   return [
@@ -73,10 +88,10 @@ function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       id: "prereqs",
       name: "Prerequisites",
       common: true,
-      render: () => (
+      render: ({ name }) => (
         <SetChecks
           edit={edit}
-          legend="Prerequisites"
+          legend={name}
           field="prereqs"
           items={[
             { key: "spellcasting", name: "The ability to cast at least one spell" },
@@ -90,9 +105,9 @@ function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       id: "race-prereqs",
       name: "Race prerequisites",
       common: true,
-      render: () => (
+      render: ({ name }) => (
         <Checks
-          legend="Race prerequisites"
+          legend={name}
           items={lists.races.map(({ key, name }) => ({ key, name: `${name} race` }))}
           checked={(key) => edit.get("path-prereqs", "race", key) === true}
           onToggle={(key) => edit.toggle(["path-prereqs", "race", key])}
@@ -103,115 +118,29 @@ function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       id: "ability-increases",
       name: "Ability Increase Options",
       common: true,
-      render: () => (
+      render: ({ name }) => (
         <SetChecks
           edit={edit}
-          legend="Ability Increase Options"
+          legend={name}
           field="ability-increases"
           items={[...ABILITY_CHOICES, { key: "saves?", name: "You also gain proficiency in saving throws with the above chosen abilities" }]}
         />
       ),
     },
-    {
-      id: "skill-tool-choice",
-      name: "Skill or Tool Proficiency",
-      example: "Proficiency in 1 to 3 skills or tools of choice",
-      paths: inProps("skill-tool-choice"),
-      render: (action) => (
-        <ValueChecks edit={edit} legend="Skill or Tool Proficiency" action={action} path={["props", "skill-tool-choice"]} values={[1, 2, 3]} name={(n) => `You gain proficiency in ${n} skills or tools of your choice`} />
-      ),
-    },
-    {
-      id: "language-choice",
-      name: "Languages",
-      example: "Learn 1 to 3 languages of choice",
-      paths: inProps("language-choice"),
-      render: (action) => <ValueChecks edit={edit} legend="Languages" action={action} path={["props", "language-choice"]} values={[1, 2, 3]} name={(n) => `You learn ${n} languages of your choice.`} />,
-    },
-    {
-      id: "weapon-prof",
-      name: "Weapon Proficiency",
-      example: "Proficiency with improvised weapons",
-      paths: inProps(...WEAPON_TOGGLES.map(([key]) => key)),
-      render: (action) => <Toggles edit={edit} legend="Weapon Proficiency" action={action} items={WEAPON_TOGGLES} />,
-    },
-    {
-      id: "weapon-prof-choice",
-      name: "Weapon Proficiency Choice",
-      example: "Proficiency with 3 or 4 weapons of choice",
-      paths: inProps("weapon-prof-choice"),
-      render: (action) => (
-        <ValueChecks edit={edit} legend="Weapon Proficiency Choice" action={action} path={["props", "weapon-prof-choice"]} values={[3, 4]} name={(n) => `You gain proficiency with ${n} weapons of your choice`} />
-      ),
-    },
-    { id: "armor-prof", name: "Armor Proficiency", example: "Light, medium or heavy armor, shields", paths: inProps("armor-prof"), render: (action) => <ArmorChecks edit={edit} action={action} /> },
-    {
-      id: "medium-armor",
-      name: "Medium Armor",
-      example: "No Stealth disadvantage, +3 Dexterity to AC",
-      paths: inProps(...MEDIUM_ARMOR.map(([key]) => key)),
-      render: (action) => <Toggles edit={edit} legend="Medium Armor" action={action} items={MEDIUM_ARMOR} />,
-    },
-    {
-      id: "max-hp-bonus",
-      name: "Hit Points",
-      example: "+1 or +2 hit point maximum for each level",
-      paths: inProps("max-hp-bonus"),
-      render: (action) => (
-        <ValueChecks edit={edit} legend="Hit Points" action={action} path={["props", "max-hp-bonus"]} values={[1, 2]} name={(n) => `Your hit point maximum increases by ${n} for each of your levels`} />
-      ),
-    },
-    {
-      id: "damage-resistance",
-      name: "Damage Resistances",
-      example: "Resistance to fire, cold, damage from traps …",
-      paths: inProps("damage-resistance"),
-      render: (action) => <ResistanceChecks edit={edit} action={action} />,
-    },
-    {
-      id: "speed",
-      name: "Speed Bonuses",
-      example: "+5, +10 or +15 ft. speed",
-      paths: inProps("speed"),
-      render: (action) => <ValueChecks edit={edit} legend="Speed Bonuses" action={action} path={["props", "speed"]} values={[5, 10, 15]} name={(n) => `Your speed is increased by ${n} ft.`} />,
-    },
-    {
-      id: "initiative",
-      name: "Initiative Bonuses",
-      example: "+1 to +5 to initiative",
-      paths: inProps("initiative"),
-      render: (action) => (
-        <ValueChecks edit={edit} legend="Initiative Bonuses" action={action} path={["props", "initiative"]} values={[1, 2, 3, 4, 5]} name={(n) => `You gain a +${n} bonus to initiative`} />
-      ),
-    },
-    {
-      id: "misc",
-      name: "Misc. Modifiers",
-      example: "Two-weapon fighting, +5 passive Perception, traps",
-      paths: inProps(...MISC.map(([key]) => key)),
-      render: (action) => <Toggles edit={edit} legend="Misc. Modifiers" action={action} items={MISC} />,
-    },
-    {
-      id: "spellcasting",
-      name: "Spellcasting",
-      example: "Cantrips and a 1st-level spell, ritual spells, an attack cantrip",
-      paths: inProps(...SPELLCASTING.map(([key]) => key)),
-      render: (action) => <Toggles edit={edit} legend="Spellcasting" action={action} items={SPELLCASTING} />,
-    },
-    {
-      id: "skill-prof-or-expertise",
-      name: "Skill Proficiency or Expertise",
-      example: "Proficiency in a skill, or expertise if already proficient",
-      paths: inProps("skill-prof-or-expertise"),
-      render: (action) => <PropChecks edit={edit} legend="Skill Proficiency or Expertise" action={action} prop="skill-prof-or-expertise" items={SKILLS} />,
-    },
-    {
-      id: "tool-prof-or-expertise",
-      name: "Tool Proficiency or Expertise",
-      example: "Proficiency with a tool, or expertise if already proficient",
-      paths: inProps("tool-prof-or-expertise"),
-      render: (action) => <PropChecks edit={edit} legend="Tool Proficiency or Expertise" action={action} prop="tool-prof-or-expertise" items={TOOLS} />,
-    },
+    valueModifier(edit, "skill-tool-choice", "Skill or Tool Proficiency", "Proficiency in 1 to 3 skills or tools of choice", [1, 2, 3], (n) => `You gain proficiency in ${n} skills or tools of your choice`),
+    valueModifier(edit, "language-choice", "Languages", "Learn 1 to 3 languages of choice", [1, 2, 3], (n) => `You learn ${n} languages of your choice.`),
+    toggleModifier(edit, "weapon-prof", "Weapon Proficiency", "Proficiency with improvised weapons", WEAPON_TOGGLES),
+    valueModifier(edit, "weapon-prof-choice", "Weapon Proficiency Choice", "Proficiency with 3 or 4 weapons of choice", [3, 4], (n) => `You gain proficiency with ${n} weapons of your choice`),
+    propModifier(edit, "armor-prof", "Armor Proficiency", "Light, medium or heavy armor, shields", ARMOR_CHOICES),
+    toggleModifier(edit, "medium-armor", "Medium Armor", "No Stealth disadvantage, +3 Dexterity to AC", MEDIUM_ARMOR),
+    valueModifier(edit, "max-hp-bonus", "Hit Points", "+1 or +2 hit point maximum for each level", [1, 2], (n) => `Your hit point maximum increases by ${n} for each of your levels`),
+    propModifier(edit, "damage-resistance", "Damage Resistances", "Resistance to fire, cold, damage from traps …", RESISTANCE_CHOICES),
+    valueModifier(edit, "speed", "Speed Bonuses", "+5, +10 or +15 ft. speed", [5, 10, 15], (n) => `Your speed is increased by ${n} ft.`),
+    valueModifier(edit, "initiative", "Initiative Bonuses", "+1 to +5 to initiative", [1, 2, 3, 4, 5], (n) => `You gain a +${n} bonus to initiative`),
+    toggleModifier(edit, "misc", "Misc. Modifiers", "Two-weapon fighting, +5 passive Perception, traps", MISC),
+    toggleModifier(edit, "spellcasting", "Spellcasting", "Cantrips and a 1st-level spell, ritual spells, an attack cantrip", SPELLCASTING),
+    propModifier(edit, "skill-prof-or-expertise", "Skill Proficiency or Expertise", "Proficiency in a skill, or expertise if already proficient", SKILLS),
+    propModifier(edit, "tool-prof-or-expertise", "Tool Proficiency or Expertise", "Proficiency with a tool, or expertise if already proficient", TOOLS),
   ];
 }
 

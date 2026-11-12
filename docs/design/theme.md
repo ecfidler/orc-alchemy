@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-03T03:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-12T06:16:22Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102

@@ -7,7 +7,7 @@ import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { addModifier } from "./test-picks.ts";
+import { addModifier, groups } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -36,8 +36,6 @@ const check = (group: string, label: string) => fireEvent.click(within(screen.ge
 /** Whether the checkbox is checked, for a check of several boxes at once. */
 const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
-/** The names of the form's sections, in their order: the groups at the top level of the form. */
-const groups = () => screen.getAllByRole("group").filter((g) => g.parentElement?.closest("fieldset, [role=group]") === null).map((g) => g.getAttribute("aria-label") ?? g.querySelector(".ui-fieldset-legend")?.textContent);
 const COMMON = ["Prerequisites", "Race prerequisites", "Ability Increase Options"];
 /** The modifiers of the add list, in form order. */
 const ADDED = [
@@ -167,6 +165,8 @@ test("a new feat shows only the common modifiers; the add list has the others in
   const add = screen.getByRole("button", { name: "Add a modifier" });
   expect(add.getAttribute("aria-haspopup")).toBe("dialog");
   expect(add.textContent).toMatch(/14 more$/);
+  // A real click puts the focus on the button.
+  add.focus();
   fireEvent.click(add);
   const dialog = await screen.findByRole("dialog", { name: "Add a modifier" });
   const rows = within(dialog).getAllByRole("button").filter((b) => b.classList.contains("ui-list-row"));
@@ -177,6 +177,7 @@ test("a new feat shows only the common modifiers; the add list has the others in
   fireEvent.keyDown(dialog, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(groups()).toEqual(COMMON);
+  await waitFor(() => expect(document.activeElement).toBe(add));
 });
 
 test("an added modifier goes to its place in form order, flashes once and takes the focus; it leaves the add list", async () => {

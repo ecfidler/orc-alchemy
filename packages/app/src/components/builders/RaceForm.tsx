@@ -56,8 +56,17 @@ export function PropChecks({ edit, legend, prop, items, action }: { edit: Edit; 
   return <Checks legend={legend} action={action} items={items} checked={(key) => edit.get("props", prop, key) === true} onToggle={(key) => edit.toggle(["props", prop, key])} />;
 }
 
-/** The props of a group's section: the Remove link on its rule, for a modifier (modifiers.tsx). */
-type Section = { edit: Edit; action?: ReactNode };
+/** The props of a group: its legend and the control on its rule, such as the Remove link of a modifier (modifiers.tsx), when it is one. */
+type SectionProps = { edit: Edit; legend?: string; action?: ReactNode };
+
+/** A modifier of the map at :props prop, as checkboxes of the items. */
+export const propModifier = (edit: Edit, prop: string, name: string, example: string, items: Choice[]): Modifier => ({
+  id: prop,
+  name,
+  example,
+  paths: [["props", prop]],
+  render: ({ name, action }) => <PropChecks edit={edit} legend={name} action={action} prop={prop} items={items} />,
+});
 
 const choices = (keys: string[], name: (key: string) => string): Choice[] => keys.map((key) => ({ key, name: name(key) }));
 
@@ -66,25 +75,20 @@ export const weaponChoices = (lists: BuilderChoices): Choice[] => [
   { key: "martial", name: "All Martial Weapons" },
   ...lists.weapons,
 ];
-export const ArmorChecks = ({ edit, action }: Section) => (
-  <PropChecks edit={edit} legend="Armor Proficiency" action={action} prop="armor-prof" items={choices(["light", "medium", "heavy", "shields"], (a) => `You gain proficiency with ${a}${a === "shields" ? "" : " armor"}`)} />
+export const ARMOR_CHOICES = choices(["light", "medium", "heavy", "shields"], (a) => `You gain proficiency with ${a}${a === "shields" ? "" : " armor"}`);
+export const ArmorChecks = ({ edit, legend = "Armor Proficiency", action }: SectionProps) => <PropChecks edit={edit} legend={legend} action={action} prop="armor-prof" items={ARMOR_CHOICES} />;
+export const ToolChecks = ({ edit, legend = "Tool Proficiency", action }: SectionProps) => (
+  <Checks legend={legend} action={action} items={TOOLS} checked={(key) => edit.get("profs", "tool", key) === true} onToggle={(key) => edit.toggle(["profs", "tool", key])} />
 );
-export const ToolChecks = ({ edit, action }: Section) => (
-  <Checks legend="Tool Proficiency" action={action} items={TOOLS} checked={(key) => edit.get("profs", "tool", key) === true} onToggle={(key) => edit.toggle(["profs", "tool", key])} />
+export const RESISTANCE_CHOICES = choices(["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`));
+export const ResistanceChecks = ({ edit, legend = "Damage Resistances", action }: SectionProps) => (
+  <PropChecks edit={edit} legend={legend} action={action} prop="damage-resistance" items={RESISTANCE_CHOICES} />
 );
-export const ResistanceChecks = ({ edit, action }: Section) => (
-  <PropChecks
-    edit={edit}
-    legend="Damage Resistances"
-    action={action}
-    prop="damage-resistance"
-    items={choices(["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`))}
-  />
+export const IMMUNITY_CHOICES = choices(DAMAGE_TYPES, (d) => `Immunity to ${d} damage`);
+export const ImmunityChecks = ({ edit, legend = "Damage Immunities", action }: SectionProps) => (
+  <PropChecks edit={edit} legend={legend} action={action} prop="damage-immunity" items={IMMUNITY_CHOICES} />
 );
-export const ImmunityChecks = ({ edit, action }: Section) => (
-  <PropChecks edit={edit} legend="Damage Immunities" action={action} prop="damage-immunity" items={choices(DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)} />
-);
-export const SkillChecks = ({ edit, action }: Section) => <PropChecks edit={edit} legend="Skill Proficiencies" action={action} prop="skill-prof" items={SKILLS} />;
+export const SkillChecks = ({ edit, legend = "Skill Proficiencies", action }: SectionProps) => <PropChecks edit={edit} legend={legend} action={action} prop="skill-prof" items={SKILLS} />;
 export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKw(name), name: `You have advantage on saving throws against being ${name}` }));
 
 const UNLOCK_LEVELS = range(1, 21).map((n): [number, string] => [n, `Level ${n}`]);
@@ -96,11 +100,11 @@ const UNLOCK_LEVELS = range(1, 21).map((n): [number, string] => [n, `Level ${n}`
  * the spell's own level only filters the spell list. On a phone, the spell
  * select goes on its own line.
  */
-export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
+export function Spells({ edit, lists, legend = "Spells" }: { edit: Edit; lists: BuilderChoices; legend?: string }) {
   const spells = (edit.get("spells") ?? []) as ItemRecord[];
   const [blank, setBlank] = useState(false);
   return (
-    <Fieldset legend="Spells" look="section">
+    <Fieldset legend={legend} look="section">
       <div className="grid gap-2">
         {(blank ? [...spells, {}] : spells).map((spell, i) => {
           const n = i + 1;
@@ -153,9 +157,9 @@ export function Spells({ edit, lists }: { edit: Edit; lists: BuilderChoices }) {
 }
 
 /** The six ability score increases of a race or subrace, each a box with its bonus. note is a line under a box. */
-export function AbilityIncreases({ edit, note }: { edit: Edit; note?: (ability: string, bonus: number) => string }) {
+export function AbilityIncreases({ edit, note, legend = "Ability Score Increases" }: { edit: Edit; note?: (ability: string, bonus: number) => string; legend?: string }) {
   return (
-    <Fieldset legend="Ability Score Increases" look="section">
+    <Fieldset legend={legend} look="section">
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
         {ABILITIES.map(([key, name]) => {
           const bonus = (edit.get("abilities", abilityKey(key)) as number | undefined) ?? 0;
@@ -174,14 +178,27 @@ export function AbilityIncreases({ edit, note }: { edit: Edit; note?: (ability: 
 const LANGUAGES = tag("languages");
 const SPEEDS = numbers(range(0, 55, 5));
 
-/** A speed in :props as a section with one select: 0 until it is set. */
-function SpeedSection({ edit, legend, prop, action }: Section & { legend: string; prop: string }) {
-  return (
-    <Fieldset legend={legend} look="section" action={action}>
-      <Select aria-label={legend} value={orFirst(edit.get("props", prop) ?? 0, SPEEDS)} options={SPEEDS} onValueChange={(v) => edit.set(["props", prop], v)} />
+/** A speed in :props as a modifier with one select: 0 until it is set. */
+const speedModifier = (edit: Edit, prop: string, name: string, example: string): Modifier => ({
+  id: prop,
+  name,
+  example,
+  paths: [["props", prop]],
+  render: ({ name, action }) => (
+    <Fieldset legend={name} look="section" action={action}>
+      <Select aria-label={name} value={orFirst(edit.get("props", prop) ?? 0, SPEEDS)} options={SPEEDS} onValueChange={(v) => edit.set(["props", prop], v)} />
     </Fieldset>
-  );
-}
+  ),
+});
+
+/** A proficiency choice in :profs field as a modifier. */
+const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: Choice[]): Modifier => ({
+  id: field,
+  name,
+  example,
+  paths: [["profs", field]],
+  render: ({ name, action }) => <ProficiencyChoice edit={edit} legend={name} action={action} field={field} items={items} />,
+});
 
 const AC_CHOICES: Choice[] = [
   { key: "lizardfolk-ac", name: "Without armor your AC becomes 13 + your DEX modifier." },
@@ -193,67 +210,43 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
   const languages = setItems(edit.get("languages"));
   const toggleLanguage = (name: string) => edit.set(["languages"], asSet(languages.includes(name) ? languages.filter((l) => l !== name) : [...languages, name]));
   return [
-    {
-      id: "flying-speed",
-      name: "Flying speed",
-      example: "A flying speed from 5 to 50 ft.",
-      paths: [["props", "flying-speed"]],
-      render: (action) => <SpeedSection edit={edit} legend="Flying speed" prop="flying-speed" action={action} />,
-    },
-    {
-      id: "swimming-speed",
-      name: "Swimming speed",
-      example: "A swimming speed from 5 to 50 ft.",
-      paths: [["props", "swimming-speed"]],
-      render: (action) => <SpeedSection edit={edit} legend="Swimming speed" prop="swimming-speed" action={action} />,
-    },
+    speedModifier(edit, "flying-speed", "Flying speed", "A flying speed from 5 to 50 ft."),
+    speedModifier(edit, "swimming-speed", "Swimming speed", "A swimming speed from 5 to 50 ft."),
     {
       id: "armor-class",
       name: "Armor Class",
       example: "Natural armor: 13 + Dexterity, or always 17",
       paths: AC_CHOICES.map(({ key }) => ["props", key]),
-      render: (action) => <Checks legend="Armor Class" action={action} items={AC_CHOICES} checked={(key) => edit.get("props", key) === true} onToggle={(key) => edit.toggle(["props", key])} />,
+      render: ({ name, action }) => <Checks legend={name} action={action} items={AC_CHOICES} checked={(key) => edit.get("props", key) === true} onToggle={(key) => edit.toggle(["props", key])} />,
     },
-    { id: "abilities", name: "Ability Score Increases", common: true, render: () => <AbilityIncreases edit={edit} /> },
+    { id: "abilities", name: "Ability Score Increases", common: true, render: ({ name }) => <AbilityIncreases edit={edit} legend={name} /> },
     {
       id: "languages",
       name: "Languages",
       common: true,
-      render: () => <Checks legend="Languages" items={lists.languages.map(({ name }) => ({ key: name, name }))} checked={(name) => languages.includes(name)} onToggle={toggleLanguage} />,
+      render: ({ name }) => <Checks legend={name} items={lists.languages.map(({ name }) => ({ key: name, name }))} checked={(name) => languages.includes(name)} onToggle={toggleLanguage} />,
     },
+    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists)),
+    propModifier(edit, "armor-prof", "Armor Proficiency", "Light, medium or heavy armor, shields", ARMOR_CHOICES),
     {
-      id: "weapon-prof",
-      name: "Weapon Proficiencies",
-      example: "Longsword, shortbow, all simple weapons …",
-      paths: [["props", "weapon-prof"]],
-      render: (action) => <PropChecks edit={edit} legend="Weapon Proficiencies" action={action} prop="weapon-prof" items={weaponChoices(lists)} />,
+      id: "tool",
+      name: "Tool Proficiency",
+      example: "Smith's tools, thieves' tools …",
+      paths: [["profs", "tool"]],
+      render: ({ name, action }) => <ToolChecks edit={edit} legend={name} action={action} />,
     },
-    { id: "armor-prof", name: "Armor Proficiency", example: "Light, medium or heavy armor, shields", paths: [["props", "armor-prof"]], render: (action) => <ArmorChecks edit={edit} action={action} /> },
-    { id: "tool", name: "Tool Proficiency", example: "Smith's tools, thieves' tools …", paths: [["profs", "tool"]], render: (action) => <ToolChecks edit={edit} action={action} /> },
-    { id: "damage-resistance", name: "Damage Resistances", common: true, render: () => <ResistanceChecks edit={edit} /> },
-    { id: "damage-immunity", name: "Damage Immunities", example: "Poison, necrotic …", paths: [["props", "damage-immunity"]], render: (action) => <ImmunityChecks edit={edit} action={action} /> },
-    { id: "skill-prof", name: "Skill Proficiencies", example: "Perception, Stealth …", paths: [["props", "skill-prof"]], render: (action) => <SkillChecks edit={edit} action={action} /> },
-    {
-      id: "skill-options",
-      name: "Skill Proficiency Choice",
-      example: "Choose n skills from a list",
-      paths: [["profs", "skill-options"]],
-      render: (action) => <ProficiencyChoice edit={edit} legend="Skill Proficiency Choice" action={action} field="skill-options" items={SKILLS} />,
-    },
+    { id: "damage-resistance", name: "Damage Resistances", common: true, render: ({ name }) => <ResistanceChecks edit={edit} legend={name} /> },
+    propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", IMMUNITY_CHOICES),
+    propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS),
+    choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS),
     {
       id: "language-options",
       name: "Language Proficiency Choice",
       common: true,
-      render: () => <ProficiencyChoice edit={edit} legend="Language Proficiency Choice" field="language-options" items={lists.languages} />,
+      render: ({ name }) => <ProficiencyChoice edit={edit} legend={name} field="language-options" items={lists.languages} />,
     },
-    {
-      id: "weapon-proficiency-options",
-      name: "Weapon Proficiency Choice",
-      example: "Choose n weapons from a list",
-      paths: [["profs", "weapon-proficiency-options"]],
-      render: (action) => <ProficiencyChoice edit={edit} legend="Weapon Proficiency Choice" action={action} field="weapon-proficiency-options" items={lists.weapons} />,
-    },
-    { id: "spells", name: "Spells", common: true, render: () => <Spells edit={edit} lists={lists} /> },
+    choiceModifier(edit, "weapon-proficiency-options", "Weapon Proficiency Choice", "Choose n weapons from a list", lists.weapons),
+    { id: "spells", name: "Spells", common: true, render: ({ name }) => <Spells edit={edit} lists={lists} legend={name} /> },
   ];
 }
 

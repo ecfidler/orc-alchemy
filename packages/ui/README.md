@@ -32,8 +32,9 @@ bun run test       # vitest
   fonts, the grain, the body defaults, the focus ring, the shell, flag
   tab and alert note styles (`src/shell.css`), the button and toggle styles
   (`src/button.css`), the fieldset and field styles (`src/field.css`), the
-  checkbox and radio styles (`src/check.css`), the number field styles
-  (`src/number-field.css`), the alert dialog styles (`src/dialog.css`),
+  flash (`src/flash.css`), the checkbox and radio styles
+  (`src/check.css`), the number field styles (`src/number-field.css`), the
+  alert dialog styles (`src/dialog.css`),
   the select, combobox, autocomplete and menu styles (`src/select.css`),
   the list modal, token, picker, number toggle and chips styles
   (`src/picker.css`),
@@ -96,7 +97,7 @@ bun run test       # vitest
     part flashes once in the note yellow, 10px past its edges, with
     rounded corners, and its layout does not move. With
     `prefers-reduced-motion: reduce` it does not flash. Styles:
-    `src/field.css`.
+    `src/flash.css`.
   - `useConfirm()`: the themed stand-in for `window.confirm`. It returns
     `[confirm, dialog]`. Render `dialog` in the component, and call
     `await confirm(question, action)`: it is true when the user picks the

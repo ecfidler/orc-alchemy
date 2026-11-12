@@ -43,6 +43,9 @@ export const asSet = (items: unknown[]) => ({ "~#set": items });
 /** The items of a Transit-encoded set, or [] for a value that is not one. */
 export const setItems = (value: unknown): unknown[] => (value as { "~#set"?: unknown[] } | undefined)?.["~#set"] ?? [];
 
+/** Whether the value is a Transit-encoded set. */
+export const isSet = (value: unknown): boolean => value !== null && typeof value === "object" && Array.isArray((value as { "~#set"?: unknown })["~#set"]);
+
 /** A class's name as the old class list shows it: with its pack after it, unless the pack is the default one. */
 export const classDisplayName = (name: string, pack: string) => (pack === DEFAULT_PACK ? name : `${name} (${pack})`);
 

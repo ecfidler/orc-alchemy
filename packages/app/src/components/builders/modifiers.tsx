@@ -7,19 +7,50 @@
 // stays on the form until the form closes, and nothing about it is stored.
 import { AddButton, AlertNote, Button, ListModal } from "@orc-alchemy/ui";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { isSet, setItems } from "../../engine/content.ts";
 import { getIn, removeIn, setIn, type ItemRecord, type Path } from "./fields.tsx";
+
+/** What a modifier's section gets: its title, and the Remove link for its section rule (Fieldset `action`), or undefined for a common modifier. */
+export interface ModifierView {
+  name: string;
+  action: ReactNode | undefined;
+}
 
 interface ModifierBase {
   /** A key that is unique in the form. */
   id: string;
   /** The section title. It is also the row name in the add list, and it is in "Remove {name}" and "Removed {name}.". */
   name: string;
-  /**
-   * The section, with `action` on its section rule (Fieldset `action`).
-   * `action` is the Remove link, or undefined for a common modifier.
-   */
-  render: (action: ReactNode | undefined) => ReactNode;
+  /** The section. Give `view.name` as its legend, so the list name and the title are the same. */
+  render: (view: ModifierView) => ReactNode;
 }
+
+/**
+ * Where an added modifier keeps its values. Most modifiers give `paths`.
+ * A modifier that shares a stored value with others, such as one entry of
+ * a shared vector, gives the three functions instead.
+ */
+export type ModifierValues =
+  | {
+      /** The record paths that hold the values. A value at one of them shows the modifier, and Remove deletes them. */
+      paths: Path[];
+      holds?: never;
+      clear?: never;
+      restore?: never;
+    }
+  | {
+      paths?: never;
+      /** Whether the record holds a value of the modifier. */
+      holds: (record: ItemRecord) => boolean;
+      /** The record without the modifier's values: as if it was never set. */
+      clear: (record: ItemRecord) => ItemRecord;
+      /**
+       * For Undo: `record` with the modifier's values from `before`, the
+       * record at the time of Remove. Keep the rest of `record`, because the
+       * user can change other fields between Remove and Undo.
+       */
+      restore: (record: ItemRecord, before: ItemRecord) => ItemRecord;
+    };
 
 /** One modifier of a form. */
 export type Modifier = ModifierBase &
@@ -29,14 +60,15 @@ export type Modifier = ModifierBase &
         common: true;
         example?: never;
         paths?: never;
+        holds?: never;
+        clear?: never;
+        restore?: never;
       }
-    | {
+    | ({
         common?: false;
         /** A short example, under the name in the add list. */
         example: string;
-        /** The record paths that hold the modifier's values. They decide whether it holds a value, and Remove clears them. */
-        paths: Path[];
-      }
+      } & ModifierValues)
   );
 
 /**
@@ -50,19 +82,27 @@ export function holdsValue(value: unknown): boolean {
   if (typeof value === "number") return value !== 0;
   if (typeof value === "string") return value !== "";
   if (Array.isArray(value)) return value.length > 0;
-  if (value !== null && typeof value === "object") {
-    const set = (value as { "~#set"?: unknown })["~#set"];
-    if (Array.isArray(set)) return set.length > 0;
-    return Object.values(value).some(holdsValue);
-  }
+  if (isSet(value)) return setItems(value).length > 0;
+  if (value !== null && typeof value === "object") return Object.values(value).some(holdsValue);
   return false;
 }
 
-/** Whether the record holds a value for the modifier. A common modifier always shows, so it holds none here. */
-export const modifierHoldsValue = (record: ItemRecord, modifier: Modifier) => (modifier.paths ?? []).some((path) => holdsValue(getIn(record, path)));
+type Added = Exclude<Modifier, { common: true }>;
 
-/** The record without the modifier's values: as if it was never set. */
-export const withoutModifier = (record: ItemRecord, modifier: Modifier) => (modifier.paths ?? []).reduce<ItemRecord>((r, path) => removeIn(r, path) as ItemRecord, record);
+/** Whether the record holds a value of the added modifier. */
+const holds = (m: Added, record: ItemRecord) => (m.holds ? m.holds(record) : m.paths!.some((path) => holdsValue(getIn(record, path))));
+
+/** The record without the added modifier's values. */
+const clear = (m: Added, record: ItemRecord) => (m.clear ? m.clear(record) : m.paths!.reduce<ItemRecord>((r, path) => removeIn(r, path) as ItemRecord, record));
+
+/** The record with the added modifier's values from before, for Undo. Each path that held nothing stays as it is. */
+function restore(m: Added, record: ItemRecord, before: ItemRecord): ItemRecord {
+  if (m.restore) return m.restore(record, before);
+  return m.paths!.reduce<ItemRecord>((r, path) => {
+    const value = getIn(before, path);
+    return value === undefined ? r : (setIn(r, path, value) as ItemRecord);
+  }, record);
+}
 
 // A control the user can tab to. The Remove link is on the section rule, so it is not the section's first control.
 const CONTROL = 'button:not([disabled]), input:not([type="hidden"]):not([tabindex="-1"]), select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -81,10 +121,10 @@ function firstControl(section: HTMLElement | null | undefined): HTMLElement | nu
   return [...section.querySelectorAll<HTMLElement>(CONTROL)].find((el) => !skipped(el)) ?? null;
 }
 
-/** A removed modifier and the values it had, for Undo. */
+/** A removed modifier and the record at the time of Remove, for Undo. */
 interface Removed {
-  modifier: Modifier;
-  values: [Path, unknown][];
+  modifier: Added;
+  before: ItemRecord;
 }
 
 /**
@@ -96,7 +136,7 @@ interface Removed {
  */
 export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord; onChange: (record: ItemRecord) => void; modifiers: Modifier[] }) {
   // The added modifiers: at first, the ones that hold a value.
-  const [added, setAdded] = useState(() => new Set(modifiers.filter((m) => !m.common && modifierHoldsValue(record, m)).map((m) => m.id)));
+  const [added, setAdded] = useState(() => new Set(modifiers.filter((m): m is Added => !m.common).filter((m) => holds(m, record)).map((m) => m.id)));
   const [open, setOpen] = useState(false);
   const [flash, setFlash] = useState<string>();
   const [removed, setRemoved] = useState<Removed>();
@@ -121,9 +161,9 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
     setFlash(id);
     setRemoved(undefined);
   };
-  const remove = (m: Modifier) => {
-    setRemoved({ modifier: m, values: (m.paths ?? []).map((path) => [path, getIn(record, path)]) });
-    onChange(withoutModifier(record, m));
+  const remove = (m: Added) => {
+    setRemoved({ modifier: m, before: record });
+    onChange(clear(m, record));
     setAdded((ids) => {
       const next = new Set(ids);
       next.delete(m.id);
@@ -132,7 +172,7 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
     focusNext.current = () => note.current?.querySelector<HTMLElement>(".ui-alert-note-message button");
   };
   const undo = (r: Removed) => {
-    onChange(r.values.reduce<ItemRecord>((rec, [path, value]) => (value === undefined ? rec : (setIn(rec, path, value) as ItemRecord)), record));
+    onChange(restore(r.modifier, record, r.before));
     show(r.modifier.id);
     focusNext.current = () => firstControl(sections.current.get(r.modifier.id));
   };
@@ -153,13 +193,14 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
             else sections.current.delete(m.id);
           }}
         >
-          {m.render(
-            m.common ? undefined : (
+          {m.render({
+            name: m.name,
+            action: m.common ? undefined : (
               <Button variant="link" aria-label={`Remove ${m.name}`} onClick={() => remove(m)}>
                 Remove
               </Button>
             ),
-          )}
+          })}
         </div>
       ))}
       {removed && (

@@ -71,17 +71,6 @@
     content: none;
   }
 
-  /* A flash, once, in the note yellow, for a part that was just added. It reaches 10px past the part on each side, with rounded corners, so the part's layout does not move. */
-  .ui-flash {
-    border-radius: 4px;
-    animation: ui-flash 1.2s ease-out;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .ui-flash {
-      animation: none;
-    }
-  }
-
   /* The label above its control. The control is as wide as it is, not as the column. */
   .ui-field-label {
     display: grid;
@@ -127,16 +116,5 @@
 
   .ui-field-errors {
     color: var(--danger);
-  }
-
-  @keyframes ui-flash {
-    from {
-      background: color-mix(in srgb, var(--note) 55%, transparent);
-      box-shadow: 0 0 0 10px color-mix(in srgb, var(--note) 55%, transparent);
-    }
-    to {
-      background: transparent;
-      box-shadow: 0 0 0 10px transparent;
-    }
   }
 }

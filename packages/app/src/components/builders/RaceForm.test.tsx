@@ -9,7 +9,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { addModifier, choose, shown } from "./test-picks.ts";
+import { addModifier, choose, groups, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -36,12 +36,6 @@ const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" 
 const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
-/** The names of the form's sections, in their order: the groups at the top level of the form. */
-const groups = () =>
-  screen
-    .getAllByRole("group")
-    .filter((g) => g.parentElement?.closest("fieldset, [role=group]") === null)
-    .map((g) => g.getAttribute("aria-label") ?? g.querySelector(".ui-fieldset-legend")?.textContent);
 const COMMON = ["Ability Score Increases", "Languages", "Damage Resistances", "Language Proficiency Choice", "Spells"];
 /** The modifiers of the add list, in form order. */
 const ADDED = [

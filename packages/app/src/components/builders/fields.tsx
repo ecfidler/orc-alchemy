@@ -172,9 +172,9 @@ export function setIn(value: unknown, [k, ...rest]: Path, v: unknown): unknown {
 }
 
 /**
- * The value without the key at the path of map keys. A map that the
- * removal empties goes too, so the value is as it was before the key was
- * set. A map that was empty before stays. A missing key changes nothing.
+ * The value without the key at the path of map keys. A parent map that
+ * the removal empties goes too, also when it was empty in the item at the
+ * start. A missing key changes nothing.
  */
 export function removeIn(value: unknown, [k, ...rest]: Path): unknown {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
