@@ -17,12 +17,13 @@ import {
   MUSICAL_INSTRUMENTS,
   nameToKw,
   NumberChoice,
-  PickerSection,
+  Section,
   ProficiencyChoice,
   title,
   VEHICLES,
   type Edit,
-  type PickerText,
+  type Path,
+  type PickerOptions,
   type PickItem,
 } from "./fields.tsx";
 import type { Modifier, ModifierView } from "./modifiers.tsx";
@@ -49,22 +50,22 @@ export const TOOL_ITEMS: PickItem[] = [
   ...VEHICLES.map((t) => ({ ...t, group: "Vehicles" })),
 ];
 
-/** The section of a picker of the map at :props prop, for a modifier's render. */
-export const propPicker =
-  (edit: Edit, prop: string, items: PickItem[], text: PickerText) =>
+/** The section of a picker of the map at path, for a modifier's render. */
+export const mapPicker =
+  (edit: Edit, path: Path, items: PickItem[], text: PickerOptions) =>
   ({ name, action }: ModifierView) => (
-    <PickerSection legend={name} action={action}>
-      <MapPicker edit={edit} path={["props", prop]} items={items} text={text} />
-    </PickerSection>
+    <Section legend={name} action={action}>
+      <MapPicker edit={edit} path={path} items={items} text={text} />
+    </Section>
   );
 
 /** A modifier of the map at :props prop, as {:prop {:key true}}, with a picker of the items. */
-export const propModifier = (edit: Edit, prop: string, name: string, example: string, items: PickItem[], text: PickerText): Modifier => ({
+export const propModifier = (edit: Edit, prop: string, name: string, example: string, items: PickItem[], text: PickerOptions): Modifier => ({
   id: prop,
   name,
   example,
   paths: [["props", prop]],
-  render: propPicker(edit, prop, items, text),
+  render: mapPicker(edit, ["props", prop], items, text),
 });
 
 /** The armor proficiencies at :props :armor-prof, as a checkbox row: a short fixed list. */
@@ -84,11 +85,7 @@ export const toolModifier = (edit: Edit): Modifier => ({
   name: "Tool Proficiency",
   example: "Smith's tools, thieves' tools …",
   paths: [["profs", "tool"]],
-  render: ({ name, action }) => (
-    <PickerSection legend={name} action={action}>
-      <MapPicker edit={edit} path={["profs", "tool"]} items={TOOL_ITEMS} text={{ add: "Add a tool", search: true }} />
-    </PickerSection>
-  ),
+  render: mapPicker(edit, ["profs", "tool"], TOOL_ITEMS, { add: "Add a tool", search: true }),
 });
 
 /**
@@ -96,7 +93,7 @@ export const toolModifier = (edit: Edit): Modifier => ({
  * picker of the options. Without text, the options are checkboxes, as the
  * subclass form keeps them until ORC-201.
  */
-export const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: PickItem[], text?: PickerText): Modifier => ({
+export const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: PickItem[], text?: PickerOptions): Modifier => ({
   id: field,
   name,
   example,

@@ -11,9 +11,9 @@
 // ones. The form shows the prerequisites and the ability increase options
 // always, and the user adds the other modifiers from a list (modifiers.tsx).
 import { Checkbox, Picker } from "@orc-alchemy/ui";
-import { asSet, setItems, tag } from "../../engine/content.ts";
+import { asSet, setItems, tag, untag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
-import { ABILITIES, abilityKey, Checks, editor, FormColumn, MapPicker, PickerSection, RecordTextArea, SKILLS, TextField, WithChoices, type BuilderType, type Edit, type FormProps, type Path } from "./fields.tsx";
+import { ABILITIES, abilityKey, Checks, editor, FormColumn, MapPicker, pickedText, RecordTextArea, Section, SKILLS, TextField, WithChoices, type BuilderType, type Edit, type FormProps, type Path, type PickerOptions } from "./fields.tsx";
 import { armorModifier, hitPointsModifier, propModifier, RESISTANCE_CHOICES, TOOL_ITEMS, valueModifier } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier } from "./modifiers.tsx";
 
@@ -42,15 +42,15 @@ const SPELLCASTING: [string, string][] = [
  * picker: each sentence is one token. A pick stores true, and a removed
  * token stores false, as the old second click.
  */
-const sentenceModifier = (edit: Edit, id: string, name: string, example: string, add: string, items: [key: string, name: string][]): Modifier => ({
+const sentenceModifier = (edit: Edit, id: string, name: string, example: string, items: [key: string, name: string][], text: PickerOptions): Modifier => ({
   id,
   name,
   example,
   paths: items.map(([key]) => ["props", key]),
   render: ({ name, action }) => (
-    <PickerSection legend={name} action={action}>
-      <MapPicker edit={edit} path={["props"]} items={items.map(([key, name]) => ({ key, name }))} text={{ add }} />
-    </PickerSection>
+    <Section legend={name} action={action}>
+      <MapPicker edit={edit} path={["props"]} items={items.map(([key, name]) => ({ key, name }))} text={text} />
+    </Section>
   ),
 });
 
@@ -59,8 +59,8 @@ const PREREQS: Choice[] = [
   ...ABILITY_CHOICES.map(({ key, name }) => ({ key, name: `${name} 13 or higher` })),
   ...["light", "medium", "heavy"].map((key) => ({ key, name: `Proficiency with ${key} armor` })),
 ];
-// A race's value in the prerequisite picker. A :prereqs value is a keyword, "~:…", so the two cannot meet.
-const RACE = "race ";
+/** The start of a race's value in the prerequisite picker. A :prereqs value is a keyword, "~:…", so the two cannot meet. */
+const RACE_PREFIX = "race ";
 
 /**
  * The prerequisites and the race prerequisites in one picker, with the
@@ -73,23 +73,23 @@ const RACE = "race ";
 function Prerequisites({ edit, lists, legend }: { edit: Edit; lists: BuilderChoices; legend: string }) {
   const set = setItems(edit.get("prereqs")) as string[];
   const races = (edit.get("path-prereqs", "race") ?? {}) as Record<string, unknown>;
-  const picked = Object.keys(races).filter((key) => races[key] === true).map((key) => RACE + key.replace(/^~:/, ""));
+  const picked = Object.keys(races).filter((key) => races[key] === true).map((key) => RACE_PREFIX + untag(key));
   const options = [
     ...PREREQS.map(({ key, name }) => ({ value: tag(key), label: name })),
-    ...lists.races.map(({ key, name }) => ({ value: RACE + key, label: `${name} race`, group: "Races" })),
+    ...lists.races.map(({ key, name }) => ({ value: RACE_PREFIX + key, label: `${name} race`, group: "Races" })),
   ];
   const onValueChange = (next: string[]) => {
-    const nextSet = next.filter((v) => !v.startsWith(RACE));
+    const nextSet = next.filter((v) => !v.startsWith(RACE_PREFIX));
     const changes: [Path, unknown][] = [];
     if (nextSet.length !== set.length || nextSet.some((v, i) => v !== set[i])) changes.push([["prereqs"], asSet(nextSet)]);
-    for (const v of next) if (v.startsWith(RACE) && !picked.includes(v)) changes.push([["path-prereqs", "race", v.slice(RACE.length)], true]);
-    for (const v of picked) if (!next.includes(v)) changes.push([["path-prereqs", "race", v.slice(RACE.length)], false]);
+    for (const v of next) if (v.startsWith(RACE_PREFIX) && !picked.includes(v)) changes.push([["path-prereqs", "race", v.slice(RACE_PREFIX.length)], true]);
+    for (const v of picked) if (!next.includes(v)) changes.push([["path-prereqs", "race", v.slice(RACE_PREFIX.length)], false]);
     edit.setAll(changes);
   };
   return (
-    <PickerSection legend={legend}>
-      <Picker label="Add a prerequisite" options={options} value={[...set, ...picked]} onValueChange={onValueChange} search={options.length > 20} pickedText={(n) => `${n} on the form`} />
-    </PickerSection>
+    <Section legend={legend}>
+      <Picker label="Add a prerequisite" options={options} value={[...set, ...picked]} onValueChange={onValueChange} search={options.length > 20} pickedText={pickedText} />
+    </Section>
   );
 }
 
@@ -112,16 +112,16 @@ function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
     { id: "ability-increases", name: "Ability Increase Options", common: true, render: ({ name }) => <AbilityIncreaseOptions edit={edit} legend={name} /> },
     valueModifier(edit, "skill-tool-choice", "Skill or Tool Proficiency", "Proficiency in 1 to 3 skills or tools of choice", [1, 2, 3], "Skills or tools of your choice"),
     valueModifier(edit, "language-choice", "Languages", "Learn 1 to 3 languages of choice", [1, 2, 3], "Languages of your choice"),
-    sentenceModifier(edit, "weapon-prof", "Weapon Proficiency", "Proficiency with improvised weapons", "Add a weapon proficiency", WEAPON_TOGGLES),
+    sentenceModifier(edit, "weapon-prof", "Weapon Proficiency", "Proficiency with improvised weapons", WEAPON_TOGGLES, { add: "Add a weapon proficiency" }),
     valueModifier(edit, "weapon-prof-choice", "Weapon Proficiency Choice", "Proficiency with 3 or 4 weapons of choice", [3, 4], "Weapons of your choice"),
     armorModifier(edit),
-    sentenceModifier(edit, "medium-armor", "Medium Armor", "No Stealth disadvantage, +3 Dexterity to AC", "Add a medium armor benefit", MEDIUM_ARMOR),
+    sentenceModifier(edit, "medium-armor", "Medium Armor", "No Stealth disadvantage, +3 Dexterity to AC", MEDIUM_ARMOR, { add: "Add a medium armor benefit" }),
     hitPointsModifier(edit),
     propModifier(edit, "damage-resistance", "Damage Resistances", "Resistance to fire, cold, damage from traps …", RESISTANCE_CHOICES, { add: "Add a damage resistance" }),
     valueModifier(edit, "speed", "Speed Bonuses", "+5, +10 or +15 ft. speed", [5, 10, 15], "More feet of speed"),
     valueModifier(edit, "initiative", "Initiative Bonuses", "+1 to +5 to initiative", [1, 2, 3, 4, 5], "Bonus to initiative"),
-    sentenceModifier(edit, "misc", "Misc. Modifiers", "Two-weapon fighting, +5 passive Perception, traps", "Add a misc. modifier", MISC),
-    sentenceModifier(edit, "spellcasting", "Spellcasting", "Cantrips and a 1st-level spell, ritual spells, an attack cantrip", "Add a spellcasting benefit", SPELLCASTING),
+    sentenceModifier(edit, "misc", "Misc. Modifiers", "Two-weapon fighting, +5 passive Perception, traps", MISC, { add: "Add a misc. modifier" }),
+    sentenceModifier(edit, "spellcasting", "Spellcasting", "Cantrips and a 1st-level spell, ritual spells, an attack cantrip", SPELLCASTING, { add: "Add a spellcasting benefit" }),
     propModifier(edit, "skill-prof-or-expertise", "Skill Proficiency or Expertise", "Proficiency in a skill, or expertise if already proficient", SKILLS, { add: "Add a skill" }),
     propModifier(edit, "tool-prof-or-expertise", "Tool Proficiency or Expertise", "Proficiency with a tool, or expertise if already proficient", TOOL_ITEMS, { add: "Add a tool", search: true }),
   ];

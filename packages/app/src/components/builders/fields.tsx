@@ -345,15 +345,16 @@ export function Checks({
 /** One option of a picker group: a Choice, with the small heading of its run in the list. */
 export type PickItem = Choice & { group?: string };
 
-/** What a picker group's add button and list show. */
-export interface PickerText {
+/** The add button and the list of a picker group. */
+export interface PickerOptions {
   /** The add button's text after the "+", such as "Add a skill". */
   add: string;
   /** A search field in the list. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 options. */
   search?: boolean;
 }
 
-const pickedText = (n: number) => `${n} on the form`;
+/** The footer text of a form's picker list: the number of picks on the form. */
+export const pickedText = (n: number) => `${n} on the form`;
 const listItems = (items: PickItem[], value: (item: PickItem) => string = (item) => item.key): ListItem<string>[] =>
   items.map((item) => ({ value: value(item), label: item.name, group: item.group }));
 
@@ -363,7 +364,7 @@ const listItems = (items: PickItem[], value: (item: PickItem) => string = (item)
  * false, as the old second click. Only the picked or removed key changes,
  * so a key that is no option keeps its value.
  */
-export function MapPicker({ edit, path, items, text }: { edit: Edit; path: Path; items: PickItem[]; text: PickerText }) {
+export function MapPicker({ edit, path, items, text }: { edit: Edit; path: Path; items: PickItem[]; text: PickerOptions }) {
   const map = (edit.get(...path) ?? {}) as ItemRecord;
   const value = Object.keys(map)
     .filter((key) => map[key] === true)
@@ -390,7 +391,7 @@ export function MapPicker({ edit, path, items, text }: { edit: Edit; path: Path;
  * out. stored is the value the set holds for an item, such as its keyword.
  * A stored value that is no option stays in the set.
  */
-export function SetPicker({ edit, field, items, text, stored = (item) => tag(item.key) }: { edit: Edit; field: string; items: PickItem[]; text: PickerText; stored?: (item: PickItem) => string }) {
+export function SetPicker({ edit, field, items, text, stored = (item) => tag(item.key) }: { edit: Edit; field: string; items: PickItem[]; text: PickerOptions; stored?: (item: PickItem) => string }) {
   return (
     <Picker
       label={text.add}
@@ -403,8 +404,8 @@ export function SetPicker({ edit, field, items, text, stored = (item) => tag(ite
   );
 }
 
-/** A section of a form with one picker group in it, such as a MapPicker. */
-export function PickerSection({ legend, action, children }: { legend: string; action?: ReactNode; children: ReactNode }) {
+/** A section of a form: its title on a section rule, and the Remove link of a modifier as action. */
+export function Section({ legend, action, children }: { legend: string; action?: ReactNode; children: ReactNode }) {
   return (
     <Fieldset legend={legend} look="section" action={action}>
       {children}
@@ -423,12 +424,12 @@ export function NumberChoice({ edit, legend, path, values, line, action }: { edi
   const id = useId();
   const value = edit.get(...path);
   return (
-    <Fieldset legend={legend} look="section" action={action}>
+    <Section legend={legend} action={action}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <NumberToggle aria-labelledby={id} values={[null, ...values]} value={typeof value === "number" ? value : null} onValueChange={(n) => edit.set(path, n ?? undefined)} />
         <span id={id}>{line}</span>
       </div>
-    </Fieldset>
+    </Section>
   );
 }
 
@@ -455,10 +456,10 @@ export function RecordTextArea({ edit, field, label }: { edit: Edit; field: stri
 /** A proficiency choice in :profs, as {:skill-options {:choose 2 :options {:arcana true}}}. Choose shows 1 until it is set. */
 export function ProficiencyChoice({ edit, legend, field, items, action }: { edit: Edit; legend: string; field: string; items: Choice[]; action?: ReactNode }) {
   return (
-    <Fieldset legend={legend} look="section" action={action}>
+    <Section legend={legend} action={action}>
       <SelectField label="Choose" name={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
       <Checks legend="Options" name={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
-    </Fieldset>
+    </Section>
   );
 }
 
@@ -467,9 +468,9 @@ export function ProficiencyChoice({ edit, legend, field, items, action }: { edit
  * picker for the options: {:skill-options {:choose 2 :options {:arcana true}}}.
  * A removed token stores false, as the old second click.
  */
-export function ChoicePicker({ edit, legend, field, items, text, action }: { edit: Edit; legend: string; field: string; items: PickItem[]; text: PickerText; action?: ReactNode }) {
+export function ChoicePicker({ edit, legend, field, items, text, action }: { edit: Edit; legend: string; field: string; items: PickItem[]; text: PickerOptions; action?: ReactNode }) {
   return (
-    <Fieldset legend={legend} look="section" action={action}>
+    <Section legend={legend} action={action}>
       <div className="grid gap-[10px]">
         <SelectField
           label="Choose"
@@ -481,7 +482,7 @@ export function ChoicePicker({ edit, legend, field, items, text, action }: { edi
         />
         <MapPicker edit={edit} path={["profs", field, "options"]} items={items} text={text} />
       </div>
-    </Fieldset>
+    </Section>
   );
 }
 

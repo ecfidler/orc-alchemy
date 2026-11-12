@@ -13,7 +13,7 @@
 // user adds the other modifiers from a list (modifiers.tsx). The subrace
 // form (SubraceForm.tsx) uses the parts exported here; the modifier kinds
 // that the forms share are in modifier-kinds.tsx.
-import { Fieldset, Select, SelectBox, XButton } from "@orc-alchemy/ui";
+import { Select, SelectBox, XButton } from "@orc-alchemy/ui";
 import { useState, type ReactNode } from "react";
 import { asSet, tag } from "../../engine/content.ts";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
@@ -28,7 +28,7 @@ import {
   FormColumn,
   numbers,
   orFirst,
-  PickerSection,
+  Section,
   range,
   RecordTextArea,
   SelectField,
@@ -42,8 +42,9 @@ import {
   type Edit,
   type FormProps,
   type ItemRecord,
+  type Path,
 } from "./fields.tsx";
-import { armorModifier, choiceModifier, IMMUNITY_CHOICES, propModifier, propPicker, RESISTANCE_CHOICES, toolModifier, weaponChoices } from "./modifier-kinds.tsx";
+import { armorModifier, choiceModifier, IMMUNITY_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES, toolModifier, weaponChoices } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier } from "./modifiers.tsx";
 
 export const SIZES = ["small", "medium", "large"];
@@ -63,7 +64,7 @@ export function Spells({ edit, lists, legend = "Spells" }: { edit: Edit; lists: 
   const spells = (edit.get("spells") ?? []) as ItemRecord[];
   const [blank, setBlank] = useState(false);
   return (
-    <Fieldset legend={legend} look="section">
+    <Section legend={legend}>
       <div className="grid gap-2">
         {(blank ? [...spells, {}] : spells).map((spell, i) => {
           const n = i + 1;
@@ -111,14 +112,14 @@ export function Spells({ edit, lists, legend = "Spells" }: { edit: Edit; lists: 
         })}
       </div>
       <AddButton onClick={() => setBlank(true)}>Add a spell</AddButton>
-    </Fieldset>
+    </Section>
   );
 }
 
 /** The six ability score increases of a race or subrace, each a box with its bonus. note is a line under a box. */
 export function AbilityIncreases({ edit, note, legend = "Ability Score Increases" }: { edit: Edit; note?: (ability: string, bonus: number) => string; legend?: string }) {
   return (
-    <Fieldset legend={legend} look="section">
+    <Section legend={legend}>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
         {ABILITIES.map(([key, name]) => {
           const bonus = (edit.get("abilities", abilityKey(key)) as number | undefined) ?? 0;
@@ -130,7 +131,7 @@ export function AbilityIncreases({ edit, note, legend = "Ability Score Increases
           );
         })}
       </div>
-    </Fieldset>
+    </Section>
   );
 }
 
@@ -144,9 +145,9 @@ const speedModifier = (edit: Edit, prop: string, name: string, example: string):
   example,
   paths: [["props", prop]],
   render: ({ name, action }) => (
-    <Fieldset legend={name} look="section" action={action}>
+    <Section legend={name} action={action}>
       <Select aria-label={name} value={orFirst(edit.get("props", prop) ?? 0, SPEEDS)} options={SPEEDS} onValueChange={(v) => edit.set(["props", prop], v)} />
-    </Fieldset>
+    </Section>
   ),
 });
 
@@ -169,12 +170,18 @@ function ArmorClass({ edit, legend, action }: { edit: Edit; legend: string; acti
   const on = (key: string) => edit.get("props", key) === true;
   // :tortle-ac sets the AC to 17 whatever the armor, so it wins when both are true.
   const value = on("tortle-ac") ? "tortle-ac" : on("lizardfolk-ac") ? "lizardfolk-ac" : "normal";
-  const pick = (choice: string) =>
-    edit.setAll(AC_KEYS.flatMap((key): [string[], boolean][] => (key === choice ? (on(key) ? [] : [[["props", key], true]]) : on(key) ? [[["props", key], false]] : [])));
+  const pick = (choice: string) => {
+    const changes: [Path, unknown][] = [];
+    for (const key of AC_KEYS) {
+      if (key === choice && !on(key)) changes.push([["props", key], true]);
+      if (key !== choice && on(key)) changes.push([["props", key], false]);
+    }
+    edit.setAll(changes);
+  };
   return (
-    <Fieldset legend={legend} look="section" action={action}>
+    <Section legend={legend} action={action}>
       <Select aria-label={legend} value={value} options={AC_OPTIONS} onValueChange={(v) => v !== null && pick(v)} />
-    </Fieldset>
+    </Section>
   );
 }
 
@@ -197,15 +204,15 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       common: true,
       // :languages is a set of language names, not of keywords.
       render: ({ name }) => (
-        <PickerSection legend={name}>
+        <Section legend={name}>
           <SetPicker edit={edit} field="languages" items={lists.languages} stored={(language) => language.name} text={{ add: "Add a language", search: true }} />
-        </PickerSection>
+        </Section>
       ),
     },
     propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists), { add: "Add a weapon", search: true }),
     armorModifier(edit),
     toolModifier(edit),
-    { id: "damage-resistance", name: "Damage Resistances", common: true, render: propPicker(edit, "damage-resistance", RESISTANCE_CHOICES, { add: "Add a damage resistance" }) },
+    { id: "damage-resistance", name: "Damage Resistances", common: true, render: mapPicker(edit, ["props", "damage-resistance"], RESISTANCE_CHOICES, { add: "Add a damage resistance" }) },
     propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", IMMUNITY_CHOICES, { add: "Add a damage immunity" }),
     propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS, { add: "Add a skill" }),
     choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS, { add: "Add a skill option" }),
