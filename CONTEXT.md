@@ -27,3 +27,41 @@ _Avoid_: Banner, toast, callout
 The frame around a feature with limited uses, which shows its uses and the
 rest that restores them.
 _Avoid_: Pill, chip, tracker, spent-ability bubble
+
+**Uses**:
+How many times a feature can be used before a rest restores it: an amount
+and a rest. The amount is fixed, or it scales with the character. In place
+of a rest, the uses can come back each day or each turn.
+_Avoid_: Charges, frequency (the stored key only), limited uses
+
+**Suggested uses**:
+Uses and a type that the app reads from the text of a feature. The user
+saves them or skips them; the app never saves them without the user.
+_Avoid_: Auto uses, detected uses, guess
+
+**Review uses**:
+The page for one pack that lists its features with suggested uses, where
+the user saves or skips them.
+_Avoid_: Uses wizard, bulk edit
+
+**Modifier**:
+One group on a homebrew form that changes what the item gives, for example
+Damage Resistances or Skill Proficiencies. In the class and subclass forms,
+a **level modifier** is one row that gives one thing at a level. An ability
+modifier is the game value, not this term.
+_Avoid_: Option, property, section
+
+**Common modifier**:
+A modifier that a homebrew form always shows. The user adds the other
+modifiers from the "Add a modifier" list.
+_Avoid_: Default modifier, basic field
+
+**Picker**:
+A form control for some items from a long list: an add button that opens a
+list in a modal, which stays open while the user picks.
+_Avoid_: Multi-select, chooser, dropdown
+
+**Token**:
+One pick on a form: a small box with the name and an X that removes it. A
+color or size of the theme is a "theme token", not this term.
+_Avoid_: Chip (a chip holds a level number), tag, pill

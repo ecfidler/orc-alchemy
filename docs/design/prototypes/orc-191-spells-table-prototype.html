@@ -1,0 +1,345 @@
+<title>Subclass Spells Table</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..700&display=swap">
+<style>
+/* PROTOTYPE (ORC-191), throwaway. Three takes on the subclass Spells section as a table, on the subclass form.
+   M8 paper theme, layout D and boxed fields from ORC-184, tokens and picker from ORC-190.
+   Layout: prototype toolbar, one form column, variant switcher floating at the bottom. */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --danger: #c2271d; --info: #1e5fb4;
+  --flag-yellow: #ffe45c; --note-shadow: rgba(60, 45, 0, 0.2);
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --proto-bg: #1c2b4a; --proto-fg: #ffffff;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+/* Light is the default for this project. Dark is only the Theme toggle of the prototype. */
+:root[data-proto-theme="dark"] {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --info: #5ea2ff; --note-shadow: rgba(255,255,255,0.1);
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-serif); font-size: 17px; line-height: 1.5;
+  font-weight: 450; font-optical-sizing: auto; font-variant-numeric: lining-nums tabular-nums; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* ---------- prototype chrome (not part of the design) ---------- */
+.proto-top { font-family: var(--font-sans); font-size: 12.5px; background: var(--proto-bg); color: var(--proto-fg);
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.proto-top b { font-weight: 600; }
+.proto-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.proto-group > span { opacity: .75; margin-right: 2px; }
+.proto-top button { background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; cursor: pointer; font-size: 12px; }
+.proto-top button[aria-pressed="true"] { background: var(--proto-fg); color: var(--proto-bg); }
+.proto-notes { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; background: var(--panel); border-bottom: 1px solid var(--rule);
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.proto-notes summary { cursor: pointer; font-weight: 600; }
+.proto-notes ul { margin: 6px 0 2px; padding-left: 18px; max-width: 84ch; }
+.proto-notes pre { margin: 6px 0 0; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.proto-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  display: flex; align-items: center; gap: 4px; background: var(--proto-bg); color: var(--proto-fg); border-radius: 999px;
+  padding: 5px 6px; box-shadow: 0 6px 20px rgba(0,0,0,.3); font-family: var(--font-sans); font-size: 13px; max-width: calc(100vw - 24px); }
+.proto-bar button { background: transparent; border: 0; color: inherit; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+.proto-bar button:hover { background: color-mix(in srgb, var(--proto-fg) 18%, transparent); }
+.proto-bar .lbl { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proto-bar .lbl small { opacity: .7; margin-left: 6px; }
+
+.stage { container-type: inline-size; margin: 0 auto; padding-block: 20px 100px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.stage.phone { max-width: 390px; border-inline: 1px dashed var(--rule-strong); }
+
+/* ---------- shared field styling (boxed, from ORC-184) ---------- */
+.lab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.inp, .sel, .ta { border: 1px solid var(--ink); background: var(--paper-raised); padding: 3px 8px; border-radius: 0; min-width: 0; }
+.ta { display: block; width: 100%; min-height: 4.6em; resize: vertical; line-height: 1.45; }
+.inp { width: 100%; max-width: 26rem; }
+.inp.short { max-width: 7rem; }
+.sel { appearance: none; padding-right: 22px; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position: calc(100% - 12px) 55%, calc(100% - 8px) 55%; background-size: 4px 4px; background-repeat: no-repeat; }
+.sub { display: inline-flex; flex-direction: column; gap: 2px; }
+.help { font-size: 14.5px; color: var(--ink-muted); margin: 0; }
+.line { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.stack { display: grid; gap: 8px; }
+
+.checkrow { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.chk { display: inline-flex; gap: 7px; align-items: flex-start; cursor: pointer; font-size: 15.5px; line-height: 1.35; }
+.chk input { appearance: none; flex: none; width: 14px; height: 14px; margin: 3px 0 0; border: 1.5px solid var(--ink); border-radius: 2px; display: grid; place-content: center; cursor: pointer; background: transparent; }
+.chk input::before { content: ""; width: 8px; height: 8px; background: var(--ink); transform: scale(0); }
+.chk input:checked::before { transform: scale(1); }
+
+.seg { display: inline-flex; flex-wrap: wrap; border: 1.5px solid var(--ink); border-radius: 6px; overflow: hidden; font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; padding: 3px 11px; border-left: 1px solid var(--ink); }
+.seg label:first-child span { border-left: 0; }
+.seg input:checked + span { background: var(--ink); color: var(--paper); }
+.seg input:focus-visible + span { outline: 2px solid var(--info); outline-offset: -3px; }
+.seg.sm { font-size: 12px; border-width: 1px; border-radius: 4px; }
+.seg.sm span { padding: 1px 8px; }
+
+.btn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; line-height: 1.4; background: transparent; border: 1.5px solid var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.btn:hover { background: var(--panel); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn.add { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 12px; text-align: left; }
+.btn.small { padding: 1px 9px; border-radius: 4px; font-size: 12px; white-space: nowrap; }
+.count { font-family: var(--font-sans); font-size: 11px; font-weight: 400; color: var(--ink-muted); }
+.link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; font-family: var(--font-sans); font-size: 14px; color: var(--ink-muted); }
+
+.xbtn { position: relative; flex: none; width: 30px; height: 30px; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--ink-muted); }
+.xbtn::before, .xbtn::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 1.75px; background: currentColor; }
+.xbtn::before { transform: translate(-50%, -50%) rotate(45deg); } .xbtn::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.xbtn:hover { color: var(--danger); border-color: currentColor; background: var(--panel); }
+.xbtn.sm { width: 24px; height: 24px; } .xbtn.sm::before, .xbtn.sm::after { width: 11px; height: 1.5px; }
+
+.page-head { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline; justify-content: space-between; margin-bottom: 14px; max-width: 900px; }
+.page-head h1 { font-size: 26px; font-weight: 500; margin: 0; text-wrap: balance; }
+.actions { display: flex; gap: 14px; align-items: center; margin-top: 26px; }
+
+.srule { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-height: 26px; }
+.srule h3 { margin: 0; font-family: var(--font-sans); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.srule i { flex: 1; border-top: 1px solid var(--rule-strong); min-width: 12px; }
+.fld { display: grid; gap: 3px; }
+.tag { font-family: var(--font-sans); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); white-space: nowrap; }
+
+.feature { border: 1px solid var(--rule-strong); padding: 10px 12px; display: grid; gap: 8px; background: var(--paper-raised); }
+.feature .top { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: end; }
+@container (max-width: 520px) { .feature .top { grid-template-columns: minmax(0, 1fr) auto; } .feature .top .sub:nth-child(2) { grid-column: 1 / -1; grid-row: 2; } }
+
+.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { from { background: color-mix(in srgb, var(--flag-yellow) 60%, transparent); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
+
+.levels { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tok { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--ink); background: var(--paper-raised); padding: 0 2px 0 9px; font-size: 15.5px; line-height: 1.5; min-height: 28px; }
+.tok .seg { margin-left: 6px; }
+.addtok { font-family: var(--font-sans); font-size: 12.5px; font-weight: 600; border: 1px dashed var(--ink); background: transparent; padding: 3px 11px; min-height: 28px; cursor: pointer; }
+.addtok:hover { border-style: solid; background: var(--panel); }
+select.addtok { appearance: none; }
+
+.toks { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.form { max-width: 720px; display: grid; gap: 22px; }
+.ghost { opacity: .45; }
+.ghost .help { font-size: 13.5px; }
+.today { display: grid; gap: 6px; }
+.today .pair { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+/* ---------- the spells table (all variants) ---------- */
+.tblwrap { overflow-x: auto; }
+.stbl { width: 100%; border-collapse: collapse; }
+.stbl th { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); text-align: left; padding: 0 12px 4px 0; border-bottom: 1px solid var(--ink); white-space: nowrap; }
+.stbl td { padding: 6px 12px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.stbl td:last-child, .stbl th:last-child { padding-right: 0; }
+.stbl .lv { width: 1%; white-space: nowrap; font-variant-numeric: lining-nums tabular-nums; }
+.stbl .lv.muted { color: var(--ink-muted); }
+.stbl .none { color: var(--ink-muted); font-size: 14.5px; }
+.stbl .sel { width: 100%; }
+.pairsel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
+@container (max-width: 520px) { .pairsel { grid-template-columns: minmax(0, 1fr); } .stbl td { vertical-align: top; } .stbl .lv { padding-top: 10px; } }
+.slots { align-items: center; }
+.slots > div { min-width: 0; }
+.mdl-row[disabled] { opacity: .45; cursor: default; }
+.mdl-row[disabled]:hover { background: none; }
+.mdl-grp small { text-transform: none; letter-spacing: 0; margin-left: 6px; }
+/* ---------- the picker modal ---------- */
+.mback { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--ink) 40%, transparent); display: grid; place-items: center; grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.mdl { width: min(520px, 100%); max-height: min(680px, 100%); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; background: var(--paper); border: 1.5px solid var(--ink); box-shadow: 0 22px 50px -18px rgba(0,0,0,.5); }
+.mdl-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 12px 10px 20px; border-bottom: 1.5px solid var(--ink); }
+.mdl-head h2 { margin: 0; font-size: 22px; font-weight: 500; text-wrap: balance; }
+.mdl-search { padding: 10px 20px; border-bottom: 1px solid var(--rule); }
+.mdl-search .inp { max-width: none; }
+.mdl-list { overflow: auto; margin: 0; padding: 4px 0; list-style: none; }
+.mdl-grp { font-family: var(--font-sans); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); padding: 12px 20px 3px; }
+.mdl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 16px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--rule); padding: 6px 20px; cursor: pointer; }
+.mdl-row small { grid-column: 1; font-size: 14.5px; color: var(--ink-muted); line-height: 1.35; }
+.mdl-row b { font-weight: 600; }
+.mdl-row .plus { grid-column: 2; grid-row: 1 / span 2; font-family: var(--font-sans); font-size: 12px; font-weight: 600; border: 1.5px solid var(--ink); border-radius: 6px; padding: 1px 9px; }
+.mdl-row:hover { background: var(--panel); }
+.mdl-row:hover .plus { background: var(--ink); color: var(--paper); }
+.mdl-row:focus-visible { outline-offset: -3px; }
+.mdl-none { padding: 12px 20px; color: var(--ink-muted); font-size: 15px; }
+.mdl-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 20px; border-top: 1.5px solid var(--ink); }
+@media (max-width: 600px) { .mback { padding: 0; } .mdl { width: 100%; height: 100%; max-height: none; border: 0; } }
+.mback.phone .mdl { width: min(390px, 100%); }
+</style>
+
+<div class="proto-top" role="toolbar" aria-label="Prototype controls">
+  <b>PROTOTYPE · ORC-191</b>
+  <span class="proto-group"><span>Class</span><button id="c-paladin" data-cls="paladin">Paladin</button><button id="c-cleric" data-cls="cleric">Cleric</button><button id="c-warlock" data-cls="warlock">Warlock</button></span>
+  <span class="proto-group"><span>Item</span><button id="s-filled" data-sample="filled">Filled</button><button id="s-part" data-sample="part">Part filled</button><button id="s-new" data-sample="new">New</button></span>
+  <span class="proto-group"><span>Width</span><button id="w-full" data-width="full">Full</button><button id="w-phone" data-width="phone">Phone 390</button></span>
+  <span class="proto-group"><span>Theme</span><button id="t-light" data-theme-set="light">Light</button><button id="t-dark" data-theme-set="dark">Dark</button></span>
+</div>
+<details class="proto-notes" open>
+  <summary>What to look at</summary>
+  <ul>
+    <li><b>Three variants</b> of the subclass Spells section, switched with the bar at the bottom or the ← → keys. Each is a table with one row for each spell level, 1st to 5th, and two spells in a row. <b>Today</b> at the end of the bar shows the ten labelled selects of the app today, for comparison.</li>
+    <li><b>A · Table of selects.</b> Two selects in each row, with no label. The column headings carry the text. All ten slots are in view, also when they are empty.</li>
+    <li><b>B · Table of tokens.</b> A spell is a token with an X, as on the other forms. The first and the second spell of a level are in two columns, so the spells line up down the table. An empty slot has a "+ Add a spell" button that opens the picker for that spell level, with search. The picker closes when the row is full.</li>
+    <li><b>C · One add button.</b> One full-width "+ Add a spell" button under the table. Its picker lists the spells of all five levels in groups, with search, and stays open. A spell goes to the row of its level. A level with two spells leaves the list.</li>
+    <li><b>The first column</b> is new: the class level at which the character gets the spells (paladin 3rd, 5th, 9th, 13th, 17th; cleric 1st, 3rd, 5th, 7th, 9th). The form today does not show it. A warlock has no such column, because the expanded spells have no class level.</li>
+    <li><b>Class</b> changes the section title (Spells, Domain Spells, Expanded Spells) and the first column. A spell cannot be in the two slots of one row.</li>
+    <li>Leave artifact comments on what to keep. A mix is a good answer.</li>
+  </ul>
+</details>
+<div class="stage" id="stage"></div>
+<details class="proto-notes" id="dump-wrap"><summary>Stored values (updates with each change)</summary><pre id="dump"></pre></details>
+<div id="modal-root"></div>
+<div class="proto-bar" aria-label="Variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span class="lbl" id="vlabel"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+<script>
+const VARIANTS = [["A", "Table of selects"], ["B", "Table of tokens"], ["C", "One add button"], ["Today", "Ten labelled selects"]];
+const SPELLS = {
+  1: ["Alarm", "Animal Friendship", "Bane", "Bless", "Burning Hands", "Charm Person", "Color Spray", "Command", "Comprehend Languages", "Create or Destroy Water", "Cure Wounds", "Detect Evil and Good", "Detect Magic", "Disguise Self", "Divine Favor", "Entangle", "Faerie Fire", "Feather Fall", "Fog Cloud", "Guiding Bolt", "Healing Word", "Hellish Rebuke", "Heroism", "Hunter's Mark", "Identify", "Inflict Wounds", "Longstrider", "Mage Armor", "Magic Missile", "Protection from Evil and Good", "Sanctuary", "Shield", "Shield of Faith", "Sleep", "Speak with Animals", "Thunderwave"],
+  2: ["Aid", "Augury", "Barkskin", "Blindness/Deafness", "Blur", "Calm Emotions", "Darkness", "Darkvision", "Enhance Ability", "Find Steed", "Flaming Sphere", "Hold Person", "Invisibility", "Lesser Restoration", "Magic Weapon", "Mirror Image", "Misty Step", "Moonbeam", "Pass without Trace", "Scorching Ray", "See Invisibility", "Shatter", "Silence", "Spike Growth", "Spiritual Weapon", "Web", "Zone of Truth"],
+  3: ["Animate Dead", "Beacon of Hope", "Bestow Curse", "Blink", "Call Lightning", "Clairvoyance", "Counterspell", "Daylight", "Dispel Magic", "Fear", "Fireball", "Fly", "Gaseous Form", "Haste", "Hypnotic Pattern", "Lightning Bolt", "Magic Circle", "Mass Healing Word", "Nondetection", "Plant Growth", "Protection from Energy", "Remove Curse", "Revivify", "Sending", "Slow", "Speak with Dead", "Spirit Guardians", "Stinking Cloud", "Tongues", "Water Breathing", "Wind Wall"],
+  4: ["Arcane Eye", "Banishment", "Blight", "Confusion", "Control Water", "Death Ward", "Dimension Door", "Divination", "Dominate Beast", "Fire Shield", "Freedom of Movement", "Greater Invisibility", "Guardian of Faith", "Ice Storm", "Locate Creature", "Polymorph", "Stone Shape", "Stoneskin", "Wall of Fire"],
+  5: ["Animate Objects", "Cloudkill", "Commune", "Cone of Cold", "Contagion", "Dispel Evil and Good", "Dominate Person", "Dream", "Flame Strike", "Geas", "Greater Restoration", "Hallow", "Hold Monster", "Insect Plague", "Legend Lore", "Mass Cure Wounds", "Raise Dead", "Scrying", "Telekinesis", "Wall of Stone"],
+};
+const LEVELS = [1, 2, 3, 4, 5];
+// The parent class: stored field, section title, and the class levels that give the spells (none for the warlock).
+const CLS = {
+  paladin: { name: "Paladin", field: "paladin-spells", title: "Spells", at: [3, 5, 9, 13, 17], sub: "Oath of the Lantern",
+    filled: { 1: ["Protection from Evil and Good", "Sanctuary"], 2: ["Lesser Restoration", "Zone of Truth"], 3: ["Beacon of Hope", "Dispel Magic"], 4: ["Freedom of Movement", "Guardian of Faith"], 5: ["Commune", "Flame Strike"] } },
+  cleric: { name: "Cleric", field: "cleric-spells", title: "Domain Spells", at: [1, 3, 5, 7, 9], sub: "Harvest Domain",
+    filled: { 1: ["Bless", "Cure Wounds"], 2: ["Lesser Restoration", "Spiritual Weapon"], 3: ["Beacon of Hope", "Revivify"], 4: ["Death Ward", "Guardian of Faith"], 5: ["Mass Cure Wounds", "Raise Dead"] } },
+  warlock: { name: "Warlock", field: "warlock-spells", title: "Expanded Spells", at: null, sub: "The Ember Court",
+    filled: { 1: ["Burning Hands", "Command"], 2: ["Blindness/Deafness", "Scorching Ray"], 3: ["Fireball", "Stinking Cloud"], 4: ["Fire Shield", "Wall of Fire"], 5: ["Flame Strike", "Hallow"] } },
+};
+const ord = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+const kw = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+
+// ---------- state ----------
+const store = (() => { try { return window.localStorage; } catch { return null; } })();
+const get = (k, d) => { try { return store?.getItem("orc191-" + k) ?? d; } catch { return d; } };
+const put = (k, v) => { try { store?.setItem("orc191-" + k, v); } catch {} };
+const fromHash = () => VARIANTS.findIndex(([k]) => "#" + k.toLowerCase() === location.hash.toLowerCase());
+const S = { variant: fromHash() >= 0 ? fromHash() : Math.min(+get("variant", 0) || 0, VARIANTS.length - 1), cls: get("cls", "paladin"), sample: get("sample", "filled"), width: "full", modal: null, q: "", flash: null };
+if (!CLS[S.cls]) S.cls = "paladin";
+let V = {}; // V[level] = [spell or null, spell or null]
+function load() {
+  const f = CLS[S.cls].filled;
+  V = {};
+  for (const l of LEVELS) V[l] = S.sample === "filled" ? [...f[l]] : S.sample === "part" && l <= 3 ? [f[l][0], l === 1 ? f[l][1] : null] : [null, null];
+  S.modal = null;
+}
+const vkey = () => VARIANTS[S.variant][0];
+const picked = (l) => V[l].filter(Boolean);
+const total = () => LEVELS.reduce((n, l) => n + picked(l).length, 0);
+function add(l, name) { const i = S.slot != null && V[l][S.slot] === null ? S.slot : V[l].indexOf(null); S.slot = null; if (i >= 0 && !V[l].includes(name)) { V[l][i] = name; S.flash = name; } }
+
+// ---------- pieces ----------
+const x = (l, name) => `<button class="xbtn sm" data-rm="${l}" data-name="${esc(name)}" aria-label="Remove ${esc(name)}" title="Remove"></button>`;
+const tok = (l, name) => `<span class="tok ${S.flash === name ? "flash" : ""}">${esc(name)}${x(l, name)}</span>`;
+function select(l, i, label) {
+  const other = V[l][1 - i];
+  return `<select class="sel" id="sp-${l}-${i}" data-slot="${l}-${i}" aria-label="${esc(label)}"><option value="">${vkey() === "Today" ? "&lt;select spell&gt;" : "None"}</option>${SPELLS[l].filter((s) => s !== other).map((s) => `<option ${V[l][i] === s ? "selected" : ""}>${esc(s)}</option>`).join("")}</select>`;
+}
+function table(cell) {
+  const c = CLS[S.cls];
+  return `<div class="tblwrap"><table class="stbl"><thead><tr>${c.at ? `<th scope="col">${c.name} level</th>` : ""}<th scope="col">Spell level</th><th scope="col">Spells</th></tr></thead><tbody>
+    ${LEVELS.map((l, n) => `<tr>${c.at ? `<td class="lv muted">${ord(c.at[n])}</td>` : ""}<td class="lv">${ord(l)}</td><td>${cell(l)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+const cellA = (l) => `<div class="pairsel">${select(l, 0, `${ord(l)}-level spell 1`)}${select(l, 1, `${ord(l)}-level spell 2`)}</div>`;
+const cellB = (l) => `<div class="pairsel slots">${[0, 1].map((i) => `<div>${V[l][i] ? tok(l, V[l][i]) : `<button class="addtok" data-pick="${l}" data-slotadd="${i}" aria-haspopup="dialog" aria-label="Add a ${ord(l)}-level spell">+ Add a spell</button>`}</div>`).join("")}</div>`;
+const cellC = (l) => (picked(l).length ? `<div class="toks">${picked(l).map((s) => tok(l, s)).join("")}</div>` : `<span class="none">None</span>`);
+function spellsSection() {
+  const c = CLS[S.cls], v = vkey();
+  const help = c.at ? `A ${c.name.toLowerCase()} of this subclass always has these spells prepared, from the ${c.name.toLowerCase()} level in the first column.` : "A warlock of this subclass can choose these spells as warlock spells.";
+  let body;
+  if (v === "Today") body = `<div class="today">${LEVELS.map((l) => `<div class="pair">${[0, 1].map((i) => `<label class="sub"><span class="lab">Level ${l} spell ${i + 1}</span>${select(l, i, `Level ${l} spell ${i + 1}`)}</label>`).join("")}</div>`).join("")}</div>`;
+  else if (v === "A") body = table(cellA);
+  else if (v === "B") body = table(cellB);
+  else body = `<div class="stack">${table(cellC)}<button class="btn add" data-pick="all" aria-haspopup="dialog" ${total() >= 10 ? "disabled" : ""}><span>+ Add a spell</span><span class="count">${total()} of 10</span></button></div>`;
+  return `<section><div class="srule"><h3>${esc(c.title)}</h3><i></i></div><div class="stack">${v === "Today" ? "" : `<p class="help">${help}</p>`}${body}</div></section>`;
+}
+const ghost = (title, text) => `<section class="ghost" aria-hidden="true"><div class="srule"><h3>${title}</h3><i></i></div><p class="help">${text}</p></section>`;
+
+function render() {
+  const c = CLS[S.cls];
+  document.documentElement.dataset.protoTheme = get("theme", "light");
+  document.querySelectorAll("[data-cls]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.cls === S.cls));
+  document.querySelectorAll("[data-sample]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.sample === S.sample));
+  document.querySelectorAll("[data-width]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.width === S.width));
+  document.querySelectorAll("[data-theme-set]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themeSet === get("theme", "light")));
+  const stage = document.getElementById("stage");
+  stage.classList.toggle("phone", S.width === "phone");
+  stage.innerHTML = `<div class="page-head"><h1>${S.sample === "new" ? "New subclass" : "Edit subclass"}</h1></div>
+  <div class="form">
+    <section class="stack">
+      <label class="fld"><span class="lab">Name</span><input class="inp" id="f-name" value="${S.sample === "new" ? "" : esc(c.sub)}"></label>
+      <label class="fld"><span class="lab">Class</span><span><select class="sel" id="f-class" data-clssel>${Object.entries(CLS).map(([k, o]) => `<option value="${k}" ${k === S.cls ? "selected" : ""}>${o.name}</option>`).join("")}</select></span></label>
+    </section>
+    ${spellsSection()}
+    ${ghost("Modifiers", "Not part of this prototype.")}
+    ${ghost("Selections", "Not part of this prototype.")}
+    ${ghost("Features", "Not part of this prototype.")}
+  </div>`;
+  document.getElementById("vlabel").innerHTML = `${VARIANTS[S.variant][0]} <small>${VARIANTS[S.variant][1]}</small>`;
+  const rows = LEVELS.filter((l) => picked(l).length).map((l) => `${l} {${V[l].map((s, i) => (s ? `${i} :${kw(s)}` : "")).filter(Boolean).join(", ")}}`);
+  document.getElementById("dump").textContent = `:${c.field} {${rows.join("\n" + " ".repeat(c.field.length + 3))}}`;
+  renderModal();
+  S.flash = null;
+}
+
+// ---------- the picker (from ORC-190): stays open, a picked spell leaves the list ----------
+function renderModal() {
+  const root = document.getElementById("modal-root");
+  if (!S.modal) { root.innerHTML = ""; return; }
+  const one = S.modal !== "all", q = S.q.trim().toLowerCase();
+  const levels = one ? [+S.modal] : LEVELS.filter((l) => picked(l).length < 2);
+  const groups = levels.map((l) => [l, SPELLS[l].filter((s) => !V[l].includes(s) && s.toLowerCase().includes(q))]).filter(([, items]) => items.length);
+  const title = one ? `Add a ${ord(+S.modal)}-level spell` : "Add a spell";
+  const list = groups.length ? groups.map(([l, items]) => `${one ? "" : `<li class="mdl-grp">${ord(l)} level<small>${picked(l).length} of 2</small></li>`}${items.map((s) =>
+    `<li><button class="mdl-row" data-add="${l}" data-name="${esc(s)}"><span>${esc(s)}</span><span class="plus">Add</span></button></li>`).join("")}`).join("") : `<li class="mdl-none">No spell matches "${esc(S.q)}".</li>`;
+  const had = root.querySelector("#modal-q");
+  root.innerHTML = `<div class="mback ${S.width === "phone" ? "phone" : ""}" data-backdrop><div class="mdl" role="dialog" aria-modal="true" aria-labelledby="modal-h" tabindex="-1">
+    <div class="mdl-head"><h2 id="modal-h">${title}</h2><button class="xbtn" data-close aria-label="Close"></button></div>
+    <div class="mdl-search"><input class="inp" id="modal-q" type="search" placeholder="Search spells" aria-label="Search spells" value="${esc(S.q)}"></div>
+    <ul class="mdl-list">${list}</ul>
+    <div class="mdl-foot"><span class="count">${one ? `${picked(+S.modal).length} of 2 in this row` : `${total()} of 10 spells`}</span><button class="btn solid" data-close>Done</button></div></div></div>`;
+  const qel = root.querySelector("#modal-q");
+  if (had || S.focusQ) { qel.focus(); qel.setSelectionRange(S.q.length, S.q.length); S.focusQ = false; }
+}
+const close = () => { S.modal = null; S.q = ""; render(); };
+function setVariant(i) { S.variant = (i + VARIANTS.length) % VARIANTS.length; put("variant", S.variant); try { history.replaceState(null, "", "#" + vkey().toLowerCase()); } catch {} S.modal = null; render(); }
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button, [data-backdrop]"); if (!t) return;
+  const d = t.dataset;
+  if (t.id === "prev") return setVariant(S.variant - 1);
+  if (t.id === "next") return setVariant(S.variant + 1);
+  if (d.cls) { S.cls = d.cls; put("cls", S.cls); load(); return render(); }
+  if (d.sample) { S.sample = d.sample; put("sample", S.sample); load(); return render(); }
+  if (d.width) { S.width = d.width; return render(); }
+  if (d.themeSet) { put("theme", d.themeSet); document.documentElement.dataset.protoTheme = d.themeSet; return render(); }
+  if (d.pick) { S.modal = d.pick; S.slot = d.slotadd != null ? +d.slotadd : null; S.q = ""; S.focusQ = true; return render(); }
+  if (d.rm) { const i = V[d.rm].indexOf(d.name); if (i >= 0) V[d.rm][i] = null; return render(); }
+  if (d.add) { add(+d.add, d.name); if (S.modal !== "all" && picked(+S.modal).length >= 2) return close(); if (total() >= 10) return close(); return render(); }
+  if ("close" in d || (t.matches("[data-backdrop]") && e.target === t)) return close();
+});
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.dataset.slot) { const [l, i] = t.dataset.slot.split("-").map(Number); V[l][i] = t.value || null; render(); document.getElementById(t.id)?.focus(); }
+  if ("clssel" in t.dataset) { S.cls = t.value; put("cls", S.cls); load(); render(); }
+});
+document.addEventListener("input", (e) => { if (e.target.id === "modal-q") { S.q = e.target.value; renderModal(); } });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && S.modal) return close();
+  if (e.target.closest("input, textarea, select, [contenteditable]") || S.modal) return;
+  if (e.key === "ArrowLeft") setVariant(S.variant - 1);
+  if (e.key === "ArrowRight") setVariant(S.variant + 1);
+});
+window.addEventListener("hashchange", () => { const i = fromHash(); if (i >= 0 && i !== S.variant) { S.variant = i; render(); } });
+load(); render();
+</script>
