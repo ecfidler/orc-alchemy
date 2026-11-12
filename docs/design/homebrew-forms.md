@@ -24,8 +24,8 @@ Each decision is in full in the resolution comment of its Linear ticket.
 This document gives the rules that a builder needs.
 
 The forms are the 13 files in `packages/app/src/components/builders/`. The
-look comes from the [Theme spec](theme.md): tokens, fonts, controls and
-notes. This document adds the layout of a form and the new controls.
+look comes from the [Theme spec](theme.md): theme tokens, fonts, controls
+and notes. This document adds the layout of a form and the new controls.
 
 When this document and a prototype disagree, this document wins. When this
 document says nothing, use the prototype.
@@ -53,16 +53,13 @@ replace the grid.[^builder-notes]
 
 # Terms
 
-`CONTEXT.md` at the repository root has the definitions. In short:
+`CONTEXT.md` at the repository root defines the terms of this document:
+**Modifier**, **Common modifier**, **Picker**, **Token**, **Uses** and
+**Suggested uses**.
 
-* **Modifier:** one group on a form that changes what the item gives, for
-  example Damage Resistances.
-* **Common modifier:** a modifier that the form always shows.
-* **Picker:** an add button that opens a list. The user picks some items.
-* **Token:** one pick on the form, a small box with a name and an X.
-* **Uses:** how many times a feature can be used before a rest restores it.
-* **Suggested uses:** uses that the app reads from the text of a feature.
-  The user saves them or skips them.
+In this document, a token is always a pick on a form. A color or size of
+the theme is a "theme token". An "ability modifier" is the game value, not
+a modifier of a form.
 
 # What each form gets
 
@@ -214,7 +211,7 @@ Uses of the feat, Features. The other 14 groups are in the add list.
 
 | Group | Control |
 |---|---|
-| Prerequisites and race prerequisites | One "+ Add a prerequisite" picker. The races are at the end of the list. |
+| Prerequisites and race prerequisites | One "+ Add a prerequisite" picker. The races are at the end of the list. It has search when the list has more than about 20 options. |
 | Ability Increase Options | Checkbox row, with the saving throw line as one checkbox |
 | Skill or Tool Proficiency, Languages, Weapon Proficiency Choice, Hit Points, Speed Bonuses, Initiative Bonuses | Number toggle |
 | Armor Proficiency | Checkbox row |
@@ -349,7 +346,8 @@ immunities.
 
 ## Monster
 
-Always shown: the base fields of today, Saving throws, Skills, Damage
+Always shown: the base fields of today (but not the four in the add list),
+Saving throws, Skills, Damage
 resistances, Damage immunities, Condition immunities, Languages, Actions /
 features.
 
@@ -390,7 +388,7 @@ Uses are the `:frequency` of a feature: `{:units <unit> :amount <amount>}`.
   proficiency bonus, or a level times a number. Each base takes an optional
   "+ n" and an optional minimum.
 * The proposed key names are `:ability`, `:prof-bonus`, `:level`, `:times`,
-  `:plus` and `:min`. The engine ticket settles them, and the pin ticket
+  `:plus` and `:min`. They are not final. ORC-192 settles them, and ORC-194
   writes the final names here.
 * For a class or subclass feature, the level is the level of that class. For
   any other feature, it is the character level.
@@ -417,6 +415,9 @@ A segmented toggle None / Fixed / Scaled, under the label "Uses".
   * A pack from the old app can have another unit (rest, round, minute,
     hour). The toggle then shows that unit as one more option, "(from the
     pack)", and the form saves it with no change.
+  * A pack can have a short unit, for example `:short-rest`. The toggle
+    shows it as its rest. The form writes the full keyword only when the
+    user changes the uses.
 
 ## Preview
 
@@ -474,7 +475,7 @@ suggestion without the user.
 
 * The rules do not read "+ n" sums or level amounts.
 * A rest phrase alone gives no suggestion. The text must also say "can't
-  use again" or "number of times".
+  use again", "number of times", or a count (once, twice, n times).
 * "Once per turn" gives no suggestion. A bubble is for uses that a rest or
   another long wait restores. The user can still set Turn by hand.
 * If the text matches two rules with different results, it gives a hint,
@@ -487,7 +488,8 @@ suggestion without the user.
 Test the rules with a small test pack that has one feature for each rule
 and for each case that is not read. Keep the pack in the app's test files.
 Do not put it under `fixtures/`, which is a copy of the fork. Do not use a
-private pack in a test.
+private pack in a test. The tests of the line in the form and of the Review
+uses page use the same test pack.
 
 ## In the form
 
@@ -536,7 +538,8 @@ The uses need `@pubdoor/dmv` 0.4.0, built in the fork `ecfidler/orcpub`
 
 A fixed amount works with engine 0.3.2 and needs no engine change. The old
 Dungeon Master's Vault does not need to show the new content correctly. It
-imports a scaled amount with no error, but it shows the amount as a map.
+imports a scaled amount with no error, but its sheet shows the amount
+incorrectly and can fail.
 
 # Build order
 
