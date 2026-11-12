@@ -38,7 +38,24 @@ test("the potion is the favicon and the rail mark", async ({ page, request }) =>
     const response = await request.get(`/potion-${size}.png`);
     expect(response.headers()["content-type"]).toBe("image/png");
   }
-  const mark = page.getByRole("link", { name: "Alchemy 5e" }).locator("img");
+  expect((await request.get("/potion-swirl.png")).headers()["content-type"]).toBe("image/png");
+  const mark = page.getByRole("link", { name: "Alchemy 5e" }).getByTestId("potion");
   await expect(mark).toHaveCSS("image-rendering", "pixelated");
-  expect(await mark.evaluate((img: HTMLImageElement) => [img.naturalWidth, img.width])).toEqual([32, 32]);
+  await expect(mark).toHaveCSS("width", "32px");
+  await expect(mark).toHaveCSS("height", "32px");
+});
+
+test("the potion swirls, and stays still under reduced motion", async ({ page }) => {
+  await page.goto("/");
+  const mark = page.getByRole("main").getByTestId("potion");
+  await expect(mark).toHaveCSS("width", "64px");
+  await expect(mark).toHaveCSS("animation-name", "potion-swirl");
+  await expect(mark).toHaveCSS("animation-timing-function", "steps(12)");
+  await expect(mark).toHaveCSS("background-image", /potion-swirl\.png/);
+  // Twelve 64px frames in a row.
+  await expect(mark).toHaveCSS("background-size", "768px 100%");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(mark).toHaveCSS("animation-name", "none");
+  await expect(mark).toHaveCSS("background-image", /potion-16\.png/);
 });

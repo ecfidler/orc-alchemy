@@ -2,6 +2,7 @@ import { Button, ButtonLink } from "@orc-alchemy/ui";
 import { Link } from "react-router";
 import mugStain from "../assets/mug-stain.svg?raw";
 import { raceAndClasses, useCreateCharacter, useSummaries } from "./character-hooks.ts";
+import { Potion } from "./Potion.tsx";
 
 /** The Home page at `/` (ORC-150, variant C): one column, with the mug stain behind it. */
 export function Home() {
@@ -17,7 +18,7 @@ export function Home() {
       />
       <section className="relative z-1 grid max-w-[640px] justify-items-start gap-[22px] pt-[18px]">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <img src="/potion-32.png" width={64} height={64} alt="" className="block [image-rendering:pixelated]" />
+          <Potion size={64} />
           <h1 aria-label="Alchemy 5e" className="text-[clamp(52px,10vw,84px)] leading-[.95] font-[560] tracking-[-0.02em]">
             Alchemy
             <small className="ml-1.5 align-[32px] font-sans text-[15px] font-semibold tracking-[0.1em] text-ink-muted">5E</small>

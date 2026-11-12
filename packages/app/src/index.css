@@ -9,3 +9,31 @@
 #root {
   isolation: isolate;
 }
+
+/*
+ * The potion logo. The swirl is a sheet of twelve 16px frames in a row, and
+ * the animation shows one whole frame at a time, so the pixels stay sharp.
+ */
+.potion {
+  display: block;
+  flex: none;
+  width: var(--potion-size);
+  height: var(--potion-size);
+  background: url("/potion-swirl.png") 0 0 / calc(var(--potion-size) * 12) 100% no-repeat;
+  image-rendering: pixelated;
+  animation: potion-swirl 2.4s steps(12) infinite;
+}
+
+@keyframes potion-swirl {
+  to {
+    background-position-x: calc(var(--potion-size) * -12);
+  }
+}
+
+/* With reduced motion, the logo is the art as drawn. */
+@media (prefers-reduced-motion: reduce) {
+  .potion {
+    background: url("/potion-16.png") 0 0 / 100% 100% no-repeat;
+    animation: none;
+  }
+}
