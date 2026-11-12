@@ -364,17 +364,17 @@ const listItems = (items: PickItem[], value: (item: PickItem) => string = (item)
  * false, as the old second click. Only the picked or removed key changes,
  * so a key that is no option keeps its value.
  */
-export function MapPicker({ edit, path, items, text }: { edit: Edit; path: Path; items: PickItem[]; text: PickerOptions }) {
+export function MapPicker({ edit, path, items, picker }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions }) {
   const map = (edit.get(...path) ?? {}) as ItemRecord;
   const value = Object.keys(map)
     .filter((key) => map[key] === true)
     .map(untag);
   return (
     <Picker
-      label={text.add}
+      label={picker.add}
       options={listItems(items)}
       value={value}
-      search={text.search}
+      search={picker.search}
       pickedText={pickedText}
       onValueChange={(next) => {
         const added = next.filter((key) => !value.includes(key)).map((key): [Path, unknown] => [[...path, key], true]);
@@ -391,13 +391,13 @@ export function MapPicker({ edit, path, items, text }: { edit: Edit; path: Path;
  * out. stored is the value the set holds for an item, such as its keyword.
  * A stored value that is no option stays in the set.
  */
-export function SetPicker({ edit, field, items, text, stored = (item) => tag(item.key) }: { edit: Edit; field: string; items: PickItem[]; text: PickerOptions; stored?: (item: PickItem) => string }) {
+export function SetPicker({ edit, field, items, picker, stored = (item) => tag(item.key) }: { edit: Edit; field: string; items: PickItem[]; picker: PickerOptions; stored?: (item: PickItem) => string }) {
   return (
     <Picker
-      label={text.add}
+      label={picker.add}
       options={listItems(items, stored)}
       value={setItems(edit.get(field)) as string[]}
-      search={text.search}
+      search={picker.search}
       pickedText={pickedText}
       onValueChange={(next) => edit.set([field], asSet(next))}
     />
@@ -468,7 +468,7 @@ export function ProficiencyChoice({ edit, legend, field, items, action }: { edit
  * picker for the options: {:skill-options {:choose 2 :options {:arcana true}}}.
  * A removed token stores false, as the old second click.
  */
-export function ChoicePicker({ edit, legend, field, items, text, action }: { edit: Edit; legend: string; field: string; items: PickItem[]; text: PickerOptions; action?: ReactNode }) {
+export function ChoicePicker({ edit, legend, field, items, picker, action }: { edit: Edit; legend: string; field: string; items: PickItem[]; picker: PickerOptions; action?: ReactNode }) {
   return (
     <Section legend={legend} action={action}>
       <div className="grid gap-[10px]">
@@ -480,7 +480,7 @@ export function ChoicePicker({ edit, legend, field, items, text, action }: { edi
           onSelect={(n) => edit.set(["profs", field, "choose"], n)}
           className="justify-self-start"
         />
-        <MapPicker edit={edit} path={["profs", field, "options"]} items={items} text={text} />
+        <MapPicker edit={edit} path={["profs", field, "options"]} items={items} picker={picker} />
       </div>
     </Section>
   );

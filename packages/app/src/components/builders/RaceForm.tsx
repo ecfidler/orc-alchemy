@@ -205,7 +205,7 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       // :languages is a set of language names, not of keywords.
       render: ({ name }) => (
         <Section legend={name}>
-          <SetPicker edit={edit} field="languages" items={lists.languages} stored={(language) => language.name} text={{ add: "Add a language", search: true }} />
+          <SetPicker edit={edit} field="languages" items={lists.languages} stored={(language) => language.name} picker={{ add: "Add a language", search: true }} />
         </Section>
       ),
     },
@@ -220,7 +220,7 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       id: "language-options",
       name: "Language Proficiency Choice",
       common: true,
-      render: ({ name }) => <ChoicePicker edit={edit} legend={name} field="language-options" items={lists.languages} text={{ add: "Add a language option", search: true }} />,
+      render: ({ name }) => <ChoicePicker edit={edit} legend={name} field="language-options" items={lists.languages} picker={{ add: "Add a language option", search: true }} />,
     },
     choiceModifier(edit, "weapon-proficiency-options", "Weapon Proficiency Choice", "Choose n weapons from a list", lists.weapons, { add: "Add a weapon option", search: true }),
     { id: "spells", name: "Spells", common: true, render: ({ name }) => <Spells edit={edit} lists={lists} legend={name} /> },

@@ -42,14 +42,14 @@ const SPELLCASTING: [string, string][] = [
  * picker: each sentence is one token. A pick stores true, and a removed
  * token stores false, as the old second click.
  */
-const sentenceModifier = (edit: Edit, id: string, name: string, example: string, items: [key: string, name: string][], text: PickerOptions): Modifier => ({
+const sentenceModifier = (edit: Edit, id: string, name: string, example: string, items: [key: string, name: string][], picker: PickerOptions): Modifier => ({
   id,
   name,
   example,
   paths: items.map(([key]) => ["props", key]),
   render: ({ name, action }) => (
     <Section legend={name} action={action}>
-      <MapPicker edit={edit} path={["props"]} items={items.map(([key, name]) => ({ key, name }))} text={text} />
+      <MapPicker edit={edit} path={["props"]} items={items.map(([key, name]) => ({ key, name }))} picker={picker} />
     </Section>
   ),
 });

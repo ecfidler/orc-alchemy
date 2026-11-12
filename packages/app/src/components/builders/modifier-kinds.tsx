@@ -52,20 +52,20 @@ export const TOOL_ITEMS: PickItem[] = [
 
 /** The section of a picker of the map at path, for a modifier's render. */
 export const mapPicker =
-  (edit: Edit, path: Path, items: PickItem[], text: PickerOptions) =>
+  (edit: Edit, path: Path, items: PickItem[], picker: PickerOptions) =>
   ({ name, action }: ModifierView) => (
     <Section legend={name} action={action}>
-      <MapPicker edit={edit} path={path} items={items} text={text} />
+      <MapPicker edit={edit} path={path} items={items} picker={picker} />
     </Section>
   );
 
 /** A modifier of the map at :props prop, as {:prop {:key true}}, with a picker of the items. */
-export const propModifier = (edit: Edit, prop: string, name: string, example: string, items: PickItem[], text: PickerOptions): Modifier => ({
+export const propModifier = (edit: Edit, prop: string, name: string, example: string, items: PickItem[], picker: PickerOptions): Modifier => ({
   id: prop,
   name,
   example,
   paths: [["props", prop]],
-  render: mapPicker(edit, ["props", prop], items, text),
+  render: mapPicker(edit, ["props", prop], items, picker),
 });
 
 /** The armor proficiencies at :props :armor-prof, as a checkbox row: a short fixed list. */
@@ -90,17 +90,17 @@ export const toolModifier = (edit: Edit): Modifier => ({
 
 /**
  * A proficiency choice in :profs field as a modifier: "Choose n", then a
- * picker of the options. Without text, the options are checkboxes, as the
+ * picker of the options. Without picker options, the options are checkboxes, as the
  * subclass form keeps them until ORC-201.
  */
-export const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: PickItem[], text?: PickerOptions): Modifier => ({
+export const choiceModifier = (edit: Edit, field: string, name: string, example: string, items: PickItem[], picker?: PickerOptions): Modifier => ({
   id: field,
   name,
   example,
   paths: [["profs", field]],
   render: ({ name, action }) =>
-    text ? (
-      <ChoicePicker edit={edit} legend={name} action={action} field={field} items={items} text={text} />
+    picker ? (
+      <ChoicePicker edit={edit} legend={name} action={action} field={field} items={items} picker={picker} />
     ) : (
       <ProficiencyChoice edit={edit} legend={name} action={action} field={field} items={items} />
     ),
