@@ -253,7 +253,7 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
               <Fieldset key={level} legend={level === 0 ? "Cantrips" : `Level ${level} spells`}>
                 <SetPicker
                   edit={edit}
-                  field={["spellcasting", "spell-list", intKey(level)]}
+                  path={["spellcasting", "spell-list", intKey(level)]}
                   items={spellItems(level)}
                   picker={{ add: level === 0 ? "Add a cantrip" : `Add a ${ordinal(level)}-level spell`, search: true }}
                 />

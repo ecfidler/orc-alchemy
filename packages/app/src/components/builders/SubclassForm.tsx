@@ -8,13 +8,13 @@
 // form shows the level modifiers always, and the user adds the skill choices
 // and the selections from a list (modifiers.tsx). The spells are a table of
 // tokens (docs/design/homebrew-forms.md, "Subclass").
-import { Button, Field, Fieldset, ListModal, Token, type ListItem } from "@orc-alchemy/ui";
+import { AddChip, Field, Fieldset, Label, ListModal, Token, type ListItem } from "@orc-alchemy/ui";
 import { useRef, useState } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { intKey, tag, untag } from "../../engine/content.ts";
 import { ordinal } from "../CharacterSheet.tsx";
 import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
-import { editor, fieldErrors, FormColumn, Help, SelectField, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type Edit, type FormProps, type Problem } from "./fields.tsx";
+import { editor, fieldErrors, FormColumn, Help, range, SelectField, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type Edit, type FormProps, type Problem } from "./fields.tsx";
 import { Modifiers, type Modifier } from "./modifiers.tsx";
 import { choiceModifier } from "./modifier-kinds.tsx";
 
@@ -28,9 +28,11 @@ const CLASS_SPELLS: Record<string, { field: string; title: string; at?: number[]
   cleric: { field: "cleric-spells", title: "Domain Spells", at: [1, 3, 5, 7, 9] },
   warlock: { field: "warlock-spells", title: "Expanded Spells" },
 };
-const SPELL_ROWS = [1, 2, 3, 4, 5];
-const SLOT_NAMES = ["First spell", "Second spell"];
-const SLOTS = [0, 1];
+/** The slots of a row: the stored index and the column heading. */
+const SLOTS = [
+  { index: 0, name: "First spell" },
+  { index: 1, name: "Second spell" },
+];
 type Slot = { level: number; slot: number };
 
 /**
@@ -53,12 +55,12 @@ function SpellsTable({ edit, parent, choices }: { edit: Edit; parent: string; ch
   const table = useRef<HTMLTableElement>(null);
   const value = (level: number, slot: number) => edit.get(field, intKey(level), intKey(slot));
   const name = (spell: unknown) => choices.spells.find((s) => tag(s.key) === spell)?.name ?? untag(spell);
-  const inRow = (level: number) => SLOTS.map((slot) => value(level, slot)).filter((v) => v !== undefined);
+  const inRow = (level: number) => SLOTS.map(({ index }) => value(level, index)).filter((v) => v !== undefined);
   const items = (level: number): ListItem<string>[] =>
     choices.spells.filter((s) => s.level === level && !inRow(level).includes(tag(s.key))).map((s) => ({ value: tag(s.key), label: s.name }));
   const pick = (spell: string) => {
     if (!open) return;
-    const slot = value(open.level, open.slot) === undefined ? open.slot : SLOTS.find((i) => value(open.level, i) === undefined);
+    const slot = value(open.level, open.slot) === undefined ? open.slot : SLOTS.find(({ index }) => value(open.level, index) === undefined)?.index;
     if (slot === undefined) return;
     edit.set([field, intKey(open.level), intKey(slot)], spell);
     last.current = { level: open.level, slot };
@@ -69,55 +71,52 @@ function SpellsTable({ edit, parent, choices }: { edit: Edit; parent: string; ch
     const to = last.current ?? open;
     return to ? (table.current?.querySelector<HTMLElement>(`[data-slot="${to.level}-${to.slot}"] button`) ?? null) : null;
   };
-  const head = "whitespace-nowrap pb-1 pr-3 text-left font-sans text-[10.5px] font-medium uppercase tracking-[.08em] text-ink-muted";
+  const head = "whitespace-nowrap pb-1 pr-3 text-left font-normal";
   // The two slot columns share the width, so the spells line up. On a narrow screen the slots stack: block cells go into one anonymous table cell.
   const narrowTop = "max-[519px]:align-top max-[519px]:pt-[10px]";
   return (
     <Fieldset legend={title} look="section">
       <Help>{at ? `A ${parent} of this subclass always has these spells prepared, from the ${parent} level in the first column.` : `A ${parent} of this subclass can choose these spells as ${parent} spells.`}</Help>
       <table ref={table} className="w-full border-collapse">
+        <caption className="sr-only">{title}</caption>
         <thead>
           <tr className="border-b border-ink">
             {at && (
               <th scope="col" className={`${head} w-[1%]`}>
-                {className} level
+                <Label>{className} level</Label>
               </th>
             )}
             <th scope="col" className={`${head} w-[1%]`}>
-              Spell level
+              <Label>Spell level</Label>
             </th>
-            {SLOT_NAMES.map((slotName) => (
-              <th key={slotName} scope="col" className={`${head} w-1/2 last:pr-0 max-[519px]:block max-[519px]:w-auto`}>
-                {slotName}
+            {SLOTS.map(({ name: heading }) => (
+              <th key={heading} scope="col" className={`${head} w-1/2 last:pr-0 max-[519px]:block max-[519px]:w-auto`}>
+                <Label>{heading}</Label>
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {SPELL_ROWS.map((level, n) => (
+          {range(1, 6).map((level, n) => (
             <tr key={level} className="border-b border-rule">
               {at && <td className={`w-[1%] whitespace-nowrap py-[6px] pr-3 align-middle text-ink-muted ${narrowTop}`}>{ordinal(at[n])}</td>}
               <th scope="row" className={`w-[1%] whitespace-nowrap py-[6px] pr-3 text-left align-middle font-normal ${narrowTop}`}>
                 {ordinal(level)}
               </th>
-              {SLOTS.map((slot) => {
+              {SLOTS.map(({ index: slot, name: slotName }) => {
                 const spell = value(level, slot);
                 return (
                   <td key={slot} data-slot={`${level}-${slot}`} className="py-[6px] pr-3 align-middle last:pr-0 max-[519px]:block max-[519px]:py-[3px]">
                     {spell === undefined ? (
-                      <Button
-                        size="small"
-                        // The dashed token-size add button of the ui chips.
-                        className="ui-chip-add"
-                        aria-label={`Add a spell: ${ordinal(level)} level, ${SLOT_NAMES[slot].toLowerCase()}`}
+                      <AddChip
+                        label="Add a spell"
+                        aria-label={`Add a spell: ${ordinal(level)} level, ${slotName.toLowerCase()}`}
                         aria-haspopup="dialog"
                         onClick={() => {
                           last.current = null;
                           setOpen({ level, slot });
                         }}
-                      >
-                        Add a spell
-                      </Button>
+                      />
                     ) : (
                       <Token label={name(spell)} onRemove={() => edit.set([field, intKey(level), intKey(slot)], undefined)} />
                     )}
@@ -139,7 +138,7 @@ function SpellsTable({ edit, parent, choices }: { edit: Edit; parent: string; ch
         stayOpen
         search
         picked={open ? inRow(open.level).length : 0}
-        pickedText={(n) => `${n} of 2 in this row`}
+        pickedText={(n) => `${n} of ${SLOTS.length} in this row`}
         finalFocus={focusAfter}
       />
     </Fieldset>

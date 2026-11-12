@@ -26,8 +26,8 @@ export async function pickOption(control: Locator, name: string | RegExp): Promi
  * add button of a Picker, or a button that opens a list that closes on a
  * click (then give one name). In a list with a search field, it types
  * each string name first, so the list filters to it; for a RegExp it
- * clears the field. Then it clicks Done, if the modal has it, and resolves
- * once the modal has closed.
+ * clears the field. Then it clicks Done, if the modal has it and is still
+ * open, and resolves once the modal has closed.
  */
 export async function pickFromPicker(button: Locator, names: Names): Promise<void> {
   const list = nameList(names);
@@ -43,7 +43,9 @@ export async function pickFromPicker(button: Locator, names: Names): Promise<voi
     if ((await search.count()) > 0) await search.fill(typeof name === "string" ? name : "");
     await dialog.locator(".ui-list-body").getByRole("button", { name, exact: true }).click();
   }
-  if (stays) await done.click();
+  // A list can close itself on a pick, for example when it is full. During its close animation it is still visible, so check Base UI's open state, not the visibility.
+  const open = dialog.and(button.page().locator("[data-open]:not([data-ending-style])"));
+  if (stays && (await open.count()) > 0) await done.click();
   await dialog.waitFor({ state: "hidden" });
 }
 

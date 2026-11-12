@@ -391,14 +391,13 @@ export function MapPicker({ edit, path, items, picker, removeKey = false }: { ed
 }
 
 /**
- * A picker of the set at field, or at a path of keys such as
+ * A picker of the set at path, such as ["languages"] or
  * ["spellcasting", "spell-list", intKey(1)], as the old checkboxes stored
  * it: a pick adds the item's stored value at the end, and a removed token
  * takes it out. stored is the value the set holds for an item, such as its
  * keyword. A stored value that is no option stays in the set.
  */
-export function SetPicker({ edit, field, items, picker, stored = (item) => tag(item.key) }: { edit: Edit; field: string | Path; items: PickItem[]; picker: PickerOptions; stored?: (item: PickItem) => string }) {
-  const path = typeof field === "string" ? [field] : field;
+export function SetPicker({ edit, path, items, picker, stored = (item) => tag(item.key) }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions; stored?: (item: PickItem) => string }) {
   return (
     <Picker
       label={picker.add}

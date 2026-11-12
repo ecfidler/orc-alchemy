@@ -19,21 +19,6 @@ const segment = (page: Page, group: string, value: string) => section(page, grou
 const slot = (page: Page, level: string, which: "first" | "second") => page.getByRole("button", { name: `Add a spell: ${level} level, ${which} spell`, exact: true });
 /** The cells of a row of the spells table, by its spell level, such as "2nd". */
 const spellRow = (page: Page, level: string) => page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: level, exact: true }) });
-/**
- * Picks `names` with the spell picker of a slot. The picker closes itself when the row has two spells,
- * so Done is clicked only when the picks leave a slot empty (pickFromPicker always clicks it).
- */
-async function fillSlot(page: Page, level: string, which: "first" | "second", names: string[]) {
-  const full = (await spellRow(page, level).locator(".ui-token").count()) + names.length >= 2;
-  await slot(page, level, which).click();
-  const dialog = page.getByRole("dialog");
-  for (const name of names) {
-    await dialog.getByRole("searchbox").fill(name);
-    await dialog.locator(".ui-list-body").getByRole("button", { name, exact: true }).click();
-  }
-  if (!full) await dialog.getByRole("button", { name: "Done", exact: true }).click();
-  await dialog.waitFor({ state: "hidden" });
-}
 
 test("the feat form: a prerequisite picker with the races at the end, a damage resistance picker, and a number toggle", async ({ page }) => {
   await page.goto("/content/new/feat");
@@ -184,6 +169,23 @@ test("the subclass form: two slots of a spells row filled, one removed, and the 
   await page.goto(`/content/edit/subclass/${encodeURIComponent("Default Option Source")}/oath-of-the-lantern`);
   await expect(spellRow(page, "2nd").locator(".ui-token-label")).toHaveText(["Lesser Restoration"]);
   await expect(slot(page, "2nd", "first")).toBeVisible();
+});
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("the subclass spells table stacks the second slot of a row under the first", async ({ page }) => {
+    await page.goto("/content/new/subclass");
+    await pickOption(page.getByRole("combobox", { name: "Class" }), "Cleric");
+    // Two picks from the first slot fill the row, and the picker closes itself.
+    await pickFromPicker(slot(page, "1st", "first"), ["Bless", "Cure Wounds"]);
+    const tokens = spellRow(page, "1st").locator(".ui-token");
+    await expect(tokens).toHaveCount(2);
+    const first = (await tokens.nth(0).boundingBox())!;
+    const second = (await tokens.nth(1).boundingBox())!;
+    expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+    expect(Math.abs(second.x - first.x)).toBeLessThan(2);
+  });
 });
 
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- homebrew-pickers.spec.ts
@@ -351,7 +353,7 @@ test.describe("screenshots", () => {
         await open("subclass");
         await page.getByRole("textbox", { name: "Name" }).fill(name);
         await choose("Class", cls);
-        for (const [level, which, names] of spells) await fillSlot(page, level, which, names);
+        for (const [level, which, names] of spells) await pickFromPicker(slot(page, level, which), names);
         await noFlash();
       };
       const paladin = () =>
