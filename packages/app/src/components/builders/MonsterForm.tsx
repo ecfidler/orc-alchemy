@@ -6,11 +6,14 @@
 // :die-count, :die and :modifier, :saving-throws and :skills maps of keyword
 // to bonus, the damage, condition and language checkboxes in :props, as
 // {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
-// and :description maps, :type absent, :action or :legendary-action.
+// and :description maps, :type absent, :action or :legendary-action. The
+// form shows its common groups always, and the user adds the others from a
+// list (modifiers.tsx).
 import { Checkbox, Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput, XButton } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
 import { ABILITIES, AddButton, Card, CheckGrid, CONDITIONS, DAMAGE_TYPES, fieldErrors, FieldRow, FormColumn, nameToKw, numberOrNull, orFirst, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { Modifiers, type Modifier, type ModifierView } from "./modifiers.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
@@ -86,8 +89,8 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   };
   const numbers = (values: number[]) => values.map((n) => [n, n]);
   const orNone = (values: number[]) => [["", "-"], ...numbers(values)];
-  const checkboxes = (legend: string, prop: string, keys: string[], label: (key: string) => string) => (
-    <Fieldset legend={legend} look="section">
+  const checkboxes = (legend: string, prop: string, keys: string[], label: (key: string) => string, action?: ReactNode) => (
+    <Fieldset legend={legend} look="section" action={action}>
       <CheckGrid names={keys.map(label)}>
         {keys.map((key) => (
           <Checkbox key={key} label={label(key)} checked={((props[tag(prop)] ?? {}) as ItemRecord)[tag(key)] === true} onCheckedChange={() => toggle(prop, key)} />
@@ -98,6 +101,109 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   const hitPoints = map("hit-points");
   const saves = map("saving-throws");
   const skills = map("skills");
+  /** A group that always shows. Some are base fields: they are in the list so that the groups keep their order. */
+  const common = (id: string, name: string, render: (view: ModifierView) => ReactNode): Modifier => ({ id, name, common: true, render });
+  /** A text of the monster as a modifier: a section with the text field in it, so that the Remove link has a rule. */
+  const textModifier = (fieldKey: string, name: string, example: string, area = false): Modifier => ({
+    id: fieldKey,
+    name,
+    example,
+    paths: [[fieldKey]],
+    render: ({ name, action }) => (
+      <Fieldset legend={name} look="section" action={action} errors={fieldErrors(problems, fieldKey, name)}>
+        {area ? (
+          <TextArea aria-label={name} value={String(record[tag(fieldKey)] ?? "")} onValueChange={(text) => set(fieldKey, text)} />
+        ) : (
+          <TextInput aria-label={name} value={String(record[tag(fieldKey)] ?? "")} onValueChange={(text) => set(fieldKey, text)} />
+        )}
+      </Fieldset>
+    ),
+  });
+
+  /** The groups after Armor class in form order (docs/design/homebrew-forms.md, "Monster"). */
+  const modifiers: Modifier[] = [
+    textModifier("armor-notes", "Armor notes", "Natural armor, shield …"),
+    common("hit-points", "Hit points", ({ name }) => (
+      <Fieldset legend={name} look="section" errors={fieldErrors(problems, "hit-points", name)}>
+        <FieldRow>
+          {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
+          {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
+          <FieldLabel label="Hit point modifier">
+            <NumberField value={numberOrNull(hitPoints[tag("modifier")]) ?? 0} onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)} className="w-20" />
+          </FieldLabel>
+        </FieldRow>
+      </Fieldset>
+    )),
+    common("speed", "Speed", () => text("speed", "Speed")),
+    common("abilities", "Abilities", ({ name }) => (
+      <Fieldset legend={name} look="section">
+        <FieldRow>
+          {ABILITIES.map(([key, name]) => (
+            <Fragment key={key}>{select(name, record[tag(key)], numbers(range(1, 31)), (v) => set(key, Number(v)))}</Fragment>
+          ))}
+        </FieldRow>
+      </Fieldset>
+    )),
+    common("saving-throws", "Saving throws", ({ name }) => (
+      <Fieldset legend={name} look="section">
+        <FieldRow>
+          {ABILITIES.map(([key, name]) => (
+            <Fragment key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</Fragment>
+          ))}
+        </FieldRow>
+      </Fieldset>
+    )),
+    common("skills", "Skills", ({ name }) => (
+      <Fieldset legend={name} look="section">
+        <FieldRow>
+          {SKILLS.map(({ key, name }) => (
+            <Fragment key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</Fragment>
+          ))}
+        </FieldRow>
+      </Fieldset>
+    )),
+    {
+      id: "damage-vulnerability",
+      name: "Damage vulnerabilities",
+      example: "Fire, radiant …",
+      paths: [["props", "damage-vulnerability"]],
+      render: ({ name, action }) => checkboxes(name, "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`, action),
+    },
+    common("damage-resistance", "Damage resistances", ({ name }) =>
+      checkboxes(name, "damage-resistance", ["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`)),
+    ),
+    common("damage-immunity", "Damage immunities", ({ name }) => checkboxes(name, "damage-immunity", DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)),
+    common("condition-immunity", "Condition immunities", ({ name }) => checkboxes(name, "condition-immunity", CONDITIONS.map(nameToKw), (c) => `Immunity to being ${title(c)}`)),
+    textModifier("senses", "Senses", "Darkvision 60 ft., blindsight …"),
+    common("language", "Languages", ({ name }) => (
+      // The SRD languages and those of the enabled packs, as the old list (::langs/languages).
+      <WithChoices>
+        {({ languages }) => {
+          const names = Object.fromEntries(languages.map(({ key, name }) => [key, name]));
+          return checkboxes(name, "language", Object.keys(names), (key) => names[key]);
+        }}
+      </WithChoices>
+    )),
+    common("challenge", "Challenge rating", () =>
+      field(
+        "challenge",
+        "Challenge rating",
+        select("Challenge rating", record[tag("challenge")], CHALLENGES.map((c) => [c, c > 0 && c < 1 ? `1/${1 / c}` : c]), (v) => set("challenge", parseFloat(v))),
+      ),
+    ),
+    textModifier("description", "Special traits", "Amphibious, Magic Resistance …", true),
+    {
+      id: "legendary-actions",
+      name: "Legendary actions",
+      example: "The text before the legendary actions",
+      paths: [["legendary-actions"]],
+      render: ({ name, action }) => (
+        <Fieldset legend={name} look="section" action={action} errors={fieldErrors(problems, "legendary-actions", name)}>
+          <TextArea aria-label={name} value={String(map("legendary-actions")[tag("description")] ?? "")} onValueChange={(text) => setIn("legendary-actions", "description", text)} />
+        </Fieldset>
+      ),
+    },
+  ];
 
   return (
     <FormColumn>
@@ -108,62 +214,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
         {select("Alignment", record[tag("alignment")], ALIGNMENTS.map((a) => [a, a]), (v) => set("alignment", v))}
       </FieldRow>
       {field("armor-class", "Armor class", select("Armor class", record[tag("armor-class")], numbers(range(5, 25)), (v) => set("armor-class", Number(v))))}
-      {text("armor-notes", "Armor notes")}
-      <Fieldset legend="Hit points" look="section" errors={fieldErrors(problems, "hit-points", "Hit points")}>
-        <FieldRow>
-          {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
-          {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
-          <FieldLabel label="Hit point modifier">
-            <NumberField value={numberOrNull(hitPoints[tag("modifier")]) ?? 0} onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)} className="w-20" />
-          </FieldLabel>
-        </FieldRow>
-      </Fieldset>
-      {text("speed", "Speed")}
-      <Fieldset legend="Abilities" look="section">
-        <FieldRow>
-          {ABILITIES.map(([key, name]) => (
-            <Fragment key={key}>{select(name, record[tag(key)], numbers(range(1, 31)), (v) => set(key, Number(v)))}</Fragment>
-          ))}
-        </FieldRow>
-      </Fieldset>
-      <Fieldset legend="Saving throws" look="section">
-        <FieldRow>
-          {ABILITIES.map(([key, name]) => (
-            <Fragment key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</Fragment>
-          ))}
-        </FieldRow>
-      </Fieldset>
-      <Fieldset legend="Skills" look="section">
-        <FieldRow>
-          {SKILLS.map(({ key, name }) => (
-            <Fragment key={key}>{select(name, skills[tag(key)], orNone(range(1, 21)), (v) => setIn("skills", key, parsed(v)))}</Fragment>
-          ))}
-        </FieldRow>
-      </Fieldset>
-      {checkboxes("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`)}
-      {checkboxes("Damage resistances", "damage-resistance", ["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`))}
-      {checkboxes("Damage immunities", "damage-immunity", DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)}
-      {checkboxes("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw), (c) => `Immunity to being ${title(c)}`)}
-      {text("senses", "Senses")}
-      {/* The SRD languages and those of the enabled packs, as the old list (::langs/languages). */}
-      <WithChoices>
-        {({ languages }) => {
-          const names = Object.fromEntries(languages.map(({ key, name }) => [key, name]));
-          return checkboxes("Languages", "language", Object.keys(names), (key) => names[key]);
-        }}
-      </WithChoices>
-      {field(
-        "challenge",
-        "Challenge rating",
-        select("Challenge rating", record[tag("challenge")], CHALLENGES.map((c) => [c, c > 0 && c < 1 ? `1/${1 / c}` : c]), (v) => set("challenge", parseFloat(v))),
-      )}
-      {field(
-        "description",
-        "Special traits",
-        <FieldLabel label="Special traits">
-          <TextArea value={String(record[tag("description")] ?? "")} onValueChange={(text) => set("description", text)} />
-        </FieldLabel>,
-      )}
+      <Modifiers record={record} onChange={onChange} modifiers={modifiers} />
       <Fieldset legend="Actions / features" look="section" errors={fieldErrors(problems, "traits", "Actions / features")}>
         {traits.map((trait, i) => {
           const n = i + 1;
@@ -195,13 +246,6 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
         })}
         <AddButton onClick={() => set("traits", [...traits, {}])}>Add action / feature</AddButton>
       </Fieldset>
-      {field(
-        "legendary-actions",
-        "Legendary actions",
-        <FieldLabel label="Legendary actions">
-          <TextArea value={String(map("legendary-actions")[tag("description")] ?? "")} onValueChange={(text) => setIn("legendary-actions", "description", text)} />
-        </FieldLabel>,
-      )}
     </FormColumn>
   );
 }

@@ -9,7 +9,7 @@ import { useHomebrew } from "../../state/homebrew.ts";
 import { Builder } from "../Builder.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 import { classBuilder } from "./ClassForm.tsx";
-import { choose, shown } from "./test-picks.ts";
+import { addList, addModifier, choose, groups, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -67,8 +67,9 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
   await choose("Level 1 spell 1", "Fog Cloud");
   await choose("Level 1 spell 2", "Bless");
   await choose("Level 5 spell 1", "Cone of Cold");
+  await addModifier("Skill Proficiency Choice");
   fireEvent.click(within(screen.getByRole("group", { name: "Skill Proficiency Choice: options" })).getByRole("checkbox", { name: "Religion" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add modifier" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a level modifier" }));
   await choose("Modifier 1 type", "Swimming Speed");
   await choose("Modifier 1 value", "30 ft.");
   // A new type keeps the value, as the old event does.
@@ -93,6 +94,40 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
   expect(shown("Class")).toBe("Cleric");
   expect(shown("Level 1 spell 2")).toBe("Bless");
   expect(shown("Modifier 1 value")).toBe("30 ft.");
+  expect(groups()).toEqual(["Domain Spells", "Skill Proficiency Choice", "Modifiers", "Features / traits"]);
+});
+
+test("a new subclass shows only the common groups, and the add list has the others in form order", async () => {
+  renderAt("/content/new/subclass");
+  await screen.findByRole("textbox", { name: "Name" });
+  expect(groups()).toEqual(["Modifiers", "Features / traits"]);
+  expect(await addList()).toEqual(["Skill Proficiency Choice", "Skill Expertise Choice", "Selections"]);
+  await addModifier("Selections");
+  await addModifier("Skill Expertise Choice");
+  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Features / traits"]);
+  expect(await addList()).toEqual(["Skill Proficiency Choice"]);
+});
+
+test("an imported subclass opens with each group that holds a value, and a save keeps the values of the others", async () => {
+  const item = {
+    "~:name": "Path of Tides",
+    "~:key": "~:path-of-tides",
+    "~:option-pack": "Reef",
+    "~:class": "~:barbarian",
+    "~:profs": { "~:skill-options": { "~:options": { "~:athletics": false } }, "~:skill-expertise-options": { "~:choose": 1, "~:options": { "~:survival": true } } },
+    "~:level-modifiers": [],
+    "~:level-selections": [{ "~:type": "~:tide-gifts", "~:level": 3, "~:num": 1 }],
+    "~:traits": [],
+  };
+  await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/subclasses", item);
+  const router = renderAt("/content/edit/subclass/Reef/path-of-tides");
+  await screen.findByRole("textbox", { name: "Name" });
+  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Features / traits"]);
+  expect(shown("Selection 1 level")).toBe("3");
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  const pack = useHomebrew.getState().packs.find((p) => p.id === "Reef")!;
+  expect(itemAt(pack.plugin, "~:orcpub.dnd.e5/subclasses", "~:path-of-tides")).toEqual(item);
 });
 
 test("a fighter subclass can cast wizard spells", async () => {
@@ -139,6 +174,7 @@ test("a class and a subclass authored in the forms are a character's choices, an
   type("Feature 1 name", "Frost Rune");
   await choose("Feature 1 level", "3");
   type("Feature 1 description", "Your weapon is cold.");
+  await addModifier("Selections");
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
   await choose("Selection 1 type", "Frost Gifts");
   await choose("Selection 1 level", "3");

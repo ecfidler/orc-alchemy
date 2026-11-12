@@ -10,7 +10,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { exportOrcbrew } from "../../engine/orcbrew-export.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { choose, shown } from "./test-picks.ts";
+import { addList, addModifier, choose, groups, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -36,6 +36,23 @@ function renderAt(path: string) {
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
 const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
+/** The modifiers of the add list, in form order. */
+const ADDED = [
+  "Hit Points",
+  "Damage Resistances",
+  "Damage Immunities",
+  "Saving Throw Advantage",
+  "Weapon Proficiencies",
+  "Armor Proficiency",
+  "Tool Proficiency",
+  "Skill Proficiencies",
+  "Skill Proficiency Choice",
+  "Languages",
+];
+const stored = (pack: string, key: string) => {
+  const plugin = useHomebrew.getState().packs.find((p) => p.id === pack)?.plugin;
+  return plugin && itemAt(plugin, "~:orcpub.dnd.e5/subraces", `~:${key}`);
+};
 
 test("the race list has the SRD races and the enabled packs' races, and the race's values show until the subrace has its own", async () => {
   await useHomebrew.getState().saveItem("Lizards", "~:orcpub.dnd.e5/races", { "~:key": "~:lizard", "~:name": "Lizard", "~:option-pack": "Lizards", "~:speed": 40, "~:size": "~:small" });
@@ -64,6 +81,8 @@ test("the form recreates the Star Elf subrace of the community fixture, and Edit
   type("Name", "Star Elf");
   await choose("Race", "Elf");
   await choose("Wisdom", "+1");
+  await addModifier("Weapon Proficiencies");
+  await addModifier("Skill Proficiencies");
   for (const weapon of ["Dart", "Morningstar", "Rapier", "Shortbow"]) check("Weapon Proficiencies", weapon);
   check("Skill Proficiencies", "Insight");
   fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
@@ -109,10 +128,20 @@ test("the subrace modifiers are stored as the old events store them", async () =
   await screen.findByRole("button", { name: "Add a spell" });
   type("Name", "Deep Dwarf");
   await choose("Darkvision", "120");
+  for (const name of ADDED) await addModifier(name);
   check("Hit Points", "Your hit point maximum increases by 1 for each of your levels");
   check("Hit Points", "Your hit point maximum increases by 2 for each of your levels");
   check("Saving Throw Advantage", "You have advantage on saving throws against being Poisoned");
   check("Languages", "Undercommon");
+  check("Damage Resistances", "Resistance to damage from traps");
+  check("Damage Immunities", "Immunity to poison damage");
+  check("Weapon Proficiencies", "All Martial Weapons");
+  check("Weapon Proficiencies", "All Martial Weapons");
+  check("Armor Proficiency", "You gain proficiency with medium armor");
+  check("Tool Proficiency", "Smith's Tools");
+  check("Skill Proficiencies", "Perception");
+  await choose("Skill Proficiency Choice: choose", "2");
+  check("Skill Proficiency Choice: options", "History");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
 
@@ -124,6 +153,51 @@ test("the subrace modifiers are stored as the old events store them", async () =
     "~:race": "~:dwarf",
     "~:darkvision": 120,
     "~:traits": [],
-    "~:props": { "~:max-hp-bonus": 2, "~:saving-throw-advantage": { "~:poisoned": true }, "~:language": { "~:undercommon": true } },
+    "~:props": {
+      "~:max-hp-bonus": 2,
+      "~:damage-resistance": { "~:traps": true },
+      "~:damage-immunity": { "~:poison": true },
+      "~:saving-throw-advantage": { "~:poisoned": true },
+      "~:weapon-prof": { "~:martial": false },
+      "~:armor-prof": { "~:medium": true },
+      "~:skill-prof": { "~:perception": true },
+      "~:language": { "~:undercommon": true },
+    },
+    "~:profs": { "~:tool": { "~:smiths-tools": true }, "~:skill-options": { "~:choose": 2, "~:options": { "~:history": true } } },
   });
+});
+
+test("a new subrace shows only the common modifiers, and the add list has the others in form order", async () => {
+  renderAt("/content/new/subrace");
+  await screen.findByRole("button", { name: "Add a spell" });
+  expect(groups()).toEqual(["Ability Score Increases", "Spells", "Features / traits"]);
+  expect(await addList()).toEqual(ADDED);
+  await addModifier("Damage Immunities");
+  await addModifier("Hit Points");
+  expect(groups()).toEqual(["Ability Score Increases", "Hit Points", "Damage Immunities", "Spells", "Features / traits"]);
+});
+
+test("an imported subrace opens with each modifier that holds a value, and a save keeps the values of the others", async () => {
+  const item = {
+    "~:name": "Sea Elf",
+    "~:key": "~:sea-elf",
+    "~:option-pack": "Reef",
+    "~:race": "~:elf",
+    "~:props": {
+      "~:max-hp-bonus": 1,
+      "~:weapon-prof": { "~:trident": false, "~:net": false },
+      "~:damage-resistance": { "~:cold": true },
+      "~:language": { "~:aquan": false },
+    },
+    "~:profs": { "~:skill-options": { "~:options": { "~:stealth": false } }, "~:tool": { "~:navigators-tools": true } },
+    "~:traits": [],
+  };
+  await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/subraces", item);
+  const router = renderAt("/content/edit/subrace/Reef/sea-elf");
+  await screen.findByRole("button", { name: "Add a spell" });
+  expect(groups()).toEqual(["Ability Score Increases", "Hit Points", "Damage Resistances", "Tool Proficiency", "Spells", "Features / traits"]);
+  expect(within(screen.getByRole("group", { name: "Hit Points" })).getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" })).toBeChecked();
+  fireEvent.click(save());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
+  expect(stored("Reef", "sea-elf")).toEqual(item);
 });

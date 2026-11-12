@@ -28,8 +28,8 @@ interface ModifierBase {
 /**
  * Where an added modifier keeps its values. Most modifiers give `paths`.
  * A modifier that shares a stored value with others, such as one entry of
- * a shared vector, gives the three functions instead. No form uses the
- * functions yet: the magic item form is the first, in ORC-198.
+ * a shared vector, gives the three functions instead, as the magic item
+ * form does for its entries of :modifiers.
  */
 export type ModifierValues =
   | {
@@ -133,7 +133,8 @@ interface Removed {
  * hold a value and the ones the user added. Then the info note of the last
  * Remove, with Undo, and the "+ Add a modifier" button, while a modifier is
  * left to add. Put it after the base fields of the form, and Features after
- * it.
+ * it. A base field that is between two modifiers in form order can be a
+ * common modifier, so that the form keeps its order.
  */
 export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord; onChange: (record: ItemRecord) => void; modifiers: Modifier[] }) {
   // The added modifiers: at first, the ones that hold a value.

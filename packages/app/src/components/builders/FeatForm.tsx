@@ -64,7 +64,7 @@ const SPELLCASTING: [string, string][] = [
 ];
 
 /** A modifier of one number at :props prop: a click on a box stores its number. */
-const valueModifier = (edit: Edit, prop: string, name: string, example: string, values: number[], text: (n: number) => string): Modifier => ({
+export const valueModifier = (edit: Edit, prop: string, name: string, example: string, values: number[], text: (n: number) => string): Modifier => ({
   id: prop,
   name,
   example,

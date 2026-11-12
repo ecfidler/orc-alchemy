@@ -7,7 +7,7 @@ import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { addModifier, groups } from "./test-picks.ts";
+import { addList, addModifier, groups } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -165,12 +165,13 @@ test("a new feat shows only the common modifiers; the add list has the others in
   const add = screen.getByRole("button", { name: "Add a modifier" });
   expect(add.getAttribute("aria-haspopup")).toBe("dialog");
   expect(add.textContent).toMatch(/14 more$/);
+  expect(await addList()).toEqual(ADDED);
   // A real click puts the focus on the button.
   add.focus();
   fireEvent.click(add);
   const dialog = await screen.findByRole("dialog", { name: "Add a modifier" });
-  const rows = within(dialog).getAllByRole("button").filter((b) => b.classList.contains("ui-list-row"));
-  expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual(ADDED);
+  const rows = [...dialog.querySelectorAll(".ui-list-row")];
+  expect(rows).toHaveLength(ADDED.length);
   expect(rows.every((row) => (document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent ?? "") !== "")).toBe(true);
   expect(within(dialog).queryByRole("searchbox")).toBeNull();
   expect(within(dialog).queryByRole("button", { name: "Done" })).toBeNull();
@@ -191,12 +192,7 @@ test("an added modifier goes to its place in form order, flashes once and takes 
   expect(screen.getByRole("group", { name: "Speed Bonuses" }).closest("[data-modifier]")?.classList.contains("ui-flash")).toBe(false);
   await waitFor(() => expect(document.activeElement).toBe(within(hp).getByRole("checkbox", { name: "Your hit point maximum increases by 1 for each of your levels" })));
   expect(within(hp).getByRole("button", { name: "Remove Hit Points" }).textContent).toBe("Remove");
-  fireEvent.click(screen.getByRole("button", { name: "Add a modifier" }));
-  const dialog = await screen.findByRole("dialog", { name: "Add a modifier" });
-  const rows = within(dialog).getAllByRole("button").filter((b) => b.classList.contains("ui-list-row"));
-  expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual(ADDED.filter((name) => name !== "Hit Points" && name !== "Speed Bonuses"));
-  fireEvent.keyDown(dialog, { key: "Escape" });
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(await addList()).toEqual(ADDED.filter((name) => name !== "Hit Points" && name !== "Speed Bonuses"));
 });
 
 test("the stored feat after Add and a pick is as the old layout stored it; Remove clears the values, and Undo puts them back", async () => {
