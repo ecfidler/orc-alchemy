@@ -415,3 +415,40 @@ test("Remove of the last entries leaves no modifiers key, and a new entry after 
     mod("saving-throw-bonus", ["orcpub.dnd.e5.character/wis"], [0]),
   ]);
 });
+
+test("Undo puts an entry back at its index, also after the user changed an earlier entry", async () => {
+  const item = {
+    [`${MI}name`]: "Wave Ring",
+    [`${MI}type`]: "~:ring",
+    [`${MI}rarity`]: "~:rare",
+    [`${MI}modifiers`]: [wis(2), mod("damage-resistance", ["fire"]), mod("speed", [], [10]), mod("damage-resistance", ["cold"])],
+  };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/wave-ring");
+  await form("Edit magic item");
+  fireEvent.click(screen.getByRole("button", { name: "Remove Damage resistances" }));
+  type("WIS value", "3");
+  fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Undo" }));
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect((stored("wave-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([wis(3), mod("damage-resistance", ["fire"]), mod("speed", [], [10]), mod("damage-resistance", ["cold"])]);
+});
+
+test("Undo puts an entry back at its index between two equal entries of another modifier", async () => {
+  // The old app can store an entry twice; each copy keeps its place.
+  const twice = mod("condition-immunity", ["charmed"]);
+  const item = {
+    [`${MI}name`]: "Twin Ring",
+    [`${MI}type`]: "~:ring",
+    [`${MI}rarity`]: "~:rare",
+    [`${MI}modifiers`]: [twice, mod("damage-immunity", ["fire"]), twice, mod("damage-immunity", ["cold"])],
+  };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/twin-ring");
+  await form("Edit magic item");
+  fireEvent.click(screen.getByRole("button", { name: "Remove Damage immunities" }));
+  fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Undo" }));
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("twin-ring")!.item).toEqual(item);
+});

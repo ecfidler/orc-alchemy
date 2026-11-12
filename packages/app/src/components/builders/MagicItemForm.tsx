@@ -39,8 +39,9 @@ const WEAPON_PROPERTIES = ["Finesse", "Versatile", "Reach", "Two-Handed", "Throw
 const WEAPON_FIELDS = [...WEAPON_PROPERTIES.map((p) => p.field), "damage-die-count", "damage-die", "versatile", "melee?", "ranged?", "type", "range", "damage-type"];
 const DICE: Options = [4, 6, 8, 10, 12, 20, 100].map((die) => [die, `d${die}`]);
 const ALIGNMENTS = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"];
-const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
-const ABILITY_ARGS = ABILITIES.map((ability) => `orcpub.dnd.e5.character/${ability}`);
+/** Each ability with its keyword arg, such as :orcpub.dnd.e5.character/str. */
+const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"].map((ability) => ({ ability, arg: `orcpub.dnd.e5.character/${ability}` }));
+const ABILITY_ARGS = ABILITIES.map(({ arg }) => arg);
 /** The modifier keys of each speed for each kind of change (magic_items.cljc speed-mod-fn). */
 const SPEEDS: { label: string; increases: string; atLeast: string; walking?: string }[] = [
   { label: "Walking speed", increases: "speed", atLeast: "speed-override" },
@@ -75,8 +76,10 @@ function withMods(record: ItemRecord, mods: Mod[]): ItemRecord {
   if (mods.length === 0) delete next[MODS];
   return next;
 }
-/** The same entry: the same object, or an equal copy. */
-const sameMod = (a: Mod, b: Mod) => a === b || JSON.stringify(a) === JSON.stringify(b);
+/** An ability score entry: it increases a score or sets its least value. */
+const isAbilityMod = (mod: Mod) => modKey(mod) === "ability" || modKey(mod) === "ability-override";
+/** A saving throw bonus entry. */
+const isSaveMod = (mod: Mod) => modKey(mod) === "saving-throw-bonus";
 
 /**
  * Where a modifier of the form keeps its values: the entries of the shared
@@ -87,19 +90,14 @@ function modEntries(belongs: (mod: Mod) => boolean): ModifierValues {
   return {
     holds: (record) => modsOf(record).some(belongs),
     clear: (record) => withMods(record, modsOf(record).filter((m) => !belongs(m))),
-    // Each entry goes back after the entry that was before it at Remove and is
-    // still there. Thus the entries added since Remove stay after them, and
-    // the other entries keep their order.
+    // Each entry goes back to the index it had at Remove, in ascending order,
+    // or to the end when the vector is now shorter. The other entries keep
+    // their order, also when the user changed one of them before Undo.
     restore: (record, before) => {
       const mods = modsOf(record).filter((m) => !belongs(m));
-      let at = 0;
-      for (const mod of modsOf(before)) {
-        if (belongs(mod)) mods.splice(at++, 0, mod);
-        else {
-          const i = mods.findIndex((m) => sameMod(m, mod));
-          if (i >= 0) at = i + 1;
-        }
-      }
+      modsOf(before).forEach((mod, i) => {
+        if (belongs(mod)) mods.splice(Math.min(i, mods.length), 0, mod);
+      });
       return withMods(record, mods);
     },
   };
@@ -240,22 +238,21 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       id: "ability",
       name: "Ability scores",
       example: "Strength becomes at least 19, Wisdom increases by 2",
-      ...modEntries((m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && ABILITY_ARGS.includes(String(modArgs(m)[0]))),
+      ...modEntries((m) => isAbilityMod(m) && ABILITY_ARGS.includes(String(modArgs(m)[0]))),
       render: ({ name, action }) => (
         <Fieldset legend={name} look="section" action={action}>
           <FieldRow>
-            {ABILITIES.map((ability, i) => {
-              const arg = ABILITY_ARGS[i];
-              return modRow(
+            {ABILITIES.map(({ ability, arg }) =>
+              modRow(
                 ability.toUpperCase(),
                 [
                   { key: "ability-override", text: "Becomes at least" },
                   { key: "ability", text: "Increases by" },
                 ],
-                (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
+                (m) => isAbilityMod(m) && modArgs(m)[0] === arg,
                 [arg],
-              );
-            })}
+              ),
+            )}
           </FieldRow>
         </Fieldset>
       ),
@@ -264,14 +261,13 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       id: "saving-throw-bonus",
       name: "Saving throw bonus",
       example: "+1 to Dexterity saving throws",
-      ...modEntries((m) => modKey(m) === "saving-throw-bonus" && ABILITY_ARGS.includes(String(modArgs(m)[0]))),
+      ...modEntries((m) => isSaveMod(m) && ABILITY_ARGS.includes(String(modArgs(m)[0]))),
       render: ({ name, action }) => (
         <Fieldset legend={name} name="Saving throws" look="section" action={action}>
           <FieldRow>
-            {ABILITIES.map((ability, i) => {
-              const arg = ABILITY_ARGS[i];
-              return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
-            })}
+            {ABILITIES.map(({ ability, arg }) =>
+              modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => isSaveMod(m) && modArgs(m)[0] === arg, [arg]),
+            )}
           </FieldRow>
         </Fieldset>
       ),

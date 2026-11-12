@@ -104,17 +104,17 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   /** A group that always shows. Some are base fields: they are in the list so that the groups keep their order. */
   const common = (id: string, name: string, render: (view: ModifierView) => ReactNode): Modifier => ({ id, name, common: true, render });
   /** A text of the monster as a modifier: a section with the text field in it, so that the Remove link has a rule. */
-  const textModifier = (field: string, name: string, example: string, area = false): Modifier => ({
-    id: field,
+  const textModifier = (fieldKey: string, name: string, example: string, area = false): Modifier => ({
+    id: fieldKey,
     name,
     example,
-    paths: [[field]],
+    paths: [[fieldKey]],
     render: ({ name, action }) => (
-      <Fieldset legend={name} look="section" action={action} errors={fieldErrors(problems, field, name)}>
+      <Fieldset legend={name} look="section" action={action} errors={fieldErrors(problems, fieldKey, name)}>
         {area ? (
-          <TextArea aria-label={name} value={String(record[tag(field)] ?? "")} onValueChange={(text) => set(field, text)} />
+          <TextArea aria-label={name} value={String(record[tag(fieldKey)] ?? "")} onValueChange={(text) => set(fieldKey, text)} />
         ) : (
-          <TextInput aria-label={name} value={String(record[tag(field)] ?? "")} onValueChange={(text) => set(field, text)} />
+          <TextInput aria-label={name} value={String(record[tag(fieldKey)] ?? "")} onValueChange={(text) => set(fieldKey, text)} />
         )}
       </Fieldset>
     ),
@@ -123,8 +123,8 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   /** The groups after Armor class in form order (docs/design/homebrew-forms.md, "Monster"). */
   const modifiers: Modifier[] = [
     textModifier("armor-notes", "Armor notes", "Natural armor, shield …"),
-    common("hit-points", "Hit points", () => (
-      <Fieldset legend="Hit points" look="section" errors={fieldErrors(problems, "hit-points", "Hit points")}>
+    common("hit-points", "Hit points", ({ name }) => (
+      <Fieldset legend={name} look="section" errors={fieldErrors(problems, "hit-points", name)}>
         <FieldRow>
           {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
           {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
