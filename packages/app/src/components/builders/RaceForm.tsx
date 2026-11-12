@@ -76,7 +76,7 @@ export const weaponChoices = (lists: BuilderChoices): Choice[] => [
   ...lists.weapons,
 ];
 export const ARMOR_CHOICES = choices(["light", "medium", "heavy", "shields"], (a) => `You gain proficiency with ${a}${a === "shields" ? "" : " armor"}`);
-export const ArmorChecks = ({ edit, legend = "Armor Proficiency", action }: SectionProps) => <PropChecks edit={edit} legend={legend} action={action} prop="armor-prof" items={ARMOR_CHOICES} />;
+export const ArmorChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Armor Proficiency" prop="armor-prof" items={ARMOR_CHOICES} />;
 export const ToolChecks = ({ edit, legend = "Tool Proficiency", action }: SectionProps) => (
   <Checks legend={legend} action={action} items={TOOLS} checked={(key) => edit.get("profs", "tool", key) === true} onToggle={(key) => edit.toggle(["profs", "tool", key])} />
 );
@@ -85,10 +85,8 @@ export const ResistanceChecks = ({ edit, legend = "Damage Resistances", action }
   <PropChecks edit={edit} legend={legend} action={action} prop="damage-resistance" items={RESISTANCE_CHOICES} />
 );
 export const IMMUNITY_CHOICES = choices(DAMAGE_TYPES, (d) => `Immunity to ${d} damage`);
-export const ImmunityChecks = ({ edit, legend = "Damage Immunities", action }: SectionProps) => (
-  <PropChecks edit={edit} legend={legend} action={action} prop="damage-immunity" items={IMMUNITY_CHOICES} />
-);
-export const SkillChecks = ({ edit, legend = "Skill Proficiencies", action }: SectionProps) => <PropChecks edit={edit} legend={legend} action={action} prop="skill-prof" items={SKILLS} />;
+export const ImmunityChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Damage Immunities" prop="damage-immunity" items={IMMUNITY_CHOICES} />;
+export const SkillChecks = ({ edit }: { edit: Edit }) => <PropChecks edit={edit} legend="Skill Proficiencies" prop="skill-prof" items={SKILLS} />;
 export const savingThrowChoices = CONDITIONS.map((name) => ({ key: nameToKw(name), name: `You have advantage on saving throws against being ${name}` }));
 
 const UNLOCK_LEVELS = range(1, 21).map((n): [number, string] => [n, `Level ${n}`]);

@@ -28,7 +28,8 @@ interface ModifierBase {
 /**
  * Where an added modifier keeps its values. Most modifiers give `paths`.
  * A modifier that shares a stored value with others, such as one entry of
- * a shared vector, gives the three functions instead.
+ * a shared vector, gives the three functions instead. No form uses the
+ * functions yet: the magic item form is the first, in ORC-198.
  */
 export type ModifierValues =
   | {
