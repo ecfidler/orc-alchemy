@@ -57,7 +57,14 @@ test("a new spell is on no class list; the picker has the eight classes with no 
   await pick(LISTS, ADD, ["Wizard", "Bard"]);
   expect(tokens(LISTS)).toEqual(["Bard", "Wizard"]);
   await saved(router);
-  expect(stored("fire-pop")!["~:spell-lists"]).toEqual({ "~:wizard": true, "~:bard": true });
+  expect(stored("fire-pop")).toEqual({
+    "~:name": "Fire Pop",
+    "~:key": "~:fire-pop",
+    "~:option-pack": DEFAULT,
+    "~:level": 0,
+    "~:school": "abjuration",
+    "~:spell-lists": { "~:wizard": true, "~:bard": true },
+  });
 });
 
 test("a pick then a remove stores false, as the old checkbox's double click", async () => {
@@ -117,5 +124,5 @@ test("a removed unknown class stores false and leaves the list; a pick of a clas
   await unpick(LISTS, "artificer");
   expect(await addList(add(), ADD)).not.toContain("artificer");
   await saved(router);
-  expect(stored("old-spark", "Reef")!["~:spell-lists"]).toEqual({ "~:bard": true, "~:artificer": false });
+  expect(stored("old-spark", "Reef")).toEqual({ ...item, "~:spell-lists": { "~:bard": true, "~:artificer": false } });
 });

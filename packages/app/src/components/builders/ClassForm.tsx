@@ -45,6 +45,7 @@ import {
   TOOLS,
   Traits,
   WithChoices,
+  withOthers,
   YES_NO,
   type BuilderType,
   type Edit,
@@ -194,12 +195,13 @@ function Spellcasting({ edit, problems, choices }: ListProps) {
     edit.set(["spellcasting", "cantrips-known"], map);
   };
   // A stored spell that no list has, such as one of a pack that is not enabled, shows as a token with its key, and stays.
-  const spellItems = (level: number): PickItem[] => {
-    const items: PickItem[] = choices.spells.filter((s) => s.level === level);
-    const known = new Set(items.map((s) => tag(s.key)));
-    const others = setItems(edit.get("spellcasting", "spell-list", intKey(level))).filter((v): v is string => typeof v === "string" && !known.has(v));
-    return [...items, ...others.map((v) => ({ key: untag(v), name: untag(v) }))];
-  };
+  const spellItems = (level: number): PickItem[] =>
+    withOthers(
+      choices.spells.filter((s) => s.level === level),
+      setItems(edit.get("spellcasting", "spell-list", intKey(level)))
+        .filter((v): v is string => typeof v === "string")
+        .map(untag),
+    );
   const maxLevel = factor === 2 ? 5 : factor === 3 ? 4 : 9;
 
   return (

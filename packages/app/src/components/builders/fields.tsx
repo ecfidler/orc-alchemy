@@ -333,7 +333,7 @@ export interface PickerOptions {
   add: string;
   /** A search field in the list. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 options. */
   search?: boolean;
-  /** A stored key that is no option, such as one of a pack that is not enabled, shows as a token named by its key (withOthers). */
+  /** MapPicker only: a stored key that is no option, such as one of a pack that is not enabled, shows as a token named by its key (withOthers). For a SetPicker, give it withOthers items. */
   others?: boolean;
 }
 

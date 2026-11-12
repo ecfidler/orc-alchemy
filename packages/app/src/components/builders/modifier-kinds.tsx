@@ -38,7 +38,8 @@ export const weaponChoices = (lists: BuilderChoices): Choice[] => [
 /** Short names, for a checkbox row. */
 export const ARMOR_CHOICES = choices(["light", "medium", "heavy", "shields"], (a) => (a === "shields" ? "Shields" : `${title(a)} armor`));
 export const RESISTANCE_CHOICES = choices(["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Damage from traps" : title(d)));
-export const IMMUNITY_CHOICES = choices(DAMAGE_TYPES, title);
+/** The damage types, for damage immunities, and for the resistances and vulnerabilities that have no "traps". */
+export const DAMAGE_CHOICES = choices(DAMAGE_TYPES, title);
 /** The conditions, keyed as common/name-to-kw keys them, such as :poisoned. */
 export const CONDITION_CHOICES = CONDITIONS.map((name) => ({ key: nameToKw(name), name }));
 export const SAVING_THROW_CHOICES = CONDITION_CHOICES;

@@ -575,10 +575,29 @@ test("a damage picker adds an entry at the end, and the X of an arg stored twice
   renderAt("/content/edit/magicItem/twin-ring");
   await form("Edit magic item");
   expect(tokens("Damage immunities")).toEqual(["Fire"]);
+  // The footer counts the arg stored twice once.
+  fireEvent.click(group("Damage immunities").getByRole("button", { name: "Add a damage immunity" }));
+  expect(within(await screen.findByRole("dialog")).getByRole("status").textContent).toBe("1 on the form");
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   await pick("Damage immunities", "Add a damage immunity", ["Cold", "Acid"]);
   expect(tokens("Damage immunities")).toEqual(["Acid", "Cold", "Fire"]);
   await unpick("Damage immunities", "Fire");
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   expect((stored("twin-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([wis(1), mod("damage-immunity", ["cold"]), mod("damage-immunity", ["acid"])]);
+});
+
+test("on armor, a stored :other is a token, and its X removes only it: no New weapon details", async () => {
+  const item = { [`${MI}name`]: "Odd Mail", [`${MI}type`]: "~:armor", [`${MI}rarity`]: "~:rare", [`${MI}subtypes`]: ["~:other", "~:plate"] };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/odd-mail");
+  await form("Edit magic item");
+  expect(shown("Base armor")).toBe("Specific");
+  expect(tokens("Base armor")).toEqual(["Plate", "other"]);
+  await unpick("Base armor", "other");
+  expect(tokens("Base armor")).toEqual(["Plate"]);
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("odd-mail")!.item).toEqual({ ...item, [`${MI}subtypes`]: ["~:plate"] });
 });

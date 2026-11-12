@@ -44,7 +44,7 @@ import {
   type ItemRecord,
   type Path,
 } from "./fields.tsx";
-import { armorModifier, choiceModifier, IMMUNITY_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES, toolModifier, weaponChoices } from "./modifier-kinds.tsx";
+import { armorModifier, choiceModifier, DAMAGE_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES, toolModifier, weaponChoices } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier } from "./modifiers.tsx";
 
 export const SIZES = ["small", "medium", "large"];
@@ -213,7 +213,7 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
     armorModifier(edit),
     toolModifier(edit),
     { id: "damage-resistance", name: "Damage Resistances", common: true, render: mapPicker(edit, ["props", "damage-resistance"], RESISTANCE_CHOICES, { add: "Add a damage resistance" }) },
-    propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", IMMUNITY_CHOICES, { add: "Add a damage immunity" }),
+    propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", DAMAGE_CHOICES, { add: "Add a damage immunity" }),
     propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS, { add: "Add a skill" }),
     choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS, { add: "Add a skill option" }),
     {
