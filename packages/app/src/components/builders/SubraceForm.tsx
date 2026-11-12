@@ -6,14 +6,14 @@
 // subrace's speed and darkvision only when they differ from the race's. The
 // languages are checkboxes in :props, as {:language {:elvish true}}, and
 // :props :max-hp-bonus is 1, 2 or absent.
-import { Field, Fieldset } from "@orc-alchemy/ui";
+import { Field } from "@orc-alchemy/ui";
 import { tag, untag } from "../../engine/content.ts";
 import {
-  ABILITIES,
-  abilityKey,
   Checks,
   editor,
   fieldErrors,
+  FieldRow,
+  FormColumn,
   numbers,
   ProficiencyChoice,
   range,
@@ -25,7 +25,7 @@ import {
   type BuilderType,
   type FormProps,
 } from "./fields.tsx";
-import { ArmorChecks, BONUSES, ImmunityChecks, PropChecks, ResistanceChecks, savingThrowChoices, SIZES, SkillChecks, Spells, ToolChecks, weaponChoices } from "./RaceForm.tsx";
+import { AbilityIncreases, ArmorChecks, ImmunityChecks, PropChecks, ResistanceChecks, savingThrowChoices, SIZES, SkillChecks, Spells, ToolChecks, weaponChoices } from "./RaceForm.tsx";
 
 function SubraceForm({ record, onChange, problems }: FormProps) {
   const edit = editor(record, onChange);
@@ -35,30 +35,23 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
         const race = lists.races.find((r) => r.key === untag(edit.get("race")));
         const hpBonus = edit.get("props", "max-hp-bonus");
         return (
-          <div className="space-y-3">
+          <FormColumn>
             <TextField edit={edit} problems={problems} field="name" label="Name" />
             <Field label="Race" errors={fieldErrors(problems, "race", "Race")}>
               <SelectField label="Race" value={edit.get("race")} options={lists.races.map((r) => [tag(r.key), r.name])} onSelect={(v) => edit.set(["race"], v)} />
             </Field>
-            <div>
+            <FieldRow>
               <SelectField label="Size" value={edit.get("size") ?? (race?.size && tag(race.size))} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
               <SelectField label="Speed" value={edit.get("speed") ?? race?.speed} options={numbers(range(5, 55, 5))} onSelect={(v) => edit.set(["speed"], v)} />
               <SelectField label="Darkvision" value={edit.get("darkvision") ?? race?.darkvision} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
-            </div>
-            <Fieldset legend="Ability Score Increases">
-              {ABILITIES.map(([key, name]) => {
+            </FieldRow>
+            <AbilityIncreases
+              edit={edit}
+              note={(key, bonus) => {
                 const raceBonus = race?.abilities[key] ?? 0;
-                const bonus = (edit.get("abilities", abilityKey(key)) as number | undefined) ?? 0;
-                return (
-                  <div key={key}>
-                    <SelectField label={name} value={bonus} options={BONUSES} onSelect={(v) => edit.set(["abilities", abilityKey(key)], v)} />
-                    <span>
-                      Race bonus {raceBonus}, total {raceBonus + bonus}
-                    </span>
-                  </div>
-                );
-              })}
-            </Fieldset>
+                return `Race bonus ${raceBonus}, total ${raceBonus + bonus}`;
+              }}
+            />
             <Checks
               legend="Hit Points"
               items={[1, 2].map((n) => ({ key: String(n), name: `Your hit point maximum increases by ${n} for each of your levels` }))}
@@ -76,7 +69,7 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
             <PropChecks edit={edit} legend="Languages" prop="language" items={lists.languages} />
             <Spells edit={edit} lists={lists} />
             <Traits edit={edit} />
-          </div>
+          </FormColumn>
         );
       }}
     </WithChoices>

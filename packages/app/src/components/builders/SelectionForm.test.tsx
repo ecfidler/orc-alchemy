@@ -41,7 +41,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const add = () => fireEvent.click(screen.getByRole("button", { name: "Add option" }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (pack: string, key: string) => {
@@ -55,7 +55,7 @@ async function saved(router: ReturnType<typeof renderAt>) {
 
 test("each problem shows under its field or option, and Save is off until the selection is valid", async () => {
   renderAt("/content/new/selection");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(problems("Name")).toBe("Name is required.");
   expect(save().disabled).toBe(true);
   type("Name", "Quirks");
@@ -83,7 +83,7 @@ test("each problem shows under its field or option, and Save is off until the se
 
 test("the form recreates Divergent Soul Quirks of the GM Binder fixture, Edit loads it back, and the class form offers it", async () => {
   const router = renderAt("/content/new/selection");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Option source (pack)", PACK);
   type("Name", "Divergent Soul Quirks");
   QUIRKS.forEach((quirk, i) => {
@@ -101,14 +101,14 @@ test("the form recreates Divergent Soul Quirks of the GM Binder fixture, Edit lo
   cleanup();
   renderAt(`/content/edit/selection/${encodeURIComponent(PACK)}/divergent-soul-quirks`);
   await screen.findByRole("form", { name: "Edit selection" });
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Divergent Soul Quirks");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Divergent Soul Quirks");
   expect(screen.getByLabelText<HTMLInputElement>("Option 6 name").value).toBe(QUIRKS[5]);
   expect(save().disabled).toBe(false);
 
   // As the old class builder's level selections: a selection of the packs is a type a class level can give.
   cleanup();
   renderAt("/content/new/class");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
   const types = await optionNames(screen.getByRole("combobox", { name: "Selection 1 type" }));
   expect(types).toContain("Divergent Soul Quirks");
@@ -116,7 +116,7 @@ test("the form recreates Divergent Soul Quirks of the GM Binder fixture, Edit lo
 
 test("an option description is stored as :description, and a deleted option is removed", async () => {
   const router = renderAt("/content/new/selection");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Fighting Tricks");
   add();
   add();

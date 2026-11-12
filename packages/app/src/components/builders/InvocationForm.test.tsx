@@ -30,7 +30,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === DEFAULT)?.plugin;
@@ -48,7 +48,7 @@ function find(selections: BuilderSelection[], key: string): BuilderSelection | u
 
 test("the name problem shows under its field, and Save is off until the eldritch invocation has a name", async () => {
   renderAt("/content/new/invocation");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(problems("Name")).toBe("Name is required.");
   expect(save().disabled).toBe(true);
   type("Name", "2 Bad");
@@ -60,7 +60,7 @@ test("the name problem shows under its field, and Save is off until the eldritch
 
 test("the eldritch invocation is stored as the old save stores it, Edit loads it back, and it is one of a warlock 2's invocation choices", async () => {
   const router = renderAt("/content/new/invocation");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Eyes of the Abyss");
   type("Description", "You can see in magical darkness to 60 feet.");
   fireEvent.click(save());
@@ -83,7 +83,7 @@ test("the eldritch invocation is stored as the old save stores it, Edit loads it
   cleanup();
   renderAt(`/content/edit/invocation/${encodeURIComponent(DEFAULT)}/eyes-of-the-abyss`);
   await screen.findByRole("form", { name: "Edit eldritch invocation" });
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Eyes of the Abyss");
-  expect(screen.getByLabelText<HTMLTextAreaElement>("Description").value).toBe("You can see in magical darkness to 60 feet.");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Eyes of the Abyss");
+  expect(screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Description" }).value).toBe("You can see in magical darkness to 60 feet.");
   expect(save().disabled).toBe(false);
 });

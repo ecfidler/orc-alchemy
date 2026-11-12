@@ -8,12 +8,12 @@
 // Custom base weapon (the subtype :other) has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
 // load use the magic items store.
-import { Checkbox, Field, FieldErrors, Fieldset, NumberField, Select } from "@orc-alchemy/ui";
+import { Checkbox, Field, FieldErrors, FieldLabel, Fieldset, Label, NumberField, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, nameToKw, numberOrNull, numbers, orFirst, range, SelectField, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
+import { CheckGrid, CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, FieldRow, FormColumn, nameToKw, numberOrNull, numbers, orFirst, range, SelectField, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
 const W = "orcpub.dnd.e5.weapons/";
@@ -124,9 +124,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
 
   const field = (name: string, label: string, control: ReactNode) => (
     <Field label={label} errors={fieldErrors(problems, MI + name, label)}>
-      <label className="block">
-        {label} {control}
-      </label>
+      <FieldLabel label={label}>{control}</FieldLabel>
     </Field>
   );
   const select = (name: string, values: string[], names: (v: string) => string, onSelect: (v: string) => void) => {
@@ -140,15 +138,17 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       <NumberField value={numberOrNull(get(name))} onValueChange={(n) => change({ [name]: n ?? undefined })} />,
     );
   const check = (label: string, checked: boolean, onToggle: () => void, disabled = false) => (
-    <Checkbox key={label} label={label} checked={checked} disabled={disabled} onCheckedChange={onToggle} className="mr-4" />
+    <Checkbox key={label} label={label} checked={checked} disabled={disabled} onCheckedChange={onToggle} />
   );
   /** A modifier with one keyword arg, on or off, such as a damage resistance (magic_items.cljc toggle-mods). */
   const toggles = (legend: string, key: string, values: string[]) => (
-    <Fieldset legend={legend}>
-      {values.map((value) => {
-        const match = (m: Mod) => modKey(m) === key && modArgs(m)[0] === value;
-        return check(title(value), findMod(match) !== undefined, () => setMod(match, findMod(match) ? null : modCfg(key, value)));
-      })}
+    <Fieldset legend={legend} look="section">
+      <CheckGrid names={values.map(title)}>
+        {values.map((value) => {
+          const match = (m: Mod) => modKey(m) === key && modArgs(m)[0] === value;
+          return check(title(value), findMod(match) !== undefined, () => setMod(match, findMod(match) ? null : modCfg(key, value)));
+        })}
+      </CheckGrid>
     </Fieldset>
   );
   /** A number with how it changes: a select of the modifier key, and its int value. */
@@ -157,9 +157,8 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
     const current = keys.find((k) => mod && modKey(mod) === k.key);
     const value = mod ? modArgs(mod)[args.length] : undefined;
     return (
-      <div key={label}>
-        <label>
-          {label}{" "}
+      <FieldRow key={label} look="tight">
+        <FieldLabel label={label}>
           <Select
             aria-label={`${label} change`}
             value={current?.key ?? ""}
@@ -169,7 +168,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
               setMod(match, k ? (k.noValue ? modCfg(k.key, ...args) : modCfg(k.key, ...args, typeof value === "number" ? value : 0)) : null);
             }}
           />
-        </label>{" "}
+        </FieldLabel>
         {current && !current.noValue && (
           <NumberField
             aria-label={`${label} value`}
@@ -177,135 +176,150 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
             onValueChange={(n) => setMod(match, modCfg(current.key, ...args, n ?? 0))}
           />
         )}
-      </div>
+      </FieldRow>
     );
   };
 
   return (
     <WithChoices>
       {({ weapons, classes }) => (
-        <div className="space-y-3">
-          {field(
-            "name",
-            "Name",
-            <input type="text" value={String(get("name") ?? "")} onChange={(e) => change({ name: e.target.value })} className="border border-ink px-1" />,
-          )}
-          {/* As the old set-item-type, a new type drops the subtypes. */}
-          {field("type", "Type", select("type", TYPES, title, (v) => change({ type: tag(v), subtypes: undefined })))}
-          {field("rarity", "Rarity", select("rarity", RARITIES, title, (v) => change({ rarity: tag(v) })))}
+        <FormColumn>
+          {field("name", "Name", <TextInput value={String(get("name") ?? "")} onValueChange={(text) => change({ name: text })} />)}
           {field(
             "description",
             "Description",
-            <textarea value={String(get("description") ?? "")} onChange={(e) => change({ description: e.target.value })} className="block w-full border border-ink" rows={6} />,
+            <TextArea value={String(get("description") ?? "")} onValueChange={(text) => change({ description: text })} rows={6} />,
           )}
+          <FieldRow>
+            {/* As the old set-item-type, a new type drops the subtypes. */}
+            {field("type", "Type", select("type", TYPES, title, (v) => change({ type: tag(v), subtypes: undefined })))}
+            {field("rarity", "Rarity", select("rarity", RARITIES, title, (v) => change({ rarity: tag(v) })))}
+          </FieldRow>
           {(type === "weapon" || type === "armor") && (
-            <Fieldset legend={baseLegend} errors={fieldErrors(problems, MI + "subtypes", baseLegend)}>
-              {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
-              {type === "weapon" && [...weapons].sort((a, b) => a.name.localeCompare(b.name)).map(({ key, name }) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
+            <Fieldset legend={baseLegend} look="section" errors={fieldErrors(problems, MI + "subtypes", baseLegend)}>
+              <CheckGrid names={[...(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([, name]) => name), ...(type === "weapon" ? weapons.map((w) => w.name) : [])]}>
+                {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
+                {type === "weapon" && [...weapons].sort((a, b) => a.name.localeCompare(b.name)).map(({ key, name }) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
+              </CheckGrid>
             </Fieldset>
           )}
           {type === "weapon" && subtypes.includes(tag("other")) && (
-            <Fieldset legend="Base weapon details">
-              <div>
+            <Fieldset legend="Base weapon details" look="section">
+              <div className="mb-[10px]">
+                <CheckGrid names={WEAPON_PROPERTIES.map((p) => `${p.name}?`)}>
                 {/* As the old toggles: Versatile is a map of its damage dice or absent, and each other property is true or false. */}
                 {WEAPON_PROPERTIES.map(({ name, field }) =>
                   name === "Versatile"
                     ? check("Versatile?", versatile !== undefined, () => edit.set([W + "versatile"], versatile === undefined ? {} : undefined))
                     : check(`${name}?`, edit.get(W + field) === true, () => edit.toggle([W + field])),
                 )}
+                </CheckGrid>
               </div>
-              <SelectField label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
-              <SelectField label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
-              {versatile !== undefined && (
-                <>
-                  <SelectField
-                    label="Versatile damage die number"
-                    value={edit.get(W + "versatile", W + "damage-die-count")}
-                    options={numbers(range(1, 10))}
-                    onSelect={(n) => edit.set([W + "versatile", W + "damage-die-count"], n)}
-                  />
-                  <SelectField label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
-                </>
-              )}
-              <SelectField label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
-              <SelectField
-                label="Melee / ranged"
-                value={edit.get(W + "melee?") === true ? "melee" : ranged ? "ranged" : undefined}
-                options={["melee", "ranged"].map((v) => [v, title(v)])}
-                onSelect={(v) => onChange({ ...record, [tag(W + "melee?")]: v === "melee", [tag(W + "ranged?")]: v === "ranged" })}
-              />
-              {ranged &&
-                ["min", "max"].map((end) => (
-                  <label key={end} className="mr-4 inline-block">
-                    Range {end}{" "}
-                    {/* Only a whole number of 0 or more is a value. */}
-                    <NumberField
-                      value={numberOrNull(edit.get(W + "range", W + end))}
-                      onValueChange={(n) => edit.set([W + "range", W + end], n !== null && n >= 0 ? n : undefined)}
+              <FieldRow>
+                <SelectField label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
+                <SelectField label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
+                {versatile !== undefined && (
+                  <>
+                    <SelectField
+                      label="Versatile damage die number"
+                      value={edit.get(W + "versatile", W + "damage-die-count")}
+                      options={numbers(range(1, 10))}
+                      onSelect={(n) => edit.set([W + "versatile", W + "damage-die-count"], n)}
                     />
-                  </label>
-                ))}
-              <SelectField label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
+                    <SelectField label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
+                  </>
+                )}
+                <SelectField label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
+                <SelectField
+                  label="Melee / ranged"
+                  value={edit.get(W + "melee?") === true ? "melee" : ranged ? "ranged" : undefined}
+                  options={["melee", "ranged"].map((v) => [v, title(v)])}
+                  onSelect={(v) => onChange({ ...record, [tag(W + "melee?")]: v === "melee", [tag(W + "ranged?")]: v === "ranged" })}
+                />
+                {ranged &&
+                  ["min", "max"].map((end) => (
+                    <FieldLabel key={end} label={`Range ${end}`}>
+                      {/* Only a whole number of 0 or more is a value. */}
+                      <NumberField
+                        value={numberOrNull(edit.get(W + "range", W + end))}
+                        onValueChange={(n) => edit.set([W + "range", W + end], n !== null && n >= 0 ? n : undefined)}
+                      />
+                    </FieldLabel>
+                  ))}
+                <SelectField label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
+              </FieldRow>
             </Fieldset>
           )}
-          <Fieldset legend="Attunement" errors={fieldErrors(problems, MI + "attunement", "Attunement")}>
+          <Fieldset legend="Attunement" look="section" errors={fieldErrors(problems, MI + "attunement", "Attunement")}>
             {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] }))}
             {attunement.length > 0 && (
-              <div>
+              <div className="mt-[6px] grid gap-[6px]">
                 {check("Any", attunement.length === 1 && attunement[0] === tag("any"), () => {}, true)}
                 <div>
-                  Class:{" "}
-                  {check("Spellcaster", attunement.includes(tag("spellcaster")), () => toggleAttunement("spellcaster"))}
-                  {classes.map(({ key, name }) => check(name, attunement.includes(tag(key)), () => toggleAttunement(key)))}
+                  <Label>Class:</Label>
+                  <CheckGrid names={["Spellcaster", ...classes.map((c) => c.name)]}>
+                    {check("Spellcaster", attunement.includes(tag("spellcaster")), () => toggleAttunement("spellcaster"))}
+                    {classes.map(({ key, name }) => check(name, attunement.includes(tag(key)), () => toggleAttunement(key)))}
+                  </CheckGrid>
                 </div>
                 <div>
-                  Alignment:{" "}
-                  {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKw(name))), () => toggleAttunement(nameToKw(name))))}
+                  <Label>Alignment:</Label>
+                  <CheckGrid names={["Good", "Evil", ...ALIGNMENTS]}>
+                    {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKw(name))), () => toggleAttunement(nameToKw(name))))}
+                  </CheckGrid>
                 </div>
               </div>
             )}
           </Fieldset>
-          <Fieldset legend="Item properties">
-            {type === "weapon" && bonus("magical-attack-bonus", "Magical attack bonus")}
-            {type === "weapon" && bonus("magical-damage-bonus", "Magical damage bonus")}
-            {bonus("magical-ac-bonus", "Magical AC bonus")}
+          <Fieldset legend="Item properties" look="section">
+            <FieldRow>
+              {type === "weapon" && bonus("magical-attack-bonus", "Magical attack bonus")}
+              {type === "weapon" && bonus("magical-damage-bonus", "Magical damage bonus")}
+              {bonus("magical-ac-bonus", "Magical AC bonus")}
+            </FieldRow>
           </Fieldset>
-          <Fieldset legend="Ability scores">
-            {ABILITIES.map((ability) => {
-              const arg = `orcpub.dnd.e5.character/${ability}`;
-              return modRow(
-                ability.toUpperCase(),
-                [
-                  { key: "ability-override", text: "Becomes at least" },
-                  { key: "ability", text: "Increases by" },
-                ],
-                (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
-                [arg],
-              );
-            })}
+          <Fieldset legend="Ability scores" look="section">
+            <FieldRow>
+              {ABILITIES.map((ability) => {
+                const arg = `orcpub.dnd.e5.character/${ability}`;
+                return modRow(
+                  ability.toUpperCase(),
+                  [
+                    { key: "ability-override", text: "Becomes at least" },
+                    { key: "ability", text: "Increases by" },
+                  ],
+                  (m) => (modKey(m) === "ability" || modKey(m) === "ability-override") && modArgs(m)[0] === arg,
+                  [arg],
+                );
+              })}
+            </FieldRow>
           </Fieldset>
-          <Fieldset legend="Saving throw bonus" name="Saving throws">
-            {ABILITIES.map((ability) => {
-              const arg = `orcpub.dnd.e5.character/${ability}`;
-              return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
-            })}
+          <Fieldset legend="Saving throw bonus" name="Saving throws" look="section">
+            <FieldRow>
+              {ABILITIES.map((ability) => {
+                const arg = `orcpub.dnd.e5.character/${ability}`;
+                return modRow(`${ability.toUpperCase()} save`, [{ key: "saving-throw-bonus", text: "Increases by" }], (m) => modKey(m) === "saving-throw-bonus" && modArgs(m)[0] === arg, [arg]);
+              })}
+            </FieldRow>
           </Fieldset>
-          <Fieldset legend="Speed bonus" name="Speeds">
-            {SPEEDS.map(({ label, increases, atLeast, walking }) => {
-              const keys = [
-                { key: atLeast, text: "Becomes at least" },
-                { key: increases, text: "Increases by" },
-                ...(walking ? [{ key: walking, text: "Equals walking speed", noValue: true }] : []),
-              ];
-              return modRow(label, keys, (m) => keys.some((k) => k.key === modKey(m)), []);
-            })}
+          <Fieldset legend="Speed bonus" name="Speeds" look="section">
+            <FieldRow>
+              {SPEEDS.map(({ label, increases, atLeast, walking }) => {
+                const keys = [
+                  { key: atLeast, text: "Becomes at least" },
+                  { key: increases, text: "Increases by" },
+                  ...(walking ? [{ key: walking, text: "Equals walking speed", noValue: true }] : []),
+                ];
+                return modRow(label, keys, (m) => keys.some((k) => k.key === modKey(m)), []);
+              })}
+            </FieldRow>
           </Fieldset>
           {toggles("Damage resistances", "damage-resistance", DAMAGE_TYPES)}
           {toggles("Damage vulnerabilities", "damage-vulnerability", DAMAGE_TYPES)}
           {toggles("Damage immunities", "damage-immunity", DAMAGE_TYPES)}
           {toggles("Condition immunities", "condition-immunity", CONDITIONS.map(nameToKw))}
           <FieldErrors label="Modifiers" errors={fieldErrors(problems, MI + "modifiers", "Modifiers")} />
-        </div>
+        </FormColumn>
       )}
     </WithChoices>
   );

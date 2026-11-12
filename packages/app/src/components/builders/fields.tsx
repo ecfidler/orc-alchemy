@@ -2,12 +2,13 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button, Checkbox, Field, Fieldset, Select, type SelectOption } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput, XButton, type SelectOption } from "@orc-alchemy/ui";
 import type { ComponentType, ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
 import { nameToKw, tag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
+import { ordinal } from "../CharacterSheet.tsx";
 
 /**
  * One item as the form edits it: verbose Transit-JSON, as a stored pack has
@@ -124,6 +125,9 @@ export const TOOLS: Choice[] = [...MUSICAL_INSTRUMENTS, ...ARTISANS_TOOLS, ...MI
 /** A select's options: the stored value and its text. */
 export type Options = [value: unknown, text: string][];
 
+/** The spell levels, with their stored numbers: Cantrip, 1st, 2nd … 9th. */
+export const SPELL_LEVELS: Options = Array.from({ length: 10 }, (_, n) => [n, n === 0 ? "Cantrip" : ordinal(n)]);
+
 /** The abilities as their stored keywords, for a select. */
 export const ABILITY_OPTIONS: Options = ABILITIES.map(([key, name]) => [tag(abilityKey(key)), name]);
 export const TRAIT_TYPES: Options = [
@@ -187,61 +191,145 @@ export function orFirst<T>(value: unknown, options: readonly SelectOption<T>[]):
 }
 
 /**
- * A labelled select, with the package Select inside. A number or a keyword
- * finds its option by its stored value. placeholder is an extra first option
- * for no value, which onSelect gets as undefined. Without one, a value that
- * is not an option shows the first option, as the old dropdowns did.
+ * A labelled select, with the package Select inside, and its label above
+ * it. A number or a keyword finds its option by its stored value.
+ * placeholder is an extra first option for no value, which onSelect gets as
+ * undefined. Without one, a value that is not an option shows the first
+ * option, as the old dropdowns did. name is the select's name when the
+ * visible label is short, such as "Type" for "Feature 1 type"; it must hold
+ * the label's words.
  */
-export function SelectField({ label, value, options, onSelect, placeholder }: { label: string; value: unknown; options: Options; onSelect: (value: unknown) => void; placeholder?: string }) {
+export function SelectField({
+  label,
+  name,
+  value,
+  options,
+  onSelect,
+  placeholder,
+  className,
+}: {
+  label: string;
+  name?: string;
+  value: unknown;
+  options: Options;
+  onSelect: (value: unknown) => void;
+  placeholder?: string;
+  className?: string;
+}) {
   const all: SelectOption<unknown>[] = placeholder === undefined ? options : [[null, placeholder], ...options];
   return (
-    <label className="mr-4 inline-block">
-      {label}{" "}
-      <Select value={placeholder === undefined ? orFirst(value, options) : value} options={all} onValueChange={(v) => onSelect(v ?? undefined)} />
-    </label>
+    <FieldLabel label={label} className={className}>
+      <Select aria-label={name} value={placeholder === undefined ? orFirst(value, options) : value} options={all} onValueChange={(v) => onSelect(v ?? undefined)} />
+    </FieldLabel>
   );
 }
 
-/** A group of checkboxes, one for each item. */
-export function Checks({ legend, items, checked, onToggle }: { legend: string; items: Choice[]; checked: (key: string) => boolean; onToggle: (key: string) => void }) {
+const ROW_LOOKS = {
+  fields: "gap-x-[18px] gap-y-[10px]",
+  list: "gap-x-[10px] gap-y-2 border-b border-rule py-2",
+  tight: "gap-x-[10px] gap-y-2",
+};
+
+/**
+ * A row of fields that wrap, aligned at their bottom edge. The row owns the
+ * gaps, so a field has no margin. "fields" is a row of a form or a section,
+ * "tight" a row of fields that belong together, such as the top row of a
+ * Card, and "list" one row of a list, tight with a rule under it.
+ */
+export function FieldRow({ look = "fields", children }: { look?: keyof typeof ROW_LOOKS; children: ReactNode }) {
+  return <div className={`flex flex-wrap items-end ${ROW_LOOKS[look]}`}>{children}</div>;
+}
+
+/** The one column of a form: about 720px wide, with space between its fields and sections. */
+export function FormColumn({ children }: { children: ReactNode }) {
+  return <div className="grid max-w-[720px] gap-[22px]">{children}</div>;
+}
+
+/** A line of help text under a section title. */
+export function Help({ children }: { children: ReactNode }) {
+  return <p className="mb-[6px] text-[14.5px] text-ink-muted">{children}</p>;
+}
+
+/** A full-width "Add x" button under a list. The "+" is not a part of its name. */
+export function AddButton({ onClick, children }: { onClick: () => void; children: string }) {
   return (
-    <Fieldset legend={legend}>
-      {items.map(({ key, name }) => (
-        <Checkbox key={key} label={name} checked={checked(key)} onCheckedChange={() => onToggle(key)} className="mr-4" />
-      ))}
+    <Button wide onClick={onClick} className="mt-[10px]">
+      <span aria-hidden="true">+</span>
+      {children}
+    </Button>
+  );
+}
+
+/** A checkbox name longer than this is a sentence: it takes a whole line of a CheckGrid. */
+const SENTENCE = 44;
+
+/** The checkboxes of a group in columns: wide columns for long names, one column for sentences. A sentence among short names takes its own line. */
+export function CheckGrid({ names, children }: { names: string[]; children: ReactNode }) {
+  const short = names.filter((name) => name.length <= SENTENCE);
+  const longest = short.length === 0 ? Infinity : Math.max(0, ...short.map((name) => name.length));
+  const columns = longest <= 24 ? "grid-cols-[repeat(auto-fill,minmax(160px,1fr))]" : longest <= SENTENCE ? "grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))]" : "grid-cols-1";
+  return <div className={`grid gap-x-[14px] gap-y-[3px] ${columns}`}>{children}</div>;
+}
+
+/** A group of checkboxes, one for each item, as a section of the form. name names the group when the legend is not the right name. */
+export function Checks({ legend, name, items, checked, onToggle }: { legend: string; name?: string; items: Choice[]; checked: (key: string) => boolean; onToggle: (key: string) => void }) {
+  return (
+    <Fieldset legend={legend} name={name} look="section">
+      <CheckGrid names={items.map((item) => item.name)}>
+        {items.map(({ key, name }) => (
+          <Checkbox
+            key={key}
+            label={name}
+            checked={checked(key)}
+            onCheckedChange={() => onToggle(key)}
+            className={`items-start [&>.ui-check]:mt-[4px] ${name.length > SENTENCE ? "col-span-full" : ""}`}
+          />
+        ))}
+      </CheckGrid>
     </Fieldset>
   );
 }
 
-/** A text field of the record, with its problems. */
+/** A text field of the record, with its problems, and its label above it. */
 export function TextField({ edit, problems, field, label }: { edit: Edit; problems: Problem[]; field: string; label: string }) {
   return (
     <Field label={label} errors={fieldErrors(problems, field, label)}>
-      <label className="block">
-        {label}{" "}
-        <input type="text" value={String(edit.get(field) ?? "")} onChange={(e) => edit.set([field], e.target.value)} className="border border-ink px-1" />
-      </label>
+      <FieldLabel label={label}>
+        <TextInput value={String(edit.get(field) ?? "")} onValueChange={(text) => edit.set([field], text)} />
+      </FieldLabel>
     </Field>
   );
 }
 
-/** A text area of the record's field, such as :description or :help. */
-export function TextArea({ edit, field, label }: { edit: Edit; field: string; label: string }) {
+/** A text area of the record's field, such as :description or :help, of the full width. */
+export function RecordTextArea({ edit, field, label }: { edit: Edit; field: string; label: string }) {
   return (
-    <label className="block">
-      {label}
-      <textarea value={String(edit.get(field) ?? "")} onChange={(e) => edit.set([field], e.target.value)} className="block w-full border border-ink" rows={4} />
-    </label>
+    <FieldLabel label={label}>
+      <TextArea value={String(edit.get(field) ?? "")} onValueChange={(text) => edit.set([field], text)} />
+    </FieldLabel>
   );
 }
 
 /** A proficiency choice in :profs, as {:skill-options {:choose 2 :options {:arcana true}}}. Choose shows 1 until it is set. */
 export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; legend: string; field: string; items: Choice[] }) {
   return (
-    <Fieldset legend={legend}>
-      <SelectField label={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
-      <Checks legend={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
+    <Fieldset legend={legend} look="section">
+      <SelectField label="Choose" name={`${legend}: choose`} value={edit.get("profs", field, "choose")} options={numbers(range(1, 6))} onSelect={(n) => edit.set(["profs", field, "choose"], n)} />
+      <Checks legend="Options" name={`${legend}: options`} items={items} checked={(key) => edit.get("profs", field, "options", key) === true} onToggle={(key) => edit.toggle(["profs", field, "options", key])} />
     </Fieldset>
+  );
+}
+
+/**
+ * One card of a list, such as a feature: its top row of fields with the X
+ * button at the end, then its other fields, such as a description.
+ */
+export function Card({ top, children }: { top: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="grid gap-2 border border-rule-strong bg-paper-raised px-3 py-[10px] [&+&]:mt-[10px]">
+      <FieldRow look="tight">{top}</FieldRow>
+      {children}
+    </div>
   );
 }
 
@@ -253,30 +341,32 @@ export function ProficiencyChoice({ edit, legend, field, items }: { edit: Edit; 
 export function Traits({ edit, problems = [], levels = false }: { edit: Edit; problems?: Problem[]; levels?: boolean }) {
   const traits = (edit.get("traits") ?? []) as ItemRecord[];
   return (
-    <Fieldset legend="Features / traits" errors={fieldErrors(problems, "traits", "Features / traits")}>
+    <Fieldset legend="Features / traits" look="section" errors={fieldErrors(problems, "traits", "Features / traits")}>
       {traits.map((trait, i) => {
         const n = i + 1;
         return (
-          <div key={i} className="mb-3">
-            <label className="mr-4 inline-block">
-              Feature {n} name{" "}
-              <input type="text" value={String(trait[tag("name")] ?? "")} onChange={(e) => edit.set(["traits", i, "name"], e.target.value)} className="border border-ink px-1" />
-            </label>
-            <SelectField label={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
-            {levels && <SelectField label={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />}
-            <Button onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} size="small">
-              Delete feature {n}
-            </Button>
-            <label className="block">
-              Feature {n} description
-              <textarea value={String(trait[tag("description")] ?? "")} onChange={(e) => edit.set(["traits", i, "description"], e.target.value)} className="block w-full border border-ink" />
-            </label>
-          </div>
+          <Card
+            key={i}
+            top={
+              <>
+                <FieldLabel label="Name" className="min-w-[12rem] flex-1">
+                  <TextInput aria-label={`Feature ${n} name`} value={String(trait[tag("name")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "name"], text)} width="full" />
+                </FieldLabel>
+                <SelectField label="Type" name={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
+                {levels && (
+                  <SelectField label="Level" name={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />
+                )}
+                <XButton aria-label={`Delete feature ${n}`} onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} />
+              </>
+            }
+          >
+            <FieldLabel label="Description">
+              <TextArea aria-label={`Feature ${n} description`} value={String(trait[tag("description")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "description"], text)} rows={3} />
+            </FieldLabel>
+          </Card>
         );
       })}
-      <Button onClick={() => edit.set(["traits"], [...traits, {}])} size="small">
-        Add feature / trait
-      </Button>
+      <AddButton onClick={() => edit.set(["traits"], [...traits, {}])}>Add feature / trait</AddButton>
     </Fieldset>
   );
 }
@@ -308,9 +398,9 @@ export function ValueChecks({ edit, legend, path, values, name }: { edit: Edit; 
 export function NameDescriptionForm({ record, onChange, problems }: FormProps) {
   const edit = editor(record, onChange);
   return (
-    <div className="space-y-3">
+    <FormColumn>
       <TextField edit={edit} problems={problems} field="name" label="Name" />
-      <TextArea edit={edit} field="description" label="Description" />
-    </div>
+      <RecordTextArea edit={edit} field="description" label="Description" />
+    </FormColumn>
   );
 }

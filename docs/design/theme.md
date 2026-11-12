@@ -199,10 +199,25 @@ Base UI, and a label around the control names it.
 | Fieldsets, `FieldProblems` | Fieldset, Field |
 | The one `<datalist>` input | Autocomplete |
 
+The homebrew forms (ORC-195) add these parts. The
+[Homebrew forms spec](homebrew-forms.md) gives their look.
+
+* **FieldLabel:** a label above its control, in Inter caps.
+* **TextInput** and **TextArea:** boxed text fields. TextArea stays a native
+  textarea.
+* **SelectBox:** a select that fills a box, with its label at the top.
+* **XButton:** a square X button with no text. Its `aria-label` names it.
+* **Button `wide`** and **Fieldset `look="section"`:** a full-width button
+  with the text on the left, and a section title in Inter caps, with a rule
+  after it.
+
+Every Select, Combobox and NumberField in the app is boxed, not only in the
+homebrew forms: a 1px ink border on `--paper-raised`.
+
 These stay native and get the theme through Tailwind: the two `<details>`
 disclosures (style them with the `open:` variant), the builder step bar
 (stays `<nav>` with `aria-current`; only its buttons become Button), file
-inputs, textareas and links.
+inputs and links.
 
 **Test helpers** at `@orc-alchemy/ui/testing`: "pick an option" for Vitest,
 "pick an option" for Playwright, and "answer the confirm dialog". The

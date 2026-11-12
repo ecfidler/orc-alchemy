@@ -8,17 +8,18 @@
 // :treasure :gp, the equipment checkboxes in :equipment {:key 1}, the "Any 1"
 // equipment choices in :equipment-choices [{:name :options {:key 1}}], and
 // :traits a vector of :name, :type and :description maps.
-import { Fieldset, NumberField } from "@orc-alchemy/ui";
+import { FieldLabel, Fieldset, NumberField } from "@orc-alchemy/ui";
 import { tag, untag } from "../../engine/content.ts";
 import type { Choice } from "../../engine/builder-choices.ts";
 import {
   ARTISANS_TOOLS,
   Checks,
   editor,
+  FormColumn,
   MISC_TOOLS,
   MUSICAL_INSTRUMENTS,
+  RecordTextArea,
   SKILLS,
-  TextArea,
   TextField,
   Traits,
   ValueChecks,
@@ -72,7 +73,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
     );
   const gold = edit.get("treasure", "gp");
   return (
-    <div className="space-y-3">
+    <FormColumn>
       <TextField edit={edit} problems={problems} field="name" label="Name" />
       {key !== "" && name !== "" && key !== nameToKw(name) && (
         <p role="note" className="text-warning">
@@ -80,7 +81,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
           the stored key. Thus a character that has the key {key} does not find this background. To make the keys the same, change the name, or make a new background with this name.
         </p>
       )}
-      <TextArea edit={edit} field="help" label="Description" />
+      <RecordTextArea edit={edit} field="help" label="Description" />
       <KeyChecks edit={edit} legend="Skill Proficiencies" path={["profs", "skill"]} items={SKILLS} />
       <Checks
         legend="Languages"
@@ -90,7 +91,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
           edit.set(["profs", "language-options"], languageChoice === Number(n) ? undefined : { [tag("choose")]: Number(n), [tag("options")]: { [tag("any")]: true } })
         }
       />
-      <Fieldset legend="Tool Proficiencies">
+      <Fieldset legend="Tool Proficiencies" look="section">
         <ValueChecks edit={edit} legend="Artisan's Tools: proficiency choice" path={["profs", "tool-options", "artisans-tool"]} values={ANY} name={(n) => `Any ${n}`} />
         <KeyChecks edit={edit} legend="Artisan's Tools: proficiencies" path={["profs", "tool"]} items={ARTISANS_TOOLS} />
         <ValueChecks edit={edit} legend="Musical Instruments: proficiency choice" path={["profs", "tool-options", "musical-instrument"]} values={ANY} name={(n) => `Any ${n}`} />
@@ -98,11 +99,10 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
         <KeyChecks edit={edit} legend="Vehicle proficiencies" path={["profs", "tool"]} items={VEHICLES} />
         <KeyChecks edit={edit} legend="Other tool proficiencies" path={["profs", "tool"]} items={MISC_TOOLS} />
       </Fieldset>
-      <Fieldset legend="Starting Equipment">
-        <label className="block">
-          Gold{" "}
+      <Fieldset legend="Starting Equipment" look="section">
+        <FieldLabel label="Gold">
           <NumberField value={numberOrNull(gold)} onValueChange={(n) => edit.set(["treasure", "gp"], n ?? undefined)} />
-        </label>
+        </FieldLabel>
         <KeyChecks edit={edit} legend="Clothing" path={["equipment"]} items={CLOTHES} on={1} />
         <Checks
           legend="Equipment choices"
@@ -119,7 +119,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
         <KeyChecks edit={edit} legend="Other Equipment" path={["equipment"]} items={MISC_EQUIPMENT} on={1} />
       </Fieldset>
       <Traits edit={edit} />
-    </div>
+    </FormColumn>
   );
 }
 

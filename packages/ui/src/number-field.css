@@ -7,9 +7,9 @@
   .ui-number-input {
     width: 4rem;
     color: var(--ink);
-    background: transparent;
+    background: var(--paper-raised);
     border: 1px solid var(--ink);
-    padding: 0 4px;
+    padding: 3px 8px;
     font: inherit;
   }
 }

@@ -30,7 +30,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === DEFAULT)?.plugin;
@@ -48,7 +48,7 @@ function find(selections: BuilderSelection[], key: string): BuilderSelection | u
 
 test("the name problem shows under its field, and Save is off until the pact boon has a name", async () => {
   renderAt("/content/new/boon");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(problems("Name")).toBe("Name is required.");
   expect(save().disabled).toBe(true);
   type("Name", "2 Bad");
@@ -60,7 +60,7 @@ test("the name problem shows under its field, and Save is off until the pact boo
 
 test("the pact boon is stored as the old save stores it, Edit loads it back, and it is one of a warlock 3's pact boon choices", async () => {
   const router = renderAt("/content/new/boon");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Pact of the Lantern");
   type("Description", "Your patron gives you a lantern that never goes out.");
   fireEvent.click(save());
@@ -84,7 +84,7 @@ test("the pact boon is stored as the old save stores it, Edit loads it back, and
   cleanup();
   renderAt(`/content/edit/boon/${encodeURIComponent(DEFAULT)}/pact-of-the-lantern`);
   await screen.findByRole("form", { name: "Edit pact boon" });
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Pact of the Lantern");
-  expect(screen.getByLabelText<HTMLTextAreaElement>("Description").value).toBe("Your patron gives you a lantern that never goes out.");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Pact of the Lantern");
+  expect(screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Description" }).value).toBe("Your patron gives you a lantern that never goes out.");
   expect(save().disabled).toBe(false);
 });

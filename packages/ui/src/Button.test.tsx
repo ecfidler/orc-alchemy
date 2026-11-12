@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { Button, ButtonLink } from "./Button.tsx";
+import { Button, ButtonLink, XButton } from "./Button.tsx";
 
 afterEach(cleanup);
 
@@ -71,4 +71,35 @@ test("a button link stays a link, with the button look", () => {
   );
   const link = screen.getByRole("link", { name: "Import" });
   expect([link.getAttribute("href"), link.className, link.dataset.variant, link.dataset.size]).toEqual(["/import", "ui-button w-full", "ghost", "large"]);
+});
+
+test("a wide button is marked wide, and a link button never is", () => {
+  render(
+    <>
+      <Button wide>Add a row</Button>
+      <Button variant="link" wide>
+        More
+      </Button>
+    </>,
+  );
+  expect(screen.getByRole("button", { name: "Add a row" }).hasAttribute("data-wide")).toBe(true);
+  expect(screen.getByRole("button", { name: "More" }).hasAttribute("data-wide")).toBe(false);
+  expect(screen.getByRole("button", { name: "More" }).dataset.variant).toBe("link");
+});
+
+test("an X button has no text, is named by its aria-label, shows the name as its tooltip, and calls onClick", () => {
+  const click = vi.fn();
+  render(<XButton aria-label="Delete row 1" onClick={click} className="ml-auto" />);
+  const button = screen.getByRole("button", { name: "Delete row 1" });
+  expect([button.getAttribute("type"), button.textContent, button.title, button.className]).toEqual(["button", "", "Delete row 1", "ui-x-button ml-auto"]);
+  fireEvent.click(button);
+  expect(click).toHaveBeenCalledOnce();
+});
+
+test("a disabled X button takes no click", () => {
+  const click = vi.fn();
+  render(<XButton aria-label="Delete row 1" onClick={click} disabled />);
+  const button = screen.getByRole<HTMLButtonElement>("button", { name: "Delete row 1" });
+  fireEvent.click(button);
+  expect([button.disabled, click.mock.calls.length]).toEqual([true, 0]);
 });

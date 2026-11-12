@@ -9,7 +9,7 @@
 // key), true for the other checkboxes (a second click stores false), and a
 // map such as {:armor-prof {:light true}} for the grouped ones.
 import { asSet, setItems, tag } from "../../engine/content.ts";
-import { ABILITIES, abilityKey, Checks, editor, SKILLS, TextArea, TextField, TOOLS, ValueChecks, WithChoices, type BuilderType, type Edit, type FormProps } from "./fields.tsx";
+import { ABILITIES, abilityKey, Checks, editor, FormColumn, RecordTextArea, SKILLS, TextField, TOOLS, ValueChecks, WithChoices, type BuilderType, type Edit, type FormProps } from "./fields.tsx";
 import type { Choice } from "../../engine/builder-choices.ts";
 import { ArmorChecks, PropChecks, ResistanceChecks } from "./RaceForm.tsx";
 
@@ -40,9 +40,9 @@ function FeatForm({ record, onChange, problems }: FormProps) {
   return (
     <WithChoices>
       {(lists) => (
-        <div className="space-y-3">
+        <FormColumn>
           <TextField edit={edit} problems={problems} field="name" label="Name" />
-          <TextArea edit={edit} field="description" label="Description" />
+          <RecordTextArea edit={edit} field="description" label="Description" />
           <SetChecks
             edit={edit}
             legend="Prerequisites"
@@ -59,7 +59,7 @@ function FeatForm({ record, onChange, problems }: FormProps) {
             checked={(key) => edit.get("path-prereqs", "race", key) === true}
             onToggle={(key) => edit.toggle(["path-prereqs", "race", key])}
           />
-          <h2 className="font-bold">Modifiers</h2>
+          <h2 className="mt-2 text-[20px] font-medium leading-tight">Modifiers</h2>
           <SetChecks
             edit={edit}
             legend="Ability Increase Options"
@@ -105,7 +105,7 @@ function FeatForm({ record, onChange, problems }: FormProps) {
           />
           <PropChecks edit={edit} legend="Skill Proficiency or Expertise" prop="skill-prof-or-expertise" items={SKILLS} />
           <PropChecks edit={edit} legend="Tool Proficiency or Expertise" prop="tool-prof-or-expertise" items={TOOLS} />
-        </div>
+        </FormColumn>
       )}
     </WithChoices>
   );

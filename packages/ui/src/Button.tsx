@@ -13,6 +13,8 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "className" | 
   type?: "button" | "submit";
   /** Layout and spacing classes, for example width, padding or alignment. Colors and borders come from the variant. */
   className?: string;
+  /** The full width of its column, with the text on the left, for example a button that adds a row under a list. */
+  wide?: boolean;
 };
 
 /**
@@ -20,14 +22,44 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "className" | 
  * set shows as solid while it is current. For a button that is on or off,
  * use Toggle.
  */
-export function Button({ variant = "ghost", size = "normal", type = "button", className, ...props }: ButtonProps) {
+export function Button({ variant = "ghost", size = "normal", type = "button", className, wide = false, ...props }: ButtonProps) {
   return (
     <BaseButton
       {...props}
       type={type}
       data-variant={variant}
       data-size={variant === "link" ? undefined : size}
+      data-wide={wide && variant !== "link" ? "" : undefined}
       className={className ? `ui-button ${className}` : "ui-button"}
+    />
+  );
+}
+
+/**
+ * A square button that shows only an X, for example to remove a row. It
+ * has no text, so `aria-label` names it, and the name also shows as its
+ * tooltip.
+ */
+export function XButton({
+  "aria-label": ariaLabel,
+  onClick,
+  disabled,
+  className,
+}: {
+  "aria-label": string;
+  onClick?: () => void;
+  disabled?: boolean;
+  /** Layout classes, for example alignment in a grid. */
+  className?: string;
+}) {
+  return (
+    <BaseButton
+      type="button"
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      onClick={onClick}
+      disabled={disabled}
+      className={className ? `ui-x-button ${className}` : "ui-x-button"}
     />
   );
 }

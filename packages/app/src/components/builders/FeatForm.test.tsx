@@ -29,7 +29,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 /** Whether the checkbox is checked, for a check of several boxes at once. */
 const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
@@ -115,8 +115,8 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   renderAt(`/content/edit/feat/${encodeURIComponent(DEFAULT)}/sea-legs`);
   await screen.findByRole("form", { name: "Edit feat" });
   await screen.findByRole("group", { name: "Race prerequisites" });
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Sea Legs");
-  expect(screen.getByLabelText<HTMLTextAreaElement>("Description").value).toBe("Steady on deck.");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Sea Legs");
+  expect(screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Description" }).value).toBe("Steady on deck.");
   expect([
     checked("Prerequisites", "Dexterity 13 or higher"),
     checked("Prerequisites", "The ability to cast at least one spell"),

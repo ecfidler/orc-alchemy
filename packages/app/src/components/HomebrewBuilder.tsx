@@ -3,7 +3,7 @@
 // validator at each change, saved into the pack its option source names,
 // or, for a type stored outside packs, by the type's own save. Each type
 // with a form plugs in a BuilderType (builders/fields.tsx).
-import { Autocomplete, Button } from "@orc-alchemy/ui";
+import { Autocomplete, Button, FieldLabel } from "@orc-alchemy/ui";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { DEFAULT_PACK, itemAt, tag } from "../engine/content.ts";
@@ -141,15 +141,14 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
       )}
       {!outside && (
         <>
-          <label className="block">
-            Option source (pack){" "}
+          <FieldLabel label="Option source (pack)">
             <Autocomplete
               value={String(record[OPTION_PACK] ?? "")}
               onValueChange={(pack) => setRecord({ ...record, [OPTION_PACK]: pack })}
               suggestions={packNames}
               placeholder={DEFAULT_PACK}
             />
-          </label>
+          </FieldLabel>
           <p>The pack to save the {one} in. A new pack is created if necessary.</p>
         </>
       )}

@@ -31,7 +31,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const click = (label: string) => fireEvent.click(screen.getByRole("checkbox", { name: label }));
 const clickIn = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
@@ -55,7 +55,7 @@ const addRuneCarvings = () =>
 
 test("each problem shows under its field, and Save is off until the class is valid", async () => {
   renderAt("/content/new/class");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(problems("Name")).toBe("Name is required.");
   expect(save().disabled).toBe(true);
   type("Name", "1 Rune");
@@ -70,7 +70,7 @@ test("each problem shows under its field, and Save is off until the class is val
 test("Save stores the class as the old app stores it, and Edit loads it back", async () => {
   await addRuneCarvings();
   const router = renderAt("/content/new/class");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Rune Knight");
   type("Description", "A warrior of runes.");
   await choose("Hit die", "10");
@@ -99,7 +99,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   await choose("Modifier 1 level", "1");
   await choose("Modifier 2 type", "Spell");
   await choose("Modifier 2 level", "3");
-  await choose("Modifier 2 spell level", "0");
+  await choose("Modifier 2 spell level", "Cantrip");
   await choose("Modifier 2 spellcasting ability", "Intelligence");
   await choose("Modifier 2 spell", "Fire Bolt");
   fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
@@ -146,9 +146,9 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
 
   cleanup();
   renderAt(`/content/edit/class/${encodeURIComponent(DEFAULT)}/rune-knight`);
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(screen.getByRole("form", { name: "Edit class" })).toBeTruthy();
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Rune Knight");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Rune Knight");
   expect(shown("Hit die")).toBe("10");
   expect(screen.getByRole("checkbox", { name: "Strength saving throw" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "Ability increase at level 4" })).not.toBeChecked();
@@ -163,7 +163,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
 
 test("a class with a custom spell list stores its cantrips and spells by level", async () => {
   const router = renderAt("/content/new/class");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Hedge Mage");
   await choose("Spell slots", "Yes");
   await choose("First spell slots at level", "1");
@@ -209,7 +209,7 @@ test("the spell lists include a list that a spell of an enabled pack is on, as t
     "~:spell-lists": { "~:artificer": true, "~:monk": false, "~:wizard": true },
   });
   renderAt("/content/new/class");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   await choose("Spell slots", "Yes");
   const lists = await optionNames(screen.getByRole("combobox", { name: "Spell list" }));
   expect(lists).toEqual(["Custom", "Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock", "Wizard", "Artificer"]);

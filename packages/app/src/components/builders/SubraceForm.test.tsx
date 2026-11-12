@@ -34,13 +34,13 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 
 test("the race list has the SRD races and the enabled packs' races, and the race's values show until the subrace has its own", async () => {
   await useHomebrew.getState().saveItem("Lizards", "~:orcpub.dnd.e5/races", { "~:key": "~:lizard", "~:name": "Lizard", "~:option-pack": "Lizards", "~:speed": 40, "~:size": "~:small" });
   renderAt("/content/new/subrace");
-  await screen.findByLabelText("Spell 1");
+  await screen.findByRole("button", { name: "Add a spell" });
   const races = await optionNames(screen.getByRole("combobox", { name: "Race" }));
   expect(races).toEqual(expect.arrayContaining(["Dwarf", "Elf", "Tiefling", "Lizard"]));
   expect(races).not.toContain("Custom");
@@ -59,21 +59,24 @@ test("the race list has the SRD races and the enabled packs' races, and the race
 
 test("the form recreates the Star Elf subrace of the community fixture, and Edit loads it back", async () => {
   const router = renderAt("/content/new/subrace");
-  await screen.findByLabelText("Spell 1");
+  await screen.findByRole("button", { name: "Add a spell" });
   type("Option source (pack)", "dand wiki");
   type("Name", "Star Elf");
   await choose("Race", "Elf");
   await choose("Wisdom", "+1");
   for (const weapon of ["Dart", "Morningstar", "Rapier", "Shortbow"]) check("Weapon Proficiencies", weapon);
   check("Skill Proficiencies", "Insight");
+  fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 1 spellcasting ability", "Wisdom");
   await choose("Spell 1", "Guidance");
-  await choose("Spell 2 unlock at level", "3");
-  await choose("Spell 2 level", "1");
+  fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
+  await choose("Spell 2 unlocks at", "Level 3");
+  await choose("Spell 2 spell level", "1st");
   await choose("Spell 2 spellcasting ability", "Wisdom");
   await choose("Spell 2", "Detect Magic");
-  await choose("Spell 3 unlock at level", "5");
-  await choose("Spell 3 level", "2");
+  fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
+  await choose("Spell 3 unlocks at", "Level 5");
+  await choose("Spell 3 spell level", "2nd");
   await choose("Spell 3 spellcasting ability", "Wisdom");
   await choose("Spell 3", "Detect Thoughts");
   fireEvent.click(save());
@@ -94,16 +97,16 @@ test("the form recreates the Star Elf subrace of the community fixture, and Edit
   cleanup();
   renderAt(`/content/edit/subrace/${encodeURIComponent("dand wiki")}/star-elf`);
   await screen.findByRole("form", { name: "Edit subrace" });
-  await screen.findByLabelText("Spell 1");
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Star Elf");
-  expect([shown("Race"), shown("Wisdom"), shown("Spell 2 unlock at level"), shown("Spell 3")]).toEqual(["Elf", "+1", "3", "Detect Thoughts"]);
+  await screen.findByRole("button", { name: "Add a spell" });
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Star Elf");
+  expect([shown("Race"), shown("Wisdom"), shown("Spell 2 unlocks at"), shown("Spell 3")]).toEqual(["Elf", "+1", "Level 3", "Detect Thoughts"]);
   expect(within(screen.getByRole("group", { name: "Weapon Proficiencies" })).getByRole("checkbox", { name: "Rapier" })).toBeChecked();
   expect(save().disabled).toBe(false);
 });
 
 test("the subrace modifiers are stored as the old events store them", async () => {
   const router = renderAt("/content/new/subrace");
-  await screen.findByLabelText("Spell 1");
+  await screen.findByRole("button", { name: "Add a spell" });
   type("Name", "Deep Dwarf");
   await choose("Darkvision", "120");
   check("Hit Points", "Your hit point maximum increases by 1 for each of your levels");

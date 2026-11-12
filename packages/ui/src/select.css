@@ -1,13 +1,15 @@
 /* The select, combobox, autocomplete and menu (docs/design/theme.md, "Controls"). Low specificity, so the app's layout utilities win. */
 
 @layer components {
+  /* Boxed, as the text fields: a 1px ink border on the raised paper. */
   .ui-select,
   .ui-combobox {
     font: inherit;
     color: var(--ink);
-    background: transparent;
+    background: var(--paper-raised);
     border: 1px solid var(--ink);
-    padding: 0 4px;
+    border-radius: 0;
+    padding: 3px 8px;
   }
   .ui-select {
     display: inline-flex;
@@ -25,6 +27,9 @@
     border: 4px solid transparent;
     border-top-color: var(--ink);
     border-bottom-width: 0;
+  }
+  .ui-select:where([data-popup-open]) {
+    background: var(--panel);
   }
   .ui-select:where([data-placeholder]) {
     color: var(--ink-muted);
@@ -67,5 +72,56 @@
   .ui-select-empty:where(:not(:empty)) {
     padding: 1px 8px;
     color: var(--ink-muted);
+  }
+
+  /* The select box: the label at the top, and the select fills the box, so a click anywhere opens it. */
+  .ui-select-box {
+    position: relative;
+    display: block;
+    height: 58px;
+    min-width: 0;
+    background: var(--paper-raised);
+    border: 1.5px solid var(--ink);
+    cursor: pointer;
+  }
+  .ui-select-box:where(:hover) {
+    background: var(--panel);
+  }
+  .ui-select-box:where(:focus-within) {
+    outline: 2px solid var(--focus-ring, var(--info));
+    outline-offset: 2px;
+  }
+  .ui-select-box > .ui-label {
+    position: absolute;
+    z-index: 1;
+    top: 6px;
+    left: 4px;
+    right: 4px;
+    overflow: hidden;
+    font-weight: 500;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .ui-select-box > .ui-select {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 18px 20px 0;
+    font-size: 19px;
+    background: transparent;
+    border: 0;
+  }
+  .ui-select-box > .ui-select:focus-visible {
+    outline: 0;
+  }
+  .ui-select-box > .ui-select::after {
+    position: absolute;
+    right: 9px;
+    top: calc(50% + 7px);
+    margin: 0;
   }
 }

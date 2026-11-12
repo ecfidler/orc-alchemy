@@ -32,7 +32,7 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (pack: string, key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === pack)?.plugin;
@@ -54,7 +54,7 @@ function find(selections: BuilderSelection[], key: string): BuilderSelection | u
 
 test("the name problem shows under its field, and Save is off until the language has a name", async () => {
   renderAt("/content/new/language");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   expect(problems("Name")).toBe("Name is required.");
   expect(save().disabled).toBe(true);
   type("Name", "1 Stone");
@@ -66,7 +66,7 @@ test("the name problem shows under its field, and Save is off until the language
 
 test("the form recreates the Deep Stone language of the drift-04 fixture, Edit loads it back, and a human can learn it", async () => {
   const router = renderAt("/content/new/language");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Option source (pack)", "Drift 04");
   type("Name", "Deep Stone");
   await saved(router);
@@ -87,14 +87,14 @@ test("the form recreates the Deep Stone language of the drift-04 fixture, Edit l
   cleanup();
   renderAt("/content/edit/language/Drift%2004/deep-stone");
   await screen.findByRole("form", { name: "Edit language" });
-  expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Deep Stone");
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Deep Stone");
   type("Description", "The tongue of the deep earth.");
   expect(save().disabled).toBe(false);
 });
 
 test("the description is stored as :description", async () => {
   const router = renderAt("/content/new/language");
-  await screen.findByLabelText("Name");
+  await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Thieves Hand");
   type("Description", "Signs made with the hands.");
   await saved(router);
@@ -108,6 +108,6 @@ test("the description is stored as :description", async () => {
   cleanup();
   renderAt("/content/edit/language/Default%20Option%20Source/thieves-hand");
   await screen.findByRole("form", { name: "Edit language" });
-  expect(screen.getByLabelText<HTMLTextAreaElement>("Description").value).toBe("Signs made with the hands.");
+  expect(screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Description" }).value).toBe("Signs made with the hands.");
   expect(engine().validateForExport(useHomebrew.getState().homebrew!).valid).toBe(true);
 });
