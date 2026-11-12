@@ -93,6 +93,9 @@ function modEntries(belongs: (mod: Mod) => boolean): ModifierValues {
     // Each entry goes back to the index it had at Remove, in ascending order,
     // or to the end when the vector is now shorter. The other entries keep
     // their order, also when the user changed one of them before Undo.
+    // Known limit: when the user deleted an earlier entry of another
+    // modifier before Undo, the restored entries are one place later. The
+    // engine does not read the order, so the simple rule stays.
     restore: (record, before) => {
       const mods = modsOf(record).filter((m) => !belongs(m));
       modsOf(before).forEach((mod, i) => {

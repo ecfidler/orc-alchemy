@@ -171,6 +171,7 @@ test("a new feat shows only the common modifiers; the add list has the others in
   fireEvent.click(add);
   const dialog = await screen.findByRole("dialog", { name: "Add a modifier" });
   const rows = [...dialog.querySelectorAll(".ui-list-row")];
+  expect(rows).toHaveLength(ADDED.length);
   expect(rows.every((row) => (document.getElementById(row.getAttribute("aria-describedby") ?? "")?.textContent ?? "") !== "")).toBe(true);
   expect(within(dialog).queryByRole("searchbox")).toBeNull();
   expect(within(dialog).queryByRole("button", { name: "Done" })).toBeNull();
