@@ -31,10 +31,14 @@ export const press = (group: string, value: string) => fireEvent.click(within(se
 /** The pressed segment of the number toggle in the section `group`, or undefined when none is. Base UI marks it with data-pressed. */
 export const pressed = (group: string) => section(group).querySelector(".ui-segment[data-pressed]")?.textContent ?? undefined;
 
-/** The names in the "+ Add a modifier" list, in their order. It opens the list and closes it again with its X. */
-export async function addList(): Promise<string[]> {
-  fireEvent.click(screen.getByRole("button", { name: "Add a modifier" }));
-  const dialog = await screen.findByRole("dialog", { name: "Add a modifier" });
+/**
+ * The names in a list modal, in their order: by default the "+ Add a
+ * modifier" list, or else the list titled `title` that `button` opens. It
+ * opens the list and closes it again with its X.
+ */
+export async function addList(button = screen.getByRole("button", { name: "Add a modifier" }), title = "Add a modifier"): Promise<string[]> {
+  fireEvent.click(button);
+  const dialog = await screen.findByRole("dialog", { name: title });
   const names = [...dialog.querySelectorAll(".ui-list-row")].map((row) => row.getAttribute("aria-label"));
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
   await waitFor(() => {

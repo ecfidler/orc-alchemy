@@ -7,7 +7,7 @@ import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { groups, pick, press, pressed, tokens, unpick } from "./test-picks.ts";
+import { addList, groups, pick, press, pressed, tokens, unpick } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -53,17 +53,7 @@ async function removeSub(name: string) {
   fireEvent.click(within(screen.getByRole("group", { name: "Tool proficiencies" })).getByRole("button", { name: `Remove ${name}` }));
   await waitFor(() => expect(screen.queryByRole("button", { name: `Remove ${name}` })).toBeNull());
 }
-/** The names in a list modal, in their order, and the group headings. It opens the list with `button` and closes it again with its X. */
-async function listOf(button: HTMLElement, title: string) {
-  fireEvent.click(button);
-  const dialog = await screen.findByRole("dialog", { name: title });
-  const rows = [...dialog.querySelectorAll(".ui-list-row")].map((row) => row.getAttribute("aria-label"));
-  const headings = [...dialog.querySelectorAll(".ui-list-group")].map((g) => g.textContent);
-  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  return { rows, headings };
-}
-const toolList = async () => (await listOf(addTool()!, "Add a tool proficiency")).rows;
+const toolList = () => addList(addTool()!, "Add a tool proficiency");
 const anyNumber = (name: string) => `${name}: number`;
 const SUBS = ["Any artisan's tool", "Artisan's tools", "Any musical instrument", "Any gaming set", "Vehicles", "Other tools"];
 const equipmentButton = () => within(screen.getByRole("group", { name: "Starting equipment" })).getByRole("button", { name: "Add equipment" });
@@ -109,7 +99,8 @@ test("the tool list has the six sub-selections, which show in a fixed order, and
   expect(addTool()).toBeNull();
   const section = screen.getByRole("group", { name: "Tool proficiencies" });
   const order = [...section.querySelectorAll("[data-sub]")].map((el) => el.getAttribute("data-sub"));
-  expect(order).toEqual(["any-artisan", "artisan", "any-instrument", "any-gaming", "vehicles", "other"]);
+  // The "Any …" tokens are on one line first, then the blocks.
+  expect(order).toEqual(["any-artisan", "any-instrument", "any-gaming", "artisan", "vehicles", "other"]);
   expect(tokens("Tool proficiencies")).toEqual(["Any artisan's tool", "Any musical instrument", "Any gaming set"]);
 });
 
@@ -173,7 +164,7 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   expect(tokens("Skill proficiencies")).toEqual(["Athletics"]);
   expect(pressed("Languages")).toBe("2");
   // The musical instrument token was removed, so it does not show again.
-  expect(tokens("Tool proficiencies")).toEqual(["Any artisan's tool", "Carpenter's Tools", "Any gaming set"]);
+  expect(tokens("Tool proficiencies")).toEqual(["Any artisan's tool", "Any gaming set", "Carpenter's Tools"]);
   expect([pressed(anyNumber("Any artisan's tool")), pressed(anyNumber("Any gaming set"))]).toEqual(["1", "3"]);
   expect([checked("Vehicles", "Water Vehicles"), checked("Vehicles", "Land Vehicles"), checked("Other tools", "Navigator's Tools")]).toEqual([true, false, true]);
   expect(tokens("Starting equipment")).toEqual(["Any 1 musical instrument", "Clothes, traveler’s", "Smith's Tools", "Disguise Kit", "Amulet", "Rations (1 day)", "Rope, silk"]);
@@ -205,7 +196,7 @@ test("an imported background opens with each sub-selection that holds a value, a
   const router = renderAt(PATH);
   await screen.findByRole("form", { name: "Edit background" });
   expect(addTool()).toBeNull();
-  expect(tokens("Tool proficiencies")).toEqual(["Any artisan's tool", "Smith's Tools", "Any musical instrument", "Any gaming set"]);
+  expect(tokens("Tool proficiencies")).toEqual(["Any artisan's tool", "Any musical instrument", "Any gaming set", "Smith's Tools"]);
   expect([pressed(anyNumber("Any artisan's tool")), pressed(anyNumber("Any musical instrument")), pressed(anyNumber("Any gaming set"))]).toEqual(["2", "1", "3"]);
   expect([checked("Vehicles", "Land Vehicles"), checked("Other tools", "Thieves' Tools")]).toEqual([true, true]);
   expect(tokens("Skill proficiencies")).toEqual(["Athletics"]);
@@ -295,11 +286,10 @@ test("the equipment picker has search and group headings, and each group stores 
   const router = renderAt("/content/new/background");
   await screen.findByRole("textbox", { name: "Name" });
   type("Name", "Pilgrim");
-  const { rows, headings } = await listOf(equipmentButton(), "Add equipment");
-  expect(headings).toEqual(["Player's choice", "Clothing", "Artisan's tools", "Other tools", "Holy symbols", "Other equipment"]);
-  expect(rows.slice(0, 3)).toEqual(["Any 1 artisan's tool", "Any 1 musical instrument", "Clothes, common"]);
+  expect((await addList(equipmentButton(), "Add equipment")).slice(0, 3)).toEqual(["Any 1 artisan's tool", "Any 1 musical instrument", "Clothes, common"]);
   fireEvent.click(equipmentButton());
   const dialog = await screen.findByRole("dialog", { name: "Add equipment" });
+  expect([...dialog.querySelectorAll(".ui-list-group")].map((g) => g.textContent)).toEqual(["Player's choice", "Clothing", "Artisan's tools", "Other tools", "Holy symbols", "Other equipment"]);
   fireEvent.change(within(dialog).getByRole("searchbox"), { target: { value: "rope" } });
   expect([...dialog.querySelectorAll(".ui-list-row")].map((row) => row.getAttribute("aria-label"))).toEqual(["Rope, hempen", "Rope, silk"]);
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));

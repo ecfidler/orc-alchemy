@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-12T06:16:22Z }
+generated: { by: claude-code/agent, at: 2026-11-12T19:40:19Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -213,6 +213,9 @@ The homebrew forms (ORC-195) add these parts. The
 * **Fieldset `action`:** a small control at the end of the section rule,
   for example the "Remove" link of an added modifier (ORC-197). It is not a
   part of the section's name.
+* **Fieldset `look="block"`:** a group inside a section, with a rule on
+  its left side and a bold title in the body font (ORC-200). An `action`
+  stays on the title row.
 * **Flash (`ui-flash`):** a part that the user just added flashes once in
   the note yellow (`--note`), 10px past its edges, with rounded corners.
 
