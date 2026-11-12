@@ -158,6 +158,9 @@ test("a spell made on My Content is a choice in a new wizard's spells", async ({
   await page.getByRole("link", { name: "New spell" }).click();
   await page.getByRole("textbox", { name: "Name" }).fill("Fire Pop");
   await pickOption(page.getByRole("combobox", { name: "Level" }), "1st-level");
+  // A new spell is on no class list until the user picks one.
+  await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+  await pickFromPicker(page.getByRole("button", { name: "Add a class", exact: true }), "Wizard");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);
   await expect(page.getByRole("region", { name: "Default Option Source" })).toBeVisible();

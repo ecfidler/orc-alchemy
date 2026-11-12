@@ -99,7 +99,7 @@ function AbilityIncreaseOptions({ edit, legend }: { edit: Edit; legend: string }
   const has = (key: string) => set.includes(tag(key));
   const toggle = (key: string) => edit.set(["ability-increases"], asSet(has(key) ? set.filter((k) => k !== tag(key)) : [...set, tag(key)]));
   return (
-    <Checks legend={legend} row items={ABILITY_CHOICES} checked={has} onToggle={toggle}>
+    <Checks legend={legend} items={ABILITY_CHOICES} checked={has} onToggle={toggle}>
       <Checkbox label="You also gain proficiency in saving throws with the above chosen abilities" checked={has("saves?")} onCheckedChange={() => toggle("saves?")} className="mt-2 items-start [&>.ui-check]:mt-[4px]" />
     </Checks>
   );

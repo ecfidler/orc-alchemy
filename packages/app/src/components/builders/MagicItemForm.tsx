@@ -5,16 +5,43 @@
 // :attunement as keyword vectors, and :modifiers as mod-cfg maps of a
 // :orcpub.modifiers/key and its keyword or int args. The engine expands a
 // weapon or armor with subtypes into one option for each base item. A
-// Custom base weapon (the subtype :other) has its own details in
+// New weapon (the subtype :other, the old "Custom") has its own details in
 // :orcpub.dnd.e5.weapons/ fields. Magic items are not in packs: save and
 // load use the magic items store. The form shows the base fields always, and
-// the user adds the other modifiers from a list (modifiers.tsx).
-import { Checkbox, Field, FieldErrors, FieldLabel, Fieldset, Label, NumberField, Select, TextArea, TextInput } from "@orc-alchemy/ui";
+// the user adds the other modifiers from a list (modifiers.tsx). Each picker
+// writes what the old checkbox wrote: a pick is the old check, and a removed
+// token the old second click.
+import { Checkbox, Field, FieldErrors, FieldLabel, Fieldset, NumberField, Picker, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
+import type { Choice } from "../../engine/builder-choices.ts";
 import { tag, untag } from "../../engine/content.ts";
 import { magicItemKey } from "../../engine/import.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { CheckGrid, CONDITIONS, DAMAGE_TYPES, editor, fieldErrors, FieldRow, FormColumn, nameToKw, numberOrNull, numbers, orFirst, range, SelectField, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options } from "./fields.tsx";
+import {
+  Checks,
+  DAMAGE_TYPES,
+  editor,
+  fieldErrors,
+  FieldRow,
+  FormColumn,
+  Help,
+  nameToKw,
+  numberOrNull,
+  numbers,
+  orFirst,
+  pickedText,
+  range,
+  SelectField,
+  title,
+  WithChoices,
+  withOthers,
+  type BuilderType,
+  type FormProps,
+  type ItemRecord,
+  type Options,
+  type PickItem,
+} from "./fields.tsx";
+import { CONDITION_CHOICES, DAMAGE_CHOICES } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier, type ModifierValues } from "./modifiers.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
@@ -29,15 +56,26 @@ const ARMOR: [string, string][] = [
   ["chain-shirt", "Chain Shirt"], ["scale-mail", "Scale mail"], ["breastplate", "Breastplate"], ["half-plate", "Half plate"],
   ["ring-mail", "Ring mail"], ["chain-mail", "Chain mail"], ["splint", "Splint"], ["plate", "Plate"], ["spiked-armor", "Spiked Armor"],
 ];
-/** The choices the old weapon selector offers before the weapons, which follow sorted by name. */
-const WEAPON_SUBTYPES: [string, string][] = [["other", "Custom"], ["all", "All"], ["sword", "All Swords"], ["axe", "All Axes"]];
-/** The choices the old armor selector offers: its "All" choices, then the armor. */
-const ARMOR_SUBTYPES: [string, string][] = [["all", "All"], ["light", "All light"], ["medium", "All medium"], ["heavy", "All heavy"], ...ARMOR];
-/** The properties of a Custom base weapon, each with its checkbox name and its field. */
-const WEAPON_PROPERTIES = ["Finesse", "Versatile", "Reach", "Two-Handed", "Thrown", "Heavy", "Light", "Ammunition", "Special", "Loading"].map((name) => ({ name, field: `${name.toLowerCase()}?` }));
-/** The fields of a Custom base weapon, which each subtype toggle removes (magic_items.cljc remove-custom-weapon-fields). */
-const WEAPON_FIELDS = [...WEAPON_PROPERTIES.map((p) => p.field), "damage-die-count", "damage-die", "versatile", "melee?", "ranged?", "type", "range", "damage-type"];
+/**
+ * The base weapon or armor select. Any is the subtype :all, and New weapon
+ * the subtype :other, a weapon with its own details (the old "Custom").
+ * Specific is the other subtypes, picked with a picker.
+ */
+const WEAPON_BASES: [string, string][] = [["all", "Any"], ["specific", "Specific"], ["other", "New weapon"]];
+const ARMOR_BASES: [string, string][] = [["all", "Any"], ["specific", "Specific"]];
+/** The kinds that the old weapon selector offers after Custom and All (now New weapon and Any). The weapons follow, sorted by name. */
+const WEAPON_KINDS: PickItem[] = [["sword", "All Swords"], ["axe", "All Axes"]].map(([key, name]) => ({ key, name, group: "Kinds" }));
+/** The old armor selector's choices after All (now Any): the kinds, then the armor. */
+const ARMOR_ITEMS: PickItem[] = [
+  ...[["light", "All light"], ["medium", "All medium"], ["heavy", "All heavy"]].map(([key, name]) => ({ key, name, group: "Kinds" })),
+  ...ARMOR.map(([key, name]) => ({ key, name, group: "Armor" })),
+];
+/** The properties of a New weapon, each with its field as key and its checkbox name. */
+const WEAPON_PROPERTIES = ["Finesse", "Versatile", "Reach", "Two-Handed", "Thrown", "Heavy", "Light", "Ammunition", "Special", "Loading"].map((name) => ({ key: `${name.toLowerCase()}?`, name: `${name}?` }));
+/** The fields of a New weapon, which each subtype toggle removes (magic_items.cljc remove-custom-weapon-fields). */
+const WEAPON_FIELDS = [...WEAPON_PROPERTIES.map((p) => p.key), "damage-die-count", "damage-die", "versatile", "melee?", "ranged?", "type", "range", "damage-type"];
 const DICE: Options = [4, 6, 8, 10, 12, 20, 100].map((die) => [die, `d${die}`]);
+/** The alignments of the old attunement checkboxes, after Good and Evil. */
 const ALIGNMENTS = ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"];
 /** Each ability with its keyword arg, such as :orcpub.dnd.e5.character/str. */
 const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"].map((ability) => ({ ability, arg: `orcpub.dnd.e5.character/${ability}` }));
@@ -106,6 +144,102 @@ function modEntries(belongs: (mod: Mod) => boolean): ModifierValues {
   };
 }
 
+/** The one key that a picker's change adds or removes. A picker change is one pick or one removed token. */
+const toggledKey = (before: string[], after: string[]) => after.find((key) => !before.includes(key)) ?? before.find((key) => !after.includes(key));
+
+/**
+ * A picker whose every pick or removed token toggles one key (onToggle),
+ * as the old checkboxes of the form did. value is the stored keys; a key
+ * that is no item shows as a token named by its key, and a key stored
+ * twice is one token.
+ */
+function TogglePicker({ label, items, value, search, onToggle, className }: { label: string; items: PickItem[]; value: string[]; search?: boolean; onToggle: (key: string) => void; className?: string }) {
+  const keys = [...new Set(value)];
+  return (
+    <Picker
+      label={label}
+      options={withOthers(items, keys).map((item) => ({ value: item.key, label: item.name, group: item.group }))}
+      value={keys}
+      search={search}
+      pickedText={pickedText}
+      onValueChange={(next) => {
+        const key = toggledKey(keys, next);
+        if (key !== undefined) onToggle(key);
+      }}
+      className={className}
+    />
+  );
+}
+
+/**
+ * The base weapon or armor: a select of Any, Specific and (for a weapon)
+ * New weapon, and with Specific a picker of the subtypes. Any and New
+ * weapon toggle :all and :other, and a pick or a removed token toggles its
+ * subtype, as the old checkboxes did (onToggle). A subtype that is no
+ * option, such as a weapon of a pack that is not enabled, shows as a token.
+ */
+function BaseItem({
+  type,
+  subtypes,
+  weapons,
+  legend,
+  errors,
+  onToggle,
+  onSpecific,
+}: {
+  type: "weapon" | "armor";
+  subtypes: string[];
+  weapons: Choice[];
+  legend: string;
+  errors: string[];
+  onToggle: (key: string) => void;
+  onSpecific: () => void;
+}) {
+  const bases = type === "weapon" ? WEAPON_BASES : ARMOR_BASES;
+  const has = (key: string) => subtypes.includes(tag(key));
+  const base = type === "weapon" && has("other") ? "other" : has("all") ? "all" : "specific";
+  const items =
+    type === "weapon"
+      ? [...WEAPON_KINDS, ...[...weapons].sort((a, b) => a.name.localeCompare(b.name)).map((w) => ({ ...w, group: "Weapons" }))]
+      : ARMOR_ITEMS;
+  const value = subtypes.map(untag).filter((key) => key !== "all" && (type === "armor" || key !== "other"));
+  return (
+    <Fieldset legend={legend} look="section" errors={errors}>
+      <Select
+        aria-label={legend}
+        value={base}
+        options={bases}
+        onValueChange={(next) => (next === "specific" ? onSpecific() : onToggle(next))}
+        className="justify-self-start"
+      />
+      {base === "specific" && (
+        <TogglePicker label={type === "weapon" ? "Add a base weapon" : "Add a base armor"} items={items} value={value} search={type === "weapon"} onToggle={onToggle} className="mt-[10px]" />
+      )}
+    </Fieldset>
+  );
+}
+
+/**
+ * The attunement limits, a picker with search: Spellcaster and the classes,
+ * then the alignments. A pick or a removed token is the old
+ * toggle-attunement-value (onToggle). With no picks, :attunement is [:any]:
+ * any creature can attune to the item. A value that is no option shows as
+ * a token.
+ */
+function AttunementLimits({ attunement, classes, onToggle }: { attunement: string[]; classes: Choice[]; onToggle: (key: string) => void }) {
+  const items: PickItem[] = [
+    ...[{ key: "spellcaster", name: "Spellcaster" }, ...classes].map((c) => ({ ...c, group: "Classes" })),
+    ...["Good", "Evil", ...ALIGNMENTS].map((name) => ({ key: nameToKw(name), name, group: "Alignments" })),
+  ];
+  const value = attunement.map(untag).filter((key) => key !== "any");
+  return (
+    <div className="mt-[10px]">
+      {value.length === 0 && <Help>No limits: any creature can attune to it.</Help>}
+      <TogglePicker label="Add an attunement limit" items={items} value={value} search onToggle={onToggle} />
+    </div>
+  );
+}
+
 function MagicItemForm({ record, onChange, problems }: FormProps) {
   const get = (field: string) => record[tag(MI + field)];
   const change = (fields: Record<string, unknown>) => {
@@ -121,7 +255,7 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
   const subtypes = (get("subtypes") ?? []) as string[];
   const attunement = (get("attunement") ?? []) as string[];
   const mods = modsOf(record);
-  // The details of a Custom base weapon.
+  // The details of a New weapon.
   const edit = editor(record, onChange);
   const versatile = edit.get(W + "versatile");
   const ranged = edit.get(W + "melee?") !== true && edit.get(W + "ranged?") === true;
@@ -133,19 +267,29 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
     onChange(withMods(record, changed));
   }
   const findMod = (match: (mod: Mod) => boolean) => mods.find(match);
+  /** Specific with no picks, as the old app stores a base weapon picked and then removed: no subtypes, and no details of a New weapon. */
+  function specific() {
+    const next = { ...record };
+    delete next[tag(MI + "subtypes")];
+    for (const field of WEAPON_FIELDS) delete next[tag(W + field)];
+    onChange(next);
+  }
 
   /**
-   * As the old toggle-subtype (magic_items.cljc apply-subtype-toggle): Custom
-   * and All each replace the others, each toggle removes the details of a
-   * Custom weapon, and Custom sets its first details.
+   * As the old toggle-subtype (magic_items.cljc apply-subtype-toggle): Any
+   * (:all) and New weapon (:other) each replace the others, each toggle
+   * removes the details of a New weapon, and New weapon sets its first
+   * details. On armor, :other is no New weapon: it toggles as any other
+   * subtype, so the X of its token removes it.
    */
   function toggleSubtype(key: string) {
-    const clean = subtypes.filter((s) => s !== tag("all") && s !== tag("other"));
-    const nextSubtypes = key === "other" || key === "all" ? [tag(key)] : clean.includes(tag(key)) ? clean.filter((s) => s !== tag(key)) : [...clean, tag(key)];
+    const newWeapon = type === "weapon" && key === "other";
+    const clean = subtypes.filter((s) => s !== tag("all") && (type !== "weapon" || s !== tag("other")));
+    const nextSubtypes = newWeapon || key === "all" ? [tag(key)] : clean.includes(tag(key)) ? clean.filter((s) => s !== tag(key)) : [...clean, tag(key)];
     const next = { ...record, [tag(MI + "subtypes")]: nextSubtypes };
     if (nextSubtypes.length === 0) delete next[tag(MI + "subtypes")];
     for (const field of WEAPON_FIELDS) delete next[tag(W + field)];
-    if (key === "other") {
+    if (newWeapon) {
       Object.assign(next, {
         [tag(W + "damage-die-count")]: 1,
         [tag(W + "damage-die")]: 4,
@@ -179,20 +323,26 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
       label,
       <NumberField value={numberOrNull(get(name))} onValueChange={(n) => change({ [name]: n ?? undefined })} />,
     );
-  const check = (label: string, checked: boolean, onToggle: () => void, disabled = false) => (
-    <Checkbox key={label} label={label} checked={checked} disabled={disabled} onCheckedChange={onToggle} />
-  );
-  /** A modifier with one keyword arg, on or off, such as a damage resistance (magic_items.cljc toggle-mods). */
-  const toggles = (legend: string, key: string, values: string[], action: ReactNode) => (
-    <Fieldset legend={legend} look="section" action={action}>
-      <CheckGrid names={values.map(title)}>
-        {values.map((value) => {
-          const match = (m: Mod) => modKey(m) === key && modArgs(m)[0] === value;
-          return check(title(value), findMod(match) !== undefined, () => setMod(match, findMod(match) ? null : modCfg(key, value)));
-        })}
-      </CheckGrid>
-    </Fieldset>
-  );
+  /**
+   * The entries of one modifier key with a keyword arg, such as the damage
+   * resistances, as a picker (magic_items.cljc toggle-mods): a pick adds the
+   * entry at the end, and a removed token removes the entries with its arg.
+   * An arg that is no option shows as a token.
+   */
+  const togglePicker = (legend: string, key: string, items: PickItem[], add: string, action: ReactNode) => {
+    const isKey = (m: Mod) => modKey(m) === key && typeof modArgs(m)[0] === "string";
+    const value = mods.filter(isKey).map((m) => String(modArgs(m)[0]));
+    return (
+      <Fieldset legend={legend} look="section" action={action}>
+        <TogglePicker
+          label={add}
+          items={items}
+          value={value}
+          onToggle={(arg) => onChange(withMods(record, value.includes(arg) ? mods.filter((m) => !(isKey(m) && modArgs(m)[0] === arg)) : [...mods, modCfg(key, arg)]))}
+        />
+      </Fieldset>
+    );
+  };
   /** A number with how it changes: a select of the modifier key, and its int value. */
   const modRow = (label: string, keys: { key: string; text: string; noValue?: boolean }[], match: (m: Mod) => boolean, args: string[]) => {
     const mod = findMod(match);
@@ -222,13 +372,13 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
     );
   };
 
-  /** A modifier of the toggles of one modifier key. */
-  const toggleModifier = (id: string, name: string, example: string, values: string[]): Modifier => ({
+  /** A modifier of the entries of one modifier key with a keyword arg, also an arg that is no option. */
+  const toggleModifier = (id: string, name: string, example: string, items: PickItem[], add: string): Modifier => ({
     id,
     name,
     example,
-    ...modEntries((m) => modKey(m) === id && values.includes(String(modArgs(m)[0]))),
-    render: ({ name, action }) => toggles(name, id, values, action),
+    ...modEntries((m) => modKey(m) === id && typeof modArgs(m)[0] === "string"),
+    render: ({ name, action }) => togglePicker(name, id, items, add, action),
   });
   const speedKeys = SPEEDS.map(({ increases, atLeast, walking }) => [
     { key: atLeast, text: "Becomes at least" },
@@ -286,10 +436,10 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
         </Fieldset>
       ),
     },
-    toggleModifier("damage-resistance", "Damage resistances", "Fire, cold …", DAMAGE_TYPES),
-    toggleModifier("damage-vulnerability", "Damage vulnerabilities", "Radiant, necrotic …", DAMAGE_TYPES),
-    toggleModifier("damage-immunity", "Damage immunities", "Poison, psychic …", DAMAGE_TYPES),
-    toggleModifier("condition-immunity", "Condition immunities", "Charmed, frightened …", CONDITIONS.map(nameToKw)),
+    toggleModifier("damage-resistance", "Damage resistances", "Fire, cold …", DAMAGE_CHOICES, "Add a damage resistance"),
+    toggleModifier("damage-vulnerability", "Damage vulnerabilities", "Radiant, necrotic …", DAMAGE_CHOICES, "Add a damage vulnerability"),
+    toggleModifier("damage-immunity", "Damage immunities", "Poison, psychic …", DAMAGE_CHOICES, "Add a damage immunity"),
+    toggleModifier("condition-immunity", "Condition immunities", "Charmed, frightened …", CONDITION_CHOICES, "Add a condition"),
   ];
 
   return (
@@ -307,81 +457,55 @@ function MagicItemForm({ record, onChange, problems }: FormProps) {
             {field("type", "Type", select("type", TYPES, title, (v) => change({ type: tag(v), subtypes: undefined })))}
             {field("rarity", "Rarity", select("rarity", RARITIES, title, (v) => change({ rarity: tag(v) })))}
           </FieldRow>
-          {(type === "weapon" || type === "armor") && (
-            <Fieldset legend={baseLegend} look="section" errors={fieldErrors(problems, MI + "subtypes", baseLegend)}>
-              <CheckGrid names={[...(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([, name]) => name), ...(type === "weapon" ? weapons.map((w) => w.name) : [])]}>
-                {(type === "weapon" ? WEAPON_SUBTYPES : ARMOR_SUBTYPES).map(([key, name]) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
-                {type === "weapon" && [...weapons].sort((a, b) => a.name.localeCompare(b.name)).map(({ key, name }) => check(name, subtypes.includes(tag(key)), () => toggleSubtype(key)))}
-              </CheckGrid>
-            </Fieldset>
-          )}
+          {(type === "weapon" || type === "armor") && <BaseItem type={type} subtypes={subtypes} weapons={weapons} legend={baseLegend} errors={fieldErrors(problems, MI + "subtypes", baseLegend)} onToggle={toggleSubtype} onSpecific={specific} />}
           {type === "weapon" && subtypes.includes(tag("other")) && (
-            <Fieldset legend="Base weapon details" look="section">
-              <div className="mb-[10px]">
-                <CheckGrid names={WEAPON_PROPERTIES.map((p) => `${p.name}?`)}>
-                {/* As the old toggles: Versatile is a map of its damage dice or absent, and each other property is true or false. */}
-                {WEAPON_PROPERTIES.map(({ name, field }) =>
-                  name === "Versatile"
-                    ? check("Versatile?", versatile !== undefined, () => edit.set([W + "versatile"], versatile === undefined ? {} : undefined))
-                    : check(`${name}?`, edit.get(W + field) === true, () => edit.toggle([W + field])),
-                )}
-                </CheckGrid>
-              </div>
-              <FieldRow>
-                <SelectField label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
-                <SelectField label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
-                {versatile !== undefined && (
-                  <>
-                    <SelectField
-                      label="Versatile damage die number"
-                      value={edit.get(W + "versatile", W + "damage-die-count")}
-                      options={numbers(range(1, 10))}
-                      onSelect={(n) => edit.set([W + "versatile", W + "damage-die-count"], n)}
-                    />
-                    <SelectField label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
-                  </>
-                )}
-                <SelectField label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
-                <SelectField
-                  label="Melee / ranged"
-                  value={edit.get(W + "melee?") === true ? "melee" : ranged ? "ranged" : undefined}
-                  options={["melee", "ranged"].map((v) => [v, title(v)])}
-                  onSelect={(v) => onChange({ ...record, [tag(W + "melee?")]: v === "melee", [tag(W + "ranged?")]: v === "ranged" })}
-                />
-                {ranged &&
-                  ["min", "max"].map((end) => (
-                    <FieldLabel key={end} label={`Range ${end}`}>
-                      {/* Only a whole number of 0 or more is a value. */}
-                      <NumberField
-                        value={numberOrNull(edit.get(W + "range", W + end))}
-                        onValueChange={(n) => edit.set([W + "range", W + end], n !== null && n >= 0 ? n : undefined)}
+            <Checks
+              legend="Base weapon details"
+              items={WEAPON_PROPERTIES}
+              // As the old toggles: Versatile is a map of its damage dice or absent, and each other property is true or false.
+              checked={(key) => (key === "versatile?" ? versatile !== undefined : edit.get(W + key) === true)}
+              onToggle={(key) => (key === "versatile?" ? edit.set([W + "versatile"], versatile === undefined ? {} : undefined) : edit.toggle([W + key]))}
+            >
+              <div className="mt-[10px]">
+                <FieldRow>
+                  <SelectField label="Damage die number" value={edit.get(W + "damage-die-count")} options={numbers(range(1, 10))} onSelect={(n) => edit.set([W + "damage-die-count"], n)} />
+                  <SelectField label="Damage die" value={edit.get(W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "damage-die"], die)} />
+                  {versatile !== undefined && (
+                    <>
+                      <SelectField
+                        label="Versatile damage die number"
+                        value={edit.get(W + "versatile", W + "damage-die-count")}
+                        options={numbers(range(1, 10))}
+                        onSelect={(n) => edit.set([W + "versatile", W + "damage-die-count"], n)}
                       />
-                    </FieldLabel>
-                  ))}
-                <SelectField label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
-              </FieldRow>
-            </Fieldset>
+                      <SelectField label="Versatile damage die" value={edit.get(W + "versatile", W + "damage-die")} options={DICE} onSelect={(die) => edit.set([W + "versatile", W + "damage-die"], die)} />
+                    </>
+                  )}
+                  <SelectField label="Simple / martial" value={edit.get(W + "type")} options={["simple", "martial"].map((v) => [tag(v), title(v)])} onSelect={(v) => edit.set([W + "type"], v)} />
+                  <SelectField
+                    label="Melee / ranged"
+                    value={edit.get(W + "melee?") === true ? "melee" : ranged ? "ranged" : undefined}
+                    options={["melee", "ranged"].map((v) => [v, title(v)])}
+                    onSelect={(v) => onChange({ ...record, [tag(W + "melee?")]: v === "melee", [tag(W + "ranged?")]: v === "ranged" })}
+                  />
+                  {ranged &&
+                    ["min", "max"].map((end) => (
+                      <FieldLabel key={end} label={`Range ${end}`}>
+                        {/* Only a whole number of 0 or more is a value. */}
+                        <NumberField
+                          value={numberOrNull(edit.get(W + "range", W + end))}
+                          onValueChange={(n) => edit.set([W + "range", W + end], n !== null && n >= 0 ? n : undefined)}
+                        />
+                      </FieldLabel>
+                    ))}
+                  <SelectField label="Damage type" value={edit.get(W + "damage-type")} options={DAMAGE_TYPES.map((v) => [tag(v), v])} onSelect={(v) => edit.set([W + "damage-type"], v)} />
+                </FieldRow>
+              </div>
+            </Checks>
           )}
           <Fieldset legend="Attunement" look="section" errors={fieldErrors(problems, MI + "attunement", "Attunement")}>
-            {check("Requires attunement", attunement.length > 0, () => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] }))}
-            {attunement.length > 0 && (
-              <div className="mt-[6px] grid gap-[6px]">
-                {check("Any", attunement.length === 1 && attunement[0] === tag("any"), () => {}, true)}
-                <div>
-                  <Label>Class:</Label>
-                  <CheckGrid names={["Spellcaster", ...classes.map((c) => c.name)]}>
-                    {check("Spellcaster", attunement.includes(tag("spellcaster")), () => toggleAttunement("spellcaster"))}
-                    {classes.map(({ key, name }) => check(name, attunement.includes(tag(key)), () => toggleAttunement(key)))}
-                  </CheckGrid>
-                </div>
-                <div>
-                  <Label>Alignment:</Label>
-                  <CheckGrid names={["Good", "Evil", ...ALIGNMENTS]}>
-                    {["Good", "Evil", ...ALIGNMENTS].map((name) => check(name, attunement.includes(tag(nameToKw(name))), () => toggleAttunement(nameToKw(name))))}
-                  </CheckGrid>
-                </div>
-              </div>
-            )}
+            <Checkbox label="Requires attunement" checked={attunement.length > 0} onCheckedChange={() => change({ attunement: attunement.length > 0 ? undefined : [tag("any")] })} />
+            {attunement.length > 0 && <AttunementLimits attunement={attunement} classes={classes} onToggle={toggleAttunement} />}
           </Fieldset>
           <Fieldset legend="Item properties" look="section">
             <FieldRow>

@@ -116,14 +116,14 @@ test("the magic item form puts a removed modifier's entries back with Undo", asy
   await expect(page.getByRole("button", { name: "Add a modifier" })).toHaveAccessibleDescription("7 more");
   await addModifier(page, "Damage resistances");
   const resistances = page.getByRole("group", { name: "Damage resistances" });
-  await resistances.getByRole("checkbox", { name: "Fire" }).check();
+  await pickFromPicker(resistances.getByRole("button", { name: "Add a damage resistance", exact: true }), "Fire");
   await addModifier(page, "Ability scores");
   await resistances.getByRole("button", { name: "Remove Damage resistances" }).click();
   await expect(resistances).toHaveCount(0);
   // A change to another modifier does not take Undo away.
   await pickOption(page.getByRole("combobox", { name: "STR change" }), "Increases by");
   await page.getByRole("status").getByRole("button", { name: "Undo" }).click();
-  await expect(resistances.getByRole("checkbox", { name: "Fire" })).toBeChecked();
+  await expect(resistances.locator(".ui-token-label")).toHaveText(["Fire"]);
   await expect(page.getByRole("combobox", { name: "STR change" })).toHaveText("Increases by");
 });
 

@@ -8,11 +8,11 @@
 import { Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
 import { ordinal } from "../CharacterSheet.tsx";
-import { CheckGrid, fieldErrors, FieldRow, FormColumn, orFirst, title, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { editor, fieldErrors, FieldRow, FormColumn, MapPicker, orFirst, title, type BuilderType, type FormProps, type ItemRecord, type PickItem } from "./fields.tsx";
 
 const SCHOOLS = ["abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 /** The old builder's spellcasting classes. */
-const CLASSES = ["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"];
+const CLASSES: PickItem[] = ["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"].map((key) => ({ key, name: title(key) }));
 const COMPONENTS = ["verbal", "somatic", "material"];
 
 const LEVELS = Array.from({ length: 10 }, (_, n): [number, string] => [n, n === 0 ? "Cantrip" : `${ordinal(n)}-level`]);
@@ -21,7 +21,6 @@ const SCHOOL_OPTIONS = SCHOOLS.map((school): [string, string] => [school, school
 function SpellForm({ record, onChange, problems }: FormProps) {
   const set = (field: string, value: unknown) => onChange({ ...record, [tag(field)]: value });
   const components = (record[tag("components")] ?? {}) as ItemRecord;
-  const lists = (record[tag("spell-lists")] ?? {}) as ItemRecord;
   const text = (field: string, label: string) => (
     <Field label={label} errors={fieldErrors(problems, field, label)}>
       <FieldLabel label={label}>
@@ -80,16 +79,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       </Fieldset>
       {text("duration", "Duration")}
       <Fieldset legend="Class spell lists" look="section" errors={fieldErrors(problems, "spell-lists", "Class spell lists")}>
-        <CheckGrid names={CLASSES}>
-          {CLASSES.map((klass) => (
-            <Checkbox
-              key={klass}
-              label={title(klass)}
-              checked={lists[tag(klass)] === true}
-              onCheckedChange={(on) => set("spell-lists", { ...lists, [tag(klass)]: on })}
-            />
-          ))}
-        </CheckGrid>
+        <MapPicker edit={editor(record, onChange)} path={["spell-lists"]} items={CLASSES} picker={{ add: "Add a class", others: true }} />
       </Fieldset>
     </FormColumn>
   );
@@ -99,8 +89,9 @@ export const spellBuilder: BuilderType = {
   contentType: "orcpub.dnd.e5/spells",
   validator: "spell",
   one: "spell",
-  // The old builder's new spell (db.cljs default-spell).
-  empty: { [tag("level")]: 0, [tag("school")]: "abjuration", [tag("spell-lists")]: Object.fromEntries(CLASSES.map((klass) => [tag(klass), true])) },
+  // The old builder's new spell (db.cljs default-spell), without its
+  // :spell-lists of all eight classes: the user picks the classes.
+  empty: { [tag("level")]: 0, [tag("school")]: "abjuration" },
   fields: ["name", "level", "school", "ritual", "attack-roll?", "casting-time", "range", "components", "duration", "description", "spell-lists"],
   Form: SpellForm,
 };

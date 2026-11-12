@@ -287,59 +287,38 @@ export function AddButton({ onClick, children }: { onClick: () => void; children
   );
 }
 
-/** A checkbox name longer than this is a sentence: it takes a whole line of a CheckGrid. */
-const SENTENCE = 44;
-
-/** The checkboxes of a group in columns: wide columns for long names, one column for sentences. A sentence among short names takes its own line. */
-export function CheckGrid({ names, children }: { names: string[]; children: ReactNode }) {
-  const short = names.filter((name) => name.length <= SENTENCE);
-  const longest = short.length === 0 ? Infinity : Math.max(0, ...short.map((name) => name.length));
-  const columns = longest <= 24 ? "grid-cols-[repeat(auto-fill,minmax(160px,1fr))]" : longest <= SENTENCE ? "grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))]" : "grid-cols-1";
-  return <div className={`grid gap-x-[14px] gap-y-[3px] ${columns}`}>{children}</div>;
-}
-
 /**
- * A group of checkboxes, one for each item, as a section of the form. name
- * names the group when the legend is not the right name. With row, the
- * boxes are on one line that wraps: the look of a short fixed list
+ * A group of checkboxes, one for each item, as a section of the form, in
+ * one row that wraps: the look of a short fixed list
  * (docs/design/homebrew-forms.md, "Checkboxes that stay"). look "block"
  * is a part of a section that the user added, with a rule on its left.
  * children go after the boxes, such as one more checkbox on its own line.
  */
 export function Checks({
   legend,
-  name,
   items,
   checked,
   onToggle,
   action,
-  row = false,
   look = "section",
   children,
 }: {
   legend: string;
-  name?: string;
   items: Choice[];
   checked: (key: string) => boolean;
   onToggle: (key: string) => void;
   /** A control on the section rule, such as the Remove link of a modifier (modifiers.tsx). */
   action?: ReactNode;
-  row?: boolean;
   look?: "section" | "block";
   children?: ReactNode;
 }) {
-  const boxes = items.map(({ key, name }) => (
-    <Checkbox
-      key={key}
-      label={name}
-      checked={checked(key)}
-      onCheckedChange={() => onToggle(key)}
-      className={`items-start [&>.ui-check]:mt-[4px] ${!row && name.length > SENTENCE ? "col-span-full" : ""}`}
-    />
-  ));
   return (
-    <Fieldset legend={legend} name={name} look={look} action={action}>
-      {row ? <div className="flex flex-wrap gap-x-[18px] gap-y-1">{boxes}</div> : <CheckGrid names={items.map((item) => item.name)}>{boxes}</CheckGrid>}
+    <Fieldset legend={legend} look={look} action={action}>
+      <div className="flex flex-wrap gap-x-[18px] gap-y-1">
+        {items.map(({ key, name }) => (
+          <Checkbox key={key} label={name} checked={checked(key)} onCheckedChange={() => onToggle(key)} className="items-start [&>.ui-check]:mt-[4px]" />
+        ))}
+      </div>
       {children}
     </Fieldset>
   );
@@ -354,6 +333,19 @@ export interface PickerOptions {
   add: string;
   /** A search field in the list. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 options. */
   search?: boolean;
+  /** MapPicker only: a stored key that is no option, such as one of a pack that is not enabled, shows as a token named by its key (withOthers). For a SetPicker, give it withOthers items. */
+  others?: boolean;
+}
+
+/**
+ * The items, then an item for each of the stored keys that is no item,
+ * named by its key. Thus a stored value that no list has shows as a token,
+ * and stays until the user removes it.
+ */
+export function withOthers(items: PickItem[], keys: string[]): PickItem[] {
+  const known = new Set(items.map((item) => item.key));
+  const others = [...new Set(keys)].filter((key) => !known.has(key));
+  return [...items, ...others.map((key) => ({ key, name: key }))];
 }
 
 /** The footer text of a form's picker list: the number of picks on the form. */
@@ -367,7 +359,8 @@ const listItems = (items: PickItem[], value: (item: PickItem) => string = (item)
  * false, as the old second click. With removeKey, a removed token removes
  * the key, and a key with a truthy value shows as a token, as the old
  * checkboxes of the background builder did. Only the picked or removed key
- * changes, so a key that is no option keeps its value.
+ * changes, so a key that is no option keeps its value; with picker.others
+ * it also shows as a token.
  */
 export function MapPicker({ edit, path, items, picker, removeKey = false }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions; removeKey?: boolean }) {
   const map = (edit.get(...path) ?? {}) as ItemRecord;
@@ -377,7 +370,7 @@ export function MapPicker({ edit, path, items, picker, removeKey = false }: { ed
   return (
     <Picker
       label={picker.add}
-      options={listItems(items)}
+      options={listItems(picker.others ? withOthers(items, value) : items)}
       value={value}
       search={picker.search}
       pickedText={pickedText}

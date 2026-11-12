@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { pickOption } from "@orc-alchemy/ui/testing";
+import { pickFromPicker, pickOption, removeToken } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -58,7 +58,7 @@ async function authorFirePop(optionSource?: string) {
   fireEvent.click(screen.getByRole("checkbox", { name: "Verbal" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Material" }));
   type("Material component", "a match");
-  for (const klass of ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock"]) fireEvent.click(screen.getByRole("checkbox", { name: klass }));
+  await pickFromPicker(screen.getByRole("button", { name: "Add a class" }), "Wizard");
   if (optionSource !== undefined) type("Option source (pack)", optionSource);
   fireEvent.click(save());
   // Save builds the packs with the spell, which is slow under load.
@@ -75,13 +75,16 @@ test("each problem shows under its field, and Save is off until the spell is val
   expect(problems("Name")).toBe("Name must start with a letter.");
   type("Name", "Fire Pop");
   expect(problems("Name")).toBeNull();
-  expect(save().disabled).toBe(false);
 
-  // A spell must be on at least one class list.
-  for (const klass of ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock", "Wizard"]) fireEvent.click(screen.getByRole("checkbox", { name: klass }));
+  // A spell must be on at least one class list, and a new spell is on none.
+  expect(problems("Class spell lists")).toBe("Class spell lists is required.");
+  expect(save().disabled).toBe(true);
+  await pickFromPicker(screen.getByRole("button", { name: "Add a class" }), "Wizard");
+  expect(save().disabled).toBe(false);
+  await removeToken(screen.getByRole("group", { name: "Class spell lists" }), "Wizard");
   expect(problems("Class spell lists")).toBe("Class spell lists is not valid.");
   expect(save().disabled).toBe(true);
-  fireEvent.click(screen.getByRole("checkbox", { name: "Wizard" }));
+  await pickFromPicker(screen.getByRole("button", { name: "Add a class" }), "Wizard");
   expect(save().disabled).toBe(false);
   expect(screen.queryByRole("list", { name: "Problems" })).toBeNull();
 });
@@ -90,7 +93,7 @@ test("a problem of a field the form does not show is listed at the top", async (
   BUILDERS.test = { ...spellBuilder, fields: ["school"] };
   renderAt("/content/new/test");
   await screen.findByRole("form", { name: "New spell" });
-  expect(screen.getByRole("list", { name: "Problems" }).textContent).toBe("name is required.");
+  expect([...screen.getByRole("list", { name: "Problems" }).children].map((li) => li.textContent)).toEqual(["name is required.", "spell-lists is required."]);
 });
 
 test("Save stores the spell in the default pack, enabled, as the old app stores it", async () => {
@@ -108,16 +111,7 @@ test("Save stores the spell in the default pack, enabled, as the old app stores 
     "~:duration": "Instantaneous",
     "~:description": "A small burst of fire.",
     "~:components": { "~:verbal": true, "~:material": true, "~:material-component": "a match" },
-    "~:spell-lists": {
-      "~:bard": false,
-      "~:cleric": false,
-      "~:druid": false,
-      "~:paladin": false,
-      "~:ranger": false,
-      "~:sorcerer": false,
-      "~:warlock": false,
-      "~:wizard": true,
-    },
+    "~:spell-lists": { "~:wizard": true },
   });
   // It is stored, and the characters' content has it.
   expect(((await listPacks()) as PackRecord[]).map((p) => p.id)).toEqual([DEFAULT]);

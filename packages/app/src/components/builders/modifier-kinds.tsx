@@ -38,8 +38,11 @@ export const weaponChoices = (lists: BuilderChoices): Choice[] => [
 /** Short names, for a checkbox row. */
 export const ARMOR_CHOICES = choices(["light", "medium", "heavy", "shields"], (a) => (a === "shields" ? "Shields" : `${title(a)} armor`));
 export const RESISTANCE_CHOICES = choices(["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Damage from traps" : title(d)));
-export const IMMUNITY_CHOICES = choices(DAMAGE_TYPES, title);
-export const SAVING_THROW_CHOICES = CONDITIONS.map((name) => ({ key: nameToKw(name), name }));
+/** The damage types, for damage immunities, and for the resistances and vulnerabilities that have no "traps". */
+export const DAMAGE_CHOICES = choices(DAMAGE_TYPES, title);
+/** The conditions, keyed as common/name-to-kw keys them, such as :poisoned. */
+export const CONDITION_CHOICES = CONDITIONS.map((name) => ({ key: nameToKw(name), name }));
+export const SAVING_THROW_CHOICES = CONDITION_CHOICES;
 /** The old tools in the order of fields.tsx TOOLS, with a heading for each kind. */
 export const TOOL_ITEMS: PickItem[] = [
   ...MUSICAL_INSTRUMENTS.map((t) => ({ ...t, group: "Musical instruments" })),
@@ -74,7 +77,7 @@ export const armorModifier = (edit: Edit): Modifier => ({
   example: "Light, medium or heavy armor, shields",
   paths: [["props", "armor-prof"]],
   render: ({ name, action }) => (
-    <Checks legend={name} action={action} row items={ARMOR_CHOICES} checked={(key) => edit.get("props", "armor-prof", key) === true} onToggle={(key) => edit.toggle(["props", "armor-prof", key])} />
+    <Checks legend={name} action={action} items={ARMOR_CHOICES} checked={(key) => edit.get("props", "armor-prof", key) === true} onToggle={(key) => edit.toggle(["props", "armor-prof", key])} />
   ),
 });
 

@@ -4,15 +4,17 @@
 // export round-trips: :size and :type keywords, :alignment a string, the
 // numbers integers (:challenge a decimal such as 0.125), :hit-points a map of
 // :die-count, :die and :modifier, :saving-throws and :skills maps of keyword
-// to bonus, the damage, condition and language checkboxes in :props, as
-// {:damage-resistance {:fire true}}, and :traits a vector of :name, :type
+// to bonus, the damage, condition and language pickers in :props, as
+// {:damage-resistance {:fire true}} (a removed token stores false, as the old
+// checkbox's second click), and :traits a vector of :name, :type
 // and :description maps, :type absent, :action or :legendary-action. The
 // form shows its common groups always, and the user adds the others from a
 // list (modifiers.tsx).
-import { Checkbox, Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput, XButton } from "@orc-alchemy/ui";
+import { Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput, XButton } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, AddButton, Card, CheckGrid, CONDITIONS, DAMAGE_TYPES, fieldErrors, FieldRow, FormColumn, nameToKw, numberOrNull, orFirst, range, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { ABILITIES, AddButton, Card, editor, fieldErrors, FieldRow, FormColumn, MapPicker, numberOrNull, orFirst, range, Section, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type PickerOptions, type PickItem } from "./fields.tsx";
+import { CONDITION_CHOICES, DAMAGE_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier, type ModifierView } from "./modifiers.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
@@ -57,11 +59,9 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   const set = (field: string, value: unknown) => onChange(withValue(record, tag(field), value));
   const map = (field: string) => (record[tag(field)] ?? {}) as ItemRecord;
   const setIn = (field: string, key: string, value: unknown) => set(field, withValue(map(field), tag(key), value));
-  const props = map("props");
-  const toggle = (prop: string, key: string) => {
-    const values = (props[tag(prop)] ?? {}) as ItemRecord;
-    set("props", { ...props, [tag(prop)]: { ...values, [tag(key)]: values[tag(key)] !== true } });
-  };
+  const edit = editor(record, onChange);
+  /** The options of a picker of :props: a stored key that is no option, such as a language of a pack that is not enabled, shows as a token. */
+  const pickerOptions = (add: string, search = false): PickerOptions => ({ add, search, others: true });
   const traits = (record[tag("traits")] ?? []) as ItemRecord[];
   const setTrait = (index: number, key: string, value: unknown) => set("traits", traits.map((trait, i) => (i === index ? withValue(trait, key, value) : trait)));
 
@@ -89,15 +89,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   };
   const numbers = (values: number[]) => values.map((n) => [n, n]);
   const orNone = (values: number[]) => [["", "-"], ...numbers(values)];
-  const checkboxes = (legend: string, prop: string, keys: string[], label: (key: string) => string, action?: ReactNode) => (
-    <Fieldset legend={legend} look="section" action={action}>
-      <CheckGrid names={keys.map(label)}>
-        {keys.map((key) => (
-          <Checkbox key={key} label={label(key)} checked={((props[tag(prop)] ?? {}) as ItemRecord)[tag(key)] === true} onCheckedChange={() => toggle(prop, key)} />
-        ))}
-      </CheckGrid>
-    </Fieldset>
-  );
+  const propPicker = (prop: string, items: PickItem[], add: string) => mapPicker(edit, ["props", prop], items, pickerOptions(add));
   const hitPoints = map("hit-points");
   const saves = map("saving-throws");
   const skills = map("skills");
@@ -162,26 +154,19 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
         </FieldRow>
       </Fieldset>
     )),
-    {
-      id: "damage-vulnerability",
-      name: "Damage vulnerabilities",
-      example: "Fire, radiant …",
-      paths: [["props", "damage-vulnerability"]],
-      render: ({ name, action }) => checkboxes(name, "damage-vulnerability", DAMAGE_TYPES, (d) => `Vulnerability to ${d} damage`, action),
-    },
-    common("damage-resistance", "Damage resistances", ({ name }) =>
-      checkboxes(name, "damage-resistance", ["traps", ...DAMAGE_TYPES], (d) => (d === "traps" ? "Resistance to damage from traps" : `Resistance to ${d} damage`)),
-    ),
-    common("damage-immunity", "Damage immunities", ({ name }) => checkboxes(name, "damage-immunity", DAMAGE_TYPES, (d) => `Immunity to ${d} damage`)),
-    common("condition-immunity", "Condition immunities", ({ name }) => checkboxes(name, "condition-immunity", CONDITIONS.map(nameToKw), (c) => `Immunity to being ${title(c)}`)),
+    propModifier(edit, "damage-vulnerability", "Damage vulnerabilities", "Fire, radiant …", DAMAGE_CHOICES, pickerOptions("Add a damage vulnerability")),
+    common("damage-resistance", "Damage resistances", propPicker("damage-resistance", RESISTANCE_CHOICES, "Add a damage resistance")),
+    common("damage-immunity", "Damage immunities", propPicker("damage-immunity", DAMAGE_CHOICES, "Add a damage immunity")),
+    common("condition-immunity", "Condition immunities", propPicker("condition-immunity", CONDITION_CHOICES, "Add a condition")),
     textModifier("senses", "Senses", "Darkvision 60 ft., blindsight …"),
     common("language", "Languages", ({ name }) => (
       // The SRD languages and those of the enabled packs, as the old list (::langs/languages).
       <WithChoices>
-        {({ languages }) => {
-          const names = Object.fromEntries(languages.map(({ key, name }) => [key, name]));
-          return checkboxes(name, "language", Object.keys(names), (key) => names[key]);
-        }}
+        {({ languages }) => (
+          <Section legend={name}>
+            <MapPicker edit={edit} path={["props", "language"]} items={languages} picker={pickerOptions("Add a language", true)} />
+          </Section>
+        )}
       </WithChoices>
     )),
     common("challenge", "Challenge rating", () =>

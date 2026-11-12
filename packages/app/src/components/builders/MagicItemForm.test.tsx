@@ -10,7 +10,7 @@ import { listMagicItems, type MagicItemRecord } from "../../storage/packs.ts";
 import { Builder } from "../Builder.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 import { MyContent } from "../MyContent.tsx";
-import { addList, addModifier, choose, groups, shown } from "./test-picks.ts";
+import { addList, addModifier, choose, groups, pick, shown, tokens, unpick } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 
@@ -68,7 +68,7 @@ async function authorCirclet() {
   type("WIS value", "2");
   await choose("Walking speed change", "Increases by");
   type("Walking speed value", "10");
-  fireEvent.click(group("Damage resistances").getByRole("checkbox", { name: "Fire" }));
+  await pick("Damage resistances", "Add a damage resistance", "Fire");
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   return router;
@@ -118,7 +118,7 @@ test("Edit loads the stored item; a save keeps the enabled flag, and a rename re
   expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Hawk Eye Circlet");
   expect(shown("WIS change")).toBe("Increases by");
   expect(screen.getByLabelText<HTMLInputElement>("WIS value").value).toBe("2");
-  expect(group("Damage resistances").getByRole("checkbox", { name: "Fire" })).toBeChecked();
+  expect(tokens("Damage resistances")).toEqual(["Fire"]);
 
   type("WIS value", "3");
   fireEvent.click(save());
@@ -163,24 +163,28 @@ test("an edit of a magic item that is not stored says so", async () => {
   expect(await screen.findByRole("heading", { name: "There is no magic item nothing" })).toBeTruthy();
 });
 
-test("a weapon stores its base weapons, and All replaces the others", async () => {
+test("a weapon stores its base weapons, and Any replaces the others", async () => {
   renderAt("/content/new/magicItem");
   await form("New magic item");
   type("Name", "Flame Blade");
   await choose("Type", "Weapon");
-  const base = group("Base weapon");
-  fireEvent.click(await base.findByRole("checkbox", { name: "Longsword" }));
-  fireEvent.click(base.getByRole("checkbox", { name: "All" }));
-  expect(base.getByRole("checkbox", { name: "Longsword" })).not.toBeChecked();
-  fireEvent.click(base.getByRole("checkbox", { name: "Longsword" }));
-  fireEvent.click(base.getByRole("checkbox", { name: "Scimitar" }));
-  expect(base.getByRole("checkbox", { name: "All" })).not.toBeChecked();
+  // A new weapon has no base weapon: Specific, with no picks.
+  expect(shown("Base weapon")).toBe("Specific");
+  await pick("Base weapon", "Add a base weapon", "Longsword");
+  await choose("Base weapon", "Any");
+  expect(screen.queryByRole("button", { name: "Add a base weapon" })).toBeNull();
+  await choose("Base weapon", "Specific");
+  expect(tokens("Base weapon")).toEqual([]);
+  // The tokens are in the order of the list.
+  await pick("Base weapon", "Add a base weapon", ["Scimitar", "Longsword"]);
+  expect(tokens("Base weapon")).toEqual(["Longsword", "Scimitar"]);
   type("Magical attack bonus", "1");
   type("Magical damage bonus", "1");
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   const item = stored("flame-blade")!.item as Record<string, unknown>;
-  expect(item[`${MI}subtypes`]).toEqual(["~:longsword", "~:scimitar"]);
+  // In the order of the picks, as the old checkboxes stored them.
+  expect(item[`${MI}subtypes`]).toEqual(["~:scimitar", "~:longsword"]);
   expect(item[`${MI}magical-attack-bonus`]).toBe(1);
   expect(item[`${MI}magical-damage-bonus`]).toBe(1);
 
@@ -211,16 +215,29 @@ test("a magic item authored in the form is offered in the Equipment step, and at
   await waitFor(() => expect(built().abilities["orcpub.dnd.e5.character/wis"]).toBe(wis + 2));
 }, 20_000);
 
-test("the base weapons are Custom, the All choices, then the weapons by name, as the old list", async () => {
+test("the base select has Any, Specific and New weapon; the specific list has the kinds, then the weapons by name, with search", async () => {
   renderAt("/content/new/magicItem");
   await form("New magic item");
   await choose("Type", "Weapon");
-  const base = group("Base weapon");
-  await base.findByRole("checkbox", { name: "Longsword" });
-  const names = base.getAllByRole("checkbox").map((box) => box.parentElement!.textContent!.trim());
-  expect(names.slice(0, 7)).toEqual(["Custom", "All", "All Swords", "All Axes", "Battleaxe", "Blowgun", "Club"]);
-  expect(names).toHaveLength(44);
+  expect(await optionNames(screen.getByRole("combobox", { name: "Base weapon" }))).toEqual(["Any", "Specific", "New weapon"]);
+  const add = await group("Base weapon").findByRole("button", { name: "Add a base weapon" });
+  const names = await addList(add, "Add a base weapon");
+  expect(names.slice(0, 5)).toEqual(["All Swords", "All Axes", "Battleaxe", "Blowgun", "Club"]);
+  expect(names).toHaveLength(42);
   expect(names.at(-1)).toBe("Whip");
+  fireEvent.click(add);
+  expect(within(await screen.findByRole("dialog")).getByRole("searchbox")).toBeTruthy();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+  // Armor has no New weapon, and its short list has no search.
+  await choose("Type", "Armor");
+  expect(await optionNames(screen.getByRole("combobox", { name: "Base armor" }))).toEqual(["Any", "Specific"]);
+  const armor = await addList(group("Base armor").getByRole("button", { name: "Add a base armor" }), "Add a base armor");
+  expect(armor.slice(0, 4)).toEqual(["All light", "All medium", "All heavy", "Shield"]);
+  expect(armor).toHaveLength(17);
+  fireEvent.click(group("Base armor").getByRole("button", { name: "Add a base armor" }));
+  expect(within(await screen.findByRole("dialog")).queryByRole("searchbox")).toBeNull();
 });
 
 test("the attunement classes include a class of an enabled pack", async () => {
@@ -229,10 +246,13 @@ test("the attunement classes include a class of an enabled pack", async () => {
   await form("New magic item");
   type("Name", "Spanner of Power");
   fireEvent.click(screen.getByRole("checkbox", { name: "Requires attunement" }));
-  const attunement = group("Attunement");
-  fireEvent.click(await attunement.findByRole("checkbox", { name: "Artificer (Tinkers)" }));
-  expect(attunement.getByRole("checkbox", { name: "Spellcaster" })).toBeTruthy();
-  expect(attunement.getByRole("checkbox", { name: "Wizard" })).toBeTruthy();
+  expect(group("Attunement").getByText("No limits: any creature can attune to it.")).toBeTruthy();
+  const names = await addList(group("Attunement").getByRole("button", { name: "Add an attunement limit" }), "Add an attunement limit");
+  expect(names.slice(0, 2)).toEqual(["Spellcaster", "Barbarian"]);
+  expect(names).toContain("Artificer (Tinkers)");
+  expect(names.slice(-11)).toEqual(["Good", "Evil", "Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"]);
+  await pick("Attunement", "Add an attunement limit", "Artificer (Tinkers)");
+  expect(group("Attunement").queryByText("No limits: any creature can attune to it.")).toBeNull();
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   expect((stored("spanner-of-power")!.item as Record<string, unknown>)[`${MI}attunement`]).toEqual(["~:artificer"]);
@@ -243,11 +263,10 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   await form("New magic item");
   type("Name", "Bone Club");
   await choose("Type", "Weapon");
-  const base = group("Base weapon");
-  fireEvent.click(await base.findByRole("checkbox", { name: "Longsword" }));
+  await pick("Base weapon", "Add a base weapon", "Longsword");
   expect(screen.queryByRole("group", { name: "Base weapon details" })).toBeNull();
-  fireEvent.click(base.getByRole("checkbox", { name: "Custom" }));
-  expect(base.getByRole("checkbox", { name: "Longsword" })).not.toBeChecked();
+  await choose("Base weapon", "New weapon");
+  expect(screen.queryByRole("button", { name: "Add a base weapon" })).toBeNull();
   // The old first details (magic_items.cljc apply-subtype-toggle).
   const details = group("Base weapon details");
   const detail = (label: string) => details.getByRole("combobox", { name: label }).textContent;
@@ -323,14 +342,19 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   expect(stored("bone-club")!.item).not.toHaveProperty([`${W}versatile`]);
 
   for (const [choice, subtypes] of [
-    ["All", ["~:all"]],
+    ["Any", ["~:all"]],
     ["Club", ["~:club"]],
   ] as const) {
     await useHomebrew.getState().loadMagicItems([{ ...defaults, [`${W}finesse?`]: true, [`${W}range`]: { [`${W}min`]: 20 } }]);
     cleanup();
     renderAt("/content/edit/magicItem/bone-club");
     await form("Edit magic item");
-    fireEvent.click(await group("Base weapon").findByRole("checkbox", { name: choice }));
+    expect(shown("Base weapon")).toBe("New weapon");
+    if (choice === "Any") await choose("Base weapon", "Any");
+    else {
+      await choose("Base weapon", "Specific");
+      await pick("Base weapon", "Add a base weapon", choice);
+    }
     expect(screen.queryByRole("group", { name: "Base weapon details" })).toBeNull();
     fireEvent.click(save());
     await screen.findByRole("heading", { name: "My Content" });
@@ -378,7 +402,7 @@ test("Remove takes out only the modifier's entries, and Undo puts each back in i
   await choose("STR change", "Becomes at least");
   type("STR value", "19");
   fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Undo" }));
-  expect(group("Damage resistances").getByRole("checkbox", { name: "Cold" })).toBeChecked();
+  expect(tokens("Damage resistances")).toEqual(["Cold", "Fire"]);
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   expect((stored("tide-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([
@@ -451,4 +475,129 @@ test("Undo puts an entry back at its index between two equal entries of another 
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
   expect(stored("twin-ring")!.item).toEqual(item);
+});
+
+test("an imported item with unknown subtypes, limits and args, hidden weapon fields and unknown keys opens, saves and stays equal", async () => {
+  const item = {
+    [`${MI}name`]: "Old Blade",
+    [`${MI}type`]: "~:weapon",
+    [`${MI}rarity`]: "~:rare",
+    [`${MI}subtypes`]: ["~:longsword", "~:an-old-blade"],
+    // A weapon field with a specific subtype: the form does not show it.
+    [`${W}finesse?`]: false,
+    [`${MI}attunement`]: ["~:wizard", "~:an-old-order", "~:lawful-good"],
+    [`${MI}modifiers`]: [mod("damage-resistance", ["psionic"]), mod("damage-resistance", ["fire"]), mod("condition-immunity", ["charmed"]), mod("an-old-mod", ["x"])],
+    [`${MI}an-old-field`]: false,
+  };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/old-blade");
+  await form("Edit magic item");
+  expect(shown("Base weapon")).toBe("Specific");
+  expect(await screen.findByRole("button", { name: "Remove an-old-blade" })).toBeTruthy();
+  expect(tokens("Base weapon")).toEqual(["Longsword", "an-old-blade"]);
+  expect(screen.getByRole("checkbox", { name: "Requires attunement" })).toBeChecked();
+  expect(tokens("Attunement")).toEqual(["Wizard", "Lawful Good", "an-old-order"]);
+  expect(groups()).toEqual(["Base weapon", "Attunement", "Item properties", "Damage resistances", "Condition immunities"]);
+  expect(tokens("Damage resistances")).toEqual(["Fire", "psionic"]);
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("old-blade")!.item).toEqual(item);
+});
+
+test("in each picker a pick then a remove stores what the old double click stored", async () => {
+  const item = {
+    [`${MI}name`]: "Old Blade",
+    [`${MI}type`]: "~:weapon",
+    [`${MI}rarity`]: "~:rare",
+    [`${MI}subtypes`]: ["~:longsword"],
+    [`${W}finesse?`]: false,
+    [`${MI}attunement`]: ["~:any"],
+  };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/old-blade");
+  await form("Edit magic item");
+  // A base weapon toggle removes the hidden weapon fields, as the old toggle-subtype.
+  await pick("Base weapon", "Add a base weapon", "Club");
+  await unpick("Base weapon", "Club");
+  // With no limit left, the attunement is :any again.
+  await pick("Attunement", "Add an attunement limit", ["Wizard", "Chaotic Good"]);
+  await unpick("Attunement", "Wizard");
+  await unpick("Attunement", "Chaotic Good");
+  expect(group("Attunement").getByText("No limits: any creature can attune to it.")).toBeTruthy();
+  for (const name of ADDED.slice(3)) await addModifier(name);
+  for (const [legend, add, name] of [
+    ["Damage resistances", "Add a damage resistance", "Fire"],
+    ["Damage vulnerabilities", "Add a damage vulnerability", "Radiant"],
+    ["Damage immunities", "Add a damage immunity", "Poison"],
+    ["Condition immunities", "Add a condition", "Charmed"],
+  ]) {
+    await pick(legend, add, name);
+    await unpick(legend, name);
+  }
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("old-blade")!.item).toEqual({
+    [`${MI}name`]: "Old Blade",
+    [`${MI}type`]: "~:weapon",
+    [`${MI}rarity`]: "~:rare",
+    [`${MI}subtypes`]: ["~:longsword"],
+    [`${MI}attunement`]: ["~:any"],
+  });
+});
+
+test("Specific from Any or New weapon stores what the old app stored for a base weapon picked and then removed", async () => {
+  const defaults = { [`${W}damage-die-count`]: 1, [`${W}damage-die`]: 4, [`${W}type`]: "~:simple", [`${W}damage-type`]: "~:bludgeoning", [`${W}melee?`]: true, [`${W}ranged?`]: false };
+  const base = { [`${MI}name`]: "Old Blade", [`${MI}type`]: "~:weapon", [`${MI}rarity`]: "~:rare" };
+  for (const before of [{ [`${MI}subtypes`]: ["~:all"] }, { [`${MI}subtypes`]: ["~:other"], ...defaults, [`${W}reach?`]: true }]) {
+    await useHomebrew.getState().loadMagicItems([{ ...base, ...before }]);
+    renderAt("/content/edit/magicItem/old-blade");
+    await form("Edit magic item");
+    await choose("Base weapon", "Specific");
+    fireEvent.click(save());
+    await screen.findByRole("heading", { name: "My Content" });
+    expect(stored("old-blade")!.item).toEqual(base);
+    cleanup();
+  }
+  // New weapon stores the old first details, as the old Custom checkbox.
+  await useHomebrew.getState().loadMagicItems([{ ...base, [`${MI}subtypes`]: ["~:longsword"] }]);
+  renderAt("/content/edit/magicItem/old-blade");
+  await form("Edit magic item");
+  await choose("Base weapon", "New weapon");
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("old-blade")!.item).toEqual({ ...base, [`${MI}subtypes`]: ["~:other"], ...defaults });
+});
+
+test("a damage picker adds an entry at the end, and the X of an arg stored twice removes both entries", async () => {
+  const twice = mod("damage-immunity", ["fire"]);
+  const item = { [`${MI}name`]: "Twin Ring", [`${MI}type`]: "~:ring", [`${MI}rarity`]: "~:rare", [`${MI}modifiers`]: [twice, wis(1), twice] };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/twin-ring");
+  await form("Edit magic item");
+  expect(tokens("Damage immunities")).toEqual(["Fire"]);
+  // The footer counts the arg stored twice once.
+  fireEvent.click(group("Damage immunities").getByRole("button", { name: "Add a damage immunity" }));
+  expect(within(await screen.findByRole("dialog")).getByRole("status").textContent).toBe("1 on the form");
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await pick("Damage immunities", "Add a damage immunity", ["Cold", "Acid"]);
+  expect(tokens("Damage immunities")).toEqual(["Acid", "Cold", "Fire"]);
+  await unpick("Damage immunities", "Fire");
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect((stored("twin-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([wis(1), mod("damage-immunity", ["cold"]), mod("damage-immunity", ["acid"])]);
+});
+
+test("on armor, a stored :other is a token, and its X removes only it: no New weapon details", async () => {
+  const item = { [`${MI}name`]: "Odd Mail", [`${MI}type`]: "~:armor", [`${MI}rarity`]: "~:rare", [`${MI}subtypes`]: ["~:other", "~:plate"] };
+  await useHomebrew.getState().loadMagicItems([item]);
+  renderAt("/content/edit/magicItem/odd-mail");
+  await form("Edit magic item");
+  expect(shown("Base armor")).toBe("Specific");
+  expect(tokens("Base armor")).toEqual(["Plate", "other"]);
+  await unpick("Base armor", "other");
+  expect(tokens("Base armor")).toEqual(["Plate"]);
+  fireEvent.click(save());
+  await screen.findByRole("heading", { name: "My Content" });
+  expect(stored("odd-mail")!.item).toEqual({ ...item, [`${MI}subtypes`]: ["~:plate"] });
 });
