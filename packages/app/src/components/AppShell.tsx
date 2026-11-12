@@ -1,6 +1,7 @@
 import { AlertNote, AlertNotes, Button, FlagTab, FlagTabs, Shell, type FlagColor } from "@orc-alchemy/ui";
 import { Link, Outlet, useLocation } from "react-router";
 import { useStorage } from "../storage/characters.ts";
+import { Potion } from "./Potion.tsx";
 
 /** The flag tabs. A tab is current on its sections: each section is a path and the paths under it. Home has no tab. */
 const TABS: { label: string; to: string; color: FlagColor; sections: string[] }[] = [
@@ -19,7 +20,7 @@ export function AppShell() {
     <Shell
       logo={
         <Link to="/" aria-label="Alchemy 5e" className="inline-flex items-center gap-2.5 text-ink no-underline">
-          <img src="/potion-32.png" width={32} height={32} alt="" className="block [image-rendering:pixelated]" />
+          <Potion size={32} />
           <span className="text-xl leading-none font-[560] tracking-[-0.01em] whitespace-nowrap">
             Alchemy
             <small className="ml-1 align-[3px] font-sans text-[10px] font-semibold tracking-[0.1em] text-ink-muted">5E</small>

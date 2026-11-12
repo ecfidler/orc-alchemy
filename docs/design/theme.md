@@ -302,17 +302,31 @@ for the logo, the navigation and the content. The app fills the slots.
 
 ## Logo
 
-The logo is the potion only. Ethan drew it as 16 × 16 pixel art
-(`assets/pixil-frame-0.png` in the project files). Copy it into
-`packages/app/public/`. Render every size as a whole power-of-two scale with
-nearest-neighbor scaling (`image-rendering: pixelated`).
+The logo is the potion only. Ethan drew it as 16 × 16 pixel art. The
+current art is the outlined bottle (ORC-208, `logo-swirl/bottle.png` in the
+project files). Copy it into `packages/app/public/`. Render every size as a
+whole power-of-two scale with nearest-neighbor scaling
+(`image-rendering: pixelated`).
 
-| Slot | Size | Scale |
-|---|---|---|
-| Browser tab favicon | 16, 32 | 1×, 2× |
-| Rail header mark | 32 | 2× |
-| Home page title row | 64 | 4× |
-| Home screen and install icon | 256, 512 | 16×, 32× |
+| Slot | Size | Scale | Swirl |
+|---|---|---|---|
+| Browser tab favicon | 16, 32 | 1×, 2× | No |
+| Rail header mark | 32 | 2× | Yes |
+| Home page title row | 64 | 4× | Yes |
+| Home screen and install icon | 256, 512 | 16×, 32× | No |
+
+The liquid swirls in the rail mark and in the Home title row (ORC-208,
+variant A, "Stir"). The rules are:
+
+* The swirl is `potion-swirl.png`, a row of twelve 16 × 16 frames. CSS shows
+  one whole frame at a time, and one loop takes 2.4 seconds.
+* Only the liquid changes. Each frame turns the liquid pixels of the art
+  around the middle of the flask, so the swirl adds no colors. The glass,
+  the highlights and the cork do not move. The first frame is the art as
+  drawn.
+* Under `prefers-reduced-motion: reduce`, the logo does not move and shows
+  the art as drawn.
+* `logo-swirl/gen.py` in the project files makes the frames from the art.
 
 The ingot and the lead-to-gold animation are not in M8.
 
