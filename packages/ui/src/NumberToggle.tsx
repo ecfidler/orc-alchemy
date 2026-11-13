@@ -1,4 +1,4 @@
-import { Toggle, ToggleGroup } from "./Toggle.tsx";
+import { SegmentedToggle } from "./SegmentedToggle.tsx";
 
 export type NumberToggleProps = {
   /** The pressed value. null is "None". */
@@ -17,18 +17,19 @@ const key = (value: number | null) => (value === null ? "none" : String(value));
 
 /**
  * A segmented toggle for one number from a short list, for example
- * None / 1 / 2 / 3, on ToggleGroup. One segment is always pressed. It is
- * one tab stop: Left and Right, Home and End move between the segments,
- * and Space or Enter presses one.
+ * None / 1 / 2 / 3: a SegmentedToggle of the numbers. One segment is always
+ * pressed. It is one tab stop: Left and Right, Home and End move between
+ * the segments, and Space or Enter presses one.
  */
 export function NumberToggle({ value, values, onValueChange, size = "normal", className, ...name }: NumberToggleProps) {
   return (
-    <ToggleGroup {...name} value={[key(value)]} data-size={size} className={className ? `ui-number-toggle ${className}` : "ui-number-toggle"}>
-      {values.map((v) => (
-        <Toggle key={key(v)} value={key(v)} className="ui-segment" onPressedChange={(pressed) => pressed && onValueChange(v)}>
-          {v === null ? "None" : String(v)}
-        </Toggle>
-      ))}
-    </ToggleGroup>
+    <SegmentedToggle
+      {...name}
+      size={size}
+      className={className}
+      value={key(value)}
+      options={values.map((v) => [key(v), v === null ? "None" : String(v)] as const)}
+      onValueChange={(pressed) => onValueChange(values.find((v) => key(v) === pressed) ?? null)}
+    />
   );
 }

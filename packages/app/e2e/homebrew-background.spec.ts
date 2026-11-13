@@ -7,7 +7,7 @@ test("a background made in the background form is a background choice of a new c
   await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
   await page.getByRole("textbox", { name: "Name" }).fill("Spy");
   await pickFromPicker(page.getByRole("group", { name: "Skill proficiencies" }).getByRole("button", { name: "Add a skill" }), "Deception");
-  await page.getByRole("button", { name: "Add feature / trait" }).click();
+  await page.getByRole("button", { name: "Add a feature" }).click();
   await page.getByRole("textbox", { name: "Feature 1 name" }).fill("Criminal Contact");
   await page.getByRole("textbox", { name: "Feature 1 description" }).fill("reliable criminal underworld contact");
   await page.getByRole("button", { name: "Save" }).click();

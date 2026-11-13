@@ -110,7 +110,7 @@ test("Save stores the class as the old app stores it, and Edit loads it back", a
   await choose("Selection 1 type", "Rune Carvings");
   await choose("Selection 1 level", "2");
   await choose("Selection 1 amount", "2");
-  fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a feature" }));
   type("Feature 1 name", "Rune Carver");
   await choose("Feature 1 type", "Bonus Action");
   await choose("Feature 1 level", "2");

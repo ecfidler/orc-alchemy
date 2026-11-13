@@ -87,8 +87,8 @@ test("the form recreates the Mezzoloth race of the community fixture, and Edit l
   fireEvent.click(screen.getByRole("button", { name: "Add a spell" }));
   await choose("Spell 3", "Light");
   fireEvent.click(screen.getByRole("button", { name: "Delete spell 3" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a feature" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a feature" }));
   type("Feature 1 name", "Natural Weapon");
   type(
     "Feature 1 description",
@@ -153,7 +153,7 @@ test("the modifiers are stored as the old events store them", async () => {
   await choose("Spell 1 unlocks at", "Level 3");
   await choose("Spell 1 spell level", "1st");
   await choose("Spell 1", "Shield");
-  fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a feature" }));
   type("Feature 1 name", "Bite");
   await choose("Feature 1 type", "Bonus Action");
   fireEvent.click(save());
@@ -215,11 +215,11 @@ test("Add a spell alone shows a blank row and stores nothing; its X takes the ro
 test("a new race shows only the common modifiers, with the add button after Spells and before Features", async () => {
   renderAt("/content/new/race");
   await screen.findByRole("button", { name: "Add a spell" });
-  expect(groups()).toEqual([...COMMON, "Features / traits"]);
+  expect(groups()).toEqual([...COMMON, "Features"]);
   expect(screen.queryByRole("combobox", { name: "Flying speed" })).toBeNull();
   const add = screen.getByRole("button", { name: "Add a modifier" });
   const spells = screen.getByRole("group", { name: "Spells" });
-  const features = screen.getByRole("group", { name: "Features / traits" });
+  const features = screen.getByRole("group", { name: "Features" });
   expect(spells.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(add.compareDocumentPosition(features) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   fireEvent.click(add);
@@ -229,7 +229,7 @@ test("a new race shows only the common modifiers, with the add button after Spel
   fireEvent.click(rows[0]);
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   // Flying speed goes directly after the base fields, and its select takes the focus.
-  expect(groups()).toEqual(["Flying speed", ...COMMON, "Features / traits"]);
+  expect(groups()).toEqual(["Flying speed", ...COMMON, "Features"]);
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "Flying speed" })));
   expect(shown("Flying speed")).toBe("0");
 });
@@ -255,7 +255,7 @@ test("an imported race opens with each modifier that holds a value, and a save k
   await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/races", item);
   const router = renderAt("/content/edit/race/Reef/reefborn");
   await screen.findByRole("button", { name: "Add a spell" });
-  expect(groups()).toEqual(["Swimming speed", "Ability Score Increases", "Languages", "Armor Proficiency", "Tool Proficiency", "Damage Resistances", "Language Proficiency Choice", "Spells", "Features / traits"]);
+  expect(groups()).toEqual(["Swimming speed", "Ability Score Increases", "Languages", "Armor Proficiency", "Tool Proficiency", "Damage Resistances", "Language Proficiency Choice", "Spells", "Features"]);
   expect(shown("Swimming speed")).toBe("30");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
@@ -331,7 +331,7 @@ test("an imported race with both Armor Class values true and false values opens,
     "Language Proficiency Choice",
     "Weapon Proficiency Choice",
     "Spells",
-    "Features / traits",
+    "Features",
   ]);
   // :tortle-ac sets the AC to 17 whatever the armor, so the select shows it.
   expect(shown("Armor Class")).toBe("Always 17");

@@ -110,17 +110,17 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
   expect(table("Domain Spells")[5]).toEqual(["9th", "5th", "Cone of Cold", "+"]);
   expect(tokens("Skill Proficiency Choice")).toEqual(["Religion"]);
   expect(shown("Modifier 1 value")).toBe("30 ft.");
-  expect(groups()).toEqual(["Domain Spells", "Skill Proficiency Choice", "Modifiers", "Features / traits"]);
+  expect(groups()).toEqual(["Domain Spells", "Skill Proficiency Choice", "Modifiers", "Features"]);
 });
 
 test("a new subclass shows only the common groups, and the add list has the others in form order", async () => {
   renderAt("/content/new/subclass");
   await screen.findByRole("textbox", { name: "Name" });
-  expect(groups()).toEqual(["Modifiers", "Features / traits"]);
+  expect(groups()).toEqual(["Modifiers", "Features"]);
   expect(await addList()).toEqual(["Skill Proficiency Choice", "Skill Expertise Choice", "Selections"]);
   await addModifier("Selections");
   await addModifier("Skill Expertise Choice");
-  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Features / traits"]);
+  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Features"]);
   expect(await addList()).toEqual(["Skill Proficiency Choice"]);
 });
 
@@ -138,7 +138,7 @@ test("an imported subclass opens with each group that holds a value, and a save 
   await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/subclasses", item);
   const router = renderAt("/content/edit/subclass/Reef/path-of-tides");
   await screen.findByRole("textbox", { name: "Name" });
-  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Features / traits"]);
+  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Features"]);
   expect(shown("Selection 1 level")).toBe("3");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
@@ -186,7 +186,7 @@ test("a class and a subclass authored in the forms are a character's choices, an
   // The new class is a parent the subclass can have.
   await choose("Class", "Rune Knight");
   type("Name", "Frost Path");
-  fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a feature" }));
   type("Feature 1 name", "Frost Rune");
   await choose("Feature 1 level", "3");
   type("Feature 1 description", "Your weapon is cold.");

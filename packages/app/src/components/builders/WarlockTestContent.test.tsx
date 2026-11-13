@@ -43,7 +43,7 @@ async function save(router: ReturnType<typeof renderAt>) {
   cleanup();
 }
 function addTrait(name: string, description: string) {
-  fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a feature" }));
   type("Feature 1 name", name);
   type("Feature 1 description", description);
 }

@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T05:45:00Z }
+generated: { by: claude-code/agent, at: 2026-11-13T15:59:56Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -357,6 +357,11 @@ Legendary actions.
 The four damage and condition groups are pickers. Languages is a picker
 with search.
 
+Actions / features is the feature list, with the monster types (Other,
+Action, Legendary Action). The form stores the uses of a monster feature,
+but nothing reads a scaled amount on a monster: the engine resolves a
+scaled amount only for the features of a character.
+
 ## Spell
 
 Layout and styling only, with one change: the class spell lists are one
@@ -438,8 +443,13 @@ A segmented toggle None / Fixed / Scaled, under the label "Uses".
 * The user can click the circles and the pool. Nothing is saved.
 * The example character has level 5 and 16 in the ability. The user can
   change both from the preview.
-* The preview calls the same function as the sheet, so the two cannot
-  differ.
+* The preview calls the same functions as the sheet to draw the feature
+  and to choose its section, so the two cannot differ there.
+* The app computes a scaled amount for the example character with the
+  engine's rule. It does not run the engine, because one evaluation takes
+  about 100 ms for each change. Two tests guard the rule: one compares it
+  with the golden character of the fork, and one with an engine evaluation
+  of the same feature.
 
 For scaled uses only, one sentence is under the preview: "Uses equal 5 ×
 your paladin level. A level 5 character gets 25." For an ability: "… with 16
