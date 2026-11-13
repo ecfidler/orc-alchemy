@@ -12,8 +12,9 @@ The brief gives the diff refs (`<base>...<branch>`), the commit list, the check 
 
 ## Standards sources
 
-- `/home/ethan/orc-alchemy/CLAUDE.md`, the project rules.
-- `/home/ethan/.claude/CLAUDE.md`, the owner's global rules.
+- `CODING_STANDARDS.md` at the repo root, the rules for this review.
+- `CLAUDE.md` at the repo root, the project rules.
+- `~/.claude/CLAUDE.md`, the owner's global rules, when the file exists.
 - The `README.md` of each package the diff touches.
 - The surrounding code: its idiom, naming, comment density, and the rules stated in module header comments (such as the engine boundary in `packages/app/src/engine/engine.ts`).
 

@@ -2,14 +2,15 @@
 name: "linear-issue-workflow"
 description: "Take a Linear issue from Todo to a reviewed, PR-ready branch. Use when asked to work on, implement, or complete a Linear issue (e.g. ORC-44)."
 disable-model-invocation: false
-version: "1.2.0"
+version: "1.3.0"
 ---
 
 ## Orchestrator Introduction
 
 - Your role is the orchestrator, it is your responsibility to understand the scope, acceptance criteria, and ambiguities of the issue.
 - You will be tracking its progress in Linear and delegating tasks for subagents.
-- The work goes on a new branch from the up-to-date **base branch**, formatted `<ISSUE-ID>-<kebab-case-description>` (ex. `ORC-44-setup-alchemy-monorepo`), and its PR targets the base branch.
+- The work goes on a branch cut from the up-to-date **base branch**, and its PR targets the base branch. Use the branch the session assigns (ex. `claude/project-thread-…`). After each merge, restart it from the base branch (`git checkout -B <branch> origin/<base>`) and push with `--force-with-lease`. When the session assigns none, name it `<ISSUE-ID>-<kebab-case-description>` (ex. `ORC-44-setup-alchemy-monorepo`).
+    - Name the issue ID in the PR title, so that Linear links the PR on any branch name.
     - The base branch is `main` unless I name another, such as a milestone branch (ex. `m2-local-first-viewer`).
     - An issue is Done when its work merges into the base branch, a milestone branch included. Linear's GitHub integration sets Done when the PR merges; when it doesn't (ex. the work merged without its own PR), set Done yourself.
 
@@ -29,11 +30,15 @@ version: "1.2.0"
 - Comment on the Linear issue with what's blocking and the options you see, then report back to me and end.
 - Update the comment when the stop is resolved.
 
+### When Linear Is Down
+
+Take the issue's scope from the run plan or project memory, and build from the spec section in `docs/design/` that covers it. Say so in the PR description. If no spec covers the issue, stop. The plan comment and the issue states wait: post and set them when Linear answers again.
+
 ### Several Issues at Once
 
 When I ask for several issues together, run this workflow for each issue.
 
-- Give each issue's worker its own git worktree (`isolation: "worktree"`), with its branch cut from the base branch.
+- Give each issue's worker its own git worktree (`isolation: "worktree"`), with its branch cut from the base branch. When the session assigns one branch, run the issues one after the other on it.
 - Review each issue separately.
 - Before asking me to merge, trial-merge the issue branches together and run the full checks on the result. This is done when the combined tree is green.
 
@@ -61,8 +66,12 @@ When I ask for several issues together, run this workflow for each issue.
     - the check results from the last step;
     - for the `spec-reviewer`, the full issue text: description, done-when, and decisions recorded in its comments.
 4. When a review subagent returns, decide which findings are real, which are out of scope, and which conflict with the original intent, then dispatch fixes and rerun the checks.
-5. Round 2: resume the same two reviewers with `SendMessage`. Send the fix commit and your triage of every round-1 finding: fixed, or kept with its reason.
-6. After round 2:
+5. After round 1:
+    - No real findings: review is done.
+    - Only minor findings with small, local fixes: fix them, rerun the checks, and say in the PR description that the round-1 fixes were not re-reviewed. Review is done.
+    - A blocking finding, or a fix that is more than a small, local change: run round 2.
+6. Round 2: resume the same two reviewers with `SendMessage`. Send the fix commit and your triage of every round-1 finding: fixed, or kept with its reason.
+7. After round 2:
     - No real findings: review is done.
     - Real findings that are minor or have small, local fixes: fix them, rerun the checks, and say in the PR description that the round-2 fixes were not re-reviewed. Review is done.
     - A blocking finding whose fix is more than a small, local change: stop (see When to Stop).
