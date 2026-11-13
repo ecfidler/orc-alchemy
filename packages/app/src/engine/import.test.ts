@@ -27,7 +27,7 @@ const readText = (file: string) => readFileSync(join(fixturesDir, file), "utf8")
 beforeAll(() => loadEngine());
 
 test("finds every character and legacy fixture", () => {
-  expect(strictFiles).toHaveLength(24);
+  expect(strictFiles).toHaveLength(25);
 });
 
 test.each(strictFiles)("%s imports and builds", (file) => {
@@ -125,6 +125,7 @@ test("without homebrew, only the fixtures with non-SRD content report unresolved
   expect(unresolved).toEqual([
     "characters/fighter-5-custom-magic-items.strict.json",
     "characters/ironwrought-artificer-3.strict.json",
+    "characters/scaled-uses-fighter-6-barbarian-1.strict.json",
     "characters/warlock-10-drow.strict.json",
     "legacy/character-test-2.strict.json",
     "legacy/character-test-3.strict.json",

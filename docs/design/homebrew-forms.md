@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-12T02:05:31Z }
+generated: { by: claude-code/agent, at: 2026-11-13T05:45:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -387,12 +387,22 @@ Uses are the `:frequency` of a feature: `{:units <unit> :amount <amount>}`.
 * A scaled amount is a map with one base: an ability modifier, the
   proficiency bonus, or a level times a number. Each base takes an optional
   "+ n" and an optional minimum.
-* The proposed key names are `:ability`, `:prof-bonus`, `:level`, `:times`,
-  `:plus` and `:min`. They are not final. ORC-192 settles them, and ORC-194
-  writes the final names here.
 * For a class or subclass feature, the level is the level of that class. For
   any other feature, it is the character level.
 * Level tables ("2 at level 1, 3 at level 3") are out of scope.
+
+Engine 0.4.0 settles the key names of the map (ORC-192). The engine reads
+the bases in this order: `:ability`, `:prof-bonus`, `:level`. A map with no
+base gives the value of `:plus`, then applies `:min` if the map has it.
+
+| Key | Value | Meaning |
+|---|---|---|
+| `:ability` | An ability key, bare or qualified: `:wis` or `:orcpub.dnd.e5.character/wis` | Base: the modifier of that ability |
+| `:prof-bonus` | `true` | Base: the proficiency bonus |
+| `:level` | `true` | Base: a level |
+| `:times` | A number. The default is 1 | Multiplies the level. The engine ignores it for the other bases |
+| `:plus` | A number. The default is 0 | The engine adds it to the base |
+| `:min` | A number. No default | The lowest result. The engine applies it after `:plus`, and only when the map has it |
 
 The engine turns a scaled amount into a number when it evaluates the
 character. The sheet gets a plain number.
@@ -531,9 +541,10 @@ The uses need `@pubdoor/dmv` 0.4.0, built in the fork `ecfidler/orcpub`
 * A homebrew feat reads `:frequency` and `:type` for its own entry, and
   passes its `:traits` through the feature path. Before 0.4.0, a homebrew
   feat ignores `:traits`.
-* The TypeScript types gain the feature `type` and the map form of
-  `amount`.
-* The fork gets a new fixture pack and a golden character with expected
+* The TypeScript types have the feature `type`. They also have
+  `ScaledAmount` and `PackFrequency`, which describe the map form of
+  `amount` in a pack. The built `frequency.amount` stays a number.
+* The fork has a new fixture pack and a golden character with expected
   values.
 
 A fixed amount works with engine 0.3.2 and needs no engine change. The old

@@ -245,6 +245,7 @@ test("a homebrew-only character has its pack's selections while the pack is load
 test.each([
   ["duplicate-external-b", "ironwrought-artificer-3"],
   ["warlock-test-content", "warlock-10-drow"],
+  ["scaled-uses", "scaled-uses-fighter-6-barbarian-1"],
 ])("with %s loaded, %s builds to its expected.json", async (pack, fixture) => {
   const { result } = renderHook(() => useOpenCharacter());
   await act(() => loadPack(pack));
