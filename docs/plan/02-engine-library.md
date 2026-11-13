@@ -4,7 +4,7 @@ title: "02: The engine library"
 description: "What the compiled engine package exposes beyond the Plan Set 1 facade, the build scope, the engine wrinkles, and the golden tests."
 tags: [plan, engine, phase-a]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T05:28:40Z }
+generated: { by: claude-code/agent, at: 2026-11-13T05:45:00Z }
 ---
 
 # 02: The engine library
@@ -41,7 +41,7 @@ The build excludes these on purpose:
 - Everything under `templates/`: unreferenced and non-SRD.
 - All of `src/clj`.
 
-The five patches listed below are ordinary commits to this fork's source.
+The patches listed below are ordinary commits to this fork's source.
 The app repo consumes the published `@pubdoor/dmv` package and never sees
 Clojure.
 
@@ -177,7 +177,7 @@ fork (doc 00) and bumps the published package version.
 | D5 | On import, rewrite two homebrew forms that the old engine mishandled (`import_validation.cljs`). `normalize-ability-keys-in-import` rewrites bare ability keys such as `:con` as qualified keys in races, feats, classes, and subclasses (`normalized-ability-key`). Monsters keep their bare keys, and doc 01 §C1 lists every place. `default-skill-choose-in-import` gives a skill choice without `:choose` the value 1 (`defaulted-choose`). Done in ORC-40 and ORC-39 | Doc 01 §C1 |
 | D6 | The built `levels.<class>.subclass` takes `name-to-kw` of the subclass name (`subclass-option` in `options.cljc`), as the subclass option's key does. It took the value from `:key`, so after `renameKey` on a subclass a character kept its pick but its built value named the new key. Done in ORC-132, version 0.3.1 | The ORC-78 result |
 | D7 | The Hunter's Evasion trait (Superior Hunter's Defense, level 15, `classes.cljc`) has a name. It had none. The option's `:modifiers` also held the plain map from `opt5e/evasion`, which had no effect, and the patch removes it. The SRD baseline loses that map's `{"key": null}` entry (`fixtures/README.md` finding 19). Done in ORC-178, version 0.3.2 | The level 20 sheet audit (ORC-177) |
-| D8 | A homebrew feature can have scaled uses. The `:amount` of its `:frequency` is then a map with one base: `:ability`, `:prof-bonus`, or `:level` with an optional `:times`. `:plus` adds to the base, and `:min` is the lowest result. For a class or subclass feature, the level is the class level. For any other feature, it is the character level. `scaled-amount` and `plugin-trait-cfg` in `modifiers.cljc` change the map to a number when the engine evaluates the character. A homebrew feat also reads `:frequency` and `:type` for its own trait, and its `:traits` go through `traits-modifiers`. The TypeScript types add `Feature.type`, `ScaledAmount`, and `PackFrequency`. SRD content and the earlier fixtures do not change. The fork's `docs/pubdoor/patch-d8-scaled-uses.md` gives the details. Done in ORC-192, version 0.4.0 | The homebrew forms spec, `docs/design/homebrew-forms.md` §Uses |
+| D8 | A homebrew feature can have scaled uses. The `:amount` of its `:frequency` is then a map with one base: `:ability`, `:prof-bonus`, or `:level` with an optional `:times`. `:plus` adds to the base, and `:min` is the lowest result. For a class or subclass feature, the level is the class level. For any other feature, it is the character level. `scaled-amount` and `plugin-trait-cfg` in `modifiers.cljc` change the map to a number when the engine evaluates the character. A homebrew feat also reads `:frequency` and `:type` for its own trait, and its `:traits` go through `traits-modifiers` (`options.cljc`). The TypeScript types add `Feature.type`, `ScaledAmount`, and `PackFrequency`. SRD content and the earlier fixtures do not change. The fork's `docs/pubdoor/patch-d8-scaled-uses.md` gives the details. Done in ORC-192, version 0.4.0 | The homebrew forms spec, `docs/design/homebrew-forms.md` §Uses |
 
 Anything else is a facade concern, not an engine patch.
 

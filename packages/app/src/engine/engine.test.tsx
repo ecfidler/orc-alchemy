@@ -10,7 +10,7 @@ afterEach(cleanup);
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 const readFixture = (file: string) => JSON.parse(readFileSync(join(charactersDir, file), "utf8"));
 
-// The golden characters that need no homebrew pack; the rest wait for M3.
+// The golden characters that need no homebrew pack.
 const srdGolden = readdirSync(charactersDir)
   .filter((file) => file.endsWith(".meta.json"))
   .map((file) => file.slice(0, -".meta.json".length))
@@ -30,21 +30,18 @@ test.each(srdGolden)("evaluate(%s).built matches expected.json", (name) => {
 
 // ORC-194: engine 0.4.0 (patch D8) resolves scaled uses, and reads uses and
 // features from a homebrew feat. The golden loads its pack from the meta file.
-const SCALED = "scaled-uses-fighter-6-barbarian-1";
+// character.test.ts compares the whole built character with expected.json.
+const scaledGolden = "scaled-uses-fighter-6-barbarian-1";
 const scaledBuilt = () => {
-  const [pack] = readFixture(`${SCALED}.meta.json`).orcbrew as string[];
+  const [pack] = readFixture(`${scaledGolden}.meta.json`).orcbrew as string[];
   const parsed = engine().parseOrcbrew(readFileSync(join(charactersDir, "../orcbrew", pack!), "utf8"), { name: pack!.replace(".orcbrew", "") });
-  return engine().evaluate(readFixture(`${SCALED}.strict.json`), { homebrew: parsed.data! }).built;
+  return engine().evaluate(readFixture(`${scaledGolden}.strict.json`), { homebrew: parsed.data! }).built;
 };
 
-test(`evaluate(${SCALED}) with its pack matches expected.json`, () => {
-  expect(scaledBuilt()).toEqual(readFixture(`${SCALED}.expected.json`));
-});
-
-test(`${SCALED} gets a number for each scaled amount, and the feat's own uses and features`, () => {
+test(`${scaledGolden} gets a number for each scaled amount, and the feat's own uses and features`, () => {
   type Trait = { name: string; type?: string; frequency?: { amount?: unknown } };
   const traits = scaledBuilt().traits as Trait[];
-  const expected = readFixture(`${SCALED}.expected.json`).traits as Trait[];
+  const expected = readFixture(`${scaledGolden}.expected.json`).traits as Trait[];
   const usesOf = (list: Trait[]) => list.filter((t) => t.frequency).map((t) => [t.name, t.type, t.frequency!.amount]);
   expect(usesOf(traits)).toEqual(usesOf(expected));
   for (const [, , amount] of usesOf(traits)) expect(typeof amount).toBe("number");

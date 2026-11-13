@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T05:28:40Z }
+generated: { by: claude-code/agent, at: 2026-11-13T05:45:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -393,7 +393,7 @@ Uses are the `:frequency` of a feature: `{:units <unit> :amount <amount>}`.
 
 Engine 0.4.0 settles the key names of the map (ORC-192). The engine reads
 the bases in this order: `:ability`, `:prof-bonus`, `:level`. A map with no
-base gives the value of `:plus`.
+base gives the value of `:plus`, then applies `:min` if the map has it.
 
 | Key | Value | Meaning |
 |---|---|---|
@@ -541,10 +541,10 @@ The uses need `@pubdoor/dmv` 0.4.0, built in the fork `ecfidler/orcpub`
 * A homebrew feat reads `:frequency` and `:type` for its own entry, and
   passes its `:traits` through the feature path. Before 0.4.0, a homebrew
   feat ignores `:traits`.
-* The TypeScript types gain the feature `type`. They also gain
+* The TypeScript types have the feature `type`. They also have
   `ScaledAmount` and `PackFrequency`, which describe the map form of
   `amount` in a pack. The built `frequency.amount` stays a number.
-* The fork gets a new fixture pack and a golden character with expected
+* The fork has a new fixture pack and a golden character with expected
   values.
 
 A fixed amount works with engine 0.3.2 and needs no engine change. The old
