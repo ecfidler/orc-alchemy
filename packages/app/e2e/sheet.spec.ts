@@ -1,10 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 const readFixture = (file: string) => JSON.parse(readFileSync(join(charactersDir, file), "utf8"));
 const magicItemsDir = join(import.meta.dirname, "../../../fixtures/magic-items");
+const orcbrewDir = join(import.meta.dirname, "../../../fixtures/orcbrew");
 
 const srdGolden = readdirSync(charactersDir)
   .filter((file) => file.endsWith(".meta.json"))
@@ -161,3 +162,63 @@ for (const width of [1440, 1024, 800, 390, 360]) {
     }
   });
 }
+
+const SCALED_USES = "scaled-uses-fighter-6-barbarian-1";
+
+/** Loads scaled-uses.orcbrew, then imports its golden character and opens the sheet. */
+async function importScaledUses(page: Page) {
+  await page.goto("/import");
+  await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "scaled-uses.orcbrew"));
+  await expect(page.getByRole("region", { name: "Import log" })).toBeVisible();
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, `${SCALED_USES}.strict.json`));
+  await expect(page.getByRole("heading", { level: 1, name: readFixture(`${SCALED_USES}.expected.json`)["character-name"] })).toBeVisible();
+}
+
+/** The feature names under a heading of "Features & traits": each bubble's title, or a plain feature's bold name. */
+const sectionNames = (page: Page, title: string) =>
+  page.getByRole("heading", { level: 3, name: title, exact: true }).locator("..").locator(".ui-use-bubble-title, p > b").allTextContents();
+
+// ORC-203: the engine puts every pack feature in traits; the sheet sorts them by type.
+test("scaled-uses shows its typed pack features in the Actions, Bonus Actions and Reactions sections", async ({ page }) => {
+  await importScaledUses(page);
+  expect(await sectionNames(page, "Actions")).toEqual(["Action Surge", "Crashing Wave", "Stormcaller", "Undertow"]);
+  expect(await sectionNames(page, "Bonus Actions")).toEqual(["Ebb and Flow", "Rage", "Rolling Gait", "Second Wind", "Tide Step"]);
+  expect(await sectionNames(page, "Reactions")).toEqual(["Brine Ward"]);
+  expect(await sectionNames(page, "Features, Traits, and Feats")).toEqual([
+    "Deep Lungs",
+    "Defense Fighting Style",
+    "Riptide",
+    "Salt Sense",
+    "Sea Legs",
+    "Shelter the Faithful",
+    "Steady Footing",
+  ]);
+  await expect(page.getByRole("group", { name: "Crashing Wave" }).getByRole("button", { name: "30 / 30 left. Spend 5" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Brine Ward" }).getByRole("button", { name: "Use 1" })).toBeVisible();
+  // Undertow resolves to -1 uses: no bubble.
+  await expect(page.getByRole("group", { name: "Undertow" })).toHaveCount(0);
+});
+
+// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- sheet.spec.ts -g orc-203
+test.describe("screenshots", () => {
+  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
+  test.use({ deviceScaleFactor: 2 });
+  const dir = join(import.meta.dirname, "../../../pr-screenshots");
+  for (const theme of ["light", "dark"] as const) {
+    test(`orc-203 scaled-uses sheet, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-203-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await importScaledUses(page);
+      await page.evaluate(() => document.fonts.ready);
+      await page.getByRole("group", { name: "Features & traits" }).screenshot({ path: shot("sheet-features") });
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.getByRole("tab", { name: "Features" }).click();
+      await page.getByRole("tabpanel").getByRole("heading", { level: 3, name: "Actions", exact: true }).waitFor();
+      await page.screenshot({ path: shot("phone-features"), fullPage: true });
+    });
+  }
+});

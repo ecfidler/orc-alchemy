@@ -4,7 +4,7 @@
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
 import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, Tabs, UseBubble, type Tab } from "@orc-alchemy/ui";
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { bonusStr, modStr, type Ability, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
+import { bonusStr, modStr, usesDisplay, type Ability, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
 const ABILITY_NAMES: Record<Ability, string> = {
@@ -791,19 +791,21 @@ function FieldList({ fields }: { fields: [string, string[]][] }) {
 }
 
 /**
- * More than 8 uses show as a pool, such as Lay on Hands' 25 hit points, not as
- * circles. A click on a pool of 20 or more spends 5, as in the prototype; on a
- * smaller pool it spends 1.
+ * Each feature's name on its own line above its text. A limited-use feature sits in a use bubble, with circles or a
+ * pool. usesDisplay decides which, as it does for the uses preview of the homebrew forms.
  */
-const usesOrPool = (amount: number) => (amount > 8 ? { pool: { max: amount, step: amount >= 20 ? 5 : 1 } } : { uses: amount });
-
-/** Each feature's name on its own line above its text. A limited-use feature sits in a use bubble. */
 function Features({ items }: { items: SheetFeature[] }) {
   return (
     <div className="grid gap-2.5 text-[14.5px]">
-      {items.map((item, i) =>
-        item.uses ? (
-          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={item.uses.recharge} {...usesOrPool(item.uses.amount)}>
+      {items.map((item, i) => {
+        const display = usesDisplay(item.uses);
+        return item.uses && display.kind !== "plain" ? (
+          <UseBubble
+            key={`${i}-${item.name}`}
+            title={item.name}
+            tag={item.uses.recharge}
+            {...(display.kind === "pool" ? { pool: { max: display.max, step: display.step } } : { uses: display.count })}
+          >
             {item.text}
           </UseBubble>
         ) : (
@@ -811,8 +813,8 @@ function Features({ items }: { items: SheetFeature[] }) {
             <b className="font-semibold">{item.name}</b>
             <span>{item.text}</span>
           </p>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }

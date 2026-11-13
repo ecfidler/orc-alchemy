@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Built2014 } from "@pubdoor/dmv";
 import { expect, test } from "vitest";
-import { toSheet, UNNAMED_FEATURE } from "./sheet.ts";
+import { featureDisplay, toSheet, UNNAMED_FEATURE, usesDisplay } from "./sheet.ts";
 
 // expected.json is evaluate(strict).built, so these tests need no engine.
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -287,4 +287,80 @@ test("a feature or special attack with no name gets a fallback name", () => {
   expect(sheet.features.traits.map((t) => t.name)).toEqual(["Darkvision", UNNAMED_FEATURE]);
   expect(sheet.features.traits[1]!.text).toBe("You take no damage on a successful DEX save.");
   expect(sheet.specialAttacks.map((a) => a.name)).toEqual([UNNAMED_FEATURE]);
+});
+
+// ORC-203 (homebrew-forms.md, "On the sheet"): the engine puts every homebrew feature in traits, with its type.
+test("a feature's type gives its section; no type, other, or an unknown type is a trait", () => {
+  const section = (type?: string | null) => featureDisplay(type, undefined).section;
+  expect(section("action")).toBe("actions");
+  expect(section("b-action")).toBe("bonusActions");
+  expect(section("reaction")).toBe("reactions");
+  expect(section("orcpub.dnd.e5/b-action")).toBe("bonusActions");
+  expect(section("other")).toBe("traits");
+  expect(section(undefined)).toBe("traits");
+  expect(section(null)).toBe("traits");
+  expect(section("legendary")).toBe("traits");
+});
+
+test("uses show as circles up to 8, a pool above 8, and plain text for none or 0 or fewer", () => {
+  expect(usesDisplay(undefined)).toEqual({ kind: "plain" });
+  expect(usesDisplay(null)).toEqual({ kind: "plain" });
+  expect(usesDisplay({ amount: 0 })).toEqual({ kind: "plain" });
+  expect(usesDisplay({ amount: -1 })).toEqual({ kind: "plain" });
+  // A unit with no amount is 1 use.
+  expect(usesDisplay({})).toEqual({ kind: "circles", count: 1 });
+  expect(usesDisplay({ amount: null })).toEqual({ kind: "circles", count: 1 });
+  expect(usesDisplay({ amount: 8 })).toEqual({ kind: "circles", count: 8 });
+  expect(usesDisplay({ amount: 9 })).toEqual({ kind: "pool", max: 9, step: 1 });
+  expect(usesDisplay({ amount: 19 })).toEqual({ kind: "pool", max: 19, step: 1 });
+  expect(usesDisplay({ amount: 20 })).toEqual({ kind: "pool", max: 20, step: 5 });
+  expect(featureDisplay("b-action", { amount: 30 })).toEqual({ section: "bonusActions", uses: { kind: "pool", max: 30, step: 5 } });
+});
+
+test("toSheet: a feature with 0 uses or fewer is plain, and a unit with no amount is 1 use", () => {
+  const built: Built2014 = {
+    ...builtOf("fighter-1"),
+    traits: [
+      { name: "None Left", description: "zero", type: "action", frequency: { amount: 0, units: "orcpub.dnd.e5.units/long-rest" } },
+      { name: "Below Zero", description: "negative", frequency: { amount: -2, units: "orcpub.dnd.e5.units/long-rest" } },
+      { name: "Once", description: "no amount", type: "reaction", frequency: { units: "orcpub.dnd.e5.units/short-rest" } as never },
+    ],
+  };
+  const { features } = toSheet(built, {});
+  expect(features.actions.find((f) => f.name === "None Left")).toEqual({ name: "None Left", text: "Zero." });
+  expect(features.traits.find((f) => f.name === "Below Zero")).toEqual({ name: "Below Zero", text: "Negative." });
+  expect(features.reactions).toContainEqual({ name: "Once", text: "No amount.", uses: { amount: 1, recharge: "Short rest" } });
+});
+
+test("scaled-uses: each typed homebrew feature is in the section of its type, once, with its resolved uses", () => {
+  const built = builtOf("scaled-uses-fighter-6-barbarian-1");
+  const { features } = toSheet(built, {});
+  const names = (list: { name: string }[]) => list.map((f) => f.name);
+  // The engine's own actions keep their place; the typed pack features join them, sorted by name.
+  expect(names(features.actions)).toEqual(["Action Surge", "Crashing Wave", "Stormcaller", "Undertow"]);
+  expect(names(features.bonusActions)).toEqual(["Ebb and Flow", "Rage", "Rolling Gait", "Second Wind", "Tide Step"]);
+  expect(names(features.reactions)).toEqual(["Brine Ward"]);
+  expect(names(features.traits)).toEqual([
+    "Deep Lungs",
+    "Defense Fighting Style",
+    "Riptide",
+    "Salt Sense",
+    "Sea Legs",
+    "Shelter the Faithful",
+    "Steady Footing",
+  ]);
+  // Each trait shows once, in one section.
+  const all = [...features.actions, ...features.bonusActions, ...features.reactions, ...features.traits];
+  expect(all).toHaveLength(built.traits.length + built.actions.length + built["bonus-actions"].length + (built.reactions ?? []).length);
+  expect(new Set(names(all)).size).toBe(all.length);
+
+  const uses = (name: string) => all.find((f) => f.name === name)!.uses;
+  // A scaled amount is a number already: CHA 10 gives 0, which the minimum of 1 replaces.
+  expect(uses("Brine Ward")).toEqual({ amount: 1, recharge: "Long rest" });
+  // INT 8 gives -1 with no minimum: no bubble.
+  expect(uses("Undertow")).toBeUndefined();
+  expect(uses("Crashing Wave")).toEqual({ amount: 30, recharge: "Long rest" });
+  expect(uses("Deep Lungs")).toEqual({ amount: 15, recharge: "Each day" });
+  expect(uses("Tide Step")).toEqual({ amount: 2, recharge: "Short rest" });
+  expect(uses("Sea Legs")).toBeUndefined();
 });

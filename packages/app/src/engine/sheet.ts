@@ -59,7 +59,10 @@ export interface SheetFeature {
   name: string;
   /** Summary or description, with the old sheet's usage parenthetical, sentence-cased. */
   text: string;
-  /** For a limited-use feature: how many uses, and when they come back ("Short rest", "Long rest", "Each day"). */
+  /**
+   * For a limited-use feature: how many uses, and when they come back ("Short rest", "Long rest", "Each day").
+   * A feature with 0 uses or fewer has none: it is a plain feature.
+   */
   uses?: { amount: number; recharge: string };
 }
 
@@ -262,10 +265,59 @@ const recharge = (units: string) => {
   return `Each ${unit}`;
 };
 
+/** A section of "Features & traits" on the sheet. */
+export type FeatureSection = keyof Sheet["features"];
+
+/**
+ * How a feature's uses show: in a use bubble with circles, in a use bubble
+ * with a pool, or as plain text with no bubble.
+ */
+export type UsesDisplay =
+  | { kind: "circles"; count: number }
+  | { kind: "pool"; max: number; step: number }
+  | { kind: "plain" };
+
+/** The section of each homebrew feature type. A type the sheet does not know, "other", or none, is a trait. */
+const SECTION_OF_TYPE: Record<string, FeatureSection> = {
+  action: "actions",
+  "b-action": "bonusActions",
+  reaction: "reactions",
+};
+
+/**
+ * How the uses of a feature show (homebrew-forms.md, "On the sheet"). No
+ * frequency is plain text. A frequency with no amount is 1 use. An amount of
+ * 0 or fewer is plain text. 8 uses or fewer are circles; more than 8 are a
+ * pool, such as Lay on Hands' 25 hit points. A click on a pool of 20 or more
+ * spends 5, as in the prototype; on a smaller pool it spends 1.
+ */
+export function usesDisplay(frequency: { amount?: number | null } | null | undefined): UsesDisplay {
+  if (!frequency) return { kind: "plain" };
+  const amount = frequency.amount ?? 1;
+  if (amount <= 0) return { kind: "plain" };
+  if (amount > 8) return { kind: "pool", max: amount, step: amount >= 20 ? 5 : 1 };
+  return { kind: "circles", count: amount };
+}
+
+/**
+ * Where a feature goes on the sheet and how its uses show. The sheet and the
+ * uses preview of the homebrew forms both call it, so the two cannot differ.
+ * `type` is the feature's homebrew type: "action", "b-action", "reaction" or
+ * "other", bare or as a qualified keyword. `frequency.amount` is the resolved
+ * number of uses: the engine resolves a scaled amount before the sheet gets it.
+ */
+export function featureDisplay(
+  type: string | null | undefined,
+  frequency: { amount?: number | null } | null | undefined,
+): { section: FeatureSection; uses: UsesDisplay } {
+  return { section: SECTION_OF_TYPE[unqualify(type ?? "")] ?? "traits", uses: usesDisplay(frequency) };
+}
+
 /**
  * The old display's action-description: text, then "(qualifier, range …, lasts …)".
  * A limited-use feature gets its uses in `uses`, not in the text, because the
- * sheet shows them in a use bubble.
+ * sheet shows them in a use bubble. A feature whose uses show as plain text
+ * (an amount of 0 or fewer) gets no `uses`.
  */
 function toFeature(feature: Feature): SheetFeature {
   const { summary, description, frequency, duration } = feature;
@@ -281,11 +333,27 @@ function toFeature(feature: Feature): SheetFeature {
     ];
     text += ` (${parts.filter(Boolean).join(", ")})`;
   }
-  if (frequency) return { name, text: sentence(text), uses: { amount: frequency.amount ?? 1, recharge: recharge(frequency.units) } };
+  if (frequency && usesDisplay(frequency).kind !== "plain")
+    return { name, text: sentence(text), uses: { amount: frequency.amount ?? 1, recharge: recharge(frequency.units) } };
   return { name, text: sentence(text) };
 }
 
-const toFeatures = (features: Feature[] | null | undefined) => byName((features ?? []).map(toFeature));
+/**
+ * The four feature lists. The engine puts every homebrew feature in `traits`,
+ * with its `type`; featureDisplay moves it to the section of that type. The
+ * engine's own actions, bonus actions and reactions keep their list.
+ */
+function toFeatureSections(built: Built2014): Sheet["features"] {
+  const sections: Sheet["features"] = {
+    actions: (built.actions ?? []).map(toFeature),
+    bonusActions: (built["bonus-actions"] ?? []).map(toFeature),
+    reactions: (built.reactions ?? []).map(toFeature),
+    traits: [],
+  };
+  for (const trait of built.traits ?? []) sections[featureDisplay(trait.type, trait.frequency).section].push(toFeature(trait));
+  for (const list of Object.values(sections)) byName(list);
+  return sections;
+}
 
 const toItems = (...inventories: Inventory[]): SheetItem[] =>
   byName(
@@ -510,12 +578,7 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
 
     spellcasting: toSpellcasting(built, entity),
 
-    features: {
-      actions: toFeatures(built.actions),
-      bonusActions: toFeatures(built["bonus-actions"]),
-      reactions: toFeatures(built.reactions),
-      traits: toFeatures(built.traits),
-    },
+    features: toFeatureSections(built),
 
     equipment: {
       weapons: toItems(built.weapons),
