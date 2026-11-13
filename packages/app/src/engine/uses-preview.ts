@@ -16,8 +16,7 @@ const isMap = (value: unknown): value is TransitMap => typeof value === "object"
  * The numbers of the example character: every ability score is `score`,
  * and the level is both the character level and the class level. The
  * proficiency bonus is 2 at level 1, and 1 more at each 4 levels; an ability
- * modifier is (score - 10) / 2, rounded down. scaledAmount gives 0 for an
- * ability key that is none of the six, as the engine does.
+ * modifier is (score - 10) / 2, rounded down.
  */
 export function exampleNumbers(level: number, score: number): ScaleNumbers {
   return { level, proficiencyBonus: 2 + Math.floor((level - 1) / 4), abilityModifier: () => Math.floor((score - 10) / 2) };

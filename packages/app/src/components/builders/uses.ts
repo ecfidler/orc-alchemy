@@ -8,7 +8,7 @@
 // also a short unit or a unit of the old app. The example character and the
 // sentence of the preview are in uses-example.ts.
 import { tag, untag } from "../../engine/content.ts";
-import { abilityOfKey, unqualify, type Ability } from "../../engine/sheet.ts";
+import { abilityOfKey, scaledBase, unqualify, type Ability } from "../../engine/sheet.ts";
 
 /** A stored map in verbose Transit-JSON, such as a :frequency or its :amount. */
 type TransitMap = Record<string, unknown>;
@@ -43,9 +43,6 @@ export const TIMES = [1, 2, 3, 4, 5, 10];
 export const PLUSES = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
 /** The numbers of the Minimum select, after None. */
 export const MINIMUMS = [0, 1, 2, 3, 4, 5];
-
-/** Clojure truth, as the engine reads a base: any value but absent, null and false. */
-const truthy = (value: unknown) => value !== undefined && value !== null && value !== false;
 
 const isMap = (value: unknown): value is TransitMap => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -125,7 +122,7 @@ export const withUnit = (frequency: unknown, name: string): TransitMap => ({ ...
 export const amountOf = (frequency: unknown): unknown => frequencyMap(frequency)?.[tag("amount")];
 
 /** The scaled amount of the stored frequency, or an empty map. */
-const scaledOf = (frequency: unknown): TransitMap => {
+export const scaledOf = (frequency: unknown): TransitMap => {
   const amount = amountOf(frequency);
   return isMap(amount) ? amount : {};
 };
@@ -137,13 +134,8 @@ const scaledOf = (frequency: unknown): TransitMap => {
  * map has is the base. Undefined when the map has none.
  */
 export function baseOf(frequency: unknown): string | undefined {
-  const amount = scaledOf(frequency);
-  const ability = amount[tag("ability")];
-  // As the engine (scaledAmount): an ability only when it is a keyword, the other bases when they are truthy.
-  if (typeof ability === "string") return unqualify(untag(ability));
-  if (truthy(amount[tag("prof-bonus")])) return "prof";
-  if (truthy(amount[tag("level")])) return "level";
-  return undefined;
+  const base = scaledBase(scaledOf(frequency));
+  return typeof base === "object" ? unqualify(untag(base.ability)) : base;
 }
 
 /** The ability of a scaled amount's base, or null when the base is not one of the six abilities. */

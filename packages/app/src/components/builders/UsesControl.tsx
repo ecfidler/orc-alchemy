@@ -44,16 +44,16 @@ function numberOptions(values: number[], stored: unknown, text: (n: number) => s
 
 /**
  * A visible label above a control that is not a form field, such as a
- * toggle group. The control is named by `prefix` (the hidden name of the
+ * toggle group. The control is named by `nameId` (the id of the hidden name of the
  * feature, such as "Feature 2") and the label: "Feature 2 Uses".
  */
-function LabelAbove({ label, prefix, children }: { label: string; prefix: string; children: (labelledBy: string) => ReactNode }) {
+function LabelAbove({ label, nameId, children }: { label: string; nameId: string; children: (labelledBy: string) => ReactNode }) {
   const id = useId();
   return (
     // The label's weight is that of a FieldLabel, as on the selects beside it.
     <div className="grid content-start justify-items-start gap-[3px] [&>.ui-label]:font-medium">
       <Label id={id}>{label}</Label>
-      {children(`${prefix} ${id}`)}
+      {children(`${nameId} ${id}`)}
     </div>
   );
 }
@@ -104,7 +104,7 @@ export function UsesControl({
         {name}
       </span>
       <div className="flex flex-wrap items-end gap-x-[14px] gap-y-[10px]">
-        <LabelAbove label="Uses" prefix={nameId}>
+        <LabelAbove label="Uses" nameId={nameId}>
           {(labelledBy) => <SegmentedToggle aria-labelledby={labelledBy} options={USES_KINDS} value={kind} onValueChange={(next) => onChange(withKind(frequency, next))} />}
         </LabelAbove>
         {kind === "fixed" && (
@@ -147,7 +147,7 @@ export function UsesControl({
         )}
       </div>
       {kind !== "none" && (
-        <LabelAbove label="Recharges" prefix={nameId}>
+        <LabelAbove label="Recharges" nameId={nameId}>
           {(labelledBy) => (
             <SegmentedToggle aria-labelledby={labelledBy} options={rechargeOptions(frequency)} value={unitName(frequency) ?? null} onValueChange={(unit) => onChange(withUnit(frequency, unit))} />
           )}

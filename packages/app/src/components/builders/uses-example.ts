@@ -4,7 +4,7 @@
 // sentence give the same amount.
 import { scaledAmount, ABILITY_NAMES } from "../../engine/sheet.ts";
 import { exampleNumbers } from "../../engine/uses-preview.ts";
-import { amountOf, baseAbility, baseOf, plusText, scaledNumber, scaledNumberOrDefault } from "./uses.ts";
+import { baseAbility, baseOf, plusText, scaledNumber, scaledNumberOrDefault, scaledOf } from "./uses.ts";
 
 /** The example character's level and ability score when the preview opens. */
 export const EXAMPLE_LEVEL = 5;
@@ -17,8 +17,6 @@ export const EXAMPLE_SCORE = 16;
  * character level.
  */
 export function usesSentence(frequency: unknown, levelName: string | null, level: number, score: number): string {
-  const amount = amountOf(frequency);
-  const map = typeof amount === "object" && amount !== null ? (amount as Record<string, unknown>) : {};
   const base = baseOf(frequency);
   const ability = baseAbility(frequency);
   const times = scaledNumberOrDefault(frequency, "times");
@@ -31,6 +29,6 @@ export function usesSentence(frequency: unknown, levelName: string | null, level
   if (parts.length === 0) parts.push(String(plus));
   else if (plus !== 0) parts.push(plusText(plus));
   if (typeof min === "number") parts.push(`(minimum ${min})`);
-  const n = scaledAmount(map, exampleNumbers(level, score));
+  const n = scaledAmount(scaledOf(frequency), exampleNumbers(level, score));
   return `Uses equal ${parts.join(" ")}. A level ${level} character${ability ? ` with ${score} ${ABILITY_NAMES[ability]}` : ""} gets ${n}.`;
 }

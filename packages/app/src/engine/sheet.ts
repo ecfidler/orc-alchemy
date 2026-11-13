@@ -242,8 +242,6 @@ const keyToName = (key: string) =>
 
 const named = (key: string): Named => ({ key, name: keyToName(key) });
 
-const abilityOf = (key: string) => unqualify(key) as Ability;
-
 /** The old app's sentensize: capitalise the first letter and end with a full stop. */
 const sentence = (text: string) => {
   const trimmed = text.trim();
@@ -348,6 +346,20 @@ const truthy = (value: unknown) => value !== undefined && value !== null && valu
 const numberOr = (value: unknown, fallback: number) => (typeof value === "number" ? value : fallback);
 
 /**
+ * The base that the engine reads from a scaled amount map: the stored
+ * ability key, "prof", "level", or undefined for no base. scaledAmount has
+ * the order and the rules. The uses control of the homebrew forms shows the
+ * same base.
+ */
+export function scaledBase(amount: Record<string, unknown>): { ability: string } | "prof" | "level" | undefined {
+  const ability = amount["~:ability"];
+  if (typeof ability === "string") return { ability };
+  if (truthy(amount["~:prof-bonus"])) return "prof";
+  if (truthy(amount["~:level"])) return "level";
+  return undefined;
+}
+
+/**
  * A scaled amount of a pack feature as a number, as engine 0.4.0 resolves it
  * when it evaluates a character (the fork's scaled-amount, patch D8;
  * homebrew-forms.md, "Stored shape"). `amount` is the stored map in verbose
@@ -371,13 +383,14 @@ const numberOr = (value: unknown, fallback: number) => (typeof value === "number
  * evaluation, so that drift in the engine is caught.
  */
 export function scaledAmount(amount: Record<string, unknown>, numbers: ScaleNumbers): number {
-  const ability = amount["~:ability"];
+  const from = scaledBase(amount);
   let base = 0;
-  if (typeof ability === "string") {
-    const known = abilityOfKey(ability);
+  if (from === "prof") base = numbers.proficiencyBonus;
+  else if (from === "level") base = numbers.level * numberOr(amount["~:times"], 1);
+  else if (from !== undefined) {
+    const known = abilityOfKey(from.ability);
     base = known === null ? 0 : numbers.abilityModifier(known);
-  } else if (truthy(amount["~:prof-bonus"])) base = numbers.proficiencyBonus;
-  else if (truthy(amount["~:level"])) base = numbers.level * numberOr(amount["~:times"], 1);
+  }
   const total = base + numberOr(amount["~:plus"], 0);
   const min = amount["~:min"];
   return typeof min === "number" ? Math.max(total, min) : total;
@@ -517,7 +530,7 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
       .sort((a, b) => a.level - b.level),
     casters: Object.values(built["spell-modifiers"] ?? {}).map((caster) => ({
       name: caster.class,
-      ability: abilityOf(caster.ability),
+      ability: (unqualify(caster.ability) as Ability),
       saveDc: caster["spell-save-dc"],
       attackBonus: caster["spell-attack-modifier"],
       prepares: prepares[caster.class] === true,
@@ -536,7 +549,7 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
             return {
               ...named(key),
               source: caster,
-              ability: abilityOf(spell.ability),
+              ability: (unqualify(spell.ability) as Ability),
               alwaysPrepared: always,
               prepared: always || (preparer && (prepared[caster]?.has(key) ?? false)),
             };
