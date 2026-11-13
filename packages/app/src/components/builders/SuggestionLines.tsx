@@ -24,7 +24,7 @@ function suggestedUsesText({ amount, unit }: SuggestedUses): string {
 }
 
 /** Whether a stored type is Other: no type, "" (the monster's Other) or :other. */
-const isOtherType = (type: unknown) => untag(type) === "" || untag(type) === "other";
+export const isOtherType = (type: unknown) => untag(type) === "" || untag(type) === "other";
 
 /**
  * One yellow line: what the text says, then the suggestion. With onUse it

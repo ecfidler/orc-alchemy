@@ -19,6 +19,7 @@ import {
   type MagicItemRecord,
   type PackRecord,
 } from "../storage/packs.ts";
+import { forgetSkipped } from "./skipped-uses.ts";
 
 interface HomebrewState {
   /** The stored packs that read and build, sorted by name. */
@@ -83,8 +84,9 @@ interface HomebrewState {
   /** Drops the pending import. Nothing of it was stored. */
   cancelImport: () => void;
   /**
-   * Removes a pack from storage. It also drops a pending import: that import
-   * was read with the pack in it, so applying it would store the pack again.
+   * Removes a pack from storage, and forgets its skipped rows of the Review
+   * uses page. It also drops a pending import: that import was read with the
+   * pack in it, so applying it would store the pack again.
    */
   remove: (pack: string) => Promise<void>;
   /**
@@ -105,6 +107,16 @@ interface HomebrewState {
    * or if the packs do not build with the item. Needs the engine loaded.
    */
   saveItem: (pack: string, contentType: string, item: object) => Promise<void>;
+  /**
+   * Stores items of the pack named pack in one write, each under its tagged
+   * key, as saveItem stores one item: it replaces the item with that key,
+   * and the packs must build with them. Each change gives the tagged content
+   * type, the tagged key and the item. The Review uses page saves its rows
+   * with it. Throws, and stores nothing, if the pack is not stored, if it is
+   * quarantined, or if the packs do not build with the items. Needs the
+   * engine loaded.
+   */
+  saveItems: (pack: string, items: ItemChange[]) => Promise<void>;
   /** Removes a record that could not be read from storage, and its warning. */
   removeQuarantined: (id: string) => Promise<void>;
   /**
@@ -125,9 +137,18 @@ interface HomebrewState {
   setItemEnabled: (pack: string, contentType: string, key: string, enabled: boolean) => Promise<void>;
 }
 
+/** One item to store with saveItems: its tagged content type, its tagged key, and the item. */
+export interface ItemChange {
+  contentType: string;
+  key: string;
+  item: object;
+}
+
 /** One import's result without its data, and the name of the file it read. */
 export type LastImport = Omit<ParsedOrcbrew, "data"> & {
   fileName: string;
+  /** The names of the packs in the file. Not there for an import that did not parse. */
+  packs?: string[];
   /** The backgrounds in the loaded packs, after this import, whose key is not the key of their name. Not there for an import that did not parse. */
   backgroundKeyWarnings?: BackgroundKeyWarning[];
 };
@@ -196,8 +217,9 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     const { packs } = get();
     const existing = packs.length === 0 ? undefined : pluginMap(packs);
     const { data, ...withoutData } = engine().parseOrcbrew(text, { name, existing, strict });
-    const lastImport = { ...withoutData, fileName };
-    if (data === null) return set({ lastImport });
+    if (data === null) return set({ lastImport: { ...withoutData, fileName } });
+    // data holds the stored packs too, so the file is read once more alone for the names of its packs.
+    const lastImport = { ...withoutData, fileName, packs: existing === undefined ? Object.keys(data) : Object.keys(engine().parseOrcbrew(text, { name }).data ?? {}) };
     checkQuarantine(data);
     if (askOnConflicts && lastImport.conflicts.length > 0) return set({ pending: { id: crypto.randomUUID(), result: lastImport, homebrew: data } });
     await store(data, flags, lastImport);
@@ -239,6 +261,25 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     set({ ...withPacks([...packs.filter((p) => !changed.some((c) => c.id === p.id)), ...changed]), lastImport });
   }
 
+  /**
+   * Stores the items in the pack, and creates the pack, enabled, if it is
+   * not stored. Throws, and stores nothing, if the pack is quarantined or the
+   * packs do not build with the items. what names the items in the error.
+   * Runs inside queued.
+   */
+  async function putItems(pack: string, items: ItemChange[], what: string) {
+    checkQuarantine({ [pack]: {} });
+    const { packs } = get();
+    const stored: Omit<PackRecord, "updatedAt"> = packs.find((p) => p.id === pack) ?? { id: pack, rules: "2014", enabled: true, disabledItems: [], plugin: {} };
+    const plugin = items.reduce((result, { contentType, key, item }) => withItem(result, contentType, key, item), stored.plugin);
+    const changed: PackRecord = { ...stored, plugin, updatedAt: now() };
+    const others = packs.filter((p) => p.id !== pack);
+    const reason = buildProblem(pluginMap([...others, changed]));
+    if (reason !== null) throw new Error(`The engine could not build the packs with ${what}: ${reason}`);
+    await savePacks([changed]);
+    set(withPacks([...others, changed]));
+  }
+
   return {
     packs: [],
     quarantined: [],
@@ -267,6 +308,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     cancelImport: () => set({ pending: null }),
     remove: (pack) => queued(async () => {
       await deletePack(pack);
+      forgetSkipped(pack);
       set({ ...withPacks(get().packs.filter((p) => p.id !== pack)), pending: null });
     }),
     loadMagicItems: (items) =>
@@ -295,15 +337,13 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
         await restorePacks();
         const key = (item as Record<string, unknown>)["~:key"];
         if (typeof key !== "string") throw new Error("The item has no key");
-        checkQuarantine({ [pack]: {} });
-        const { packs } = get();
-        const stored: Omit<PackRecord, "updatedAt"> = packs.find((p) => p.id === pack) ?? { id: pack, rules: "2014", enabled: true, disabledItems: [], plugin: {} };
-        const changed: PackRecord = { ...stored, plugin: withItem(stored.plugin, contentType, key, item), updatedAt: now() };
-        const others = packs.filter((p) => p.id !== pack);
-        const reason = buildProblem(pluginMap([...others, changed]));
-        if (reason !== null) throw new Error(`The engine could not build the packs with this item: ${reason}`);
-        await savePacks([changed]);
-        set(withPacks([...others, changed]));
+        await putItems(pack, [{ contentType, key, item }], "this item");
+      }),
+    saveItems: (pack, items) =>
+      queued(async () => {
+        await restorePacks();
+        if (!get().packs.some((p) => p.id === pack)) throw new Error(`No pack named ${pack}`);
+        await putItems(pack, items, "these items");
       }),
     removeQuarantined: (id) =>
       queued(async () => {

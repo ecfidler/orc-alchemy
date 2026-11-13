@@ -10,7 +10,9 @@ import { loadEngine } from "../engine/engine.ts";
 import { magicItemName } from "../engine/import.ts";
 import { exportOrcbrew, type PackProblems } from "../engine/orcbrew-export.ts";
 import { itemOn, orcbrewHomebrew, packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
+import { skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
 import type { MagicItemRecord, PackRecord } from "../storage/packs.ts";
+import { reviewUsesPath, usesCount, usesCountText } from "./builders/review-uses.ts";
 import { downloadText } from "./Export.tsx";
 import { BUILDERS } from "./HomebrewBuilder.tsx";
 
@@ -140,9 +142,14 @@ function MagicItems({ items, report, askDelete }: { items: MagicItemRecord[]; re
   );
 }
 
-/** One pack: its enabled checkbox, Export and Delete, and its content lists. */
+/**
+ * One pack: its enabled checkbox, Export and Delete, the number of its
+ * features that may have uses with the Review uses link, and its content
+ * lists.
+ */
 function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: boolean; report: Report; askDelete: AskDelete }) {
   const { id, plugin } = pack;
+  const uses = usesCount(plugin, useSkippedUses((state) => skippedOf(state, id)));
   return (
     <section aria-label={id} className="border border-rule-strong p-2">
       <div className="flex flex-wrap items-center gap-4">
@@ -153,6 +160,14 @@ function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: b
           Delete
         </Button>
       </div>
+      {uses > 0 && (
+        <p className="ml-4">
+          {usesCountText(uses)}.{" "}
+          <Link to={reviewUsesPath(id)} aria-label={`Review uses in ${id}`} className="underline">
+            Review uses
+          </Link>
+        </p>
+      )}
       {CONTENT_TYPES.map(({ type, one, many }) => {
         const items = packItems(id, plugin, type);
         const taggedType = tag(type);
