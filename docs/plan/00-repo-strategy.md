@@ -4,7 +4,7 @@ title: "00: Repository strategy"
 description: "Where the work happens: the engine is built and published from the fork, and the app is its own repository."
 tags: [plan, repositories]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-05T02:18:10Z }
+generated: { by: claude-code/agent, at: 2026-11-13T19:20:00Z }
 ---
 
 # 00: Repository strategy
@@ -118,11 +118,10 @@ only what every package shares. `bun install` runs once from the root.
 - The plan is `docs/plan/`, and Plan Set 2 is active.
 - The engine comes from `@pubdoor/dmv`, built in the `ecfidler/orcpub` fork
   under `engine-js/`, which is also the test oracle.
-- The current milestone.
 - The app never imports Clojure or the engine source.
 - Linear project Alchemy 5e is the tracker.
 
-Update the current-milestone line as work progresses. "Implement the plan"
+The current milestone is in Linear, not in `CLAUDE.md`. "Implement the plan"
 is too large a prompt for one session. "We're on M2" is the right size.
 
 ## Working with agents across the two repos
