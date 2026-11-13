@@ -63,8 +63,10 @@ export function setSkipped(pack: string, skip: string[], keep: string[]) {
 
 /** Forgets the skipped rows of a pack, when the pack is deleted. */
 export function forgetSkipped(pack: string) {
-  if (!(pack in useSkippedUses.getState())) return;
-  setSkipped(pack, [], skippedOf(useSkippedUses.getState(), pack));
+  const { [pack]: forgotten, ...others } = useSkippedUses.getState();
+  if (forgotten === undefined) return;
+  write(others);
+  useSkippedUses.setState(others, true);
 }
 
 /** Reads the skipped rows again from localStorage, for tests of a reload. */

@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T21:49:37Z }
+generated: { by: claude-code/agent, at: 2026-11-13T22:04:53Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -602,6 +602,9 @@ state:
   hundreds of rows stays quick.
 * Save stores the checked rows in one write, with the same build check as
   the form. An unchecked hint row is not skipped. It stays on the page.
+* A row with no uses stores nothing, not even its type, and counts as
+  unchecked at Save. Uses in the control check the row, and None unchecks
+  it.
 * A skipped row shows again with "Show skipped". It is marked "Skipped" and
   starts unchecked. If the user checks it and saves, it is not skipped
   any more.

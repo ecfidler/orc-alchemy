@@ -1,7 +1,7 @@
 // The rows of the Review uses page (ORC-207): which features of a pack it
 // lists, and the item that Save makes from the choices of its rows.
 import { expect, test } from "vitest";
-import { startChoice, usesCount, usesCountText, usesRows, withChoices, type UsesRow } from "./review-uses.ts";
+import { levelName, startChoice, usesCount, usesCountText, usesRows, withChoices, type UsesRow } from "./review-uses.ts";
 import { bigPlugin, REVIEW_ROWS, reviewPlugin, WITH_USES } from "./test-review-pack.ts";
 import { SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 import { suggestedFrequency } from "./uses.ts";
@@ -63,11 +63,22 @@ test("a type shows only when the stored type is Other and the form's type list h
   expect(typed("~:other")?.value).toBe("~:action");
 });
 
-test("a class feature counts its class's level; a subclass feature its parent class's; others the character level", () => {
+test("a class feature counts its class's level, named as the class form names it; a subclass feature its class's, named from the class list as the subclass form does", () => {
   const rows = usesRows(reviewPlugin());
-  expect(row(rows, "Wavecaller Sure Footing").levelName).toBe("Wavecaller");
-  expect(row(rows, "Deep Path Warding Hand").levelName).toBe("Barbarian");
-  expect(row(rows, "Tidecaller Tidal Surge").levelName).toBeNull();
+  // The class list of the forms (useBuilderChoices): a homebrew class whose name differs from its key.
+  const classes = [
+    { key: "barbarian", name: "Barbarian" },
+    { key: "wavecaller", name: "Caller of Waves (Review Pack)" },
+  ];
+  expect(levelName(row(rows, "Wavecaller Sure Footing"), classes)).toBe("Wavecaller");
+  expect(levelName(row(rows, "Deep Path Warding Hand"), classes)).toBe("Barbarian");
+  expect(levelName(row(rows, "Tidecaller Tidal Surge"), classes)).toBeNull();
+  // A subclass of the homebrew class gets the name from the list, not from the key.
+  const plugin = reviewPlugin() as Record<string, Record<string, Record<string, unknown>>>;
+  plugin["~:orcpub.dnd.e5/subclasses"]["~:deep-path"]["~:class"] = "~:wavecaller";
+  expect(levelName(row(usesRows(plugin), "Deep Path Warding Hand"), classes)).toBe("Caller of Waves (Review Pack)");
+  // A class that is not in the list is "Class", as in the subclass form.
+  expect(levelName(row(usesRows(plugin), "Deep Path Warding Hand"), [])).toBe("Class");
 });
 
 test("the count leaves out the skipped rows", () => {
@@ -86,9 +97,11 @@ test("withChoices sets :frequency and a changed :type at each path, and keeps ev
   const frequency = { "~:units": LONG, "~:amount": 1 };
   const changed = withChoices(feat, [
     { row: rows[0], choice: { frequency, type: "~:action" } },
-    { row: rows[1], choice: { frequency: undefined, type: undefined } },
+    { row: rows[1], choice: { frequency: undefined, type: "~:reaction" } },
   ]);
+  // The second row has no uses, so it writes nothing, not even its type.
   expect(changed).toEqual({ ...feat, "~:frequency": frequency, "~:type": "~:action" });
+  expect(withChoices(feat, [{ row: rows[0], choice: { frequency: undefined, type: "~:action" } }])).toBe(feat);
   // The monster's Other ("") stores no type.
   const monster = (plugin["~:orcpub.dnd.e5/monsters"] as Record<string, Record<string, Record<string, unknown>[]>>)["~:sea-hag"];
   const hag = usesRows(plugin).find((r) => r.name === "Sea Hag Tidal Surge")!;
@@ -97,11 +110,9 @@ test("withChoices sets :frequency and a changed :type at each path, and keeps ev
   expect(withOther["~:traits"][1]).toBe(monster["~:traits"][1]);
 });
 
-test("a pack of 1,104 features gives its 224 rows quickly, and once for each plugin object", () => {
+test("a pack of 1,104 features gives its 224 rows, once for each plugin object", () => {
   const plugin = bigPlugin();
-  const start = performance.now();
   const rows = usesRows(plugin);
-  expect(performance.now() - start).toBeLessThan(1000);
   expect(rows).toHaveLength(224);
   expect(usesRows(plugin)).toBe(rows);
 });

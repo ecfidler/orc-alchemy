@@ -12,7 +12,8 @@ import { exportOrcbrew, type PackProblems } from "../engine/orcbrew-export.ts";
 import { itemOn, orcbrewHomebrew, packOn, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
 import type { MagicItemRecord, PackRecord } from "../storage/packs.ts";
-import { reviewUsesPath, usesCount, usesCountText } from "./builders/review-uses.ts";
+import { usesCount } from "./builders/review-uses.ts";
+import { ReviewUsesLink } from "./ReviewUses.tsx";
 import { downloadText } from "./Export.tsx";
 import { BUILDERS } from "./HomebrewBuilder.tsx";
 
@@ -162,10 +163,7 @@ function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: b
       </div>
       {uses > 0 && (
         <p className="ml-4">
-          {usesCountText(uses)}.{" "}
-          <Link to={reviewUsesPath(id)} aria-label={`Review uses in ${id}`} className="underline">
-            Review uses
-          </Link>
+          <ReviewUsesLink pack={id} count={uses} namePack />
         </p>
       )}
       {CONTENT_TYPES.map(({ type, one, many }) => {

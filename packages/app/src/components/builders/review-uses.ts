@@ -5,26 +5,29 @@
 // have them, and a feat's own entry, from its :description. This module only
 // reads a pack and makes the changed items; the page shows the rows, and the
 // store saves the items (useHomebrew saveItems).
+import type { Choice } from "../../engine/builder-choices.ts";
 import type { ContentType } from "../../engine/engine.ts";
-import { tag, untag } from "../../engine/content.ts";
-import { FEATURE_LIST, setIn, title, type Options, type Path } from "./fields.tsx";
+import { CONTENT_TYPES, tag, untag } from "../../engine/content.ts";
+import { FEATURE_LIST, setIn, type Options, type Path } from "./fields.tsx";
 import { MONSTER_FEATURES } from "./MonsterForm.tsx";
-import { readFeatureText, type TypeSuggestion, type UsesHint, type UsesSuggestion } from "./suggested-uses.ts";
-import { isOtherType } from "./SuggestionLines.tsx";
+import { readFeatureText, suggestedTypeOption, type TypeSuggestion, type UsesHint, type UsesSuggestion } from "./suggested-uses.ts";
 import { suggestedFrequency, usesKind } from "./uses.ts";
 
 type TransitMap = Record<string, unknown>;
 
-/** The content types whose items have features, in the order of My Content, with the name of one item. */
-export const FEATURE_HOLDERS: { type: ContentType; one: string }[] = [
-  { type: "orcpub.dnd.e5/monsters", one: "monster" },
-  { type: "orcpub.dnd.e5/backgrounds", one: "background" },
-  { type: "orcpub.dnd.e5/races", one: "race" },
-  { type: "orcpub.dnd.e5/subraces", one: "subrace" },
-  { type: "orcpub.dnd.e5/classes", one: "class" },
-  { type: "orcpub.dnd.e5/subclasses", one: "subclass" },
-  { type: "orcpub.dnd.e5/feats", one: "feat" },
+/** The content types whose forms have a feature list. */
+const WITH_FEATURES: ContentType[] = [
+  "orcpub.dnd.e5/monsters",
+  "orcpub.dnd.e5/backgrounds",
+  "orcpub.dnd.e5/races",
+  "orcpub.dnd.e5/subraces",
+  "orcpub.dnd.e5/classes",
+  "orcpub.dnd.e5/subclasses",
+  "orcpub.dnd.e5/feats",
 ];
+
+/** The content types whose items have features, in the order of My Content, with the name of one item. */
+export const FEATURE_HOLDERS = CONTENT_TYPES.filter(({ type }) => WITH_FEATURES.includes(type));
 
 /** One feature with no uses whose text gives suggested uses or a hint. */
 export interface UsesRow {
@@ -54,17 +57,36 @@ export interface UsesRow {
   type: { suggestion: TypeSuggestion; value: unknown } | null;
   /** The type list of the form, as its Type select has it. */
   types: Options;
-  /** As the uses control takes it: the class whose level a level amount counts, or null for the character level. */
-  levelName: string | null;
+  /**
+   * Whose level a level amount counts: a class feature counts its class,
+   * named as the class form names it; a subclass feature counts its class,
+   * by the key without its "~:"; any other feature counts the character
+   * level (null). levelName gives the name that the uses control takes.
+   */
+  level: { className: string } | { parentClass: string } | null;
 }
 
 const isMap = (value: unknown): value is TransitMap => typeof value === "object" && value !== null && !Array.isArray(value);
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
-/** The class whose level a level amount of the item's features counts, as the class and subclass forms name it. */
-function levelNameOf(type: ContentType, item: TransitMap): string | null {
-  if (type === "orcpub.dnd.e5/classes") return text(item[tag("name")]) || "Class";
-  if (type === "orcpub.dnd.e5/subclasses") return untag(item[tag("class")]) ? title(untag(item[tag("class")])) : "Class";
+/**
+ * The class whose level a level amount of the row counts, as the uses
+ * control takes it, and named as the class and subclass forms name it: a
+ * class feature by the class's name, a subclass feature by the name of its
+ * class in classes (the class list of the forms). Null for the character
+ * level.
+ */
+export function levelName({ level }: UsesRow, classes: readonly Choice[]): string | null {
+  if (level === null) return null;
+  if ("className" in level) return level.className;
+  return classes.find((c) => c.key === level.parentClass)?.name ?? "Class";
+}
+
+/** Whose level a level amount of the item's features counts (UsesRow level). */
+function levelOf(type: ContentType, item: TransitMap): UsesRow["level"] {
+  // As ClassForm.tsx and SubclassForm.tsx give it to their feature lists.
+  if (type === "orcpub.dnd.e5/classes") return { className: text(item[tag("name")]) || "Class" };
+  if (type === "orcpub.dnd.e5/subclasses") return { parentClass: untag(item[tag("class")]) };
   return null;
 }
 
@@ -77,13 +99,13 @@ function rowOf(
   featureName: string,
   feature: TransitMap,
   types: Options,
-  levelName: string | null,
+  level: UsesRow["level"],
 ): UsesRow | null {
   if (usesKind(feature[tag("frequency")]) !== "none") return null;
   const description = feature[tag("description")];
   const reading = typeof description === "string" ? readFeatureText(description) : null;
   if (reading?.uses == null) return null;
-  const option = reading.type && isOtherType(feature[tag("type")]) ? types.find(([value]) => typeof value === "string" && untag(value) === reading.type!.type) : undefined;
+  const option = suggestedTypeOption(reading.type, feature[tag("type")], types);
   return {
     id: JSON.stringify([holder.type, untag(key), path.join("/"), featureName]),
     contentType: tag(holder.type),
@@ -97,7 +119,7 @@ function rowOf(
     uses: reading.uses,
     type: option && reading.type ? { suggestion: reading.type, value: option[0] } : null,
     types,
-    levelName,
+    level,
   };
 }
 
@@ -121,13 +143,13 @@ export function usesRows(plugin: object): UsesRow[] {
       const item = items[key];
       if (!isMap(item)) continue;
       const itemName = text(item[tag("name")]) || untag(key);
-      const levelName = levelNameOf(holder.type, item);
+      const level = levelOf(holder.type, item);
       const add = (row: UsesRow | null) => row && rows.push(row);
       if (holder.type === "orcpub.dnd.e5/feats") add(rowOf(holder, key, itemName, [], "Feat", item, FEATURE_LIST.types, null));
       const traits = item[tag("traits")];
       if (!Array.isArray(traits)) continue;
       traits.forEach((trait, i) => {
-        if (isMap(trait)) add(rowOf(holder, key, itemName, ["traits", i], text(trait[tag("name")]) || `Feature ${i + 1}`, trait, types, levelName));
+        if (isMap(trait)) add(rowOf(holder, key, itemName, ["traits", i], text(trait[tag("name")]) || `Feature ${i + 1}`, trait, types, level));
       });
     }
   }
@@ -164,12 +186,14 @@ export function startChoice(row: UsesRow): RowChoice {
 
 /**
  * The item with the choices of its rows, as the form writes them: :frequency
- * at the path of each feature (none removes the key), and :type when the
- * choice differs from the stored type. A type of "" stores no type, as the
+ * at the path of each feature, and :type when the choice differs from the
+ * stored type. A choice with no uses changes nothing. A type of "" stores no type, as the
  * monster's Other. Every other key stays.
  */
 export function withChoices(item: object, choices: { row: UsesRow; choice: RowChoice }[]): object {
   return choices.reduce<unknown>((result, { row, choice }) => {
+    // A row with no uses writes nothing, not even its type.
+    if (choice.frequency === undefined) return result;
     const withFrequency = setIn(result, [...row.path, "frequency"], choice.frequency);
     if (choice.type === row.feature[tag("type")]) return withFrequency;
     return setIn(withFrequency, [...row.path, "type"], choice.type === "" ? undefined : choice.type);

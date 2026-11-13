@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router";
-import { reviewUsesPath, usesCount, usesCountText } from "./builders/review-uses.ts";
+import { usesCount } from "./builders/review-uses.ts";
+import { ReviewUsesLink } from "./ReviewUses.tsx";
 import { useHomebrew, type LastImport } from "../state/homebrew.ts";
 import { skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
 
@@ -146,10 +146,7 @@ function UsesLines({ packs }: { packs: string[] }) {
       {lines.map(({ id, n }) => (
         <li key={id}>
           {packs.length > 1 && `${id}: `}
-          {usesCountText(n)}.{" "}
-          <Link to={reviewUsesPath(id)} aria-label={packs.length > 1 ? `Review uses in ${id}` : undefined} className="underline">
-            Review uses
-          </Link>
+          <ReviewUsesLink pack={id} count={n} namePack={packs.length > 1} />
         </li>
       ))}
     </ul>

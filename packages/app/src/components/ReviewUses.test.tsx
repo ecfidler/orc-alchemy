@@ -4,6 +4,7 @@
 // does, and the skipped rows, which stay in this browser only.
 import "fake-indexeddb/auto";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { optionNames } from "@orc-alchemy/ui/testing";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, beforeEach, expect, test } from "vitest";
 import { itemAt } from "../engine/content.ts";
@@ -11,8 +12,9 @@ import { engine, loadEngine } from "../engine/engine.ts";
 import { exportOrcbrew } from "../engine/orcbrew-export.ts";
 import { toSheet } from "../engine/sheet.ts";
 import { orcbrewHomebrew, useHomebrew } from "../state/homebrew.ts";
-import { reloadSkipped, SKIPPED_USES_KEY, useSkippedUses } from "../state/skipped-uses.ts";
+import { reloadSkipped, setSkipped, SKIPPED_USES_KEY, useSkippedUses } from "../state/skipped-uses.ts";
 import { listPacks } from "../storage/packs.ts";
+import { usesRows } from "./builders/review-uses.ts";
 import { choose, press, shown } from "./builders/test-picks.ts";
 import { bigPlugin, REVIEW_PACK, REVIEW_PACK_FILE, REVIEW_ROWS, reviewOrcbrew, reviewPlugin, toEdn } from "./builders/test-review-pack.ts";
 import { SUGGESTION_PACK } from "./builders/test-suggestion-pack.ts";
@@ -71,9 +73,11 @@ const rowsShown = () => screen.queryAllByRole("checkbox").filter((c) => !["All r
 const rowNames = () => REVIEW_ROWS.map(([name]) => name).filter((name) => screen.queryByRole("checkbox", { name }) !== null);
 async function openPage() {
   const router = renderAt(PAGE);
-  await screen.findByRole("heading", { name: `Review uses: ${REVIEW_PACK}` });
+  await screen.findByRole("checkbox", { name: "All rows" });
   return router;
 }
+/** Skips the row Sea Hag Tidal Surge, as an earlier Save would. */
+const skipSeaHag = () => setSkipped(REVIEW_PACK, [usesRows(stored().plugin).find((r) => r.name === "Sea Hag Tidal Surge")!.id], []);
 async function save() {
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await screen.findByText(/^Saved \d+ features?\./);
@@ -86,7 +90,7 @@ test("the import log says how many features may have uses, with a Review uses li
   const list = await screen.findByRole("list", { name: "Suggested uses" });
   expect(list.textContent).toBe(`${REVIEW_ROWS.length} features may have uses. Review uses`);
   fireEvent.click(within(list).getByRole("link", { name: "Review uses" }));
-  await screen.findByRole("heading", { name: `Review uses: ${REVIEW_PACK}` });
+  await screen.findByRole("checkbox", { name: "All rows" });
   expect(router.state.location.pathname).toBe(PAGE);
 });
 
@@ -190,6 +194,92 @@ test("Save writes :frequency and :type for the checked rows only; every other it
   expect((await listPacks()).find((p) => (p as { id: string }).id === REVIEW_PACK)).toEqual(after);
   // The saved rows go; the unchecked suggestion rows are skipped, and the hint rows stay.
   expect(rowNames()).toEqual(HINTS.filter((name) => name !== "Tidecaller Old Charm"));
+});
+
+test("a checked row with no uses stores nothing and counts as unchecked; None unchecks a row", async () => {
+  await importPack();
+  const before = stored();
+  await openPage();
+  // A hint row filled and then emptied is unchecked again.
+  press("Tidecaller Old Charm Uses", "Fixed");
+  expect(box("Tidecaller Old Charm")).toBeChecked();
+  press("Tidecaller Old Charm Uses", "None");
+  expect(box("Tidecaller Old Charm")).not.toBeChecked();
+  // All rows checks the hint rows too, with no uses.
+  fireEvent.click(screen.getByRole("checkbox", { name: "All rows" }));
+  for (const name of HINTS) expect(box(name)).toBeChecked();
+  // A suggestion row set to None is unchecked, and writes no type.
+  press("Tidecaller Tidal Surge Uses", "None");
+  expect(box("Tidecaller Tidal Surge")).not.toBeChecked();
+  // Checked again by hand, it still has no uses.
+  fireEvent.click(box("Tidecaller Tidal Surge"));
+  expect(box("Tidecaller Tidal Surge")).toBeChecked();
+  await save();
+  expect(screen.getByRole("status").textContent).toBe(`Saved ${SUGGESTIONS.length - 1} features. Skipped 1.`);
+
+  const traits = (itemAt(stored().plugin, RACES, "~:tidecaller") as Record<string, Traits>)["~:traits"];
+  const original = ((reviewPlugin() as Plugin)[RACES]["~:tidecaller"]["~:traits"] as Traits);
+  expect(traits[0]).toEqual(original[0]);
+  for (const [i, f] of SUGGESTION_PACK.entries()) if (f.uses === "hint") expect(traits[i], f.name).toEqual(original[i]);
+  expect(itemAt(stored().plugin, "~:orcpub.dnd.e5/backgrounds", "~:pearl-diver")).toEqual(itemAt(before.plugin, "~:orcpub.dnd.e5/backgrounds", "~:pearl-diver"));
+  // The suggestion row is skipped; the hint rows stay.
+  expect(JSON.parse(localStorage.getItem(SKIPPED_USES_KEY)!)[REVIEW_PACK]).toEqual([expect.stringContaining("Tidal Surge")]);
+  expect(rowNames()).toEqual(HINTS);
+});
+
+test("Show skipped keeps the user's changes to the rows", async () => {
+  await importPack();
+  skipSeaHag();
+  await openPage();
+  await choose("Tidecaller Song of Courage minimum", "None");
+  fireEvent.click(box("Tidecaller Tidal Surge"));
+  press("Tidecaller Old Charm Uses", "Fixed");
+  fireEvent.click(screen.getByRole("checkbox", { name: "Show skipped" }));
+  expect(box("Sea Hag Tidal Surge")).toBeVisible();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Show skipped" }));
+  expect(shown("Tidecaller Song of Courage minimum")).toBe("None");
+  expect(box("Tidecaller Tidal Surge")).not.toBeChecked();
+  expect(box("Tidecaller Old Charm")).toBeChecked();
+});
+
+test("a failed save stores nothing, keeps the skipped rows as they were, and shows why", async () => {
+  await importPack();
+  skipSeaHag();
+  await openPage();
+  const before = stored();
+  const records = await listPacks();
+  const skipped = localStorage.getItem(SKIPPED_USES_KEY);
+  // The store's own failure for a pack that is not stored.
+  const saveItems = useHomebrew.getState().saveItems;
+  useHomebrew.setState({ saveItems: (_pack, changes) => saveItems("Not Stored", changes) });
+  try {
+    fireEvent.click(box("Tidecaller Song of Courage"));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("No pack named Not Stored");
+  } finally {
+    useHomebrew.setState({ saveItems });
+  }
+  expect(stored()).toEqual(before);
+  expect(await listPacks()).toEqual(records);
+  expect(localStorage.getItem(SKIPPED_USES_KEY)).toBe(skipped);
+  // The rows are as the user left them.
+  expect(box("Tidecaller Song of Courage")).not.toBeChecked();
+  expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+});
+
+test("a subclass feature's level is named by the class, as in the subclass form", async () => {
+  const plugin = reviewPlugin() as Plugin;
+  plugin["~:orcpub.dnd.e5/classes"]["~:wavecaller"]["~:name"] = "Caller of Waves";
+  plugin["~:orcpub.dnd.e5/subclasses"]["~:deep-path"]["~:class"] = "~:wavecaller";
+  await useHomebrew.getState().load(REVIEW_PACK_FILE, toEdn(plugin));
+  await openPage();
+  press("Deep Path Warding Hand Uses", "Scaled");
+  const page = await optionNames(screen.getByRole("combobox", { name: "Deep Path Warding Hand equal to" }));
+  expect(page).toContain(`Caller of Waves (${REVIEW_PACK}) level × n`);
+  cleanup();
+  renderAt(`/content/edit/subclass/${encodeURIComponent(REVIEW_PACK)}/deep-path`);
+  press(await screen.findByRole("group", { name: "Feature 1 Uses" }).then(() => "Feature 1 Uses"), "Scaled");
+  expect(await optionNames(screen.getByRole("combobox", { name: "Feature 1 equal to" }))).toEqual(page);
 });
 
 test("what Save stores for a row equals what the form stores for the same choice", async () => {
@@ -311,7 +401,7 @@ test("a pack with no rows says so with a link back; a pack that is not stored sa
 test("a pack of 1,104 features shows its 224 rows", { timeout: 60_000 }, async () => {
   await useHomebrew.getState().load("Big Pack.orcbrew", toEdn(bigPlugin()));
   renderAt("/content/review-uses/Big%20Pack");
-  await screen.findByRole("heading", { name: "Review uses: Big Pack" });
+  await screen.findByRole("checkbox", { name: "All rows" });
   expect(rowsShown()).toHaveLength(224);
   fireEvent.click(box("Race 1 Tidal Surge"));
   expect(box("Race 1 Tidal Surge")).not.toBeChecked();

@@ -10,13 +10,30 @@ import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from 
 import { Link, useParams } from "react-router";
 import { itemAt } from "../engine/content.ts";
 import { restorePacks, useHomebrew, type ItemChange } from "../state/homebrew.ts";
+import type { Choice } from "../engine/builder-choices.ts";
 import { setSkipped, skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
-import { SelectField } from "./builders/fields.tsx";
-import { startChoice, usesRows, withChoices, type RowChoice, type UsesRow } from "./builders/review-uses.ts";
+import { Card, SelectField, WithChoices } from "./builders/fields.tsx";
+import { levelName, reviewUsesPath, startChoice, usesCountText, usesRows, withChoices, type RowChoice, type UsesRow } from "./builders/review-uses.ts";
 import type { Span, TextMatch } from "./builders/suggested-uses.ts";
 import { UsesControl } from "./builders/UsesControl.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+/**
+ * "N features may have uses. Review uses", with the link to the pack's
+ * page, for the import log and My Content. With namePack, the link is named
+ * "Review uses in <pack>", for a page that shows more than one pack.
+ */
+export function ReviewUsesLink({ pack, count, namePack = false }: { pack: string; count: number; namePack?: boolean }) {
+  return (
+    <>
+      {usesCountText(count)}.{" "}
+      <Link to={reviewUsesPath(pack)} aria-label={namePack ? `Review uses in ${pack}` : undefined} className="underline">
+        Review uses
+      </Link>
+    </>
+  );
+}
 
 /** The route's page: the rows of the pack :pack, once the stored packs are read. */
 export function ReviewUses() {
@@ -89,20 +106,25 @@ function Review({ pack, plugin }: { pack: string; plugin: object }) {
       {shown.length === 0 && skippedCount === 0 ? (
         <p className="mt-4">No features in this pack may have uses.</p>
       ) : (
-        <Rows
-          key={`${round}/${showSkipped}`}
-          pack={pack}
-          plugin={plugin}
-          rows={shown}
-          skipped={skipped}
-          showSkipped={showSkipped}
-          onShowSkipped={setShowSkipped}
-          skippedCount={skippedCount}
-          onSaved={(text) => {
-            setStatus(text);
-            setRound((n) => n + 1);
-          }}
-        />
+        <WithChoices>
+          {({ classes }) => (
+            <Rows
+              key={round}
+              classes={classes}
+              pack={pack}
+              plugin={plugin}
+              rows={shown}
+              skipped={skipped}
+              showSkipped={showSkipped}
+              onShowSkipped={setShowSkipped}
+              skippedCount={skippedCount}
+              onSaved={(text) => {
+                setStatus(text);
+                setRound((n) => n + 1);
+              }}
+            />
+          )}
+        </WithChoices>
       )}
       <p className="mt-4">
         <BackLink />
@@ -111,8 +133,13 @@ function Review({ pack, plugin }: { pack: string; plugin: object }) {
   );
 }
 
-/** The toolbar, the rows by item, and Save. */
+/**
+ * The toolbar, the rows by item, and Save. The user's changes to a row stay
+ * while Show skipped hides and shows rows. classes is the class list of the
+ * forms, which names the class of a subclass feature.
+ */
 function Rows({
+  classes,
   pack,
   plugin,
   rows,
@@ -122,6 +149,7 @@ function Rows({
   skippedCount,
   onSaved,
 }: {
+  classes: Choice[];
   pack: string;
   plugin: object;
   rows: UsesRow[];
@@ -137,6 +165,8 @@ function Rows({
   const [error, setError] = useState<string | null>(null);
   const draftOf = (row: UsesRow) => drafts[row.id] ?? starts.get(row.id)!;
   const checkedRows = rows.filter((row) => draftOf(row).checked);
+  // A checked row with no uses stores nothing, as an unchecked row.
+  const savedRows = checkedRows.filter((row) => draftOf(row).choice.frequency !== undefined);
   const allChecked = rows.length > 0 && checkedRows.length === rows.length;
 
   const change = useCallback(
@@ -152,7 +182,7 @@ function Rows({
       // The items as stored now, each with the choices of its checked rows.
       const stored = useHomebrew.getState().packs.find((p) => p.id === pack)?.plugin ?? plugin;
       const byItem = new Map<string, { row: UsesRow; choice: RowChoice }[]>();
-      for (const row of checkedRows) {
+      for (const row of savedRows) {
         const id = JSON.stringify([row.contentType, row.key]);
         byItem.set(id, [...(byItem.get(id) ?? []), { row, choice: draftOf(row).choice }]);
       }
@@ -163,13 +193,13 @@ function Rows({
         return { contentType, key, item: withChoices(item, choices) };
       });
       if (changes.length > 0) await useHomebrew.getState().saveItems(pack, changes);
-      const skip = rows.filter((row) => row.uses.kind === "suggestion" && !draftOf(row).checked).map((row) => row.id);
+      const skip = rows.filter((row) => row.uses.kind === "suggestion" && !savedRows.includes(row)).map((row) => row.id);
       setSkipped(
         pack,
         skip,
-        checkedRows.map((row) => row.id),
+        savedRows.map((row) => row.id),
       );
-      onSaved(`Saved ${checkedRows.length} ${checkedRows.length === 1 ? "feature" : "features"}. Skipped ${skip.length}.`);
+      onSaved(`Saved ${savedRows.length} ${savedRows.length === 1 ? "feature" : "features"}. Skipped ${skip.length}.`);
     } catch (e) {
       setError(message(e));
       setSaving(false);
@@ -207,7 +237,7 @@ function Rows({
                 {itemName} <span className="font-sans text-sm font-normal text-ink-muted">{one}</span>
               </h2>
               {itemRows.map((row) => (
-                <Row key={row.id} row={row} draft={draftOf(row)} skipped={skipped.includes(row.id)} onChange={change} />
+                <Row key={row.id} row={row} levelName={levelName(row, classes)} draft={draftOf(row)} skipped={skipped.includes(row.id)} onChange={change} />
               ))}
             </section>
           );
@@ -217,28 +247,47 @@ function Rows({
   );
 }
 
-/** One feature: its checkbox, the text that it matched with the phrases marked, the type and the uses control. */
-const Row = memo(function Row({ row, draft, skipped, onChange }: { row: UsesRow; draft: Draft; skipped: boolean; onChange: (id: string, next: (draft: Draft) => Draft) => void }) {
+/**
+ * One feature: its checkbox, the text that it matched with the phrases
+ * marked, the type and the uses control. Uses filled in the control check
+ * the row; None unchecks it.
+ */
+const Row = memo(function Row({
+  row,
+  levelName,
+  draft,
+  skipped,
+  onChange,
+}: {
+  row: UsesRow;
+  levelName: string | null;
+  draft: Draft;
+  skipped: boolean;
+  onChange: (id: string, next: (draft: Draft) => Draft) => void;
+}) {
   const { id, name, uses, type } = row;
   const feature = { ...row.feature, "~:frequency": draft.choice.frequency };
-  const setChoice = (choice: Partial<RowChoice>, fill = false) =>
-    onChange(id, (d) => ({ checked: d.checked || (fill && choice.frequency !== undefined), choice: { ...d.choice, ...choice } }));
+  const setType = (value: unknown) => onChange(id, (d) => ({ ...d, choice: { ...d.choice, type: value } }));
+  const setFrequency = (frequency: RowChoice["frequency"]) => onChange(id, (d) => ({ checked: frequency !== undefined, choice: { ...d.choice, frequency } }));
   return (
-    <div className="grid gap-2 border border-rule-strong bg-paper-raised px-3 py-[10px]">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Checkbox label={<span className="font-bold">{row.featureName}</span>} name={name} checked={draft.checked} onCheckedChange={(checked) => onChange(id, (d) => ({ ...d, checked }))} />
-        {skipped && <span className="font-sans text-xs uppercase tracking-wide text-ink-muted">Skipped</span>}
-        {uses.kind === "hint" && <span className="font-sans text-sm text-ink-muted">No suggestion</span>}
-      </div>
+    <Card
+      top={
+        <>
+          <Checkbox label={<span className="font-bold">{row.featureName}</span>} name={name} checked={draft.checked} onCheckedChange={(checked) => onChange(id, (d) => ({ ...d, checked }))} />
+          {skipped && <span className="font-sans text-xs uppercase tracking-wide text-ink-muted">Skipped</span>}
+          {uses.kind === "hint" && <span className="font-sans text-sm text-ink-muted">No suggestion</span>}
+        </>
+      }
+    >
       <Quotes text={String(row.feature["~:description"])} matches={type ? [uses.match, type.suggestion.match] : [uses.match]} />
       {uses.kind === "hint" && <p className="text-[14.5px] text-ink-muted">The text may name uses, but gives no clear amount. Set the uses by hand.</p>}
       {type && (
         <div className="flex">
-          <SelectField label="Type" name={`${name} type`} value={draft.choice.type ?? ""} options={row.types} onSelect={(value) => setChoice({ type: value })} />
+          <SelectField label="Type" name={`${name} type`} value={draft.choice.type ?? ""} options={row.types} onSelect={setType} />
         </div>
       )}
-      <UsesControl name={name} feature={feature} onChange={(frequency) => setChoice({ frequency }, true)} levelName={row.levelName} preview={false} />
-    </div>
+      <UsesControl name={name} feature={feature} onChange={setFrequency} levelName={levelName} preview={false} />
+    </Card>
   );
 });
 
