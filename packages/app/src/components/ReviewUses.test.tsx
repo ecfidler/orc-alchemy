@@ -278,7 +278,8 @@ test("a subclass feature's level is named by the class, as in the subclass form"
   expect(page).toContain(`Caller of Waves (${REVIEW_PACK}) level × n`);
   cleanup();
   renderAt(`/content/edit/subclass/${encodeURIComponent(REVIEW_PACK)}/deep-path`);
-  press(await screen.findByRole("group", { name: "Feature 1 Uses" }).then(() => "Feature 1 Uses"), "Scaled");
+  await screen.findByRole("group", { name: "Feature 1 Uses" });
+  press("Feature 1 Uses", "Scaled");
   expect(await optionNames(screen.getByRole("combobox", { name: "Feature 1 equal to" }))).toEqual(page);
 });
 

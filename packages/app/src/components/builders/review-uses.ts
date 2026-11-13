@@ -192,7 +192,7 @@ export function startChoice(row: UsesRow): RowChoice {
  */
 export function withChoices(item: object, choices: { row: UsesRow; choice: RowChoice }[]): object {
   return choices.reduce<unknown>((result, { row, choice }) => {
-    // A row with no uses writes nothing, not even its type.
+    // A row with no uses writes nothing, not even its type. The page does not send such a row; this is a safety net.
     if (choice.frequency === undefined) return result;
     const withFrequency = setIn(result, [...row.path, "frequency"], choice.frequency);
     if (choice.type === row.feature[tag("type")]) return withFrequency;
