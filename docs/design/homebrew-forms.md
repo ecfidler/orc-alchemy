@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T15:59:56Z }
+generated: { by: claude-code/agent, at: 2026-11-13T17:03:34Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -460,7 +460,8 @@ most users copy content from another source.
 
 * A "Uses of the feat" section has Type, the uses control and the preview.
   It is for the feat's own entry on the sheet. The form writes `:type` and
-  `:frequency` on the feat.
+  `:frequency` on the feat. It is not a modifier: it comes after "+ Add a
+  modifier" and before Features.
 * A Features section holds a feature list, for a feat with more than one
   part. The form writes `:traits` on the feat.
 * A level amount on a feat counts the character level.

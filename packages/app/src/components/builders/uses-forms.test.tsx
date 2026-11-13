@@ -43,6 +43,7 @@ const FORMS: [type: string, contentType: string, item: Record<string, unknown>][
   ["race", "orcpub.dnd.e5/races", { ...base("reefborn", "Reefborn"), "~:size": "~:medium", "~:speed": 30 }],
   ["subrace", "orcpub.dnd.e5/subraces", { ...base("sea-elf", "Sea Elf"), "~:race": "~:elf" }],
   ["background", "orcpub.dnd.e5/backgrounds", base("tidewatch", "Tidewatch")],
+  ["feat", "orcpub.dnd.e5/feats", { ...base("keen", "Keen"), "~:ability-increases": { "~#set": [] }, "~:type": "~:action", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": 3 } }],
   ["class", "orcpub.dnd.e5/classes", { ...base("tide-sage", "Tide Sage"), "~:hit-die": 8, "~:ability-increase-levels": [4, 8, 12, 16, 19], "~:level-modifiers": [] }],
   ["subclass", "orcpub.dnd.e5/subclasses", { ...base("oath-of-tides", "Oath of Tides"), "~:class": "~:paladin", "~:level-modifiers": [] }],
   [

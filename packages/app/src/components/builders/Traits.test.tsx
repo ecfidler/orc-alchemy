@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
 import { editor, Traits, type FeatureList, type ItemRecord } from "./fields.tsx";
+import { press } from "./test-picks.ts";
 
 afterEach(cleanup);
 
@@ -31,7 +32,6 @@ const choose = (name: string, option: string | RegExp) => pickOption(combobox(na
 const segments = (group: string) => within(screen.getByRole("group", { name: group })).getAllByRole("button");
 const segmentTexts = (group: string) => segments(group).map((b) => b.textContent);
 const pressedSegment = (group: string) => segments(group).find((b) => b.getAttribute("aria-pressed") === "true")?.textContent ?? null;
-const press = (group: string, name: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("button", { name }));
 const preview = (n = 1) => screen.getByRole("group", { name: `Feature ${n} preview` });
 /** The section heading and the bubble or plain feature in the preview. */
 const previewSection = (n = 1) => within(preview(n)).getByRole("heading", { level: 3 }).textContent;
