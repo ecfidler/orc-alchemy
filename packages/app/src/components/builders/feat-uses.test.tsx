@@ -19,7 +19,7 @@ import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
 import { orcbrewHomebrew, useHomebrew } from "../../state/homebrew.ts";
 import { CharacterSheet } from "../CharacterSheet.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { choose, groups, shown } from "./test-picks.ts";
+import { choose, groups, press, shown } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
 afterEach(async () => {
@@ -51,7 +51,6 @@ async function saveAndLeave(router: ReturnType<typeof renderAt>) {
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
 }
 const type = (label: string, value: string) => fireEvent.change(screen.getByRole("textbox", { name: label }), { target: { value } });
-const press = (group: string, name: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("button", { name }));
 const plugin = (pack = DEFAULT) => useHomebrew.getState().packs.find((p) => p.id === pack)!.plugin;
 const stored = (key: string, pack = DEFAULT) => itemAt(plugin(pack), FEATS, `~:${key}`) as Record<string, unknown>;
 
@@ -166,6 +165,8 @@ test("a feat with no uses and two features shows the feat and its two features o
   const names = (list: { name: string }[]) => list.map((f) => f.name);
   expect(names(sheet.features.traits)).toEqual(expect.arrayContaining(["Sea Legs", "Steady Footing"]));
   expect(sheet.features.traits.find((f) => f.name === "Sea Legs")).toEqual({ name: "Sea Legs", text: "You are at home on a ship." });
+  // The preview of Uses of the feat gives the same section and entry as the sheet.
+  expect(previewFeature(homebrew.Reef[FEATS]["~:sea-legs"], exampleNumbers(5, 10))).toEqual({ section: "traits", feature: sheet.features.traits.find((f) => f.name === "Sea Legs") });
   expect(sheet.features.bonusActions.find((f) => f.name === "Rolling Gait")!.uses).toEqual({ amount: 5, recharge: "Short rest" });
 });
 

@@ -37,7 +37,7 @@ const check = (group: string, label: string) => fireEvent.click(within(screen.ge
 const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const COMMON = ["Prerequisites", "Ability Increase Options"];
-/** The sections after the modifiers: the always shown last modifier, then the feature list. */
+/** The sections after the modifiers and the add button: Uses of the feat, then the feature list. */
 const TAIL = ["Uses of the feat", "Features"];
 /** The modifiers of the add list, in form order. */
 const ADDED = [

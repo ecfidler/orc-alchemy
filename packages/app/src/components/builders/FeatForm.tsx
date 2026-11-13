@@ -8,9 +8,9 @@
 // the "n of your choice" and bonus toggles (None removes the key), true for
 // each picked sentence (a removed one stores false, as the old second
 // click), and a map such as {:armor-prof {:light true}} for the grouped
-// ones. The form shows the prerequisites and the ability increase options
-// always, and the user adds the other modifiers from a list (modifiers.tsx).
-// Uses of the feat writes :type and :frequency on the feat, for its own
+// ones. The form always shows four sections: Prerequisites, Ability
+// Increase Options, Uses of the feat and Features. The user adds the other
+// modifiers from a list (modifiers.tsx). Uses of the feat writes :type and :frequency on the feat, for its own
 // entry on the sheet, and the Features section writes :traits (ORC-205,
 // docs/design/homebrew-forms.md, "Uses on a feat"). Engine 0.4.0 reads them.
 // A level amount on a feat counts the character level.
@@ -114,9 +114,9 @@ function AbilityIncreaseOptions({ edit, legend }: { edit: Edit; legend: string }
  * sheet, with the preview. The feat is not in a class, so a level amount
  * counts the character level.
  */
-function FeatUses({ edit, legend }: { edit: Edit; legend: string }) {
+function FeatUses({ edit }: { edit: Edit }) {
   return (
-    <Section legend={legend}>
+    <Section legend="Uses of the feat">
       <FieldRow>
         <FeatureType edit={edit} path={[]} name="Feat" />
       </FieldRow>
@@ -144,7 +144,6 @@ function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
     sentenceModifier(edit, "spellcasting", "Spellcasting", "Cantrips and a 1st-level spell, ritual spells, an attack cantrip", SPELLCASTING, { add: "Add a spellcasting benefit" }),
     propModifier(edit, "skill-prof-or-expertise", "Skill Proficiency or Expertise", "Proficiency in a skill, or expertise if already proficient", SKILLS, { add: "Add a skill" }),
     propModifier(edit, "tool-prof-or-expertise", "Tool Proficiency or Expertise", "Proficiency with a tool, or expertise if already proficient", TOOL_ITEMS, { add: "Add a tool", search: true }),
-    { id: "uses", name: "Uses of the feat", common: true, render: ({ name }) => <FeatUses edit={edit} legend={name} /> },
   ];
 }
 
@@ -157,6 +156,7 @@ function FeatForm({ record, onChange, problems }: FormProps) {
           <TextField edit={edit} problems={problems} field="name" label="Name" />
           <RecordTextArea edit={edit} field="description" label="Description" />
           <Modifiers record={record} onChange={onChange} modifiers={featModifiers(edit, lists)} />
+          <FeatUses edit={edit} />
           <Traits edit={edit} />
         </FormColumn>
       )}

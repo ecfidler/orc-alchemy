@@ -538,6 +538,7 @@ export const FEATURE_LIST: FeatureList = { types: TRAIT_TYPES, legend: "Features
  * names the feature, such as "Feature 2". A type of "" stores no type.
  */
 export function FeatureType({ edit, path, name, types = TRAIT_TYPES }: { edit: Edit; path: Path; name: string; types?: Options }) {
+  // The monster's list (MonsterForm.tsx) has Other as "", which stores no type.
   return <SelectField label="Type" name={`${name} type`} value={edit.get(...path, "type") ?? ""} options={types} onSelect={(v) => edit.set([...path, "type"], v === "" ? undefined : v)} />;
 }
 
