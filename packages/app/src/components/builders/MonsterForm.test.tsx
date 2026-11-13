@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -91,7 +92,9 @@ test("Save stores the monster in the default pack as the old app stores it, and 
   fireEvent.click(screen.getByRole("button", { name: "Add action / feature" }));
   fireEvent.click(screen.getByRole("button", { name: "Add action / feature" }));
   type("Feature 1 name", "Gone");
+  // A feature with a name asks first (ORC-204).
   fireEvent.click(screen.getByRole("button", { name: "Delete feature 1" }));
+  expect(await answerConfirmDialog("Delete feature")).toBe("Delete \u201cGone\u201d?");
   type("Feature 1 name", "Claw");
   await choose("Feature 1 type", "Action");
   type("Feature 1 description", "Melee Weapon Attack: +5 to hit.");

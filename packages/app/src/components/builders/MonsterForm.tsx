@@ -6,14 +6,14 @@
 // :die-count, :die and :modifier, :saving-throws and :skills maps of keyword
 // to bonus, the damage, condition and language pickers in :props, as
 // {:damage-resistance {:fire true}} (a removed token stores false, as the old
-// checkbox's second click), and :traits a vector of :name, :type
+// checkbox's second click), and :traits a vector of :name, :type, :frequency
 // and :description maps, :type absent, :action or :legendary-action. The
 // form shows its common groups always, and the user adds the others from a
 // list (modifiers.tsx).
-import { Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput, XButton } from "@orc-alchemy/ui";
+import { Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, AddButton, Card, editor, fieldErrors, FieldRow, FormColumn, MapPicker, numberOrNull, orFirst, range, Section, SKILLS, title, WithChoices, type BuilderType, type FormProps, type ItemRecord, type PickerOptions, type PickItem } from "./fields.tsx";
+import { ABILITIES, editor, fieldErrors, FieldRow, FormColumn, MapPicker, numberOrNull, orFirst, range, Section, SKILLS, title, Traits, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options, type PickerOptions, type PickItem } from "./fields.tsx";
 import { CONDITION_CHOICES, DAMAGE_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier, type ModifierView } from "./modifiers.tsx";
 
@@ -40,7 +40,8 @@ const ALIGNMENTS = [
 ];
 const CHALLENGES = [0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)];
 const DICE = [4, 6, 8, 10, 12, 20, 100];
-const TRAIT_TYPES: [string, string][] = [
+/** The monster feature types. Other stores no type. */
+const TRAIT_TYPES: Options = [
   ["", "Other"],
   [tag("action"), "Action"],
   [tag("legendary-action"), "Legendary Action"],
@@ -62,8 +63,6 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
   const edit = editor(record, onChange);
   /** The options of a picker of :props: a stored key that is no option, such as a language of a pack that is not enabled, shows as a token. */
   const pickerOptions = (add: string, search = false): PickerOptions => ({ add, search, others: true });
-  const traits = (record[tag("traits")] ?? []) as ItemRecord[];
-  const setTrait = (index: number, key: string, value: unknown) => set("traits", traits.map((trait, i) => (i === index ? withValue(trait, key, value) : trait)));
 
   const field = (name: string, label: string, control: ReactNode) => (
     <Field label={label} errors={fieldErrors(problems, name, label)}>
@@ -200,37 +199,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       </FieldRow>
       {field("armor-class", "Armor class", select("Armor class", record[tag("armor-class")], numbers(range(5, 25)), (v) => set("armor-class", Number(v))))}
       <Modifiers record={record} onChange={onChange} modifiers={modifiers} />
-      <Fieldset legend="Actions / features" look="section" errors={fieldErrors(problems, "traits", "Actions / features")}>
-        {traits.map((trait, i) => {
-          const n = i + 1;
-          return (
-            <Card
-              key={i}
-              top={
-                <>
-                  <FieldLabel label="Name" className="min-w-[12rem] flex-1">
-                    <TextInput aria-label={`Feature ${n} name`} value={String(trait[tag("name")] ?? "")} onValueChange={(text) => setTrait(i, tag("name"), text)} width="full" />
-                  </FieldLabel>
-                  <FieldLabel label="Type">
-                    <Select
-                      aria-label={`Feature ${n} type`}
-                      value={orFirst(String(trait[tag("type")] ?? ""), TRAIT_TYPES)}
-                      options={TRAIT_TYPES}
-                      onValueChange={(v) => setTrait(i, tag("type"), v || undefined)}
-                    />
-                  </FieldLabel>
-                  <XButton aria-label={`Delete feature ${n}`} onClick={() => set("traits", traits.filter((_, j) => j !== i))} />
-                </>
-              }
-            >
-              <FieldLabel label="Description">
-                <TextArea aria-label={`Feature ${n} description`} value={String(trait[tag("description")] ?? "")} onValueChange={(text) => setTrait(i, tag("description"), text)} rows={3} />
-              </FieldLabel>
-            </Card>
-          );
-        })}
-        <AddButton onClick={() => set("traits", [...traits, {}])}>Add action / feature</AddButton>
-      </Fieldset>
+      <Traits edit={edit} problems={problems} types={TRAIT_TYPES} legend="Actions / features" add="Add action / feature" />
     </FormColumn>
   );
 }

@@ -10,6 +10,7 @@ export { ListModal, type ListItem, type ListModalProps } from "./ListModal.tsx";
 export { Menu, type MenuProps } from "./Menu.tsx";
 export { NumberField, type NumberFieldProps } from "./NumberField.tsx";
 export { NumberToggle, type NumberToggleProps } from "./NumberToggle.tsx";
+export { SegmentedToggle, type SegmentedToggleProps } from "./SegmentedToggle.tsx";
 export { CurrentMax, FramedBox, Label, SectionRule, ShadedPanel, SlotCircles, SmallBox, StatBox, type CircleColor } from "./Paper.tsx";
 export { AddButton, Picker, type AddButtonProps, type PickerProps } from "./Picker.tsx";
 export { Radio, RadioGroup, type RadioGroupProps } from "./Radio.tsx";

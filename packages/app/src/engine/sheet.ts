@@ -3,7 +3,7 @@
 // adapter from the 2014 engine. A later engine needs a second adapter, not a
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
-import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
+import type { Amount, Built2014, Feature, Inventory, ScaledAmount, StrictEntity } from "@pubdoor/dmv";
 import { preparedSpells } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -312,13 +312,49 @@ export function sectionOf(type: string | null | undefined): FeatureSection {
   return SECTION_OF_TYPE[unqualify(type ?? "")] ?? "traits";
 }
 
+/** The numbers of a character that a scaled amount reads. */
+export interface ScaleNumbers {
+  /** The level that a level amount counts: the class level for a class or subclass feature, else the character level. */
+  level: number;
+  proficiencyBonus: number;
+  abilityModifier: (ability: Ability) => number;
+}
+
+/** A keyword of a pack as a plain string: "~:orcpub.dnd.e5.character/wis" → "orcpub.dnd.e5.character/wis". */
+const plainKeyword = (value: string) => (value.startsWith("~:") ? value.slice(2) : value);
+
+/**
+ * A scaled amount of a pack feature as a number, as engine 0.4.0 resolves it
+ * when it evaluates a character (the fork's scaled-amount, patch D8;
+ * homebrew-forms.md, "Stored shape"). The engine reads the bases in this
+ * order: `:ability` (the modifier of that ability, bare or qualified key),
+ * `:prof-bonus` (the proficiency bonus), `:level` (the level times `:times`,
+ * 1 by default). A map with no base gives 0. It adds `:plus` (0 by default),
+ * then applies `:min` only when the map has it. The uses preview of the
+ * homebrew forms calls it for its example character. The sheet gets the
+ * engine's number, and uses.test.ts compares the two.
+ */
+export function scaledAmount(amount: ScaledAmount, numbers: ScaleNumbers): number {
+  const ability = amount["~:ability"];
+  const base = ability
+    ? numbers.abilityModifier(abilityOf(plainKeyword(ability)))
+    : amount["~:prof-bonus"]
+      ? numbers.proficiencyBonus
+      : amount["~:level"]
+        ? numbers.level * (amount["~:times"] ?? 1)
+        : 0;
+  const total = base + (amount["~:plus"] ?? 0);
+  return amount["~:min"] === undefined ? total : Math.max(total, amount["~:min"]);
+}
+
 /**
  * The old display's action-description: text, then "(qualifier, range …, lasts …)".
  * A limited-use feature gets its uses in `uses`, not in the text, because the
  * sheet shows them in a use bubble. A feature whose uses show as plain text
- * (an amount of 0 or fewer) gets no `uses`.
+ * (an amount of 0 or fewer) gets no `uses`. The uses preview of the homebrew
+ * forms (ORC-204) calls it too, with the feature as the engine builds it.
  */
-function toFeature(feature: Feature): SheetFeature {
+export function toSheetFeature(feature: Feature): SheetFeature {
   const { summary, description, frequency, duration } = feature;
   const name = nameOf(feature);
   const { range, qualifier } = feature as Feature & { range?: Amount; qualifier?: string | null };
@@ -337,7 +373,7 @@ function toFeature(feature: Feature): SheetFeature {
   return { name, text: sentence(text) };
 }
 
-const toFeatures = (features: Feature[]) => byName(features.map(toFeature));
+const toFeatures = (features: Feature[]) => byName(features.map(toSheetFeature));
 
 /**
  * The four feature lists, each sorted by name. The engine puts every homebrew

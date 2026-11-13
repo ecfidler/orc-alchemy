@@ -36,7 +36,7 @@ bun run test       # vitest
   (`src/check.css`), the number field styles (`src/number-field.css`), the
   alert dialog styles (`src/dialog.css`),
   the select, combobox, autocomplete and menu styles (`src/select.css`),
-  the list modal, token, picker, number toggle and chips styles
+  the list modal, token, picker, number toggle, segmented toggle and chips styles
   (`src/picker.css`),
   the paper pattern, stuck note and use bubble styles
   (`src/paper.css`), and the tabs styles (`src/tabs.css`).
@@ -163,6 +163,10 @@ bun run test       # vitest
   - `NumberToggle`: a segmented toggle on ToggleGroup for one of `values`
     (numbers, and null for "None"). `size="small"` fits in a token. Name it
     with `aria-label` or `aria-labelledby`.
+  - `SegmentedToggle`: a segmented toggle with the look of NumberToggle,
+    for one of `options` (`[value, label]` pairs of words), for example
+    None / Fixed / Scaled. A `value` that is no option presses no segment.
+    Name it with `aria-label` or `aria-labelledby`.
   - `Chips`: number chips from low to high, each a Token, and a
     "+ {addLabel}" Menu of the `options` that are not on a chip. `name`
     gives a number's name for the X and the menu, for example "Row 4".

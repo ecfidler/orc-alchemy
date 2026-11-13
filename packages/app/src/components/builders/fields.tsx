@@ -2,13 +2,14 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button, Checkbox, Field, FieldLabel, Fieldset, NumberToggle, Picker, Select, TextArea, TextInput, XButton, type ListItem, type SelectOption } from "@orc-alchemy/ui";
+import { Button, Checkbox, Field, FieldLabel, Fieldset, NumberToggle, Picker, Select, TextArea, TextInput, useConfirm, XButton, type ListItem, type SelectOption } from "@orc-alchemy/ui";
 import { useId, type ComponentType, type ReactNode } from "react";
 import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
 import { asSet, nameToKw, setItems, tag, untag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { ordinal } from "../CharacterSheet.tsx";
+import { UsesControl } from "./UsesControl.tsx";
 
 /**
  * One item as the form edits it: verbose Transit-JSON, as a stored pack has
@@ -509,14 +510,58 @@ export function Card({ top, children }: { top: ReactNode; children?: ReactNode }
 }
 
 /**
- * The features and traits, each with a name, a type and a description, and
- * with levels the level it is unlocked at, as the class and subclass forms
- * have it.
+ * Whether a feature has content, so that its X asks first
+ * (docs/design/homebrew-forms.md, "Features"): a name, text, uses, or a
+ * type other than Other. A type of "" is Other, as the monster form has it.
  */
-export function Traits({ edit, problems = [], levels = false }: { edit: Edit; problems?: Problem[]; levels?: boolean }) {
+export function featureHasContent(trait: ItemRecord): boolean {
+  const text = (key: string) => String(trait[tag(key)] ?? "").trim() !== "";
+  const type = untag(trait[tag("type")]);
+  return text("name") || text("description") || trait[tag("frequency")] !== undefined || (type !== "" && type !== "other");
+}
+
+/** The question of the confirm dialog that deletes a feature. */
+export const deleteFeatureQuestion = (trait: ItemRecord) => {
+  const name = String(trait[tag("name")] ?? "").trim();
+  return `Delete ${name === "" ? "this feature" : `\u201c${name}\u201d`}?`;
+};
+
+/**
+ * The features and traits, each with a name, a type, a description and its
+ * uses with a preview (UsesControl), and with levels the level it is
+ * unlocked at, as the class and subclass forms have it. levelName is the
+ * class of a class or subclass form, whose level a level amount counts; in
+ * other forms it is null. types are the type select's options; a type of ""
+ * stores no type. The X of a feature with content asks first; an empty
+ * feature goes at once.
+ */
+export function Traits({
+  edit,
+  problems = [],
+  levels = false,
+  levelName = null,
+  types = TRAIT_TYPES,
+  legend = "Features / traits",
+  add = "Add feature / trait",
+}: {
+  edit: Edit;
+  problems?: Problem[];
+  levels?: boolean;
+  levelName?: string | null;
+  types?: Options;
+  legend?: string;
+  add?: string;
+}) {
+  const [confirm, confirmDialog] = useConfirm();
   const traits = (edit.get("traits") ?? []) as ItemRecord[];
+  const remove = async (i: number) => {
+    const trait = traits[i];
+    if (featureHasContent(trait) && !(await confirm(deleteFeatureQuestion(trait), "Delete feature"))) return;
+    edit.set(["traits"], traits.filter((_, j) => j !== i));
+  };
   return (
-    <Fieldset legend="Features / traits" look="section" errors={fieldErrors(problems, "traits", "Features / traits")}>
+    <Fieldset legend={legend} look="section" errors={fieldErrors(problems, "traits", legend)}>
+      {confirmDialog}
       {traits.map((trait, i) => {
         const n = i + 1;
         return (
@@ -527,21 +572,34 @@ export function Traits({ edit, problems = [], levels = false }: { edit: Edit; pr
                 <FieldLabel label="Name" className="min-w-[12rem] flex-1">
                   <TextInput aria-label={`Feature ${n} name`} value={String(trait[tag("name")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "name"], text)} width="full" />
                 </FieldLabel>
-                <SelectField label="Type" name={`Feature ${n} type`} value={trait[tag("type")]} options={TRAIT_TYPES} onSelect={(v) => edit.set(["traits", i, "type"], v)} />
+                <SelectField
+                  label="Type"
+                  name={`Feature ${n} type`}
+                  value={trait[tag("type")] ?? ""}
+                  options={types}
+                  onSelect={(v) => edit.set(["traits", i, "type"], v === "" ? undefined : v)}
+                />
                 {levels && (
                   <SelectField label="Level" name={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />
                 )}
-                <XButton aria-label={`Delete feature ${n}`} onClick={() => edit.set(["traits"], traits.filter((_, j) => j !== i))} />
+                <XButton aria-label={`Delete feature ${n}`} onClick={() => void remove(i)} />
               </>
             }
           >
             <FieldLabel label="Description">
               <TextArea aria-label={`Feature ${n} description`} value={String(trait[tag("description")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "description"], text)} rows={3} />
             </FieldLabel>
+            <UsesControl
+              name={`Feature ${n}`}
+              frequency={trait[tag("frequency")]}
+              onChange={(frequency) => edit.set(["traits", i, "frequency"], frequency)}
+              feature={{ name: trait[tag("name")], description: trait[tag("description")], type: trait[tag("type")] }}
+              levelName={levelName}
+            />
           </Card>
         );
       })}
-      <AddButton onClick={() => edit.set(["traits"], [...traits, {}])}>Add feature / trait</AddButton>
+      <AddButton onClick={() => edit.set(["traits"], [...traits, {}])}>{add}</AddButton>
     </Fieldset>
   );
 }

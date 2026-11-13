@@ -4,7 +4,7 @@
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
 import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, Tabs, UseBubble, type Tab } from "@orc-alchemy/ui";
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { bonusStr, modStr, usesDisplay, type Ability, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
+import { bonusStr, modStr, usesDisplay, type Ability, type FeatureSection, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
 const ABILITY_NAMES: Record<Ability, string> = {
@@ -58,12 +58,7 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
     ["Armor", sheet.armorProficiencies],
     ["Darkvision", sheet.darkvision > 0 ? [`${sheet.darkvision} ft.`] : []],
   ];
-  const featureGroups: [string, SheetFeature[]][] = [
-    ["Actions", features.actions],
-    ["Bonus Actions", features.bonusActions],
-    ["Reactions", features.reactions],
-    ["Features, Traits, and Feats", features.traits],
-  ];
+  const featureGroups = FEATURE_SECTIONS.map((section): [FeatureSection, SheetFeature[]] => [section, features[section]]);
   const gear = [
     ...equipment.weapons,
     ...equipment.armor,
@@ -225,17 +220,7 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
     featureGroups.some(([, items]) => items.length > 0) && (
       <FramedBox label="Features & traits">
         <div className="grid gap-4">
-          {featureGroups.map(
-            ([title, items]) =>
-              items.length > 0 && (
-                <div key={title} className="grid gap-2.5">
-                  <h3 className="border-b border-rule font-sans text-[10.5px] font-medium tracking-[0.08em] text-ink-muted uppercase">
-                    {title}
-                  </h3>
-                  <Features items={items} />
-                </div>
-              ),
-          )}
+          {featureGroups.map(([section, items]) => items.length > 0 && <FeatureGroup key={section} section={section} items={items} />)}
         </div>
       </FramedBox>
     );
@@ -787,6 +772,31 @@ function FieldList({ fields }: { fields: [string, string[]][] }) {
           ),
       )}
     </dl>
+  );
+}
+
+/** The sections of "Features & traits", in the order of the sheet. */
+const FEATURE_SECTIONS: FeatureSection[] = ["actions", "bonusActions", "reactions", "traits"];
+
+/** The heading of each section of "Features & traits". */
+export const FEATURE_SECTION_TITLES: Record<FeatureSection, string> = {
+  actions: "Actions",
+  bonusActions: "Bonus Actions",
+  reactions: "Reactions",
+  traits: "Features, Traits, and Feats",
+};
+
+/**
+ * One section of "Features & traits": its heading, then its features. The
+ * uses preview of the homebrew forms (ORC-204) draws a feature with it, so
+ * the preview and the sheet cannot differ.
+ */
+export function FeatureGroup({ section, items }: { section: FeatureSection; items: SheetFeature[] }) {
+  return (
+    <div className="grid gap-2.5">
+      <h3 className="border-b border-rule font-sans text-[10.5px] font-medium tracking-[0.08em] text-ink-muted uppercase">{FEATURE_SECTION_TITLES[section]}</h3>
+      <Features items={items} />
+    </div>
   );
 }
 

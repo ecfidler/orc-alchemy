@@ -188,7 +188,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
           )}
           {Object.hasOwn(CLASS_SPELLS, parent) && <SpellsTable key={parent} edit={edit} parent={parent} choices={choices} />}
           <Modifiers record={record} onChange={onChange} modifiers={subclassModifiers(edit, problems, choices)} />
-          <Traits edit={edit} problems={problems} levels />
+          <Traits edit={edit} problems={problems} levels levelName={choices.classes.find((c) => c.key === parent)?.name ?? "Class"} />
         </FormColumn>
       )}
     </WithChoices>
