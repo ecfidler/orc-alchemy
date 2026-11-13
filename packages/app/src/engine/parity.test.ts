@@ -238,7 +238,7 @@ function normalize(x: unknown): unknown {
 
 beforeAll(() => loadEngine());
 
-test("all 13 goldens are here", () => expect(goldens).toHaveLength(13));
+test("all 14 goldens are here", () => expect(goldens).toHaveLength(14));
 
 test.each(goldens)("%s rebuilt by the builder's mutations equals the golden", (name) => {
   const e = engine();

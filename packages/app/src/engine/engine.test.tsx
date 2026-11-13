@@ -28,6 +28,31 @@ test.each(srdGolden)("evaluate(%s).built matches expected.json", (name) => {
   expect(engine().evaluate(readFixture(`${name}.strict.json`), options).built).toEqual(readFixture(`${name}.expected.json`));
 });
 
+// ORC-194: engine 0.4.0 (patch D8) resolves scaled uses, and reads uses and
+// features from a homebrew feat. The golden loads its pack from the meta file.
+const SCALED = "scaled-uses-fighter-6-barbarian-1";
+const scaledBuilt = () => {
+  const [pack] = readFixture(`${SCALED}.meta.json`).orcbrew as string[];
+  const parsed = engine().parseOrcbrew(readFileSync(join(charactersDir, "../orcbrew", pack!), "utf8"), { name: pack!.replace(".orcbrew", "") });
+  return engine().evaluate(readFixture(`${SCALED}.strict.json`), { homebrew: parsed.data! }).built;
+};
+
+test(`evaluate(${SCALED}) with its pack matches expected.json`, () => {
+  expect(scaledBuilt()).toEqual(readFixture(`${SCALED}.expected.json`));
+});
+
+test(`${SCALED} gets a number for each scaled amount, and the feat's own uses and features`, () => {
+  type Trait = { name: string; type?: string; frequency?: { amount?: unknown } };
+  const traits = scaledBuilt().traits as Trait[];
+  const expected = readFixture(`${SCALED}.expected.json`).traits as Trait[];
+  const usesOf = (list: Trait[]) => list.filter((t) => t.frequency).map((t) => [t.name, t.type, t.frequency!.amount]);
+  expect(usesOf(traits)).toEqual(usesOf(expected));
+  for (const [, , amount] of usesOf(traits)) expect(typeof amount).toBe("number");
+  // The Stormcaller feat has its own uses, and the Sea Legs feat adds its features.
+  const names = traits.map((t) => t.name);
+  expect(names).toEqual(expect.arrayContaining(["Stormcaller", "Sea Legs", "Steady Footing", "Rolling Gait"]));
+});
+
 test("EngineGate renders its children once the engine has loaded", async () => {
   render(<EngineGate>ready</EngineGate>);
   expect(await screen.findByText("ready")).toBeTruthy();
