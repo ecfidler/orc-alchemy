@@ -25,7 +25,7 @@ const pressed = () => screen.getAllByRole("button").map((b) => b.getAttribute("a
 test("a named group of segments, None first, with the value pressed", () => {
   render(<Count />);
   const group = screen.getByRole("group", { name: "Extra baskets" });
-  expect([group.className, group.dataset.size]).toEqual(["ui-number-toggle", "normal"]);
+  expect([group.className, group.dataset.size]).toEqual(["ui-segmented", "normal"]);
   expect(screen.getAllByRole("button").map((b) => [b.textContent, b.className])).toEqual([
     ["None", "ui-button ui-segment"],
     ["1", "ui-button ui-segment"],

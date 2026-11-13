@@ -34,6 +34,8 @@ const TRAITS = [
   { "~:name": "Unknown Keys", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/turn", "~:amount": { "~:level": true, "~:per": 3 }, "~:note": "x" } },
   { "~:name": "Odd Values", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:level": true, "~:times": 7, "~:plus": 9, "~:min": 8 } } },
   { "~:name": "Big", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": 35 } },
+  { "~:name": "Number Ability", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:ability": 3, "~:prof-bonus": true, "~:min": null } } },
+  { "~:name": "No Unit", "~:frequency": { "~:amount": 2 } },
 ];
 
 const base = (key: string, name: string) => ({ "~:key": `~:${key}`, "~:name": name, "~:option-pack": PACK, "~:traits": TRAITS });
@@ -68,8 +70,8 @@ test.each(FORMS)("the %s form opens features with every shape of uses and saves 
     { initialEntries: [`/content/edit/${type}/${PACK}/${String(item["~:key"]).slice(2)}`] },
   );
   render(<RouterProvider router={router} />);
-  await screen.findByRole("group", { name: `Feature ${TRAITS.length} uses` });
-  expect(screen.getByRole("group", { name: "Feature 4 recharges" }).textContent).toContain("Minute (from the pack)");
+  await screen.findByRole("group", { name: `Feature ${TRAITS.length} Uses` });
+  expect(screen.getByRole("group", { name: "Feature 4 Recharges" }).textContent).toContain("Minute (from the pack)");
   const save = screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
   await waitFor(() => expect(save.disabled).toBe(false));
   fireEvent.click(save);

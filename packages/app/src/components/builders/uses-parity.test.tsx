@@ -7,11 +7,11 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine } from "../../engine/engine.ts";
-import { sectionOf, toSheet, toSheetFeature, type FeatureSection } from "../../engine/sheet.ts";
-import { CharacterSheet, FEATURE_SECTION_TITLES } from "../CharacterSheet.tsx";
+import { toSheet } from "../../engine/sheet.ts";
+import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
+import { CharacterSheet, FEATURE_SECTION_TITLES, FEATURE_SECTIONS } from "../CharacterSheet.tsx";
 import { editor, Traits, type ItemRecord } from "./fields.tsx";
-import { builtFrequency, exampleNumbers } from "./uses.ts";
-import { EXAMPLE_LEVEL, EXAMPLE_SCORE } from "./UsesControl.tsx";
+import { EXAMPLE_LEVEL, EXAMPLE_SCORE } from "./uses-example.ts";
 
 beforeAll(() => loadEngine());
 afterEach(cleanup);
@@ -27,6 +27,12 @@ const FEATURES: ItemRecord[] = [
   { "~:name": "Guardian Wave", "~:type": "~:reaction", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/minute", "~:amount": 1 } },
   { "~:name": "Each Turn", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/turn" } },
   { "~:name": "Hold Breath", "~:description": "You can hold your breath for 1 hour." },
+  // Shapes that the engine decides: two bases, no base, no unit, an ability that is not a keyword, an unknown ability.
+  { "~:name": "Two Bases", "~:frequency": { "~:units": LONG, "~:amount": { "~:prof-bonus": true, "~:level": true } } },
+  { "~:name": "No Base", "~:frequency": { "~:units": LONG, "~:amount": { "~:plus": 3 } } },
+  { "~:name": "No Unit", "~:type": "~:action", "~:frequency": { "~:amount": 2 } },
+  { "~:name": "Number Ability", "~:frequency": { "~:units": LONG, "~:amount": { "~:ability": 3, "~:level": true, "~:min": null } } },
+  { "~:name": "Unknown Ability", "~:frequency": { "~:units": LONG, "~:amount": { "~:ability": "~:luck", "~:plus": 2 } } },
 ];
 const PACK = "Uses Preview";
 const homebrew = {
@@ -51,25 +57,19 @@ function exampleCharacter() {
   return toSheet(built, entity);
 }
 
-const SECTIONS: FeatureSection[] = ["actions", "bonusActions", "reactions", "traits"];
-
 test("for each feature, the sheet's section and uses are the preview's", () => {
   const sheet = exampleCharacter();
   for (const feature of FEATURES) {
     const name = feature["~:name"] as string;
-    const onSheet = SECTIONS.flatMap((section) => sheet.features[section].filter((f) => f.name === name).map((f) => [section, f]));
-    const type = feature["~:type"] === undefined ? undefined : String(feature["~:type"]).slice(2);
-    const inPreview = toSheetFeature({
-      name,
-      description: feature["~:description"] as string | undefined,
-      type,
-      frequency: builtFrequency(feature["~:frequency"], exampleNumbers(EXAMPLE_LEVEL, EXAMPLE_SCORE)),
-    });
-    expect(onSheet, name).toEqual([[sectionOf(type), inPreview]]);
+    const onSheet = FEATURE_SECTIONS.flatMap((section) => sheet.features[section].filter((f) => f.name === name).map((f) => [section, f]));
+    const { section, feature: inPreview } = previewFeature(feature, exampleNumbers(EXAMPLE_LEVEL, EXAMPLE_SCORE));
+    expect(onSheet, name).toEqual([[section, inPreview]]);
   }
   // The cases the test is for.
-  const uses = (name: string) => SECTIONS.flatMap((section) => sheet.features[section]).find((f) => f.name === name)!.uses;
-  expect([uses("Brine Blessing"), uses("Deep Reserves"), uses("Salt Sense"), uses("Sea Luck"), uses("Undertow"), uses("Tidal Reserve"), uses("Each Turn"), uses("Hold Breath")]).toEqual([
+  const uses = (name: string) => FEATURE_SECTIONS.flatMap((section) => sheet.features[section]).find((f) => f.name === name)!.uses;
+  expect(
+    ["Brine Blessing", "Deep Reserves", "Salt Sense", "Sea Luck", "Undertow", "Tidal Reserve", "Each Turn", "Hold Breath", "Two Bases", "No Base", "No Unit", "Number Ability", "Unknown Ability"].map(uses),
+  ).toEqual([
     { amount: 3, recharge: "Long rest" },
     { amount: 25, recharge: "Long rest" },
     { amount: 3, recharge: "Each day" },
@@ -78,6 +78,11 @@ test("for each feature, the sheet's section and uses are the preview's", () => {
     { amount: 26, recharge: "Long rest" },
     { amount: 1, recharge: "Each turn" },
     undefined,
+    { amount: 3, recharge: "Long rest" },
+    { amount: 3, recharge: "Long rest" },
+    { amount: 2, recharge: null },
+    { amount: 5, recharge: "Long rest" },
+    { amount: 2, recharge: "Long rest" },
   ]);
 });
 

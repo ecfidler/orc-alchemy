@@ -305,7 +305,7 @@ function ClassForm({ record, onChange, problems }: FormProps) {
           <ChoicePicker edit={edit} legend="Skill Expertise Choice" field="skill-expertise-options" items={SKILLS} picker={{ add: "Add a skill option" }} />
           <LevelModifiers edit={edit} problems={problems} choices={choices} />
           <LevelSelections edit={edit} problems={problems} choices={choices} />
-          <Traits edit={edit} problems={problems} levels levelName={String(edit.get("name") ?? "").trim() || "Class"} />
+          <Traits edit={edit} problems={problems} levelName={String(edit.get("name") ?? "").trim() || "Class"} />
           <FieldErrors label="Proficiencies" errors={fieldErrors(problems, "profs", "Proficiencies")} />
         </FormColumn>
       )}

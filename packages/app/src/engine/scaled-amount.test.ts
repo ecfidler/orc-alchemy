@@ -4,7 +4,7 @@
 // golden's expected.json, so that drift in the engine is caught.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Built2014, ScaledAmount } from "@pubdoor/dmv";
+import type { Built2014 } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine } from "./engine.ts";
 import { scaledAmount, type Ability } from "./sheet.ts";
@@ -40,7 +40,7 @@ test(`scaledAmount gives the engine's number for each scaled amount of ${golden}
     for (const item of Object.values(pack[type]!)) {
       for (const feature of [item, ...(item["~:traits"] ?? [])]) {
         const amount = feature["~:frequency"]?.["~:amount"];
-        if (typeof amount === "object" && amount !== null) ours.push([feature["~:name"], scaledAmount(amount as ScaledAmount, numbers(level))]);
+        if (typeof amount === "object" && amount !== null) ours.push([feature["~:name"], scaledAmount(amount as Record<string, unknown>, numbers(level))]);
       }
     }
   }

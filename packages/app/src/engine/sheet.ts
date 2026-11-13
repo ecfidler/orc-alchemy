@@ -3,7 +3,8 @@
 // adapter from the 2014 engine. A later engine needs a second adapter, not a
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
-import type { Amount, Built2014, Feature, Inventory, ScaledAmount, StrictEntity } from "@pubdoor/dmv";
+import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
+import { untag } from "./content.ts";
 import { preparedSpells } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -60,10 +61,11 @@ export interface SheetFeature {
   /** Summary or description, with the old sheet's usage parenthetical, sentence-cased. */
   text: string;
   /**
-   * For a limited-use feature: how many uses, and when they come back ("Short rest", "Long rest", "Each day").
-   * The amount is 1 or more: toSheet gives a feature with 0 uses or fewer no `uses`, so it is a plain feature.
+   * For a limited-use feature: how many uses, and when they come back ("Short rest", "Long rest", "Each day"),
+   * or null for a frequency with no unit. The amount is 1 or more: toSheet gives a feature with 0 uses or fewer
+   * no `uses`, so it is a plain feature.
    */
-  uses?: { amount: number; recharge: string };
+  uses?: { amount: number; recharge: string | null };
 }
 
 export interface SheetItem extends Named {
@@ -187,6 +189,23 @@ export interface Sheet {
 
 export const ABILITIES: Ability[] = ["str", "dex", "con", "int", "wis", "cha"];
 
+/** The name of each ability. */
+export const ABILITY_NAMES: Record<Ability, string> = {
+  str: "Strength",
+  dex: "Dexterity",
+  con: "Constitution",
+  int: "Intelligence",
+  wis: "Wisdom",
+  cha: "Charisma",
+};
+
+/** The ability of a stored or built ability key, bare or qualified ("~:wis", "orcpub.dnd.e5.character/wis"), or null for another value. */
+export function abilityOfKey(key: unknown): Ability | null {
+  if (typeof key !== "string") return null;
+  const name = unqualify(untag(key));
+  return (ABILITIES as string[]).includes(name) ? (name as Ability) : null;
+}
+
 /** The 18 skills, in name order. */
 const SKILLS: [key: string, name: string, ability: Ability][] = [
   ["acrobatics", "Acrobatics", "dex"],
@@ -257,8 +276,12 @@ const unitAmount = (value: Amount) => {
   return `${amount} ${plural ? unqualify(plural) : unit === "feet" ? unit : `${unit}s`}`;
 };
 
-/** When a feature's uses come back. A DMV "rest" is a short or a long rest, so a short rest is enough. */
-const recharge = (units: string) => {
+/**
+ * When a feature's uses come back. A DMV "rest" is a short or a long rest, so a short rest is enough. A frequency
+ * with no unit, which a pack can have, gives null: the bubble has no tag.
+ */
+const recharge = (units: string | undefined) => {
+  if (typeof units !== "string" || units === "") return null;
   const unit = unqualify(units).replace(/-/g, " ");
   if (unit === "rest" || unit === "short rest") return "Short rest";
   if (unit === "long rest") return "Long rest";
@@ -304,9 +327,8 @@ export function usesDisplay(frequency: { amount?: number | null } | null | undef
 /**
  * The sheet section of a feature (homebrew-forms.md, "On the sheet"). `type`
  * is the feature's homebrew type: "action", "b-action", "reaction" or
- * "other", bare or as a qualified keyword. toSheet calls it for each trait.
- * The uses preview of the homebrew forms (ORC-204) is to call it and
- * usesDisplay, so that the preview and the sheet cannot differ.
+ * "other", bare or as a qualified keyword. toSheet calls it for each trait,
+ * and so does the uses preview of the homebrew forms (uses-preview.ts).
  */
 export function sectionOf(type: string | null | undefined): FeatureSection {
   return SECTION_OF_TYPE[unqualify(type ?? "")] ?? "traits";
@@ -320,31 +342,45 @@ export interface ScaleNumbers {
   abilityModifier: (ability: Ability) => number;
 }
 
-/** A keyword of a pack as a plain string: "~:orcpub.dnd.e5.character/wis" → "orcpub.dnd.e5.character/wis". */
-const plainKeyword = (value: string) => (value.startsWith("~:") ? value.slice(2) : value);
+/** Clojure truth, which the engine uses for a base: any stored value but absent, null and false. */
+const truthy = (value: unknown) => value !== undefined && value !== null && value !== false;
+/** A stored number, or the default when the value is absent or is not a number. */
+const numberOr = (value: unknown, fallback: number) => (typeof value === "number" ? value : fallback);
 
 /**
  * A scaled amount of a pack feature as a number, as engine 0.4.0 resolves it
  * when it evaluates a character (the fork's scaled-amount, patch D8;
- * homebrew-forms.md, "Stored shape"). The engine reads the bases in this
- * order: `:ability` (the modifier of that ability, bare or qualified key),
- * `:prof-bonus` (the proficiency bonus), `:level` (the level times `:times`,
- * 1 by default). A map with no base gives 0. It adds `:plus` (0 by default),
- * then applies `:min` only when the map has it. The uses preview of the
- * homebrew forms calls it for its example character. The sheet gets the
- * engine's number, and uses.test.ts compares the two.
+ * homebrew-forms.md, "Stored shape"). `amount` is the stored map in verbose
+ * Transit-JSON. The engine reads the bases in this order:
+ *
+ * - `:ability`, only when it is a keyword (a string here): the modifier of
+ *   that ability, bare or qualified key. A key that is none of the six
+ *   abilities gives 0.
+ * - `:prof-bonus`, when it is truthy in Clojure (any value but absent, null
+ *   and false): the proficiency bonus.
+ * - `:level`, when it is truthy: the level times `:times` (1 when it is
+ *   absent or not a number).
+ * - No base gives 0.
+ *
+ * It adds `:plus` (0 when it is absent or not a number), then applies `:min`
+ * only when it is a number. The uses preview of the homebrew forms calls it
+ * for its example character; the sheet gets the engine's number. The app
+ * computes the amount because one engine evaluation takes about 100 ms, too
+ * slow for each change in the form. scaled-amount.test.ts compares it with
+ * the golden character's numbers, and uses-parity.test.tsx with an engine
+ * evaluation, so that drift in the engine is caught.
  */
-export function scaledAmount(amount: ScaledAmount, numbers: ScaleNumbers): number {
+export function scaledAmount(amount: Record<string, unknown>, numbers: ScaleNumbers): number {
   const ability = amount["~:ability"];
-  const base = ability
-    ? numbers.abilityModifier(abilityOf(plainKeyword(ability)))
-    : amount["~:prof-bonus"]
-      ? numbers.proficiencyBonus
-      : amount["~:level"]
-        ? numbers.level * (amount["~:times"] ?? 1)
-        : 0;
-  const total = base + (amount["~:plus"] ?? 0);
-  return amount["~:min"] === undefined ? total : Math.max(total, amount["~:min"]);
+  let base = 0;
+  if (typeof ability === "string") {
+    const known = abilityOfKey(ability);
+    base = known === null ? 0 : numbers.abilityModifier(known);
+  } else if (truthy(amount["~:prof-bonus"])) base = numbers.proficiencyBonus;
+  else if (truthy(amount["~:level"])) base = numbers.level * numberOr(amount["~:times"], 1);
+  const total = base + numberOr(amount["~:plus"], 0);
+  const min = amount["~:min"];
+  return typeof min === "number" ? Math.max(total, min) : total;
 }
 
 /**
@@ -352,7 +388,7 @@ export function scaledAmount(amount: ScaledAmount, numbers: ScaleNumbers): numbe
  * A limited-use feature gets its uses in `uses`, not in the text, because the
  * sheet shows them in a use bubble. A feature whose uses show as plain text
  * (an amount of 0 or fewer) gets no `uses`. The uses preview of the homebrew
- * forms (ORC-204) calls it too, with the feature as the engine builds it.
+ * forms calls it too, with the feature as the engine builds it (uses-preview.ts).
  */
 export function toSheetFeature(feature: Feature): SheetFeature {
   const { summary, description, frequency, duration } = feature;

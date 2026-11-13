@@ -13,7 +13,7 @@
 import { Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, editor, fieldErrors, FieldRow, FormColumn, MapPicker, numberOrNull, orFirst, range, Section, SKILLS, title, Traits, WithChoices, type BuilderType, type FormProps, type ItemRecord, type Options, type PickerOptions, type PickItem } from "./fields.tsx";
+import { ABILITIES, editor, fieldErrors, FieldRow, FormColumn, MapPicker, numberOrNull, orFirst, range, Section, SKILLS, title, Traits, WithChoices, type BuilderType, type FormProps, type ItemRecord, type FeatureList, type PickerOptions, type PickItem } from "./fields.tsx";
 import { CONDITION_CHOICES, DAMAGE_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier, type ModifierView } from "./modifiers.tsx";
 
@@ -40,12 +40,16 @@ const ALIGNMENTS = [
 ];
 const CHALLENGES = [0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)];
 const DICE = [4, 6, 8, 10, 12, 20, 100];
-/** The monster feature types. Other stores no type. */
-const TRAIT_TYPES: Options = [
-  ["", "Other"],
-  [tag("action"), "Action"],
-  [tag("legendary-action"), "Legendary Action"],
-];
+/** The monster's feature list: its types (Other stores no type), its title and its add button. */
+const MONSTER_FEATURES: FeatureList = {
+  types: [
+    ["", "Other"],
+    [tag("action"), "Action"],
+    [tag("legendary-action"), "Legendary Action"],
+  ],
+  legend: "Actions / features",
+  add: "Add action / feature",
+};
 
 /** A select's number, or undefined for "-". */
 const parsed = (value: string) => (value === "" ? undefined : Number(value));
@@ -199,7 +203,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       </FieldRow>
       {field("armor-class", "Armor class", select("Armor class", record[tag("armor-class")], numbers(range(5, 25)), (v) => set("armor-class", Number(v))))}
       <Modifiers record={record} onChange={onChange} modifiers={modifiers} />
-      <Traits edit={edit} problems={problems} types={TRAIT_TYPES} legend="Actions / features" add="Add action / feature" />
+      <Traits edit={edit} problems={problems} list={MONSTER_FEATURES} />
     </FormColumn>
   );
 }

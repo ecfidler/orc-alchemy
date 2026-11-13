@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T15:29:33Z }
+generated: { by: claude-code/agent, at: 2026-11-13T15:59:56Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -239,10 +239,10 @@ homebrew forms. They have no game words: the app gives the lists.
   of options that remain ("15 more") on the right.
 * **Picker:** Tokens, in the order of the options, then an AddButton that
   opens a ListModal with `stayOpen`.
-* **NumberToggle:** a segmented toggle, for example None / 1 / 2 / 3, on
-  ToggleGroup. The numbers are a prop.
-* **SegmentedToggle:** the same look, for a short list of words, for example
-  None / Fixed / Scaled. The options are a prop.
+* **SegmentedToggle:** a segmented toggle for a short list of words, for
+  example None / Fixed / Scaled, on ToggleGroup. The options are a prop.
+* **NumberToggle:** a SegmentedToggle of numbers, for example
+  None / 1 / 2 / 3. The numbers are a prop.
 * **Chips:** number chips with an X, and a "+ Add" Menu. `AddChip` is the same dashed "+" button alone, for an empty slot.
 
 **Test helpers** for these: `pickFromPicker` and `removeToken`, for Vitest

@@ -379,7 +379,7 @@ test.describe("screenshots", () => {
         await section(page, "Other tools").getByRole("checkbox", { name: "Navigator's Tools" }).check();
         await page.getByLabel("Gold").fill("10");
         await pick(page, "Starting equipment", "Add equipment", ["Any 1 musical instrument", "Clothes, common", "Pouch", "Rope, silk", "Signal whistle"]);
-        await page.getByRole("button", { name: "Add feature / trait" }).click();
+        await page.getByRole("button", { name: "Add a feature" }).click();
         await page.getByRole("textbox", { name: "Feature 1 name" }).fill("Ship's Passage");
         await page.getByRole("textbox", { name: "Feature 1 description" }).fill("You can get free passage on a sailing ship for yourself and your companions.");
         await noFlash();

@@ -73,7 +73,7 @@ test("the name problem shows under its field, and Save is off until the backgrou
 test("an empty background shows five headings, each with one control, and no Add a modifier button", async () => {
   renderAt("/content/new/background");
   await screen.findByRole("textbox", { name: "Name" });
-  expect(groups()).toEqual(["Skill proficiencies", "Languages", "Tool proficiencies", "Starting equipment", "Features / traits"]);
+  expect(groups()).toEqual(["Skill proficiencies", "Languages", "Tool proficiencies", "Starting equipment", "Features"]);
   expect(screen.queryByRole("button", { name: "Add a modifier" })).toBeNull();
   expect(within(screen.getByRole("group", { name: "Skill proficiencies" })).getByRole("button", { name: "Add a skill" })).toBeTruthy();
   expect(pressed("Languages")).toBe("None");
@@ -127,7 +127,7 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   check("Other tools", "Navigator's Tools");
   type("Gold", "10");
   await pickFromPicker(equipmentButton(), ["Clothes, traveler’s", "Any 1 musical instrument", "Smith's Tools", "Disguise Kit", "Amulet", "Rope, silk", "Rations (1 day)"]);
-  fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a feature" }));
   type("Feature 1 name", "Ship's Passage");
   type("Feature 1 description", "Free passage.");
   await saved(router);

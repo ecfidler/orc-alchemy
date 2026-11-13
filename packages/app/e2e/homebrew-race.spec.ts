@@ -9,7 +9,7 @@ test("a race made in the race form is a race choice of a new character", async (
   await pickOption(page.getByRole("combobox", { name: "Speed", exact: true }), "35");
   await pickOption(page.getByRole("combobox", { name: "Constitution" }), "+2");
   await pickFromPicker(page.getByRole("group", { name: "Languages" }).getByRole("button", { name: "Add a language", exact: true }), "Infernal");
-  await page.getByRole("button", { name: "Add feature / trait" }).click();
+  await page.getByRole("button", { name: "Add a feature" }).click();
   await page.getByRole("textbox", { name: "Feature 1 name" }).fill("Multilimbed");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);

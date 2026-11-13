@@ -1,22 +1,22 @@
 // The uses control of a homebrew feature and its preview (ORC-204,
 // docs/design/homebrew-forms.md, "Uses control" and "Preview"): variant A of
 // the uses prototype. The control reads the stored :frequency and writes it
-// only on a change by the user (uses.ts). The preview draws the feature with
-// the sheet's own functions: toSheetFeature, sectionOf and FeatureGroup, the
-// way the sheet draws the feature that the engine builds.
+// only on a change by the user (uses.ts). The preview gets the feature as the
+// sheet shows it from previewFeature (engine/uses-preview.ts), and draws it
+// with the sheet's FeatureGroup.
 import { FieldLabel, Label, SegmentedToggle, Select, type SelectOption } from "@orc-alchemy/ui";
-import { useState, type ReactNode } from "react";
-import { untag } from "../../engine/content.ts";
-import { ABILITIES, sectionOf, toSheetFeature } from "../../engine/sheet.ts";
+import { useId, useState, type ReactNode } from "react";
+import { ABILITIES, ABILITY_NAMES } from "../../engine/sheet.ts";
+import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
 import { FeatureGroup } from "../CharacterSheet.tsx";
+import { EXAMPLE_LEVEL, EXAMPLE_SCORE, usesSentence } from "./uses-example.ts";
 import {
-  ABILITY_NAMES,
   amountOf,
+  baseAbility,
   baseOf,
-  builtFrequency,
-  exampleNumbers,
   FIXED_AMOUNTS,
   MINIMUMS,
+  NUMBER_DEFAULTS,
   PLUSES,
   plusText,
   rechargeOptions,
@@ -25,17 +25,12 @@ import {
   unitName,
   USES_KINDS,
   usesKind,
-  usesSentence,
   withBase,
   withFixed,
   withKind,
   withScaledNumber,
   withUnit,
 } from "./uses.ts";
-
-/** The example character's level and ability score when the preview opens. */
-export const EXAMPLE_LEVEL = 5;
-export const EXAMPLE_SCORE = 16;
 
 /** The levels and the ability scores that the example character can have. */
 const LEVELS = Array.from({ length: 20 }, (_, i) => i + 1);
@@ -47,14 +42,18 @@ function numberOptions(values: number[], stored: unknown, text: (n: number) => s
   return all.map((n) => [n, text(n)]);
 }
 
-/** A label above a control that has its own name, such as a toggle group: the label is only shown. */
-function LabelAbove({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * A visible label above a control that is not a form field, such as a
+ * toggle group. The control is named by `prefix` (the hidden name of the
+ * feature, such as "Feature 2") and the label: "Feature 2 Uses".
+ */
+function LabelAbove({ label, prefix, children }: { label: string; prefix: string; children: (labelledBy: string) => ReactNode }) {
+  const id = useId();
   return (
-    <div className="ui-field-label">
-      <span aria-hidden className="ui-label">
-        {label}
-      </span>
-      {children}
+    // The label's weight is that of a FieldLabel, as on the selects beside it.
+    <div className="grid content-start justify-items-start gap-[3px] [&>.ui-label]:font-medium">
+      <Label id={id}>{label}</Label>
+      {children(`${prefix} ${id}`)}
     </div>
   );
 }
@@ -68,12 +67,6 @@ function LabelledSelect<T>({ label, name, value, options, onSelect }: { label: s
   );
 }
 
-export interface UsesFeature {
-  name: unknown;
-  description: unknown;
-  type: unknown;
-}
-
 /**
  * The Uses toggle (None / Fixed / Scaled) with its fields, the Recharges
  * toggle, the preview, and for scaled uses one sentence. name is the
@@ -84,17 +77,18 @@ export interface UsesFeature {
  */
 export function UsesControl({
   name,
-  frequency,
   onChange,
   feature,
   levelName,
 }: {
   name: string;
-  frequency: unknown;
   onChange: (frequency: Record<string, unknown> | undefined) => void;
-  feature: UsesFeature;
+  /** The stored feature: its :frequency, and the rest for the preview. */
+  feature: Record<string, unknown>;
   levelName: string | null;
 }) {
+  const nameId = useId();
+  const frequency = feature["~:frequency"];
   const kind = usesKind(frequency);
   const base = baseOf(frequency);
   const levelLabel = `${levelName ?? "Character"} level × n`;
@@ -106,9 +100,12 @@ export function UsesControl({
   if (base !== undefined && !baseOptions.some(([value]) => value === base)) baseOptions.push([base, base]);
   return (
     <div className="grid gap-2 border-t border-dashed border-rule-strong pt-[10px]">
+      <span id={nameId} hidden>
+        {name}
+      </span>
       <div className="flex flex-wrap items-end gap-x-[14px] gap-y-[10px]">
-        <LabelAbove label="Uses">
-          <SegmentedToggle aria-label={`${name} uses`} options={USES_KINDS} value={kind} onValueChange={(next) => onChange(withKind(frequency, next))} />
+        <LabelAbove label="Uses" prefix={nameId}>
+          {(labelledBy) => <SegmentedToggle aria-labelledby={labelledBy} options={USES_KINDS} value={kind} onValueChange={(next) => onChange(withKind(frequency, next))} />}
         </LabelAbove>
         {kind === "fixed" && (
           <LabelledSelect
@@ -127,7 +124,7 @@ export function UsesControl({
               <LabelledSelect
                 label="n"
                 name={`${name} n`}
-                value={scaledNumber(frequency, "times") ?? 1}
+                value={scaledNumber(frequency, "times") ?? NUMBER_DEFAULTS.times}
                 options={numberOptions(TIMES, scaledNumber(frequency, "times"))}
                 onSelect={(n) => onChange(withScaledNumber(frequency, "times", n))}
               />
@@ -135,7 +132,7 @@ export function UsesControl({
             <LabelledSelect
               label="Plus"
               name={`${name} plus`}
-              value={scaledNumber(frequency, "plus") ?? 0}
+              value={scaledNumber(frequency, "plus") ?? NUMBER_DEFAULTS.plus}
               options={numberOptions(PLUSES, scaledNumber(frequency, "plus"), plusText)}
               onSelect={(n) => onChange(withScaledNumber(frequency, "plus", n))}
             />
@@ -150,11 +147,13 @@ export function UsesControl({
         )}
       </div>
       {kind !== "none" && (
-        <LabelAbove label="Recharges">
-          <SegmentedToggle aria-label={`${name} recharges`} options={rechargeOptions(frequency)} value={unitName(frequency) ?? null} onValueChange={(unit) => onChange(withUnit(frequency, unit))} />
+        <LabelAbove label="Recharges" prefix={nameId}>
+          {(labelledBy) => (
+            <SegmentedToggle aria-labelledby={labelledBy} options={rechargeOptions(frequency)} value={unitName(frequency) ?? null} onValueChange={(unit) => onChange(withUnit(frequency, unit))} />
+          )}
         </LabelAbove>
       )}
-      <UsesPreview name={name} frequency={frequency} feature={feature} levelName={levelName} />
+      <UsesPreview name={name} feature={feature} levelName={levelName} />
     </div>
   );
 }
@@ -166,19 +165,14 @@ export function UsesControl({
  * ability, its score; one sentence under the preview says how the amount is
  * worked out.
  */
-export function UsesPreview({ name, frequency, feature, levelName }: { name: string; frequency: unknown; feature: UsesFeature; levelName: string | null }) {
+export function UsesPreview({ name, feature, levelName }: { name: string; feature: Record<string, unknown>; levelName: string | null }) {
   const [level, setLevel] = useState(EXAMPLE_LEVEL);
   const [score, setScore] = useState(EXAMPLE_SCORE);
+  const frequency = feature["~:frequency"];
   const scaled = usesKind(frequency) === "scaled";
-  const base = baseOf(frequency);
-  const ability = base !== undefined && base in ABILITY_NAMES ? ABILITY_NAMES[base as keyof typeof ABILITY_NAMES] : null;
-  const type = feature.type === undefined || feature.type === "" ? undefined : untag(feature.type);
-  const sheetFeature = toSheetFeature({
-    name: String(feature.name ?? ""),
-    description: String(feature.description ?? ""),
-    type,
-    frequency: builtFrequency(frequency, exampleNumbers(level, score)),
-  });
+  const known = baseAbility(frequency);
+  const ability = known && ABILITY_NAMES[known];
+  const shown = previewFeature(feature, exampleNumbers(level, score));
   return (
     <div className="grid gap-[6px]">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -197,7 +191,7 @@ export function UsesPreview({ name, frequency, feature, levelName }: { name: str
         )}
       </div>
       <div role="group" aria-label={`${name} preview`} className="grid border-[1.5px] border-ink bg-paper px-3 pt-2 pb-3">
-        <FeatureGroup section={sectionOf(type)} items={[sheetFeature]} />
+        <FeatureGroup section={shown.section} items={[shown.feature]} />
       </div>
       {scaled && (
         <p aria-live="polite" className="text-[14.5px] text-ink-muted">

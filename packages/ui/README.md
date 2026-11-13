@@ -160,13 +160,13 @@ bun run test       # vitest
     AddButton opens a ListModal with `stayOpen`, and `search` and
     `pickedText` when the app gives them. `onValueChange` gets the new
     list: a pick goes at the end, and a value that is no option stays.
-  - `NumberToggle`: a segmented toggle on ToggleGroup for one of `values`
-    (numbers, and null for "None"). `size="small"` fits in a token. Name it
-    with `aria-label` or `aria-labelledby`.
-  - `SegmentedToggle`: a segmented toggle with the look of NumberToggle,
-    for one of `options` (`[value, label]` pairs of words), for example
-    None / Fixed / Scaled. A `value` that is no option presses no segment.
-    Name it with `aria-label` or `aria-labelledby`.
+  - `SegmentedToggle`: a segmented toggle on ToggleGroup for one of
+    `options` (`[value, label]` pairs), for example None / Fixed / Scaled.
+    A `value` that is no option presses no segment. `size="small"` fits in
+    a token. Name it with `aria-label` or `aria-labelledby`.
+  - `NumberToggle`: a SegmentedToggle for one of `values` (numbers, and
+    null for "None"). `size="small"` fits in a token. Name it with
+    `aria-label` or `aria-labelledby`.
   - `Chips`: number chips from low to high, each a Token, and a
     "+ {addLabel}" Menu of the `options` that are not on a chip. `name`
     gives a number's name for the X and the menu, for example "Row 4".

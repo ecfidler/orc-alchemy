@@ -171,11 +171,11 @@ test("the subrace modifiers are stored as the old events store them", async () =
 test("a new subrace shows only the common modifiers, and the add list has the others in form order", async () => {
   renderAt("/content/new/subrace");
   await screen.findByRole("button", { name: "Add a spell" });
-  expect(groups()).toEqual(["Ability Score Increases", "Spells", "Features / traits"]);
+  expect(groups()).toEqual(["Ability Score Increases", "Spells", "Features"]);
   expect(await addList()).toEqual(ADDED);
   await addModifier("Damage Immunities");
   await addModifier("Hit Points");
-  expect(groups()).toEqual(["Ability Score Increases", "Hit Points", "Damage Immunities", "Spells", "Features / traits"]);
+  expect(groups()).toEqual(["Ability Score Increases", "Hit Points", "Damage Immunities", "Spells", "Features"]);
 });
 
 test("an imported subrace opens with each modifier that holds a value, and a save keeps the values of the others", async () => {
@@ -198,7 +198,7 @@ test("an imported subrace opens with each modifier that holds a value, and a sav
   await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/subraces", item);
   const router = renderAt("/content/edit/subrace/Reef/sea-elf");
   await screen.findByRole("button", { name: "Add a spell" });
-  expect(groups()).toEqual(["Ability Score Increases", "Hit Points", "Damage Resistances", "Tool Proficiency", "Spells", "Features / traits"]);
+  expect(groups()).toEqual(["Ability Score Increases", "Hit Points", "Damage Resistances", "Tool Proficiency", "Spells", "Features"]);
   expect(pressed("Hit Points")).toBe("1");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });

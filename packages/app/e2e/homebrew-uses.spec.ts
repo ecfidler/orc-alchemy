@@ -5,14 +5,14 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 // ORC-204: feature uses made in a form show as use bubbles on a character's sheet.
 
-const uses = (page: Page, n: number) => page.getByRole("group", { name: `Feature ${n} uses` });
+const uses = (page: Page, n: number) => page.getByRole("group", { name: `Feature ${n} Uses` });
 const combobox = (page: Page, name: string) => page.getByRole("combobox", { name, exact: true });
 /** The card of feature n: the box around its fields. */
 const card = (page: Page, n: number) => page.getByRole("textbox", { name: `Feature ${n} name` }).locator("xpath=ancestor::div[contains(@class, 'bg-paper-raised')][1]");
 
 /** Adds feature n with a name and a type. */
 async function addFeature(page: Page, n: number, name: string, type: string) {
-  await page.getByRole("button", { name: "Add feature / trait" }).click();
+  await page.getByRole("button", { name: "Add a feature" }).click();
   await page.getByRole("textbox", { name: `Feature ${n} name` }).fill(name);
   await pickOption(combobox(page, `Feature ${n} type`), type);
 }
@@ -27,7 +27,7 @@ test("a feature with fixed uses and one with scaled uses show their bubbles on t
   await uses(page, 2).getByRole("button", { name: "Scaled" }).click();
   await pickOption(combobox(page, "Feature 2 equal to"), "Character level × n");
   await pickOption(combobox(page, "Feature 2 n"), "10");
-  await page.getByRole("group", { name: "Feature 2 recharges" }).getByRole("button", { name: "Short rest" }).click();
+  await page.getByRole("group", { name: "Feature 2 Recharges" }).getByRole("button", { name: "Short rest" }).click();
   // The preview, for the example character of level 5.
   await expect(page.getByRole("group", { name: "Feature 2 preview" }).getByRole("button", { name: "50 / 50 left. Spend 5" })).toBeVisible();
   await page.getByRole("button", { name: "Save" }).click();
@@ -118,7 +118,7 @@ test.describe("screenshots", () => {
       // A rest of an old pack.
       await loadOldPack(page);
       await page.goto(`/content/edit/race/${encodeURIComponent("Old Reef")}/sunken`);
-      await expect(page.getByRole("group", { name: "Feature 1 recharges" }).getByRole("button", { name: "Minute (from the pack)" })).toBeVisible();
+      await expect(page.getByRole("group", { name: "Feature 1 Recharges" }).getByRole("button", { name: "Minute (from the pack)" })).toBeVisible();
       await page.evaluate(() => document.fonts.ready);
       await shot(card(page, 1), "old-pack-unit");
     });

@@ -4,17 +4,9 @@
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
 import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, Tabs, UseBubble, type Tab } from "@orc-alchemy/ui";
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { bonusStr, modStr, usesDisplay, type Ability, type FeatureSection, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
+import { ABILITY_NAMES, bonusStr, modStr, usesDisplay, type Ability, type FeatureSection, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
-const ABILITY_NAMES: Record<Ability, string> = {
-  str: "Strength",
-  dex: "Dexterity",
-  con: "Constitution",
-  int: "Intelligence",
-  wis: "Wisdom",
-  cha: "Charisma",
-};
 export const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 const paragraphs = (text: string) => text.split("\n").map((line, i) => <p key={i}>{line}</p>);
 
@@ -776,7 +768,7 @@ function FieldList({ fields }: { fields: [string, string[]][] }) {
 }
 
 /** The sections of "Features & traits", in the order of the sheet. */
-const FEATURE_SECTIONS: FeatureSection[] = ["actions", "bonusActions", "reactions", "traits"];
+export const FEATURE_SECTIONS: FeatureSection[] = ["actions", "bonusActions", "reactions", "traits"];
 
 /** The heading of each section of "Features & traits". */
 export const FEATURE_SECTION_TITLES: Record<FeatureSection, string> = {
@@ -788,8 +780,7 @@ export const FEATURE_SECTION_TITLES: Record<FeatureSection, string> = {
 
 /**
  * One section of "Features & traits": its heading, then its features. The
- * uses preview of the homebrew forms (ORC-204) draws a feature with it, so
- * the preview and the sheet cannot differ.
+ * uses preview of the homebrew forms draws a feature with it too.
  */
 export function FeatureGroup({ section, items }: { section: FeatureSection; items: SheetFeature[] }) {
   return (
@@ -814,7 +805,7 @@ function Features({ items }: { items: SheetFeature[] }) {
     <div className="grid gap-2.5 text-[14.5px]">
       {items.map((item, i) =>
         item.uses ? (
-          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={item.uses.recharge} {...bubbleUses(item.uses)}>
+          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={item.uses.recharge ?? undefined} {...bubbleUses(item.uses)}>
             {item.text}
           </UseBubble>
         ) : (

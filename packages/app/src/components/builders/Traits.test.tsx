@@ -1,21 +1,21 @@
-// The uses control, its preview and the delete with confirmation of the
-// shared feature list (ORC-204). A harness renders Traits on a record in
-// state, as a form does; the last record is in `current`.
+// The shared feature list (Traits): the uses control of each feature, its
+// preview, and delete with confirmation (ORC-204). A harness renders Traits
+// on a record in state, as a form does; the last record is in `current`.
 import { answerConfirmDialog, optionNames, pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
-import { editor, Traits, type ItemRecord, type Options } from "./fields.tsx";
+import { editor, Traits, type FeatureList, type ItemRecord } from "./fields.tsx";
 
 afterEach(cleanup);
 
 const LONG = "~:orcpub.dnd.e5.units/long-rest";
 
 let current: ItemRecord = {};
-function Harness({ start, levelName = null, types }: { start: ItemRecord; levelName?: string | null; types?: Options }) {
+function Harness({ start, levelName = null, list }: { start: ItemRecord; levelName?: string | null; list?: FeatureList }) {
   const [record, setRecord] = useState(start);
   current = record;
-  return <Traits edit={editor(record, setRecord)} levelName={levelName} types={types} />;
+  return <Traits edit={editor(record, setRecord)} levelName={levelName} list={list} />;
 }
 const renderTraits = (traits: ItemRecord[], levelName: string | null = null) => {
   const start = { "~:name": "Tidecaller", "~:traits": traits };
@@ -39,29 +39,30 @@ const sentence = () => screen.queryByText(/^Uses equal/)?.textContent ?? null;
 
 test("None: no fields and no rest; the preview shows a plain feature; nothing is written", () => {
   const start = renderTraits([{ "~:name": "Hold Breath", "~:description": "You can hold your breath for 1 hour." }]);
-  expect(segmentTexts("Feature 1 uses")).toEqual(["None", "Fixed", "Scaled"]);
-  expect(pressedSegment("Feature 1 uses")).toBe("None");
+  expect(segmentTexts("Feature 1 Uses")).toEqual(["None", "Fixed", "Scaled"]);
+  expect(pressedSegment("Feature 1 Uses")).toBe("None");
   expect(screen.queryByRole("combobox", { name: "Feature 1 amount" })).toBeNull();
-  expect(screen.queryByRole("group", { name: "Feature 1 recharges" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Feature 1 level" })).toBeNull();
+  expect(screen.queryByRole("group", { name: "Feature 1 Recharges" })).toBeNull();
   expect(previewSection()).toBe("Features, Traits, and Feats");
   expect(within(preview()).queryByRole("group", { name: "Hold Breath" })).toBeNull();
   expect(within(preview()).getByText("Hold Breath").tagName).toBe("B");
   expect(within(preview()).getByText("You can hold your breath for 1 hour.")).toBeTruthy();
   expect(sentence()).toBeNull();
-  fireEvent.click(within(screen.getByRole("group", { name: "Feature 1 uses" })).getByRole("button", { name: "None" }));
+  fireEvent.click(within(screen.getByRole("group", { name: "Feature 1 Uses" })).getByRole("button", { name: "None" }));
   expect(current).toBe(start);
 });
 
 test("Fixed: 1 use on a long rest, then the Amount and the rest the user picks", async () => {
   renderTraits([{ "~:name": "Brine Blessing", "~:type": "~:action" }]);
-  press("Feature 1 uses", "Fixed");
+  press("Feature 1 Uses", "Fixed");
   expect(frequency()).toEqual({ "~:units": LONG, "~:amount": 1 });
   expect(await optionNames(combobox("Feature 1 amount"))).toEqual([...Array.from({ length: 20 }, (_, i) => String(i + 1)), "25", "30", "40", "50", "100"]);
   await choose("Feature 1 amount", "3");
   expect(frequency()).toEqual({ "~:units": LONG, "~:amount": 3 });
-  expect(segmentTexts("Feature 1 recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
-  expect(pressedSegment("Feature 1 recharges")).toBe("Long rest");
-  press("Feature 1 recharges", "Day");
+  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
+  expect(pressedSegment("Feature 1 Recharges")).toBe("Long rest");
+  press("Feature 1 Recharges", "Day");
   expect(frequency()).toEqual({ "~:units": "~:orcpub.dnd.e5.units/day", "~:amount": 3 });
   // The preview: three circles in the Actions section, with the sheet's tag.
   expect(previewSection()).toBe("Actions");
@@ -69,13 +70,13 @@ test("Fixed: 1 use on a long rest, then the Amount and the rest the user picks",
   expect(within(bubble).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Use 1", "Use 2", "Use 3"]);
   expect(within(bubble).getByText("Each day")).toBeTruthy();
   expect(sentence()).toBeNull();
-  press("Feature 1 uses", "None");
+  press("Feature 1 Uses", "None");
   expect(trait()).toEqual({ "~:name": "Brine Blessing", "~:type": "~:action" });
 });
 
 test("Scaled: the proficiency bonus first; Equal to has the abilities and the character level in a form that is not a class", async () => {
   renderTraits([{ "~:name": "Undertow", "~:type": "~:reaction" }]);
-  press("Feature 1 uses", "Scaled");
+  press("Feature 1 Uses", "Scaled");
   expect(frequency()).toEqual({ "~:units": LONG, "~:amount": { "~:prof-bonus": true } });
   expect(await optionNames(combobox("Feature 1 equal to"))).toEqual([
     "Proficiency bonus",
@@ -115,7 +116,8 @@ test("in a class or subclass form the level is the class level, with its name", 
   renderTraits([{ "~:name": "Tidal Reserve", "~:type": "~:action", "~:frequency": { "~:units": LONG, "~:amount": { "~:level": true, "~:times": 5 } } }], "Paladin");
   expect(combobox("Feature 1 equal to").textContent).toBe("Paladin level × n");
   expect(combobox("Feature 1 n").textContent).toBe("5");
-  expect(sentence()).toBe("Uses equal 5 × your paladin level. A level 5 character gets 25.");
+  // A class or subclass feature has the level it is unlocked at.
+  expect(combobox("Feature 1 level").textContent).toBe("-");
   // 25 is a pool, and a click spends 5.
   const pool = within(preview()).getByRole("button", { name: "25 / 25 left. Spend 5" });
   fireEvent.click(pool);
@@ -128,13 +130,13 @@ test("Recharges: a unit from an old pack is one more segment, and a short unit s
     { "~:name": "Tide Step", "~:frequency": { "~:units": "~:short-rest", "~:amount": 2 } },
     { "~:name": "Each round", "~:frequency": { "~:units": "~:round", "~:amount": 1 } },
   ]);
-  expect(segmentTexts("Feature 1 recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn", "Minute (from the pack)"]);
-  expect(pressedSegment("Feature 1 recharges")).toBe("Minute (from the pack)");
+  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn", "Minute (from the pack)"]);
+  expect(pressedSegment("Feature 1 Recharges")).toBe("Minute (from the pack)");
   expect(within(preview(1)).getByText("Each minute")).toBeTruthy();
-  expect(segmentTexts("Feature 2 recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
-  expect(pressedSegment("Feature 2 recharges")).toBe("Short rest");
+  expect(segmentTexts("Feature 2 Recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
+  expect(pressedSegment("Feature 2 Recharges")).toBe("Short rest");
   expect(within(preview(2)).getByText("Short rest")).toBeTruthy();
-  expect(pressedSegment("Feature 3 recharges")).toBe("Round (from the pack)");
+  expect(pressedSegment("Feature 3 Recharges")).toBe("Round (from the pack)");
   expect(current).toBe(start);
 
   // A change of the amount writes the full unit; a full unit from the pack stays.
@@ -145,9 +147,9 @@ test("Recharges: a unit from an old pack is one more segment, and a short unit s
   await choose("Feature 3 amount", "2");
   expect(frequency(2)).toEqual({ "~:units": "~:orcpub.dnd.e5.units/round", "~:amount": 2 });
   // Another rest takes the pack's segment away.
-  press("Feature 1 recharges", "Long rest");
+  press("Feature 1 Recharges", "Long rest");
   expect(frequency(0)).toEqual({ "~:units": LONG, "~:amount": 2 });
-  expect(segmentTexts("Feature 1 recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
+  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
 });
 
 test("a stored value that is no option shows as it is", () => {
@@ -230,18 +232,26 @@ test("delete: a feature with content asks first; Cancel keeps it; an empty featu
   await waitFor(() => expect(current["~:traits"]).toEqual([]));
 });
 
-test("the monster types: Other stores no type, and the preview puts a legendary action with the features", async () => {
-  const types: Options = [
-    ["", "Other"],
-    ["~:action", "Action"],
-    ["~:legendary-action", "Legendary Action"],
-  ];
+test("the shared list's title and add button; the monster's types: Other stores no type, and the preview puts a legendary action with the features", async () => {
+  renderTraits([]);
+  expect(screen.getByRole("group", { name: "Features" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Add a feature" })).toBeTruthy();
+  cleanup();
+  const list: FeatureList = {
+    types: [
+      ["", "Other"],
+      ["~:action", "Action"],
+      ["~:legendary-action", "Legendary Action"],
+    ],
+    legend: "Actions / features",
+    add: "Add action / feature",
+  };
   current = { "~:traits": [{ "~:name": "Tail Swipe", "~:type": "~:legendary-action" }] };
-  render(<Harness start={current} types={types} />);
+  render(<Harness start={current} list={list} />);
   expect(previewSection()).toBe("Features, Traits, and Feats");
   await choose("Feature 1 type", "Other");
   expect(trait()).toEqual({ "~:name": "Tail Swipe" });
-  fireEvent.click(screen.getByRole("button", { name: "Add feature / trait" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add action / feature" }));
   // A feature with no type is empty: no question.
   fireEvent.click(screen.getByRole("button", { name: "Delete feature 2" }));
   expect(current["~:traits"]).toHaveLength(1);

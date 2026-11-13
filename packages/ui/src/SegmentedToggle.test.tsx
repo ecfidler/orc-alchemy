@@ -31,7 +31,8 @@ const pressed = () => screen.getAllByRole("button").map((b) => b.getAttribute("a
 
 test("a named group of segments with their text, the value pressed", () => {
   render(<Kinds />);
-  expect(screen.getByRole("group", { name: "Uses" }).className).toBe("ui-segmented");
+  const group = screen.getByRole("group", { name: "Uses" });
+  expect([group.className, group.dataset.size]).toEqual(["ui-segmented", "normal"]);
   expect(screen.getAllByRole("button").map((b) => [b.textContent, b.className])).toEqual([
     ["None", "ui-button ui-segment"],
     ["Fixed", "ui-button ui-segment"],

@@ -190,7 +190,7 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
-  .ui-token > .ui-number-toggle {
+  .ui-token > .ui-segmented {
     flex: none;
     margin-left: 6px;
   }
@@ -218,7 +218,6 @@
   }
 
   /* The number toggle and the segmented toggle: segments in one box, the pressed one solid. */
-  .ui-number-toggle,
   .ui-segmented {
     display: inline-flex;
     flex-wrap: wrap;
@@ -239,11 +238,11 @@
     /* Inside the segment: the toggle's box has overflow: hidden, which clips an outline outside it. */
     outline-offset: -3px;
   }
-  .ui-number-toggle:where([data-size="small"]) {
+  .ui-segmented:where([data-size="small"]) {
     border-width: 1px;
     border-radius: 4px;
   }
-  .ui-number-toggle:where([data-size="small"]) > .ui-segment {
+  .ui-segmented:where([data-size="small"]) > .ui-segment {
     padding: 0 8px;
     font-size: 12px;
   }

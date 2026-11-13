@@ -1,13 +1,14 @@
 // The uses of a homebrew feature as the form stores them: the :frequency of
 // the feature, {:units <unit> :amount <amount>} (docs/design/homebrew-forms.md,
 // "Stored shape"). The functions here read a stored frequency for the uses
-// control and make the frequency to store after one change by the user. A
-// change keeps the other keys of the stored map, so a key that the form does
-// not know stays. Only a change writes: a frequency that the user does not
-// touch stays as it was, also a short unit or a unit of the old app.
-import type { Amount, ScaledAmount } from "@pubdoor/dmv";
+// control, give the options of its toggles and selects, and make the
+// frequency to store after one change by the user. A change keeps the other
+// keys of the stored map, so a key that the form does not know stays. Only a
+// change writes: a frequency that the user does not touch stays as it was,
+// also a short unit or a unit of the old app. The example character and the
+// sentence of the preview are in uses-example.ts.
 import { tag, untag } from "../../engine/content.ts";
-import { scaledAmount, unqualify, type Ability, type ScaleNumbers } from "../../engine/sheet.ts";
+import { abilityOfKey, unqualify, type Ability } from "../../engine/sheet.ts";
 
 /** A stored map in verbose Transit-JSON, such as a :frequency or its :amount. */
 type TransitMap = Record<string, unknown>;
@@ -43,14 +44,8 @@ export const PLUSES = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
 /** The numbers of the Minimum select, after None. */
 export const MINIMUMS = [0, 1, 2, 3, 4, 5];
 
-export const ABILITY_NAMES: Record<Ability, string> = {
-  str: "Strength",
-  dex: "Dexterity",
-  con: "Constitution",
-  int: "Intelligence",
-  wis: "Wisdom",
-  cha: "Charisma",
-};
+/** Clojure truth, as the engine reads a base: any value but absent, null and false. */
+const truthy = (value: unknown) => value !== undefined && value !== null && value !== false;
 
 const isMap = (value: unknown): value is TransitMap => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -144,11 +139,15 @@ const scaledOf = (frequency: unknown): TransitMap => {
 export function baseOf(frequency: unknown): string | undefined {
   const amount = scaledOf(frequency);
   const ability = amount[tag("ability")];
-  if (ability) return unqualify(untag(ability));
-  if (amount[tag("prof-bonus")]) return "prof";
-  if (amount[tag("level")]) return "level";
+  // As the engine (scaledAmount): an ability only when it is a keyword, the other bases when they are truthy.
+  if (typeof ability === "string") return unqualify(untag(ability));
+  if (truthy(amount[tag("prof-bonus")])) return "prof";
+  if (truthy(amount[tag("level")])) return "level";
   return undefined;
 }
+
+/** The ability of a scaled amount's base, or null when the base is not one of the six abilities. */
+export const baseAbility = (frequency: unknown): Ability | null => abilityOfKey(baseOf(frequency));
 
 const BASE_KEYS = ["ability", "prof-bonus", "level", "times"].map(tag);
 
@@ -171,8 +170,14 @@ export function withBase(frequency: unknown, base: string): TransitMap | undefin
   return withAmount(frequency, amount);
 }
 
-/** The default of each number of a scaled amount: the engine's value when the key is absent. */
-const NUMBER_DEFAULTS: Record<string, number | undefined> = { times: 1, plus: 0, min: undefined };
+/** The default of each number of a scaled amount: the engine's value when the key is absent. No minimum is undefined. */
+export const NUMBER_DEFAULTS = { times: 1, plus: 0, min: undefined } as const;
+
+/** A number of a scaled amount: the stored one, or the engine's default when it is absent or is not a number. */
+export function scaledNumberOrDefault(frequency: unknown, key: "times" | "plus"): number {
+  const value = scaledNumber(frequency, key);
+  return typeof value === "number" ? value : NUMBER_DEFAULTS[key];
+}
 
 /** The number of a scaled amount: "times", "plus" or "min". Undefined when the map does not have it. */
 export const scaledNumber = (frequency: unknown, key: "times" | "plus" | "min"): unknown => scaledOf(frequency)[tag(key)];
@@ -187,55 +192,6 @@ export function withScaledNumber(frequency: unknown, key: "times" | "plus" | "mi
   if (value === undefined || value === NUMBER_DEFAULTS[key]) delete amount[tag(key)];
   else amount[tag(key)] = value;
   return withAmount(frequency, amount);
-}
-
-/**
- * The numbers of the example character of the preview: every ability score
- * is `score`, and the level is both the character level and the class
- * level. The proficiency bonus is 2 at level 1, and 1 more at each 4
- * levels; an ability modifier is (score - 10) / 2, rounded down.
- */
-export function exampleNumbers(level: number, score: number): ScaleNumbers {
-  return { level, proficiencyBonus: 2 + Math.floor((level - 1) / 4), abilityModifier: () => Math.floor((score - 10) / 2) };
-}
-
-/**
- * The frequency as the engine builds it for a character with these
- * numbers: the unit without its "~:", and the amount as a number. No
- * amount stays absent, which the sheet shows as 1 use. Undefined for no
- * uses.
- */
-export function builtFrequency(frequency: unknown, numbers: ScaleNumbers): Amount | undefined {
-  const map = frequencyMap(frequency);
-  if (!map) return undefined;
-  const units = untag(map[tag("units")]);
-  const amount = map[tag("amount")];
-  if (typeof amount === "number") return { units, amount };
-  if (isMap(amount)) return { units, amount: scaledAmount(amount as ScaledAmount, numbers) };
-  return { units } as Amount;
-}
-
-/**
- * The one sentence under the preview for a scaled amount: "Uses equal 5 ×
- * your paladin level. A level 5 character gets 25." levelName is the class
- * of a class or subclass form, or null in other forms, where a level is the
- * character level.
- */
-export function usesSentence(frequency: unknown, levelName: string | null, level: number, score: number): string {
-  const amount = scaledOf(frequency);
-  const base = baseOf(frequency);
-  const times = typeof amount[tag("times")] === "number" ? (amount[tag("times")] as number) : 1;
-  const plus = typeof amount[tag("plus")] === "number" ? (amount[tag("plus")] as number) : 0;
-  const min = amount[tag("min")];
-  const ability = base !== undefined && base in ABILITY_NAMES ? ABILITY_NAMES[base as Ability] : null;
-  const parts: string[] = [];
-  if (ability) parts.push(`your ${ability} modifier`);
-  else if (base === "prof") parts.push("your proficiency bonus");
-  else if (base === "level") parts.push(`${times === 1 ? "" : `${times} × `}your ${levelName ? levelName.toLowerCase() : "character"} level`);
-  if (plus !== 0 || parts.length === 0) parts.push(parts.length === 0 ? String(plus) : `${plus > 0 ? "+" : "−"} ${Math.abs(plus)}`);
-  if (typeof min === "number") parts.push(`(minimum ${min})`);
-  const n = scaledAmount(amount as ScaledAmount, exampleNumbers(level, score));
-  return `Uses equal ${parts.join(" ")}. A level ${level} character${ability ? ` with ${score} ${ability}` : ""} gets ${n}.`;
 }
 
 /** The text of a plus: "+ 2", "+ 0", "− 1". */
