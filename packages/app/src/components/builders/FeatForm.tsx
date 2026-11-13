@@ -10,9 +10,10 @@
 // click), and a map such as {:armor-prof {:light true}} for the grouped
 // ones. The form always shows four sections: Prerequisites, Ability
 // Increase Options, Uses of the feat and Features. The user adds the other
-// modifiers from a list (modifiers.tsx). Uses of the feat writes :type and :frequency on the feat, for its own
-// entry on the sheet, and the Features section writes :traits (ORC-205,
-// docs/design/homebrew-forms.md, "Uses on a feat"). Engine 0.4.0 reads them.
+// modifiers from a list (modifiers.tsx). Uses of the feat writes :type and
+// :frequency on the feat, for its own entry on the sheet, and the Features
+// section writes :traits (ORC-205, docs/design/homebrew-forms.md, "Uses on
+// a feat"). Engine 0.4.0 reads them.
 // A level amount on a feat counts the character level.
 import { Checkbox, Picker } from "@orc-alchemy/ui";
 import { asSet, setItems, tag, untag } from "../../engine/content.ts";
