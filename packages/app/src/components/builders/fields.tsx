@@ -10,6 +10,7 @@ import type { ContentType, Engine, ValidationProblem } from "../../engine/engine
 import { useHomebrew } from "../../state/homebrew.ts";
 import { ABILITIES as SHEET_ABILITIES, ABILITY_NAMES } from "../../engine/sheet.ts";
 import { ordinal } from "../CharacterSheet.tsx";
+import { SuggestionLines } from "./SuggestionLines.tsx";
 import { UsesControl } from "./UsesControl.tsx";
 
 /**
@@ -544,11 +545,19 @@ export function FeatureType({ edit, path, name, types = TRAIT_TYPES }: { edit: E
 
 /**
  * The uses control and the preview of the feature at path, which write its
- * :frequency. No uses removes the key. name and levelName are as for
- * UsesControl.
+ * :frequency. Under the toggles are the lines of suggested uses and a
+ * suggested type that its :description gives (SuggestionLines). No uses removes the key. name
+ * and levelName are as for UsesControl. types is the list of the feature's
+ * type select.
  */
-export function FeatureUses({ edit, path, name, levelName }: { edit: Edit; path: Path; name: string; levelName: string | null }) {
-  return <UsesControl name={name} feature={(edit.get(...path) ?? {}) as ItemRecord} onChange={(frequency) => edit.set([...path, "frequency"], frequency)} levelName={levelName} />;
+export function FeatureUses({ edit, path, name, levelName, types = TRAIT_TYPES }: { edit: Edit; path: Path; name: string; levelName: string | null; types?: Options }) {
+  const feature = (edit.get(...path) ?? {}) as ItemRecord;
+  const setFrequency = (frequency: ItemRecord | undefined) => edit.set([...path, "frequency"], frequency);
+  return (
+    <UsesControl name={name} feature={feature} onChange={setFrequency} levelName={levelName}>
+      <SuggestionLines name={name} feature={feature} types={types} onUses={setFrequency} onType={(type) => edit.set([...path, "type"], type)} />
+    </UsesControl>
+  );
 }
 
 /**
@@ -592,7 +601,7 @@ export function Traits({ edit, problems = [], levelName = null, list = FEATURE_L
             <FieldLabel label="Description">
               <TextArea aria-label={`Feature ${n} description`} value={String(trait[tag("description")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "description"], text)} rows={3} />
             </FieldLabel>
-            <FeatureUses edit={edit} path={["traits", i]} name={`Feature ${n}`} levelName={levelName} />
+            <FeatureUses edit={edit} path={["traits", i]} name={`Feature ${n}`} levelName={levelName} types={list.types} />
           </Card>
         );
       })}

@@ -9,6 +9,7 @@
 // sentence of the preview are in uses-example.ts.
 import { tag, untag } from "../../engine/content.ts";
 import { abilityOfKey, scaledBase, unqualify, type Ability } from "../../engine/sheet.ts";
+import type { SuggestedUses } from "./suggested-uses.ts";
 
 /** A stored map in verbose Transit-JSON, such as a :frequency or its :amount. */
 type TransitMap = Record<string, unknown>;
@@ -188,3 +189,15 @@ export function withScaledNumber(frequency: unknown, key: "times" | "plus" | "mi
 
 /** The text of a plus: "+ 2", "+ 0", "− 1". */
 export const plusText = (n: number) => (n < 0 ? `− ${-n}` : `+ ${n}`);
+
+/**
+ * The frequency of suggested uses (suggested-uses.ts), as the uses control
+ * writes it for the same choice: a fixed amount is a number, the
+ * proficiency bonus is {:prof-bonus true}, and an ability is its bare key
+ * with a minimum of 1. The unit is the full keyword of the rest.
+ */
+export function suggestedFrequency({ amount, rest }: SuggestedUses): TransitMap {
+  const scaled = (base: string) => withBase(withKind(undefined, "scaled"), base);
+  const frequency = amount.kind === "fixed" ? withFixed(undefined, amount.n) : scaled(amount.kind === "prof" ? "prof" : amount.ability);
+  return withUnit(frequency, rest);
+}
