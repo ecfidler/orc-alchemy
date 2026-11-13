@@ -289,8 +289,9 @@ const SECTION_OF_TYPE: Record<string, FeatureSection> = {
  * calls it to drop uses that show as plain text, and the sheet calls it to
  * draw circles or a pool. No frequency is plain text. A frequency with no
  * amount is 1 use. An amount of 0 or fewer is plain text. 8 uses or fewer are
- * circles; more than 8 are a pool, such as Lay on Hands' 25 hit points. A click on a pool of 20 or more
- * spends 5, as in the prototype; on a smaller pool it spends 1.
+ * circles; more than 8 are a pool, such as Lay on Hands' 25 hit points. A
+ * click on a pool of 20 or more spends 5, as in the prototype; on a smaller
+ * pool it spends 1.
  */
 export function usesDisplay(frequency: { amount?: number | null } | null | undefined): UsesDisplay {
   if (!frequency) return { kind: "plain" };
