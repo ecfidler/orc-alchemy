@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-12T21:34:12Z }
+generated: { by: claude-code/agent, at: 2026-11-13T14:40:56Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -324,6 +324,8 @@ The outline around a limited-use feature (ORC-146).
 * The rest type ("Long rest", "Short rest") in small caps in the top right.
 * A pool (for example Lay on Hands) shows its number large under the rest
   type, as current / max.
+* More than 8 uses show as a pool. A feature with 0 uses or fewer has no
+  bubble. It is a plain feature.
 * When all uses are spent, the outline becomes dashed `--ink-muted` and the
   text greys. There is no cross-out.
 * When the bubble is 380px wide or less, no column is kept free for the
@@ -505,7 +507,9 @@ The left column is at least 320px wide.
   The numbers do not wrap.
 * **Spellcasting** (see below).
 * **Features & traits.** Each feature's name is on its own line above its
-  text. Limited-use features sit in a use bubble.
+  text. Limited-use features sit in a use bubble. A pack feature goes to
+  Actions, Bonus Actions or Reactions by its type. See
+  [Homebrew forms spec, "On the sheet"](homebrew-forms.md#on-the-sheet).
 * **Notes.**
 
 ## Spellcasting

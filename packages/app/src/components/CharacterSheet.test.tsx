@@ -344,6 +344,20 @@ test("a limited-use feature sits in a use bubble, with circles, or a pool for mo
   expect(screen.getByText("Move again.")).toBeTruthy();
 });
 
+// ORC-203: a typed homebrew feature draws the same bubble as an engine entry. sheet.test.ts and e2e check the sections.
+test("scaled-uses draws its homebrew uses as the engine's: circles, a pool above 8, and no bubble for 0 uses or fewer", () => {
+  render(<CharacterSheet sheet={toSheet(expectedOf("scaled-uses-fighter-6-barbarian-1"), {})} />);
+  const bubble = (name: string) => within(screen.getByRole("group", { name }));
+  expect(bubble("Action Surge").getByRole("button", { name: "Use 1" })).toBeTruthy();
+  expect(bubble("Stormcaller").getByRole("button", { name: "Use 3" })).toBeTruthy();
+  expect(bubble("Rolling Gait").getAllByRole("button")).toHaveLength(7);
+  expect(bubble("Crashing Wave").getByRole("button", { name: "30 / 30 left. Spend 5" })).toBeTruthy();
+  expect(bubble("Deep Lungs").getByRole("button", { name: "15 / 15 left. Spend 1" })).toBeTruthy();
+  // Undertow resolves to -1 uses: a plain feature.
+  expect(screen.queryByRole("group", { name: "Undertow" })).toBeNull();
+  expect(screen.getByText("You pull one creature within 30 feet 10 feet toward you.")).toBeTruthy();
+});
+
 /** Renders the sheet as a phone does: the sheet is `width` pixels wide. */
 function renderAtWidth(width: number, element: ReactElement) {
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(width);
