@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T15:59:56Z }
+generated: { by: claude-code/agent, at: 2026-11-13T19:38:15Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -315,6 +315,13 @@ small shadow. Inter 13.5px, weight 500. The color gives the meaning:
 | `--note-blue` | Information | An import summary |
 
 Only blue alert notes have a dismiss button.
+
+## Note line
+
+A flat yellow line in the flow of a form, for something that the user can
+act on there (ORC-206). `--note` fill, `--note-ink` text, Inter 13.5px. It
+is not tilted, and it has no corner and no shadow. A link button at its
+end is its action. The homebrew forms show suggested uses on it.
 
 ## Use bubble
 

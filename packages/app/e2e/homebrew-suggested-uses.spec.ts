@@ -1,15 +1,14 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { SUGGESTION_PACK } from "../src/components/builders/suggested-uses-pack.ts";
+import { featureCard as card } from "./homebrew-helpers.ts";
+import { SUGGESTION_PACK } from "../src/components/builders/test-suggestion-pack.ts";
 
 // ORC-206: the form reads the text of a feature and suggests uses and a type. One click fills the control.
 
 const text = (name: string) => SUGGESTION_PACK.find((f) => f.name === name)!.description;
 const combobox = (page: Page, name: string) => page.getByRole("combobox", { name, exact: true });
 const group = (page: Page, name: string) => page.getByRole("group", { name, exact: true });
-/** The card of feature n: the box around its fields. */
-const card = (page: Page, n: number) => page.getByRole("textbox", { name: `Feature ${n} name` }).locator("xpath=ancestor::div[contains(@class, 'bg-paper-raised')][1]");
 /** The yellow line that has the button. */
 const line = (button: Locator) => button.locator("xpath=ancestor::p[1]");
 

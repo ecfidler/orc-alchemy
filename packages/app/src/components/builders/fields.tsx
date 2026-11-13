@@ -545,10 +545,10 @@ export function FeatureType({ edit, path, name, types = TRAIT_TYPES }: { edit: E
 
 /**
  * The uses control and the preview of the feature at path, which write its
- * :frequency. Under the toggles are the lines of suggested uses and a
- * suggested type that its :description gives (SuggestionLines). No uses removes the key. name
- * and levelName are as for UsesControl. types is the list of the feature's
- * type select.
+ * :frequency. No uses removes the key. Under the toggles are the lines of
+ * suggested uses and a suggested type that its :description gives
+ * (SuggestionLines). name and levelName are as for UsesControl. types is
+ * the list of the feature's type select, as FeatureType has it.
  */
 export function FeatureUses({ edit, path, name, levelName, types = TRAIT_TYPES }: { edit: Edit; path: Path; name: string; levelName: string | null; types?: Options }) {
   const feature = (edit.get(...path) ?? {}) as ItemRecord;

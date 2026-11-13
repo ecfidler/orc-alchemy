@@ -2,13 +2,12 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { featureCard as card } from "./homebrew-helpers.ts";
 
 // ORC-204: feature uses made in a form show as use bubbles on a character's sheet.
 
 const uses = (page: Page, n: number) => page.getByRole("group", { name: `Feature ${n} Uses` });
 const combobox = (page: Page, name: string) => page.getByRole("combobox", { name, exact: true });
-/** The card of feature n: the box around its fields. */
-const card = (page: Page, n: number) => page.getByRole("textbox", { name: `Feature ${n} name` }).locator("xpath=ancestor::div[contains(@class, 'bg-paper-raised')][1]");
 
 /** Adds feature n with a name and a type. */
 async function addFeature(page: Page, n: number, name: string, type: string) {

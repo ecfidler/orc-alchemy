@@ -26,12 +26,12 @@ export interface TextMatch {
 /** The amount of suggested uses: a fixed number, the proficiency bonus, or an ability modifier with a minimum of 1. */
 export type SuggestedAmount = { kind: "fixed"; n: number } | { kind: "prof" } | { kind: "ability"; ability: Ability };
 
-/** The rest of suggested uses, by the name of its unit. "Short or long rest" is a short rest. */
-export type SuggestedRest = "short-rest" | "long-rest" | "day";
+/** The unit of suggested uses, by its name: a rest or a day. "Short or long rest" is a short rest. */
+export type SuggestedUnit = "short-rest" | "long-rest" | "day";
 
 export interface SuggestedUses {
   amount: SuggestedAmount;
-  rest: SuggestedRest;
+  unit: SuggestedUnit;
 }
 
 /** The text gives uses that the rules read clearly. */
@@ -71,7 +71,7 @@ export interface TextReading {
  * The text in lower case, with ’ as '. Each character stays one character,
  * so a place in it is the same place in the text.
  */
-const normal = (text: string) => text.replace(/[A-Z]/g, (c) => c.toLowerCase()).replace(/[‘’]/g, "'");
+const lowerSameLength = (text: string) => text.replace(/[A-Z]/g, (c) => c.toLowerCase()).replace(/[‘’]/g, "'");
 
 /** The sentences of the text: each ends at ".", "!", "?" or a line break. Space around a sentence is not a part of it. */
 function sentences(text: string): Span[] {
@@ -86,15 +86,15 @@ function sentences(text: string): Span[] {
 }
 
 /** The index of the sentence that has the place. */
-const sentenceAt = (all: Span[], at: number) => {
-  const i = all.findIndex((s) => at < s.end);
-  return i === -1 ? all.length - 1 : i;
+const sentenceAt = (sentenceSpans: Span[], at: number) => {
+  const i = sentenceSpans.findIndex((s) => at < s.end);
+  return i === -1 ? sentenceSpans.length - 1 : i;
 };
 
 /** The match of the phrase in its sentence, or in the two sentences from first to last. */
-function matchOf(text: string, all: Span[], phrase: Span): TextMatch {
-  const first = all[sentenceAt(all, phrase.start)];
-  const last = all[sentenceAt(all, Math.max(phrase.start, phrase.end - 1))];
+function matchOf(text: string, sentenceSpans: Span[], phrase: Span): TextMatch {
+  const first = sentenceSpans[sentenceAt(sentenceSpans, phrase.start)];
+  const last = sentenceSpans[sentenceAt(sentenceSpans, Math.max(phrase.start, phrase.end - 1))];
   const sentence = { start: first.start, end: last.end };
   return { sentence, quote: text.slice(sentence.start, sentence.end), phrase };
 }
@@ -109,27 +109,32 @@ const countOf = (count: string) => {
 
 /** A rest that a rule reads: "short or long rest" (in either order), "short rest" or "long rest". */
 const REST = String.raw`(short\s+or\s+long|long\s+or\s+short|short|long)\s+rests?\b`;
-const restOf = (kind: string): SuggestedRest => (kind.startsWith("long") && !kind.includes("short") ? "long-rest" : "short-rest");
+const restUnit = (kind: string): SuggestedUnit => (kind.startsWith("long") && !kind.includes("short") ? "long-rest" : "short-rest");
 
 /** The thing a phrase uses: "it", "this feature", "your channel divinity". */
 const THING = String.raw`(?:it|them|this|that|(?:this|that|the|your)\s+[a-z'-]+(?:\s+[a-z'-]+){0,3}?)`;
 
 const ABILITY_WORDS: Record<string, Ability> = { strength: "str", dexterity: "dex", constitution: "con", intelligence: "int", wisdom: "wis", charisma: "cha" };
 
-/** One reading of one rule: uses, or a part of the text that names an amount the rules do not read. */
-type RuleMatch = { uses: SuggestedUses; phrase: Span } | { uses: null; phrase: Span };
+/** One reading of one rule: uses, or null for a part of the text that names an amount the rules do not read. */
+interface RuleMatch {
+  uses: SuggestedUses | null;
+  phrase: Span;
+}
+/** A rule match that the rules read. */
+type ReadMatch = RuleMatch & { uses: SuggestedUses };
 
 /**
  * The rest after a count: the first rest in the sentence of the count,
  * else in the next sentence. The rest can come before the count in its
  * sentence ("When you finish a long rest, you can use it twice").
  */
-function restNear(lower: string, all: Span[], at: number): { rest: SuggestedRest; span: Span } | undefined {
-  const i = sentenceAt(all, at);
-  for (const s of [all[i], all[i + 1]]) {
+function restNear(lower: string, sentenceSpans: Span[], at: number): { unit: SuggestedUnit; span: Span } | undefined {
+  const i = sentenceAt(sentenceSpans, at);
+  for (const s of [sentenceSpans[i], sentenceSpans[i + 1]]) {
     if (!s) continue;
     const m = new RegExp(String.raw`\b${REST}`).exec(lower.slice(s.start, s.end));
-    if (m) return { rest: restOf(m[1]), span: { start: s.start + m.index, end: s.start + m.index + m[0].length } };
+    if (m) return { unit: restUnit(m[1]), span: { start: s.start + m.index, end: s.start + m.index + m[0].length } };
   }
   return undefined;
 }
@@ -141,37 +146,41 @@ const join = (a: Span, b: Span): Span => ({ start: Math.min(a.start, b.start), e
 const each = (lower: string, pattern: string) => [...lower.matchAll(new RegExp(pattern, "g"))].map((m) => ({ m, span: { start: m.index, end: m.index + m[0].length } }));
 
 /** The rules of the table, in its order. Each gives the uses that it reads, or an amount it does not read. */
-function ruleMatches(lower: string, all: Span[]): RuleMatch[] {
+function ruleMatches(lower: string, sentenceSpans: Span[]): RuleMatch[] {
   const found: RuleMatch[] = [];
 
   // "can't use it again until you finish a long rest", and "you must finish a short rest before you can use it again".
   const again = String.raw`(?:use|do)\s+(?:${THING}|so)\s+again`;
-  for (const { m, span } of each(lower, String.raw`\b(?:can't|cannot|can\s+not)\s+${again}\s+until\s+you\s+(?:finish|complete)\s+an?\s+${REST}`))
-    found.push({ uses: { amount: { kind: "fixed", n: 1 }, rest: restOf(m[1]) }, phrase: span });
-  for (const { m, span } of each(lower, String.raw`\bmust\s+(?:finish|complete)\s+an?\s+${REST}\s+before\s+you\s+can\s+${again}`))
-    found.push({ uses: { amount: { kind: "fixed", n: 1 }, rest: restOf(m[1]) }, phrase: span });
+  const againPatterns = [
+    String.raw`\b(?:can't|cannot|can\s+not)\s+${again}\s+until\s+you\s+(?:finish|complete)\s+an?\s+${REST}`,
+    String.raw`\bmust\s+(?:finish|complete)\s+an?\s+${REST}\s+before\s+you\s+can\s+${again}`,
+  ];
+  for (const pattern of againPatterns) for (const { m, span } of each(lower, pattern)) found.push({ uses: { amount: { kind: "fixed", n: 1 }, unit: restUnit(m[1]) }, phrase: span });
 
-  // "a number of times equal to your proficiency bonus" or "… your Wisdom modifier", then a rest. Any other amount is not read.
+  // "a number of times equal to your proficiency bonus" or "… your Wisdom modifier", then a rest. Any other amount is not read:
+  // a "+ n" or a "- n" in the rest of the sentence, outside parentheses such as "(a minimum of once)", is not read.
   for (const { span } of each(lower, String.raw`\ba\s+number\s+of\s+times\s+equal\s+to\b`)) {
-    const after = lower.slice(span.end);
-    const read = /^\s+your\s+(?:(proficiency\s+bonus)|(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+modifier)\b(?!\s*(?:\+|plus\b|-|minus\b|times\b|×))/.exec(after);
-    const rest = read && restNear(lower, all, span.start);
+    const read = /^\s+your\s+(?:(proficiency\s+bonus)|(strength|dexterity|constitution|intelligence|wisdom|charisma)\s+modifier)\b/.exec(lower.slice(span.end));
+    const baseEnd = span.end + (read?.[0].length ?? 0);
+    const sentenceEnd = sentenceSpans[sentenceAt(sentenceSpans, span.start)].end;
+    const sum = /(?:\+|\bplus\b|\s-\s*\d|\bminus\b|^\s*times\b|^\s*×)/.test(lower.slice(baseEnd, sentenceEnd).replace(/\([^)]*\)/g, ""));
+    const rest = read && !sum ? restNear(lower, sentenceSpans, span.start) : undefined;
     if (!read || !rest) {
-      found.push({ uses: null, phrase: { start: span.start, end: span.end + (read?.[0].length ?? 0) } });
+      found.push({ uses: null, phrase: { start: span.start, end: baseEnd } });
       continue;
     }
     const amount: SuggestedAmount = read[1] ? { kind: "prof" } : { kind: "ability", ability: ABILITY_WORDS[read[2]] };
-    found.push({ uses: { amount, rest: rest.rest }, phrase: join({ start: span.start, end: span.end + read[0].length }, rest.span) });
+    found.push({ uses: { amount, unit: rest.unit }, phrase: join({ start: span.start, end: baseEnd }, rest.span) });
   }
 
   // "once / twice / n times per day".
   for (const { m, span } of each(lower, String.raw`\b${COUNT}\s+(?:per|a|each)\s+day\b`))
-    found.push({ uses: { amount: { kind: "fixed", n: countOf(m[1]) }, rest: "day" }, phrase: span });
+    found.push({ uses: { amount: { kind: "fixed", n: countOf(m[1]) }, unit: "day" }, phrase: span });
 
   // "use it once / twice / three times", then a rest. A count for each turn, round or day is not this rule.
   for (const { m, span } of each(lower, String.raw`\buse\s+${THING}\s+${COUNT}\b(?!\s+(?:(?:per|a|each|on|in)\s+(?:[a-z']+\s+){0,3}?(?:turns?|rounds?|day)\b))`)) {
-    const rest = restNear(lower, all, span.start);
-    found.push(rest ? { uses: { amount: { kind: "fixed", n: countOf(m[1]) }, rest: rest.rest }, phrase: join(span, rest.span) } : { uses: null, phrase: span });
+    const rest = restNear(lower, sentenceSpans, span.start);
+    found.push({ uses: rest ? { amount: { kind: "fixed", n: countOf(m[1]) }, unit: rest.unit } : null, phrase: rest ? join(span, rest.span) : span });
   }
   return found;
 }
@@ -179,34 +188,44 @@ function ruleMatches(lower: string, all: Span[]): RuleMatch[] {
 /** Text that names uses with no amount: "regain all expended uses", or "per day" with no count. */
 const HINTS = [String.raw`\b(?:regain|regains|recover|recovers)\s+(?:(?:all|any|one|its|your|of|the)\s+)*(?:expended\s+|spent\s+)?uses\b`, String.raw`\bexpended\s+uses\b`, String.raw`\b(?:per|each)\s+day\b`];
 
-const key = (uses: SuggestedUses) => JSON.stringify(uses);
+const usesKey = (uses: SuggestedUses) => JSON.stringify(uses);
 
 /** The uses that the text gives: a suggestion, a hint, or null for none. */
-function readUses(text: string, lower: string, all: Span[]): UsesSuggestion | UsesHint | null {
-  const found = ruleMatches(lower, all).sort((a, b) => a.phrase.start - b.phrase.start);
-  const read = found.filter((f): f is { uses: SuggestedUses; phrase: Span } => f.uses !== null);
+function readUses(text: string, lower: string, sentenceSpans: Span[]): UsesSuggestion | UsesHint | null {
+  const found = ruleMatches(lower, sentenceSpans).sort((a, b) => a.phrase.start - b.phrase.start);
+  const read = found.filter((f): f is ReadMatch => f.uses !== null);
   const unread = found.find((f) => f.uses === null);
-  const results = new Set(read.map((f) => key(f.uses)));
-  if (results.size > 1) return { kind: "hint", reason: "conflict", match: matchOf(text, all, read[0].phrase) };
-  if (unread) return { kind: "hint", reason: "unclear", match: matchOf(text, all, unread.phrase) };
-  if (read.length > 0) return { kind: "suggestion", uses: read[0].uses, match: matchOf(text, all, read[0].phrase) };
+  const results = new Set(read.map((f) => usesKey(f.uses)));
+  if (results.size > 1) return { kind: "hint", reason: "conflict", match: matchOf(text, sentenceSpans, read[0].phrase) };
+  if (unread) return { kind: "hint", reason: "unclear", match: matchOf(text, sentenceSpans, unread.phrase) };
+  if (read.length > 0) return { kind: "suggestion", uses: read[0].uses, match: matchOf(text, sentenceSpans, read[0].phrase) };
   const hint = HINTS.flatMap((pattern) => each(lower, pattern)).sort((a, b) => a.span.start - b.span.start)[0];
-  return hint ? { kind: "hint", reason: "unclear", match: matchOf(text, all, hint.span) } : null;
+  return hint ? { kind: "hint", reason: "unclear", match: matchOf(text, sentenceSpans, hint.span) } : null;
 }
 
-/** The phrases of each type. */
+/** The phrases that suggest each type. */
 const TYPES: [SuggestedType, string][] = [
   ["action", String.raw`\b(?:as\s+an\s+action|use\s+(?:your|an)\s+action)\b`],
   ["b-action", String.raw`\b(?:as\s+a\s+bonus\s+action|use\s+(?:your|a)\s+bonus\s+action)\b`],
   ["reaction", String.raw`\b(?:use\s+your\s+reaction|as\s+a\s+reaction)\b`],
 ];
+/**
+ * The words that name a type with no phrase around them: "or a bonus
+ * action", "its reaction". They do not suggest a type, but they count as a
+ * second type. A bare "action" does not count, because "bonus action" and
+ * "the Dash action" hold it.
+ */
+const NAMED_TYPES: [SuggestedType, string][] = [
+  ["b-action", String.raw`\bbonus\s+actions?\b`],
+  ["reaction", String.raw`\breactions?\b`],
+];
 
 /** The type that the text gives, or null when it names no type or two types. */
-function readType(text: string, lower: string, all: Span[]): TypeSuggestion | null {
-  const found = TYPES.flatMap(([type, pattern]) => each(lower, pattern).map(({ span }) => ({ type, span })));
-  if (new Set(found.map((f) => f.type)).size !== 1) return null;
-  const first = found.sort((a, b) => a.span.start - b.span.start)[0];
-  return { type: first.type, match: matchOf(text, all, first.span) };
+function readType(text: string, lower: string, sentenceSpans: Span[]): TypeSuggestion | null {
+  const found = TYPES.flatMap(([type, pattern]) => each(lower, pattern).map(({ span }) => ({ type, span }))).sort((a, b) => a.span.start - b.span.start);
+  const named = NAMED_TYPES.filter(([, pattern]) => each(lower, pattern).length > 0).map(([type]) => type);
+  if (found.length === 0 || new Set([...found.map((f) => f.type), ...named]).size !== 1) return null;
+  return { type: found[0].type, match: matchOf(text, sentenceSpans, found[0].span) };
 }
 
 /**
@@ -214,10 +233,10 @@ function readType(text: string, lower: string, all: Span[]): TypeSuggestion | nu
  * suggested type. Null when it gives none of them.
  */
 export function readFeatureText(text: string): TextReading | null {
-  const lower = normal(text);
-  const all = sentences(text);
-  if (all.length === 0) return null;
-  const uses = readUses(text, lower, all);
-  const type = readType(text, lower, all);
+  const lower = lowerSameLength(text);
+  const sentenceSpans = sentences(text);
+  if (sentenceSpans.length === 0) return null;
+  const uses = readUses(text, lower, sentenceSpans);
+  const type = readType(text, lower, sentenceSpans);
   return uses === null && type === null ? null : { uses, type };
 }

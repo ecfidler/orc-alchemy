@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T17:03:34Z }
+generated: { by: claude-code/agent, at: 2026-11-13T19:38:15Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -505,6 +505,33 @@ suggestion without the user.
   "regain all expended uses".
 * **Type:** "as an action", "as a bonus action" and "use your reaction"
   suggest a type. If the text names two types, it gives no type suggestion.
+* A "+ n" sum and a level amount after "a number of times equal to" give a
+  hint. A "+ n" counts anywhere later in the sentence, but not in
+  parentheses, so "(a minimum of once)" is not a sum.
+
+The rules also read phrases with the same meaning as the table rows. The
+text is read in lower case, and ’ is the same as '.
+
+* **Can't use again:** "can't", "cannot" or "can not", then "use it",
+  "use this feature", "do so" (or a similar object) "again until you finish
+  a" or "complete a" rest. Also "you must finish a <rest> before you can
+  use it again".
+* **Rest:** "short or long rest" and "long or short rest" are a short rest.
+  "Short rest" is a short rest, and "long rest" is a long rest.
+* **Number of times:** the rest can be in the same sentence or in the next
+  sentence.
+* **Per day:** "once", "twice", "thrice", or "n times" (n as a number or as
+  a word up to ten), then "per day", "a day" or "each day".
+* **Use it n times:** "use it", "use this feature" or "use your <name>",
+  then a count, then a rest in the same or the next sentence. A count for a
+  turn, a round or a day is not this rule.
+* **Type:** "use your action" and "use an action" are an action. "Use your
+  bonus action" and "use a bonus action" are a bonus action. "As a
+  reaction" is a reaction. A bare "bonus action" or "reaction" counts as a
+  second type, so "as an action or a bonus action" gives no type.
+* **Hint phrases:** "regain" or "recover" "… uses", "expended uses", and
+  "per day" or "each day" with no count. They give a hint only when no rule
+  matches.
 
 Test the rules with a small test pack that has one feature for each rule
 and for each case that is not read. Keep the pack in the app's test files.
@@ -518,6 +545,16 @@ When a feature has no uses and its text gives a suggestion, a yellow line
 is under the uses control: The text says "…". Suggested: 1 use, short rest.
 [Use this]. One click fills the control. The same line shows for a type,
 when the type is Other.
+
+* The lines are under the Uses toggles and above the preview. Uses and type
+  each have their own line and their own "Use this" button.
+* For a hint, the line has no button: The text says "…" It may name uses,
+  but no clear amount. Set the uses by hand.
+* Other is no stored type, `""` (the monster's Other) or `:other`.
+* The lines show on the monster form too. A type line shows only when the
+  type list of the form has that type, so a monster gets no line for a
+  bonus action or a reaction.
+* The line is the `NoteLine` part of `@orc-alchemy/ui`.
 
 ## Review uses page
 

@@ -38,7 +38,7 @@ bun run test       # vitest
   the select, combobox, autocomplete and menu styles (`src/select.css`),
   the list modal, token, picker, number toggle, segmented toggle and chips styles
   (`src/picker.css`),
-  the paper pattern, stuck note and use bubble styles
+  the paper pattern, stuck note, note line and use bubble styles
   (`src/paper.css`), and the tabs styles (`src/tabs.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
@@ -212,6 +212,11 @@ bun run test       # vitest
   - `NoteCount`: an `InlineNote` that is only a mark, such as a count on a
     step button. It is hidden from screen readers, so give the count in
     words too.
+  - `NoteLine`: a flat yellow line of text in the flow of a form, for
+    something the user can act on there, such as a suggestion. It is not
+    tilted and has no shadow. `action` (`label`, `onClick`, and `name`
+    when the label alone does not say what it acts on) adds a link button
+    at the end of the line. Styles: `src/paper.css`.
   - `UseBubble`: the outline around something with limited uses: a
     `title`, its text, a `tag` in the top right, and one circle for each of
     its `uses`, or a `pool` with a large current / max. It is a group named

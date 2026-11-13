@@ -8,7 +8,7 @@ import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
 import { tag } from "../../engine/content.ts";
 import { editor, Traits, type FeatureList, type ItemRecord } from "./fields.tsx";
-import { SUGGESTION_PACK } from "./suggested-uses-pack.ts";
+import { SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 import { press } from "./test-picks.ts";
 
 afterEach(cleanup);
@@ -71,6 +71,15 @@ test("a feature with uses shows no uses line", () => {
   expect(usesButton()).toBeNull();
 });
 
+test("a stored null frequency is no uses: the control shows None, and the line shows", () => {
+  const start = renderTraits([{ ...packFeature("Second Breath"), "~:frequency": null }]);
+  expect(screen.getByRole("group", { name: "Feature 1 Uses" }).querySelector("[aria-pressed=true]")?.textContent).toBe("None");
+  expect(usesButton()).not.toBeNull();
+  expect(current).toBe(start);
+  fireEvent.click(usesButton()!);
+  expect(trait()["~:frequency"]).toEqual({ "~:units": "~:orcpub.dnd.e5.units/short-rest", "~:amount": 1 });
+});
+
 /** The frequency that the user stores with the control: the steps, on a new render of the feature. */
 async function byHand(name: string, steps: () => Promise<void> | void) {
   renderTraits([packFeature(name)]);
@@ -122,7 +131,7 @@ test("the type line shows only while the type is Other: no type, or :other", () 
 test("a hint shows a line with no button; text with no suggestion shows no line", () => {
   renderTraits([packFeature("Old Charm"), packFeature("Keen Strike"), packFeature("Two Ways")]);
   expect(screen.getByText(/It may name uses, but no clear amount\. Set the uses by hand\./).textContent).toBe(
-    "The text says “You regain all expended uses of this trait when you finish a long rest.” It may name uses, but no clear amount. Set the uses by hand. ",
+    "The text says “You regain all expended uses of this trait when you finish a long rest.” It may name uses, but no clear amount. Set the uses by hand.",
   );
   expect(screen.queryAllByRole("button", { name: /Use this/ })).toEqual([]);
   expect(screen.queryAllByText(/^The text says/)).toHaveLength(1);

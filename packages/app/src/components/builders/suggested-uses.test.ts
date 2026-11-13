@@ -2,7 +2,7 @@
 // "Suggested uses", "Rules"), on the test pack and on the variants that
 // each rule accepts.
 import { describe, expect, test } from "vitest";
-import { SUGGESTION_PACK } from "./suggested-uses-pack.ts";
+import { CASES, SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 import { readFeatureText, type SuggestedUses } from "./suggested-uses.ts";
 import { suggestedFrequency } from "./uses.ts";
 
@@ -11,7 +11,7 @@ const uses = (text: string) => {
   return reading === null ? null : reading.kind === "hint" ? "hint" : reading.uses;
 };
 const type = (text: string) => readFeatureText(text)?.type?.type ?? null;
-const fixed = (n: number, rest: SuggestedUses["rest"]): SuggestedUses => ({ amount: { kind: "fixed", n }, rest });
+const fixed = (n: number, unit: SuggestedUses["unit"]): SuggestedUses => ({ amount: { kind: "fixed", n }, unit });
 
 describe("the test pack", () => {
   test.each(SUGGESTION_PACK.map((f) => [f.name, f] as const))("%s", (_, feature) => {
@@ -28,9 +28,9 @@ describe("the test pack", () => {
     }
   });
 
-  test("has a feature for each rule, each case that is not read, and each hint", () => {
-    const names = SUGGESTION_PACK.map((f) => f.name);
-    expect(names).toEqual(expect.arrayContaining(["Tidal Surge", "Second Breath", "Sure Footing", "Song of Courage", "Mist Walk", "Warding Hand", "Deep Reserves", "Rising Tide", "Restful Mind", "Keen Strike", "Shifting Shape", "Old Charm", "Wind Song"]));
+  test("has a feature for each case: each rule, each case that is not read, the hints and the types", () => {
+    const covered = new Set(SUGGESTION_PACK.flatMap((f) => f.covers));
+    expect(CASES.filter((c) => !covered.has(c))).toEqual([]);
   });
 });
 
@@ -52,13 +52,13 @@ describe("uses rules", () => {
   });
 
   test("a number of times equal to your proficiency bonus, with the rest in the same or the next sentence", () => {
-    expect(uses("You can use it a number of times equal to your proficiency bonus, and regain all uses on a short or long rest.")).toEqual({ amount: { kind: "prof" }, rest: "short-rest" });
-    expect(uses("You can use it a number of times equal to your proficiency bonus. You regain all expended uses when you finish a long rest.")).toEqual({ amount: { kind: "prof" }, rest: "long-rest" });
+    expect(uses("You can use it a number of times equal to your proficiency bonus, and regain all uses on a short or long rest.")).toEqual({ amount: { kind: "prof" }, unit: "short-rest" });
+    expect(uses("You can use it a number of times equal to your proficiency bonus. You regain all expended uses when you finish a long rest.")).toEqual({ amount: { kind: "prof" }, unit: "long-rest" });
   });
 
   test("a number of times equal to an ability modifier: each of the six abilities", () => {
     for (const [word, ability] of [["Strength", "str"], ["Dexterity", "dex"], ["Constitution", "con"], ["Intelligence", "int"], ["Wisdom", "wis"], ["Charisma", "cha"]])
-      expect(uses(`You can do this a number of times equal to your ${word} modifier (minimum of once). You regain them when you finish a long rest.`)).toEqual({ amount: { kind: "ability", ability }, rest: "long-rest" });
+      expect(uses(`You can do this a number of times equal to your ${word} modifier (minimum of once). You regain them when you finish a long rest.`)).toEqual({ amount: { kind: "ability", ability }, unit: "long-rest" });
   });
 
   test("once / twice / n times per day, a day or each day", () => {
@@ -80,6 +80,14 @@ describe("cases that are not read", () => {
     expect(uses("You can use it a number of times equal to your Wisdom modifier + 1. You regain all uses on a long rest.")).toBe("hint");
     expect(uses("You can use it a number of times equal to your proficiency bonus plus 2 per long rest.")).toBe("hint");
     expect(uses("You can use it a number of times equal to 1 + your Charisma modifier per long rest.")).toBe("hint");
+  });
+
+  test("a + n later in the sentence is a hint; a minimum in parentheses is not a + n", () => {
+    expect(uses("You can use it a number of times equal to your Wisdom modifier, plus one, and regain them on a long rest.")).toBe("hint");
+    expect(uses("You can use it a number of times equal to your Wisdom modifier (minimum of 1) + 2. You regain them on a long rest.")).toBe("hint");
+    expect(uses("You can use it a number of times equal to your Wisdom modifier - 1 per long rest.")).toBe("hint");
+    expect(uses("You can use it a number of times equal to your Wisdom modifier (minimum of 1). You regain them on a long rest.")).toEqual({ amount: { kind: "ability", ability: "wis" }, unit: "long-rest" });
+    expect(uses("You can use it a number of times equal to your proficiency bonus (a minimum of once) per long rest.")).toEqual({ amount: { kind: "prof" }, unit: "long-rest" });
   });
 
   test("a level amount is a hint, not a suggestion", () => {
@@ -150,6 +158,12 @@ describe("type rules", () => {
     expect(type("As a bonus action you can start, and you stop as an action.")).toBeNull();
     expect(type("You can use your reaction, or use your action.")).toBeNull();
     expect(type("You have advantage on saving throws against poison.")).toBeNull();
+    // A bare "bonus action" or "reaction" counts as a second type.
+    expect(type("You raise your shield as an action or a bonus action.")).toBeNull();
+    expect(type("As an action, you mark a foe. The foe can't take reactions.")).toBeNull();
+    // "bonus action" holds "action", and "the Dash action" names no type.
+    expect(type("You can take the Dash action as a bonus action.")).toBe("b-action");
+    expect(type("You can use a bonus action to hide. You can't hide as a bonus action twice.")).toBe("b-action");
   });
 
   test("a type with no uses gives a reading with the type only", () => {
@@ -180,7 +194,7 @@ describe("the frequency of a suggestion", () => {
   test("is what the uses control writes for the same choice", () => {
     expect(suggestedFrequency(fixed(1, "short-rest"))).toEqual({ "~:units": "~:orcpub.dnd.e5.units/short-rest", "~:amount": 1 });
     expect(suggestedFrequency(fixed(2, "day"))).toEqual({ "~:units": "~:orcpub.dnd.e5.units/day", "~:amount": 2 });
-    expect(suggestedFrequency({ amount: { kind: "prof" }, rest: "long-rest" })).toEqual({ "~:units": LONG, "~:amount": { "~:prof-bonus": true } });
-    expect(suggestedFrequency({ amount: { kind: "ability", ability: "wis" }, rest: "long-rest" })).toEqual({ "~:units": LONG, "~:amount": { "~:ability": "~:wis", "~:min": 1 } });
+    expect(suggestedFrequency({ amount: { kind: "prof" }, unit: "long-rest" })).toEqual({ "~:units": LONG, "~:amount": { "~:prof-bonus": true } });
+    expect(suggestedFrequency({ amount: { kind: "ability", ability: "wis" }, unit: "long-rest" })).toEqual({ "~:units": LONG, "~:amount": { "~:ability": "~:wis", "~:min": 1 } });
   });
 });

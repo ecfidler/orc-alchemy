@@ -3,38 +3,42 @@
 // A line only shows what the text says. Nothing is stored until the user
 // presses "Use this". A line shows while the feature has no uses, or while
 // its type is Other.
-import { Button } from "@orc-alchemy/ui";
-import type { ReactNode } from "react";
+import { NoteLine } from "@orc-alchemy/ui";
 import { untag } from "../../engine/content.ts";
 import { ABILITY_NAMES } from "../../engine/sheet.ts";
 import type { Options } from "./fields.tsx";
-import { readFeatureText, type SuggestedRest, type SuggestedUses, type TextMatch } from "./suggested-uses.ts";
-import { suggestedFrequency } from "./uses.ts";
+import { readFeatureText, type SuggestedUnit, type SuggestedUses, type TextMatch } from "./suggested-uses.ts";
+import { suggestedFrequency, usesKind } from "./uses.ts";
 
-const REST_TEXT: Record<SuggestedRest, string> = { "short-rest": "short rest", "long-rest": "long rest", day: "each day" };
+const UNIT_TEXT: Record<SuggestedUnit, string> = { "short-rest": "short rest", "long-rest": "long rest", day: "each day" };
 
 /** The suggested uses in words: "1 use, short rest", "Proficiency bonus uses, long rest", "Wisdom modifier uses (minimum 1), long rest". */
-export function suggestedUsesText({ amount, rest }: SuggestedUses): string {
+function suggestedUsesText({ amount, unit }: SuggestedUses): string {
   const uses =
     amount.kind === "fixed"
       ? `${amount.n} ${amount.n === 1 ? "use" : "uses"}`
       : amount.kind === "prof"
         ? "Proficiency bonus uses"
         : `${ABILITY_NAMES[amount.ability]} modifier uses (minimum 1)`;
-  return `${uses}, ${REST_TEXT[rest]}`;
+  return `${uses}, ${UNIT_TEXT[unit]}`;
 }
 
 /** Whether a stored type is Other: no type, "" (the monster's Other) or :other. */
-export const isOtherType = (type: unknown) => untag(type) === "" || untag(type) === "other";
+const isOtherType = (type: unknown) => untag(type) === "" || untag(type) === "other";
 
-/** One yellow line: what the text says, the suggestion, and its button when there is one. A quote that ends a sentence gets no second period. */
-function Line({ match, children, action }: { match: TextMatch; children: ReactNode; action?: ReactNode }) {
+/**
+ * One yellow line: what the text says, then the suggestion. With onUse it
+ * ends with a "Use this" button, named by buttonName. A quote that ends a
+ * sentence gets no second period.
+ */
+function Line({ match, text, onUse, buttonName }: { match: TextMatch; text: string; onUse?: () => void; buttonName?: string }) {
+  const close = /[.!?]$/.test(match.quote) ? "”" : "”.";
   return (
-    <p className="bg-note px-3 py-[7px] font-sans text-[13.5px] leading-[1.4] text-note-ink [&_.ui-button]:font-bold [&_.ui-button]:text-note-ink">
-      The text says {"\u201c"}
+    <NoteLine action={onUse && { label: "Use this", name: buttonName, onClick: onUse }}>
+      The text says {"“"}
       {match.quote}
-      {/[.!?]$/.test(match.quote) ? "\u201d" : "\u201d."} {children} {action}
-    </p>
+      {close} {text}
+    </NoteLine>
   );
 }
 
@@ -57,42 +61,22 @@ export function SuggestionLines({
   onUses: (frequency: Record<string, unknown>) => void;
   onType: (type: unknown) => void;
 }) {
-  const text = feature["~:description"];
-  const reading = typeof text === "string" ? readFeatureText(text) : null;
+  const description = feature["~:description"];
+  const reading = typeof description === "string" ? readFeatureText(description) : null;
   if (reading === null) return null;
   const { uses, type } = reading;
-  const showUses = uses !== null && feature["~:frequency"] === undefined;
+  const showUses = uses !== null && usesKind(feature["~:frequency"]) === "none";
   const typeOption = type && isOtherType(feature["~:type"]) ? types.find(([value]) => typeof value === "string" && untag(value) === type.type) : undefined;
   if (!showUses && !typeOption) return null;
   return (
     <div className="grid gap-[6px]">
       {showUses &&
         (uses.kind === "suggestion" ? (
-          <Line
-            match={uses.match}
-            action={
-              <Button variant="link" aria-label={`${name} uses: Use this`} onClick={() => onUses(suggestedFrequency(uses.uses))}>
-                Use this
-              </Button>
-            }
-          >
-            Suggested: {suggestedUsesText(uses.uses)}.
-          </Line>
+          <Line match={uses.match} text={`Suggested: ${suggestedUsesText(uses.uses)}.`} onUse={() => onUses(suggestedFrequency(uses.uses))} buttonName={`${name} uses: Use this`} />
         ) : (
-          <Line match={uses.match}>It may name uses, but no clear amount. Set the uses by hand.</Line>
+          <Line match={uses.match} text="It may name uses, but no clear amount. Set the uses by hand." />
         ))}
-      {type && typeOption && (
-        <Line
-          match={type.match}
-          action={
-            <Button variant="link" aria-label={`${name} type: Use this`} onClick={() => onType(typeOption[0])}>
-              Use this
-            </Button>
-          }
-        >
-          Suggested type: {typeOption[1]}.
-        </Line>
-      )}
+      {type && typeOption && <Line match={type.match} text={`Suggested type: ${typeOption[1]}.`} onUse={() => onType(typeOption[0])} buttonName={`${name} type: Use this`} />}
     </div>
   );
 }

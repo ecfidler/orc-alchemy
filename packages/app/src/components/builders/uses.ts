@@ -194,10 +194,10 @@ export const plusText = (n: number) => (n < 0 ? `− ${-n}` : `+ ${n}`);
  * The frequency of suggested uses (suggested-uses.ts), as the uses control
  * writes it for the same choice: a fixed amount is a number, the
  * proficiency bonus is {:prof-bonus true}, and an ability is its bare key
- * with a minimum of 1. The unit is the full keyword of the rest.
+ * with a minimum of 1. The unit is its full keyword.
  */
-export function suggestedFrequency({ amount, rest }: SuggestedUses): TransitMap {
+export function suggestedFrequency({ amount, unit }: SuggestedUses): TransitMap {
   const scaled = (base: string) => withBase(withKind(undefined, "scaled"), base);
   const frequency = amount.kind === "fixed" ? withFixed(undefined, amount.n) : scaled(amount.kind === "prof" ? "prof" : amount.ability);
-  return withUnit(frequency, rest);
+  return withUnit(frequency, unit);
 }
