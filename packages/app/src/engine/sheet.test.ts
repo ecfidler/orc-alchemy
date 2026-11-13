@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Built2014 } from "@pubdoor/dmv";
+import type { Amount, Built2014 } from "@pubdoor/dmv";
 import { expect, test } from "vitest";
-import { featureDisplay, toSheet, UNNAMED_FEATURE, usesDisplay } from "./sheet.ts";
+import { sectionOf, toSheet, UNNAMED_FEATURE, usesDisplay } from "./sheet.ts";
 
 // expected.json is evaluate(strict).built, so these tests need no engine.
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -291,15 +291,14 @@ test("a feature or special attack with no name gets a fallback name", () => {
 
 // ORC-203 (homebrew-forms.md, "On the sheet"): the engine puts every homebrew feature in traits, with its type.
 test("a feature's type gives its section; no type, other, or an unknown type is a trait", () => {
-  const section = (type?: string | null) => featureDisplay(type, undefined).section;
-  expect(section("action")).toBe("actions");
-  expect(section("b-action")).toBe("bonusActions");
-  expect(section("reaction")).toBe("reactions");
-  expect(section("orcpub.dnd.e5/b-action")).toBe("bonusActions");
-  expect(section("other")).toBe("traits");
-  expect(section(undefined)).toBe("traits");
-  expect(section(null)).toBe("traits");
-  expect(section("legendary")).toBe("traits");
+  expect(sectionOf("action")).toBe("actions");
+  expect(sectionOf("b-action")).toBe("bonusActions");
+  expect(sectionOf("reaction")).toBe("reactions");
+  expect(sectionOf("orcpub.dnd.e5/b-action")).toBe("bonusActions");
+  expect(sectionOf("other")).toBe("traits");
+  expect(sectionOf(undefined)).toBe("traits");
+  expect(sectionOf(null)).toBe("traits");
+  expect(sectionOf("legendary")).toBe("traits");
 });
 
 test("uses show as circles up to 8, a pool above 8, and plain text for none or 0 or fewer", () => {
@@ -314,7 +313,6 @@ test("uses show as circles up to 8, a pool above 8, and plain text for none or 0
   expect(usesDisplay({ amount: 9 })).toEqual({ kind: "pool", max: 9, step: 1 });
   expect(usesDisplay({ amount: 19 })).toEqual({ kind: "pool", max: 19, step: 1 });
   expect(usesDisplay({ amount: 20 })).toEqual({ kind: "pool", max: 20, step: 5 });
-  expect(featureDisplay("b-action", { amount: 30 })).toEqual({ section: "bonusActions", uses: { kind: "pool", max: 30, step: 5 } });
 });
 
 test("toSheet: a feature with 0 uses or fewer is plain, and a unit with no amount is 1 use", () => {
@@ -323,7 +321,7 @@ test("toSheet: a feature with 0 uses or fewer is plain, and a unit with no amoun
     traits: [
       { name: "None Left", description: "zero", type: "action", frequency: { amount: 0, units: "orcpub.dnd.e5.units/long-rest" } },
       { name: "Below Zero", description: "negative", frequency: { amount: -2, units: "orcpub.dnd.e5.units/long-rest" } },
-      { name: "Once", description: "no amount", type: "reaction", frequency: { units: "orcpub.dnd.e5.units/short-rest" } as never },
+      { name: "Once", description: "no amount", type: "reaction", frequency: { units: "orcpub.dnd.e5.units/short-rest" } as Amount },
     ],
   };
   const { features } = toSheet(built, {});

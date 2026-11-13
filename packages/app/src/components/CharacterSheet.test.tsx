@@ -344,21 +344,10 @@ test("a limited-use feature sits in a use bubble, with circles, or a pool for mo
   expect(screen.getByText("Move again.")).toBeTruthy();
 });
 
-// ORC-203: a typed homebrew feature looks the same as an engine entry of its section.
-test("scaled-uses shows its typed homebrew features in their sections, and 0 uses or fewer with no bubble", () => {
+// ORC-203: a typed homebrew feature draws the same bubble as an engine entry. sheet.test.ts and e2e check the sections.
+test("scaled-uses draws its homebrew uses as the engine's: circles, a pool above 8, and no bubble for 0 uses or fewer", () => {
   render(<CharacterSheet sheet={toSheet(expectedOf("scaled-uses-fighter-6-barbarian-1"), {})} />);
-  /** The feature names in the section under this heading: a bubble's title, or a plain feature's bold name. */
-  const section = (title: string) => {
-    const box = screen.getByRole("heading", { level: 3, name: title }).parentElement!;
-    return [...box.querySelectorAll(".ui-use-bubble-title, p > b")].map((element) => element.textContent);
-  };
-  expect(section("Actions")).toEqual(["Action Surge", "Crashing Wave", "Stormcaller", "Undertow"]);
-  expect(section("Bonus Actions")).toEqual(["Ebb and Flow", "Rage", "Rolling Gait", "Second Wind", "Tide Step"]);
-  expect(section("Reactions")).toEqual(["Brine Ward"]);
-  expect(section("Features, Traits, and Feats")).not.toContain("Tide Step");
-
   const bubble = (name: string) => within(screen.getByRole("group", { name }));
-  // An engine action and a homebrew action draw the same bubble.
   expect(bubble("Action Surge").getByRole("button", { name: "Use 1" })).toBeTruthy();
   expect(bubble("Stormcaller").getByRole("button", { name: "Use 3" })).toBeTruthy();
   expect(bubble("Rolling Gait").getAllByRole("button")).toHaveLength(7);
@@ -367,13 +356,6 @@ test("scaled-uses shows its typed homebrew features in their sections, and 0 use
   // Undertow resolves to -1 uses: a plain feature.
   expect(screen.queryByRole("group", { name: "Undertow" })).toBeNull();
   expect(screen.getByText("You pull one creature within 30 feet 10 feet toward you.")).toBeTruthy();
-});
-
-test("a feature given 0 uses has no bubble", () => {
-  const features = { ...sheet.features, actions: [{ name: "Spent", text: "Nothing left.", uses: { amount: 0, recharge: "Long rest" } }] };
-  render(<CharacterSheet sheet={{ ...sheet, features }} />);
-  expect(screen.queryByRole("group", { name: "Spent" })).toBeNull();
-  expect(screen.getByText("Nothing left.")).toBeTruthy();
 });
 
 /** Renders the sheet as a phone does: the sheet is `width` pixels wide. */

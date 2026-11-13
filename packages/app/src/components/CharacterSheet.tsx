@@ -790,22 +790,21 @@ function FieldList({ fields }: { fields: [string, string[]][] }) {
   );
 }
 
-/**
- * Each feature's name on its own line above its text. A limited-use feature sits in a use bubble, with circles or a
- * pool. usesDisplay decides which, as it does for the uses preview of the homebrew forms.
- */
+/** The UseBubble props for these uses: circles, or a pool for more than 8. */
+const bubbleUses = (uses: NonNullable<SheetFeature["uses"]>) => {
+  const display = usesDisplay(uses);
+  if (display.kind === "pool") return { pool: { max: display.max, step: display.step } };
+  // A sheet feature's uses are 1 or more, so "plain" does not occur here; it would draw no circles.
+  return display.kind === "circles" ? { uses: display.count } : {};
+};
+
+/** Each feature's name on its own line above its text. A limited-use feature sits in a use bubble. */
 function Features({ items }: { items: SheetFeature[] }) {
   return (
     <div className="grid gap-2.5 text-[14.5px]">
-      {items.map((item, i) => {
-        const display = usesDisplay(item.uses);
-        return item.uses && display.kind !== "plain" ? (
-          <UseBubble
-            key={`${i}-${item.name}`}
-            title={item.name}
-            tag={item.uses.recharge}
-            {...(display.kind === "pool" ? { pool: { max: display.max, step: display.step } } : { uses: display.count })}
-          >
+      {items.map((item, i) =>
+        item.uses ? (
+          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={item.uses.recharge} {...bubbleUses(item.uses)}>
             {item.text}
           </UseBubble>
         ) : (
@@ -813,8 +812,8 @@ function Features({ items }: { items: SheetFeature[] }) {
             <b className="font-semibold">{item.name}</b>
             <span>{item.text}</span>
           </p>
-        );
-      })}
+        ),
+      )}
     </div>
   );
 }

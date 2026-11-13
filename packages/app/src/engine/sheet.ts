@@ -61,7 +61,7 @@ export interface SheetFeature {
   text: string;
   /**
    * For a limited-use feature: how many uses, and when they come back ("Short rest", "Long rest", "Each day").
-   * A feature with 0 uses or fewer has none: it is a plain feature.
+   * The amount is 1 or more: toSheet gives a feature with 0 uses or fewer no `uses`, so it is a plain feature.
    */
   uses?: { amount: number; recharge: string };
 }
@@ -285,10 +285,11 @@ const SECTION_OF_TYPE: Record<string, FeatureSection> = {
 };
 
 /**
- * How the uses of a feature show (homebrew-forms.md, "On the sheet"). No
- * frequency is plain text. A frequency with no amount is 1 use. An amount of
- * 0 or fewer is plain text. 8 uses or fewer are circles; more than 8 are a
- * pool, such as Lay on Hands' 25 hit points. A click on a pool of 20 or more
+ * How the uses of a feature show (homebrew-forms.md, "On the sheet"). toSheet
+ * calls it to drop uses that show as plain text, and the sheet calls it to
+ * draw circles or a pool. No frequency is plain text. A frequency with no
+ * amount is 1 use. An amount of 0 or fewer is plain text. 8 uses or fewer are
+ * circles; more than 8 are a pool, such as Lay on Hands' 25 hit points. A click on a pool of 20 or more
  * spends 5, as in the prototype; on a smaller pool it spends 1.
  */
 export function usesDisplay(frequency: { amount?: number | null } | null | undefined): UsesDisplay {
@@ -300,17 +301,14 @@ export function usesDisplay(frequency: { amount?: number | null } | null | undef
 }
 
 /**
- * Where a feature goes on the sheet and how its uses show. The sheet and the
- * uses preview of the homebrew forms both call it, so the two cannot differ.
- * `type` is the feature's homebrew type: "action", "b-action", "reaction" or
- * "other", bare or as a qualified keyword. `frequency.amount` is the resolved
- * number of uses: the engine resolves a scaled amount before the sheet gets it.
+ * The sheet section of a feature (homebrew-forms.md, "On the sheet"). `type`
+ * is the feature's homebrew type: "action", "b-action", "reaction" or
+ * "other", bare or as a qualified keyword. toSheet calls it for each trait.
+ * The uses preview of the homebrew forms (ORC-204) is to call it and
+ * usesDisplay, so that the preview and the sheet cannot differ.
  */
-export function featureDisplay(
-  type: string | null | undefined,
-  frequency: { amount?: number | null } | null | undefined,
-): { section: FeatureSection; uses: UsesDisplay } {
-  return { section: SECTION_OF_TYPE[unqualify(type ?? "")] ?? "traits", uses: usesDisplay(frequency) };
+export function sectionOf(type: string | null | undefined): FeatureSection {
+  return SECTION_OF_TYPE[unqualify(type ?? "")] ?? "traits";
 }
 
 /**
@@ -338,21 +336,23 @@ function toFeature(feature: Feature): SheetFeature {
   return { name, text: sentence(text) };
 }
 
+const toFeatures = (features: Feature[]) => byName(features.map(toFeature));
+
 /**
- * The four feature lists. The engine puts every homebrew feature in `traits`,
- * with its `type`; featureDisplay moves it to the section of that type. The
- * engine's own actions, bonus actions and reactions keep their list.
+ * The four feature lists, each sorted by name. The engine puts every homebrew
+ * feature in `traits`, with its `type`; sectionOf moves it to the section of
+ * that type. The engine's own actions, bonus actions and reactions keep their
+ * list.
  */
 function toFeatureSections(built: Built2014): Sheet["features"] {
-  const sections: Sheet["features"] = {
-    actions: (built.actions ?? []).map(toFeature),
-    bonusActions: (built["bonus-actions"] ?? []).map(toFeature),
-    reactions: (built.reactions ?? []).map(toFeature),
-    traits: [],
+  const traits = built.traits ?? [];
+  const typed = (section: FeatureSection) => traits.filter((trait) => sectionOf(trait.type) === section);
+  return {
+    actions: toFeatures([...(built.actions ?? []), ...typed("actions")]),
+    bonusActions: toFeatures([...(built["bonus-actions"] ?? []), ...typed("bonusActions")]),
+    reactions: toFeatures([...(built.reactions ?? []), ...typed("reactions")]),
+    traits: toFeatures(typed("traits")),
   };
-  for (const trait of built.traits ?? []) sections[featureDisplay(trait.type, trait.frequency).section].push(toFeature(trait));
-  for (const list of Object.values(sections)) byName(list);
-  return sections;
 }
 
 const toItems = (...inventories: Inventory[]): SheetItem[] =>
