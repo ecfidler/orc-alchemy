@@ -1,4 +1,4 @@
-/* The paper patterns, the stuck note and the use bubble (docs/design/theme.md, "Paper patterns", "Notes and bubbles"). Low specificity, so the app's layout utilities win. */
+/* The paper patterns, the stuck note, the note line and the use bubble (docs/design/theme.md, "Paper patterns", "Notes and bubbles"). Low specificity, so the app's layout utilities win. */
 
 @layer components {
   .ui-label {
@@ -218,6 +218,29 @@
     text-decoration: underline;
     text-underline-offset: 2px;
   }
+  /* A flat yellow line in the flow of a form, with a link button at its end. It stays yellow in dark mode. */
+  .ui-note-line {
+    --focus-ring: var(--note-ink);
+    margin: 0;
+    padding: 7px 12px;
+    color: var(--note-ink);
+    background: var(--note);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+  .ui-note-line-action {
+    font: inherit;
+    font-weight: 700;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .ui-note-line-action:focus-visible,
   .ui-stuck-note :is(button, a):focus-visible,
   .ui-use-circle:focus-visible,
   .ui-use-pool:focus-visible {

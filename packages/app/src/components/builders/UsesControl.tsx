@@ -73,19 +73,22 @@ function LabelledSelect<T>({ label, name, value, options, onSelect }: { label: s
  * feature's name for the controls, such as "Feature 2". levelName is the
  * class of a class or subclass form, whose level a level amount counts; in
  * other forms it is null, and a level is the character level. onChange gets
- * the frequency to store, or undefined for no uses.
+ * the frequency to store, or undefined for no uses. children go under the
+ * toggles and above the preview, such as the lines of suggested uses.
  */
 export function UsesControl({
   name,
   onChange,
   feature,
   levelName,
+  children,
 }: {
   name: string;
   onChange: (frequency: Record<string, unknown> | undefined) => void;
   /** The stored feature: its :frequency, and the rest for the preview. */
   feature: Record<string, unknown>;
   levelName: string | null;
+  children?: ReactNode;
 }) {
   const nameId = useId();
   const frequency = feature["~:frequency"];
@@ -153,6 +156,7 @@ export function UsesControl({
           )}
         </LabelAbove>
       )}
+      {children}
       <UsesPreview name={name} feature={feature} levelName={levelName} />
     </div>
   );
