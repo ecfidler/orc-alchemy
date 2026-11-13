@@ -3,7 +3,7 @@
 // each rule accepts.
 import { describe, expect, test } from "vitest";
 import { CASES, fixed, SUGGESTION_PACK } from "./test-suggestion-pack.ts";
-import { readFeatureText, type SuggestedUses } from "./suggested-uses.ts";
+import { readFeatureText } from "./suggested-uses.ts";
 import { suggestedFrequency } from "./uses.ts";
 
 const uses = (text: string) => {
