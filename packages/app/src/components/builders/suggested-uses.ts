@@ -155,7 +155,11 @@ function ruleMatches(lower: string, sentenceSpans: Span[]): RuleMatch[] {
     String.raw`\b(?:can't|cannot|can\s+not)\s+${again}\s+until\s+you\s+(?:finish|complete)\s+an?\s+${REST}`,
     String.raw`\bmust\s+(?:finish|complete)\s+an?\s+${REST}\s+before\s+you\s+can\s+${again}`,
   ];
-  for (const pattern of againPatterns) for (const { m, span } of each(lower, pattern)) found.push({ uses: { amount: { kind: "fixed", n: 1 }, unit: restUnit(m[1]) }, phrase: span });
+  for (const pattern of againPatterns) {
+    for (const { m, span } of each(lower, pattern)) {
+      found.push({ uses: { amount: { kind: "fixed", n: 1 }, unit: restUnit(m[1]) }, phrase: span });
+    }
+  }
 
   // "a number of times equal to your proficiency bonus" or "… your Wisdom modifier", then a rest. Any other amount is not read:
   // a "+ n" or a "- n" in the rest of the sentence, outside parentheses such as "(a minimum of once)", is not read.

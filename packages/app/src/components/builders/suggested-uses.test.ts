@@ -2,7 +2,7 @@
 // "Suggested uses", "Rules"), on the test pack and on the variants that
 // each rule accepts.
 import { describe, expect, test } from "vitest";
-import { CASES, SUGGESTION_PACK } from "./test-suggestion-pack.ts";
+import { CASES, fixed, SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 import { readFeatureText, type SuggestedUses } from "./suggested-uses.ts";
 import { suggestedFrequency } from "./uses.ts";
 
@@ -11,7 +11,6 @@ const uses = (text: string) => {
   return reading === null ? null : reading.kind === "hint" ? "hint" : reading.uses;
 };
 const type = (text: string) => readFeatureText(text)?.type?.type ?? null;
-const fixed = (n: number, unit: SuggestedUses["unit"]): SuggestedUses => ({ amount: { kind: "fixed", n }, unit });
 
 describe("the test pack", () => {
   test.each(SUGGESTION_PACK.map((f) => [f.name, f] as const))("%s", (_, feature) => {

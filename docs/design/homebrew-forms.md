@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T19:38:15Z }
+generated: { by: claude-code/agent, at: 2026-11-13T19:46:49Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -507,7 +507,8 @@ suggestion without the user.
   suggest a type. If the text names two types, it gives no type suggestion.
 * A "+ n" sum and a level amount after "a number of times equal to" give a
   hint. A "+ n" counts anywhere later in the sentence, but not in
-  parentheses, so "(a minimum of once)" is not a sum.
+  parentheses, so "(a minimum of once)" is not a sum. A "- n" and "times"
+  after the amount count as a sum too.
 
 The rules also read phrases with the same meaning as the table rows. The
 text is read in lower case, and ’ is the same as '.
@@ -522,7 +523,8 @@ text is read in lower case, and ’ is the same as '.
   sentence.
 * **Per day:** "once", "twice", "thrice", or "n times" (n as a number or as
   a word up to ten), then "per day", "a day" or "each day".
-* **Use it n times:** "use it", "use this feature" or "use your <name>",
+* **Use it n times:** "use it", "use this feature", "use your <name>" or
+  a similar object,
   then a count, then a rest in the same or the next sentence. A count for a
   turn, a round or a day is not this rule.
 * **Type:** "use your action" and "use an action" are an action. "Use your

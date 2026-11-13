@@ -44,7 +44,7 @@ export interface PackFeature {
   covers: Case[];
 }
 
-const fixed = (n: number, unit: SuggestedUses["unit"]): SuggestedUses => ({ amount: { kind: "fixed", n }, unit });
+export const fixed = (n: number, unit: SuggestedUses["unit"]): SuggestedUses => ({ amount: { kind: "fixed", n }, unit });
 
 export const SUGGESTION_PACK: PackFeature[] = [
   {
