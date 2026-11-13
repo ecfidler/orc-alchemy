@@ -38,6 +38,10 @@ Done when every item is Done in Linear.
 3. If the finish-line issue asks for an exit report, post it there.
 4. After the merge, update project memory with the decisions and open follow-ups.
 
+## Run State
+
+In a project thread, keep the run state in project memory: one file for the milestone with the run plan and the open decisions, under 4 KB. Per-issue detail goes in the PR description and the Linear issue, where it does not fill the file.
+
 ## Stopping Mid-Milestone
 
-Write a handoff at `docs/handoffs/<milestone-branch>.md`, modeled on `docs/handoffs/m3-homebrew-in-the-app.md`, and add it to `docs/handoffs/index.md`. Run `bun run docs:check`, then commit and push it straight to the base branch. A handoff needs no PR.
+In a session with no project memory, write a handoff at `docs/handoffs/<milestone-branch>.md`, modeled on `docs/handoffs/m3-homebrew-in-the-app.md`, and add it to `docs/handoffs/index.md`. Run `bun run docs:check`, then commit and push it straight to the base branch. A handoff needs no PR.
