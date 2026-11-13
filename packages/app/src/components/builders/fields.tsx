@@ -529,8 +529,26 @@ export interface FeatureList {
   add: string;
 }
 
-/** The feature list of the race, subrace, background, class and subclass forms (docs/design/homebrew-forms.md, "Features"). */
+/** The feature list of the race, subrace, background, class, subclass and feat forms (docs/design/homebrew-forms.md, "Features"). */
 export const FEATURE_LIST: FeatureList = { types: TRAIT_TYPES, legend: "Features", add: "Add a feature" };
+
+/**
+ * The Type select of the feature at path: of a feature in a list, or of an
+ * item that is its own feature on the sheet, such as a feat (path []). name
+ * names the feature, such as "Feature 2". A type of "" stores no type.
+ */
+export function FeatureType({ edit, path, name, types = TRAIT_TYPES }: { edit: Edit; path: Path; name: string; types?: Options }) {
+  return <SelectField label="Type" name={`${name} type`} value={edit.get(...path, "type") ?? ""} options={types} onSelect={(v) => edit.set([...path, "type"], v === "" ? undefined : v)} />;
+}
+
+/**
+ * The uses control and the preview of the feature at path, which write its
+ * :frequency. No uses removes the key. name and levelName are as for
+ * UsesControl.
+ */
+export function FeatureUses({ edit, path, name, levelName }: { edit: Edit; path: Path; name: string; levelName: string | null }) {
+  return <UsesControl name={name} feature={(edit.get(...path) ?? {}) as ItemRecord} onChange={(frequency) => edit.set([...path, "frequency"], frequency)} levelName={levelName} />;
+}
 
 /**
  * The features, each with a name, a type, a description and its uses with a
@@ -562,13 +580,7 @@ export function Traits({ edit, problems = [], levelName = null, list = FEATURE_L
                 <FieldLabel label="Name" className="min-w-[12rem] flex-1">
                   <TextInput aria-label={`Feature ${n} name`} value={String(trait[tag("name")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "name"], text)} width="full" />
                 </FieldLabel>
-                <SelectField
-                  label="Type"
-                  name={`Feature ${n} type`}
-                  value={trait[tag("type")] ?? ""}
-                  options={list.types}
-                  onSelect={(v) => edit.set(["traits", i, "type"], v === "" ? undefined : v)}
-                />
+                <FeatureType edit={edit} path={["traits", i]} name={`Feature ${n}`} types={list.types} />
                 {levelName !== null && (
                   <SelectField label="Level" name={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />
                 )}
@@ -579,7 +591,7 @@ export function Traits({ edit, problems = [], levelName = null, list = FEATURE_L
             <FieldLabel label="Description">
               <TextArea aria-label={`Feature ${n} description`} value={String(trait[tag("description")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "description"], text)} rows={3} />
             </FieldLabel>
-            <UsesControl name={`Feature ${n}`} feature={trait} onChange={(frequency) => edit.set(["traits", i, "frequency"], frequency)} levelName={levelName} />
+            <FeatureUses edit={edit} path={["traits", i]} name={`Feature ${n}`} levelName={levelName} />
           </Card>
         );
       })}

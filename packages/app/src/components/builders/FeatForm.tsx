@@ -10,10 +10,14 @@
 // click), and a map such as {:armor-prof {:light true}} for the grouped
 // ones. The form shows the prerequisites and the ability increase options
 // always, and the user adds the other modifiers from a list (modifiers.tsx).
+// Uses of the feat writes :type and :frequency on the feat, for its own
+// entry on the sheet, and the Features section writes :traits (ORC-205,
+// docs/design/homebrew-forms.md, "Uses on a feat"). Engine 0.4.0 reads them.
+// A level amount on a feat counts the character level.
 import { Checkbox, Picker } from "@orc-alchemy/ui";
 import { asSet, setItems, tag, untag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
-import { ABILITIES, abilityKey, Checks, editor, FormColumn, MapPicker, pickedText, RecordTextArea, Section, SKILLS, TextField, WithChoices, type BuilderType, type Edit, type FormProps, type Path, type PickerOptions } from "./fields.tsx";
+import { ABILITIES, abilityKey, Checks, editor, FeatureType, FeatureUses, FieldRow, FormColumn, MapPicker, pickedText, RecordTextArea, Section, SKILLS, TextField, Traits, WithChoices, type BuilderType, type Edit, type FormProps, type Path, type PickerOptions } from "./fields.tsx";
 import { armorModifier, hitPointsModifier, propModifier, RESISTANCE_CHOICES, TOOL_ITEMS, valueModifier } from "./modifier-kinds.tsx";
 import { Modifiers, type Modifier } from "./modifiers.tsx";
 
@@ -105,6 +109,22 @@ function AbilityIncreaseOptions({ edit, legend }: { edit: Edit; legend: string }
   );
 }
 
+/**
+ * Uses of the feat: the Type and the uses of the feat's own entry on the
+ * sheet, with the preview. The feat is not in a class, so a level amount
+ * counts the character level.
+ */
+function FeatUses({ edit, legend }: { edit: Edit; legend: string }) {
+  return (
+    <Section legend={legend}>
+      <FieldRow>
+        <FeatureType edit={edit} path={[]} name="Feat" />
+      </FieldRow>
+      <FeatureUses edit={edit} path={[]} name="Feat" levelName={null} />
+    </Section>
+  );
+}
+
 /** The feat's modifiers in form order (docs/design/homebrew-forms.md, "Feat"). */
 function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
   return [
@@ -124,6 +144,7 @@ function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
     sentenceModifier(edit, "spellcasting", "Spellcasting", "Cantrips and a 1st-level spell, ritual spells, an attack cantrip", SPELLCASTING, { add: "Add a spellcasting benefit" }),
     propModifier(edit, "skill-prof-or-expertise", "Skill Proficiency or Expertise", "Proficiency in a skill, or expertise if already proficient", SKILLS, { add: "Add a skill" }),
     propModifier(edit, "tool-prof-or-expertise", "Tool Proficiency or Expertise", "Proficiency with a tool, or expertise if already proficient", TOOL_ITEMS, { add: "Add a tool", search: true }),
+    { id: "uses", name: "Uses of the feat", common: true, render: ({ name }) => <FeatUses edit={edit} legend={name} /> },
   ];
 }
 
@@ -136,6 +157,7 @@ function FeatForm({ record, onChange, problems }: FormProps) {
           <TextField edit={edit} problems={problems} field="name" label="Name" />
           <RecordTextArea edit={edit} field="description" label="Description" />
           <Modifiers record={record} onChange={onChange} modifiers={featModifiers(edit, lists)} />
+          <Traits edit={edit} />
         </FormColumn>
       )}
     </WithChoices>
