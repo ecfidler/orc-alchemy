@@ -113,7 +113,7 @@ orc-alchemy/
 Each workspace package owns its dependencies and scripts; the root holds
 only what every package shares. `bun install` runs once from the root.
 
-`CLAUDE.md` in the monorepo states five things:
+`CLAUDE.md` in the monorepo states four things:
 
 - The plan is `docs/plan/`, and Plan Set 2 is active.
 - The engine comes from `@pubdoor/dmv`, built in the `ecfidler/orcpub` fork

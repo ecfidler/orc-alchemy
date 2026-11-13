@@ -9,7 +9,8 @@ a test can check belongs in that check, not here.
   (the Exports list in `packages/ui/README.md`) or the helper from
   `packages/app/src/components/builders/fields.tsx` before a local copy.
 - **Engine code lives in `packages/app/src/engine`.** Only that folder
-  imports `@pubdoor/dmv`, as the header comment of `engine.ts` states. Code
+  imports `@pubdoor/dmv`, as the header comment of `engine.ts` states; a
+  test file can import a type from it. Code
   that reads or computes engine values for a component also goes there.
 - **A storage test compares the whole record.** When a change must keep a
   stored value the same, the test compares the full stored record with the
