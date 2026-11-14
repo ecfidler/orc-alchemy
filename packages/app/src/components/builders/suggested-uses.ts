@@ -6,6 +6,7 @@
 // form shows a suggestion on a line under the uses control
 // (SuggestionLines.tsx). The Review uses page (ORC-207) uses the matched
 // sentence and the place of the phrase to mark it.
+import { untag } from "../../engine/content.ts";
 import type { Ability } from "../../engine/sheet.ts";
 
 /** A part of the text: from start up to, but not including, end. */
@@ -243,4 +244,18 @@ export function readFeatureText(text: string): TextReading | null {
   const uses = readUses(text, lower, sentenceSpans);
   const type = readType(text, lower, sentenceSpans);
   return uses === null && type === null ? null : { uses, type };
+}
+
+/** Whether a stored type is Other: no type, "" (the monster's Other) or :other. */
+const isOtherType = (type: unknown) => untag(type) === "" || untag(type) === "other";
+
+/**
+ * The option of a type select that a suggested type fills: only when the
+ * stored type is Other and the select's options have the type. The form
+ * shows its type line for it, and the Review uses page its Type select.
+ * Undefined otherwise.
+ */
+export function suggestedTypeOption<T extends readonly [unknown, string]>(type: TypeSuggestion | null, stored: unknown, options: readonly T[]): T | undefined {
+  if (type === null || !isOtherType(stored)) return undefined;
+  return options.find(([value]) => typeof value === "string" && untag(value) === type.type);
 }

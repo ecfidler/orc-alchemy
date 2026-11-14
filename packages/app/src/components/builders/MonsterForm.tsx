@@ -41,7 +41,7 @@ const ALIGNMENTS = [
 const CHALLENGES = [0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)];
 const DICE = [4, 6, 8, 10, 12, 20, 100];
 /** The monster's feature list: its types (Other stores no type), its title and its add button. */
-const MONSTER_FEATURES: FeatureList = {
+export const MONSTER_FEATURES: FeatureList = {
   types: [
     ["", "Other"],
     [tag("action"), "Action"],

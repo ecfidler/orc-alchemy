@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T19:46:49Z }
+generated: { by: claude-code/agent, at: 2026-11-13T22:04:53Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -580,6 +580,43 @@ when the type is Other.
   skipped" switch shows the skipped rows again.
 * If the user imports the pack again, the key conflict choice of today
   applies. The page adds nothing to it.
+
+The build (ORC-207) settled these points, which the list above does not
+state:
+
+* The route is `/content/review-uses/<pack>`. A pack with no rows shows a
+  short message, and a pack that is not stored says so. Both link back to
+  My Content.
+* The features are the `:traits` of a race, subrace, background, class,
+  subclass, feat and monster, and the feat's own entry. A class or subclass
+  feature is in `:traits`, with its level. A feature with only a type
+  suggestion and no uses suggestion or hint gets no row.
+* The rows are in the order of the content types on My Content, then by
+  item key, then in the order of the features. The rows of one item are
+  under its name. A row's controls are named "<Item> <Feature>", for
+  example "Tidecaller Song of Courage amount". A feat's own row is
+  "<Feat> Feat".
+* A row shows the Type select only when the form would show a type line:
+  the stored type is Other and the type list of the form has the type. It
+  starts on the suggested type. The row has no preview, so a pack with
+  hundreds of rows stays quick.
+* Save stores the checked rows in one write, with the same build check as
+  the form. An unchecked hint row is not skipped. It stays on the page.
+* A row with no uses stores nothing, not even its type, and counts as
+  unchecked at Save. Uses in the control check the row, and None unchecks
+  it.
+* A skipped row shows again with "Show skipped". It is marked "Skipped" and
+  starts unchecked. If the user checks it and saves, it is not skipped
+  any more.
+* The skipped rows are in `localStorage` under the key `skipped-uses`, by
+  pack name. A row is named by its content type, item key, the place of
+  the feature and its name. Delete on My Content forgets the skipped rows
+  of the pack. An import does not change them.
+* The count "N features may have uses" is of the rows that are not
+  skipped, so the hint rows stay in it. In the import log, each pack of the
+  file that has rows gets its own line.
+* The page does not ask before the user leaves it. Nothing is stored
+  before Save, so the page shows the same rows again.
 
 # Engine 0.4.0
 

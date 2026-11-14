@@ -75,6 +75,8 @@ function LabelledSelect<T>({ label, name, value, options, onSelect }: { label: s
  * other forms it is null, and a level is the character level. onChange gets
  * the frequency to store, or undefined for no uses. children go under the
  * toggles and above the preview, such as the lines of suggested uses.
+ * preview false leaves out the preview, as on the Review uses page, which
+ * shows many features.
  */
 export function UsesControl({
   name,
@@ -82,6 +84,7 @@ export function UsesControl({
   feature,
   levelName,
   children,
+  preview = true,
 }: {
   name: string;
   onChange: (frequency: Record<string, unknown> | undefined) => void;
@@ -89,6 +92,7 @@ export function UsesControl({
   feature: Record<string, unknown>;
   levelName: string | null;
   children?: ReactNode;
+  preview?: boolean;
 }) {
   const nameId = useId();
   const frequency = feature["~:frequency"];
@@ -157,7 +161,7 @@ export function UsesControl({
         </LabelAbove>
       )}
       {children}
-      <UsesPreview name={name} feature={feature} levelName={levelName} />
+      {preview && <UsesPreview name={name} feature={feature} levelName={levelName} />}
     </div>
   );
 }

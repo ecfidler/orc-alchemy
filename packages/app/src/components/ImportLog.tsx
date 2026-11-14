@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import type { LastImport } from "../state/homebrew.ts";
+import { usesCount } from "./builders/review-uses.ts";
+import { ReviewUsesLink } from "./ReviewUses.tsx";
+import { useHomebrew, type LastImport } from "../state/homebrew.ts";
+import { skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
 
 /** One automatic fix from the importer's log, as the engine gives it. Keywords are "ns/name" strings. */
 interface Change {
@@ -124,14 +127,42 @@ function Section({ title, open = true, warning = false, children }: { title: str
 }
 
 /**
+ * "N features may have uses" for each pack of the file that has such
+ * features, with a link to its Review uses page (docs/design/homebrew-forms.md,
+ * "Review uses page"). The count is of the stored pack, without its skipped
+ * rows. With more than one pack, each line names its pack.
+ */
+function UsesLines({ packs }: { packs: string[] }) {
+  const stored = useHomebrew((state) => state.packs);
+  const skipped = useSkippedUses();
+  const lines = packs.flatMap((id) => {
+    const pack = stored.find((p) => p.id === id);
+    const n = pack ? usesCount(pack.plugin, skippedOf(skipped, id)) : 0;
+    return n > 0 ? [{ id, n }] : [];
+  });
+  if (lines.length === 0) return null;
+  return (
+    <ul aria-label="Suggested uses">
+      {lines.map(({ id, n }) => (
+        <li key={id}>
+          {packs.length > 1 && `${id}: `}
+          <ReviewUsesLink pack={id} count={n} namePack={packs.length > 1} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
  * The log of one homebrew import, in the sections of the old app's import
  * log panel: errors, skipped items, the automatic fixes by kind, and the
  * other changes under Advanced details, closed. It also lists the key
  * conflicts the import found, and the backgrounds in the loaded packs whose
- * key is not the key of their name.
+ * key is not the key of their name. Under the notice, it says how many
+ * features of each pack of the file may have uses.
  */
 export function ImportLog({ result }: { result: LastImport }) {
-  const { log, conflicts, skipped, fileName, backgroundKeyWarnings = [] } = result;
+  const { log, conflicts, skipped, fileName, backgroundKeyWarnings = [], packs = [] } = result;
   const changes = log.changes as Change[];
   const advanced = changes.filter((c) => !USER_TYPES.has(c.type ?? ""));
   // A parse error's line and hint, when the engine has them, are in log.message, which shows above.
@@ -144,6 +175,7 @@ export function ImportLog({ result }: { result: LastImport }) {
       <p role="status" className="whitespace-pre-line">
         {log.message}
       </p>
+      <UsesLines packs={packs} />
       {errors.length > 0 && (
         <Section title={`Errors (${errors.length})`}>
           <ul className="ml-6 list-disc">

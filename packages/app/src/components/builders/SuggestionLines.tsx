@@ -4,10 +4,9 @@
 // presses "Use this". A line shows while the feature has no uses, or while
 // its type is Other.
 import { NoteLine } from "@orc-alchemy/ui";
-import { untag } from "../../engine/content.ts";
 import { ABILITY_NAMES } from "../../engine/sheet.ts";
 import type { Options } from "./fields.tsx";
-import { readFeatureText, type SuggestedUnit, type SuggestedUses, type TextMatch } from "./suggested-uses.ts";
+import { readFeatureText, suggestedTypeOption, type SuggestedUnit, type SuggestedUses, type TextMatch } from "./suggested-uses.ts";
 import { suggestedFrequency, usesKind } from "./uses.ts";
 
 const UNIT_TEXT: Record<SuggestedUnit, string> = { "short-rest": "short rest", "long-rest": "long rest", day: "each day" };
@@ -22,9 +21,6 @@ function suggestedUsesText({ amount, unit }: SuggestedUses): string {
         : `${ABILITY_NAMES[amount.ability]} modifier uses (minimum 1)`;
   return `${uses}, ${UNIT_TEXT[unit]}`;
 }
-
-/** Whether a stored type is Other: no type, "" (the monster's Other) or :other. */
-const isOtherType = (type: unknown) => untag(type) === "" || untag(type) === "other";
 
 /**
  * One yellow line: what the text says, then the suggestion. With onUse it
@@ -66,7 +62,7 @@ export function SuggestionLines({
   if (reading === null) return null;
   const { uses, type } = reading;
   const showUses = uses !== null && usesKind(feature["~:frequency"]) === "none";
-  const typeOption = type && isOtherType(feature["~:type"]) ? types.find(([value]) => typeof value === "string" && untag(value) === type.type) : undefined;
+  const typeOption = suggestedTypeOption(type, feature["~:type"], types);
   if (!showUses && !typeOption) return null;
   return (
     <div className="grid gap-[6px]">

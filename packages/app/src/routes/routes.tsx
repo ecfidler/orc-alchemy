@@ -13,6 +13,7 @@ import { Home } from "../components/Home.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
 import { MyContent } from "../components/MyContent.tsx";
 import { Preferences } from "../components/Preferences.tsx";
+import { ReviewUses } from "../components/ReviewUses.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import type { Sheet } from "../engine/sheet.ts";
@@ -204,6 +205,14 @@ export const routes: RouteObject[] = [
           </EngineGate>
         ),
       })),
+      {
+        path: "content/review-uses/:pack",
+        element: (
+          <EngineGate>
+            <ReviewUses />
+          </EngineGate>
+        ),
+      },
       {
         path: "sheet/:id",
         element: (
