@@ -215,9 +215,10 @@ interface Removed {
  * The modifiers of a form, in form order: the common ones, the ones that
  * hold a value and the ones the user added. Then the info note of the last
  * Remove, with Undo, and the "Other modifiers" section with the
- * "+ Add a modifier" button, while a modifier is left to add. Put it after the base fields of the form, and Features after
- * it. A base field that is between two modifiers in form order can be a
- * common modifier, so that the form keeps its order.
+ * "+ Add a modifier" button, while a modifier is left to add. Put it after
+ * the base fields of the form, and Features after it. A base field that is
+ * between two modifiers in form order can be a common modifier, so that the
+ * form keeps its order.
  */
 export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord; onChange: (record: ItemRecord) => void; modifiers: Modifier[] }) {
   // The added modifiers: at first, the ones that hold a value.

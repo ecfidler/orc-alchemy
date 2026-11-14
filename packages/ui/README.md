@@ -153,8 +153,9 @@ bun run test       # vitest
     the focus goes to the next X, or else to the first button after the
     tokens.
   - `AddButton`: a wide ghost button, "+ {label}" on the left, and
-    "{remaining} more" on the right, which describes the button. It gives
-    a ref.
+    "{remaining} more" on the right, which describes the button. With
+    `detail`, it shows that text after the label in place of the count,
+    and the text describes the button. It gives a ref.
   - `Picker`: some `value`s from a long list of `options` (ListModal
     items). The picks show as Tokens in the order of `options`, then an
     AddButton opens a ListModal with `stayOpen`, and `search` and

@@ -175,7 +175,7 @@
     column-gap: 12px;
     row-gap: 0;
   }
-  .ui-add-label {
+  .ui-add-button:where([data-detail]) .ui-add-label {
     white-space: nowrap;
   }
   .ui-add-detail {
@@ -190,7 +190,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  @container (max-width: 520px) {
+  /* A button of 520px: the query reads its content box, which is 27px narrower (the padding and the border). */
+  @container (max-width: 493px) {
     .ui-add-detail {
       flex-basis: 100%;
       line-height: 1.4;

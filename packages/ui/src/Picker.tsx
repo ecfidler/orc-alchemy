@@ -30,7 +30,7 @@ export type AddButtonProps = {
  * It gives a ref, so a ListModal can give the focus back to it.
  */
 export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function AddButton({ label, remaining, detail, className, ...props }, ref) {
-  const countId = useId();
+  const descriptionId = useId();
   const described = detail !== undefined || remaining !== undefined;
   return (
     <BaseButton
@@ -41,7 +41,7 @@ export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function 
       data-size="normal"
       data-wide=""
       data-detail={detail === undefined ? undefined : ""}
-      aria-describedby={described ? countId : undefined}
+      aria-describedby={described ? descriptionId : undefined}
       className={className ? `ui-button ui-add-button ${className}` : "ui-button ui-add-button"}
     >
       <span className="ui-add-label">
@@ -49,12 +49,12 @@ export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function 
         {label}
       </span>
       {detail !== undefined ? (
-        <span id={countId} aria-hidden="true" className="ui-add-detail">
+        <span id={descriptionId} aria-hidden="true" className="ui-add-detail">
           {detail}
         </span>
       ) : (
         remaining !== undefined && (
-          <span id={countId} aria-hidden="true" className="ui-add-count">
+          <span id={descriptionId} aria-hidden="true" className="ui-add-count">
             {remaining} more
           </span>
         )

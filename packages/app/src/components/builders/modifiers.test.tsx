@@ -105,7 +105,8 @@ test("a modifier in a shared list: it shows when it holds an entry, Remove takes
 
 test("a new item without values shows no added modifier", () => {
   render(<FakeForm initial={{}} />);
-  expect(screen.getAllByRole("group").map((g) => g.getAttribute("aria-labelledby") && document.getElementById(g.getAttribute("aria-labelledby")!)?.textContent)).toEqual(["Other modifiers"]);
+  expect(screen.getAllByRole("group")).toHaveLength(1);
+  expect(screen.getByRole("group", { name: "Other modifiers" })).toBeTruthy();
 });
 
 test("the add button is under the Other modifiers heading, and its description names the modifiers that are left", async () => {
