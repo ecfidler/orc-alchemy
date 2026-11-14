@@ -102,9 +102,11 @@ bun run test       # vitest
     `src/flash.css`.
   - `useConfirm()`: the themed stand-in for `window.confirm`. It returns
     `[confirm, dialog]`. Render `dialog` in the component, and call
-    `await confirm(question, action)`: it is true when the user picks the
-    action button, and false on Cancel or Escape. `action` is the button
-    text, "OK" by default. Cancel has the focus when the dialog opens.
+    `await confirm(question, action, cancel)`: it is true when the user
+    picks the action button, and false on the cancel button or Escape.
+    `action` is the button text, "OK" by default. `cancel` is the text of
+    the button that says no, "Cancel" by default. The cancel button has
+    the focus when the dialog opens.
   - `AlertDialog`: the dialog that `useConfirm()` shows. The owner sets
     `open`, and closes it from `onAnswer`. Styles: `src/dialog.css`.
   - `Select`: Base UI Select, a pick of one value from a list. Its role is

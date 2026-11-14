@@ -6,12 +6,12 @@ import { answerConfirmDialog } from "./testing/index.ts";
 
 afterEach(cleanup);
 
-function Remove({ action }: { action?: string }) {
+function Remove({ action, cancel }: { action?: string; cancel?: string }) {
   const [confirm, dialog] = useConfirm();
   const [answers, setAnswers] = useState<boolean[]>([]);
   return (
     <>
-      <button onClick={async () => setAnswers([...answers, await confirm("Remove the row? This cannot be undone.", action)])}>Remove</button>
+      <button onClick={async () => setAnswers([...answers, await confirm("Remove the row? This cannot be undone.", action, cancel)])}>Remove</button>
       <output>{answers.join(",")}</output>
       {dialog}
     </>
@@ -42,6 +42,15 @@ test("the action is OK when no action is given, and Cancel has the focus", async
   fireEvent.click(screen.getByRole("button", { name: "Remove" }));
   await screen.findByRole("button", { name: "OK" });
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" })));
+});
+
+test("the cancel button takes the name that the question gives", async () => {
+  render(<Remove action="Leave" cancel="Stay" />);
+  fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+  await screen.findByRole("alertdialog");
+  expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+  await answerConfirmDialog("Stay");
+  expect(screen.getByRole("status").textContent).toBe("false");
 });
 
 test("an unmount answers an open question with no", async () => {

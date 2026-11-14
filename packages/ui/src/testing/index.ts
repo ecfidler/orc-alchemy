@@ -4,7 +4,7 @@ import { nameList, type Names } from "./names.ts";
 
 /**
  * Waits for the confirm dialog of `useConfirm()`, clicks its button named
- * `answer` (the action, or "Cancel"), and waits for it to close. Returns
+ * `answer` (the action, or the button that says no, "Cancel" by default), and waits for it to close. Returns
  * the dialog's question, so the test can check it.
  */
 export async function answerConfirmDialog(answer: string): Promise<string> {

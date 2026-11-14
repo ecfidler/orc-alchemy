@@ -8,16 +8,19 @@ export type AlertDialogProps = {
   message: string;
   /** The text of the button that says yes, for example "Delete". */
   action: string;
-  /** Gets true from the action button, and false from Cancel or Escape. */
+  /** The text of the button that says no. It is "Cancel" by default. */
+  cancel?: string;
+  /** Gets true from the action button, and false from the cancel button or Escape. */
   onAnswer: (yes: boolean) => void;
 };
 
 /**
- * A modal question with Cancel and one action, with Base UI AlertDialog
- * inside. Cancel has the focus when it opens. A click outside does not
- * close it. Most apps use `useConfirm()` and not this.
+ * A modal question with a cancel button and one action, with Base UI
+ * AlertDialog inside. The cancel button has the focus when it opens. A
+ * click outside does not close it. Most apps use `useConfirm()` and not
+ * this.
  */
-export function AlertDialog({ open, message, action, onAnswer }: AlertDialogProps) {
+export function AlertDialog({ open, message, action, cancel = "Cancel", onAnswer }: AlertDialogProps) {
   return (
     <BaseAlertDialog.Root open={open} onOpenChange={(next) => next || onAnswer(false)}>
       <BaseAlertDialog.Portal>
@@ -27,7 +30,7 @@ export function AlertDialog({ open, message, action, onAnswer }: AlertDialogProp
           <div className="ui-dialog-actions">
             {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
             <BaseAlertDialog.Close data-variant="ghost" data-size="normal" className="ui-button">
-              Cancel
+              {cancel}
             </BaseAlertDialog.Close>
             <Button variant="solid" onClick={() => onAnswer(true)}>
               {action}
@@ -39,10 +42,14 @@ export function AlertDialog({ open, message, action, onAnswer }: AlertDialogProp
   );
 }
 
-/** Asks the question, and resolves to true when the user picks the action. `action` is "OK" by default. */
-export type Confirm = (message: string, action?: string) => Promise<boolean>;
+/**
+ * Asks the question, and resolves to true when the user picks the action.
+ * `action` is "OK" by default, and `cancel`, the button that says no, is
+ * "Cancel".
+ */
+export type Confirm = (message: string, action?: string, cancel?: string) => Promise<boolean>;
 
-type Question = { message: string; action: string };
+type Question = { message: string; action: string; cancel?: string };
 
 /**
  * The themed stand-in for `window.confirm`. It returns `confirm` and the
@@ -59,11 +66,11 @@ export function useConfirm(): [Confirm, ReactNode] {
     resolver.current = null;
   }, []);
   const confirm = useCallback<Confirm>(
-    (message, action = "OK") =>
+    (message, action = "OK", cancel) =>
       new Promise((resolve) => {
         settle(false);
         resolver.current = resolve;
-        setQuestion({ message, action });
+        setQuestion({ message, action, cancel });
         setOpen(true);
       }),
     [settle],
@@ -74,6 +81,7 @@ export function useConfirm(): [Confirm, ReactNode] {
       open={open}
       message={question.message}
       action={question.action}
+      cancel={question.cancel}
       onAnswer={(yes) => {
         settle(yes);
         setOpen(false);
