@@ -236,7 +236,10 @@ homebrew forms. They have no game words: the app gives the lists.
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control.
 * **AddButton:** a `wide` button, "+ Add a part" on the left and the number
-  of options that remain ("15 more") on the right.
+  of options that remain ("15 more") on the right. With `detail`, the
+  button shows that text after the label in place of the count: small and
+  muted, cut with "…", and on a second line that wraps in a button that is
+  narrower than 520px.
 * **Picker:** Tokens, in the order of the options, then an AddButton that
   opens a ListModal with `stayOpen`.
 * **SegmentedToggle:** a segmented toggle for a short list of words, for

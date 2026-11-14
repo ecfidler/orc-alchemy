@@ -161,13 +161,13 @@ test("Save stores the monster in the default pack as the old app stores it, and 
 test("a new monster shows only the common groups, and the add list has the others in form order", async () => {
   renderAt("/content/new/monster");
   await screen.findByRole("button", { name: "Add a language" });
-  expect(groups()).toEqual([...COMMON, "Actions / features"]);
+  expect(groups()).toEqual([...COMMON, "Other modifiers", "Actions / features"]);
   expect(screen.queryByRole("textbox", { name: "Armor notes" })).toBeNull();
   expect(await addList()).toEqual(ADDED);
   // Legendary actions is before Actions / features now, because Actions / features is last.
   await addModifier("Legendary actions");
   await addModifier("Armor notes");
-  expect(groups()).toEqual(["Armor notes", ...COMMON, "Legendary actions", "Actions / features"]);
+  expect(groups()).toEqual(["Armor notes", ...COMMON, "Legendary actions", "Other modifiers", "Actions / features"]);
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Armor notes" })));
 });
 
@@ -185,7 +185,7 @@ test("an imported monster opens with each group that holds a value; Remove clear
   await useHomebrew.getState().saveItem(DEFAULT, "~:orcpub.dnd.e5/monsters", item);
   const router = renderAt(`/content/edit/monster/${encodeURIComponent(DEFAULT)}/mud-imp`);
   await screen.findByRole("button", { name: "Add a language" });
-  expect(groups()).toEqual(["Armor notes", ...COMMON, "Actions / features"]);
+  expect(groups()).toEqual(["Armor notes", ...COMMON, "Other modifiers", "Actions / features"]);
   fireEvent.click(screen.getByRole("button", { name: "Remove Armor notes" }));
   expect(screen.queryByRole("textbox", { name: "Armor notes" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Undo" }));
@@ -257,7 +257,7 @@ test("an imported monster with false values, unknown keys and empty maps opens, 
   const router = renderAt(`/content/edit/monster/${encodeURIComponent(DEFAULT)}/old-imp`);
   await screen.findByRole("button", { name: "Remove mudspeak" });
   // A map of only false values is not a value, so Damage vulnerabilities is not shown.
-  expect(groups()).toEqual([...COMMON, "Actions / features"]);
+  expect(groups()).toEqual([...COMMON, "Other modifiers", "Actions / features"]);
   expect(tokens("Damage resistances")).toEqual(["Damage from traps", "psionic"]);
   expect(tokens("Damage immunities")).toEqual([]);
   expect(tokens("Condition immunities")).toEqual(["Charmed"]);

@@ -365,11 +365,11 @@ test("a Custom base weapon stores the old details, and another base weapon remov
 test("a new item shows only its base groups, and the add list has the modifiers in form order", async () => {
   renderAt("/content/new/magicItem");
   await form("New magic item");
-  expect(groups()).toEqual(["Attunement", "Item properties"]);
+  expect(groups()).toEqual(["Attunement", "Item properties", "Other modifiers"]);
   expect(await addList()).toEqual(ADDED);
   await addModifier("Condition immunities");
   await addModifier("Saving throw bonus");
-  expect(groups()).toEqual(["Attunement", "Item properties", "Saving throws", "Condition immunities"]);
+  expect(groups()).toEqual(["Attunement", "Item properties", "Saving throws", "Condition immunities", "Other modifiers"]);
   expect(await addList()).toEqual(ADDED.filter((name) => name !== "Condition immunities" && name !== "Saving throw bonus"));
 });
 
@@ -378,7 +378,7 @@ test("an item opens with each modifier that has an entry, also one with a 0 bonu
   await useHomebrew.getState().loadMagicItems([item]);
   renderAt("/content/edit/magicItem/plain-ring");
   await form("Edit magic item");
-  expect(groups()).toEqual(["Attunement", "Item properties", "Saving throws", "Condition immunities"]);
+  expect(groups()).toEqual(["Attunement", "Item properties", "Saving throws", "Condition immunities", "Other modifiers"]);
   expect(shown("DEX save change")).toBe("Increases by");
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
@@ -395,7 +395,7 @@ test("Remove takes out only the modifier's entries, and Undo puts each back in i
   await useHomebrew.getState().loadMagicItems([item]);
   renderAt("/content/edit/magicItem/tide-ring");
   await form("Edit magic item");
-  expect(groups()).toEqual(["Attunement", "Item properties", "Ability scores", "Speeds", "Damage resistances"]);
+  expect(groups()).toEqual(["Attunement", "Item properties", "Ability scores", "Speeds", "Damage resistances", "Other modifiers"]);
   fireEvent.click(screen.getByRole("button", { name: "Remove Damage resistances" }));
   expect(screen.queryByRole("group", { name: "Damage resistances" })).toBeNull();
   // Another modifier gets an entry, at the end, before Undo.
@@ -497,7 +497,7 @@ test("an imported item with unknown subtypes, limits and args, hidden weapon fie
   expect(tokens("Base weapon")).toEqual(["Longsword", "an-old-blade"]);
   expect(screen.getByRole("checkbox", { name: "Requires attunement" })).toBeChecked();
   expect(tokens("Attunement")).toEqual(["Wizard", "Lawful Good", "an-old-order"]);
-  expect(groups()).toEqual(["Base weapon", "Attunement", "Item properties", "Damage resistances", "Condition immunities"]);
+  expect(groups()).toEqual(["Base weapon", "Attunement", "Item properties", "Damage resistances", "Condition immunities", "Other modifiers"]);
   expect(tokens("Damage resistances")).toEqual(["Fire", "psionic"]);
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });

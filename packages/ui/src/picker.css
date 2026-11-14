@@ -164,6 +164,40 @@
     white-space: nowrap;
   }
 
+  /*
+   * The add button with a detail: the detail is after the label, and "…"
+   * cuts it. The button is a container, so that in a narrow button the
+   * detail goes on a second line and wraps.
+   */
+  .ui-add-button:where([data-detail]) {
+    container-type: inline-size;
+    flex-wrap: wrap;
+    column-gap: 12px;
+    row-gap: 0;
+  }
+  .ui-add-label {
+    white-space: nowrap;
+  }
+  .ui-add-detail {
+    flex: 1 1 12rem;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 400;
+    /* A short line box, so that the detail does not make the button higher. */
+    line-height: 1.2;
+    color: var(--ink-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @container (max-width: 520px) {
+    .ui-add-detail {
+      flex-basis: 100%;
+      line-height: 1.4;
+      white-space: normal;
+    }
+  }
+
   /* Tokens: small boxes on one line that wraps. */
   .ui-tokens {
     display: flex;

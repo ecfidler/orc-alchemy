@@ -215,7 +215,7 @@ test("Add a spell alone shows a blank row and stores nothing; its X takes the ro
 test("a new race shows only the common modifiers, with the add button after Spells and before Features", async () => {
   renderAt("/content/new/race");
   await screen.findByRole("button", { name: "Add a spell" });
-  expect(groups()).toEqual([...COMMON, "Features"]);
+  expect(groups()).toEqual([...COMMON, "Other modifiers", "Features"]);
   expect(screen.queryByRole("combobox", { name: "Flying speed" })).toBeNull();
   const add = screen.getByRole("button", { name: "Add a modifier" });
   const spells = screen.getByRole("group", { name: "Spells" });
@@ -229,7 +229,7 @@ test("a new race shows only the common modifiers, with the add button after Spel
   fireEvent.click(rows[0]);
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   // Flying speed goes directly after the base fields, and its select takes the focus.
-  expect(groups()).toEqual(["Flying speed", ...COMMON, "Features"]);
+  expect(groups()).toEqual(["Flying speed", ...COMMON, "Other modifiers", "Features"]);
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "Flying speed" })));
   expect(shown("Flying speed")).toBe("0");
 });
@@ -255,7 +255,7 @@ test("an imported race opens with each modifier that holds a value, and a save k
   await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/races", item);
   const router = renderAt("/content/edit/race/Reef/reefborn");
   await screen.findByRole("button", { name: "Add a spell" });
-  expect(groups()).toEqual(["Swimming speed", "Ability Score Increases", "Languages", "Armor Proficiency", "Tool Proficiency", "Damage Resistances", "Language Proficiency Choice", "Spells", "Features"]);
+  expect(groups()).toEqual(["Swimming speed", "Ability Score Increases", "Languages", "Armor Proficiency", "Tool Proficiency", "Damage Resistances", "Language Proficiency Choice", "Spells", "Other modifiers", "Features"]);
   expect(shown("Swimming speed")).toBe("30");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
@@ -331,6 +331,7 @@ test("an imported race with both Armor Class values true and false values opens,
     "Language Proficiency Choice",
     "Weapon Proficiency Choice",
     "Spells",
+    "Other modifiers",
     "Features",
   ]);
   // :tortle-ac sets the AC to 17 whatever the armor, so the select shows it.

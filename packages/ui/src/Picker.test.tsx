@@ -104,6 +104,13 @@ test("an AddButton with no count is a wide button with no description", () => {
   expect([button.textContent, button.hasAttribute("aria-describedby")]).toEqual(["+ Add a row", false]);
 });
 
+test("an AddButton with a detail shows it in place of the count, as its description", () => {
+  render(<AddButton label="Add a row" remaining={5} detail="Apple, Banana and 3 more" />);
+  const button = screen.getByRole("button", { name: "Add a row" });
+  expect([button.textContent, button.dataset.detail]).toEqual(["+ Add a rowApple, Banana and 3 more", ""]);
+  expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toBe("Apple, Banana and 3 more");
+});
+
 test("the picker passes pickedText to its modal", async () => {
   render(<Fruit start={["fig"]} pickedText={(n) => `${n} on the form`} />);
   fireEvent.click(addButton());

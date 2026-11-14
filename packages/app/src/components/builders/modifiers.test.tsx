@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
 import { Checks, editor, type ItemRecord } from "./fields.tsx";
-import { holdsValue, Modifiers, type Modifier } from "./modifiers.tsx";
+import { addExamples, holdsValue, Modifiers, type Modifier } from "./modifiers.tsx";
 
 afterEach(cleanup);
 
@@ -80,7 +80,9 @@ test("a modifier in a shared list: it shows when it holds an entry, Remove takes
   render(<FakeForm initial={{ [ENTRIES]: [save, speed] }} />);
   expect(screen.getByRole("group", { name: "Speeds" })).toBeTruthy();
   expect(screen.getByRole("group", { name: "Saves" })).toBeTruthy();
+  // No modifier is left to add: the button and its heading do not show.
   expect(screen.queryByRole("button", { name: "Add a modifier" })).toBeNull();
+  expect(screen.queryByRole("group", { name: "Other modifiers" })).toBeNull();
 
   fireEvent.click(screen.getByRole("button", { name: "Remove Saves" }));
   expect(screen.queryByRole("group", { name: "Saves" })).toBeNull();
@@ -103,6 +105,25 @@ test("a modifier in a shared list: it shows when it holds an entry, Remove takes
 
 test("a new item without values shows no added modifier", () => {
   render(<FakeForm initial={{}} />);
-  expect(screen.queryByRole("group")).toBeNull();
-  expect(screen.getByRole("button", { name: "Add a modifier" }).textContent).toMatch(/2 more$/);
+  expect(screen.getAllByRole("group").map((g) => g.getAttribute("aria-labelledby") && document.getElementById(g.getAttribute("aria-labelledby")!)?.textContent)).toEqual(["Other modifiers"]);
+});
+
+test("the add button is under the Other modifiers heading, and its description names the modifiers that are left", async () => {
+  render(<FakeForm initial={{}} />);
+  const add = () => within(screen.getByRole("group", { name: "Other modifiers" })).getByRole("button", { name: "Add a modifier" });
+  const description = () => document.getElementById(add().getAttribute("aria-describedby")!)?.textContent;
+  expect([add().textContent, description()]).toEqual(["+ Add a modifierSpeeds, Saves", "Speeds, Saves"]);
+  await pickFromPicker(add(), "Speeds");
+  expect(description()).toBe("Saves");
+  fireEvent.click(screen.getByRole("button", { name: "Remove Speeds" }));
+  expect(description()).toBe("Speeds, Saves");
+});
+
+test.each([
+  [["Saves"], "Saves"],
+  [["Saves", "Speeds", "Languages"], "Saves, Speeds, Languages"],
+  [["Saves", "Speeds", "Languages", "Spells"], "Saves, Speeds, Languages and 1 more"],
+  [["Saves", "Speeds", "Languages", "Spells", "Feats", "Senses"], "Saves, Speeds, Languages and 3 more"],
+])("addExamples: %j is %s", (names, text) => {
+  expect(addExamples(names)).toBe(text);
 });

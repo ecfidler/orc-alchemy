@@ -8,6 +8,13 @@ export type AddButtonProps = {
   label: string;
   /** The number of options that remain, shown on the right as "15 more". It describes the button. Leave it out to show no count. */
   remaining?: number;
+  /**
+   * Text after the label, in place of the count: for example the names of
+   * the first options. It describes the button. The text is on the line of
+   * the label, and "…" cuts it. In a button that is narrower than 520px it
+   * is on a second line, and it wraps.
+   */
+  detail?: string;
   onClick?: () => void;
   /** "dialog" when the button opens a ListModal. */
   "aria-haspopup"?: "dialog";
@@ -19,11 +26,12 @@ export type AddButtonProps = {
 
 /**
  * A wide ghost button that adds to a list: "+ {label}" on the left, and the
- * number of options that remain on the right. It gives a ref, so a
- * ListModal can give the focus back to it.
+ * number of options that remain on the right, or `detail` after the label.
+ * It gives a ref, so a ListModal can give the focus back to it.
  */
-export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function AddButton({ label, remaining, className, ...props }, ref) {
+export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function AddButton({ label, remaining, detail, className, ...props }, ref) {
   const countId = useId();
+  const described = detail !== undefined || remaining !== undefined;
   return (
     <BaseButton
       {...props}
@@ -32,17 +40,24 @@ export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function 
       data-variant="ghost"
       data-size="normal"
       data-wide=""
-      aria-describedby={remaining === undefined ? undefined : countId}
+      data-detail={detail === undefined ? undefined : ""}
+      aria-describedby={described ? countId : undefined}
       className={className ? `ui-button ui-add-button ${className}` : "ui-button ui-add-button"}
     >
-      <span>
+      <span className="ui-add-label">
         <span aria-hidden="true">+ </span>
         {label}
       </span>
-      {remaining !== undefined && (
-        <span id={countId} aria-hidden="true" className="ui-add-count">
-          {remaining} more
+      {detail !== undefined ? (
+        <span id={countId} aria-hidden="true" className="ui-add-detail">
+          {detail}
         </span>
+      ) : (
+        remaining !== undefined && (
+          <span id={countId} aria-hidden="true" className="ui-add-count">
+            {remaining} more
+          </span>
+        )
       )}
     </BaseButton>
   );
