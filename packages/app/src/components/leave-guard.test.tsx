@@ -56,14 +56,30 @@ async function storeKeen() {
   return { feat: `/content/edit/feat/${encodeURIComponent(DEFAULT)}/keen`, magicItem: "/content/edit/magicItem/keen" };
 }
 
-test("sameRecord ignores the order of keys and empty text, and sees each other difference", () => {
+test("sameRecord ignores the order of keys and empty values, and sees each other difference", () => {
   expect(sameRecord({ a: 1, b: { c: [1, "x"], d: true } }, { b: { d: true, c: [1, "x"] }, a: 1 })).toBe(true);
-  expect(sameRecord({ a: 1, b: "", c: undefined }, { a: 1 })).toBe(true);
+  // An emptied field, a cleared checkbox, and a list or set with no picks are the same as no key.
+  expect(sameRecord({ a: 1, b: "", c: undefined, d: false, e: [], f: { "~#set": [] }, g: { h: "" } }, { a: 1 })).toBe(true);
+  expect(sameRecord({ a: { "~#set": [] } }, { a: [] })).toBe(true);
   expect(sameRecord({ a: 1 }, { a: 1, b: "x" })).toBe(false);
+  expect(sameRecord({ a: true }, {})).toBe(false);
   expect(sameRecord({ a: [1, 2] }, { a: [2, 1] })).toBe(false);
-  expect(sameRecord({ a: [] }, { a: {} })).toBe(false);
+  expect(sameRecord({ a: [1] }, { a: { 0: 1 } })).toBe(false);
   expect(sameRecord({ a: null }, {})).toBe(false);
-  expect(sameRecord({ a: false }, {})).toBe(false);
+  expect(sameRecord({ a: 0 }, {})).toBe(false);
+});
+
+test("a checkbox that the user checks and clears is not a change", async () => {
+  const router = renderAt("/content/new/spell");
+  await screen.findByRole("form", { name: "New spell" });
+  const ritual = screen.getByRole("checkbox", { name: "Ritual" });
+  fireEvent.click(ritual);
+  expect(warns()).toBe(true);
+  fireEvent.click(ritual);
+  expect(warns()).toBe(false);
+  cancel();
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content"));
+  expect(screen.queryByRole("alertdialog")).toBeNull();
 });
 
 test.each(Object.entries(BUILDERS))("a new %s form asks only after a change", async (key, { one }) => {

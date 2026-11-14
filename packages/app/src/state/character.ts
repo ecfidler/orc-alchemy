@@ -18,6 +18,7 @@ import {
   type CharacterSummary,
 } from "../storage/characters.ts";
 import { restorePacks, useHomebrew } from "./homebrew.ts";
+import { warnBeforeUnload } from "./unload-warning.ts";
 
 interface CharacterState {
   /** The open character's storage id. */
@@ -170,7 +171,7 @@ useCharacter.subscribe((state, previous) => {
 
   const { id, entity } = state;
   saveDraft({ id, entity, updatedAt: now() }).catch(console.error);
-  if (pending === null) window.addEventListener("beforeunload", confirmLeave);
+  if (pending === null) window.addEventListener("beforeunload", warnBeforeUnload);
   else clearTimeout(pending.timer);
   pending = { id, entity, timer: setTimeout(() => void flushAutosave().catch(console.error), AUTOSAVE_DELAY_MS) };
 });
@@ -202,13 +203,13 @@ export async function flushAutosave(): Promise<void> {
           saveFailed = false;
           useStorage.setState({ failed: false });
         }
-        if (pending === null && saving.size === 0) window.removeEventListener("beforeunload", confirmLeave);
+        if (pending === null && saving.size === 0) window.removeEventListener("beforeunload", warnBeforeUnload);
       },
       () => {
         saving.delete(running);
         if (latest.get(id) !== entity) {
           // A newer save of the character, under way or done, reports for itself.
-          if (pending === null && saving.size === 0) window.removeEventListener("beforeunload", confirmLeave);
+          if (pending === null && saving.size === 0) window.removeEventListener("beforeunload", warnBeforeUnload);
           return;
         }
         // Storage reports failed writes; a failed read before the save is a failed save too.
@@ -228,11 +229,6 @@ async function saveChanges(id: string, entity: StrictEntity) {
   const state = useCharacter.getState();
   if (state.id !== id || state.entity === entity) await deleteDraft(id);
   if (state.id === id && state.entity === entity) useCharacter.setState({ dirty: false });
-}
-
-function confirmLeave(event: BeforeUnloadEvent) {
-  event.preventDefault();
-  event.returnValue = ""; // older browsers ask only when this is set
 }
 
 const now = () => new Date().toISOString();

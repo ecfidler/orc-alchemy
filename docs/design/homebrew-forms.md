@@ -94,9 +94,10 @@ A test for each form opens an imported item, saves it, and compares.
 Added after M9 (ORC-211).
 
 * A form is **changed** when its record is different from the record that
-  it started with. The order of the keys does not count, and a text field
-  that the user empties is the same as a field that was not set. Thus a
-  change that the user reverses is not a change.
+  it started with. The order of the keys does not count. A text field that
+  the user empties, a checkbox that the user clears, and a list with no
+  picks are the same as a field that was not set. Thus a change that the
+  user reverses is not a change.
 * Navigation in the app from a changed form opens a dialog: "This feat has
   changes that are not saved. Leave anyway?" with **Stay** and **Leave**.
   The text names the type of the form. A link in the navigation, the
