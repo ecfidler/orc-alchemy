@@ -468,13 +468,13 @@ test("a source with no caster row label to hold the key has a tag in place of a 
 });
 
 test("three sources and a cantrip-only race: ‡ in the table and on its row, and the race line does not count", () => {
-  const spell = (key: string, source: string, level = 1) => ({ key, name: key, source, ability: "int" as const, alwaysPrepared: false, prepared: false });
+  const spell = (key: string, source: string) => ({ key, name: key, source, ability: "int" as const, alwaysPrepared: false, prepared: false });
   const caster = (name: string, saveDc: number) => ({ name, ability: "int" as const, saveDc, attackBonus: saveDc - 8, prepares: false, canPrepare: null });
   const spellcasting = {
     slots: [{ level: 1, count: 4 }],
     casters: [caster("Wizard", 15), caster("Cleric", 13), caster("Tiefling", 12), caster("High Elf", 14)],
     byLevel: [
-      { level: 0, spells: [spell("Mending", "High Elf", 0)] },
+      { level: 0, spells: [spell("Mending", "High Elf")] },
       { level: 1, spells: [spell("Alarm", "Wizard"), spell("Sleep", "Wizard"), spell("Shield", "Wizard"), spell("Bless", "Cleric"), spell("Bane", "Cleric"), spell("Hellish Rebuke", "Tiefling")] },
     ],
     knownModes: {},

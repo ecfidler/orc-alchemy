@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { optionNames } from "@orc-alchemy/ui/testing";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { itemAt } from "../../engine/content.ts";

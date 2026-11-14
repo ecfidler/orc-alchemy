@@ -8,9 +8,12 @@
     "tools/*"
   ],
   "scripts": {
-    "docs:check": "bun scripts/okf-check.ts docs"
+    "docs:check": "bun scripts/okf-check.ts docs",
+    "lint": "biome ci .",
+    "format": "biome check --write ."
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.7",
     "typescript": "^5.0.0"
   }
 }

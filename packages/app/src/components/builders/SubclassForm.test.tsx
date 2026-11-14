@@ -9,7 +9,6 @@ import { useCharacter } from "../../state/character.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { Builder } from "../Builder.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
-import { classBuilder } from "./ClassForm.tsx";
 import { addList, addModifier, choose, groups, pick, shown, tokens } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
