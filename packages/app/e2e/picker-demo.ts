@@ -1,11 +1,36 @@
 // The page script of e2e/picker.spec.ts: the picker controls of @orc-alchemy/ui alone, with fruit lists.
 // The spec bundles this file with Bun; Playwright does not load it.
-import { Chips, Fieldset, ListModal, NumberToggle, Picker, Token, Tokens, type ListItem } from "@orc-alchemy/ui";
-import { createElement as h, useState, type ReactNode } from "react";
+import { Chips, Fieldset, type ListItem, ListModal, NumberToggle, Picker, Token, Tokens } from "@orc-alchemy/ui";
+import { createElement as h, type ReactNode, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-const FRUIT = ["Apple", "Banana", "Cherry", "Damson", "Elderberry", "Fig", "Grape", "Kiwi", "Lemon", "Lime", "Mango", "Melon", "Orange", "Peach", "Pear", "Plum", "Quince", "Raspberry", "Strawberry", "Tangerine", "Watermelon"];
-const GROUPS: Record<string, string[]> = { Orchard: ["Apple", "Cherry", "Damson", "Peach", "Pear", "Plum", "Quince"], Citrus: ["Lemon", "Lime", "Orange", "Tangerine"] };
+const FRUIT = [
+  "Apple",
+  "Banana",
+  "Cherry",
+  "Damson",
+  "Elderberry",
+  "Fig",
+  "Grape",
+  "Kiwi",
+  "Lemon",
+  "Lime",
+  "Mango",
+  "Melon",
+  "Orange",
+  "Peach",
+  "Pear",
+  "Plum",
+  "Quince",
+  "Raspberry",
+  "Strawberry",
+  "Tangerine",
+  "Watermelon",
+];
+const GROUPS: Record<string, string[]> = {
+  Orchard: ["Apple", "Cherry", "Damson", "Peach", "Pear", "Plum", "Quince"],
+  Citrus: ["Lemon", "Lime", "Orange", "Tangerine"],
+};
 const groupOf = (name: string) => Object.keys(GROUPS).find((g) => GROUPS[g]!.includes(name)) ?? "Other fruit";
 const OPTIONS: ListItem<string>[] = ["Orchard", "Citrus", "Other fruit"].flatMap((group) =>
   FRUIT.filter((f) => groupOf(f) === group).map((f) => ({ value: f.toLowerCase(), label: f, group })),
@@ -23,7 +48,15 @@ function PickerCase() {
   const [value, setValue] = useState(["fig", "apple", "lime", "pear"]);
   return section(
     "Fruit in the bowl",
-    h(Picker<string>, { label: "Add a fruit", title: "Add fruit", options: OPTIONS, value, onValueChange: setValue, search: true, pickedText: (n) => `${n} on the form` }),
+    h(Picker<string>, {
+      label: "Add a fruit",
+      title: "Add fruit",
+      options: OPTIONS,
+      value,
+      onValueChange: setValue,
+      search: true,
+      pickedText: (n) => `${n} on the form`,
+    }),
   );
 }
 
@@ -34,7 +67,13 @@ function ListCase() {
     "Baskets",
     h("output", { "data-testid": "baskets" }, picks.join(",")),
     h("button", { className: "ui-button", "data-variant": "ghost", "data-size": "normal", onClick: () => setOpen(true) }, "Add a basket"),
-    h(ListModal<string>, { open, onOpenChange: setOpen, title: "Add a basket", items: BASKETS.filter((b) => !picks.includes(b.value)), onPick: (v) => setPicks([...picks, v]) }),
+    h(ListModal<string>, {
+      open,
+      onOpenChange: setOpen,
+      title: "Add a basket",
+      items: BASKETS.filter((b) => !picks.includes(b.value)),
+      onPick: (v) => setPicks([...picks, v]),
+    }),
   );
 }
 
@@ -52,7 +91,11 @@ function TokensCase() {
     h(
       Tokens,
       null,
-      h(Token, { label: "Any melon", onRemove: () => {} }, h(NumberToggle, { "aria-label": "Any melon: how many", size: "small", values: [1, 2, 3], value: n, onValueChange: setN })),
+      h(
+        Token,
+        { label: "Any melon", onRemove: () => {} },
+        h(NumberToggle, { "aria-label": "Any melon: how many", size: "small", values: [1, 2, 3], value: n, onValueChange: setN }),
+      ),
       ...names.map((name) => h(Token, { key: name, label: name, onRemove: () => setNames(names.filter((x) => x !== name)) })),
     ),
   );

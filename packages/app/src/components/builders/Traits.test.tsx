@@ -5,7 +5,7 @@ import { answerConfirmDialog, optionNames, pickOption } from "@orc-alchemy/ui/te
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
-import { editor, Traits, type FeatureList, type ItemRecord } from "./fields.tsx";
+import { editor, type FeatureList, type ItemRecord, Traits } from "./fields.tsx";
 import { press } from "./test-picks.ts";
 
 afterEach(cleanup);
@@ -67,7 +67,11 @@ test("Fixed: 1 use on a long rest, then the Amount and the rest the user picks",
   // The preview: three circles in the Actions section, with the sheet's tag.
   expect(previewSection()).toBe("Actions");
   const bubble = within(preview()).getByRole("group", { name: "Brine Blessing" });
-  expect(within(bubble).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Use 1", "Use 2", "Use 3"]);
+  expect(
+    within(bubble)
+      .getAllByRole("button")
+      .map((b) => b.getAttribute("aria-label")),
+  ).toEqual(["Use 1", "Use 2", "Use 3"]);
   expect(within(bubble).getByText("Each day")).toBeTruthy();
   expect(sentence()).toBeNull();
   press("Feature 1 Uses", "None");
@@ -113,7 +117,10 @@ test("Scaled: the proficiency bonus first; Equal to has the abilities and the ch
 });
 
 test("in a class or subclass form the level is the class level, with its name", async () => {
-  renderTraits([{ "~:name": "Tidal Reserve", "~:type": "~:action", "~:frequency": { "~:units": LONG, "~:amount": { "~:level": true, "~:times": 5 } } }], "Paladin");
+  renderTraits(
+    [{ "~:name": "Tidal Reserve", "~:type": "~:action", "~:frequency": { "~:units": LONG, "~:amount": { "~:level": true, "~:times": 5 } } }],
+    "Paladin",
+  );
   expect(combobox("Feature 1 equal to").textContent).toBe("Paladin level × n");
   expect(combobox("Feature 1 n").textContent).toBe("5");
   // A class or subclass feature has the level it is unlocked at.
@@ -199,7 +206,9 @@ test("the example character: the level for any scaled amount, and the score only
   expect(screen.getByText(/^Uses equal your proficiency bonus/).textContent).toBe("Uses equal your proficiency bonus. A level 9 character gets 4.");
   await choose("Feature 2 example Wisdom score", "8");
   // -1 with the minimum of 1 is 1.
-  expect(screen.getByText(/^Uses equal your Wisdom/).textContent).toBe("Uses equal your Wisdom modifier (minimum 1). A level 5 character with 8 Wisdom gets 1.");
+  expect(screen.getByText(/^Uses equal your Wisdom/).textContent).toBe(
+    "Uses equal your Wisdom modifier (minimum 1). A level 5 character with 8 Wisdom gets 1.",
+  );
   expect(within(preview(2)).getAllByRole("button", { name: /^Use / })).toHaveLength(1);
 });
 
@@ -220,14 +229,23 @@ test("delete: a feature with content asks first; Cancel keeps it; an empty featu
   remove(6);
   remove(2);
   expect(screen.queryByRole("alertdialog")).toBeNull();
-  expect(current["~:traits"]).toEqual([{ "~:name": "Hold Breath" }, { "~:type": "~:action" }, { "~:frequency": { "~:units": LONG, "~:amount": 1 } }, { "~:description": "Text only." }]);
+  expect(current["~:traits"]).toEqual([
+    { "~:name": "Hold Breath" },
+    { "~:type": "~:action" },
+    { "~:frequency": { "~:units": LONG, "~:amount": 1 } },
+    { "~:description": "Text only." },
+  ]);
   for (const n of [4, 3, 2]) {
     remove(n);
     expect(await answerConfirmDialog("Delete feature")).toBe("Delete this feature?");
   }
   remove(1);
   const dialog = await screen.findByRole("alertdialog");
-  expect(within(dialog).getAllByRole("button").map((b) => b.textContent)).toEqual(["Cancel", "Delete feature"]);
+  expect(
+    within(dialog)
+      .getAllByRole("button")
+      .map((b) => b.textContent),
+  ).toEqual(["Cancel", "Delete feature"]);
   await answerConfirmDialog("Delete feature");
   await waitFor(() => expect(current["~:traits"]).toEqual([]));
 });

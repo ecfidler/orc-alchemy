@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { builderSteps, type BuilderSelection } from "../../engine/builder.ts";
+import { type BuilderSelection, builderSteps } from "../../engine/builder.ts";
 import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
@@ -32,7 +32,8 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (pack: string, key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === pack)?.plugin;
@@ -47,7 +48,10 @@ async function saved(router: ReturnType<typeof renderAt>) {
 function find(selections: BuilderSelection[], key: string): BuilderSelection | undefined {
   for (const s of selections) {
     if (s.key === key) return s;
-    const found = find(s.options.flatMap((o) => o.selections), key);
+    const found = find(
+      s.options.flatMap((o) => o.selections),
+      key,
+    );
     if (found) return found;
   }
 }
@@ -81,7 +85,10 @@ test("the form recreates the Deep Stone language of the drift-04 fixture, Edit l
   const { homebrew } = useHomebrew.getState().content;
   const human = engine().select(engine().emptyCharacter(), ["race"], "human");
   const steps = builderSteps(engine().evaluate(human, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
-  const languages = find(steps.flatMap((s) => s.selections), "languages")!;
+  const languages = find(
+    steps.flatMap((s) => s.selections),
+    "languages",
+  )!;
   expect(languages.options.find((o) => o.key === "deep-stone")?.name).toBe("Deep Stone");
 
   cleanup();

@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 
 /** A label in the label style: Inter caps, small, muted. */
 export function Label({ children, id }: { children: ReactNode; id?: string }) {
@@ -21,11 +21,7 @@ export function FramedBox({ label, children, className, labelId }: { label: Reac
   const grouped = labelId === undefined;
   const id = labelId ?? ownId;
   return (
-    <div
-      role={grouped ? "group" : undefined}
-      aria-labelledby={grouped ? id : undefined}
-      className={className ? `ui-framed-box ${className}` : "ui-framed-box"}
-    >
+    <div role={grouped ? "group" : undefined} aria-labelledby={grouped ? id : undefined} className={className ? `ui-framed-box ${className}` : "ui-framed-box"}>
       {children}
       <Label id={id}>{label}</Label>
     </div>

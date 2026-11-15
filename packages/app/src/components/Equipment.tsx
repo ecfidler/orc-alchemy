@@ -5,11 +5,12 @@ import { Button, Checkbox, Combobox, Select } from "@orc-alchemy/ui";
 import { useId, useMemo } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import {
-  CUSTOM_VALUES,
   addCustomItem,
   attunedItems,
+  CUSTOM_VALUES,
   changeCustomItem,
   customItems,
+  type Hand,
   hand,
   removeCustomItem,
   setAttuned,
@@ -17,7 +18,6 @@ import {
   setQuantity,
   storedItems,
   wield,
-  type Hand,
 } from "../engine/equipment.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
@@ -141,8 +141,7 @@ export function Hands({ lists }: { lists: BuilderSelection[] }) {
   const { armorClassOptions, equipment, weaponAttacks } = sheet;
   const all = [...equipment.weapons, ...equipment.armor, ...equipment.magicItems];
   const carried = new Set(all.filter((item) => item.equipped).map((item) => item.key));
-  const nameOf = (key: string) =>
-    lists.flatMap((l) => l.options).find((o) => o.key === key)?.name ?? all.find((item) => item.key === key)?.name ?? key;
+  const nameOf = (key: string) => lists.flatMap((l) => l.options).find((o) => o.key === key)?.name ?? all.find((item) => item.key === key)?.name ?? key;
   const keysOf = (keys: (string | undefined)[]) => [...new Set(keys)].filter((key) => key !== undefined && carried.has(key)) as string[];
   const armor = keysOf(armorClassOptions.map((o) => o.armor?.key));
   const shields = keysOf(armorClassOptions.map((o) => o.shield?.key));

@@ -1,7 +1,16 @@
 import { Button, Fieldset, Radio, RadioGroup, StuckNote } from "@orc-alchemy/ui";
 import { useState } from "react";
-import { conflictSources, copyOn, internalCopies, resolutionsFor, settledBy, conflictsToChoose, type KeyConflict, type Resolution } from "../engine/conflicts.ts";
-import { useHomebrew, type PendingImport } from "../state/homebrew.ts";
+import {
+  conflictSources,
+  conflictsToChoose,
+  copyOn,
+  internalCopies,
+  type KeyConflict,
+  type Resolution,
+  resolutionsFor,
+  settledBy,
+} from "../engine/conflicts.ts";
+import { type PendingImport, useHomebrew } from "../state/homebrew.ts";
 
 /** The words for one choice on one conflict. */
 function choiceLabel(conflict: KeyConflict, choice: Resolution, homebrew: Record<string, object>): string {
@@ -66,16 +75,11 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
     <section aria-label="Resolve key conflicts" className="space-y-2 border border-rule-strong px-2 pb-2">
       <h3 className="font-bold">Key conflicts in {fileName}</h3>
       <p>
-        {conflicts.length} {conflicts.length === 1 ? "key is" : "keys are"} used by more than one item. Choose what to do with each before
-        the file is imported.
+        {conflicts.length} {conflicts.length === 1 ? "key is" : "keys are"} used by more than one item. Choose what to do with each before the file is imported.
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => chooseAll("rename")}>
-          Rename all
-        </Button>
-        <Button onClick={() => chooseAll("skip")}>
-          Skip all
-        </Button>
+        <Button onClick={() => chooseAll("rename")}>Rename all</Button>
+        <Button onClick={() => chooseAll("skip")}>Skip all</Button>
       </div>
       <ul className="space-y-2">
         {conflicts.map((conflict) => (

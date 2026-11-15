@@ -1,5 +1,5 @@
 import { AlertDialog as BaseAlertDialog } from "@base-ui/react/alert-dialog";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./Button.tsx";
 
 export type AlertDialogProps = {

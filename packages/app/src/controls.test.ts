@@ -59,7 +59,9 @@ const palette = [...readFileSync(createRequire(import.meta.url).resolve("tailwin
   .join("|");
 
 test("the app uses no Tailwind default color class or arbitrary color", () => {
-  const color = new RegExp(`\\b[a-z]+-(?:(?:${palette})-\\d{2,3}|black|white)\\b|-\\[(?:#|rgb|hsl|oklch|oklab|lab|lch|color)|--color-(?:${palette}|black|white)\\b`);
+  const color = new RegExp(
+    `\\b[a-z]+-(?:(?:${palette})-\\d{2,3}|black|white)\\b|-\\[(?:#|rgb|hsl|oklch|oklab|lab|lch|color)|--color-(?:${palette}|black|white)\\b`,
+  );
   const styles = readdirSync(import.meta.dirname, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".css"))
     .map((file) => ({ file, text: readFileSync(join(import.meta.dirname, file), "utf8") }));

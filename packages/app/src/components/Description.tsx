@@ -3,7 +3,7 @@
 // Enter in a one-line field. A write evaluates the whole character, so a
 // keystroke does not write.
 import { useId, useState } from "react";
-import { DESCRIPTION_FIELDS, normalized, setDescription, storedValue, type DescriptionField } from "../engine/description.ts";
+import { DESCRIPTION_FIELDS, type DescriptionField, normalized, setDescription, storedValue } from "../engine/description.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useMutation } from "./Classes.tsx";
 

@@ -1,7 +1,7 @@
 // The rows of the Review uses page (ORC-207): which features of a pack it
 // lists, and the item that Save makes from the choices of its rows.
 import { expect, test } from "vitest";
-import { levelName, startChoice, usesCount, usesCountText, usesRows, withChoices, type UsesRow } from "./review-uses.ts";
+import { levelName, startChoice, type UsesRow, usesCount, usesCountText, usesRows, withChoices } from "./review-uses.ts";
 import { bigPlugin, REVIEW_ROWS, reviewPlugin, WITH_USES } from "./test-review-pack.ts";
 import { SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 import { suggestedFrequency } from "./uses.ts";

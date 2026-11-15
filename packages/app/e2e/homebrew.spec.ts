@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
-import { expect, test, type Download, type Page } from "@playwright/test";
+import { type Download, expect, type Page, test } from "@playwright/test";
 import { expectNoteClearOfContent } from "./notes.ts";
 
 const orcbrewDir = join(import.meta.dirname, "../../../fixtures/orcbrew");
@@ -67,7 +67,10 @@ test("My Content disables an item, and a pack's export loads back in an empty br
   await expect(empty.getByRole("region", { name: "Import log" })).toContainText("No issues found");
   await empty.goto("/content");
   // The file marks the item with the old app's off flag, so it stays off.
-  await empty.getByRole("region", { name: "duplicate-external-b" }).getByText(/^\d+ classes$/).click();
+  await empty
+    .getByRole("region", { name: "duplicate-external-b" })
+    .getByText(/^\d+ classes$/)
+    .click();
   await expect(empty.getByRole("checkbox", { name: "Artificer (Alternate) (duplicate-external-b)" })).not.toBeChecked();
 });
 

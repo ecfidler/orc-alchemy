@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { featureCard as card } from "./homebrew-helpers.ts";
 
 // ORC-204: feature uses made in a form show as use bubbles on a character's sheet.
@@ -91,10 +91,15 @@ test.describe("screenshots", () => {
 
       // A pool above 8.
       await addFeature(page, 3, "Deep Reserves", "Action");
-      await page.getByRole("textbox", { name: "Feature 3 description" }).fill("You have a pool of healing. As an action, you restore hit points from the pool.");
+      await page
+        .getByRole("textbox", { name: "Feature 3 description" })
+        .fill("You have a pool of healing. As an action, you restore hit points from the pool.");
       await uses(page, 3).getByRole("button", { name: "Fixed" }).click();
       await pickOption(combobox(page, "Feature 3 amount"), "25");
-      await page.getByRole("group", { name: "Feature 3 preview" }).getByRole("button", { name: /^25 \/ 25 left/ }).click();
+      await page
+        .getByRole("group", { name: "Feature 3 preview" })
+        .getByRole("button", { name: /^25 \/ 25 left/ })
+        .click();
       await shot(card(page, 3), "pool");
 
       // The delete dialog.
@@ -107,7 +112,9 @@ test.describe("screenshots", () => {
       await page.goto("/content/new/class");
       await page.getByRole("textbox", { name: "Name" }).fill("Paladin");
       await addFeature(page, 1, "Tidal Reserve", "Action");
-      await page.getByRole("textbox", { name: "Feature 1 description" }).fill("You have a pool of power. As an action, you touch a creature and restore hit points from the pool.");
+      await page
+        .getByRole("textbox", { name: "Feature 1 description" })
+        .fill("You have a pool of power. As an action, you touch a creature and restore hit points from the pool.");
       await uses(page, 1).getByRole("button", { name: "Scaled" }).click();
       await pickOption(combobox(page, "Feature 1 equal to"), "Paladin level × n");
       await pickOption(combobox(page, "Feature 1 n"), "5");

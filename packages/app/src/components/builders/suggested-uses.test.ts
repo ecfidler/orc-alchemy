@@ -2,8 +2,8 @@
 // "Suggested uses", "Rules"), on the test pack and on the variants that
 // each rule accepts.
 import { describe, expect, test } from "vitest";
-import { CASES, fixed, SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 import { readFeatureText } from "./suggested-uses.ts";
+import { CASES, fixed, SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 import { suggestedFrequency } from "./uses.ts";
 
 const uses = (text: string) => {
@@ -51,13 +51,29 @@ describe("uses rules", () => {
   });
 
   test("a number of times equal to your proficiency bonus, with the rest in the same or the next sentence", () => {
-    expect(uses("You can use it a number of times equal to your proficiency bonus, and regain all uses on a short or long rest.")).toEqual({ amount: { kind: "prof" }, unit: "short-rest" });
-    expect(uses("You can use it a number of times equal to your proficiency bonus. You regain all expended uses when you finish a long rest.")).toEqual({ amount: { kind: "prof" }, unit: "long-rest" });
+    expect(uses("You can use it a number of times equal to your proficiency bonus, and regain all uses on a short or long rest.")).toEqual({
+      amount: { kind: "prof" },
+      unit: "short-rest",
+    });
+    expect(uses("You can use it a number of times equal to your proficiency bonus. You regain all expended uses when you finish a long rest.")).toEqual({
+      amount: { kind: "prof" },
+      unit: "long-rest",
+    });
   });
 
   test("a number of times equal to an ability modifier: each of the six abilities", () => {
-    for (const [word, ability] of [["Strength", "str"], ["Dexterity", "dex"], ["Constitution", "con"], ["Intelligence", "int"], ["Wisdom", "wis"], ["Charisma", "cha"]])
-      expect(uses(`You can do this a number of times equal to your ${word} modifier (minimum of once). You regain them when you finish a long rest.`)).toEqual({ amount: { kind: "ability", ability }, unit: "long-rest" });
+    for (const [word, ability] of [
+      ["Strength", "str"],
+      ["Dexterity", "dex"],
+      ["Constitution", "con"],
+      ["Intelligence", "int"],
+      ["Wisdom", "wis"],
+      ["Charisma", "cha"],
+    ])
+      expect(uses(`You can do this a number of times equal to your ${word} modifier (minimum of once). You regain them when you finish a long rest.`)).toEqual({
+        amount: { kind: "ability", ability },
+        unit: "long-rest",
+      });
   });
 
   test("once / twice / n times per day, a day or each day", () => {
@@ -85,8 +101,14 @@ describe("cases that are not read", () => {
     expect(uses("You can use it a number of times equal to your Wisdom modifier, plus one, and regain them on a long rest.")).toBe("hint");
     expect(uses("You can use it a number of times equal to your Wisdom modifier (minimum of 1) + 2. You regain them on a long rest.")).toBe("hint");
     expect(uses("You can use it a number of times equal to your Wisdom modifier - 1 per long rest.")).toBe("hint");
-    expect(uses("You can use it a number of times equal to your Wisdom modifier (minimum of 1). You regain them on a long rest.")).toEqual({ amount: { kind: "ability", ability: "wis" }, unit: "long-rest" });
-    expect(uses("You can use it a number of times equal to your proficiency bonus (a minimum of once) per long rest.")).toEqual({ amount: { kind: "prof" }, unit: "long-rest" });
+    expect(uses("You can use it a number of times equal to your Wisdom modifier (minimum of 1). You regain them on a long rest.")).toEqual({
+      amount: { kind: "ability", ability: "wis" },
+      unit: "long-rest",
+    });
+    expect(uses("You can use it a number of times equal to your proficiency bonus (a minimum of once) per long rest.")).toEqual({
+      amount: { kind: "prof" },
+      unit: "long-rest",
+    });
   });
 
   test("a level amount is a hint, not a suggestion", () => {
@@ -120,7 +142,9 @@ describe("hints", () => {
   });
 
   test("a rule that is read and an amount that is not give a hint", () => {
-    expect(uses("Once you use this feature, you must finish a short or long rest before you can use it again. At 17th level, you can use it twice before a rest.")).toBe("hint");
+    expect(
+      uses("Once you use this feature, you must finish a short or long rest before you can use it again. At 17th level, you can use it twice before a rest."),
+    ).toBe("hint");
   });
 
   test("two rules with the same uses give one suggestion, at the first of them", () => {
@@ -194,6 +218,9 @@ describe("the frequency of a suggestion", () => {
     expect(suggestedFrequency(fixed(1, "short-rest"))).toEqual({ "~:units": "~:orcpub.dnd.e5.units/short-rest", "~:amount": 1 });
     expect(suggestedFrequency(fixed(2, "day"))).toEqual({ "~:units": "~:orcpub.dnd.e5.units/day", "~:amount": 2 });
     expect(suggestedFrequency({ amount: { kind: "prof" }, unit: "long-rest" })).toEqual({ "~:units": LONG, "~:amount": { "~:prof-bonus": true } });
-    expect(suggestedFrequency({ amount: { kind: "ability", ability: "wis" }, unit: "long-rest" })).toEqual({ "~:units": LONG, "~:amount": { "~:ability": "~:wis", "~:min": 1 } });
+    expect(suggestedFrequency({ amount: { kind: "ability", ability: "wis" }, unit: "long-rest" })).toEqual({
+      "~:units": LONG,
+      "~:amount": { "~:ability": "~:wis", "~:min": 1 },
+    });
   });
 });

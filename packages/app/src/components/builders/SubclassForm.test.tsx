@@ -33,7 +33,8 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
   const pack = useHomebrew.getState().packs.find((p) => p.id === DEFAULT);
@@ -129,7 +130,10 @@ test("an imported subclass opens with each group that holds a value, and a save 
     "~:key": "~:path-of-tides",
     "~:option-pack": "Reef",
     "~:class": "~:barbarian",
-    "~:profs": { "~:skill-options": { "~:options": { "~:athletics": false } }, "~:skill-expertise-options": { "~:choose": 1, "~:options": { "~:survival": true } } },
+    "~:profs": {
+      "~:skill-options": { "~:options": { "~:athletics": false } },
+      "~:skill-expertise-options": { "~:choose": 1, "~:options": { "~:survival": true } },
+    },
     "~:level-modifiers": [],
     "~:level-selections": [{ "~:type": "~:tide-gifts", "~:level": 3, "~:num": 1 }],
     "~:traits": [],
@@ -219,7 +223,10 @@ test("the spells table: a level column for a paladin and a cleric, none for a wa
   renderAt("/content/new/subclass");
   await screen.findByRole("textbox", { name: "Name" });
   await choose("Class", "Paladin");
-  const headings = (title: string) => within(screen.getByRole("group", { name: title })).getAllByRole("columnheader").map((h) => h.textContent);
+  const headings = (title: string) =>
+    within(screen.getByRole("group", { name: title }))
+      .getAllByRole("columnheader")
+      .map((h) => h.textContent);
   expect(headings("Spells")).toEqual(["Paladin level", "Spell level", "First spell", "Second spell"]);
   expect(table("Spells").slice(1)).toEqual([
     ["3rd", "1st", "+", "+"],
@@ -231,10 +238,18 @@ test("the spells table: a level column for a paladin and a cleric, none for a wa
   expect(screen.getByText("A paladin of this subclass always has these spells prepared, from the paladin level in the first column.")).toBeTruthy();
   await choose("Class", "Cleric");
   expect(headings("Domain Spells")).toEqual(["Cleric level", "Spell level", "First spell", "Second spell"]);
-  expect(table("Domain Spells").slice(1).map((row) => row[0])).toEqual(["1st", "3rd", "5th", "7th", "9th"]);
+  expect(
+    table("Domain Spells")
+      .slice(1)
+      .map((row) => row[0]),
+  ).toEqual(["1st", "3rd", "5th", "7th", "9th"]);
   await choose("Class", "Warlock");
   expect(headings("Expanded Spells")).toEqual(["Spell level", "First spell", "Second spell"]);
-  expect(table("Expanded Spells").slice(1).map((row) => row[0])).toEqual(["1st", "2nd", "3rd", "4th", "5th"]);
+  expect(
+    table("Expanded Spells")
+      .slice(1)
+      .map((row) => row[0]),
+  ).toEqual(["1st", "2nd", "3rd", "4th", "5th"]);
   expect(screen.getByText("A warlock of this subclass can choose these spells as warlock spells.")).toBeTruthy();
   await choose("Class", "Fighter");
   expect(screen.queryByRole("table")).toBeNull();
@@ -288,7 +303,12 @@ test("an imported paladin, cleric and warlock subclass each open with their spel
       "~:option-pack": "Reef",
       "~:class": "~:paladin",
       // Two spells, one, only the second, none, and a spell of a pack that is not here.
-      "~:paladin-spells": { "~i1": { "~i0": "~:sanctuary", "~i1": "~:bless" }, "~i2": { "~i0": "~:zone-of-truth" }, "~i3": { "~i1": "~:tidal-wave" }, "~i4": {} },
+      "~:paladin-spells": {
+        "~i1": { "~i0": "~:sanctuary", "~i1": "~:bless" },
+        "~i2": { "~i0": "~:zone-of-truth" },
+        "~i3": { "~i1": "~:tidal-wave" },
+        "~i4": {},
+      },
       "~:level-modifiers": [],
       "~:traits": [],
     },

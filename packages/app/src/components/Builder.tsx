@@ -3,7 +3,7 @@
 // through useCharacter's update, so it autosaves.
 import { Button, NoteCount, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
-import { remainingByStep, unfilled, useBuilderSteps, type BuilderOption, type BuilderSelection } from "../engine/builder.ts";
+import { type BuilderOption, type BuilderSelection, remainingByStep, unfilled, useBuilderSteps } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
@@ -28,7 +28,9 @@ export function Builder() {
     .filter((s) => !s.tags.includes("starting-equipment"))
     .map(({ name, remaining: n }) => {
       const noun = Math.abs(n) === 1 ? "selection" : "selections";
-      return n > 0 ? { text: `You have ${n} more '${name}' ${noun} to make.`, tooMany: false } : { text: `You must remove ${-n} '${name}' ${noun}.`, tooMany: true };
+      return n > 0
+        ? { text: `You have ${n} more '${name}' ${noun} to make.`, tooMany: false }
+        : { text: `You must remove ${-n} '${name}' ${noun}.`, tooMany: true };
     });
 
   return (
@@ -149,9 +151,7 @@ export function OptionCards({ selection, options }: { selection: BuilderSelectio
 
   function pick(option: BuilderOption) {
     if (option.selected && !selection.multiselect) return;
-    run((e, entity, opts) =>
-      option.selected ? e.deselect(entity, actualPath, option.key, opts) : e.select(entity, actualPath, option.key, opts),
-    );
+    run((e, entity, opts) => (option.selected ? e.deselect(entity, actualPath, option.key, opts) : e.select(entity, actualPath, option.key, opts)));
   }
 
   return (

@@ -1,5 +1,5 @@
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
-import { useRef, type ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import type { FlagColor } from "./Shell.tsx";
 
 export type Tab = { value: string; label: string; color: FlagColor; content: ReactNode };

@@ -144,7 +144,8 @@ function restNear(lower: string, sentenceSpans: Span[], at: number): { unit: Sug
 const join = (a: Span, b: Span): Span => ({ start: Math.min(a.start, b.start), end: Math.max(a.end, b.end) });
 
 /** Each match of a global regex, with its span. */
-const each = (lower: string, pattern: string) => [...lower.matchAll(new RegExp(pattern, "g"))].map((m) => ({ m, span: { start: m.index, end: m.index + m[0].length } }));
+const each = (lower: string, pattern: string) =>
+  [...lower.matchAll(new RegExp(pattern, "g"))].map((m) => ({ m, span: { start: m.index, end: m.index + m[0].length } }));
 
 /** The rules of the table, in its order. Each gives the uses that it reads, or an amount it does not read. */
 function ruleMatches(lower: string, sentenceSpans: Span[]): RuleMatch[] {
@@ -183,7 +184,10 @@ function ruleMatches(lower: string, sentenceSpans: Span[]): RuleMatch[] {
     found.push({ uses: { amount: { kind: "fixed", n: countOf(m[1]) }, unit: "day" }, phrase: span });
 
   // "use it once / twice / three times", then a rest. A count for each turn, round or day is not this rule.
-  for (const { m, span } of each(lower, String.raw`\buse\s+${THING}\s+${COUNT}\b(?!\s+(?:(?:per|a|each|on|in)\s+(?:[a-z']+\s+){0,3}?(?:turns?|rounds?|day)\b))`)) {
+  for (const { m, span } of each(
+    lower,
+    String.raw`\buse\s+${THING}\s+${COUNT}\b(?!\s+(?:(?:per|a|each|on|in)\s+(?:[a-z']+\s+){0,3}?(?:turns?|rounds?|day)\b))`,
+  )) {
     const rest = restNear(lower, sentenceSpans, span.start);
     found.push({ uses: rest ? { amount: { kind: "fixed", n: countOf(m[1]) }, unit: rest.unit } : null, phrase: rest ? join(span, rest.span) : span });
   }
@@ -191,7 +195,11 @@ function ruleMatches(lower: string, sentenceSpans: Span[]): RuleMatch[] {
 }
 
 /** Text that names uses with no amount: "regain all expended uses", or "per day" with no count. */
-const HINTS = [String.raw`\b(?:regain|regains|recover|recovers)\s+(?:(?:all|any|one|its|your|of|the)\s+)*(?:expended\s+|spent\s+)?uses\b`, String.raw`\bexpended\s+uses\b`, String.raw`\b(?:per|each)\s+day\b`];
+const HINTS = [
+  String.raw`\b(?:regain|regains|recover|recovers)\s+(?:(?:all|any|one|its|your|of|the)\s+)*(?:expended\s+|spent\s+)?uses\b`,
+  String.raw`\bexpended\s+uses\b`,
+  String.raw`\b(?:per|each)\s+day\b`,
+];
 
 const usesKey = (uses: SuggestedUses) => JSON.stringify(uses);
 

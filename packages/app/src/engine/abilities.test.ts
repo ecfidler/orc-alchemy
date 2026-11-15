@@ -2,25 +2,24 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import {
-  STANDARD_SCORES,
   abilityRows,
   baseScores,
   canDecrease,
   canIncrease,
+  type Method,
   pointsLeft,
   rollScores,
+  type Scores,
+  STANDARD_SCORES,
   setBaseScores,
   swapScores,
-  type Method,
-  type Scores,
 } from "./abilities.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 const readJson = (file: string) => JSON.parse(readFileSync(join(charactersDir, file), "utf8"));
 const imported = (name: string): StrictEntity => engine().importCharacter(readJson(`${name}.strict.json`)).entity;
-const short = (abilities: Record<string, number>) =>
-  Object.fromEntries(Object.entries(abilities).map(([k, v]) => [k.slice(k.indexOf("/") + 1), v]));
+const short = (abilities: Record<string, number>) => Object.fromEntries(Object.entries(abilities).map(([k, v]) => [k.slice(k.indexOf("/") + 1), v]));
 const builtAbilities = (entity: StrictEntity) => short(engine().evaluate(entity).built.abilities);
 const all = (n: number): Scores => ({ str: n, dex: n, con: n, int: n, wis: n, cha: n });
 
@@ -87,15 +86,12 @@ test("the base scores read back as they were set, for each method", () => {
   }
 });
 
-test.each(["manual-entry", "point-buy", "standard-roll", "standard-scores"] as Method[])(
-  "%s builds the base scores plus the race's increases",
-  (method) => {
-    // A dwarf has Con +2.
-    const dwarf = engine().select(engine().emptyCharacter(), ["race"], "dwarf");
-    const scores = { str: 15, dex: 8, con: 14, int: 10, wis: 12, cha: 9 };
-    expect(builtAbilities(setBaseScores(dwarf, method, scores))).toEqual({ ...scores, con: 16 });
-  },
-);
+test.each(["manual-entry", "point-buy", "standard-roll", "standard-scores"] as Method[])("%s builds the base scores plus the race's increases", (method) => {
+  // A dwarf has Con +2.
+  const dwarf = engine().select(engine().emptyCharacter(), ["race"], "dwarf");
+  const scores = { str: 15, dex: 8, con: 14, int: 10, wis: 12, cha: 9 };
+  expect(builtAbilities(setBaseScores(dwarf, method, scores))).toEqual({ ...scores, con: 16 });
+});
 
 test("an option without scores has 8s for point buy, and the standard scores otherwise", () => {
   const withOption = (key: string) => ({

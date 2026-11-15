@@ -16,11 +16,33 @@
 // a feat"). Engine 0.4.0 reads them.
 // A level amount on a feat counts the character level.
 import { Checkbox, Picker } from "@orc-alchemy/ui";
-import { asSet, setItems, tag, untag } from "../../engine/content.ts";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
-import { ABILITIES, abilityKey, Checks, editor, FeatureType, FeatureUses, FieldRow, FormColumn, MapPicker, pickedText, RecordTextArea, Section, SKILLS, TextField, Traits, WithChoices, type BuilderType, type Edit, type FormProps, type Path, type PickerOptions } from "./fields.tsx";
+import { asSet, setItems, tag, untag } from "../../engine/content.ts";
+import {
+  ABILITIES,
+  abilityKey,
+  type BuilderType,
+  Checks,
+  type Edit,
+  editor,
+  FeatureType,
+  FeatureUses,
+  FieldRow,
+  FormColumn,
+  type FormProps,
+  MapPicker,
+  type Path,
+  type PickerOptions,
+  pickedText,
+  RecordTextArea,
+  Section,
+  SKILLS,
+  TextField,
+  Traits,
+  WithChoices,
+} from "./fields.tsx";
 import { armorModifier, hitPointsModifier, propModifier, RESISTANCE_CHOICES, TOOL_ITEMS, valueModifier } from "./modifier-kinds.tsx";
-import { Modifiers, type Modifier } from "./modifiers.tsx";
+import { type Modifier, Modifiers } from "./modifiers.tsx";
 
 const ABILITY_CHOICES: Choice[] = ABILITIES.map(([key, name]) => ({ key: abilityKey(key), name }));
 
@@ -78,7 +100,9 @@ const RACE_PREFIX = "race ";
 function Prerequisites({ edit, lists, legend }: { edit: Edit; lists: BuilderChoices; legend: string }) {
   const set = setItems(edit.get("prereqs")) as string[];
   const races = (edit.get("path-prereqs", "race") ?? {}) as Record<string, unknown>;
-  const picked = Object.keys(races).filter((key) => races[key] === true).map((key) => RACE_PREFIX + untag(key));
+  const picked = Object.keys(races)
+    .filter((key) => races[key] === true)
+    .map((key) => RACE_PREFIX + untag(key));
   const options = [
     ...PREREQS.map(({ key, name }) => ({ value: tag(key), label: name })),
     ...lists.races.map(({ key, name }) => ({ value: RACE_PREFIX + key, label: `${name} race`, group: "Races" })),
@@ -93,7 +117,14 @@ function Prerequisites({ edit, lists, legend }: { edit: Edit; lists: BuilderChoi
   };
   return (
     <Section legend={legend}>
-      <Picker label="Add a prerequisite" options={options} value={[...set, ...picked]} onValueChange={onValueChange} search={options.length > 20} pickedText={pickedText} />
+      <Picker
+        label="Add a prerequisite"
+        options={options}
+        value={[...set, ...picked]}
+        onValueChange={onValueChange}
+        search={options.length > 20}
+        pickedText={pickedText}
+      />
     </Section>
   );
 }
@@ -105,7 +136,12 @@ function AbilityIncreaseOptions({ edit, legend }: { edit: Edit; legend: string }
   const toggle = (key: string) => edit.set(["ability-increases"], asSet(has(key) ? set.filter((k) => k !== tag(key)) : [...set, tag(key)]));
   return (
     <Checks legend={legend} items={ABILITY_CHOICES} checked={has} onToggle={toggle}>
-      <Checkbox label="You also gain proficiency in saving throws with the above chosen abilities" checked={has("saves?")} onCheckedChange={() => toggle("saves?")} className="mt-2 items-start [&>.ui-check]:mt-[4px]" />
+      <Checkbox
+        label="You also gain proficiency in saving throws with the above chosen abilities"
+        checked={has("saves?")}
+        onCheckedChange={() => toggle("saves?")}
+        className="mt-2 items-start [&>.ui-check]:mt-[4px]"
+      />
     </Checks>
   );
 }
@@ -131,20 +167,36 @@ function featModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
   return [
     { id: "prereqs", name: "Prerequisites", common: true, render: ({ name }) => <Prerequisites edit={edit} lists={lists} legend={name} /> },
     { id: "ability-increases", name: "Ability Increase Options", common: true, render: ({ name }) => <AbilityIncreaseOptions edit={edit} legend={name} /> },
-    valueModifier(edit, "skill-tool-choice", "Skill or Tool Proficiency", "Proficiency in 1 to 3 skills or tools of choice", [1, 2, 3], "Skills or tools of your choice"),
+    valueModifier(
+      edit,
+      "skill-tool-choice",
+      "Skill or Tool Proficiency",
+      "Proficiency in 1 to 3 skills or tools of choice",
+      [1, 2, 3],
+      "Skills or tools of your choice",
+    ),
     valueModifier(edit, "language-choice", "Languages", "Learn 1 to 3 languages of choice", [1, 2, 3], "Languages of your choice"),
     sentenceModifier(edit, "weapon-prof", "Weapon Proficiency", "Proficiency with improvised weapons", WEAPON_TOGGLES, { add: "Add a weapon proficiency" }),
     valueModifier(edit, "weapon-prof-choice", "Weapon Proficiency Choice", "Proficiency with 3 or 4 weapons of choice", [3, 4], "Weapons of your choice"),
     armorModifier(edit),
     sentenceModifier(edit, "medium-armor", "Medium Armor", "No Stealth disadvantage, +3 Dexterity to AC", MEDIUM_ARMOR, { add: "Add a medium armor benefit" }),
     hitPointsModifier(edit),
-    propModifier(edit, "damage-resistance", "Damage Resistances", "Resistance to fire, cold, damage from traps …", RESISTANCE_CHOICES, { add: "Add a damage resistance" }),
+    propModifier(edit, "damage-resistance", "Damage Resistances", "Resistance to fire, cold, damage from traps …", RESISTANCE_CHOICES, {
+      add: "Add a damage resistance",
+    }),
     valueModifier(edit, "speed", "Speed Bonuses", "+5, +10 or +15 ft. speed", [5, 10, 15], "More feet of speed"),
     valueModifier(edit, "initiative", "Initiative Bonuses", "+1 to +5 to initiative", [1, 2, 3, 4, 5], "Bonus to initiative"),
     sentenceModifier(edit, "misc", "Misc. Modifiers", "Two-weapon fighting, +5 passive Perception, traps", MISC, { add: "Add a misc. modifier" }),
-    sentenceModifier(edit, "spellcasting", "Spellcasting", "Cantrips and a 1st-level spell, ritual spells, an attack cantrip", SPELLCASTING, { add: "Add a spellcasting benefit" }),
-    propModifier(edit, "skill-prof-or-expertise", "Skill Proficiency or Expertise", "Proficiency in a skill, or expertise if already proficient", SKILLS, { add: "Add a skill" }),
-    propModifier(edit, "tool-prof-or-expertise", "Tool Proficiency or Expertise", "Proficiency with a tool, or expertise if already proficient", TOOL_ITEMS, { add: "Add a tool", search: true }),
+    sentenceModifier(edit, "spellcasting", "Spellcasting", "Cantrips and a 1st-level spell, ritual spells, an attack cantrip", SPELLCASTING, {
+      add: "Add a spellcasting benefit",
+    }),
+    propModifier(edit, "skill-prof-or-expertise", "Skill Proficiency or Expertise", "Proficiency in a skill, or expertise if already proficient", SKILLS, {
+      add: "Add a skill",
+    }),
+    propModifier(edit, "tool-prof-or-expertise", "Tool Proficiency or Expertise", "Proficiency with a tool, or expertise if already proficient", TOOL_ITEMS, {
+      add: "Add a tool",
+      search: true,
+    }),
   ];
 }
 

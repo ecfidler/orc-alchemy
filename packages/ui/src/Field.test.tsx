@@ -1,7 +1,7 @@
-import { Input } from "@base-ui/react/input";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { Input } from "@base-ui/react/input";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
 

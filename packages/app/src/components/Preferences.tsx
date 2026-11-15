@@ -1,4 +1,4 @@
-import { Select, useThemePreference, type SelectOption, type ThemePreference } from "@orc-alchemy/ui";
+import { Select, type SelectOption, type ThemePreference, useThemePreference } from "@orc-alchemy/ui";
 import { useId } from "react";
 
 const THEMES: SelectOption<ThemePreference>[] = [

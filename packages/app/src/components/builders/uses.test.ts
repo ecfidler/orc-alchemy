@@ -1,16 +1,5 @@
 import { expect, test } from "vitest";
-import {
-  baseAbility,
-  baseOf,
-  rechargeOptions,
-  unitName,
-  usesKind,
-  withBase,
-  withFixed,
-  withKind,
-  withScaledNumber,
-  withUnit,
-} from "./uses.ts";
+import { baseAbility, baseOf, rechargeOptions, unitName, usesKind, withBase, withFixed, withKind, withScaledNumber, withUnit } from "./uses.ts";
 
 const LONG = "~:orcpub.dnd.e5.units/long-rest";
 const SHORT = "~:orcpub.dnd.e5.units/short-rest";

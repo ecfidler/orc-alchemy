@@ -13,12 +13,49 @@
 import { Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode } from "react";
 import { tag } from "../../engine/content.ts";
-import { ABILITIES, editor, fieldErrors, FieldRow, FormColumn, MapPicker, numberOrNull, orFirst, range, Section, SKILLS, title, Traits, WithChoices, type BuilderType, type FormProps, type ItemRecord, type FeatureList, type PickerOptions, type PickItem } from "./fields.tsx";
+import {
+  ABILITIES,
+  type BuilderType,
+  editor,
+  type FeatureList,
+  FieldRow,
+  FormColumn,
+  type FormProps,
+  fieldErrors,
+  type ItemRecord,
+  MapPicker,
+  numberOrNull,
+  orFirst,
+  type PickerOptions,
+  type PickItem,
+  range,
+  Section,
+  SKILLS,
+  Traits,
+  title,
+  WithChoices,
+} from "./fields.tsx";
 import { CONDITION_CHOICES, DAMAGE_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES } from "./modifier-kinds.tsx";
-import { Modifiers, type Modifier, type ModifierView } from "./modifiers.tsx";
+import { type Modifier, Modifiers, type ModifierView } from "./modifiers.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
-const TYPES = ["aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "swarm-of-tiny-beasts", "undead"];
+const TYPES = [
+  "aberration",
+  "beast",
+  "celestial",
+  "construct",
+  "dragon",
+  "elemental",
+  "fey",
+  "fiend",
+  "giant",
+  "humanoid",
+  "monstrosity",
+  "ooze",
+  "plant",
+  "swarm-of-tiny-beasts",
+  "undead",
+];
 /** The old dropdown's alignments: those of the SRD monsters (spell_subs.cljs ::monsters/alignments). */
 const ALIGNMENTS = [
   "any alignment",
@@ -124,7 +161,11 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
           {select("Hit die count", hitPoints[tag("die-count")], orNone(range(1, 36)), (v) => setIn("hit-points", "die-count", parsed(v)))}
           {select("Hit die", hitPoints[tag("die")], orNone(DICE), (v) => setIn("hit-points", "die", parsed(v)))}
           <FieldLabel label="Hit point modifier">
-            <NumberField value={numberOrNull(hitPoints[tag("modifier")]) ?? 0} onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)} className="w-20" />
+            <NumberField
+              value={numberOrNull(hitPoints[tag("modifier")]) ?? 0}
+              onValueChange={(n) => setIn("hit-points", "modifier", n ?? undefined)}
+              className="w-20"
+            />
           </FieldLabel>
         </FieldRow>
       </Fieldset>
@@ -143,7 +184,9 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       <Fieldset legend={name} look="section">
         <FieldRow>
           {ABILITIES.map(([key, name]) => (
-            <Fragment key={key}>{select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}</Fragment>
+            <Fragment key={key}>
+              {select(`${name} saving throw`, saves[tag(key)], orNone(range(0, 18)), (v) => setIn("saving-throws", key, parsed(v)))}
+            </Fragment>
           ))}
         </FieldRow>
       </Fieldset>
@@ -176,7 +219,12 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       field(
         "challenge",
         "Challenge rating",
-        select("Challenge rating", record[tag("challenge")], CHALLENGES.map((c) => [c, c > 0 && c < 1 ? `1/${1 / c}` : c]), (v) => set("challenge", parseFloat(v))),
+        select(
+          "Challenge rating",
+          record[tag("challenge")],
+          CHALLENGES.map((c) => [c, c > 0 && c < 1 ? `1/${1 / c}` : c]),
+          (v) => set("challenge", parseFloat(v)),
+        ),
       ),
     ),
     textModifier("description", "Special traits", "Amphibious, Magic Resistance …", true),
@@ -187,7 +235,11 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
       paths: [["legendary-actions"]],
       render: ({ name, action }) => (
         <Fieldset legend={name} look="section" action={action} errors={fieldErrors(problems, "legendary-actions", name)}>
-          <TextArea aria-label={name} value={String(map("legendary-actions")[tag("description")] ?? "")} onValueChange={(text) => setIn("legendary-actions", "description", text)} />
+          <TextArea
+            aria-label={name}
+            value={String(map("legendary-actions")[tag("description")] ?? "")}
+            onValueChange={(text) => setIn("legendary-actions", "description", text)}
+          />
         </Fieldset>
       ),
     },
@@ -197,11 +249,30 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
     <FormColumn>
       {text("name", "Name")}
       <FieldRow>
-        {select("Size", record[tag("size")], SIZES.map((s) => [tag(s), title(s)]), (v) => set("size", v))}
-        {select("Type", record[tag("type")], TYPES.map((t) => [tag(t), title(t)]), (v) => set("type", v))}
-        {select("Alignment", record[tag("alignment")], ALIGNMENTS.map((a) => [a, a]), (v) => set("alignment", v))}
+        {select(
+          "Size",
+          record[tag("size")],
+          SIZES.map((s) => [tag(s), title(s)]),
+          (v) => set("size", v),
+        )}
+        {select(
+          "Type",
+          record[tag("type")],
+          TYPES.map((t) => [tag(t), title(t)]),
+          (v) => set("type", v),
+        )}
+        {select(
+          "Alignment",
+          record[tag("alignment")],
+          ALIGNMENTS.map((a) => [a, a]),
+          (v) => set("alignment", v),
+        )}
       </FieldRow>
-      {field("armor-class", "Armor class", select("Armor class", record[tag("armor-class")], numbers(range(5, 25)), (v) => set("armor-class", Number(v))))}
+      {field(
+        "armor-class",
+        "Armor class",
+        select("Armor class", record[tag("armor-class")], numbers(range(5, 25)), (v) => set("armor-class", Number(v))),
+      )}
       <Modifiers record={record} onChange={onChange} modifiers={modifiers} />
       <Traits edit={edit} problems={problems} list={MONSTER_FEATURES} />
     </FormColumn>

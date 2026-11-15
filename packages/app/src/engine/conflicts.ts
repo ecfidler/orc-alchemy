@@ -2,8 +2,8 @@
 // fork): the user's choice for each conflict the engine's parseOrcbrew
 // reports, applied to the homebrew it parsed, before anything is stored.
 import type { ContentType, KeyConflict } from "@pubdoor/dmv";
-import { engine } from "./engine.ts";
 import { disabledInFile, tag, withoutItem } from "./content.ts";
+import { engine } from "./engine.ts";
 
 export type { KeyConflict };
 
@@ -20,8 +20,7 @@ export type { KeyConflict };
 export type Resolution = "rename" | "skip" | "replace";
 
 /** The choices that a conflict of this type offers. */
-export const resolutionsFor = (conflict: KeyConflict): Resolution[] =>
-  conflict.type === "external" ? ["rename", "skip", "replace"] : ["rename", "skip"];
+export const resolutionsFor = (conflict: KeyConflict): Resolution[] => (conflict.type === "external" ? ["rename", "skip", "replace"] : ["rename", "skip"]);
 
 /** One key that a rename changed, as the old import log lists it. */
 export interface AppliedRename {
@@ -54,10 +53,7 @@ export const copyOn = (conflict: KeyConflict, source: string, homebrew: Record<s
  * that keeps it is the one the old app uses: the last copy that is on (see
  * copyOn). If every copy is off, the last copy keeps the key.
  */
-export function internalCopies(
-  conflict: KeyConflict,
-  homebrew: Record<string, object>,
-): { others: { source: string; newKey: string }[]; kept: string } {
+export function internalCopies(conflict: KeyConflict, homebrew: Record<string, object>): { others: { source: string; newKey: string }[]; kept: string } {
   const sources = conflictSources(conflict).map((s) => s.source);
   const renames = conflict["suggested-renames"] ?? [];
   const lastOn = sources.findLastIndex((source) => copyOn(conflict, source, homebrew));
@@ -157,8 +153,7 @@ export function applyResolutions(
 const itemsOf = (homebrew: Record<string, object>, pack: string, contentType: string) =>
   (homebrew[pack] as Record<string, Record<string, unknown>> | undefined)?.[tag(contentType)];
 
-const hasItem = (homebrew: Record<string, object>, pack: string, contentType: string, key: string) =>
-  tag(key) in (itemsOf(homebrew, pack, contentType) ?? {});
+const hasItem = (homebrew: Record<string, object>, pack: string, contentType: string, key: string) => tag(key) in (itemsOf(homebrew, pack, contentType) ?? {});
 
 /** The homebrew without one item, or the same homebrew if it does not have the item. */
 function withoutPackItem(homebrew: Record<string, object>, pack: string, contentType: string, key: string): Record<string, object> {

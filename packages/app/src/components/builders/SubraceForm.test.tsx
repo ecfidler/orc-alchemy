@@ -34,7 +34,8 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 /** The modifiers of the add list, in form order. */
 const ADDED = [
@@ -55,7 +56,9 @@ const stored = (pack: string, key: string) => {
 };
 
 test("the race list has the SRD races and the enabled packs' races, and the race's values show until the subrace has its own", async () => {
-  await useHomebrew.getState().saveItem("Lizards", "~:orcpub.dnd.e5/races", { "~:key": "~:lizard", "~:name": "Lizard", "~:option-pack": "Lizards", "~:speed": 40, "~:size": "~:small" });
+  await useHomebrew
+    .getState()
+    .saveItem("Lizards", "~:orcpub.dnd.e5/races", { "~:key": "~:lizard", "~:name": "Lizard", "~:option-pack": "Lizards", "~:speed": 40, "~:size": "~:small" });
   renderAt("/content/new/subrace");
   await screen.findByRole("button", { name: "Add a spell" });
   const races = await optionNames(screen.getByRole("combobox", { name: "Race" }));

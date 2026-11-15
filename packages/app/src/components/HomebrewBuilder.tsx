@@ -9,11 +9,11 @@ import { Link, useNavigate, useParams } from "react-router";
 import { DEFAULT_PACK, itemAt, tag } from "../engine/content.ts";
 import { engine } from "../engine/engine.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
-import { problemText, type BuilderType, type ItemRecord } from "./builders/fields.tsx";
 import { backgroundBuilder } from "./builders/BackgroundForm.tsx";
 import { boonBuilder } from "./builders/BoonForm.tsx";
 import { classBuilder } from "./builders/ClassForm.tsx";
 import { featBuilder } from "./builders/FeatForm.tsx";
+import { type BuilderType, type ItemRecord, problemText } from "./builders/fields.tsx";
 import { invocationBuilder } from "./builders/InvocationForm.tsx";
 import { languageBuilder } from "./builders/LanguageForm.tsx";
 import { magicItemBuilder } from "./builders/MagicItemForm.tsx";
@@ -65,7 +65,8 @@ export function HomebrewBuilder() {
   if (builder === undefined) return <NotFound text="There is no form for this content type" />;
   if (restore.error !== null) return <p role="alert">{restore.error}</p>;
   if (!restore.done) return <p role="status">Reading the stored homebrew…</p>;
-  if (key === undefined) return <BuilderForm key={type} builder={builder} initial={builder.save ? builder.empty : { ...builder.empty, [OPTION_PACK]: DEFAULT_PACK }} />;
+  if (key === undefined)
+    return <BuilderForm key={type} builder={builder} initial={builder.save ? builder.empty : { ...builder.empty, [OPTION_PACK]: DEFAULT_PACK }} />;
   if (builder.save) {
     const item = builder.load(key);
     if (item === undefined) return <NotFound text={`There is no ${builder.one} ${key}`} />;

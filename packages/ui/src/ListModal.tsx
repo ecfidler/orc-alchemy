@@ -1,6 +1,6 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Input } from "@base-ui/react/input";
-import { useId, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import { type KeyboardEvent, type RefObject, useId, useRef, useState } from "react";
 import { useRefocus } from "./refocus.ts";
 
 /** One row of a ListModal or one option of a Picker. */
@@ -114,7 +114,14 @@ export function ListModal<T>(props: ListModalProps<T>) {
 }
 
 /** The search field, the rows and the footer. It mounts with the popup, so the search text is new at each open. */
-function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left to add.", popup, ...props }: ListModalProps<T> & { popup: RefObject<HTMLDivElement | null> }) {
+function ListBody<T>({
+  items,
+  onPick,
+  onOpenChange,
+  emptyText = "Nothing is left to add.",
+  popup,
+  ...props
+}: ListModalProps<T> & { popup: RefObject<HTMLDivElement | null> }) {
   const [query, setQuery] = useState("");
   const id = useId();
   const refocus = useRefocus(popup, ROW, () => popup.current?.querySelector<HTMLElement>(".ui-list-search, .ui-list-done"));
@@ -146,7 +153,16 @@ function ListBody<T>({ items, onPick, onOpenChange, emptyText = "Nothing is left
     <>
       {props.stayOpen && props.search && (
         <div className="ui-list-search-row">
-          <Input type="search" aria-label="Search" placeholder="Search" autoComplete="off" value={query} onValueChange={setQuery} onKeyDown={onKeyDown} className="ui-input ui-list-search" />
+          <Input
+            type="search"
+            aria-label="Search"
+            placeholder="Search"
+            autoComplete="off"
+            value={query}
+            onValueChange={setQuery}
+            onKeyDown={onKeyDown}
+            className="ui-input ui-list-search"
+          />
         </div>
       )}
       <div className="ui-list-body" onKeyDown={onKeyDown} onClickCapture={(e) => refocus(e.target)}>

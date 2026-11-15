@@ -7,8 +7,9 @@
 // lists (the keys of ::spells/spell-lists). Each list is the SRD content of
 // the engine plus the items of the enabled packs; the selections come from
 // the packs only.
-import { useEffect, useMemo, useState } from "react";
+
 import type { ContentItem } from "@pubdoor/dmv";
+import { useEffect, useMemo, useState } from "react";
 import { classDisplayName, disabledInFile, itemsAt, tag, untag } from "./content.ts";
 
 export interface Choice {
@@ -135,10 +136,7 @@ export function useBuilderChoices(homebrew: Record<string, object> | undefined):
       selections: unique(items("orcpub.dnd.e5/selections").map(({ item }) => choiceOf(item))).sort(byName),
       languages: unique([...srd.languages, ...items("orcpub.dnd.e5/languages").map(({ item }) => choiceOf(item))]).sort(byName),
       weapons: srd.weapons,
-      spells: unique([
-        ...srd.spells,
-        ...spells.map(({ item }) => ({ ...choiceOf(item), level: Number(item[tag("level")] ?? 0) })),
-      ]).sort(byName),
+      spells: unique([...srd.spells, ...spells.map(({ item }) => ({ ...choiceOf(item), level: Number(item[tag("level")] ?? 0) }))]).sort(byName),
       spellLists: [
         ...new Set([
           ...SPELL_LISTS,

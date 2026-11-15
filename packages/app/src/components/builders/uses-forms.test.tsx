@@ -29,16 +29,28 @@ const TRAITS = [
   { "~:name": "Old Round", "~:frequency": { "~:units": "~:round", "~:amount": 1 } },
   { "~:name": "No Amount", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/day" } },
   { "~:name": "Ability", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:ability": "~:cha", "~:min": 1 } } },
-  { "~:name": "Qualified Ability", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:ability": "~:orcpub.dnd.e5.character/int" } } },
+  {
+    "~:name": "Qualified Ability",
+    "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:ability": "~:orcpub.dnd.e5.character/int" } },
+  },
   { "~:name": "Level", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/day", "~:amount": { "~:level": true, "~:times": 2, "~:plus": 1 } } },
   { "~:name": "Proficiency", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:prof-bonus": true, "~:times": 1, "~:plus": 0 } } },
   { "~:name": "Two Bases", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:prof-bonus": true, "~:level": true } } },
   { "~:name": "Unknown Keys", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/turn", "~:amount": { "~:level": true, "~:per": 3 }, "~:note": "x" } },
-  { "~:name": "Odd Values", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:level": true, "~:times": 7, "~:plus": 9, "~:min": 8 } } },
+  {
+    "~:name": "Odd Values",
+    "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:level": true, "~:times": 7, "~:plus": 9, "~:min": 8 } },
+  },
   { "~:name": "Big", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": 35 } },
-  { "~:name": "Number Ability", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:ability": 3, "~:prof-bonus": true, "~:min": null } } },
+  {
+    "~:name": "Number Ability",
+    "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": { "~:ability": 3, "~:prof-bonus": true, "~:min": null } },
+  },
   { "~:name": "No Unit", "~:frequency": { "~:amount": 2 } },
-  { "~:name": "Suggested", "~:description": "As an action, you call the tide. Once you use this trait, you can't use it again until you finish a short or long rest." },
+  {
+    "~:name": "Suggested",
+    "~:description": "As an action, you call the tide. Once you use this trait, you can't use it again until you finish a short or long rest.",
+  },
 ];
 
 const base = (key: string, name: string) => ({ "~:key": `~:${key}`, "~:name": name, "~:option-pack": PACK, "~:traits": TRAITS });
@@ -46,8 +58,21 @@ const FORMS: [type: string, contentType: string, item: Record<string, unknown>][
   ["race", "orcpub.dnd.e5/races", { ...base("reefborn", "Reefborn"), "~:size": "~:medium", "~:speed": 30 }],
   ["subrace", "orcpub.dnd.e5/subraces", { ...base("sea-elf", "Sea Elf"), "~:race": "~:elf" }],
   ["background", "orcpub.dnd.e5/backgrounds", base("tidewatch", "Tidewatch")],
-  ["feat", "orcpub.dnd.e5/feats", { ...base("keen", "Keen"), "~:ability-increases": { "~#set": [] }, "~:type": "~:action", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": 3 } }],
-  ["class", "orcpub.dnd.e5/classes", { ...base("tide-sage", "Tide Sage"), "~:hit-die": 8, "~:ability-increase-levels": [4, 8, 12, 16, 19], "~:level-modifiers": [] }],
+  [
+    "feat",
+    "orcpub.dnd.e5/feats",
+    {
+      ...base("keen", "Keen"),
+      "~:ability-increases": { "~#set": [] },
+      "~:type": "~:action",
+      "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": 3 },
+    },
+  ],
+  [
+    "class",
+    "orcpub.dnd.e5/classes",
+    { ...base("tide-sage", "Tide Sage"), "~:hit-die": 8, "~:ability-increase-levels": [4, 8, 12, 16, 19], "~:level-modifiers": [] },
+  ],
   ["subclass", "orcpub.dnd.e5/subclasses", { ...base("oath-of-tides", "Oath of Tides"), "~:class": "~:paladin", "~:level-modifiers": [] }],
   [
     "monster",
@@ -90,7 +115,8 @@ test("the feat form: the feat's own section shows the line of its description, a
     "~:key": "~:tide-touched",
     "~:name": "Tide-Touched",
     "~:option-pack": PACK,
-    "~:description": "You can use a bonus action to breathe water. You can use this feat a number of times equal to your Wisdom modifier, and you regain all uses when you finish a long rest.",
+    "~:description":
+      "You can use a bonus action to breathe water. You can use this feat a number of times equal to your Wisdom modifier, and you regain all uses when you finish a long rest.",
     "~:ability-increases": { "~#set": [] },
     "~:traits": [{ "~:name": "Salt Sense", "~:description": "You can use it twice per day." }],
   };
@@ -126,7 +152,9 @@ test("the feat form: Use this on the feat's own section writes :frequency and :t
   render(<RouterProvider router={router} />);
   await screen.findByRole("button", { name: "Add a prerequisite" });
   fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "Tide-Touched" } });
-  fireEvent.change(screen.getByRole("textbox", { name: "Description" }), { target: { value: "As a bonus action, you breathe water. You can't use it again until you finish a long rest." } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Description" }), {
+    target: { value: "As a bonus action, you breathe water. You can't use it again until you finish a long rest." },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Feat uses: Use this" }));
   fireEvent.click(screen.getByRole("button", { name: "Feat type: Use this" }));
   expect(screen.queryByRole("button", { name: /^Feat .*Use this$/ })).toBeNull();

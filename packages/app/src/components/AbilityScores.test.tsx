@@ -22,7 +22,12 @@ const method = (name: string) => screen.getByRole("button", { name });
 const table = () => screen.getByRole("table", { name: "Ability scores" });
 /** A row's cells after its header, as text. */
 const row = (name: string) =>
-  Array.from(within(table()).getByRole("row", { name: new RegExp(`^${name}`) }).querySelectorAll("td"), (cell) => cell.textContent);
+  Array.from(
+    within(table())
+      .getByRole("row", { name: new RegExp(`^${name}`) })
+      .querySelectorAll("td"),
+    (cell) => cell.textContent,
+  );
 const built = () => {
   const abilities = engine().evaluate(useCharacter.getState().entity!).built.abilities;
   return ["str", "dex", "con", "int", "wis", "cha"].map((a) => abilities[`orcpub.dnd.e5.character/${a}` as keyof typeof abilities]);

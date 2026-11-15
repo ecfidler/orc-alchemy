@@ -1,5 +1,5 @@
 import { AlertNote, AlertNotes, Button, ButtonLink, useConfirm } from "@orc-alchemy/ui";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useBlocker, useParams } from "react-router";
 import { AppShell } from "../components/AppShell.tsx";
@@ -8,8 +8,8 @@ import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { DmvExporter } from "../components/DmvExporter.tsx";
 import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
-import { HomebrewBuilder } from "../components/HomebrewBuilder.tsx";
 import { Home } from "../components/Home.tsx";
+import { HomebrewBuilder } from "../components/HomebrewBuilder.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
 import { useAskOnBlock } from "../components/leave-guard.tsx";
 import { MyContent } from "../components/MyContent.tsx";
@@ -102,11 +102,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
                 "Saved"
               )}
             </span>
-            {dirty && (
-              <Button onClick={() => flushAutosave().catch(console.error)}>
-                Save
-              </Button>
-            )}
+            {dirty && <Button onClick={() => flushAutosave().catch(console.error)}>Save</Button>}
             {actions(id)}
           </div>
         </div>

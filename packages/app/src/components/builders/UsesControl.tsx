@@ -5,11 +5,10 @@
 // sheet shows it from previewFeature (engine/uses-preview.ts), and draws it
 // with the sheet's FeatureGroup.
 import { FieldLabel, Label, SegmentedToggle, Select, type SelectOption } from "@orc-alchemy/ui";
-import { useId, useState, type ReactNode } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { ABILITIES, ABILITY_NAMES } from "../../engine/sheet.ts";
 import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
 import { FeatureGroup } from "../CharacterSheet.tsx";
-import { EXAMPLE_LEVEL, EXAMPLE_SCORE, usesSentence } from "./uses-example.ts";
 import {
   amountOf,
   baseAbility,
@@ -22,8 +21,8 @@ import {
   rechargeOptions,
   scaledNumber,
   TIMES,
-  unitName,
   USES_KINDS,
+  unitName,
   usesKind,
   withBase,
   withFixed,
@@ -31,6 +30,7 @@ import {
   withScaledNumber,
   withUnit,
 } from "./uses.ts";
+import { EXAMPLE_LEVEL, EXAMPLE_SCORE, usesSentence } from "./uses-example.ts";
 
 /** The levels and the ability scores that the example character can have. */
 const LEVELS = Array.from({ length: 20 }, (_, i) => i + 1);
@@ -59,7 +59,19 @@ function LabelAbove({ label, nameId, children }: { label: string; nameId: string
 }
 
 /** A select with its label above it. name is its accessible name, which holds the label's words. */
-function LabelledSelect<T>({ label, name, value, options, onSelect }: { label: string; name: string; value: unknown; options: readonly SelectOption<T>[]; onSelect: (value: T) => void }) {
+function LabelledSelect<T>({
+  label,
+  name,
+  value,
+  options,
+  onSelect,
+}: {
+  label: string;
+  name: string;
+  value: unknown;
+  options: readonly SelectOption<T>[];
+  onSelect: (value: T) => void;
+}) {
   return (
     <FieldLabel label={label}>
       <Select<T> aria-label={name} value={value as T} options={options} onValueChange={onSelect} placeholder="-" />
@@ -112,7 +124,9 @@ export function UsesControl({
       </span>
       <div className="flex flex-wrap items-end gap-x-[14px] gap-y-[10px]">
         <LabelAbove label="Uses" nameId={nameId}>
-          {(labelledBy) => <SegmentedToggle aria-labelledby={labelledBy} options={USES_KINDS} value={kind} onValueChange={(next) => onChange(withKind(frequency, next))} />}
+          {(labelledBy) => (
+            <SegmentedToggle aria-labelledby={labelledBy} options={USES_KINDS} value={kind} onValueChange={(next) => onChange(withKind(frequency, next))} />
+          )}
         </LabelAbove>
         {kind === "fixed" && (
           <LabelledSelect
@@ -126,7 +140,13 @@ export function UsesControl({
         )}
         {kind === "scaled" && (
           <>
-            <LabelledSelect label="Equal to" name={`${name} equal to`} value={base ?? null} options={baseOptions} onSelect={(next) => onChange(withBase(frequency, next))} />
+            <LabelledSelect
+              label="Equal to"
+              name={`${name} equal to`}
+              value={base ?? null}
+              options={baseOptions}
+              onSelect={(next) => onChange(withBase(frequency, next))}
+            />
             {base === "level" && (
               <LabelledSelect
                 label="n"
@@ -156,7 +176,12 @@ export function UsesControl({
       {kind !== "none" && (
         <LabelAbove label="Recharges" nameId={nameId}>
           {(labelledBy) => (
-            <SegmentedToggle aria-labelledby={labelledBy} options={rechargeOptions(frequency)} value={unitName(frequency) ?? null} onValueChange={(unit) => onChange(withUnit(frequency, unit))} />
+            <SegmentedToggle
+              aria-labelledby={labelledBy}
+              options={rechargeOptions(frequency)}
+              value={unitName(frequency) ?? null}
+              onValueChange={(unit) => onChange(withUnit(frequency, unit))}
+            />
           )}
         </LabelAbove>
       )}
@@ -188,11 +213,23 @@ export function UsesPreview({ name, feature, levelName }: { name: string; featur
         {scaled && (
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-sans text-xs text-ink-muted">
             Example: level
-            <Select aria-label={`${name} example level`} value={level} options={LEVELS.map((n) => [n, String(n)])} onValueChange={setLevel} className="text-xs" />
+            <Select
+              aria-label={`${name} example level`}
+              value={level}
+              options={LEVELS.map((n) => [n, String(n)])}
+              onValueChange={setLevel}
+              className="text-xs"
+            />
             {ability && (
               <>
                 <span aria-hidden>·</span> {ability}
-                <Select aria-label={`${name} example ${ability} score`} value={score} options={SCORES.map((n) => [n, String(n)])} onValueChange={setScore} className="text-xs" />
+                <Select
+                  aria-label={`${name} example ${ability} score`}
+                  value={score}
+                  options={SCORES.map((n) => [n, String(n)])}
+                  onValueChange={setScore}
+                  className="text-xs"
+                />
               </>
             )}
           </span>

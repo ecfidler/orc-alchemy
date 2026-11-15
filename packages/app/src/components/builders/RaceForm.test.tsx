@@ -33,9 +33,13 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
-const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
+const checked = (group: string, label: string) =>
+  within(screen.getByRole("group", { name: group }))
+    .getByRole("checkbox", { name: label })
+    .getAttribute("aria-checked") === "true";
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const COMMON = ["Ability Score Increases", "Languages", "Damage Resistances", "Language Proficiency Choice", "Spells"];
 /** The modifiers of the add list, in form order. */
@@ -133,7 +137,17 @@ test("the modifiers are stored as the old events store them", async () => {
   type("Description", "Scaly.");
   await choose("Size", "small");
   await choose("Speed", "25");
-  for (const name of ["Swimming speed", "Armor Class", "Weapon Proficiencies", "Armor Proficiency", "Tool Proficiency", "Damage Immunities", "Skill Proficiencies", "Skill Proficiency Choice", "Weapon Proficiency Choice"]) {
+  for (const name of [
+    "Swimming speed",
+    "Armor Class",
+    "Weapon Proficiencies",
+    "Armor Proficiency",
+    "Tool Proficiency",
+    "Damage Immunities",
+    "Skill Proficiencies",
+    "Skill Proficiency Choice",
+    "Weapon Proficiency Choice",
+  ]) {
     await addModifier(name);
   }
   await choose("Swimming speed", "30");
@@ -224,7 +238,9 @@ test("a new race shows only the common modifiers, with the add button after Spel
   expect(add.compareDocumentPosition(features) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   fireEvent.click(add);
   const dialog = await screen.findByRole("dialog", { name: "Add a modifier" });
-  const rows = within(dialog).getAllByRole("button").filter((b) => b.classList.contains("ui-list-row"));
+  const rows = within(dialog)
+    .getAllByRole("button")
+    .filter((b) => b.classList.contains("ui-list-row"));
   expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual(ADDED);
   fireEvent.click(rows[0]);
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -255,7 +271,18 @@ test("an imported race opens with each modifier that holds a value, and a save k
   await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/races", item);
   const router = renderAt("/content/edit/race/Reef/reefborn");
   await screen.findByRole("button", { name: "Add a spell" });
-  expect(groups()).toEqual(["Swimming speed", "Ability Score Increases", "Languages", "Armor Proficiency", "Tool Proficiency", "Damage Resistances", "Language Proficiency Choice", "Spells", "Other modifiers", "Features"]);
+  expect(groups()).toEqual([
+    "Swimming speed",
+    "Ability Score Increases",
+    "Languages",
+    "Armor Proficiency",
+    "Tool Proficiency",
+    "Damage Resistances",
+    "Language Proficiency Choice",
+    "Spells",
+    "Other modifiers",
+    "Features",
+  ]);
   expect(shown("Swimming speed")).toBe("30");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
@@ -341,7 +368,11 @@ test("an imported race with both Armor Class values true and false values opens,
   expect(tokens("Weapon Proficiencies")).toEqual(["Trident"]);
   expect(tokens("Tool Proficiency")).toEqual(["Navigator's Tools"]);
   expect([tokens("Skill Proficiency Choice"), tokens("Weapon Proficiency Choice"), tokens("Language Proficiency Choice")]).toEqual([["Survival"], ["Net"], []]);
-  expect([shown("Skill Proficiency Choice: choose"), checked("Armor Proficiency", "Shields"), checked("Armor Proficiency", "Light armor")]).toEqual(["2", true, false]);
+  expect([shown("Skill Proficiency Choice: choose"), checked("Armor Proficiency", "Shields"), checked("Armor Proficiency", "Light armor")]).toEqual([
+    "2",
+    true,
+    false,
+  ]);
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });
   expect(stored("Reef", "shellkin")).toEqual(item);

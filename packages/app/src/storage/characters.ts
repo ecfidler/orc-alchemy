@@ -86,9 +86,7 @@ export function saveCharacter(record: CharacterRecord, sheet: Sheet, fingerprint
  * lost.
  */
 export function saveSummaries(summaries: { record: CharacterRecord; sheet: Sheet; fingerprint: string }[]): Promise<void> {
-  return run((db) => db.putSummaries(summaries.map(({ record, sheet, fingerprint }) => toSummary(record, sheet, fingerprint)))).then(
-    summariesChanged,
-  );
+  return run((db) => db.putSummaries(summaries.map(({ record, sheet, fingerprint }) => toSummary(record, sheet, fingerprint)))).then(summariesChanged);
 }
 
 export function getCharacter(id: string): Promise<CharacterRecord | undefined> {

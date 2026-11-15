@@ -5,6 +5,7 @@ import type { Built2014 } from "@pubdoor/dmv";
 import { expect, test, vi } from "vitest";
 import { toSheet } from "../engine/sheet.ts";
 import {
+  type CharacterRecord,
   deleteCharacter,
   deleteDraft,
   getCharacter,
@@ -14,7 +15,6 @@ import {
   saveDraft,
   saveSummaries,
   useStorage,
-  type CharacterRecord,
 } from "./characters.ts";
 
 // expected.json is evaluate(strict).built, so these tests need no engine.

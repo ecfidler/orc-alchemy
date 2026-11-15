@@ -8,9 +8,9 @@
 // The module also has useAddList: the add, flash and focus logic of such a
 // list. The tool proficiencies of the background form use it too.
 import { AddButton, AlertNote, Button, Fieldset, ListModal } from "@orc-alchemy/ui";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { isSet, setItems } from "../../engine/content.ts";
-import { getIn, removeIn, setIn, type ItemRecord, type Path } from "./fields.tsx";
+import { getIn, type ItemRecord, type Path, removeIn, setIn } from "./fields.tsx";
 
 /** What a modifier's section gets: its title, and the Remove link for its section rule (Fieldset `action`), or undefined for a common modifier. */
 export interface ModifierView {
@@ -222,7 +222,12 @@ interface Removed {
  */
 export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord; onChange: (record: ItemRecord) => void; modifiers: Modifier[] }) {
   // The added modifiers: at first, the ones that hold a value.
-  const list = useAddList(() => modifiers.filter((m): m is Added => !m.common).filter((m) => holds(m, record)).map((m) => m.id));
+  const list = useAddList(() =>
+    modifiers
+      .filter((m): m is Added => !m.common)
+      .filter((m) => holds(m, record))
+      .map((m) => m.id),
+  );
   const [removed, setRemoved] = useState<Removed>();
   const note = useRef<HTMLDivElement>(null);
 
@@ -252,12 +257,7 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
   return (
     <>
       {modifiers.filter(shown).map((m) => (
-        <div
-          key={m.id}
-          data-modifier={m.id}
-          className={list.flashClass(m.id)}
-          ref={list.part(m.id)}
-        >
+        <div key={m.id} data-modifier={m.id} className={list.flashClass(m.id)} ref={list.part(m.id)}>
           {m.render({
             name: m.name,
             action: m.common ? undefined : (
@@ -280,7 +280,13 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
       )}
       {hidden.length > 0 && (
         <Fieldset legend="Other modifiers" look="section">
-          <AddButton ref={list.addButton} label="Add a modifier" detail={addExamples(hidden.map((m) => m.name))} aria-haspopup="dialog" onClick={list.openList} />
+          <AddButton
+            ref={list.addButton}
+            label="Add a modifier"
+            detail={addExamples(hidden.map((m) => m.name))}
+            aria-haspopup="dialog"
+            onClick={list.openList}
+          />
         </Fieldset>
       )}
       <ListModal title="Add a modifier" items={hidden.map((m) => ({ value: m.id, label: m.name, example: m.example }))} {...list.modal(show)} />

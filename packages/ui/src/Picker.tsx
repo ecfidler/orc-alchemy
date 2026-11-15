@@ -1,6 +1,6 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import { forwardRef, useId, useRef, useState } from "react";
-import { ListModal, type ListItem } from "./ListModal.tsx";
+import { type ListItem, ListModal } from "./ListModal.tsx";
 import { Token, Tokens } from "./Token.tsx";
 
 export type AddButtonProps = {

@@ -30,7 +30,10 @@ function open(id: string, entity: StrictEntity) {
 
 const entity = () => useCharacter.getState().entity!;
 const region = (name: string) => within(screen.getByRole("region", { name: new RegExp(`^${name}`) }));
-const cards = (name: string) => region(name).getAllByRole("button").map((b) => b.textContent);
+const cards = (name: string) =>
+  region(name)
+    .getAllByRole("button")
+    .map((b) => b.textContent);
 
 test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell of 1", () => {
   open("spells-wizard-1", caster("wizard"));
@@ -86,9 +89,7 @@ test("the level filter narrows a wizard 3's spell cards to one level", async () 
 test("a cleric is told it does not select known spells", () => {
   open("spells-cleric-1", caster("cleric"));
   expect(
-    screen.getByText(
-      "Except for cantrips, Clerics do not need to select known spells since they can prepare any spell available in their class spell lists.",
-    ),
+    screen.getByText("Except for cantrips, Clerics do not need to select known spells since they can prepare any spell available in their class spell lists."),
   ).toBeTruthy();
   // Wis 13: a cleric 1 prepares 2 of the spells it knows.
   expect(region("Prepared spells: Cleric").getByText("0 of 2 prepared")).toBeTruthy();

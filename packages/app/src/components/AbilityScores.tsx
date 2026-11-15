@@ -1,25 +1,25 @@
 // The Abilities step (ORC-57): the base scores, set by one of the old
 // builder's four methods, and the increases the engine adds, read-only.
 import { Button, NumberField, Toggle, ToggleGroup } from "@orc-alchemy/ui";
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { type ReactNode, useId, useMemo, useState } from "react";
 import {
-  POINT_BUY_COSTS,
-  POINT_BUY_POINTS,
-  POINT_BUY_START,
-  STANDARD_SCORES,
   abilityRows,
   baseScores,
   canDecrease,
   canIncrease,
+  type Method,
+  POINT_BUY_COSTS,
+  POINT_BUY_POINTS,
+  POINT_BUY_START,
   pointsLeft,
   rollScores,
+  type Scores,
+  STANDARD_SCORES,
   setBaseScores,
   swapScores,
-  type Method,
-  type Scores,
 } from "../engine/abilities.ts";
 import type { BuilderSelection } from "../engine/builder.ts";
-import { ABILITIES, bonusStr, type Ability } from "../engine/sheet.ts";
+import { ABILITIES, type Ability, bonusStr } from "../engine/sheet.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 
@@ -66,13 +66,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
     const score = scores[ability];
     if (method === "manual-entry")
       return (
-        <BoundedNumberField
-          label={`${abbr(ability)} base score`}
-          min={1}
-          max={30}
-          value={score}
-          onCommit={(n) => write(method, { ...scores, [ability]: n })}
-        />
+        <BoundedNumberField label={`${abbr(ability)} base score`} min={1} max={30} value={score} onCommit={(n) => write(method, { ...scores, [ability]: n })} />
       );
     if (method === "point-buy") {
       const cost = POINT_BUY_COSTS[score];
@@ -128,11 +122,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
               : `Points: ${-left} too many of ${POINT_BUY_POINTS}`}
         </p>
       )}
-      {method === "standard-roll" && (
-        <Button onClick={() => write(method, rollScores())}>
-          Re-roll
-        </Button>
-      )}
+      {method === "standard-roll" && <Button onClick={() => write(method, rollScores())}>Re-roll</Button>}
       <table aria-label="Ability scores" className="w-full text-center">
         <thead>
           <tr>

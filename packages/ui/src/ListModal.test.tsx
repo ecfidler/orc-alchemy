@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useRef, useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
-import { ListModal, type ListItem } from "./ListModal.tsx";
+import { type ListItem, ListModal } from "./ListModal.tsx";
 import { Token } from "./Token.tsx";
 import { pickFromPicker } from "./testing/index.ts";
 
@@ -54,7 +54,11 @@ test("a list that closes on a click: rows with a name, an example and an Add mar
   expect(pears).toHaveProperty("textContent", "PearsSoft and sweetAdd");
   expect(document.getElementById(pears.getAttribute("aria-describedby")!)?.textContent).toBe("Soft and sweet");
   expect(pears.querySelector(".ui-list-add")?.getAttribute("aria-hidden")).toBe("true");
-  expect([within(dialog).queryByRole("searchbox"), within(dialog).queryByRole("button", { name: "Done" }), within(dialog).queryByRole("status")]).toEqual([null, null, null]);
+  expect([within(dialog).queryByRole("searchbox"), within(dialog).queryByRole("button", { name: "Done" }), within(dialog).queryByRole("status")]).toEqual([
+    null,
+    null,
+    null,
+  ]);
   expect(within(dialog).getByRole("button", { name: "Close" }).className).toBe("ui-x-button");
 });
 
@@ -273,11 +277,7 @@ function Slot() {
   const slot = useRef<HTMLDivElement>(null);
   return (
     <div ref={slot}>
-      {item ? (
-        <Token label={item.label} onRemove={() => setPick(null)} />
-      ) : (
-        <button onClick={() => setOpen(true)}>Add to the slot</button>
-      )}
+      {item ? <Token label={item.label} onRemove={() => setPick(null)} /> : <button onClick={() => setOpen(true)}>Add to the slot</button>}
       <ListModal
         open={open}
         onOpenChange={setOpen}

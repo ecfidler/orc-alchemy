@@ -2,10 +2,12 @@
 // truth; built and selections are derived from it with useEvaluation.
 import { useMemo } from "react";
 import { create } from "zustand";
-import { engine, loadEngine, useEvaluation, type Content, type Rules, type StrictEntity } from "../engine/engine.ts";
+import { type Content, engine, loadEngine, type Rules, type StrictEntity, useEvaluation } from "../engine/engine.ts";
 import { missingContent, remapOption, type UnresolvedKey } from "../engine/reconcile.ts";
 import { toSheet } from "../engine/sheet.ts";
 import {
+  type CharacterRecord,
+  type CharacterSummary,
   deleteCharacter,
   deleteDraft,
   getCharacter,
@@ -14,8 +16,6 @@ import {
   saveDraft,
   saveSummaries,
   useStorage,
-  type CharacterRecord,
-  type CharacterSummary,
 } from "../storage/characters.ts";
 import { restorePacks, useHomebrew } from "./homebrew.ts";
 import { warnBeforeUnload } from "./unload-warning.ts";

@@ -3,8 +3,8 @@
 // rows and their checkboxes, Save, which writes the checked rows as the form
 // does, and the skipped rows, which stay in this browser only.
 import "fake-indexeddb/auto";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { optionNames } from "@orc-alchemy/ui/testing";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, beforeEach, expect, test } from "vitest";
 import { itemAt } from "../engine/content.ts";
@@ -12,7 +12,7 @@ import { engine, loadEngine } from "../engine/engine.ts";
 import { exportOrcbrew } from "../engine/orcbrew-export.ts";
 import { toSheet } from "../engine/sheet.ts";
 import { orcbrewHomebrew, useHomebrew } from "../state/homebrew.ts";
-import { reloadSkipped, setSkipped, SKIPPED_USES_KEY, useSkippedUses } from "../state/skipped-uses.ts";
+import { reloadSkipped, SKIPPED_USES_KEY, setSkipped, useSkippedUses } from "../state/skipped-uses.ts";
 import { listPacks } from "../storage/packs.ts";
 import { usesRows } from "./builders/review-uses.ts";
 import { choose, press, shown } from "./builders/test-picks.ts";
@@ -69,7 +69,10 @@ function ImportLogPage() {
 }
 
 const box = (name: string) => screen.getByRole("checkbox", { name });
-const rowsShown = () => screen.queryAllByRole("checkbox").filter((c) => !["All rows", "Show skipped"].includes(c.getAttribute("aria-label") ?? c.closest("label")?.textContent ?? ""));
+const rowsShown = () =>
+  screen
+    .queryAllByRole("checkbox")
+    .filter((c) => !["All rows", "Show skipped"].includes(c.getAttribute("aria-label") ?? c.closest("label")?.textContent ?? ""));
 const rowNames = () => REVIEW_ROWS.map(([name]) => name).filter((name) => screen.queryByRole("checkbox", { name }) !== null);
 async function openPage() {
   const router = renderAt(PAGE);
@@ -95,7 +98,21 @@ test("the import log says how many features may have uses, with a Review uses li
 });
 
 test("a file with no such features shows no count; a file of two packs names each pack that has some", async () => {
-  await useHomebrew.getState().load("plain.orcbrew", toEdn({ [RACES]: { "~:plain": { "~:key": "~:plain", "~:name": "Plain", "~:option-pack": "plain", "~:speed": 30, "~:size": "~:small", "~:traits": [{ "~:name": "Dark", "~:description": "You see in the dark." }] } } }));
+  await useHomebrew.getState().load(
+    "plain.orcbrew",
+    toEdn({
+      [RACES]: {
+        "~:plain": {
+          "~:key": "~:plain",
+          "~:name": "Plain",
+          "~:option-pack": "plain",
+          "~:speed": 30,
+          "~:size": "~:small",
+          "~:traits": [{ "~:name": "Dark", "~:description": "You see in the dark." }],
+        },
+      },
+    }),
+  );
   renderAt("/import");
   await screen.findByRole("region", { name: "Import log" });
   expect(screen.queryByRole("list", { name: "Suggested uses" })).toBeNull();
@@ -115,7 +132,11 @@ test("My Content shows the count and the link on each pack that has such feature
   renderAt("/content");
   const pack = await screen.findByRole("region", { name: REVIEW_PACK });
   expect(within(pack).getByText(`${REVIEW_ROWS.length} features may have uses.`, { exact: false })).toBeTruthy();
-  expect(within(pack).getByRole("link", { name: `Review uses in ${REVIEW_PACK}` }).getAttribute("href")).toBe(PAGE);
+  expect(
+    within(pack)
+      .getByRole("link", { name: `Review uses in ${REVIEW_PACK}` })
+      .getAttribute("href"),
+  ).toBe(PAGE);
   expect(within(screen.getByRole("region", { name: "Other" })).queryByRole("link", { name: /Review uses/ })).toBeNull();
 });
 
@@ -218,10 +239,12 @@ test("a checked row with no uses stores nothing and counts as unchecked; None un
   expect(screen.getByRole("status").textContent).toBe(`Saved ${SUGGESTIONS.length - 1} features. Skipped 1.`);
 
   const traits = (itemAt(stored().plugin, RACES, "~:tidecaller") as Record<string, Traits>)["~:traits"];
-  const original = ((reviewPlugin() as Plugin)[RACES]["~:tidecaller"]["~:traits"] as Traits);
+  const original = (reviewPlugin() as Plugin)[RACES]["~:tidecaller"]["~:traits"] as Traits;
   expect(traits[0]).toEqual(original[0]);
   for (const [i, f] of SUGGESTION_PACK.entries()) if (f.uses === "hint") expect(traits[i], f.name).toEqual(original[i]);
-  expect(itemAt(stored().plugin, "~:orcpub.dnd.e5/backgrounds", "~:pearl-diver")).toEqual(itemAt(before.plugin, "~:orcpub.dnd.e5/backgrounds", "~:pearl-diver"));
+  expect(itemAt(stored().plugin, "~:orcpub.dnd.e5/backgrounds", "~:pearl-diver")).toEqual(
+    itemAt(before.plugin, "~:orcpub.dnd.e5/backgrounds", "~:pearl-diver"),
+  );
   // The suggestion row is skipped; the hint rows stay.
   expect(JSON.parse(localStorage.getItem(SKIPPED_USES_KEY)!)[REVIEW_PACK]).toEqual([expect.stringContaining("Tidal Surge")]);
   expect(rowNames()).toEqual(HINTS);
@@ -359,7 +382,9 @@ test("a skipped row does not come back after a reload, comes back with Show skip
   expect(rowNames()).toEqual(HINTS);
   expect(screen.getByRole("checkbox", { name: "Show skipped" })).not.toBeChecked();
   fireEvent.click(screen.getByRole("checkbox", { name: "Show skipped" }));
-  expect(rowNames()).toEqual(REVIEW_ROWS.map(([name]) => name).filter((name) => HINTS.includes(name) || ["Tidecaller Mist Walk", "Reefborn Second Breath"].includes(name)));
+  expect(rowNames()).toEqual(
+    REVIEW_ROWS.map(([name]) => name).filter((name) => HINTS.includes(name) || ["Tidecaller Mist Walk", "Reefborn Second Breath"].includes(name)),
+  );
   // A skipped row shows as skipped, and starts unchecked.
   expect(box("Tidecaller Mist Walk")).not.toBeChecked();
   expect(within(box("Tidecaller Mist Walk").closest(".grid")! as HTMLElement).getByText("Skipped")).toBeTruthy();

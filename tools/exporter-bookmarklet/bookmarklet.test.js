@@ -1,8 +1,8 @@
-import { readFileSync } from "node:fs";
 import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 
 const source = readFileSync(new URL("./bookmarklet.js", import.meta.url), "utf8");
-const charactersEdn = '[{:db/id 1, :orcpub.entity.strict/values {}}]';
+const charactersEdn = "[{:db/id 1, :orcpub.entity.strict/values {}}]";
 const itemsEdn = '({:db/id 2, :orcpub.dnd.e5.magic-items/name "Emberbrand"})';
 
 /** Runs the script against a fake page and a fake old server, and gives what it did. */

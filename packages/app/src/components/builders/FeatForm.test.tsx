@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { pickFromPicker } from "@orc-alchemy/ui/testing";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { itemAt } from "../../engine/content.ts";
@@ -31,10 +31,14 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 /** Whether the checkbox is checked, for a check of several boxes at once. */
-const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
+const checked = (group: string, label: string) =>
+  within(screen.getByRole("group", { name: group }))
+    .getByRole("checkbox", { name: label })
+    .getAttribute("aria-checked") === "true";
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const COMMON = ["Prerequisites", "Ability Increase Options"];
 /** The sections after the modifiers and the add button: Uses of the feat, then the feature list. */
@@ -78,7 +82,13 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   await screen.findByRole("button", { name: "Add a prerequisite" });
   type("Name", "Sea Legs");
   type("Description", "Steady on deck.");
-  await pick("Prerequisites", "Add a prerequisite", ["The ability to cast at least one spell", "Dexterity 13 or higher", "Proficiency with medium armor", "Elf race", "Dwarf race"]);
+  await pick("Prerequisites", "Add a prerequisite", [
+    "The ability to cast at least one spell",
+    "Dexterity 13 or higher",
+    "Proficiency with medium armor",
+    "Elf race",
+    "Dwarf race",
+  ]);
   await unpick("Prerequisites", "The ability to cast at least one spell");
   await unpick("Prerequisites", "Dwarf race");
   check("Ability Increase Options", "Strength");
@@ -290,7 +300,18 @@ test("an imported feat with false values, unknown keys and a number that is no s
   await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/feats", item);
   const router = renderAt("/content/edit/feat/Reef/old-salt");
   await screen.findByRole("button", { name: "Add a prerequisite" });
-  expect(groups()).toEqual([...COMMON, "Skill or Tool Proficiency", "Armor Proficiency", "Medium Armor", "Damage Resistances", "Initiative Bonuses", "Misc. Modifiers", "Tool Proficiency or Expertise", "Other modifiers", ...TAIL]);
+  expect(groups()).toEqual([
+    ...COMMON,
+    "Skill or Tool Proficiency",
+    "Armor Proficiency",
+    "Medium Armor",
+    "Damage Resistances",
+    "Initiative Bonuses",
+    "Misc. Modifiers",
+    "Tool Proficiency or Expertise",
+    "Other modifiers",
+    ...TAIL,
+  ]);
   expect(tokens("Prerequisites")).toEqual(["Wisdom 13 or higher", "Dwarf race"]);
   expect(tokens("Medium Armor")).toEqual(["When wearing medium armor, you can add 3 to your AC if your Dexterity is 16+"]);
   expect(tokens("Damage Resistances")).toEqual(["Cold"]);

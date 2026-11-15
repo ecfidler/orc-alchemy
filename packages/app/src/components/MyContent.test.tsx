@@ -48,7 +48,12 @@ test.each(orcbrewFiles)("%s: every pack shows the 13 lists, each with every item
     expect(section.querySelectorAll("summary")).toHaveLength(13);
     for (const { type, many } of CONTENT_TYPES) {
       const stored = Object.keys((plugin as Record<string, object | undefined>)[`~:${type}`] ?? {}).length;
-      expect(within(section).getByRole("list", { name: `${id} ${many}` }).querySelectorAll("li"), `${id} ${many}`).toHaveLength(stored);
+      expect(
+        within(section)
+          .getByRole("list", { name: `${id} ${many}` })
+          .querySelectorAll("li"),
+        `${id} ${many}`,
+      ).toHaveLength(stored);
     }
   }
 });
@@ -172,9 +177,11 @@ test("a pack the old app would refuse lists its problems, and Export anyway down
 
   fireEvent.click(within(await screen.findByRole("region", { name: "duplicate-external-b" })).getByRole("button", { name: "Export" }));
   const problems = await screen.findByRole("alert", { name: "Export problems in duplicate-external-b" });
-  expect(within(problems).getAllByRole("listitem").map((li) => li.textContent)).toContain(
-    "duplicate-external-b: Class artificer: its pack name (option-pack) is blank",
-  );
+  expect(
+    within(problems)
+      .getAllByRole("listitem")
+      .map((li) => li.textContent),
+  ).toContain("duplicate-external-b: Class artificer: its pack name (option-pack) is blank");
   expect(downloads).toEqual([]);
 
   fireEvent.click(within(problems).getByRole("button", { name: "Export anyway" }));
@@ -226,7 +233,13 @@ test("the stored magic items are listed by name; each can be turned off and dele
 
 test("New spell links to the spell form, and only the items of a type with a form have an Edit link", async () => {
   await load("warlock-test-content.orcbrew");
-  const { item } = engine().validate.spell({ "~:name": "Fire Pop", "~:level": 1, "~:school": "evocation", "~:option-pack": "My Spells", "~:spell-lists": { "~:wizard": true } });
+  const { item } = engine().validate.spell({
+    "~:name": "Fire Pop",
+    "~:level": 1,
+    "~:school": "evocation",
+    "~:option-pack": "My Spells",
+    "~:spell-lists": { "~:wizard": true },
+  });
   await useHomebrew.getState().saveItem("My Spells", "~:orcpub.dnd.e5/spells", item);
   // Encounters have no form.
   await useHomebrew.getState().saveItem("My Spells", "~:orcpub.dnd.e5/encounters", { "~:key": "~:ambush", "~:name": "Ambush", "~:option-pack": "My Spells" });

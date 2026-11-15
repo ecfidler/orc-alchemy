@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { builderSteps, remainingOf, remainingByStep, unfilled, type BuilderSelection } from "./builder.ts";
+import { type BuilderSelection, builderSteps, remainingByStep, remainingOf, unfilled } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
@@ -140,7 +140,14 @@ test("a merged ref selection sorts the union of its options and finds children i
   // Languages at two positions; only the second offers Giant, which opens a selection.
   const languages = (options: TemplateSelection["options"]) => ({ key: "languages", name: "Languages", min: 1, max: 1, ref: ["languages"], options });
   const shape: TemplateSelection[] = [
-    { key: "race", name: "Race", min: 1, max: 1, tags: ["race"], options: [{ key: "x", name: "X", selections: [languages([{ key: "common", name: "Common" }])] }] },
+    {
+      key: "race",
+      name: "Race",
+      min: 1,
+      max: 1,
+      tags: ["race"],
+      options: [{ key: "x", name: "X", selections: [languages([{ key: "common", name: "Common" }])] }],
+    },
     {
       key: "background",
       name: "Background",
@@ -153,7 +160,11 @@ test("a merged ref selection sorts the union of its options and finds children i
           name: "Y",
           selections: [
             languages([
-              { key: "giant", name: "Giant", selections: [{ key: "rune", name: "Rune", min: 1, max: 1, options: [{ key: "dwarf-rune", name: "Dwarf Rune" }] }] },
+              {
+                key: "giant",
+                name: "Giant",
+                selections: [{ key: "rune", name: "Rune", min: 1, max: 1, options: [{ key: "dwarf-rune", name: "Dwarf Rune" }] }],
+              },
               { key: "abyssal", name: "Abyssal" },
             ]),
           ],
@@ -192,7 +203,9 @@ test("remainingOf counts a ref selection at one position as the engine does", ()
   let checked = 0;
   for (const name of ["fighter-3-wizard-2", "warlock-10-drow", "wizard-20"]) {
     const entity = readFixture(name);
-    const selections = engine().evaluate(entity).selections.filter((s) => s.ref);
+    const selections = engine()
+      .evaluate(entity)
+      .selections.filter((s) => s.ref);
     const counts = new Map<string, number>();
     for (const s of selections) counts.set(s.actualPath.join("\0"), (counts.get(s.actualPath.join("\0")) ?? 0) + 1);
     const single = selections.filter((s) => counts.get(s.actualPath.join("\0")) === 1);
@@ -222,10 +235,7 @@ test("a selection an option of a ref selection opens nests under that option", (
   // Children of an invocation have paths under the ref path, not the levels.
   // Invocations are tagged spells, so they are on the Spells step, and the rituals stay under them.
   const invocations = step(readFixture("warlock-10-drow"), "Spells").selections.find((s) => s.key === "eldritch-invocations")!;
-  expect(child(invocations, "book-of-ancient-secrets", "book-of-ancient-secrets-rituals").selected).toEqual([
-    "detect-poison-and-disease",
-    "illusory-script",
-  ]);
+  expect(child(invocations, "book-of-ancient-secrets", "book-of-ancient-secrets-rituals").selected).toEqual(["detect-poison-and-disease", "illusory-script"]);
 });
 
 const metaFixtures = ["legacy", "characters"].flatMap((dir) =>
@@ -274,7 +284,11 @@ test.each(metaFixtures)("%s has the picks its meta file records, with its packs 
     // The meta files give paths only, and only picks to make, so there must be no picks to remove.
     const expected = (meta.unfilledSelections as string[][]).map((p) => p.join("/"));
     expect(unfilled(steps).filter((s) => s.remaining < 0)).toEqual([]);
-    expect(unfilled(steps).map((s) => s.actualPath.join("/")).sort()).toEqual(expected.sort());
+    expect(
+      unfilled(steps)
+        .map((s) => s.actualPath.join("/"))
+        .sort(),
+    ).toEqual(expected.sort());
   }
 });
 

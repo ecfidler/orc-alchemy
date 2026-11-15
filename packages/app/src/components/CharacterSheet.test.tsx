@@ -1,9 +1,9 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { bonusStr, toSheet, type Sheet } from "../engine/sheet.ts";
+import { afterEach, expect, test, vi } from "vitest";
+import { bonusStr, type Sheet, toSheet } from "../engine/sheet.ts";
 import { CharacterSheet, ordinal, sourceMarks } from "./CharacterSheet.tsx";
 
 afterEach(() => {
@@ -157,7 +157,9 @@ const spellsRow = (level: string) => screen.getByRole("rowheader", { name: level
 /** The text of each spell in that row, its source tag or mark included (a mark is read as the source in brackets). */
 // A non-breaking space keeps a tag on the line of the name's last word.
 const spellNames = (level: string) =>
-  within(spellsRow(level)).queryAllByRole("listitem").map((item) => item.textContent?.replace(/\u00a0/g, " "));
+  within(spellsRow(level))
+    .queryAllByRole("listitem")
+    .map((item) => item.textContent?.replace(/\u00a0/g, " "));
 
 test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (name) => {
   const built = expectedOf(name);
@@ -169,20 +171,17 @@ test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (nam
   expect(screen.getByLabelText("Passive Perception").textContent).toBe(String(built["passive-perception"]));
   for (const ability of ["str", "dex", "con", "int", "wis", "cha"]) {
     const key = `orcpub.dnd.e5.character/${ability}`;
-    expect(screen.getByLabelText(ability.toUpperCase()).textContent).toBe(
-      `${built.abilities[key]}${bonusStr(built["ability-bonuses"][key])}`,
-    );
+    expect(screen.getByLabelText(ability.toUpperCase()).textContent).toBe(`${built.abilities[key]}${bonusStr(built["ability-bonuses"][key])}`);
   }
   expect(screen.getByText(`${bonusStr(built["skill-bonuses"].perception)} Perception`)).toBeTruthy();
   const worn = built["armor-class-with-armor"].find(
-    (o: { armor: string | null; shield: string | null }) =>
-      o.armor === built["worn-armor"] && o.shield === built["wielded-shield"],
+    (o: { armor: string | null; shield: string | null }) => o.armor === built["worn-armor"] && o.shield === built["wielded-shield"],
   );
   expect(screen.getByLabelText("Armor Class").textContent).toBe(String(worn.ac));
-  const acRows = within(screen.getByRole("table", { name: "Armor class options" })).getAllByRole("row").slice(1);
-  expect(acRows.map((row) => Number(row.lastElementChild?.textContent))).toEqual(
-    built["armor-class-with-armor"].map((o: { ac: number }) => o.ac),
-  );
+  const acRows = within(screen.getByRole("table", { name: "Armor class options" }))
+    .getAllByRole("row")
+    .slice(1);
+  expect(acRows.map((row) => Number(row.lastElementChild?.textContent))).toEqual(built["armor-class-with-armor"].map((o: { ac: number }) => o.ac));
 });
 
 test("one source that prepares: one row of boxes, slots once for each level, and only prepared spells", () => {
@@ -193,7 +192,11 @@ test("one source that prepares: one row of boxes, slots once for each level, and
   expect(within(section).getByLabelText("Spell attack").textContent).toBe("+7");
   expect(within(section).getByLabelText("Spellcasting ability").textContent).toBe("INT");
   expect(within(section).getByRole("columnheader", { name: "Prepared spells" })).toBeTruthy();
-  expect(within(section).getAllByRole("rowheader").map((cell) => cell.textContent)).toEqual(["Cantrips", "1st", "2nd", "3rd"]);
+  expect(
+    within(section)
+      .getAllByRole("rowheader")
+      .map((cell) => cell.textContent),
+  ).toEqual(["Cantrips", "1st", "2nd", "3rd"]);
   for (const [level, count] of Object.entries(built["spell-slots"] as Record<string, number>)) {
     const name = `${ordinal(Number(level))}-level slots: 0 of ${count}`;
     expect(within(spellsRow(ordinal(Number(level)))).getByRole("img", { name })).toBeTruthy();
@@ -207,7 +210,10 @@ test("one source that prepares: one row of boxes, slots once for each level, and
 
 test("one source that does not prepare: the column is Known spells, and it lists every known spell", () => {
   const spell = (key: string, name: string) => ({ key, name, source: "Hill Dwarf", ability: "wis" as const, alwaysPrepared: false, prepared: false });
-  const spellcasting = { ...sheet.spellcasting!, byLevel: [...sheet.spellcasting!.byLevel, { level: 1, spells: [spell("sleep", "Sleep"), spell("bless", "Bless")] }] };
+  const spellcasting = {
+    ...sheet.spellcasting!,
+    byLevel: [...sheet.spellcasting!.byLevel, { level: 1, spells: [spell("sleep", "Sleep"), spell("bless", "Bless")] }],
+  };
   render(<CharacterSheet sheet={{ ...sheet, spellcasting }} />);
   expect(screen.getByRole("columnheader", { name: "Known spells" })).toBeTruthy();
   expect(screen.getByLabelText("Spell save DC").textContent).toBe("11");
@@ -219,11 +225,20 @@ test("one source that does not prepare: the column is Known spells, and it lists
 
 test("an always-prepared spell shows with the prepared spells, with no tag", () => {
   const cleric = { name: "Cleric", ability: "wis" as const, saveDc: 13, attackBonus: 5, prepares: true, canPrepare: 4 };
-  const spell = (key: string, name: string, alwaysPrepared: boolean, prepared: boolean) => ({ key, name, source: "Cleric", ability: "wis" as const, alwaysPrepared, prepared });
+  const spell = (key: string, name: string, alwaysPrepared: boolean, prepared: boolean) => ({
+    key,
+    name,
+    source: "Cleric",
+    ability: "wis" as const,
+    alwaysPrepared,
+    prepared,
+  });
   const spellcasting = {
     slots: [{ level: 1, count: 2 }],
     casters: [cleric],
-    byLevel: [{ level: 1, spells: [spell("bless", "Bless", true, true), spell("sanctuary", "Sanctuary", false, true), spell("command", "Command", false, false)] }],
+    byLevel: [
+      { level: 1, spells: [spell("bless", "Bless", true, true), spell("sanctuary", "Sanctuary", false, true), spell("command", "Command", false, false)] },
+    ],
     knownModes: {},
   };
   render(<CharacterSheet sheet={{ ...sheet, spellcasting }} />);
@@ -242,9 +257,17 @@ test("warlock-10-drow: Pact Magic slots in the shared list, and rows with spells
 test("a High Elf wizard: the High Elf cantrip is one line, and the wizard's spells have no tags (ORC-176)", () => {
   render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strictOf("wizard-1"))} />);
   const section = screen.getByRole("group", { name: "Spellcasting" });
-  expect(within(section).getAllByLabelText("Spell save DC").map((box) => box.textContent)).toEqual(["13"]);
+  expect(
+    within(section)
+      .getAllByLabelText("Spell save DC")
+      .map((box) => box.textContent),
+  ).toEqual(["13"]);
   expect(screen.queryByRole("group", { name: "High Elf" })).toBeNull();
-  expect(within(section).getByText(/^Minor Illusion/).closest("li")!.textContent).toBe("Minor Illusion (High Elf, INT, DC 13, +5)");
+  expect(
+    within(section)
+      .getByText(/^Minor Illusion/)
+      .closest("li")!.textContent,
+  ).toBe("Minor Illusion (High Elf, INT, DC 13, +5)");
   expect(screen.getByRole("columnheader", { name: "Prepared spells" })).toBeTruthy();
   expect(spellNames("Cantrips")).toEqual(["Acid Splash", "Chill Touch", "Dancing Lights"]);
   // The wizard's unprepared spellbook spells are not on the sheet.
@@ -263,7 +286,14 @@ const tieflingWarlock = (tieflingDc = 15): Sheet => {
       casters: [caster("Tiefling", tieflingDc), caster("Warlock", 15)],
       byLevel: [
         { level: 0, spells: [spell("thaumaturgy", "Thaumaturgy", "Tiefling"), spell("eldritch-blast", "Eldritch Blast", "Warlock")] },
-        { level: 1, spells: [spell("hellish-rebuke", "Hellish Rebuke", "Tiefling"), spell("hex", "Hex", "Warlock"), spell("armor-of-agathys", "Armor of Agathys", "Warlock")] },
+        {
+          level: 1,
+          spells: [
+            spell("hellish-rebuke", "Hellish Rebuke", "Tiefling"),
+            spell("hex", "Hex", "Warlock"),
+            spell("armor-of-agathys", "Armor of Agathys", "Warlock"),
+          ],
+        },
       ],
       knownModes: {},
     },
@@ -367,7 +397,11 @@ function renderAtWidth(width: number, element: ReactElement) {
 test("under 720px the sheet is in tabs: Stats, Spells, Features and More, under the header", () => {
   renderAtWidth(390, <CharacterSheet sheet={sheet} />);
   const tabs = screen.getByRole("tablist", { name: "Sheet sections" });
-  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Stats", "Spells", "Features", "More"]);
+  expect(
+    within(tabs)
+      .getAllByRole("tab")
+      .map((tab) => tab.textContent),
+  ).toEqual(["Stats", "Spells", "Features", "More"]);
   expect(screen.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeTruthy();
   expect(screen.getByLabelText("Race").textContent).toBe("Dwarf (Hill Dwarf)");
 
@@ -418,7 +452,17 @@ test("an expertise skill has a ringed mark named Expertise, and no text tag", ()
 });
 
 test("the speed qualifier and the other speeds are separate small lines under the first speed", () => {
-  render(<CharacterSheet sheet={{ ...sheet, speeds: [{ feet: 60, label: "unarmored" }, { feet: 30, label: "armored" }] }} />);
+  render(
+    <CharacterSheet
+      sheet={{
+        ...sheet,
+        speeds: [
+          { feet: 60, label: "unarmored" },
+          { feet: 30, label: "armored" },
+        ],
+      }}
+    />,
+  );
   const speed = screen.getByRole("group", { name: "Speed" });
   expect(speed.textContent).toBe("60 ft. unarmored30 ft. armored");
   // The qualifier is not in the large number font.
@@ -475,7 +519,17 @@ test("three sources and a cantrip-only race: ‡ in the table and on its row, an
     casters: [caster("Wizard", 15), caster("Cleric", 13), caster("Tiefling", 12), caster("High Elf", 14)],
     byLevel: [
       { level: 0, spells: [spell("Mending", "High Elf")] },
-      { level: 1, spells: [spell("Alarm", "Wizard"), spell("Sleep", "Wizard"), spell("Shield", "Wizard"), spell("Bless", "Cleric"), spell("Bane", "Cleric"), spell("Hellish Rebuke", "Tiefling")] },
+      {
+        level: 1,
+        spells: [
+          spell("Alarm", "Wizard"),
+          spell("Sleep", "Wizard"),
+          spell("Shield", "Wizard"),
+          spell("Bless", "Cleric"),
+          spell("Bane", "Cleric"),
+          spell("Hellish Rebuke", "Tiefling"),
+        ],
+      },
     ],
     knownModes: {},
   };

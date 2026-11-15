@@ -31,10 +31,14 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 /** Whether the checkbox is checked, for a check of several boxes at once. */
-const checked = (group: string, label: string) => within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }).getAttribute("aria-checked") === "true";
+const checked = (group: string, label: string) =>
+  within(screen.getByRole("group", { name: group }))
+    .getByRole("checkbox", { name: label })
+    .getAttribute("aria-checked") === "true";
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === DEFAULT)?.plugin;
@@ -77,7 +81,11 @@ test("an empty background shows five headings, each with one control, and no Add
   expect(screen.queryByRole("button", { name: "Add a modifier" })).toBeNull();
   expect(within(screen.getByRole("group", { name: "Skill proficiencies" })).getByRole("button", { name: "Add a skill" })).toBeTruthy();
   expect(pressed("Languages")).toBe("None");
-  expect(within(screen.getByRole("group", { name: "Tool proficiencies" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["+ Add a tool proficiency6 more"]);
+  expect(
+    within(screen.getByRole("group", { name: "Tool proficiencies" }))
+      .getAllByRole("button")
+      .map((b) => b.textContent),
+  ).toEqual(["+ Add a tool proficiency6 more"]);
   expect(screen.getByLabelText("Gold")).toBeTruthy();
   expect(equipmentButton()).toBeTruthy();
   // Only Vehicles and Other tools are checkbox groups, and they show only when added.
@@ -126,7 +134,15 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   await addSub("Other tools");
   check("Other tools", "Navigator's Tools");
   type("Gold", "10");
-  await pickFromPicker(equipmentButton(), ["Clothes, traveler’s", "Any 1 musical instrument", "Smith's Tools", "Disguise Kit", "Amulet", "Rope, silk", "Rations (1 day)"]);
+  await pickFromPicker(equipmentButton(), [
+    "Clothes, traveler’s",
+    "Any 1 musical instrument",
+    "Smith's Tools",
+    "Disguise Kit",
+    "Amulet",
+    "Rope, silk",
+    "Rations (1 day)",
+  ]);
   fireEvent.click(screen.getByRole("button", { name: "Add a feature" }));
   type("Feature 1 name", "Ship's Passage");
   type("Feature 1 description", "Free passage.");
@@ -148,7 +164,9 @@ test("each field is stored as the old events store it, and Edit loads it back", 
     "~:equipment-choices": [
       {
         "~:name": "Musical Instruments",
-        "~:options": Object.fromEntries(["bagpipes", "drum", "dulcimer", "flute", "lute", "lyre", "horn", "pan-flute", "shawm", "viol"].map((k) => [`~:${k}`, 1])),
+        "~:options": Object.fromEntries(
+          ["bagpipes", "drum", "dulcimer", "flute", "lute", "lyre", "horn", "pan-flute", "shawm", "viol"].map((k) => [`~:${k}`, 1]),
+        ),
       },
     ],
     "~:traits": [{ "~:name": "Ship's Passage", "~:description": "Free passage." }],
@@ -166,8 +184,20 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   // The musical instrument token was removed, so it does not show again.
   expect(tokens("Tool proficiencies")).toEqual(["Any artisan's tool", "Any gaming set", "Carpenter's Tools"]);
   expect([pressed(anyNumber("Any artisan's tool")), pressed(anyNumber("Any gaming set"))]).toEqual(["1", "3"]);
-  expect([checked("Vehicles", "Water Vehicles"), checked("Vehicles", "Land Vehicles"), checked("Other tools", "Navigator's Tools")]).toEqual([true, false, true]);
-  expect(tokens("Starting equipment")).toEqual(["Any 1 musical instrument", "Clothes, traveler’s", "Smith's Tools", "Disguise Kit", "Amulet", "Rations (1 day)", "Rope, silk"]);
+  expect([checked("Vehicles", "Water Vehicles"), checked("Vehicles", "Land Vehicles"), checked("Other tools", "Navigator's Tools")]).toEqual([
+    true,
+    false,
+    true,
+  ]);
+  expect(tokens("Starting equipment")).toEqual([
+    "Any 1 musical instrument",
+    "Clothes, traveler’s",
+    "Smith's Tools",
+    "Disguise Kit",
+    "Amulet",
+    "Rations (1 day)",
+    "Rope, silk",
+  ]);
   expect(screen.getByLabelText<HTMLInputElement>("Feature 1 name").value).toBe("Ship's Passage");
   expect(screen.queryByRole("note")).toBeNull();
   expect(save().disabled).toBe(false);
@@ -197,7 +227,11 @@ test("an imported background opens with each sub-selection that holds a value, a
   await screen.findByRole("form", { name: "Edit background" });
   expect(addTool()).toBeNull();
   expect(tokens("Tool proficiencies")).toEqual(["Any artisan's tool", "Any musical instrument", "Any gaming set", "Smith's Tools"]);
-  expect([pressed(anyNumber("Any artisan's tool")), pressed(anyNumber("Any musical instrument")), pressed(anyNumber("Any gaming set"))]).toEqual(["2", "1", "3"]);
+  expect([pressed(anyNumber("Any artisan's tool")), pressed(anyNumber("Any musical instrument")), pressed(anyNumber("Any gaming set"))]).toEqual([
+    "2",
+    "1",
+    "3",
+  ]);
   expect([checked("Vehicles", "Land Vehicles"), checked("Other tools", "Thieves' Tools")]).toEqual([true, true]);
   expect(tokens("Skill proficiencies")).toEqual(["Athletics"]);
   expect(pressed("Languages")).toBe("1");
@@ -245,7 +279,10 @@ test("the X of a sub-selection removes it and only its own values, as the old se
   expect(await toolList()).toEqual(SUBS);
   await saved(again);
   // The removed "Any …" numbers leave an empty map, as the old second clicks left it.
-  expect(stored("tidewatch")).toEqual({ ...IMPORTED, "~:profs": { ...IMPORTED["~:profs"], "~:tool-options": {}, "~:tool": { "~:weavers-tools": false, "~:sky-ships": true } } });
+  expect(stored("tidewatch")).toEqual({
+    ...IMPORTED,
+    "~:profs": { ...IMPORTED["~:profs"], "~:tool-options": {}, "~:tool": { "~:weavers-tools": false, "~:sky-ships": true } },
+  });
 });
 
 test("each sub-selection: add, pick, and its stored value", async () => {
@@ -289,13 +326,28 @@ test("the equipment picker has search and group headings, and each group stores 
   expect((await addList(equipmentButton(), "Add equipment")).slice(0, 3)).toEqual(["Any 1 artisan's tool", "Any 1 musical instrument", "Clothes, common"]);
   fireEvent.click(equipmentButton());
   const dialog = await screen.findByRole("dialog", { name: "Add equipment" });
-  expect([...dialog.querySelectorAll(".ui-list-group")].map((g) => g.textContent)).toEqual(["Player's choice", "Clothing", "Artisan's tools", "Other tools", "Holy symbols", "Other equipment"]);
+  expect([...dialog.querySelectorAll(".ui-list-group")].map((g) => g.textContent)).toEqual([
+    "Player's choice",
+    "Clothing",
+    "Artisan's tools",
+    "Other tools",
+    "Holy symbols",
+    "Other equipment",
+  ]);
   fireEvent.change(within(dialog).getByRole("searchbox"), { target: { value: "rope" } });
   expect([...dialog.querySelectorAll(".ui-list-row")].map((row) => row.getAttribute("aria-label"))).toEqual(["Rope, hempen", "Rope, silk"]);
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
-  await pickFromPicker(equipmentButton(), ["Any 1 artisan's tool", "Any 1 musical instrument", "Clothes, fine", "Potter's Tools", "Herbalism Kit", "Emblem", "Bedroll"]);
+  await pickFromPicker(equipmentButton(), [
+    "Any 1 artisan's tool",
+    "Any 1 musical instrument",
+    "Clothes, fine",
+    "Potter's Tools",
+    "Herbalism Kit",
+    "Emblem",
+    "Bedroll",
+  ]);
   await unpick("Starting equipment", "Any 1 artisan's tool");
   await unpick("Starting equipment", "Bedroll");
   await saved(router);
@@ -307,7 +359,9 @@ test("the equipment picker has search and group headings, and each group stores 
     "~:equipment-choices": [
       {
         "~:name": "Musical Instruments",
-        "~:options": Object.fromEntries(["bagpipes", "drum", "dulcimer", "flute", "lute", "lyre", "horn", "pan-flute", "shawm", "viol"].map((k) => [`~:${k}`, 1])),
+        "~:options": Object.fromEntries(
+          ["bagpipes", "drum", "dulcimer", "flute", "lute", "lyre", "horn", "pan-flute", "shawm", "viol"].map((k) => [`~:${k}`, 1]),
+        ),
       },
     ],
     "~:traits": [],

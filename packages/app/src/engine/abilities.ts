@@ -2,8 +2,8 @@
 // from and written to the strict entity, with the old character_builder.cljs
 // rules for point buy, rolls and swaps, and the increases built adds to them.
 import type { AvailableSelection, Built2014 } from "@pubdoor/dmv";
-import { engine, type Content, type StrictEntity } from "./engine.ts";
-import { ABILITIES, unqualify, type Ability } from "./sheet.ts";
+import { type Content, engine, type StrictEntity } from "./engine.ts";
+import { ABILITIES, type Ability, unqualify } from "./sheet.ts";
 
 export type Scores = Record<Ability, number>;
 
@@ -15,8 +15,7 @@ export const POINT_BUY_POINTS = 27;
 /** The point cost of each score from 8 to 15. */
 export const POINT_BUY_COSTS: Record<number, number> = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
-const scoresOf = (score: (ability: Ability) => number) =>
-  Object.fromEntries(ABILITIES.map((ability) => [ability, score(ability)])) as Scores;
+const scoresOf = (score: (ability: Ability) => number) => Object.fromEntries(ABILITIES.map((ability) => [ability, score(ability)])) as Scores;
 
 /** Point buy starts each score at 8. */
 export const POINT_BUY_START: Scores = scoresOf(() => 8);

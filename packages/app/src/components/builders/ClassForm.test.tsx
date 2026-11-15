@@ -31,7 +31,8 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const clickIn = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
@@ -190,7 +191,22 @@ test("a class with a custom spell list stores its cantrips and spells by level",
     "~:level-factor": 1,
     "~:known-mode": "~:schedule",
     "~:ability": "~:orcpub.dnd.e5.character/cha",
-    "~:spells-known": { "~i1": 2, "~i2": 1, "~i3": 1, "~i4": 1, "~i5": 1, "~i6": 1, "~i7": 1, "~i8": 1, "~i9": 1, "~i10": 1, "~i11": 1, "~i13": 1, "~i15": 1, "~i17": 1 },
+    "~:spells-known": {
+      "~i1": 2,
+      "~i2": 1,
+      "~i3": 1,
+      "~i4": 1,
+      "~i5": 1,
+      "~i6": 1,
+      "~i7": 1,
+      "~i8": 1,
+      "~i9": 1,
+      "~i10": 1,
+      "~i11": 1,
+      "~i13": 1,
+      "~i15": 1,
+      "~i17": 1,
+    },
     "~:cantrips?": true,
     "~:cantrips-known": { "~i1": 2, "~i10": 1 },
     "~:spell-list": { "~i0": { "~#set": ["~:fire-bolt"] }, "~i1": { "~#set": ["~:magic-missile"] }, "~i9": { "~#set": ["~:wish"] } },
@@ -295,7 +311,11 @@ test("an imported class opens with its spell list, levels and false values, and 
       "~:cantrips?": true,
       "~:cantrips-known": { "~i1": 3, "~i4": 1, "~i10": 2 },
       // A spell of a pack that is not here, an empty level and a level with spells.
-      "~:spell-list": { "~i0": { "~#set": ["~:shocking-grasp", "~:tide-call"] }, "~i1": { "~#set": [] }, "~i2": { "~#set": ["~:misty-step", "~:hold-person"] } },
+      "~:spell-list": {
+        "~i0": { "~#set": ["~:shocking-grasp", "~:tide-call"] },
+        "~i1": { "~#set": [] },
+        "~i2": { "~#set": ["~:misty-step", "~:hold-person"] },
+      },
     },
     "~:level-modifiers": [],
     "~:traits": [],
@@ -326,7 +346,13 @@ test("a spell list picker has search, and a removed spell of another pack leaves
     "~:option-pack": DEFAULT,
     "~:hit-die": 8,
     "~:ability-increase-levels": [4, 8, 12, 16, 19],
-    "~:spellcasting": { "~:level-factor": 1, "~:known-mode": "~:schedule", "~:ability": "~:orcpub.dnd.e5.character/wis", "~:spells-known": { "~i1": 2 }, "~:spell-list": { "~i1": { "~#set": ["~:tide-touch", "~:bless"] } } },
+    "~:spellcasting": {
+      "~:level-factor": 1,
+      "~:known-mode": "~:schedule",
+      "~:ability": "~:orcpub.dnd.e5.character/wis",
+      "~:spells-known": { "~i1": 2 },
+      "~:spell-list": { "~i1": { "~#set": ["~:tide-touch", "~:bless"] } },
+    },
     "~:level-modifiers": [],
     "~:traits": [],
   };

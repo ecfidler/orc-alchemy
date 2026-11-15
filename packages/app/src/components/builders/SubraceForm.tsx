@@ -11,7 +11,22 @@
 import { Field } from "@orc-alchemy/ui";
 import type { BuilderChoices, RaceChoice } from "../../engine/builder-choices.ts";
 import { tag, untag } from "../../engine/content.ts";
-import { editor, fieldErrors, FieldRow, FormColumn, numbers, range, SelectField, SKILLS, TextField, Traits, WithChoices, type BuilderType, type Edit, type FormProps } from "./fields.tsx";
+import {
+  type BuilderType,
+  type Edit,
+  editor,
+  FieldRow,
+  FormColumn,
+  type FormProps,
+  fieldErrors,
+  numbers,
+  range,
+  SelectField,
+  SKILLS,
+  TextField,
+  Traits,
+  WithChoices,
+} from "./fields.tsx";
 import {
   armorModifier,
   choiceModifier,
@@ -23,7 +38,7 @@ import {
   toolModifier,
   weaponChoices,
 } from "./modifier-kinds.tsx";
-import { Modifiers, type Modifier } from "./modifiers.tsx";
+import { type Modifier, Modifiers } from "./modifiers.tsx";
 import { AbilityIncreases, SIZES, Spells } from "./RaceForm.tsx";
 
 /** The subrace's modifiers in form order (docs/design/homebrew-forms.md, "Subrace"). race is the parent race, for the totals. */
@@ -45,10 +60,17 @@ function subraceModifiers(edit: Edit, lists: BuilderChoices, race: RaceChoice | 
       ),
     },
     hitPointsModifier(edit),
-    propModifier(edit, "damage-resistance", "Damage Resistances", "Resistance to fire, cold, damage from traps …", RESISTANCE_CHOICES, { add: "Add a damage resistance" }),
+    propModifier(edit, "damage-resistance", "Damage Resistances", "Resistance to fire, cold, damage from traps …", RESISTANCE_CHOICES, {
+      add: "Add a damage resistance",
+    }),
     propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", DAMAGE_CHOICES, { add: "Add a damage immunity" }),
-    propModifier(edit, "saving-throw-advantage", "Saving Throw Advantage", "Advantage on saves against being charmed, poisoned …", SAVING_THROW_CHOICES, { add: "Add a condition" }),
-    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists), { add: "Add a weapon", search: true }),
+    propModifier(edit, "saving-throw-advantage", "Saving Throw Advantage", "Advantage on saves against being charmed, poisoned …", SAVING_THROW_CHOICES, {
+      add: "Add a condition",
+    }),
+    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists), {
+      add: "Add a weapon",
+      search: true,
+    }),
     armorModifier(edit),
     toolModifier(edit),
     propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS, { add: "Add a skill" }),
@@ -68,12 +90,27 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
           <FormColumn>
             <TextField edit={edit} problems={problems} field="name" label="Name" />
             <Field label="Race" errors={fieldErrors(problems, "race", "Race")}>
-              <SelectField label="Race" value={edit.get("race")} options={lists.races.map((r) => [tag(r.key), r.name])} onSelect={(v) => edit.set(["race"], v)} />
+              <SelectField
+                label="Race"
+                value={edit.get("race")}
+                options={lists.races.map((r) => [tag(r.key), r.name])}
+                onSelect={(v) => edit.set(["race"], v)}
+              />
             </Field>
             <FieldRow>
-              <SelectField label="Size" value={edit.get("size") ?? (race?.size && tag(race.size))} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
+              <SelectField
+                label="Size"
+                value={edit.get("size") ?? (race?.size && tag(race.size))}
+                options={SIZES.map((s) => [tag(s), s])}
+                onSelect={(v) => edit.set(["size"], v)}
+              />
               <SelectField label="Speed" value={edit.get("speed") ?? race?.speed} options={numbers(range(5, 55, 5))} onSelect={(v) => edit.set(["speed"], v)} />
-              <SelectField label="Darkvision" value={edit.get("darkvision") ?? race?.darkvision} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
+              <SelectField
+                label="Darkvision"
+                value={edit.get("darkvision") ?? race?.darkvision}
+                options={numbers([0, 60, 120])}
+                onSelect={(v) => edit.set(["darkvision"], v)}
+              />
             </FieldRow>
             <Modifiers record={record} onChange={onChange} modifiers={subraceModifiers(edit, lists, race)} />
             <Traits edit={edit} />

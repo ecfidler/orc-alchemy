@@ -7,8 +7,7 @@ import { missingContent, remapOption } from "./reconcile.ts";
 beforeAll(() => loadEngine());
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
-const character = (name: string): StrictEntity =>
-  engine().importCharacter(readFileSync(join(fixturesDir, `legacy/${name}.strict.json`), "utf8")).entity;
+const character = (name: string): StrictEntity => engine().importCharacter(readFileSync(join(fixturesDir, `legacy/${name}.strict.json`), "utf8")).entity;
 const orcbrew = (file: string) => readFileSync(join(fixturesDir, "orcbrew", file), "utf8").replace(/^﻿/, "");
 const dupB = () => engine().parseOrcbrew(orcbrew("duplicate-external-b.orcbrew"), { name: "duplicate-external-b" }).data!;
 /** duplicate-external-b with its race ironwrought renamed to ironwrought-v2: the engine suggests that for ironwrought. */

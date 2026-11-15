@@ -49,12 +49,11 @@ test("the flag tab of the page's section is current", () => {
   expect(current()).toEqual([]);
   cleanup();
   renderAt("/characters");
-  expect(within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link").map((link) => link.textContent)).toEqual([
-    "Characters",
-    "Import",
-    "My Content",
-    "Preferences",
-  ]);
+  expect(
+    within(screen.getByRole("navigation", { name: "Main" }))
+      .getAllByRole("link")
+      .map((link) => link.textContent),
+  ).toEqual(["Characters", "Import", "My Content", "Preferences"]);
   expect(current()).toEqual(["Characters"]);
   cleanup();
   renderAt("/sheet/no-such-id");

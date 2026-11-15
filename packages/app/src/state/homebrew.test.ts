@@ -177,11 +177,7 @@ const breaks: PackRecord = {
   plugin: { "~:orcpub.dnd.e5/feats": { "~:x": { "~:name": 5 } } },
   updatedAt: "2026-10-05T00:00:00.000Z",
 };
-const corrupted = [
-  { id: "wrong-shape", plugin: "not a map" },
-  breaks,
-  { ...breaks, id: "for-2024", rules: "2024", plugin: {} },
-] as PackRecord[];
+const corrupted = [{ id: "wrong-shape", plugin: "not a map" }, breaks, { ...breaks, id: "for-2024", rules: "2024", plugin: {} }] as PackRecord[];
 
 // The packs are built one at a time in name order once the build of all of them fails:
 // "breaks" sorts before "warlock-test-content", which still builds after it is quarantined.

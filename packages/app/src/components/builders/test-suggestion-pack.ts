@@ -57,7 +57,8 @@ export const SUGGESTION_PACK: PackFeature[] = [
   },
   {
     name: "Second Breath",
-    description: "On your turn, you can regain hit points equal to 1d10 + your level. Once you use this feature, you can't use it again until you finish a short or long rest.",
+    description:
+      "On your turn, you can regain hit points equal to 1d10 + your level. Once you use this feature, you can't use it again until you finish a short or long rest.",
     uses: fixed(1, "short-rest"),
     type: null,
     phrase: "can't use it again until you finish a short or long rest",
@@ -73,7 +74,8 @@ export const SUGGESTION_PACK: PackFeature[] = [
   },
   {
     name: "Song of Courage",
-    description: "As a bonus action, you can inspire an ally. You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.",
+    description:
+      "As a bonus action, you can inspire an ally. You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.",
     uses: { amount: { kind: "ability", ability: "cha" }, unit: "long-rest" },
     type: "b-action",
     phrase: "a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest",
@@ -89,7 +91,8 @@ export const SUGGESTION_PACK: PackFeature[] = [
   },
   {
     name: "Warding Hand",
-    description: "When a creature you can see hits you, you can use your reaction to halve the damage. You can use it three times, and you regain all uses when you finish a short or long rest.",
+    description:
+      "When a creature you can see hits you, you can use your reaction to halve the damage. You can use it three times, and you regain all uses when you finish a short or long rest.",
     uses: fixed(3, "short-rest"),
     type: "reaction",
     phrase: "use it three times, and you regain all uses when you finish a short or long rest",
@@ -105,7 +108,8 @@ export const SUGGESTION_PACK: PackFeature[] = [
   },
   {
     name: "Calm Waters",
-    description: "You can use this feature a number of times equal to your Wisdom modifier, plus one, and you regain all expended uses when you finish a long rest.",
+    description:
+      "You can use this feature a number of times equal to your Wisdom modifier, plus one, and you regain all expended uses when you finish a long rest.",
     uses: "hint",
     type: null,
     phrase: "a number of times equal to your Wisdom modifier",
@@ -113,7 +117,8 @@ export const SUGGESTION_PACK: PackFeature[] = [
   },
   {
     name: "Still Pool",
-    description: "You can use this feature a number of times equal to your Wisdom modifier (minimum of 1) + 2. You regain all expended uses when you finish a long rest.",
+    description:
+      "You can use this feature a number of times equal to your Wisdom modifier (minimum of 1) + 2. You regain all expended uses when you finish a long rest.",
     uses: "hint",
     type: null,
     phrase: "a number of times equal to your Wisdom modifier",
