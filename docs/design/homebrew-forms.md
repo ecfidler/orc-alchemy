@@ -89,6 +89,24 @@ A test for each form opens an imported item, saves it, and compares.
 * Each form keeps the order of its groups of today. Features (monster:
   Actions / features) is always last. This order is the **form order**.
 
+# Leaving a changed form
+
+Added after M9 (ORC-211).
+
+* A form is **changed** when its record is different from the record that
+  it started with. The order of the keys does not count. A text field that
+  the user empties, a checkbox that the user clears, and a list with no
+  picks are the same as a field that was not set. Thus a change that the
+  user reverses is not a change.
+* Navigation in the app from a changed form opens a dialog: "This feat has
+  changes that are not saved. Leave anyway?" with **Stay** and **Leave**.
+  The text names the type of the form. A link in the navigation, the
+  browser Back button and the **Cancel** link all open it.
+* A reload or a close of the tab from a changed form shows the warning of
+  the browser.
+* **Save** does not ask. A save that fails keeps the guard on.
+* The forms have no draft and no autosave.
+
 # Field styling
 
 * **Boxed fields:** an input or a select has a 1px ink border on

@@ -11,6 +11,7 @@ import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
 import { HomebrewBuilder } from "../components/HomebrewBuilder.tsx";
 import { Home } from "../components/Home.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
+import { useAskOnBlock } from "../components/leave-guard.tsx";
 import { MyContent } from "../components/MyContent.tsx";
 import { Preferences } from "../components/Preferences.tsx";
 import { ReviewUses } from "../components/ReviewUses.tsx";
@@ -70,19 +71,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
     }
     return true;
   });
-  useEffect(() => {
-    if (blocker.state !== "blocked") return;
-    // A new blocker while the question is open asks again; the old answer is then dropped.
-    let live = true;
-    confirm("Saving your changes to this browser failed. Leave anyway?", "Leave").then((leave) => {
-      if (!live) return;
-      if (leave) blocker.proceed();
-      else blocker.reset();
-    });
-    return () => {
-      live = false;
-    };
-  }, [blocker, confirm]);
+  useAskOnBlock(blocker, confirm, "Saving your changes to this browser failed. Leave anyway?", "Leave");
 
   if (problem !== null) {
     return (

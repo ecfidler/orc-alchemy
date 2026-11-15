@@ -23,6 +23,7 @@ import { selectionBuilder } from "./builders/SelectionForm.tsx";
 import { spellBuilder } from "./builders/SpellForm.tsx";
 import { subclassBuilder } from "./builders/SubclassForm.tsx";
 import { subraceBuilder } from "./builders/SubraceForm.tsx";
+import { sameRecord, useLeaveGuard } from "./leave-guard.tsx";
 
 /**
  * The types that have a form, by the name in the routes /content/new/:type
@@ -108,6 +109,9 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
   }, [validator, record, optionPack, outside, builder, editing]);
   const ok = problems.length === 0;
   const others = problems.filter((p) => !fields.includes(String(p.path[0])));
+  // Leaving a changed form asks first (ORC-211). The form has no draft, so the changes would be lost.
+  const changed = useMemo(() => !sameRecord(record, initial), [record, initial]);
+  const guard = useLeaveGuard(changed, `This ${one} has changes that are not saved. Leave anyway?`);
 
   async function save() {
     setError(null);
@@ -115,6 +119,7 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
     try {
       if (builder.save) await builder.save(item, editing);
       else await useHomebrew.getState().saveItem(optionPack, tag(builder.contentType), item);
+      guard.pass();
       navigate("/content");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -131,6 +136,7 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
       }}
       className="space-y-3"
     >
+      {guard.dialog}
       <h1 className="text-xl">{`${editing ? "Edit" : "New"} ${one}`}</h1>
       {others.length > 0 && (
         <ul aria-label="Problems" className="text-danger">
