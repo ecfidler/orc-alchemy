@@ -12,8 +12,7 @@ import { dirname, join, relative, resolve } from "node:path";
 
 const root = resolve(process.argv[2] ?? "docs");
 const errors: string[] = [];
-const fail = (file: string, msg: string) =>
-  errors.push(`${relative(process.cwd(), file)}: ${msg}`);
+const fail = (file: string, msg: string) => errors.push(`${relative(process.cwd(), file)}: ${msg}`);
 
 const INDEX = "index.md";
 const LOG = "log.md";
@@ -80,9 +79,7 @@ function checkIndex(file: string, text: string, dir: string, items: string[]) {
       fail(file, `root index.md may carry only okf_version, found ${extra.join(", ")}`);
     }
   }
-  const linked = new Set(
-    links(text).map((l) => resolve(dir, l).replace(/\/(index\.md)?$/, "")),
-  );
+  const linked = new Set(links(text).map((l) => resolve(dir, l).replace(/\/(index\.md)?$/, "")));
   for (const name of items) {
     if (!RESERVED.has(name) && !linked.has(join(dir, name))) {
       fail(file, `does not link to ${name}`);
@@ -114,9 +111,7 @@ function links(text: string): string[] {
 
 function walk(dir: string) {
   const entries = readdirSync(dir).filter((n) => !n.startsWith("."));
-  const items = entries.filter(
-    (n) => n.endsWith(".md") || statSync(join(dir, n)).isDirectory(),
-  );
+  const items = entries.filter((n) => n.endsWith(".md") || statSync(join(dir, n)).isDirectory());
   const hasConcepts = items.some((n) => n.endsWith(".md") && !RESERVED.has(n));
   if (hasConcepts && !items.includes(INDEX)) fail(join(dir, INDEX), "missing");
 

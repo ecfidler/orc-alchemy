@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type RefObject } from "react";
+import { type RefObject, useLayoutEffect, useRef } from "react";
 
 /**
  * Keeps the focus in place when a click removes the focused element, for

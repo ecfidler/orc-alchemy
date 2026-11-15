@@ -7,7 +7,7 @@ import { join } from "node:path";
 import type { Built2014 } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine } from "./engine.ts";
-import { scaledAmount, type Ability } from "./sheet.ts";
+import { type Ability, scaledAmount } from "./sheet.ts";
 
 beforeAll(() => loadEngine());
 
@@ -17,10 +17,9 @@ type PackTrait = { "~:name": string; "~:frequency"?: { "~:amount"?: unknown } };
 
 test(`scaledAmount gives the engine's number for each scaled amount of ${golden}`, () => {
   const built: Built2014 = JSON.parse(readFileSync(join(fixtures, "characters", `${golden}.expected.json`), "utf8"));
-  const pack = engine().parseOrcbrew(readFileSync(join(fixtures, "orcbrew", "scaled-uses.orcbrew"), "utf8"), { name: "Scaled Uses" }).data!["Scaled Uses"] as Record<
-    string,
-    Record<string, { "~:traits"?: PackTrait[] } & PackTrait>
-  >;
+  const pack = engine().parseOrcbrew(readFileSync(join(fixtures, "orcbrew", "scaled-uses.orcbrew"), "utf8"), { name: "Scaled Uses" }).data![
+    "Scaled Uses"
+  ] as Record<string, Record<string, { "~:traits"?: PackTrait[] } & PackTrait>>;
   const numbers = (level: number) => ({
     level,
     proficiencyBonus: built["proficiency-bonus"],
@@ -47,6 +46,16 @@ test(`scaledAmount gives the engine's number for each scaled amount of ${golden}
   const engines = new Map(built.traits.map((trait) => [trait.name, trait.frequency?.amount]));
   // Tsunami is a level 7 subclass feature, so the fighter 6 does not have it.
   const compared = ours.filter(([name]) => engines.has(name));
-  expect(compared.map(([name]) => name).sort()).toEqual(["Brine Ward", "Crashing Wave", "Deep Lungs", "Ebb and Flow", "Riptide", "Rolling Gait", "Salt Sense", "Stormcaller", "Undertow"]);
+  expect(compared.map(([name]) => name).sort()).toEqual([
+    "Brine Ward",
+    "Crashing Wave",
+    "Deep Lungs",
+    "Ebb and Flow",
+    "Riptide",
+    "Rolling Gait",
+    "Salt Sense",
+    "Stormcaller",
+    "Undertow",
+  ]);
   expect(compared).toEqual(compared.map(([name]) => [name, engines.get(name)]));
 });

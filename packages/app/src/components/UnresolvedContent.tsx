@@ -1,7 +1,7 @@
 import { Button, Select, StuckNote } from "@orc-alchemy/ui";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { missingContent, OPTION_LABEL, type ContentSuggestion, type UnresolvedKey } from "../engine/reconcile.ts";
+import { type ContentSuggestion, missingContent, OPTION_LABEL, type UnresolvedKey } from "../engine/reconcile.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 
@@ -21,15 +21,7 @@ const unresolvedParent = (u: UnresolvedKey, unresolved: UnresolvedKey[]) =>
  * until the user remaps it. A key under another unresolved key offers no
  * remap until that one resolves.
  */
-export function UnresolvedContent({
-  characterName,
-  unresolved,
-  onRemap,
-}: {
-  characterName: string;
-  unresolved: UnresolvedKey[];
-  onRemap?: OnRemap;
-}) {
+export function UnresolvedContent({ characterName, unresolved, onRemap }: { characterName: string; unresolved: UnresolvedKey[]; onRemap?: OnRemap }) {
   if (unresolved.length === 0) return null;
   return (
     <>

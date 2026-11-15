@@ -7,9 +7,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
 import { tag } from "../../engine/content.ts";
-import { editor, Traits, type FeatureList, type ItemRecord } from "./fields.tsx";
-import { SUGGESTION_PACK } from "./test-suggestion-pack.ts";
+import { editor, type FeatureList, type ItemRecord, Traits } from "./fields.tsx";
 import { press } from "./test-picks.ts";
+import { SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 
 afterEach(cleanup);
 
@@ -39,14 +39,22 @@ const lineOf = (button: HTMLElement | null) => button?.closest("p")?.textContent
 
 test("the uses line: what the text says and the suggestion; the type line under it", () => {
   renderTraits([packFeature("Tidal Surge")]);
-  expect(lineOf(usesButton())).toBe("The text says “Once you use this feature, you can't use it again until you finish a long rest.” Suggested: 1 use, long rest. Use this");
+  expect(lineOf(usesButton())).toBe(
+    "The text says “Once you use this feature, you can't use it again until you finish a long rest.” Suggested: 1 use, long rest. Use this",
+  );
   expect(lineOf(typeButton())).toBe("The text says “As an action, you push a wave out from you.” Suggested type: Action. Use this");
 });
 
 test("the words of each suggestion", () => {
   renderTraits(["Second Breath", "Sure Footing", "Song of Courage", "Mist Walk", "Warding Hand"].map(packFeature));
   const suggested = [1, 2, 3, 4, 5].map((n) => lineOf(usesButton(n))!.match(/Suggested: (.*)\. Use this$/)![1]);
-  expect(suggested).toEqual(["1 use, short rest", "Proficiency bonus uses, long rest", "Charisma modifier uses (minimum 1), long rest", "2 uses, each day", "3 uses, short rest"]);
+  expect(suggested).toEqual([
+    "1 use, short rest",
+    "Proficiency bonus uses, long rest",
+    "Charisma modifier uses (minimum 1), long rest",
+    "2 uses, each day",
+    "3 uses, short rest",
+  ]);
 });
 
 test("nothing is stored before the click; one click fills the control; the line goes when the feature has uses", () => {
@@ -120,7 +128,11 @@ test("Use this stores the same frequency as the control for the same choice", as
 });
 
 test("the type line shows only while the type is Other: no type, or :other", () => {
-  renderTraits([packFeature("Song of Courage"), { ...packFeature("Song of Courage"), "~:type": tag("other") }, { ...packFeature("Song of Courage"), "~:type": tag("action") }]);
+  renderTraits([
+    packFeature("Song of Courage"),
+    { ...packFeature("Song of Courage"), "~:type": tag("other") },
+    { ...packFeature("Song of Courage"), "~:type": tag("action") },
+  ]);
   expect(lineOf(typeButton(1))).toContain("Suggested type: Bonus Action.");
   expect(typeButton(2)).not.toBeNull();
   expect(typeButton(3)).toBeNull();

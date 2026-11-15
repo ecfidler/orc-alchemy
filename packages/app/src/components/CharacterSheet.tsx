@@ -2,9 +2,20 @@
 // "Character sheet"), two columns that become one in a narrow container. Under 720px
 // the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
-import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, Tabs, UseBubble, type Tab } from "@orc-alchemy/ui";
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { ABILITY_NAMES, bonusStr, modStr, usesDisplay, type Ability, type FeatureSection, type Sheet, type SheetFeature, type SheetItem, type Spellcasting } from "../engine/sheet.ts";
+import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
+import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  ABILITY_NAMES,
+  type Ability,
+  bonusStr,
+  type FeatureSection,
+  modStr,
+  type Sheet,
+  type SheetFeature,
+  type SheetItem,
+  type Spellcasting,
+  usesDisplay,
+} from "../engine/sheet.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
 export const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
@@ -14,8 +25,7 @@ const paragraphs = (text: string) => text.split("\n").map((line, i) => <p key={i
 const COIN_GP: Record<string, number> = { cp: 0.01, sp: 0.1, ep: 0.5, gp: 1, pp: 10 };
 
 /** All coins as gold pieces, to two decimals. */
-const goldOf = (treasure: SheetItem[]) =>
-  Math.round(treasure.reduce((gp, item) => gp + (COIN_GP[item.key] ?? 0) * item.quantity, 0) * 100) / 100;
+const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) => gp + (COIN_GP[item.key] ?? 0) * item.quantity, 0) * 100) / 100;
 
 /** `preview`: the builder's preview leaves out what only matters in play (temporary hit points, death saves). */
 export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; preview?: boolean }) {
@@ -159,102 +169,92 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
       </div>
     </ShadedPanel>
   );
-  const attacksSection =
-    (sheet.weaponAttacks.length > 0 || sheet.specialAttacks.length > 0) && (
-      <FramedBox label="Attacks">
-        {sheet.weaponAttacks.length > 0 && (
-          <>
-            {/* Under 720px the table has no Proficient? column. A tag marks a weapon that is not proficient. The attack
+  const attacksSection = (sheet.weaponAttacks.length > 0 || sheet.specialAttacks.length > 0) && (
+    <FramedBox label="Attacks">
+      {sheet.weaponAttacks.length > 0 && (
+        <>
+          {/* Under 720px the table has no Proficient? column. A tag marks a weapon that is not proficient. The attack
                 shows as "+11" under "To hit", and the off-hand modifier is on its own line. */}
-            <Table
-              caption="Weapon attacks"
-              headers={[
-                "Name",
-                "Proficient?",
-                <ShortWhenNarrow key="attack" text="Attack" short="To hit" />,
-                "Damage modifier",
-              ]}
-              hiddenNarrow={[1]}
-            >
-              {sheet.weaponAttacks.map((weapon) => (
-                <tr key={weapon.key}>
-                  <Td>
-                    {weapon.name}
-                    {!weapon.proficient && <span className="@min-[720px]:hidden"> <Tag>not proficient</Tag></span>}
-                  </Td>
-                  <Td className="@max-[719px]:hidden">{weapon.proficient ? "Yes" : "No"}</Td>
-                  <Td className="whitespace-nowrap">
-                    {modStr(weapon.attackBonus)}
-                    <span className="@max-[719px]:hidden"> to hit</span>
-                  </Td>
-                  <Td className="whitespace-nowrap">
-                    {modStr(weapon.damageModifier)}
-                    {weapon.offHandDamageModifier !== null && (
-                      <span className="@max-[719px]:block @max-[719px]:text-xs @max-[719px]:text-ink-muted">
-                        {" "}
-                        (off-hand {modStr(weapon.offHandDamageModifier)})
-                      </span>
-                    )}
-                  </Td>
-                </tr>
-              ))}
-            </Table>
-            <p className="text-sm text-ink-muted">Damage dice need content data, which is not available yet.</p>
-          </>
-        )}
-        {sheet.numberOfAttacks > 1 && (
-          <FieldList fields={[["Number of Attacks", [String(sheet.numberOfAttacks)]]]} />
-        )}
-        <Features items={sheet.specialAttacks} />
-      </FramedBox>
-    );
-  const featuresSection =
-    featureGroups.some(([, items]) => items.length > 0) && (
-      <FramedBox label="Features & traits">
-        <div className="grid gap-4">
-          {featureGroups.map(([section, items]) => items.length > 0 && <FeatureGroup key={section} section={section} items={items} />)}
-        </div>
-      </FramedBox>
-    );
-  const proficienciesSection =
-    proficiencies.some(([, values]) => values.length > 0) && (
-      <FramedBox label="Other proficiencies & languages">
-        <FieldList fields={proficiencies} />
-      </FramedBox>
-    );
-  const defensesSection =
-    defenses.some(([, values]) => values.length > 0) && (
-      <FramedBox label="Defenses">
-        <FieldList fields={defenses} />
-      </FramedBox>
-    );
-  const armorOptionsSection =
-    sheet.armorClassOptions.length > 0 && (
-      <FramedBox label="AC by armor">
-        <Table caption="Armor class options" headers={["Armor", "AC"]}>
-          {sheet.armorClassOptions.map((option, i) => (
-            <tr key={i}>
-              <Td>
-                {option.armor
-                  ? `${option.armor.name}${option.shield ? ` + ${option.shield.name}` : ""}`
-                  : `Unarmored${option.shield ? ` + ${option.shield.name}` : ""}`}
-              </Td>
-              <Td>{option.ac}</Td>
-            </tr>
-          ))}
-        </Table>
-      </FramedBox>
-    );
-  const notesSection =
-    details.notes !== null && (
-      <FramedBox label="Notes">
-        <div className="grid gap-1 text-[14.5px]">{paragraphs(details.notes)}</div>
-      </FramedBox>
-    );
-  const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
-  const spellcastingSection = spellcasting && (
-    <SpellcastingBox spellcasting={spellcasting} classes={sheet.classes} narrow={narrow} />
+          <Table
+            caption="Weapon attacks"
+            headers={["Name", "Proficient?", <ShortWhenNarrow key="attack" text="Attack" short="To hit" />, "Damage modifier"]}
+            hiddenNarrow={[1]}
+          >
+            {sheet.weaponAttacks.map((weapon) => (
+              <tr key={weapon.key}>
+                <Td>
+                  {weapon.name}
+                  {!weapon.proficient && (
+                    <span className="@min-[720px]:hidden">
+                      {" "}
+                      <Tag>not proficient</Tag>
+                    </span>
+                  )}
+                </Td>
+                <Td className="@max-[719px]:hidden">{weapon.proficient ? "Yes" : "No"}</Td>
+                <Td className="whitespace-nowrap">
+                  {modStr(weapon.attackBonus)}
+                  <span className="@max-[719px]:hidden"> to hit</span>
+                </Td>
+                <Td className="whitespace-nowrap">
+                  {modStr(weapon.damageModifier)}
+                  {weapon.offHandDamageModifier !== null && (
+                    <span className="@max-[719px]:block @max-[719px]:text-xs @max-[719px]:text-ink-muted">
+                      {" "}
+                      (off-hand {modStr(weapon.offHandDamageModifier)})
+                    </span>
+                  )}
+                </Td>
+              </tr>
+            ))}
+          </Table>
+          <p className="text-sm text-ink-muted">Damage dice need content data, which is not available yet.</p>
+        </>
+      )}
+      {sheet.numberOfAttacks > 1 && <FieldList fields={[["Number of Attacks", [String(sheet.numberOfAttacks)]]]} />}
+      <Features items={sheet.specialAttacks} />
+    </FramedBox>
   );
+  const featuresSection = featureGroups.some(([, items]) => items.length > 0) && (
+    <FramedBox label="Features & traits">
+      <div className="grid gap-4">
+        {featureGroups.map(([section, items]) => items.length > 0 && <FeatureGroup key={section} section={section} items={items} />)}
+      </div>
+    </FramedBox>
+  );
+  const proficienciesSection = proficiencies.some(([, values]) => values.length > 0) && (
+    <FramedBox label="Other proficiencies & languages">
+      <FieldList fields={proficiencies} />
+    </FramedBox>
+  );
+  const defensesSection = defenses.some(([, values]) => values.length > 0) && (
+    <FramedBox label="Defenses">
+      <FieldList fields={defenses} />
+    </FramedBox>
+  );
+  const armorOptionsSection = sheet.armorClassOptions.length > 0 && (
+    <FramedBox label="AC by armor">
+      <Table caption="Armor class options" headers={["Armor", "AC"]}>
+        {sheet.armorClassOptions.map((option, i) => (
+          <tr key={i}>
+            <Td>
+              {option.armor
+                ? `${option.armor.name}${option.shield ? ` + ${option.shield.name}` : ""}`
+                : `Unarmored${option.shield ? ` + ${option.shield.name}` : ""}`}
+            </Td>
+            <Td>{option.ac}</Td>
+          </tr>
+        ))}
+      </Table>
+    </FramedBox>
+  );
+  const notesSection = details.notes !== null && (
+    <FramedBox label="Notes">
+      <div className="grid gap-1 text-[14.5px]">{paragraphs(details.notes)}</div>
+    </FramedBox>
+  );
+  const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
+  const spellcastingSection = spellcasting && <SpellcastingBox spellcasting={spellcasting} classes={sheet.classes} narrow={narrow} />;
 
   // The phone layout (ORC-173): under 720px the sections go in tabs, without the empty ones.
   const tabs: Tab[] = [
@@ -502,7 +502,10 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
             <CantripLine
               key={source}
               source={source}
-              cantrips={spells.filter((spell) => spell.source === source).map((spell) => spell.name).sort((a, b) => a.localeCompare(b))}
+              cantrips={spells
+                .filter((spell) => spell.source === source)
+                .map((spell) => spell.name)
+                .sort((a, b) => a.localeCompare(b))}
               caster={casters.find((caster) => caster.name === source)}
             />
           ))}
@@ -621,10 +624,9 @@ export function sourceMarks(tableSources: string[], classes: Sheet["classes"], l
   const tagsOnly = ranked.length > symbols.length + 1;
   let next = 0;
   return new Map(
-    ranked.slice(1).map((source): [string, Mark] => [
-      source,
-      tagsOnly || !labelled.has(source) ? { kind: "tag" } : { kind: "symbol", symbol: symbols[next++]! },
-    ]),
+    ranked
+      .slice(1)
+      .map((source): [string, Mark] => [source, tagsOnly || !labelled.has(source) ? { kind: "tag" } : { kind: "symbol", symbol: symbols[next++]! }]),
   );
 }
 
@@ -672,7 +674,9 @@ function CasterRow({ group, named, marks }: { group: CasterGroup; named: boolean
     <div className="flex justify-evenly gap-2">
       <RowBox label="Spell save DC">{group.saveDc}</RowBox>
       <RowBox label="Spell attack">{bonusStr(group.attackBonus)}</RowBox>
-      <RowBox label="Spellcasting ability" shortLabel="Ability">{abbr(group.ability)}</RowBox>
+      <RowBox label="Spellcasting ability" shortLabel="Ability">
+        {abbr(group.ability)}
+      </RowBox>
     </div>
   );
   if (!named) return boxes;

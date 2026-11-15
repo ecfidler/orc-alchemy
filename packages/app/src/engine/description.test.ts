@@ -7,8 +7,7 @@ import { toSheet } from "./sheet.ts";
 beforeAll(() => loadEngine());
 
 const VALUES = "~:orcpub.entity.strict/values";
-const strictValues = (entity: StrictEntity) =>
-  ((typeof entity === "string" ? JSON.parse(entity) : entity) as Record<string, Record<string, unknown>>)[VALUES];
+const strictValues = (entity: StrictEntity) => ((typeof entity === "string" ? JSON.parse(entity) : entity) as Record<string, Record<string, unknown>>)[VALUES];
 
 /** A distinct text for each field: XP is "6500", and the flaws are blank. */
 const typed = (key: string) => (key === "xps" ? "6500" : key === "flaws" ? "" : key.endsWith("url") ? `https://example.com/${key}.png` : `The ${key}`);

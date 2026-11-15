@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
 import { Checks, editor, type ItemRecord } from "./fields.tsx";
-import { addExamples, holdsValue, Modifiers, type Modifier } from "./modifiers.tsx";
+import { addExamples, holdsValue, type Modifier, Modifiers } from "./modifiers.tsx";
 
 afterEach(cleanup);
 
@@ -47,7 +47,11 @@ function entryModifier(record: ItemRecord, onChange: (r: ItemRecord) => void, ty
     name,
     example: `Entries of type ${type}`,
     holds: (r) => entries(r).some(ofType(type)),
-    clear: (r) => withEntries(r, entries(r).filter((e) => !ofType(type)(e))),
+    clear: (r) =>
+      withEntries(
+        r,
+        entries(r).filter((e) => !ofType(type)(e)),
+      ),
     restore: (r, before) => withEntries(r, [...entries(r), ...entries(before).filter(ofType(type))]),
     render: ({ name, action }) => (
       <Checks
@@ -55,7 +59,14 @@ function entryModifier(record: ItemRecord, onChange: (r: ItemRecord) => void, ty
         action={action}
         items={[1, 2].map((n) => ({ key: String(n), name: `${name} ${n}` }))}
         checked={(key) => mine.some((e) => e["~:value"] === Number(key))}
-        onToggle={(key) => onChange(withEntries(record, [...entries(record).filter((e) => !(ofType(type)(e) && e["~:value"] === Number(key))), ...(mine.some((e) => e["~:value"] === Number(key)) ? [] : [{ "~:type": type, "~:value": Number(key) }])]))}
+        onToggle={(key) =>
+          onChange(
+            withEntries(record, [
+              ...entries(record).filter((e) => !(ofType(type)(e) && e["~:value"] === Number(key))),
+              ...(mine.some((e) => e["~:value"] === Number(key)) ? [] : [{ "~:type": type, "~:value": Number(key) }]),
+            ]),
+          )
+        }
       />
     ),
   };
@@ -69,7 +80,11 @@ function FakeForm({ initial }: { initial: ItemRecord }) {
   return (
     <>
       <input aria-label="Name" value={String(record["~:name"] ?? "")} onChange={(e) => edit.set(["name"], e.target.value)} />
-      <Modifiers record={record} onChange={setRecord} modifiers={[entryModifier(record, setRecord, "speed", "Speeds"), entryModifier(record, setRecord, "save", "Saves")]} />
+      <Modifiers
+        record={record}
+        onChange={setRecord}
+        modifiers={[entryModifier(record, setRecord, "speed", "Speeds"), entryModifier(record, setRecord, "save", "Saves")]}
+      />
     </>
   );
 }

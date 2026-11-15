@@ -18,7 +18,7 @@
 // in Node with the engine, and in the app's Import page and sheet.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, request, test, type APIRequestContext } from "@playwright/test";
+import { type APIRequestContext, expect, request, test } from "@playwright/test";
 import { emptyCharacter, evaluate, importCharacter, readServerEdn } from "@pubdoor/dmv";
 
 const oldApp = process.env.OLD_APP_URL ?? "https://localhost";
@@ -93,9 +93,7 @@ test("the bookmarklet exports the old server's characters, and the app imports t
   expect(readServerEdn(bundle.magicItems[0])).toEqual([]);
 
   // 5. Each golden builds as its expected.json, as in the app's engine tests.
-  const built = readServerEdn(bundle.characters[0]).map(
-    (character) => evaluate(importCharacter(character).entity).built as Record<string, unknown>,
-  );
+  const built = readServerEdn(bundle.characters[0]).map((character) => evaluate(importCharacter(character).entity).built as Record<string, unknown>);
   expect(built).toHaveLength(goldens.length + 1);
   const byName = new Map(built.map((b) => [b["character-name"], b]));
   for (const golden of goldens) expect.soft(byName.get(nameOf(golden)), golden).toEqual(expected.get(golden));

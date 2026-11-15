@@ -30,7 +30,12 @@ export function Chips({ values, options, onValuesChange, addLabel, name = String
           <Token key={value} label={String(value)} name={name(value)} onRemove={() => onValuesChange(values.filter((v) => v !== value))} />
         ))}
       {rest.length > 0 && (
-        <Menu label={addLabel} items={rest.map((value) => [value, name(value)] as const)} onPick={(value) => onValuesChange([...values, value])} className="ui-chip-add" />
+        <Menu
+          label={addLabel}
+          items={rest.map((value) => [value, name(value)] as const)}
+          onPick={(value) => onValuesChange([...values, value])}
+          className="ui-chip-add"
+        />
       )}
     </Tokens>
   );

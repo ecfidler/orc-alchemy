@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { CurrentMax } from "./Paper.tsx";
 
 export type UseBubbleProps = {
@@ -10,7 +10,10 @@ export type UseBubbleProps = {
   tag?: string;
 } & (
   | { /** One circle for each use, after the name. */ uses: number; pool?: never }
-  | { /** A pool: its number shows large under the tag, as current / max. A click spends `step` (1 by default). */ pool: { max: number; step?: number }; uses?: never }
+  | {
+      /** A pool: its number shows large under the tag, as current / max. A click spends `step` (1 by default). */ pool: { max: number; step?: number };
+      uses?: never;
+    }
   | { uses?: never; pool?: never }
 );
 

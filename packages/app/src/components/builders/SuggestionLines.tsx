@@ -6,7 +6,7 @@
 import { NoteLine } from "@orc-alchemy/ui";
 import { ABILITY_NAMES } from "../../engine/sheet.ts";
 import type { Options } from "./fields.tsx";
-import { readFeatureText, suggestedTypeOption, type SuggestedUnit, type SuggestedUses, type TextMatch } from "./suggested-uses.ts";
+import { readFeatureText, type SuggestedUnit, type SuggestedUses, suggestedTypeOption, type TextMatch } from "./suggested-uses.ts";
 import { suggestedFrequency, usesKind } from "./uses.ts";
 
 const UNIT_TEXT: Record<SuggestedUnit, string> = { "short-rest": "short rest", "long-rest": "long rest", day: "each day" };
@@ -68,11 +68,18 @@ export function SuggestionLines({
     <div className="grid gap-[6px]">
       {showUses &&
         (uses.kind === "suggestion" ? (
-          <Line match={uses.match} text={`Suggested: ${suggestedUsesText(uses.uses)}.`} onUse={() => onUses(suggestedFrequency(uses.uses))} buttonName={`${name} uses: Use this`} />
+          <Line
+            match={uses.match}
+            text={`Suggested: ${suggestedUsesText(uses.uses)}.`}
+            onUse={() => onUses(suggestedFrequency(uses.uses))}
+            buttonName={`${name} uses: Use this`}
+          />
         ) : (
           <Line match={uses.match} text="It may name uses, but no clear amount. Set the uses by hand." />
         ))}
-      {type && typeOption && <Line match={type.match} text={`Suggested type: ${typeOption[1]}.`} onUse={() => onType(typeOption[0])} buttonName={`${name} type: Use this`} />}
+      {type && typeOption && (
+        <Line match={type.match} text={`Suggested type: ${typeOption[1]}.`} onUse={() => onType(typeOption[0])} buttonName={`${name} type: Use this`} />
+      )}
     </div>
   );
 }

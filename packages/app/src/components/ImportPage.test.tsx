@@ -44,11 +44,7 @@ const sectionTitles = (log: HTMLElement) => Array.from(log.querySelectorAll("sum
 
 test("the page shows the three steps in order: homebrew, bundle, one character", () => {
   renderPage();
-  expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
-    "1. Homebrew",
-    "2. Character bundle",
-    "3. One character",
-  ]);
+  expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["1. Homebrew", "2. Character bundle", "3. One character"]);
 });
 
 test("a chosen pack is listed with its import log, and the list points to My Content", async () => {
@@ -158,7 +154,9 @@ test("a stored pack that could not be read shows a warning, and the other packs 
 
     renderPage(ImportPage);
     const warning = await screen.findByRole("alert", { name: "Unreadable homebrew packs" });
-    expect(warning.textContent).toBe("The stored pack bad could not be read, so it is not used. It is kept in this browser as it is. The record is not a stored pack.");
+    expect(warning.textContent).toBe(
+      "The stored pack bad could not be read, so it is not used. It is kept in this browser as it is. The record is not a stored pack.",
+    );
     expect(within(screen.getByRole("list", { name: "Homebrew packs" })).getByRole("listitem", { name: "good" })).toBeTruthy();
   } finally {
     vi.unstubAllGlobals();
@@ -260,7 +258,9 @@ test("a file with key conflicts stores nothing until each conflict has a choice"
   expect(within(step).getByRole("heading").textContent).toBe("Key conflicts in duplicate-external-b.orcbrew");
   const groups = within(step).getAllByRole("group");
   expect(groups).toEqual(
-    ["classes: artificer", "classes: monster-hunter", "subclasses: artillerist", "races: custom-lineage"].map((name) => within(step).getByRole("group", { name })),
+    ["classes: artificer", "classes: monster-hunter", "subclasses: artillerist", "races: custom-lineage"].map((name) =>
+      within(step).getByRole("group", { name }),
+    ),
   );
   expect(screen.queryByRole("listitem", { name: "duplicate-external-b" })).toBeNull();
   expect(apply().disabled).toBe(true);
@@ -270,7 +270,9 @@ test("a file with key conflicts stores nothing until each conflict has a choice"
   expect(note()?.textContent).toBe("Choose for each conflict (0 of 4) before import.");
 
   const lineage = within(step).getByRole("group", { name: "races: custom-lineage" });
-  expect(within(lineage).getByText("Imported: Custom Lineage (Variant) from duplicate-external-b. Loaded: Custom Lineage from duplicate-external-a.")).toBeTruthy();
+  expect(
+    within(lineage).getByText("Imported: Custom Lineage (Variant) from duplicate-external-b. Loaded: Custom Lineage from duplicate-external-a."),
+  ).toBeTruthy();
   fireEvent.click(within(lineage).getByRole("radio", { name: "Replace the one from duplicate-external-a with the imported one" }));
   expect(apply().textContent).toBe("Choose for each conflict (1 of 4)");
   expect(note()?.textContent).toBe("Choose for each conflict (1 of 4) before import.");
@@ -289,7 +291,9 @@ test("Rename all, then Apply, imports the file with its keys renamed and lists t
   expect(screen.queryByRole("region", { name: "Resolve key conflicts" })).toBeNull();
   const log = screen.getByRole("region", { name: "Import log" });
   expect(sectionTitles(log)).toEqual(["Key renames (4)", "Data cleanup (1)"]);
-  expect(Array.from(log.querySelectorAll("li"), (li) => li.textContent)).toContain("Renamed key custom-lineage to custom-lineage-duplicate-external-b in duplicate-external-b");
+  expect(Array.from(log.querySelectorAll("li"), (li) => li.textContent)).toContain(
+    "Renamed key custom-lineage to custom-lineage-duplicate-external-b in duplicate-external-b",
+  );
   expect(useHomebrew.getState().homebrew!["duplicate-external-b"]).toHaveProperty(["~:orcpub.dnd.e5/races", "~:custom-lineage-duplicate-external-b"]);
 });
 
@@ -307,8 +311,7 @@ test("Skip all, then Apply, imports the file without its conflicting items", asy
 test("choices made one key at a time apply each to its own conflict", async () => {
   const step = await loadAThenB();
   fireEvent.click(within(step).getByRole("button", { name: "Skip all" }));
-  const pick = (group: string, radio: string) =>
-    fireEvent.click(within(within(step).getByRole("group", { name: group })).getByRole("radio", { name: radio }));
+  const pick = (group: string, radio: string) => fireEvent.click(within(within(step).getByRole("group", { name: group })).getByRole("radio", { name: radio }));
   pick("classes: artificer", "Rename the imported one to artificer-duplicate-external-b");
   pick("races: custom-lineage", "Replace the one from duplicate-external-a with the imported one");
   fireEvent.click(apply());
@@ -460,9 +463,11 @@ test("the import log warns of a background whose key is not the key of its name"
   // A warning needs nothing from the user: warning text, not a stuck note.
   expect(within(log).getByText("Background keys (1)").className).toContain("text-warning");
   expect(within(log).queryByRole("note")).toBeNull();
-  expect(within(warnings).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
-    "Spy in keys has the key old-spy. A character gets it by the key spy.",
-  ]);
+  expect(
+    within(warnings)
+      .getAllByRole("listitem")
+      .map((li) => li.textContent),
+  ).toEqual(["Spy in keys has the key old-spy. A character gets it by the key spy."]);
 
   // The same file again changes no pack, and the warning stays.
   choose("Load homebrew file", "keys.ORCBREW", pack);

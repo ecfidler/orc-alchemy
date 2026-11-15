@@ -11,7 +11,10 @@ export type NumberToggleProps = {
   size?: "normal" | "small";
   /** Layout classes. */
   className?: string;
-} & ({ /** The group's name. */ "aria-label": string; "aria-labelledby"?: never } | { /** The id of the element that names the group. */ "aria-labelledby": string; "aria-label"?: never });
+} & (
+  | { /** The group's name. */ "aria-label": string; "aria-labelledby"?: never }
+  | { /** The id of the element that names the group. */ "aria-labelledby": string; "aria-label"?: never }
+);
 
 const key = (value: number | null) => (value === null ? "none" : String(value));
 

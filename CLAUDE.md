@@ -39,6 +39,7 @@ package.json             private root; workspaces: packages/*, tools/*
 tsconfig.base.json       shared compiler options; each package extends it
 docs/                    OKF bundle: plan, reports, kb, conventions
 docs/plan/               the plan
+biome.json               formatter and linter config (ORC-213)
 scripts/okf-check.ts     the docs bundle check
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
@@ -47,7 +48,8 @@ tools/exporter-bookmarklet/  M5
 ```
 
 Run `bun install` once from the root. Each package owns its dependencies
-and scripts.
+and scripts. From the root, `bun run format` formats the code and sorts
+the imports, and `bun run lint` is the check that CI runs.
 
 ## Agent skills
 

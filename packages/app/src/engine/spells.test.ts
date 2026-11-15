@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
-import { setQuantity } from "./equipment.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { setQuantity } from "./equipment.ts";
 import { toSheet } from "./sheet.ts";
 import { loadSpellContent, preparedSpells, setPrepared, spellLevelOf } from "./spells.ts";
 
@@ -31,9 +31,10 @@ function stored(entity: { "~:orcpub.entity.strict/selections"?: StrictSelection[
 }
 /** The stored prepared spells, with each set sorted, to compare as sets. */
 const preparedOf = (entity: StrictEntity) =>
-  ((JSON.parse(JSON.stringify(entity))["~:orcpub.entity.strict/values"][BY_CLASS] ?? []) as Record<string, { "~#set": string[] }>[]).map(
-    (entry) => ({ ...entry, [q("prepared-spells")]: { "~#set": [...entry[q("prepared-spells")]["~#set"]].sort() } }),
-  );
+  ((JSON.parse(JSON.stringify(entity))["~:orcpub.entity.strict/values"][BY_CLASS] ?? []) as Record<string, { "~#set": string[] }>[]).map((entry) => ({
+    ...entry,
+    [q("prepared-spells")]: { "~#set": [...entry[q("prepared-spells")]["~#set"]].sort() },
+  }));
 
 beforeAll(() => loadEngine());
 
@@ -55,14 +56,19 @@ test("wizard-20 by the builder's calls builds as the fixture, with its prepared 
   copy(["alignment"]);
   // The fixture also picks Common, which the engine refuses: a human knows it.
   select(["languages"], ...stored(golden, ["languages"]).filter((key) => key !== "common"));
-  const scores = golden["~:orcpub.entity.strict/selections"].find(
-    (s: StrictSelection) => s["~:orcpub.entity.strict/key"] === "~:ability-scores",
-  )["~:orcpub.entity.strict/option"];
+  const scores = golden["~:orcpub.entity.strict/selections"].find((s: StrictSelection) => s["~:orcpub.entity.strict/key"] === "~:ability-scores")[
+    "~:orcpub.entity.strict/option"
+  ];
   entity = e.setField(entity, ["ability-scores", "standard-scores"], scores["~:orcpub.entity.strict/map-value"]);
 
   const wizard = ["class", "wizard"];
   entity = e.setClass(entity, 0, "wizard");
-  for (const key of ["starting-equipment-melee-weapon", "starting-equipment-equipment-pack", "starting-equipment-spellcasting-equipment", "skill-proficiency"]) {
+  for (const key of [
+    "starting-equipment-melee-weapon",
+    "starting-equipment-equipment-pack",
+    "starting-equipment-spellcasting-equipment",
+    "skill-proficiency",
+  ]) {
     copy([...wizard, key]);
   }
   for (let n = 2; n <= 20; n++) {

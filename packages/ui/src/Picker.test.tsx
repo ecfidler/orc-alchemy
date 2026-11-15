@@ -45,7 +45,13 @@ test("a picked option leaves the modal's list, and the footer counts the picks",
   render(<Fruit start={["apple", "grape"]} />);
   fireEvent.click(addButton());
   const dialog = await screen.findByRole("dialog");
-  expect([...dialog.querySelectorAll(".ui-list-row")].map((row) => row.getAttribute("aria-label"))).toEqual(["Banana", "Cherry", "Damson", "Elderberry", "Fig"]);
+  expect([...dialog.querySelectorAll(".ui-list-row")].map((row) => row.getAttribute("aria-label"))).toEqual([
+    "Banana",
+    "Cherry",
+    "Damson",
+    "Elderberry",
+    "Fig",
+  ]);
   expect(within(dialog).getByRole("status").textContent).toBe("2 picked");
   fireEvent.click(within(dialog).getByRole("button", { name: "Cherry" }));
   expect(within(dialog).getByRole("status").textContent).toBe("3 picked");

@@ -1,9 +1,10 @@
 // The builder's selection pane (ORC-55): evaluate's flat selections joined
 // to their template options, nested under the option that opens them, and
 // grouped into steps, as the old character_builder.cljs pages.
-import { useMemo } from "react";
+
 import type { AvailableSelection, TemplateSelection } from "@pubdoor/dmv";
-import { engine, type Content } from "./engine.ts";
+import { useMemo } from "react";
+import { type Content, engine } from "./engine.ts";
 
 export interface BuilderOption {
   key: string;
@@ -90,9 +91,7 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     const parentKey = JSON.stringify(s.path.slice(0, -2));
     const parent = byPath.get(parentKey) ?? byRef.get(parentKey);
     const siblings =
-      s.path.length === 1
-        ? shape
-        : parent && templates.get(parent)!.flatMap((t) => t.options.find((o) => o.key === s.path.at(-2))?.selections ?? []);
+      s.path.length === 1 ? shape : parent && templates.get(parent)!.flatMap((t) => t.options.find((o) => o.key === s.path.at(-2))?.selections ?? []);
     const template = siblings?.find((t) => t.key === s.key);
     // Not in the template, or under a selection that is not: nowhere to show it.
     if (template === undefined) continue;

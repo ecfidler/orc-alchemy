@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 // ORC-205: a feat's own uses and its features, made in the feat form, show on a character's sheet.
 
@@ -34,9 +34,14 @@ async function addFeature(page: Page, n: number, name: string, type: string, tex
 /** Imports fighter-1 with the feat in its top-level :feats selection, as the fork's scaled-uses golden has it, and opens the sheet. */
 async function importWithFeat(page: Page, key: string) {
   const entity = JSON.parse(readFileSync(join(charactersDir, "fighter-1.strict.json"), "utf8"));
-  entity["~:orcpub.entity.strict/selections"].push({ "~:orcpub.entity.strict/key": "~:feats", "~:orcpub.entity.strict/options": [{ "~:orcpub.entity.strict/key": `~:${key}` }] });
+  entity["~:orcpub.entity.strict/selections"].push({
+    "~:orcpub.entity.strict/key": "~:feats",
+    "~:orcpub.entity.strict/options": [{ "~:orcpub.entity.strict/key": `~:${key}` }],
+  });
   await page.goto("/import");
-  await page.getByLabel("Import character file").setInputFiles({ name: "with-feat.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(entity)) });
+  await page
+    .getByLabel("Import character file")
+    .setInputFiles({ name: "with-feat.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(entity)) });
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
 }
 

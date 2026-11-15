@@ -1,13 +1,13 @@
 // The parity test (ORC-65): rebuild each golden character from emptyCharacter
 // with the builder's mutations. The rebuilt entity must equal the golden
 // strict entity, and its built must equal expected.json.
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
-import { setBaseScores, type Method, type Scores } from "./abilities.ts";
+import { type Method, type Scores, setBaseScores } from "./abilities.ts";
 import { DESCRIPTION_FIELDS, setDescription } from "./description.ts";
-import { engine, loadEngine, type Content, type Homebrew, type StrictEntity } from "./engine.ts";
-import { setAttuned, setCarried, setQuantity, storedItems, wield, type Hand } from "./equipment.ts";
+import { type Content, engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
+import { type Hand, setAttuned, setCarried, setQuantity, storedItems, wield } from "./equipment.ts";
 import { ABILITIES } from "./sheet.ts";
 import { setPrepared } from "./spells.ts";
 
@@ -152,7 +152,7 @@ function rebuild(golden: Entity, opts: Content) {
 
   // Race, background and class open the picks the others fill, so they go first.
   const first = ["~:race", "~:background", "~:class"];
-  const rank = (s: Selection) => (first.indexOf(s[KEY]) + 1 || 99);
+  const rank = (s: Selection) => first.indexOf(s[KEY]) + 1 || 99;
   for (const s of [...golden[SELECTIONS]].sort((a, b) => rank(a) - rank(b))) replay(s, []);
   // Some picks need a later pick: Spell Mastery needs the spells known. Retry until no progress.
   let before: number;
@@ -240,44 +240,48 @@ beforeAll(() => loadEngine());
 
 test("all 14 goldens are here", () => expect(goldens).toHaveLength(14));
 
-test.each(goldens)("%s rebuilt by the builder's mutations equals the golden", (name) => {
-  const e = engine();
-  let homebrew: Homebrew | undefined;
-  for (const pack of readJson(`characters/${name}.meta.json`).orcbrew as string[]) {
-    const parsed = e.parseOrcbrew(readFileSync(join(fixturesDir, "orcbrew", pack), "utf8"), { name: pack.replace(".orcbrew", ""), existing: homebrew });
-    homebrew = parsed.data!;
-  }
-  // The meta's magicItems names the old server's GET /dnd/5e/items body under fixtures/magic-items.
-  const itemsFile: string | undefined = readJson(`characters/${name}.meta.json`).magicItems;
-  const magicItems = itemsFile ? e.readServerEdn(readFileSync(join(fixturesDir, "magic-items", itemsFile), "utf8")) : undefined;
-  const content: Content = { homebrew, magicItems };
-  const golden = readJson(`characters/${name}.strict.json`) as Entity;
-  const gaps: Gaps = GAPS[name] ?? {};
-  const { entity, refused, removed, skipped } = rebuild(golden, content);
+test.each(goldens)(
+  "%s rebuilt by the builder's mutations equals the golden",
+  (name) => {
+    const e = engine();
+    let homebrew: Homebrew | undefined;
+    for (const pack of readJson(`characters/${name}.meta.json`).orcbrew as string[]) {
+      const parsed = e.parseOrcbrew(readFileSync(join(fixturesDir, "orcbrew", pack), "utf8"), { name: pack.replace(".orcbrew", ""), existing: homebrew });
+      homebrew = parsed.data!;
+    }
+    // The meta's magicItems names the old server's GET /dnd/5e/items body under fixtures/magic-items.
+    const itemsFile: string | undefined = readJson(`characters/${name}.meta.json`).magicItems;
+    const magicItems = itemsFile ? e.readServerEdn(readFileSync(join(fixturesDir, "magic-items", itemsFile), "utf8")) : undefined;
+    const content: Content = { homebrew, magicItems };
+    const golden = readJson(`characters/${name}.strict.json`) as Entity;
+    const gaps: Gaps = GAPS[name] ?? {};
+    const { entity, refused, removed, skipped } = rebuild(golden, content);
 
-  expect(refused.sort()).toEqual([...(gaps.refused ?? [])].sort());
-  expect(removed.sort()).toEqual([...(gaps.removed ?? [])].sort());
-  expect(skipped.sort()).toEqual([...(gaps.values ?? [])].sort());
-  const stripped = strip(golden, gaps.refused ?? [], gaps.values ?? []);
-  // The Main hand control also sets the off hand to none, where the golden has no off hand.
-  // So "none" counts as no off hand, in the entity and in built's off-hand-weapon only.
-  // Every other built key still compares exactly: the engine reads none and no off hand
-  // differently for Dueling, so a difference there would show.
-  const noOffHand = !(OFF_HAND in (stripped[VALUES] ?? {})) && entity[VALUES]?.[OFF_HAND] === "~:none";
-  const compared = plain(entity) as Entity;
-  if (noOffHand) delete compared[VALUES]![OFF_HAND];
-  expect(normalize(compared)).toEqual(normalize(stripped));
+    expect(refused.sort()).toEqual([...(gaps.refused ?? [])].sort());
+    expect(removed.sort()).toEqual([...(gaps.removed ?? [])].sort());
+    expect(skipped.sort()).toEqual([...(gaps.values ?? [])].sort());
+    const stripped = strip(golden, gaps.refused ?? [], gaps.values ?? []);
+    // The Main hand control also sets the off hand to none, where the golden has no off hand.
+    // So "none" counts as no off hand, in the entity and in built's off-hand-weapon only.
+    // Every other built key still compares exactly: the engine reads none and no off hand
+    // differently for Dueling, so a difference there would show.
+    const noOffHand = !(OFF_HAND in (stripped[VALUES] ?? {})) && entity[VALUES]?.[OFF_HAND] === "~:none";
+    const compared = plain(entity) as Entity;
+    if (noOffHand) delete compared[VALUES]![OFF_HAND];
+    expect(normalize(compared)).toEqual(normalize(stripped));
 
-  const built = plain(e.evaluate(entity, content).built);
-  if (noOffHand && built["off-hand-weapon"] === "none") built["off-hand-weapon"] = null;
-  const expected = readJson(`characters/${name}.expected.json`);
-  expect(Object.keys(built).sort()).toEqual(Object.keys(expected).sort());
-  // Trait order follows the order of the top-level selections, and emptyCharacter has class before race.
-  const byName = (traits: { name: string }[]) => [...traits].sort((a, b) => a.name.localeCompare(b.name));
-  expect(byName(built.traits)).toEqual(byName(expected.traits));
-  // The builder has no control for the gap values yet (ORC-123), so their built keys are skipped.
-  for (const key of Object.keys(expected)) {
-    if (key !== "traits" && !(gaps.values ?? []).includes(key)) expect({ [key]: built[key] }).toEqual({ [key]: expected[key] });
-  }
-  // wizard-20 alone takes about 5 seconds; under the whole suite it takes longer.
-}, 30_000);
+    const built = plain(e.evaluate(entity, content).built);
+    if (noOffHand && built["off-hand-weapon"] === "none") built["off-hand-weapon"] = null;
+    const expected = readJson(`characters/${name}.expected.json`);
+    expect(Object.keys(built).sort()).toEqual(Object.keys(expected).sort());
+    // Trait order follows the order of the top-level selections, and emptyCharacter has class before race.
+    const byName = (traits: { name: string }[]) => [...traits].sort((a, b) => a.name.localeCompare(b.name));
+    expect(byName(built.traits)).toEqual(byName(expected.traits));
+    // The builder has no control for the gap values yet (ORC-123), so their built keys are skipped.
+    for (const key of Object.keys(expected)) {
+      if (key !== "traits" && !(gaps.values ?? []).includes(key)) expect({ [key]: built[key] }).toEqual({ [key]: expected[key] });
+    }
+    // wizard-20 alone takes about 5 seconds; under the whole suite it takes longer.
+  },
+  30_000,
+);

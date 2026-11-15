@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 /** Adds the modifier named `name` from the "+ Add a modifier" list. */
 const addModifier = (page: Page, name: string) => pickFromPicker(page.getByRole("button", { name: "Add a modifier" }), name);
@@ -82,7 +82,9 @@ test("a new section flashes once, with rounded corners, and with reduced motion 
 // ORC-198: the subrace, subclass, magic item and monster forms use the same list.
 test("the subrace form adds Hit Points from the list, and Remove and Undo keep its value", async ({ page }) => {
   await page.goto("/content/new/subrace");
-  await expect(page.getByRole("button", { name: "Add a modifier" })).toHaveAccessibleDescription("Hit Points, Damage Resistances, Damage Immunities and 7 more");
+  await expect(page.getByRole("button", { name: "Add a modifier" })).toHaveAccessibleDescription(
+    "Hit Points, Damage Resistances, Damage Immunities and 7 more",
+  );
   await expect(page.getByRole("group", { name: "Hit Points", exact: true })).toHaveCount(0);
   await addModifier(page, "Hit Points");
   // The section is after Ability Score Increases, in form order.
@@ -100,7 +102,9 @@ test("the subclass form shows the level modifiers always, and adds Selections fr
   await page.goto("/content/new/subclass");
   const modifiers = page.getByRole("group", { name: "Modifiers" });
   await expect(modifiers.getByRole("button", { name: "Add a level modifier" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Add a modifier" })).toHaveAccessibleDescription("Skill Proficiency Choice, Skill Expertise Choice, Selections");
+  await expect(page.getByRole("button", { name: "Add a modifier" })).toHaveAccessibleDescription(
+    "Skill Proficiency Choice, Skill Expertise Choice, Selections",
+  );
   await addModifier(page, "Selections");
   const selections = page.getByRole("group", { name: "Selections" });
   await selections.getByRole("button", { name: "Add selection" }).click();
@@ -108,7 +112,9 @@ test("the subclass form shows the level modifiers always, and adds Selections fr
   await expect(page.locator("[data-modifier]").last()).toHaveAttribute("data-modifier", "level-selections");
   await selections.getByRole("button", { name: "Remove Selections" }).click();
   await expect(selections).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Add a modifier" })).toHaveAccessibleDescription("Skill Proficiency Choice, Skill Expertise Choice, Selections");
+  await expect(page.getByRole("button", { name: "Add a modifier" })).toHaveAccessibleDescription(
+    "Skill Proficiency Choice, Skill Expertise Choice, Selections",
+  );
 });
 
 test("the magic item form puts a removed modifier's entries back with Undo", async ({ page }) => {
@@ -196,7 +202,14 @@ test.describe("screenshots", () => {
 
       // ORC-212: the heading and the examples, at the width of a desktop and of a phone.
       const other = page.getByRole("group", { name: "Other modifiers" });
-      for (const [type, name] of [["feat", "feat"], ["race", "race"], ["subrace", "subrace"], ["subclass", "subclass"], ["magicItem", "magic-item"], ["monster", "monster"]]) {
+      for (const [type, name] of [
+        ["feat", "feat"],
+        ["race", "race"],
+        ["subrace", "subrace"],
+        ["subclass", "subclass"],
+        ["magicItem", "magic-item"],
+        ["monster", "monster"],
+      ]) {
         await page.setViewportSize({ width: 1100, height: 820 });
         await open(type);
         await other.scrollIntoViewIfNeeded();

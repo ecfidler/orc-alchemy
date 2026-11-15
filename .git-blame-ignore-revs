@@ -1,0 +1,5 @@
+# Commits that git blame skips. Each one changes only the format of the code.
+# To use the file: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# ORC-213: format the repo with Biome
+abcc16ffbee58e20a8c3f75519ef4e967f48915e

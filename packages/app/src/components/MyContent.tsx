@@ -13,9 +13,9 @@ import { itemOn, orcbrewHomebrew, packOn, restorePacks, useHomebrew } from "../s
 import { skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
 import type { MagicItemRecord, PackRecord } from "../storage/packs.ts";
 import { usesCount } from "./builders/review-uses.ts";
-import { ReviewUsesLink } from "./ReviewUses.tsx";
 import { downloadText } from "./Export.tsx";
 import { BUILDERS } from "./HomebrewBuilder.tsx";
+import { ReviewUsesLink } from "./ReviewUses.tsx";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 type Report = (action: Promise<void>) => void;
@@ -71,9 +71,7 @@ export function MyContent() {
           </Link>
         ))}
       </p>
-      <p>
-        Magic items come from a dmv-export bundle or the magic item form. They are not in .orcbrew files, because the old app has no magic-item homebrew.
-      </p>
+      <p>Magic items come from a dmv-export bundle or the magic item form. They are not in .orcbrew files, because the old app has no magic-item homebrew.</p>
       {error && <p role="alert">{error}</p>}
       {!restored && <p role="status">Reading the stored homebrew…</p>}
       {quarantined.length > 0 && (
@@ -107,9 +105,7 @@ export function MyContent() {
         </>
       )}
       {magicItems.length > 0 && <MagicItems items={magicItems} report={report} askDelete={askDelete} />}
-      {restored && packs.length === 0 && quarantined.length === 0 && magicItems.length === 0 && (
-        <p className="mt-4">There is no homebrew in this browser.</p>
-      )}
+      {restored && packs.length === 0 && quarantined.length === 0 && magicItems.length === 0 && <p className="mt-4">There is no homebrew in this browser.</p>}
     </>
   );
 }
@@ -150,7 +146,10 @@ function MagicItems({ items, report, askDelete }: { items: MagicItemRecord[]; re
  */
 function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: boolean; report: Report; askDelete: AskDelete }) {
   const { id, plugin } = pack;
-  const uses = usesCount(plugin, useSkippedUses((state) => skippedOf(state, id)));
+  const uses = usesCount(
+    plugin,
+    useSkippedUses((state) => skippedOf(state, id)),
+  );
   return (
     <section aria-label={id} className="border border-rule-strong p-2">
       <div className="flex flex-wrap items-center gap-4">
@@ -180,9 +179,17 @@ function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: b
                 const on = itemOn(pack, taggedType, tagged);
                 return (
                   <li key={key} className="flex flex-wrap items-center gap-2">
-                    <Checkbox label={name} checked={on} onCheckedChange={(next) => report(useHomebrew.getState().setItemEnabled(id, taggedType, tagged, next))} />
+                    <Checkbox
+                      label={name}
+                      checked={on}
+                      onCheckedChange={(next) => report(useHomebrew.getState().setItemEnabled(id, taggedType, tagged, next))}
+                    />
                     {builder && (
-                      <Link to={`/content/edit/${builder}/${encodeURIComponent(id)}/${encodeURIComponent(key)}`} aria-label={`Edit ${name}`} className="underline">
+                      <Link
+                        to={`/content/edit/${builder}/${encodeURIComponent(id)}/${encodeURIComponent(key)}`}
+                        aria-label={`Edit ${name}`}
+                        className="underline"
+                      >
                         Edit
                       </Link>
                     )}
@@ -228,9 +235,7 @@ function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; 
 
   return (
     <div>
-      <Button onClick={() => run(false)}>
-        {label}
-      </Button>
+      <Button onClick={() => run(false)}>{label}</Button>
       {error && <p role="alert">{error}</p>}
       {invalid && (
         <div role="alert" aria-label={`Export problems${pack ? ` in ${pack}` : ""}`} className="mt-1">
@@ -238,9 +243,7 @@ function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; 
           <ul className="ml-4 list-disc">
             {invalid.flatMap(({ pack: name, problems }) => problems.map((problem, i) => <li key={`${name}-${i}`}>{`${name}: ${problem}`}</li>))}
           </ul>
-          <Button onClick={() => run(true)}>
-            Export anyway
-          </Button>{" "}
+          <Button onClick={() => run(true)}>Export anyway</Button>{" "}
           <span>It fills placeholders for the missing fields and repairs the items, as the old app did.</span>
         </div>
       )}

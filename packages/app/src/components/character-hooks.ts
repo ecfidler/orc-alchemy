@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
 import { addCharacter, refreshSummaries } from "../state/character.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
-import { listSummaries, useSummariesVersion, type CharacterSummary } from "../storage/characters.ts";
+import { type CharacterSummary, listSummaries, useSummariesVersion } from "../storage/characters.ts";
 
 /**
  * Stores a new character and opens it in the builder. A new character is the

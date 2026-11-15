@@ -1,4 +1,4 @@
-import { AlertNote, AlertNotes, Button, FlagTab, FlagTabs, Shell, type FlagColor } from "@orc-alchemy/ui";
+import { AlertNote, AlertNotes, Button, type FlagColor, FlagTab, FlagTabs, Shell } from "@orc-alchemy/ui";
 import { Link, Outlet, useLocation } from "react-router";
 import { useStorage } from "../storage/characters.ts";
 import { Potion } from "./Potion.tsx";

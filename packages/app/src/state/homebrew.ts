@@ -5,20 +5,20 @@
 // used, and the UI warns about it. A stored magic item record that is not
 // well formed is skipped, with a warning in the console.
 import { create } from "zustand";
-import { engine, loadEngine, type Content, type ParsedOrcbrew } from "../engine/engine.ts";
-import { backgroundKeyWarnings, disabledInFile, itemAt, withDisabledFlag, withItem, withoutDisabledFlag, withoutItem, type BackgroundKeyWarning } from "../engine/content.ts";
 import { applyResolutions, type Resolution } from "../engine/conflicts.ts";
-import { magicItemKey, type BundleHomebrew } from "../engine/import.ts";
 import {
-  deleteMagicItem,
-  deletePack,
-  listMagicItems,
-  listPacks,
-  saveMagicItems,
-  savePacks,
-  type MagicItemRecord,
-  type PackRecord,
-} from "../storage/packs.ts";
+  type BackgroundKeyWarning,
+  backgroundKeyWarnings,
+  disabledInFile,
+  itemAt,
+  withDisabledFlag,
+  withItem,
+  withoutDisabledFlag,
+  withoutItem,
+} from "../engine/content.ts";
+import { type Content, engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
+import { type BundleHomebrew, magicItemKey } from "../engine/import.ts";
+import { deleteMagicItem, deletePack, listMagicItems, listPacks, type MagicItemRecord, type PackRecord, saveMagicItems, savePacks } from "../storage/packs.ts";
 import { forgetSkipped } from "./skipped-uses.ts";
 
 interface HomebrewState {
@@ -220,7 +220,11 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     if (data === null) return set({ lastImport: { ...withoutData, fileName } });
     // data holds the stored packs too, and the engine's result does not name the packs of the file, so the
     // file is read once more alone for their names. That takes about 90 ms for 1,200 features.
-    const lastImport = { ...withoutData, fileName, packs: existing === undefined ? Object.keys(data) : Object.keys(engine().parseOrcbrew(text, { name }).data ?? {}) };
+    const lastImport = {
+      ...withoutData,
+      fileName,
+      packs: existing === undefined ? Object.keys(data) : Object.keys(engine().parseOrcbrew(text, { name }).data ?? {}),
+    };
     checkQuarantine(data);
     if (askOnConflicts && lastImport.conflicts.length > 0) return set({ pending: { id: crypto.randomUUID(), result: lastImport, homebrew: data } });
     await store(data, flags, lastImport);
@@ -294,8 +298,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     load: (fileName, text, { strict } = {}) =>
       queued(() => merge(text, { fileName, name: fileName.replace(/\.orcbrew$/i, ""), flags: {}, strict, askOnConflicts: true })),
     // Through .orcbrew text, so the bundle's packs get the same checks as a file's.
-    loadBundle: ({ homebrew, flags }, fileName) =>
-      queued(() => merge(engine().orcbrewToEdn(homebrew), { fileName, name: "dmv-export", flags })),
+    loadBundle: ({ homebrew, flags }, fileName) => queued(() => merge(engine().orcbrewToEdn(homebrew), { fileName, name: "dmv-export", flags })),
     resolveConflicts: (choices) =>
       queued(async () => {
         const pending = get().pending;
@@ -307,11 +310,12 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
         set({ pending: null });
       }),
     cancelImport: () => set({ pending: null }),
-    remove: (pack) => queued(async () => {
-      await deletePack(pack);
-      forgetSkipped(pack);
-      set({ ...withPacks(get().packs.filter((p) => p.id !== pack)), pending: null });
-    }),
+    remove: (pack) =>
+      queued(async () => {
+        await deletePack(pack);
+        forgetSkipped(pack);
+        set({ ...withPacks(get().packs.filter((p) => p.id !== pack)), pending: null });
+      }),
     loadMagicItems: (items) =>
       queued(async () => {
         await restorePacks();
@@ -427,8 +431,7 @@ export const packOn = ({ enabled, plugin }: PackRecord) => enabled && !disabledI
  * does not carry the old app's off flag. contentType and key are tagged.
  */
 export const itemOn = ({ plugin, disabledItems }: PackRecord, contentType: string, key: string) =>
-  !disabledItems.some((item) => sameItem(item, contentType, key)) &&
-  !disabledInFile(itemAt(plugin, contentType, key));
+  !disabledItems.some((item) => sameItem(item, contentType, key)) && !disabledInFile(itemAt(plugin, contentType, key));
 
 const sameItem = ([t, k]: [string, string], contentType: string, key: string) => t === contentType && k === key;
 
@@ -531,10 +534,7 @@ function derived(
 ): Derived {
   const { content } = useHomebrew.getState();
   // Every change to a pack or an item, its flags included, sets its updatedAt.
-  const parts = [
-    ...packs.filter(packOn).map((p) => [p.id, p.updatedAt]),
-    ...magicItems.filter((r) => r.enabled).map((r) => ["magic-item", r.id, r.updatedAt]),
-  ];
+  const parts = [...packs.filter(packOn).map((p) => [p.id, p.updatedAt]), ...magicItems.filter((r) => r.enabled).map((r) => ["magic-item", r.id, r.updatedAt])];
   return {
     content: content.homebrew === homebrew && content.magicItems === magicItemsOn ? content : { homebrew, magicItems: magicItemsOn },
     fingerprint: parts.length === 0 ? "" : JSON.stringify(parts),

@@ -3,7 +3,7 @@
 // and a description. The old app's new invocation is {} (db.cljs
 // default-invocation), and its save (events.cljs ::classes/save-invocation)
 // adds only :key, so an .orcbrew export round-trips.
-import { NameDescriptionForm, type BuilderType } from "./fields.tsx";
+import { type BuilderType, NameDescriptionForm } from "./fields.tsx";
 
 export const invocationBuilder: BuilderType = {
   contentType: "orcpub.dnd.e5/invocations",

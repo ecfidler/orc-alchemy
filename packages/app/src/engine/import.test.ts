@@ -4,16 +4,8 @@ import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { addCharacter } from "../state/character.ts";
 import { getCharacter } from "../storage/characters.ts";
-import { engine, loadEngine, type Content, type Homebrew, type StrictEntity } from "./engine.ts";
-import {
-  characterFile,
-  exportBundle,
-  magicItemKey,
-  readBundleHomebrew,
-  readBundleMagicItems,
-  readCharacterFile,
-  type CharacterFileEntry,
-} from "./import.ts";
+import { type Content, engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
+import { type CharacterFileEntry, characterFile, exportBundle, magicItemKey, readBundleHomebrew, readBundleMagicItems, readCharacterFile } from "./import.ts";
 import { toSheet } from "./sheet.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
@@ -31,19 +23,18 @@ test("finds every character and legacy fixture", () => {
 });
 
 test.each(strictFiles)("%s imports and builds", (file) => {
-  const { characters: [character], failures } = readCharacterFile(readText(file));
+  const {
+    characters: [character],
+    failures,
+  } = readCharacterFile(readText(file));
   expect(failures).toEqual([]);
   expect(character.entity).toEqual(engine().importCharacter(readText(file)).entity);
   expect(() => engine().evaluate(character.entity)).not.toThrow();
 });
 
 test("a raw entity keeps its name and the old app's id", () => {
-  expect(readCharacterFile(readText("characters/fighter-1.strict.json")).characters).toMatchObject([
-    { name: "Brannor Ironfist", legacyId: null },
-  ]);
-  expect(readCharacterFile(readText("legacy/character-test-2.strict.json")).characters).toMatchObject([
-    { name: null, legacyId: "17592186056344" },
-  ]);
+  expect(readCharacterFile(readText("characters/fighter-1.strict.json")).characters).toMatchObject([{ name: "Brannor Ironfist", legacyId: null }]);
+  expect(readCharacterFile(readText("legacy/character-test-2.strict.json")).characters).toMatchObject([{ name: null, legacyId: "17592186056344" }]);
 });
 
 // A meta file's unresolved lists the keys that do not resolve with its packs loaded (fixtures/README.md).
@@ -134,9 +125,7 @@ test("without homebrew, only the fixtures with non-SRD content report unresolved
 });
 
 test("without its pack, ironwrought-artificer-3 reports the keys r8-unresolved-keys records", () => {
-  expect(keysOf(importFixture("characters/ironwrought-artificer-3.strict.json"))).toEqual(
-    metaKeys("legacy/r8-unresolved-keys.strict.json"),
-  );
+  expect(keysOf(importFixture("characters/ironwrought-artificer-3.strict.json"))).toEqual(metaKeys("legacy/r8-unresolved-keys.strict.json"));
 });
 
 test("without its pack, warlock-10-drow also reports the pack's subrace, background and feat", () => {
@@ -186,10 +175,7 @@ test("a dmv-export bundle imports every character, raw Transit or exported", () 
     format: "dmv-export",
     version: 1,
     exportedFrom: "https://old.example",
-    characters: [
-      JSON.parse(readText("characters/fighter-1.strict.json")),
-      envelope("characters/wizard-5.strict.json").entity,
-    ],
+    characters: [JSON.parse(readText("characters/fighter-1.strict.json")), envelope("characters/wizard-5.strict.json").entity],
     magicItems: [],
   };
   const file = readCharacterFile(JSON.stringify(bundle));
@@ -211,7 +197,13 @@ test("the old server's EDN for one character imports through importCharacter", (
   const { characters, failures } = readCharacterFile(serverEdn);
   expect(failures).toEqual([]);
   expect(characters).toEqual([
-    { entity: engine().importCharacter(engine().readServerEdn(serverEdn)[0]).entity, rules: "2014", legacyId: expect.any(String), name: "Brannor Ironfist", unresolved: [] },
+    {
+      entity: engine().importCharacter(engine().readServerEdn(serverEdn)[0]).entity,
+      rules: "2014",
+      legacyId: expect.any(String),
+      name: "Brannor Ironfist",
+      unresolved: [],
+    },
   ]);
 });
 
@@ -259,9 +251,7 @@ test.each(strictFiles)("%s, stored, exports to a dmv-character file that imports
   expect(exported).toMatchObject({ format: "dmv-character", version: 1, rules: "2014", id: record.id, name: record.name });
   const { characters, failures } = reimport(exported);
   expect(failures).toEqual([]);
-  expect(characters).toEqual([
-    { entity: record.entity, rules: "2014", legacyId: record.legacyId, name: imported.name, unresolved: imported.unresolved },
-  ]);
+  expect(characters).toEqual([{ entity: record.entity, rules: "2014", legacyId: record.legacyId, name: imported.name, unresolved: imported.unresolved }]);
 });
 
 test("every stored character exports to one dmv-export bundle that imports back", () => {
@@ -357,7 +347,10 @@ test.each([
 // ORC-177: a Hunter Ranger with Evasion, from the level 20 layout audit. Engine 0.3.2 names Evasion (ORC-178).
 test("a Hunter Ranger with Evasion imports and builds a sheet", async () => {
   const text = readFileSync(join(import.meta.dirname, "ranger-20-evasion.strict.json"), "utf8");
-  const { characters: [character], failures } = readCharacterFile(text);
+  const {
+    characters: [character],
+    failures,
+  } = readCharacterFile(text);
   expect(failures).toEqual([]);
   const sheet = toSheet(engine().evaluate(character.entity).built, character.entity);
   expect(sheet.features.traits.find((t) => t.text.startsWith("When you are subjected to an effect"))?.name).toBe("Evasion");

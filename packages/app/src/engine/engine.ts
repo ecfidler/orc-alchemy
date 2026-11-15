@@ -1,8 +1,9 @@
 // The engine boundary: only src/engine/ touches @pubdoor/dmv. The rest of the
 // app loads the engine through here and treats the strict entity as opaque.
-import { useMemo } from "react";
+
 import type * as Dmv from "@pubdoor/dmv";
 import type { ContentType, Evaluation, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity, ValidationProblem } from "@pubdoor/dmv";
+import { useMemo } from "react";
 
 export type { ContentType, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity, ValidationProblem };
 

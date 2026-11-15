@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { optionNames } from "@orc-alchemy/ui/testing";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { itemAt } from "../../engine/content.ts";
@@ -41,7 +41,8 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const add = () => fireEvent.click(screen.getByRole("button", { name: "Add option" }));
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (pack: string, key: string) => {

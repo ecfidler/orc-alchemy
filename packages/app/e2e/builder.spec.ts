@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 // A step button's name ends with its count of picks to do, when it has some.

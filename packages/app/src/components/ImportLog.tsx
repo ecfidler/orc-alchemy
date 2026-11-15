@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
+import { type LastImport, useHomebrew } from "../state/homebrew.ts";
+import { skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
 import { usesCount } from "./builders/review-uses.ts";
 import { ReviewUsesLink } from "./ReviewUses.tsx";
-import { useHomebrew, type LastImport } from "../state/homebrew.ts";
-import { skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
 
 /** One automatic fix from the importer's log, as the engine gives it. Keywords are "ns/name" strings. */
 interface Change {
@@ -14,7 +14,12 @@ interface Change {
   description?: string;
   /** key-renamed: the pack of the renamed item. */
   pack?: unknown;
-  details?: { key?: unknown; "content-type"?: unknown; plugin?: unknown; changes?: { fields?: unknown[]; "traits-fixed"?: number; "options-fixed"?: number } }[];
+  details?: {
+    key?: unknown;
+    "content-type"?: unknown;
+    plugin?: unknown;
+    changes?: { fields?: unknown[]; "traits-fixed"?: number; "options-fixed"?: number };
+  }[];
 }
 
 /** The change types the old panel shows to the user, by section. Any other type goes under Advanced details. */
@@ -48,19 +53,43 @@ function ChangeText({ change }: { change: Change }) {
   const { type, path, field, from, to, description } = change;
   switch (type) {
     case "renamed-plugin-key":
-      return <>Renamed empty pack name <Code>{show(from)}</Code> to <Code>{show(to)}</Code></>;
+      return (
+        <>
+          Renamed empty pack name <Code>{show(from)}</Code> to <Code>{show(to)}</Code>
+        </>
+      );
     case "fixed-option-pack":
-      return <>Fixed empty option-pack at <Code>{show(path)}</Code></>;
+      return (
+        <>
+          Fixed empty option-pack at <Code>{show(path)}</Code>
+        </>
+      );
     case "removed-nil":
-      return <>Removed nil <Code>{bare(field)}</Code> at <Code>{show(path)}</Code></>;
+      return (
+        <>
+          Removed nil <Code>{bare(field)}</Code> at <Code>{show(path)}</Code>
+        </>
+      );
     case "replaced-nil":
-      return <>Replaced <Code>{bare(field)} nil</Code> with <Code>{show(to)}</Code></>;
+      return (
+        <>
+          Replaced <Code>{bare(field)} nil</Code> with <Code>{show(to)}</Code>
+        </>
+      );
     case "preserved-nil":
-      return <>Kept <Code>{bare(field)}</Code> nil at <Code>{show(path)}</Code></>;
+      return (
+        <>
+          Kept <Code>{bare(field)}</Code> nil at <Code>{show(path)}</Code>
+        </>
+      );
     case "string-fix":
       return <>{description}</>;
     case "removed-nil-key":
-      return <>Removed nil key at <Code>{show(path)}</Code></>;
+      return (
+        <>
+          Removed nil key at <Code>{show(path)}</Code>
+        </>
+      );
     case "text-normalization":
       return <>{description ?? "Normalized Unicode characters to ASCII"}</>;
     case "filled-required-fields":
@@ -89,9 +118,17 @@ function ChangeText({ change }: { change: Change }) {
         </>
       );
     case "normalized-ability-key":
-      return <>Rewrote ability key <Code>{show(from)}</Code> to <Code>{show(to)}</Code> at <Code>{show(path)}</Code></>;
+      return (
+        <>
+          Rewrote ability key <Code>{show(from)}</Code> to <Code>{show(to)}</Code> at <Code>{show(path)}</Code>
+        </>
+      );
     case "defaulted-choose":
-      return <>Set skill choice to <Code>{show(to)}</Code> at <Code>{show(path)}</Code></>;
+      return (
+        <>
+          Set skill choice to <Code>{show(to)}</Code> at <Code>{show(path)}</Code>
+        </>
+      );
     case "key-renamed":
       return (
         <>

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { changeCustomItem, customItems, addCustomItem, setAttuned, setCarried, setQuantity, storedItems, wield } from "./equipment.ts";
+import { addCustomItem, changeCustomItem, customItems, setAttuned, setCarried, setQuantity, storedItems, wield } from "./equipment.ts";
 import { toSheet } from "./sheet.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -91,8 +91,7 @@ test("Dueling: the main hand set by the builder sets the off hand to none, which
   const e = engine();
   const strict = readJson("fighter-5.strict.json");
   for (const key of ["main-hand-weapon", "off-hand-weapon"]) delete strict["~:orcpub.entity.strict/values"][`~:orcpub.dnd.e5.character/${key}`];
-  const damage = (entity: StrictEntity) =>
-    toSheet(e.evaluate(entity).built, entity).weaponAttacks.find((w) => w.key === "longsword")!.damageModifier;
+  const damage = (entity: StrictEntity) => toSheet(e.evaluate(entity).built, entity).weaponAttacks.find((w) => w.key === "longsword")!.damageModifier;
   const base = damage(e.setValue(strict, "main-hand-weapon", "~:longsword"));
   expect(damage(wield(e, strict, "main-hand-weapon", "longsword"))).toBe(base + 2);
 });

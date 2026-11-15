@@ -7,23 +7,23 @@
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
   ARTISANS_TOOLS,
-  ChoicePicker,
   Checks,
+  ChoicePicker,
   CONDITIONS,
   DAMAGE_TYPES,
+  type Edit,
   GAMING_SETS,
   MapPicker,
   MISC_TOOLS,
   MUSICAL_INSTRUMENTS,
-  nameToKw,
   NumberChoice,
-  Section,
-  title,
-  VEHICLES,
-  type Edit,
+  nameToKw,
   type Path,
   type PickerOptions,
   type PickItem,
+  Section,
+  title,
+  VEHICLES,
 } from "./fields.tsx";
 import type { Modifier, ModifierView } from "./modifiers.tsx";
 
@@ -77,7 +77,13 @@ export const armorModifier = (edit: Edit): Modifier => ({
   example: "Light, medium or heavy armor, shields",
   paths: [["props", "armor-prof"]],
   render: ({ name, action }) => (
-    <Checks legend={name} action={action} items={ARMOR_CHOICES} checked={(key) => edit.get("props", "armor-prof", key) === true} onToggle={(key) => edit.toggle(["props", "armor-prof", key])} />
+    <Checks
+      legend={name}
+      action={action}
+      items={ARMOR_CHOICES}
+      checked={(key) => edit.get("props", "armor-prof", key) === true}
+      onToggle={(key) => edit.toggle(["props", "armor-prof", key])}
+    />
   ),
 });
 

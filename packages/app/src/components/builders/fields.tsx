@@ -2,13 +2,28 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import { Button, Checkbox, Field, FieldLabel, Fieldset, NumberToggle, Picker, Select, TextArea, TextInput, useConfirm, XButton, type ListItem, type SelectOption } from "@orc-alchemy/ui";
-import { useId, type ComponentType, type ReactNode } from "react";
-import { useBuilderChoices, type BuilderChoices, type Choice } from "../../engine/builder-choices.ts";
+import {
+  Button,
+  Checkbox,
+  Field,
+  FieldLabel,
+  Fieldset,
+  type ListItem,
+  NumberToggle,
+  Picker,
+  Select,
+  type SelectOption,
+  TextArea,
+  TextInput,
+  useConfirm,
+  XButton,
+} from "@orc-alchemy/ui";
+import { type ComponentType, type ReactNode, useId } from "react";
+import { type BuilderChoices, type Choice, useBuilderChoices } from "../../engine/builder-choices.ts";
 import { asSet, nameToKw, setItems, tag, untag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
+import { ABILITY_NAMES, ABILITIES as SHEET_ABILITIES } from "../../engine/sheet.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { ABILITIES as SHEET_ABILITIES, ABILITY_NAMES } from "../../engine/sheet.ts";
 import { ordinal } from "../CharacterSheet.tsx";
 import { SuggestionLines } from "./SuggestionLines.tsx";
 import { UsesControl } from "./UsesControl.tsx";
@@ -71,14 +86,48 @@ interface BuilderBase {
   Form: ComponentType<FormProps>;
 }
 
-export const DAMAGE_TYPES = ["acid", "bludgeoning", "cold", "fire", "force", "lightning", "necrotic", "piercing", "poison", "psychic", "radiant", "slashing", "thunder"];
-export const CONDITIONS = ["Blinded", "Charmed", "Deafened", "Exhausted", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
+export const DAMAGE_TYPES = [
+  "acid",
+  "bludgeoning",
+  "cold",
+  "fire",
+  "force",
+  "lightning",
+  "necrotic",
+  "piercing",
+  "poison",
+  "psychic",
+  "radiant",
+  "slashing",
+  "thunder",
+];
+export const CONDITIONS = [
+  "Blinded",
+  "Charmed",
+  "Deafened",
+  "Exhausted",
+  "Frightened",
+  "Grappled",
+  "Incapacitated",
+  "Invisible",
+  "Paralyzed",
+  "Petrified",
+  "Poisoned",
+  "Prone",
+  "Restrained",
+  "Stunned",
+  "Unconscious",
+];
 
 /** A stored number, or null for a number field when the value is not one. */
 export const numberOrNull = (value: unknown) => (typeof value === "number" ? value : null);
 
 /** A key as a title, such as "very-rare" to "Very Rare". */
-export const title = (key: string) => key.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
+export const title = (key: string) =>
+  key
+    .split("-")
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
 export { nameToKw };
 /** The names as choices, each keyed by nameToKw. */
 export const named = (names: string[]): Choice[] => names.map((name) => ({ key: nameToKw(name), name }));
@@ -103,15 +152,45 @@ export const ABILITIES = SHEET_ABILITIES.map((key) => [key, ABILITY_NAMES[key]])
 /** An ability's key as the old app stores it, such as :orcpub.dnd.e5.character/con. */
 export const abilityKey = (ability: string) => `orcpub.dnd.e5.character/${ability}`;
 export const SKILLS: Choice[] = [
-  "Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation",
-  "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival",
+  "Acrobatics",
+  "Animal Handling",
+  "Arcana",
+  "Athletics",
+  "Deception",
+  "History",
+  "Insight",
+  "Intimidation",
+  "Investigation",
+  "Medicine",
+  "Nature",
+  "Perception",
+  "Performance",
+  "Persuasion",
+  "Religion",
+  "Sleight of Hand",
+  "Stealth",
+  "Survival",
 ].map((name) => ({ key: nameToKw(name), name }));
 // The old tool lists (equipment.cljc), keyed as common/name-to-kw keys them.
 export const MUSICAL_INSTRUMENTS = named(["Bagpipes", "Drum", "Dulcimer", "Flute", "Lute", "Lyre", "Horn", "Pan Flute", "Shawm", "Viol"]);
 export const ARTISANS_TOOLS = named([
-  "Alchemist's Supplies", "Brewer's Supplies", "Calligrapher's Supplies", "Carpenter's Tools", "Cartographer's Tools", "Cobbler's Tools",
-  "Cook's Utensils", "Glassblower's Tools", "Jeweler's Tools", "Leatherworker's Tools", "Mason's Tools", "Painter's Supplies",
-  "Potter's Tools", "Smith's Tools", "Tinker's Tools", "Weaver's Tools", "Woodcarver's Tools",
+  "Alchemist's Supplies",
+  "Brewer's Supplies",
+  "Calligrapher's Supplies",
+  "Carpenter's Tools",
+  "Cartographer's Tools",
+  "Cobbler's Tools",
+  "Cook's Utensils",
+  "Glassblower's Tools",
+  "Jeweler's Tools",
+  "Leatherworker's Tools",
+  "Mason's Tools",
+  "Painter's Supplies",
+  "Potter's Tools",
+  "Smith's Tools",
+  "Tinker's Tools",
+  "Weaver's Tools",
+  "Woodcarver's Tools",
 ]);
 export const MISC_TOOLS = named(["Disguise Kit", "Forgery Kit", "Herbalism Kit", "Navigator's Tools", "Poisoner's Kit", "Thieves' Tools"]);
 export const GAMING_SETS = named(["Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set"]);
@@ -243,7 +322,12 @@ export function SelectField({
   const all: SelectOption<unknown>[] = placeholder === undefined ? options : [[null, placeholder], ...options];
   return (
     <FieldLabel label={label} className={className}>
-      <Select aria-label={name} value={placeholder === undefined ? orFirst(value, options) : value} options={all} onValueChange={(v) => onSelect(v ?? undefined)} />
+      <Select
+        aria-label={name}
+        value={placeholder === undefined ? orFirst(value, options) : value}
+        options={all}
+        onValueChange={(v) => onSelect(v ?? undefined)}
+      />
     </FieldLabel>
   );
 }
@@ -359,7 +443,19 @@ const listItems = (items: PickItem[], value: (item: PickItem) => string = (item)
  * changes, so a key that is no option keeps its value; with picker.others
  * it also shows as a token.
  */
-export function MapPicker({ edit, path, items, picker, removeKey = false }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions; removeKey?: boolean }) {
+export function MapPicker({
+  edit,
+  path,
+  items,
+  picker,
+  removeKey = false,
+}: {
+  edit: Edit;
+  path: Path;
+  items: PickItem[];
+  picker: PickerOptions;
+  removeKey?: boolean;
+}) {
   const map = (edit.get(...path) ?? {}) as ItemRecord;
   const value = Object.keys(map)
     .filter((key) => (removeKey ? Boolean(map[key]) : map[key] === true))
@@ -387,7 +483,19 @@ export function MapPicker({ edit, path, items, picker, removeKey = false }: { ed
  * takes it out. stored is the value the set holds for an item, such as its
  * keyword. A stored value that is no option stays in the set.
  */
-export function SetPicker({ edit, path, items, picker, stored = (item) => tag(item.key) }: { edit: Edit; path: Path; items: PickItem[]; picker: PickerOptions; stored?: (item: PickItem) => string }) {
+export function SetPicker({
+  edit,
+  path,
+  items,
+  picker,
+  stored = (item) => tag(item.key),
+}: {
+  edit: Edit;
+  path: Path;
+  items: PickItem[];
+  picker: PickerOptions;
+  stored?: (item: PickItem) => string;
+}) {
   return (
     <Picker
       label={picker.add}
@@ -441,7 +549,12 @@ export function NumberChoice({
   return (
     <Section legend={legend} action={action}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <NumberToggle aria-labelledby={id} values={[null, ...values]} value={numberOrNull(read(edit.get(...path)))} onValueChange={(n) => edit.set(path, n === null ? undefined : write(n))} />
+        <NumberToggle
+          aria-labelledby={id}
+          values={[null, ...values]}
+          value={numberOrNull(read(edit.get(...path)))}
+          onValueChange={(n) => edit.set(path, n === null ? undefined : write(n))}
+        />
         <span id={id}>{line}</span>
       </div>
     </Section>
@@ -474,7 +587,21 @@ export function RecordTextArea({ edit, field, label }: { edit: Edit; field: stri
  * Choose shows 1 until it is set. A pick stores true, and a removed token
  * stores false, as the old checkboxes' second click.
  */
-export function ChoicePicker({ edit, legend, field, items, picker, action }: { edit: Edit; legend: string; field: string; items: PickItem[]; picker: PickerOptions; action?: ReactNode }) {
+export function ChoicePicker({
+  edit,
+  legend,
+  field,
+  items,
+  picker,
+  action,
+}: {
+  edit: Edit;
+  legend: string;
+  field: string;
+  items: PickItem[];
+  picker: PickerOptions;
+  action?: ReactNode;
+}) {
   return (
     <Section legend={legend} action={action}>
       <div className="grid gap-[10px]">
@@ -540,7 +667,15 @@ export const FEATURE_LIST: FeatureList = { types: TRAIT_TYPES, legend: "Features
  */
 export function FeatureType({ edit, path, name, types = TRAIT_TYPES }: { edit: Edit; path: Path; name: string; types?: Options }) {
   // The monster's list (MonsterForm.tsx) has Other as "", which stores no type.
-  return <SelectField label="Type" name={`${name} type`} value={edit.get(...path, "type") ?? ""} options={types} onSelect={(v) => edit.set([...path, "type"], v === "" ? undefined : v)} />;
+  return (
+    <SelectField
+      label="Type"
+      name={`${name} type`}
+      value={edit.get(...path, "type") ?? ""}
+      options={types}
+      onSelect={(v) => edit.set([...path, "type"], v === "" ? undefined : v)}
+    />
+  );
 }
 
 /**
@@ -550,7 +685,19 @@ export function FeatureType({ edit, path, name, types = TRAIT_TYPES }: { edit: E
  * (SuggestionLines). name and levelName are as for UsesControl. types is
  * the list of the feature's type select, as FeatureType has it.
  */
-export function FeatureUses({ edit, path, name, levelName, types = TRAIT_TYPES }: { edit: Edit; path: Path; name: string; levelName: string | null; types?: Options }) {
+export function FeatureUses({
+  edit,
+  path,
+  name,
+  levelName,
+  types = TRAIT_TYPES,
+}: {
+  edit: Edit;
+  path: Path;
+  name: string;
+  levelName: string | null;
+  types?: Options;
+}) {
   const feature = (edit.get(...path) ?? {}) as ItemRecord;
   const setFrequency = (frequency: ItemRecord | undefined) => edit.set([...path, "frequency"], frequency);
   return (
@@ -569,13 +716,26 @@ export function FeatureUses({ edit, path, name, levelName, types = TRAIT_TYPES }
  * the add button, such as the monster's. The X of a feature with content
  * asks first; an empty feature goes at once.
  */
-export function Traits({ edit, problems = [], levelName = null, list = FEATURE_LIST }: { edit: Edit; problems?: Problem[]; levelName?: string | null; list?: FeatureList }) {
+export function Traits({
+  edit,
+  problems = [],
+  levelName = null,
+  list = FEATURE_LIST,
+}: {
+  edit: Edit;
+  problems?: Problem[];
+  levelName?: string | null;
+  list?: FeatureList;
+}) {
   const [confirm, confirmDialog] = useConfirm();
   const traits = (edit.get("traits") ?? []) as ItemRecord[];
   const remove = async (i: number) => {
     const trait = traits[i];
     if (featureHasContent(trait) && !(await confirm(deleteFeatureQuestion(trait), "Delete feature"))) return;
-    edit.set(["traits"], traits.filter((_, j) => j !== i));
+    edit.set(
+      ["traits"],
+      traits.filter((_, j) => j !== i),
+    );
   };
   return (
     <Fieldset legend={list.legend} look="section" errors={fieldErrors(problems, "traits", list.legend)}>
@@ -588,18 +748,35 @@ export function Traits({ edit, problems = [], levelName = null, list = FEATURE_L
             top={
               <>
                 <FieldLabel label="Name" className="min-w-[12rem] flex-1">
-                  <TextInput aria-label={`Feature ${n} name`} value={String(trait[tag("name")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "name"], text)} width="full" />
+                  <TextInput
+                    aria-label={`Feature ${n} name`}
+                    value={String(trait[tag("name")] ?? "")}
+                    onValueChange={(text) => edit.set(["traits", i, "name"], text)}
+                    width="full"
+                  />
                 </FieldLabel>
                 <FeatureType edit={edit} path={["traits", i]} name={`Feature ${n}`} types={list.types} />
                 {levelName !== null && (
-                  <SelectField label="Level" name={`Feature ${n} level`} value={trait[tag("level")]} options={numbers(range(1, 21))} onSelect={(v) => edit.set(["traits", i, "level"], v)} placeholder="-" />
+                  <SelectField
+                    label="Level"
+                    name={`Feature ${n} level`}
+                    value={trait[tag("level")]}
+                    options={numbers(range(1, 21))}
+                    onSelect={(v) => edit.set(["traits", i, "level"], v)}
+                    placeholder="-"
+                  />
                 )}
                 <XButton aria-label={`Delete feature ${n}`} onClick={() => void remove(i)} />
               </>
             }
           >
             <FieldLabel label="Description">
-              <TextArea aria-label={`Feature ${n} description`} value={String(trait[tag("description")] ?? "")} onValueChange={(text) => edit.set(["traits", i, "description"], text)} rows={3} />
+              <TextArea
+                aria-label={`Feature ${n} description`}
+                value={String(trait[tag("description")] ?? "")}
+                onValueChange={(text) => edit.set(["traits", i, "description"], text)}
+                rows={3}
+              />
             </FieldLabel>
             <FeatureUses edit={edit} path={["traits", i]} name={`Feature ${n}`} levelName={levelName} types={list.types} />
           </Card>

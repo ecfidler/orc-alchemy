@@ -7,8 +7,8 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { optionNames } from "@orc-alchemy/ui/testing";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { itemAt } from "../../engine/content.ts";
@@ -109,7 +109,13 @@ function sheetWithFeat(homebrew: Record<string, object>, key: string, levels: nu
   let character: object = e.select(e.emptyCharacter(), ["race"], "human", options);
   for (let level = 1; level < levels; level++) character = e.addLevel(character, "barbarian", options);
   const entity = character as Record<string, object[]>;
-  character = { ...entity, [SELECTIONS]: [...entity[SELECTIONS], { "~:orcpub.entity.strict/key": "~:feats", "~:orcpub.entity.strict/options": [{ "~:orcpub.entity.strict/key": `~:${key}` }] }] };
+  character = {
+    ...entity,
+    [SELECTIONS]: [
+      ...entity[SELECTIONS],
+      { "~:orcpub.entity.strict/key": "~:feats", "~:orcpub.entity.strict/options": [{ "~:orcpub.entity.strict/key": `~:${key}` }] },
+    ],
+  };
   const { built } = e.evaluate(character, options);
   expect(built["total-levels"]).toBe(levels);
   return toSheet(built, character);
@@ -128,13 +134,22 @@ test("a feat with 3 uses for each long rest shows one bubble, on the feat's own 
   const sheet = sheetWithFeat({ [DEFAULT]: plugin() }, "stormcaller", 3);
   const all = Object.values(sheet.features).flat();
   // The feat is an action with its uses; the features are where their types put them.
-  expect(sheet.features.actions.filter((f) => f.name === "Stormcaller")).toEqual([{ name: "Stormcaller", text: "You call a gust of wind.", uses: { amount: 3, recharge: "Long rest" } }]);
-  expect(sheet.features.traits.filter((f) => f.name === "Steady Footing")).toEqual([{ name: "Steady Footing", text: "You have advantage on saving throws against being knocked prone." }]);
+  expect(sheet.features.actions.filter((f) => f.name === "Stormcaller")).toEqual([
+    { name: "Stormcaller", text: "You call a gust of wind.", uses: { amount: 3, recharge: "Long rest" } },
+  ]);
+  expect(sheet.features.traits.filter((f) => f.name === "Steady Footing")).toEqual([
+    { name: "Steady Footing", text: "You have advantage on saving throws against being knocked prone." },
+  ]);
   // A level amount on a feat counts the character level: 3.
-  expect(sheet.features.bonusActions.filter((f) => f.name === "Rolling Gait")).toEqual([{ name: "Rolling Gait", text: "You take the Dash action.", uses: { amount: 3, recharge: "Short rest" } }]);
+  expect(sheet.features.bonusActions.filter((f) => f.name === "Rolling Gait")).toEqual([
+    { name: "Rolling Gait", text: "You take the Dash action.", uses: { amount: 3, recharge: "Short rest" } },
+  ]);
   expect(all.filter((f) => ["Stormcaller", "Steady Footing", "Rolling Gait"].includes(f.name))).toHaveLength(3);
   // The preview of Uses of the feat gives the same section and entry as the sheet.
-  expect(previewFeature(stored("stormcaller"), exampleNumbers(3, 10))).toEqual({ section: "actions", feature: sheet.features.actions.find((f) => f.name === "Stormcaller") });
+  expect(previewFeature(stored("stormcaller"), exampleNumbers(3, 10))).toEqual({
+    section: "actions",
+    feature: sheet.features.actions.find((f) => f.name === "Stormcaller"),
+  });
   // Drawn: one bubble for the feat, with 3 circles, and none for its plain feature.
   render(<CharacterSheet sheet={sheet} />);
   const features = within(screen.getByRole("group", { name: "Features & traits" }));
@@ -166,7 +181,10 @@ test("a feat with no uses and two features shows the feat and its two features o
   expect(names(sheet.features.traits)).toEqual(expect.arrayContaining(["Sea Legs", "Steady Footing"]));
   expect(sheet.features.traits.find((f) => f.name === "Sea Legs")).toEqual({ name: "Sea Legs", text: "You are at home on a ship." });
   // The preview of Uses of the feat gives the same section and entry as the sheet.
-  expect(previewFeature(homebrew.Reef[FEATS]["~:sea-legs"], exampleNumbers(5, 10))).toEqual({ section: "traits", feature: sheet.features.traits.find((f) => f.name === "Sea Legs") });
+  expect(previewFeature(homebrew.Reef[FEATS]["~:sea-legs"], exampleNumbers(5, 10))).toEqual({
+    section: "traits",
+    feature: sheet.features.traits.find((f) => f.name === "Sea Legs"),
+  });
   expect(sheet.features.bonusActions.find((f) => f.name === "Rolling Gait")!.uses).toEqual({ amount: 5, recharge: "Short rest" });
 });
 
@@ -238,10 +256,18 @@ const SHAPES: [string, Record<string, unknown>][] = [
   ["a type only", { "~:key": "~:typed", "~:name": "Typed", "~:option-pack": "Reef", "~:type": "~:reaction" }],
   ["the type Other", { "~:key": "~:other", "~:name": "Other", "~:option-pack": "Reef", "~:type": "~:other" }],
   ["uses only", { "~:key": "~:fixed", "~:name": "Fixed", "~:option-pack": "Reef", "~:frequency": { "~:units": "~:short-rest", "~:amount": 2 } }],
-  ["a unit from an old pack", { "~:key": "~:minute", "~:name": "Minute", "~:option-pack": "Reef", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/minute", "~:amount": 1 } }],
+  [
+    "a unit from an old pack",
+    { "~:key": "~:minute", "~:name": "Minute", "~:option-pack": "Reef", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/minute", "~:amount": 1 } },
+  ],
   [
     "scaled uses with unknown keys",
-    { "~:key": "~:odd", "~:name": "Odd", "~:option-pack": "Reef", "~:frequency": { "~:units": LONG, "~:amount": { "~:level": true, "~:times": 7, "~:per": 3 }, "~:note": "x" } },
+    {
+      "~:key": "~:odd",
+      "~:name": "Odd",
+      "~:option-pack": "Reef",
+      "~:frequency": { "~:units": LONG, "~:amount": { "~:level": true, "~:times": 7, "~:per": 3 }, "~:note": "x" },
+    },
   ],
   ["an empty feature list", { "~:key": "~:empty", "~:name": "Empty", "~:option-pack": "Reef", "~:traits": [] }],
   [

@@ -16,9 +16,7 @@ let loaded: SpellContent | undefined;
 
 /** Loads the SRD spells once, as their own chunk, as spell key to level. */
 export function loadSpellContent(): Promise<SpellContent> {
-  loading ??= import("@pubdoor/dmv/content/spells.json").then(
-    (mod) => (loaded = new Map(mod.default.map((spell) => [spell.key, spell.level]))),
-  );
+  loading ??= import("@pubdoor/dmv/content/spells.json").then((mod) => (loaded = new Map(mod.default.map((spell) => [spell.key, spell.level]))));
   return loading;
 }
 

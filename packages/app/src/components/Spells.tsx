@@ -4,8 +4,8 @@
 import { Checkbox, Select } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
-import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
 import type { Spellcaster } from "../engine/sheet.ts";
+import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { OptionCards, Selection } from "./Builder.tsx";
 import { ordinal } from "./CharacterSheet.tsx";
@@ -14,8 +14,7 @@ import { Heading, useMutation } from "./Classes.tsx";
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
 
 /** The old list-print: "A", "A and B", "A, B, and C". */
-const listPrint = (items: string[]) =>
-  items.length <= 2 ? items.join(" and ") : `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+const listPrint = (items: string[]) => (items.length <= 2 ? items.join(" and ") : `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`);
 
 /** A spell selection: its chosen spells, a level filter and a search, then the cards that pass them. */
 export function SpellSelection({ selection }: { selection: BuilderSelection }) {
@@ -27,9 +26,7 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   const levelOf = (option: BuilderOption) => spellLevelOf(option.key, option.name, content);
   const levels = [...new Set(selection.options.map(levelOf).filter((n) => n !== null))].sort((a, b) => a - b);
   const text = search.trim().toLowerCase();
-  const shown = selection.options.filter(
-    (o) => (level === "all" || levelOf(o) === Number(level)) && o.name.toLowerCase().includes(text),
-  );
+  const shown = selection.options.filter((o) => (level === "all" || levelOf(o) === Number(level)) && o.name.toLowerCase().includes(text));
   const chosen = selection.options.filter((o) => o.selected);
 
   return (
@@ -93,17 +90,14 @@ export function PreparedSpells() {
     <>
       {knowAll.length > 0 && (
         <p>
-          Except for cantrips, {listPrint(knowAll)} do not need to select known spells since they can prepare any spell
-          available in their class spell lists.
+          Except for cantrips, {listPrint(knowAll)} do not need to select known spells since they can prepare any spell available in their class spell lists.
         </p>
       )}
       {error && <p role="alert">{error}</p>}
       {spellcasting.casters
         .filter((caster): caster is Spellcaster & { canPrepare: number } => caster.canPrepare !== null)
         .map(({ name, canPrepare }) => {
-          const spells = spellcasting.byLevel
-            .filter((l) => l.level > 0)
-            .flatMap((l) => l.spells.filter((spell) => spell.source === name));
+          const spells = spellcasting.byLevel.filter((l) => l.level > 0).flatMap((l) => l.spells.filter((spell) => spell.source === name));
           const count = spells.filter((spell) => spell.prepared && !spell.alwaysPrepared).length;
           return (
             <section key={name} aria-label={`Prepared spells: ${name}`} className="space-y-2">

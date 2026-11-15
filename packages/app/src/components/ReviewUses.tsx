@@ -6,14 +6,14 @@
 // suggestion. Nothing is stored before Save. The rows have no preview, so a
 // pack with hundreds of rows stays quick.
 import { Button, Checkbox } from "@orc-alchemy/ui";
-import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { memo, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import { itemAt } from "../engine/content.ts";
-import { restorePacks, useHomebrew, type ItemChange } from "../state/homebrew.ts";
 import type { Choice } from "../engine/builder-choices.ts";
+import { itemAt } from "../engine/content.ts";
+import { type ItemChange, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { setSkipped, skippedOf, useSkippedUses } from "../state/skipped-uses.ts";
 import { Card, SelectField, WithChoices } from "./builders/fields.tsx";
-import { levelName, reviewUsesPath, startChoice, usesCountText, usesRows, withChoices, type RowChoice, type UsesRow } from "./builders/review-uses.ts";
+import { levelName, type RowChoice, reviewUsesPath, startChoice, type UsesRow, usesCountText, usesRows, withChoices } from "./builders/review-uses.ts";
 import type { Span, TextMatch } from "./builders/suggested-uses.ts";
 import { UsesControl } from "./builders/UsesControl.tsx";
 
@@ -95,8 +95,8 @@ function Review({ pack, plugin }: { pack: string; plugin: object }) {
     <>
       <h1 className="text-xl">Review uses: {pack}</h1>
       <p className="mt-2 max-w-[720px]">
-        These features have no uses, and their text may name some. Check the rows to save, and change the uses where the suggestion is not right. Save
-        writes the checked rows to the pack. An unchecked row with a suggestion is then skipped in this browser.
+        These features have no uses, and their text may name some. Check the rows to save, and change the uses where the suggestion is not right. Save writes
+        the checked rows to the pack. An unchecked row with a suggestion is then skipped in this browser.
       </p>
       {status && (
         <p role="status" className="mt-2">
@@ -169,11 +169,9 @@ function Rows({
   const savedRows = checkedRows.filter((row) => draftOf(row).choice.frequency !== undefined);
   const allChecked = rows.length > 0 && checkedRows.length === rows.length;
 
-  const change = useCallback(
-    (id: string, next: (draft: Draft) => Draft) => setDrafts((all) => ({ ...all, [id]: next(all[id] ?? starts.get(id)!) })),
-    [starts],
-  );
-  const checkAll = (checked: boolean) => setDrafts((all) => Object.fromEntries(rows.map((row) => [row.id, { ...(all[row.id] ?? starts.get(row.id)!), checked }])));
+  const change = useCallback((id: string, next: (draft: Draft) => Draft) => setDrafts((all) => ({ ...all, [id]: next(all[id] ?? starts.get(id)!) })), [starts]);
+  const checkAll = (checked: boolean) =>
+    setDrafts((all) => Object.fromEntries(rows.map((row) => [row.id, { ...(all[row.id] ?? starts.get(row.id)!), checked }])));
 
   async function save() {
     setError(null);
@@ -273,7 +271,12 @@ const Row = memo(function Row({
     <Card
       top={
         <>
-          <Checkbox label={<span className="font-bold">{row.featureName}</span>} name={name} checked={draft.checked} onCheckedChange={(checked) => onChange(id, (d) => ({ ...d, checked }))} />
+          <Checkbox
+            label={<span className="font-bold">{row.featureName}</span>}
+            name={name}
+            checked={draft.checked}
+            onCheckedChange={(checked) => onChange(id, (d) => ({ ...d, checked }))}
+          />
           {skipped && <span className="font-sans text-xs uppercase tracking-wide text-ink-muted">Skipped</span>}
           {uses.kind === "hint" && <span className="font-sans text-sm text-ink-muted">No suggestion</span>}
         </>

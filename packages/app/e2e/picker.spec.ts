@@ -1,8 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type Page } from "@playwright/test";
 import { pickFromPicker, removeToken } from "@orc-alchemy/ui/testing/playwright";
+import { expect, type Page, test } from "@playwright/test";
 
 // The picker controls of @orc-alchemy/ui (docs/design/homebrew-forms.md, "Controls") in a real browser, with the app's CSS.
 // No form uses them yet (ORC-197 to ORC-202), so this page renders them alone.

@@ -1,5 +1,5 @@
 import { Button, type ButtonVariant } from "@orc-alchemy/ui";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { loadEngine } from "../engine/engine.ts";
 import { characterFile, exportBundle } from "../engine/import.ts";
 import { exportOrcbrew } from "../engine/orcbrew-export.ts";
@@ -45,7 +45,15 @@ export function ExportEverything() {
           const hasPacks = Object.keys(packs.homebrew).length > 0;
           const magicItems = useHomebrew.getState().magicItems.map((r) => r.item);
           if (records.length === 0 && !hasPacks && magicItems.length === 0) throw new Error("There are no characters or homebrew to export");
-          download("dmv-export.json", exportBundle(records.map((r) => r.entity), window.location.origin, packs, magicItems));
+          download(
+            "dmv-export.json",
+            exportBundle(
+              records.map((r) => r.entity),
+              window.location.origin,
+              packs,
+              magicItems,
+            ),
+          );
           const notices: string[] = [];
           const { quarantined } = useHomebrew.getState();
           if (quarantined.length > 0) {

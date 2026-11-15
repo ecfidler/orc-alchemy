@@ -33,16 +33,6 @@ type FlagTabProps = { className?: string; "data-flag"?: FlagColor; "aria-current
  * the tab gives it its class (replacing any class on it), its text and
  * `aria-current`.
  */
-export function FlagTab({
-  color,
-  current,
-  render,
-  children,
-}: {
-  color: FlagColor;
-  current: boolean;
-  render: ReactElement<FlagTabProps>;
-  children: ReactNode;
-}) {
+export function FlagTab({ color, current, render, children }: { color: FlagColor; current: boolean; render: ReactElement<FlagTabProps>; children: ReactNode }) {
   return cloneElement(render, { className: "ui-flag-tab", "data-flag": color, "aria-current": current ? "page" : undefined }, children);
 }

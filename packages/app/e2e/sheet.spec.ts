@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 const readFixture = (file: string) => JSON.parse(readFileSync(join(charactersDir, file), "utf8"));
@@ -30,7 +30,9 @@ async function importGolden(page: Page, name: string) {
     characters: [readFixture(`${name}.strict.json`)],
     magicItems: [readFileSync(join(magicItemsDir, itemsFile), "utf8")],
   };
-  await page.getByLabel("Import dmv-export bundle").setInputFiles({ name: "dmv-export.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(bundle)) });
+  await page
+    .getByLabel("Import dmv-export bundle")
+    .setInputFiles({ name: "dmv-export.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(bundle)) });
   await page.getByRole("button", { name: readFixture(`${name}.expected.json`)["character-name"], exact: true }).click();
 }
 
@@ -59,8 +61,7 @@ for (const name of srdGolden) {
   test(`${name} renders its expected name, AC and HP`, async ({ page }) => {
     const built = readFixture(`${name}.expected.json`);
     const worn = built["armor-class-with-armor"].find(
-      (o: { armor: string | null; shield: string | null }) =>
-        o.armor === built["worn-armor"] && o.shield === built["wielded-shield"],
+      (o: { armor: string | null; shield: string | null }) => o.armor === built["worn-armor"] && o.shield === built["wielded-shield"],
     );
 
     await importGolden(page, name);

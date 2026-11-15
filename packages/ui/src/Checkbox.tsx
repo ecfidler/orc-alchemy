@@ -1,5 +1,5 @@
 import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
-import { useId, type ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 
 export type CheckboxProps = {
   checked: boolean;

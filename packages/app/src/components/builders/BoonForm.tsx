@@ -3,7 +3,7 @@
 // The old app's new boon is {} (db.cljs default-boon), and its save
 // (events.cljs ::classes/save-boon) adds only :key, so an .orcbrew export
 // round-trips.
-import { NameDescriptionForm, type BuilderType } from "./fields.tsx";
+import { type BuilderType, NameDescriptionForm } from "./fields.tsx";
 
 export const boonBuilder: BuilderType = {
   contentType: "orcpub.dnd.e5/boons",

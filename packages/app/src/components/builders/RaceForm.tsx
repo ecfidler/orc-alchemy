@@ -14,23 +14,28 @@
 // form (SubraceForm.tsx) uses the parts exported here; the modifier kinds
 // that the forms share are in modifier-kinds.tsx.
 import { Select, SelectBox, XButton } from "@orc-alchemy/ui";
-import { useState, type ReactNode } from "react";
-import { asSet, tag } from "../../engine/content.ts";
+import { type ReactNode, useState } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
+import { asSet, tag } from "../../engine/content.ts";
 import {
   ABILITIES,
   ABILITY_OPTIONS,
-  abilityKey,
   AddButton,
+  abilityKey,
+  type BuilderType,
   ChoicePicker,
+  type Edit,
   editor,
   FieldRow,
   FormColumn,
+  type FormProps,
+  type ItemRecord,
   numbers,
   orFirst,
-  Section,
-  range,
+  type Path,
   RecordTextArea,
+  range,
+  Section,
   SelectField,
   SetPicker,
   SKILLS,
@@ -38,14 +43,9 @@ import {
   TextField,
   Traits,
   WithChoices,
-  type BuilderType,
-  type Edit,
-  type FormProps,
-  type ItemRecord,
-  type Path,
 } from "./fields.tsx";
 import { armorModifier, choiceModifier, DAMAGE_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES, toolModifier, weaponChoices } from "./modifier-kinds.tsx";
-import { Modifiers, type Modifier } from "./modifiers.tsx";
+import { type Modifier, Modifiers } from "./modifiers.tsx";
 
 export const SIZES = ["small", "medium", "large"];
 const bonus = (n: number) => `${n > 0 ? "+" : ""}${n}`;
@@ -82,8 +82,21 @@ export function Spells({ edit, lists, legend = "Spells" }: { edit: Edit; lists: 
               key={i}
               className="grid grid-cols-[max-content_max-content_minmax(0,1fr)_auto] items-end gap-x-[10px] gap-y-2 border-b border-rule pb-2 sm:grid-cols-[max-content_max-content_max-content_minmax(0,1fr)_auto] sm:border-b-0 sm:pb-0"
             >
-              <SelectField label="Unlocks at" name={`Spell ${n} unlocks at`} value={spell[tag("level")]} options={UNLOCK_LEVELS} onSelect={(v) => set(["level"], v)} placeholder="-" />
-              <SelectField label="Spell level" name={`Spell ${n} spell level`} value={value[tag("level")]} options={SPELL_LEVELS} onSelect={(v) => set(["value", "level"], v)} />
+              <SelectField
+                label="Unlocks at"
+                name={`Spell ${n} unlocks at`}
+                value={spell[tag("level")]}
+                options={UNLOCK_LEVELS}
+                onSelect={(v) => set(["level"], v)}
+                placeholder="-"
+              />
+              <SelectField
+                label="Spell level"
+                name={`Spell ${n} spell level`}
+                value={value[tag("level")]}
+                options={SPELL_LEVELS}
+                onSelect={(v) => set(["value", "level"], v)}
+              />
               <SelectField
                 label="Ability"
                 name={`Spell ${n} spellcasting ability`}
@@ -104,7 +117,14 @@ export function Spells({ edit, lists, legend = "Spells" }: { edit: Edit; lists: 
               />
               <XButton
                 aria-label={`Delete spell ${n}`}
-                onClick={() => (stored ? edit.set(["spells"], spells.filter((_, j) => j !== i)) : setBlank(false))}
+                onClick={() =>
+                  stored
+                    ? edit.set(
+                        ["spells"],
+                        spells.filter((_, j) => j !== i),
+                      )
+                    : setBlank(false)
+                }
                 className="col-start-4 row-start-1 sm:col-start-auto sm:row-start-auto"
               />
             </div>
@@ -117,7 +137,15 @@ export function Spells({ edit, lists, legend = "Spells" }: { edit: Edit; lists: 
 }
 
 /** The six ability score increases of a race or subrace, each a box with its bonus. note is a line under a box. */
-export function AbilityIncreases({ edit, note, legend = "Ability Score Increases" }: { edit: Edit; note?: (ability: string, bonus: number) => string; legend?: string }) {
+export function AbilityIncreases({
+  edit,
+  note,
+  legend = "Ability Score Increases",
+}: {
+  edit: Edit;
+  note?: (ability: string, bonus: number) => string;
+  legend?: string;
+}) {
   return (
     <Section legend={legend}>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
@@ -205,14 +233,28 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       // :languages is a set of language names, not of keywords.
       render: ({ name }) => (
         <Section legend={name}>
-          <SetPicker edit={edit} path={["languages"]} items={lists.languages} stored={(language) => language.name} picker={{ add: "Add a language", search: true }} />
+          <SetPicker
+            edit={edit}
+            path={["languages"]}
+            items={lists.languages}
+            stored={(language) => language.name}
+            picker={{ add: "Add a language", search: true }}
+          />
         </Section>
       ),
     },
-    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists), { add: "Add a weapon", search: true }),
+    propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists), {
+      add: "Add a weapon",
+      search: true,
+    }),
     armorModifier(edit),
     toolModifier(edit),
-    { id: "damage-resistance", name: "Damage Resistances", common: true, render: mapPicker(edit, ["props", "damage-resistance"], RESISTANCE_CHOICES, { add: "Add a damage resistance" }) },
+    {
+      id: "damage-resistance",
+      name: "Damage Resistances",
+      common: true,
+      render: mapPicker(edit, ["props", "damage-resistance"], RESISTANCE_CHOICES, { add: "Add a damage resistance" }),
+    },
     propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", DAMAGE_CHOICES, { add: "Add a damage immunity" }),
     propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS, { add: "Add a skill" }),
     choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS, { add: "Add a skill option" }),
@@ -220,9 +262,14 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       id: "language-options",
       name: "Language Proficiency Choice",
       common: true,
-      render: ({ name }) => <ChoicePicker edit={edit} legend={name} field="language-options" items={lists.languages} picker={{ add: "Add a language option", search: true }} />,
+      render: ({ name }) => (
+        <ChoicePicker edit={edit} legend={name} field="language-options" items={lists.languages} picker={{ add: "Add a language option", search: true }} />
+      ),
     },
-    choiceModifier(edit, "weapon-proficiency-options", "Weapon Proficiency Choice", "Choose n weapons from a list", lists.weapons, { add: "Add a weapon option", search: true }),
+    choiceModifier(edit, "weapon-proficiency-options", "Weapon Proficiency Choice", "Choose n weapons from a list", lists.weapons, {
+      add: "Add a weapon option",
+      search: true,
+    }),
     { id: "spells", name: "Spells", common: true, render: ({ name }) => <Spells edit={edit} lists={lists} legend={name} /> },
   ];
 }
@@ -236,7 +283,12 @@ function RaceForm({ record, onChange, problems }: FormProps) {
           <TextField edit={edit} problems={problems} field="name" label="Name" />
           <RecordTextArea edit={edit} field="help" label="Description" />
           <FieldRow>
-            <SelectField label="Size" value={edit.get("size") ?? tag("medium")} options={SIZES.map((s) => [tag(s), s])} onSelect={(v) => edit.set(["size"], v)} />
+            <SelectField
+              label="Size"
+              value={edit.get("size") ?? tag("medium")}
+              options={SIZES.map((s) => [tag(s), s])}
+              onSelect={(v) => edit.set(["size"], v)}
+            />
             <SelectField label="Speed" value={edit.get("speed")} options={SPEEDS} onSelect={(v) => edit.set(["speed"], v)} />
             <SelectField label="Darkvision" value={edit.get("darkvision")} options={numbers([0, 60, 120])} onSelect={(v) => edit.set(["darkvision"], v)} />
           </FieldRow>

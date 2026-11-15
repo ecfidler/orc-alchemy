@@ -34,12 +34,20 @@ test("the frequency as the engine builds it: the unit without its tag and the am
   expect(builtFrequency({ "~:units": LONG, "~:amount": 3 }, numbers)).toEqual({ units: "orcpub.dnd.e5.units/long-rest", amount: 3 });
   expect(builtFrequency({ "~:units": "~:short-rest" }, numbers)).toEqual({ units: "short-rest" });
   expect(builtFrequency({ "~:amount": 2 }, numbers)).toEqual({ amount: 2 });
-  expect(builtFrequency({ "~:units": LONG, "~:amount": { "~:level": true, "~:times": 5 } }, numbers)).toEqual({ units: "orcpub.dnd.e5.units/long-rest", amount: 25 });
+  expect(builtFrequency({ "~:units": LONG, "~:amount": { "~:level": true, "~:times": 5 } }, numbers)).toEqual({
+    units: "orcpub.dnd.e5.units/long-rest",
+    amount: 25,
+  });
 });
 
 test("previewFeature: the sheet section of the type, and the feature as the sheet shows it; no unit gives no tag", () => {
   const numbers = exampleNumbers(5, 16);
-  expect(previewFeature({ "~:name": "Undertow", "~:type": "~:reaction", "~:description": "you pull", "~:frequency": { "~:units": LONG, "~:amount": { "~:prof-bonus": true } } }, numbers)).toEqual({
+  expect(
+    previewFeature(
+      { "~:name": "Undertow", "~:type": "~:reaction", "~:description": "you pull", "~:frequency": { "~:units": LONG, "~:amount": { "~:prof-bonus": true } } },
+      numbers,
+    ),
+  ).toEqual({
     section: "reactions",
     feature: { name: "Undertow", text: "You pull.", uses: { amount: 3, recharge: "Long rest" } },
   });

@@ -31,6 +31,9 @@ jobs:
             - name: Docs bundle check
               run: bun run docs:check
 
+            - name: Lint and format check
+              run: bun run lint
+
             - name: Typecheck
               working-directory: packages/app
               run: bun run typecheck

@@ -1,5 +1,5 @@
 import { Button, Checkbox } from "@orc-alchemy/ui";
-import { useEffect, useState, type ChangeEvent } from "react";
+import { type ChangeEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { loadEngine } from "../engine/engine.ts";
 import { isBundleText, readBundleHomebrew, readBundleMagicItems, readCharacterFile } from "../engine/import.ts";
@@ -241,12 +241,7 @@ function CharacterImport() {
         </p>
         <label className="block">
           Import dmv-export bundle{" "}
-          <input
-            type="file"
-            accept=".json,application/json"
-            onChange={(e) => importText("bundle", () => chosenText(e))}
-            className="block"
-          />
+          <input type="file" accept=".json,application/json" onChange={(e) => importText("bundle", () => chosenText(e))} className="block" />
         </label>
         {errorFor("bundle")}
       </section>
@@ -254,12 +249,7 @@ function CharacterImport() {
         <h2 className="text-lg">3. One character</h2>
         <p>A character file, or its text. The old app's public character link downloads a character file with no extension.</p>
         <label className="block">
-          Import character file{" "}
-          <input
-            type="file"
-            onChange={(e) => importText("character", () => chosenText(e))}
-            className="block"
-          />
+          Import character file <input type="file" onChange={(e) => importText("character", () => chosenText(e))} className="block" />
         </label>
         <label className="block">
           Paste the character's text
@@ -304,9 +294,7 @@ function CharacterImport() {
           {imported.characters.some((c) => c.unresolved.length > 0) && (
             <div className="space-y-1">
               <p>Missing a homebrew pack? Load it in step 1, then check again.</p>
-              <Button onClick={checkAgain}>
-                Check again
-              </Button>
+              <Button onClick={checkAgain}>Check again</Button>
               {errorFor("checked")}
             </div>
           )}

@@ -95,7 +95,11 @@ export function wield(e: Engine, entity: StrictEntity, key: Hand, itemKey: strin
 /** Adds or removes an item from the attuned magic items. */
 export function setAttuned(e: Engine, entity: StrictEntity, itemKey: string, attuned: boolean) {
   const others = attunedItems(entity).filter((k) => k !== itemKey);
-  return e.setValue(entity, "attuned-magic-items", (attuned ? [...others, itemKey] : others).map((k) => `~:${k}`));
+  return e.setValue(
+    entity,
+    "attuned-magic-items",
+    (attuned ? [...others, itemKey] : others).map((k) => `~:${k}`),
+  );
 }
 
 /** Adds a custom item, as the old "Add Custom Item". */

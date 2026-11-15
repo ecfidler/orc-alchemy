@@ -79,9 +79,7 @@ test("fighter-20", () => {
   ]);
   expect(sheet.features.bonusActions.map((f) => f.name)).toEqual(["Second Wind"]);
   expect(sheet.features.reactions.map((f) => f.name)).toEqual(["Protection Fighting Style"]);
-  expect(sheet.features.traits.map((f) => f.name)).toEqual(
-    built.traits.map((t) => t.name).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())),
-  );
+  expect(sheet.features.traits.map((f) => f.name)).toEqual(built.traits.map((t) => t.name).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())));
 
   expect(sheet.equipment.armor.map((i) => i.name)).toEqual(["Chain Mail", "Plate", "Shield"]);
   expect(sheet.equipment.magicItems.map((i) => i.key)).toEqual(["amulet-of-health", "longsword-1"]);
@@ -99,9 +97,7 @@ test("wizard-20 spellcasting", () => {
   const sheet = toSheet(built, {});
   const spellcasting = sheet.spellcasting!;
 
-  expect(spellcasting.slots).toEqual(
-    Object.entries(built["spell-slots"]).map(([level, count]) => ({ level: Number(level), count })),
-  );
+  expect(spellcasting.slots).toEqual(Object.entries(built["spell-slots"]).map(([level, count]) => ({ level: Number(level), count })));
   expect(spellcasting.slots.map((s) => s.count)).toEqual([4, 3, 3, 3, 3, 2, 2, 1, 1]);
   expect(spellcasting.byLevel.map((l) => [l.level, l.spells.length])).toEqual(
     Object.entries(built["spells-known"]).map(([level, spells]) => [Number(level), spells.__entries.length]),
@@ -163,8 +159,7 @@ test("with nothing worn or wielded, AC is the best combination, as in the old ap
 test("armor or a shield set to none counts as none, as in the old app", () => {
   const built = builtOf("fighter-1");
   const ac = (worn: string | null, shield: string | null) => toSheet({ ...built, "worn-armor": worn, "wielded-shield": shield }, {}).armorClass;
-  const option = (armor: string | null, shield: string | null) =>
-    built["armor-class-with-armor"].find((o) => o.armor === armor && o.shield === shield)!.ac;
+  const option = (armor: string | null, shield: string | null) => built["armor-class-with-armor"].find((o) => o.armor === armor && o.shield === shield)!.ac;
   expect(ac("none", "shield")).toBe(option(null, "shield"));
   expect(ac("chain-mail", "none")).toBe(option("chain-mail", null));
   expect(ac("none", "none")).toBe(option(null, null));
@@ -188,17 +183,13 @@ test("special attacks read like the old display's attack-description", () => {
       } as NonNullable<Built2014["attacks"]>[number],
     ],
   };
-  expect(toSheet(built, {}).specialAttacks).toEqual([
-    { name: "Breath Weapon", text: "15 ft. cone, 2d6 fire damage, DC13 dex save." },
-  ]);
+  expect(toSheet(built, {}).specialAttacks).toEqual([{ name: "Breath Weapon", text: "15 ft. cone, 2d6 fire damage, DC13 dex save." }]);
 });
 
 test("a special attack without damage dice or type prints only what it has", () => {
   const built: Built2014 = {
     ...builtOf("fighter-1"),
-    attacks: [
-      { name: "Frightful Glare", summary: "frighten a creature", save: "orcpub.dnd.e5.character/wis", "save-dc": 12 },
-    ],
+    attacks: [{ name: "Frightful Glare", summary: "frighten a creature", save: "orcpub.dnd.e5.character/wis", "save-dc": 12 }],
   };
   expect(toSheet(built, {}).specialAttacks[0].text).toBe("Frighten a creature, melee, DC12 wis save.");
 });
@@ -212,9 +203,7 @@ type PreparedEntry = { [CLASS_NAME]: string; [SPELLS]: { "~#set": string[] } };
 const strictOf = (name: string) => readFixture(`${name}.strict.json`);
 /** The spells the sheet marks prepared, as "Class/spell-key", sorted. */
 const markedPrepared = (sheet: ReturnType<typeof toSheet>) =>
-  (sheet.spellcasting?.byLevel ?? [])
-    .flatMap(({ spells }) => spells.filter((s) => s.prepared).map((s) => `${s.source}/${s.key}`))
-    .sort();
+  (sheet.spellcasting?.byLevel ?? []).flatMap(({ spells }) => spells.filter((s) => s.prepared).map((s) => `${s.source}/${s.key}`)).sort();
 /** The entity with its prepared spells replaced by these keys for one class. */
 const preparing = (entity: Record<string, object>, className: string, keys: string[]) => ({
   ...entity,

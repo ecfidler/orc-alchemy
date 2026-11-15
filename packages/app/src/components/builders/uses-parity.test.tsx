@@ -10,7 +10,7 @@ import { engine, loadEngine } from "../../engine/engine.ts";
 import { toSheet } from "../../engine/sheet.ts";
 import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
 import { CharacterSheet, FEATURE_SECTION_TITLES, FEATURE_SECTIONS } from "../CharacterSheet.tsx";
-import { editor, Traits, type ItemRecord } from "./fields.tsx";
+import { editor, type ItemRecord, Traits } from "./fields.tsx";
 import { EXAMPLE_LEVEL, EXAMPLE_SCORE } from "./uses-example.ts";
 
 beforeAll(() => loadEngine());
@@ -22,7 +22,11 @@ const FEATURES: ItemRecord[] = [
   { "~:name": "Deep Reserves", "~:description": "a pool of healing", "~:frequency": { "~:units": LONG, "~:amount": 25 } },
   { "~:name": "Salt Sense", "~:type": "~:other", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/day", "~:amount": { "~:prof-bonus": true } } },
   { "~:name": "Sea Luck", "~:type": "~:reaction", "~:frequency": { "~:units": "~:short-rest", "~:amount": { "~:ability": "~:wis", "~:min": 1 } } },
-  { "~:name": "Undertow", "~:type": "~:action", "~:frequency": { "~:units": LONG, "~:amount": { "~:ability": "~:orcpub.dnd.e5.character/int", "~:plus": -3 } } },
+  {
+    "~:name": "Undertow",
+    "~:type": "~:action",
+    "~:frequency": { "~:units": LONG, "~:amount": { "~:ability": "~:orcpub.dnd.e5.character/int", "~:plus": -3 } },
+  },
   { "~:name": "Tidal Reserve", "~:type": "~:b-action", "~:frequency": { "~:units": LONG, "~:amount": { "~:level": true, "~:times": 5, "~:plus": 1 } } },
   { "~:name": "Guardian Wave", "~:type": "~:reaction", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/minute", "~:amount": 1 } },
   { "~:name": "Each Turn", "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/turn" } },
@@ -50,7 +54,10 @@ function exampleCharacter() {
   let character: object = e.select(e.emptyCharacter(), ["race"], "tidecaller", options);
   for (let level = 1; level < EXAMPLE_LEVEL; level++) character = e.addLevel(character, "barbarian", options);
   const scores = Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map((a) => [`~:orcpub.dnd.e5.character/${a}`, EXAMPLE_SCORE]));
-  const json = JSON.stringify(character).replace(/("~:orcpub\.entity\.strict\/key":"~:standard-scores","~:orcpub\.entity\.strict\/map-value":)\{[^}]*\}/, `$1${JSON.stringify(scores)}`);
+  const json = JSON.stringify(character).replace(
+    /("~:orcpub\.entity\.strict\/key":"~:standard-scores","~:orcpub\.entity\.strict\/map-value":)\{[^}]*\}/,
+    `$1${JSON.stringify(scores)}`,
+  );
   const entity = JSON.parse(json);
   const { built } = e.evaluate(entity, options);
   expect([built["total-levels"], built["proficiency-bonus"], ...Object.values(built.abilities)]).toEqual([5, 3, 16, 16, 16, 16, 16, 16]);
@@ -68,7 +75,21 @@ test("for each feature, the sheet's section and uses are the preview's", () => {
   // The cases the test is for.
   const uses = (name: string) => FEATURE_SECTIONS.flatMap((section) => sheet.features[section]).find((f) => f.name === name)!.uses;
   expect(
-    ["Brine Blessing", "Deep Reserves", "Salt Sense", "Sea Luck", "Undertow", "Tidal Reserve", "Each Turn", "Hold Breath", "Two Bases", "No Base", "No Unit", "Number Ability", "Unknown Ability"].map(uses),
+    [
+      "Brine Blessing",
+      "Deep Reserves",
+      "Salt Sense",
+      "Sea Luck",
+      "Undertow",
+      "Tidal Reserve",
+      "Each Turn",
+      "Hold Breath",
+      "Two Bases",
+      "No Base",
+      "No Unit",
+      "Number Ability",
+      "Unknown Ability",
+    ].map(uses),
   ).toEqual([
     { amount: 3, recharge: "Long rest" },
     { amount: 25, recharge: "Long rest" },
@@ -114,7 +135,9 @@ test("the preview draws each feature as the sheet draws it, under the same headi
     const drawn = heading.nextElementSibling!.firstElementChild!;
     expect(drawn.textContent, name).toMatch(new RegExp(`^${name}`));
     // The same element on the sheet: the bubble or the plain feature with this name, under its heading.
-    const onSheet = sheetFeatures.getAllByText(name, { selector: ".ui-use-bubble-title, b" }).map((title) => title.closest(".ui-use-bubble") ?? title.parentElement!);
+    const onSheet = sheetFeatures
+      .getAllByText(name, { selector: ".ui-use-bubble-title, b" })
+      .map((title) => title.closest(".ui-use-bubble") ?? title.parentElement!);
     expect(onSheet, name).toHaveLength(1);
     expect(html(onSheet[0]!), name).toBe(html(drawn));
     const sheetHeading = onSheet[0]!.parentElement!.previousElementSibling!;

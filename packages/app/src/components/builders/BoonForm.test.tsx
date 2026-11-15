@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { builderSteps, type BuilderSelection } from "../../engine/builder.ts";
+import { type BuilderSelection, builderSteps } from "../../engine/builder.ts";
 import { itemAt } from "../../engine/content.ts";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
@@ -30,7 +30,8 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 const stored = (key: string) => {
   const plugin = useHomebrew.getState().packs.find((p) => p.id === DEFAULT)?.plugin;
@@ -41,7 +42,10 @@ const stored = (key: string) => {
 function find(selections: BuilderSelection[], key: string): BuilderSelection | undefined {
   for (const s of selections) {
     if (s.key === key) return s;
-    const found = find(s.options.flatMap((o) => o.selections), key);
+    const found = find(
+      s.options.flatMap((o) => o.selections),
+      key,
+    );
     if (found) return found;
   }
 }
@@ -78,7 +82,10 @@ test("the pact boon is stored as the old save stores it, Edit loads it back, and
   character = engine().addLevel(character, "warlock", { homebrew });
   character = engine().addLevel(character, "warlock", { homebrew });
   const steps = builderSteps(engine().evaluate(character, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
-  const choices = find(steps.flatMap((s) => s.selections), "pact-boon")!;
+  const choices = find(
+    steps.flatMap((s) => s.selections),
+    "pact-boon",
+  )!;
   expect(choices.options.find((o) => o.key === "pact-of-the-lantern")?.name).toBe("Pact of the Lantern");
 
   cleanup();

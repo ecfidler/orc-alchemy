@@ -101,27 +101,30 @@ test.each(Object.entries(BUILDERS))("a new %s form asks only after a change", as
   expect(screen.queryByRole("alertdialog")).toBeNull();
 });
 
-test.each(["feat", "magicItem"] as const)("a changed new %s form asks at Cancel, at a link and at Back; Stay keeps the values, and Leave goes to the page", async (key) => {
-  const { one } = BUILDERS[key];
-  const router = renderAt(`/content/new/${key}`);
-  await screen.findByRole("form", { name: `New ${one}` });
-  type("Keen");
+test.each(["feat", "magicItem"] as const)(
+  "a changed new %s form asks at Cancel, at a link and at Back; Stay keeps the values, and Leave goes to the page",
+  async (key) => {
+    const { one } = BUILDERS[key];
+    const router = renderAt(`/content/new/${key}`);
+    await screen.findByRole("form", { name: `New ${one}` });
+    type("Keen");
 
-  cancel();
-  expect(await answerConfirmDialog("Stay")).toBe(question(one));
-  void router.navigate("/characters");
-  expect(await answerConfirmDialog("Stay")).toBe(question(one));
-  void router.navigate(-1);
-  expect(await answerConfirmDialog("Stay")).toBe(question(one));
-  expect(router.state.location.pathname).toBe(`/content/new/${key}`);
-  expect(name().value).toBe("Keen");
+    cancel();
+    expect(await answerConfirmDialog("Stay")).toBe(question(one));
+    void router.navigate("/characters");
+    expect(await answerConfirmDialog("Stay")).toBe(question(one));
+    void router.navigate(-1);
+    expect(await answerConfirmDialog("Stay")).toBe(question(one));
+    expect(router.state.location.pathname).toBe(`/content/new/${key}`);
+    expect(name().value).toBe("Keen");
 
-  void router.navigate("/characters");
-  await answerConfirmDialog("Leave");
-  await screen.findByRole("heading", { name: "Characters" });
-  // The listener goes with the form.
-  expect(warns()).toBe(false);
-});
+    void router.navigate("/characters");
+    await answerConfirmDialog("Leave");
+    await screen.findByRole("heading", { name: "Characters" });
+    // The listener goes with the form.
+    expect(warns()).toBe(false);
+  },
+);
 
 test.each(["feat", "magicItem"] as const)("an edit %s form asks only after a change", async (key) => {
   const paths = await storeKeen();

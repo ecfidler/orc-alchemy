@@ -14,9 +14,7 @@ export function AlertNotes({ children }: { children: ReactNode }) {
  * dismiss button; the other tones have none. A button or link in the
  * message is its action.
  */
-export function AlertNote(
-  props: { children: ReactNode } & ({ tone: "act" | "failed" } | { tone: "info"; onDismiss: () => void }),
-) {
+export function AlertNote(props: { children: ReactNode } & ({ tone: "act" | "failed" } | { tone: "info"; onDismiss: () => void })) {
   const { tone, children } = props;
   return (
     <div className="ui-alert-note" data-tone={tone} role={tone === "info" ? "status" : "alert"}>

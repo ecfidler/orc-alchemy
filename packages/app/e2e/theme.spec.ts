@@ -1,7 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
-const pageColor = (page: Page) =>
-  page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
+const pageColor = (page: Page) => page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
 
 test("with no stored theme, the app follows the system", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });

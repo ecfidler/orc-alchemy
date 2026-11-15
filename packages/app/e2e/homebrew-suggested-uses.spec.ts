@@ -1,8 +1,8 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type Locator, type Page } from "@playwright/test";
-import { featureCard as card } from "./homebrew-helpers.ts";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { SUGGESTION_PACK } from "../src/components/builders/test-suggestion-pack.ts";
+import { featureCard as card } from "./homebrew-helpers.ts";
 
 // ORC-206: the form reads the text of a feature and suggests uses and a type. One click fills the control.
 

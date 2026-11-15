@@ -10,36 +10,36 @@
 // 1}}], and :traits a vector of :name, :type and :description maps. The
 // controls are those of docs/design/homebrew-forms.md, "Background". The
 // form has no "+ Add a modifier" button: its five groups always show.
-import { AddButton, FieldLabel, Fieldset, ListModal, NumberField, NumberToggle, Picker, Token, Tokens, XButton, type ListItem } from "@orc-alchemy/ui";
+import { AddButton, FieldLabel, Fieldset, type ListItem, ListModal, NumberField, NumberToggle, Picker, Token, Tokens, XButton } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
-import { tag, untag } from "../../engine/content.ts";
 import type { Choice } from "../../engine/builder-choices.ts";
+import { tag, untag } from "../../engine/content.ts";
 import {
   ARTISANS_TOOLS,
+  type BuilderType,
   Checks,
+  type Edit,
   editor,
   FormColumn,
+  type FormProps,
   getIn,
+  type ItemRecord,
   MapPicker,
   MISC_TOOLS,
   MUSICAL_INSTRUMENTS,
+  NumberChoice,
+  named,
+  nameToKw,
+  numberOrNull,
+  type Path,
+  type PickerOptions,
+  pickedText,
   RecordTextArea,
   Section,
   SKILLS,
   TextField,
   Traits,
   VEHICLES,
-  named,
-  nameToKw,
-  NumberChoice,
-  numberOrNull,
-  pickedText,
-  type BuilderType,
-  type Edit,
-  type FormProps,
-  type ItemRecord,
-  type Path,
-  type PickerOptions,
 } from "./fields.tsx";
 import { holdsValue, useAddList } from "./modifiers.tsx";
 
@@ -47,16 +47,98 @@ import { holdsValue, useAddList } from "./modifiers.tsx";
 const CLOTHES = named(["Clothes, common", "Clothes, costume", "Clothes, fine", "Clothes, traveler’s"]);
 const HOLY_SYMBOLS = named(["Amulet", "Emblem", "Reliquary"]);
 const MISC_EQUIPMENT = named([
-  "Abacus", "Acid", "Alchemist’s fire", "Alms Box", "Antitoxin", "Backpack", "Bag of Sand", "Ball bearings", "Barrel", "Basket",
-  "Bedroll", "Bell", "Blanket", "Block and tackle", "Book", "Bottle, glass", "Bucket", "Caltrops", "Candle", "Case, crossbow bolt",
-  "Case, map or scroll", "Censer", "Chain", "Chalk", "Chest", "Climber’s kit", "Component pouch", "Costume", "Crowbar",
-  "Fishing tackle", "Flask or tankard", "Grappling hook", "Hammer", "Hammer, sledge", "Healer’s kit", "Holy water", "Holy symbol",
-  "Hourglass", "Hunting trap", "Ink", "Ink pen", "Incense", "Jug or pitcher", "Knife, Small", "Ladder (10-foot)", "Lamp",
-  "Lantern, bullseye", "Lantern, hooded", "Lock", "Magnifying glass", "Manacles", "Mess kit", "Mirror, steel", "Oil", "Paper",
-  "Parchment", "Perfume", "Pick, miner’s", "Piton", "Poison, basic", "Pole (10-foot)", "Pot, iron", "Potion of healing", "Pouch",
-  "Prayer Book", "Prayer Wheel", "Purse", "Quiver", "Ram, portable", "Rations (1 day)", "Robes", "Rope, hempen", "Rope, silk", "Sack",
-  "Scale, merchant’s", "Sealing wax", "Shovel", "Signal whistle", "Signet ring", "Soap", "Spellbook", "Spikes, iron", "Spyglass",
-  "String", "Tent, two-person", "Tinderbox", "Torch", "Vial", "Vestements", "Waterskin", "Whetstone", "Wooden Stake",
+  "Abacus",
+  "Acid",
+  "Alchemist’s fire",
+  "Alms Box",
+  "Antitoxin",
+  "Backpack",
+  "Bag of Sand",
+  "Ball bearings",
+  "Barrel",
+  "Basket",
+  "Bedroll",
+  "Bell",
+  "Blanket",
+  "Block and tackle",
+  "Book",
+  "Bottle, glass",
+  "Bucket",
+  "Caltrops",
+  "Candle",
+  "Case, crossbow bolt",
+  "Case, map or scroll",
+  "Censer",
+  "Chain",
+  "Chalk",
+  "Chest",
+  "Climber’s kit",
+  "Component pouch",
+  "Costume",
+  "Crowbar",
+  "Fishing tackle",
+  "Flask or tankard",
+  "Grappling hook",
+  "Hammer",
+  "Hammer, sledge",
+  "Healer’s kit",
+  "Holy water",
+  "Holy symbol",
+  "Hourglass",
+  "Hunting trap",
+  "Ink",
+  "Ink pen",
+  "Incense",
+  "Jug or pitcher",
+  "Knife, Small",
+  "Ladder (10-foot)",
+  "Lamp",
+  "Lantern, bullseye",
+  "Lantern, hooded",
+  "Lock",
+  "Magnifying glass",
+  "Manacles",
+  "Mess kit",
+  "Mirror, steel",
+  "Oil",
+  "Paper",
+  "Parchment",
+  "Perfume",
+  "Pick, miner’s",
+  "Piton",
+  "Poison, basic",
+  "Pole (10-foot)",
+  "Pot, iron",
+  "Potion of healing",
+  "Pouch",
+  "Prayer Book",
+  "Prayer Wheel",
+  "Purse",
+  "Quiver",
+  "Ram, portable",
+  "Rations (1 day)",
+  "Robes",
+  "Rope, hempen",
+  "Rope, silk",
+  "Sack",
+  "Scale, merchant’s",
+  "Sealing wax",
+  "Shovel",
+  "Signal whistle",
+  "Signet ring",
+  "Soap",
+  "Spellbook",
+  "Spikes, iron",
+  "Spyglass",
+  "String",
+  "Tent, two-person",
+  "Tinderbox",
+  "Torch",
+  "Vial",
+  "Vestements",
+  "Waterskin",
+  "Whetstone",
+  "Wooden Stake",
 ]);
 
 /** The skills and tools are stored as the old background checkboxes stored them: a removed pick removes the key. */
@@ -93,7 +175,14 @@ type ToolBlockSub = Exclude<ToolSub, { kind: "any" }>;
 // The sub-selections in their fixed order (docs/design/homebrew-forms.md, "Background"). The "Any …" tokens show first, on one line.
 const TOOL_SUBS: ToolSub[] = [
   { id: "any-artisan", name: "Any artisan's tool", example: "The player chooses 1 to 3 artisan's tools", kind: "any", option: "artisans-tool" },
-  { id: "artisan", name: "Artisan's tools", example: "Smith's tools, brewer's supplies …", kind: "picker", items: ARTISANS_TOOLS, picker: { add: "Add an artisan's tool" } },
+  {
+    id: "artisan",
+    name: "Artisan's tools",
+    example: "Smith's tools, brewer's supplies …",
+    kind: "picker",
+    items: ARTISANS_TOOLS,
+    picker: { add: "Add an artisan's tool" },
+  },
   { id: "any-instrument", name: "Any musical instrument", example: "The player chooses 1 to 3 musical instruments", kind: "any", option: "musical-instrument" },
   { id: "any-gaming", name: "Any gaming set", example: "The player chooses 1 to 3 gaming sets", kind: "any", option: "gaming-set" },
   { id: "vehicles", name: "Vehicles", example: "Land vehicles, water vehicles", kind: "checks", items: VEHICLES },
@@ -167,7 +256,9 @@ function ToolProficiencies({ edit }: { edit: Edit }) {
               </div>
             ),
         )}
-        {hidden.length > 0 && <AddButton ref={list.addButton} label="Add a tool proficiency" remaining={hidden.length} aria-haspopup="dialog" onClick={list.openList} />}
+        {hidden.length > 0 && (
+          <AddButton ref={list.addButton} label="Add a tool proficiency" remaining={hidden.length} aria-haspopup="dialog" onClick={list.openList} />
+        )}
       </div>
       <ListModal title="Add a tool proficiency" items={hidden.map((sub) => ({ value: sub.id, label: sub.name, example: sub.example }))} {...list.modal(add)} />
     </Section>
@@ -266,8 +357,9 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
       <TextField edit={edit} problems={problems} field="name" label="Name" />
       {key !== "" && name !== "" && key !== nameToKw(name) && (
         <p role="note" className="text-warning">
-          The key of this background is {key}. The key of its name is {nameToKw(name)}. A character always gets a background by the key of its name, not by
-          the stored key. Thus a character that has the key {key} does not find this background. To make the keys the same, change the name, or make a new background with this name.
+          The key of this background is {key}. The key of its name is {nameToKw(name)}. A character always gets a background by the key of its name, not by the
+          stored key. Thus a character that has the key {key} does not find this background. To make the keys the same, change the name, or make a new
+          background with this name.
         </p>
       )}
       <RecordTextArea edit={edit} field="help" label="Description" />

@@ -2,8 +2,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { engine, loadEngine } from "./engine.ts";
 import { EngineGate } from "./EngineGate.tsx";
+import { engine, loadEngine } from "./engine.ts";
 
 afterEach(cleanup);
 

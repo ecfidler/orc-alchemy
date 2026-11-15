@@ -35,7 +35,8 @@ function renderAt(path: string) {
   return router;
 }
 
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const check = (group: string, label: string) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name: label }));
 async function save(router: ReturnType<typeof renderAt>) {
   fireEvent.click(screen.getByRole("button", { name: "Save" }));

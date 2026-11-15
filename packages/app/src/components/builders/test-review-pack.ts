@@ -47,7 +47,11 @@ export function reviewPlugin(pack = REVIEW_PACK): TransitMap {
       "~:level-modifiers": [],
       "~:traits": [trait("Sure Footing", { "~:level": 2 })],
     }),
-    "~:orcpub.dnd.e5/subclasses": item("deep-path", "Deep Path", { "~:class": "~:barbarian", "~:level-modifiers": [], "~:traits": [trait("Warding Hand", { "~:level": 3 })] }),
+    "~:orcpub.dnd.e5/subclasses": item("deep-path", "Deep Path", {
+      "~:class": "~:barbarian",
+      "~:level-modifiers": [],
+      "~:traits": [trait("Warding Hand", { "~:level": 3 })],
+    }),
     "~:orcpub.dnd.e5/feats": item("tide-touched", "Tide-Touched", {
       "~:description": text("Tidal Surge"),
       "~:ability-increases": { "~#set": [] },
@@ -80,7 +84,9 @@ export function toEdn(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(toEdn).join(" ")}]`;
   const map = value as TransitMap;
   if (Array.isArray(map["~#set"])) return `#{${map["~#set"].map(toEdn).join(" ")}}`;
-  return `{${Object.entries(map).map(([k, v]) => `${toEdn(k)} ${toEdn(v)}`).join("\n ")}}`;
+  return `{${Object.entries(map)
+    .map(([k, v]) => `${toEdn(k)} ${toEdn(v)}`)
+    .join("\n ")}}`;
 }
 
 /** The test pack as the text of a single-plugin .orcbrew file. */
@@ -95,7 +101,10 @@ export const REVIEW_ROWS: [name: string, kind: "suggestion" | "hint"][] = [
   ["Sea Hag Tidal Surge", "suggestion"],
   ["Sea Hag Song of Courage", "suggestion"],
   ["Pearl Diver Old Charm", "hint"],
-  ...SUGGESTION_PACK.filter((f) => f.uses !== null).map((f): [string, "suggestion" | "hint"] => [`Tidecaller ${f.name}`, f.uses === "hint" ? "hint" : "suggestion"]),
+  ...SUGGESTION_PACK.filter((f) => f.uses !== null).map((f): [string, "suggestion" | "hint"] => [
+    `Tidecaller ${f.name}`,
+    f.uses === "hint" ? "hint" : "suggestion",
+  ]),
   ["Reefborn Second Breath", "suggestion"],
   ["Wavecaller Sure Footing", "suggestion"],
   ["Deep Path Warding Hand", "suggestion"],
@@ -113,7 +122,14 @@ export function bigPlugin(pack = "Big Pack"): TransitMap {
   const races: TransitMap = {};
   for (let i = 1; i <= 16; i++) {
     const key = `~:race-${String(i).padStart(2, "0")}`;
-    races[key] = { "~:key": key, "~:name": `Race ${i}`, "~:option-pack": pack, "~:speed": 30, "~:size": "~:medium", "~:traits": [...SUGGESTION_PACK.map((f) => trait(f.name)), WITH_USES, ...plain] };
+    races[key] = {
+      "~:key": key,
+      "~:name": `Race ${i}`,
+      "~:option-pack": pack,
+      "~:speed": 30,
+      "~:size": "~:medium",
+      "~:traits": [...SUGGESTION_PACK.map((f) => trait(f.name)), WITH_USES, ...plain],
+    };
   }
   return { "~:orcpub.dnd.e5/races": races };
 }

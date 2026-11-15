@@ -1,4 +1,4 @@
-import { Button, useConfirm, type Confirm } from "@orc-alchemy/ui";
+import { Button, type Confirm, useConfirm } from "@orc-alchemy/ui";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { removeCharacter } from "../state/character.ts";
@@ -12,12 +12,8 @@ export function NewCharacter() {
   return (
     <div className="mt-4">
       <div className="flex gap-2">
-        <Button onClick={() => create(false)}>
-          New character
-        </Button>
-        <Button onClick={() => create(true)}>
-          Random character
-        </Button>
+        <Button onClick={() => create(false)}>New character</Button>
+        <Button onClick={() => create(true)}>Random character</Button>
       </div>
       {error && <p role="alert">{error}</p>}
     </div>
@@ -81,7 +77,14 @@ function CharacterRow({ summary, confirm, onDeleted }: { summary: CharacterSumma
         </Link>
         <p>{raceAndClasses(summary)}</p>
       </div>
-      <ExportCharacter id={summary.id} label={<>Export <span className="sr-only">{name}</span></>} />
+      <ExportCharacter
+        id={summary.id}
+        label={
+          <>
+            Export <span className="sr-only">{name}</span>
+          </>
+        }
+      />
       <Button onClick={onDelete} variant="link">
         Delete <span className="sr-only">{name}</span>
       </Button>

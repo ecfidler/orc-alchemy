@@ -8,7 +8,19 @@
 import { Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
 import { ordinal } from "../CharacterSheet.tsx";
-import { editor, fieldErrors, FieldRow, FormColumn, MapPicker, orFirst, title, type BuilderType, type FormProps, type ItemRecord, type PickItem } from "./fields.tsx";
+import {
+  type BuilderType,
+  editor,
+  FieldRow,
+  FormColumn,
+  type FormProps,
+  fieldErrors,
+  type ItemRecord,
+  MapPicker,
+  orFirst,
+  type PickItem,
+  title,
+} from "./fields.tsx";
 
 const SCHOOLS = ["abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 /** The old builder's spellcasting classes. */
@@ -28,9 +40,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
       </FieldLabel>
     </Field>
   );
-  const checkbox = (field: string, label: string) => (
-    <Checkbox label={label} checked={record[tag(field)] === true} onCheckedChange={(on) => set(field, on)} />
-  );
+  const checkbox = (field: string, label: string) => <Checkbox label={label} checked={record[tag(field)] === true} onCheckedChange={(on) => set(field, on)} />;
 
   return (
     <FormColumn>

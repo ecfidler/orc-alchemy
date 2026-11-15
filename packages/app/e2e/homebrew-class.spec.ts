@@ -17,7 +17,10 @@ test("a class made in the class form can be picked for a new character", async (
   await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
   const builder = page.getByRole("region", { name: "Builder" });
   const preview = page.getByRole("region", { name: "Preview" });
-  await page.getByRole("navigation", { name: "Steps" }).getByRole("button", { name: /^Class/ }).click();
+  await page
+    .getByRole("navigation", { name: "Steps" })
+    .getByRole("button", { name: /^Class/ })
+    .click();
   await pickOption(builder.getByLabel("Class 1", { exact: true }), "Rune Knight");
   await expect(builder.getByLabel("Class 1", { exact: true })).toHaveText("Rune Knight");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Rune Knight 1");

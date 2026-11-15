@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pickFromPicker, pickOption, removeToken } from "@orc-alchemy/ui/testing/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 // ORC-199: the pickers, number toggles and the Armor Class select of the feat, race and subrace forms (docs/design/homebrew-forms.md, "Controls").
 // ORC-200: the tool sub-selections and the equipment picker of the background form.
@@ -13,11 +13,13 @@ const addModifier = (page: Page, name: string) => pickFromPicker(page.getByRole(
 /** The section named `name`. */
 const section = (page: Page, name: string) => page.getByRole("group", { name, exact: true });
 /** Picks `names` with the picker of the section `group`, whose add button reads `add`. */
-const pick = (page: Page, group: string, add: string, names: string | string[]) => pickFromPicker(section(page, group).getByRole("button", { name: add, exact: true }), names);
+const pick = (page: Page, group: string, add: string, names: string | string[]) =>
+  pickFromPicker(section(page, group).getByRole("button", { name: add, exact: true }), names);
 const tokens = (page: Page, group: string) => section(page, group).locator(".ui-token-label");
 const segment = (page: Page, group: string, value: string) => section(page, group).getByRole("button", { name: value, exact: true });
 /** The "+ Add a spell" button of a slot of the subclass spells table. */
-const slot = (page: Page, level: string, which: "first" | "second") => page.getByRole("button", { name: `Add a spell: ${level} level, ${which} spell`, exact: true });
+const slot = (page: Page, level: string, which: "first" | "second") =>
+  page.getByRole("button", { name: `Add a spell: ${level} level, ${which} spell`, exact: true });
 /** The cells of a row of the spells table, by its spell level, such as "2nd". */
 const spellRow = (page: Page, level: string) => page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: level, exact: true }) });
 
@@ -314,7 +316,10 @@ test.describe("screenshots", () => {
       await segment(page, "Languages", "2").click();
       await segment(page, "Hit Points", "1").click();
       await pick(page, "Damage Resistances", "Add a damage resistance", ["Fire", "Poison"]);
-      await pick(page, "Misc. Modifiers", "Add a misc. modifier", ["You can use two-weapon fighting with any one-handed melee weapon", "Advantage on saving throws against traps"]);
+      await pick(page, "Misc. Modifiers", "Add a misc. modifier", [
+        "You can use two-weapon fighting with any one-handed melee weapon",
+        "Advantage on saving throws against traps",
+      ]);
       await pick(page, "Tool Proficiency or Expertise", "Add a tool", ["Cook's Utensils", "Brewer's Supplies"]);
       await noFlash();
       await main.screenshot({ path: shot("feat-filled") });
@@ -369,10 +374,13 @@ test.describe("screenshots", () => {
       const addTool = () => section(page, "Tool proficiencies").getByRole("button", { name: "Add a tool proficiency", exact: true });
       const fill = async () => {
         await page.getByRole("textbox", { name: "Name" }).fill("Tidewatch Sailor");
-        await page.getByRole("textbox", { name: "Description" }).fill("You stood watch on a coast ship through storms and long nights. You know ropes, tides and the talk of the docks.");
+        await page
+          .getByRole("textbox", { name: "Description" })
+          .fill("You stood watch on a coast ship through storms and long nights. You know ropes, tides and the talk of the docks.");
         await pick(page, "Skill proficiencies", "Add a skill", ["Athletics", "Perception"]);
         await segment(page, "Languages", "1").click();
-        for (const name of ["Any artisan's tool", "Artisan's tools", "Any musical instrument", "Any gaming set", "Vehicles", "Other tools"]) await pickFromPicker(addTool(), name);
+        for (const name of ["Any artisan's tool", "Artisan's tools", "Any musical instrument", "Any gaming set", "Vehicles", "Other tools"])
+          await pickFromPicker(addTool(), name);
         await page.getByRole("group", { name: "Any musical instrument: number" }).getByRole("button", { name: "2" }).click();
         await pick(page, "Artisan's tools", "Add an artisan's tool", ["Carpenter's Tools", "Cartographer's Tools"]);
         await section(page, "Vehicles").getByRole("checkbox", { name: "Water Vehicles" }).check();

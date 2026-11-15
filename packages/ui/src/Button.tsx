@@ -1,5 +1,5 @@
 import { Button as BaseButton } from "@base-ui/react/button";
-import { cloneElement, type ComponentProps, type ReactElement, type ReactNode } from "react";
+import { type ComponentProps, cloneElement, type ReactElement, type ReactNode } from "react";
 
 export type ButtonVariant = "solid" | "ghost" | "link";
 export type ButtonSize = "small" | "normal" | "large";

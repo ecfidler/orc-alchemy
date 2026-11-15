@@ -1,6 +1,6 @@
 // Test helpers for apps that use this package, for Vitest with Testing Library.
 import { fireEvent, isInaccessible, screen, waitFor, within } from "@testing-library/react";
-import { nameList, type Names } from "./names.ts";
+import { type Names, nameList } from "./names.ts";
 
 /**
  * Waits for the confirm dialog of `useConfirm()`, clicks its button named
@@ -43,7 +43,8 @@ async function openList(control: HTMLElement): Promise<HTMLElement> {
 /** Waits for the list to close: it is gone or hidden. A pick can also replace the control, for example when the form changes. */
 function listClosed(control: HTMLElement, list: HTMLElement): Promise<void> {
   return waitFor(() => {
-    if ((control.isConnected && control.getAttribute("aria-expanded") === "true") || (list.isConnected && !isInaccessible(list))) throw new Error("The list is still open.");
+    if ((control.isConnected && control.getAttribute("aria-expanded") === "true") || (list.isConnected && !isInaccessible(list)))
+      throw new Error("The list is still open.");
   });
 }
 

@@ -8,7 +8,7 @@
 // removes the option at its index.
 import { Field, FieldLabel, Fieldset, TextArea, TextInput, XButton } from "@orc-alchemy/ui";
 import { tag } from "../../engine/content.ts";
-import { AddButton, Card, editor, fieldErrors, FormColumn, problemText, TextField, type BuilderType, type FormProps, type ItemRecord } from "./fields.tsx";
+import { AddButton, type BuilderType, Card, editor, FormColumn, type FormProps, fieldErrors, type ItemRecord, problemText, TextField } from "./fields.tsx";
 
 const OPTIONS = tag("options");
 
@@ -26,7 +26,15 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
   return (
     <FormColumn>
       <TextField edit={edit} problems={problems} field="name" label="Name" />
-      <Fieldset legend="Options" look="section" errors={fieldErrors(problems.filter((p) => p.path.length === 1), "options", "Options")}>
+      <Fieldset
+        legend="Options"
+        look="section"
+        errors={fieldErrors(
+          problems.filter((p) => p.path.length === 1),
+          "options",
+          "Options",
+        )}
+      >
         {options.map((option, i) => {
           const n = i + 1;
           const found = problems.filter((p) => p.path[0] === "options" && p.path[1] === i);
@@ -39,20 +47,40 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
                     <Field
                       label={`Option ${n}`}
                       errors={found.map((problem) =>
-                        "reason" in problem && problem.reason === "duplicate" ? `Option ${n} has the same name as another option.` : problemText(`Option ${n} name`, problem),
+                        "reason" in problem && problem.reason === "duplicate"
+                          ? `Option ${n} has the same name as another option.`
+                          : problemText(`Option ${n} name`, problem),
                       )}
                     >
                       <FieldLabel label="Name">
-                        <TextInput aria-label={`Option ${n} name`} value={String(option[tag("name")] ?? "")} onValueChange={(text) => edit.set(["options", i, "name"], text)} width="full" />
+                        <TextInput
+                          aria-label={`Option ${n} name`}
+                          value={String(option[tag("name")] ?? "")}
+                          onValueChange={(text) => edit.set(["options", i, "name"], text)}
+                          width="full"
+                        />
                       </FieldLabel>
                     </Field>
                   </div>
-                  <XButton aria-label={`Delete option ${n}`} onClick={() => edit.set(["options"], options.filter((_, j) => j !== i))} />
+                  <XButton
+                    aria-label={`Delete option ${n}`}
+                    onClick={() =>
+                      edit.set(
+                        ["options"],
+                        options.filter((_, j) => j !== i),
+                      )
+                    }
+                  />
                 </>
               }
             >
               <FieldLabel label="Description">
-                <TextArea aria-label={`Option ${n} description`} value={String(option[tag("description")] ?? "")} onValueChange={(text) => edit.set(["options", i, "description"], text)} rows={3} />
+                <TextArea
+                  aria-label={`Option ${n} description`}
+                  value={String(option[tag("description")] ?? "")}
+                  onValueChange={(text) => edit.set(["options", i, "description"], text)}
+                  rows={3}
+                />
               </FieldLabel>
             </Card>
           );

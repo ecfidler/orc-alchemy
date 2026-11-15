@@ -1,6 +1,6 @@
+import source from "@orc-alchemy/exporter-bookmarklet/bookmarklet.js?raw";
 import { useEffect, useRef } from "react";
 import { Link } from "react-router";
-import source from "@orc-alchemy/exporter-bookmarklet/bookmarklet.js?raw";
 
 /** The exporter bookmarklet as a javascript: URL. */
 const bookmarkletHref = "javascript:" + encodeURIComponent(source);
@@ -26,8 +26,8 @@ export function DmvExporter() {
     <>
       <h1 className="text-xl">Moving from Dungeon Master's Vault</h1>
       <p className="mt-2">
-        This guide moves your homebrew, your characters and your custom magic items from Dungeon Master's Vault to
-        Alchemy 5e. Do the steps in this order. The characters need the homebrew that they use.
+        This guide moves your homebrew, your characters and your custom magic items from Dungeon Master's Vault to Alchemy 5e. Do the steps in this order. The
+        characters need the homebrew that they use.
       </p>
 
       <h2 className="mt-4 text-lg">1. Export your homebrew from Dungeon Master's Vault</h2>
@@ -38,8 +38,8 @@ export function DmvExporter() {
       </ol>
       <p className="mt-1">If you have no homebrew, go to step 2.</p>
       <p className="mt-1">
-        If Dungeon Master's Vault shows "Cannot export all plugins - some contain invalid data", export each pack on
-        its own. In My Content, click the pack. Then click Export. Do this for each pack.
+        If Dungeon Master's Vault shows "Cannot export all plugins - some contain invalid data", export each pack on its own. In My Content, click the pack.
+        Then click Export. Do this for each pack.
       </p>
 
       <h2 className="mt-4 text-lg">2. Export your characters and magic items</h2>
@@ -55,20 +55,17 @@ export function DmvExporter() {
         <li>Click the bookmark. When the export is done, your browser downloads dmv-export.json.</li>
       </ol>
       <p className="mt-1">
-        If the bookmark shows "Log in to Dungeon Master's Vault first", log in. Then click the bookmark again. If you
-        cannot use a bookmark, see "Without the bookmark" below.
+        If the bookmark shows "Log in to Dungeon Master's Vault first", log in. Then click the bookmark again. If you cannot use a bookmark, see "Without the
+        bookmark" below.
       </p>
 
       <h2 className="mt-4 text-lg">3. Import the homebrew first</h2>
       <ol className="mt-2 list-decimal space-y-1 pl-6">
         <li>Open the {importPage}.</li>
+        <li>In step 1 of the Import page, Homebrew, choose all-content.orcbrew. If you exported each pack on its own, choose each file in turn.</li>
         <li>
-          In step 1 of the Import page, Homebrew, choose all-content.orcbrew. If you exported each pack on its own,
-          choose each file in turn.
-        </li>
-        <li>
-          If the app shows key conflicts, choose rename or skip for each conflict. If the conflict is with a loaded
-          pack, you can also choose replace. To keep every item, click Rename all.
+          If the app shows key conflicts, choose rename or skip for each conflict. If the conflict is with a loaded pack, you can also choose replace. To keep
+          every item, click Rename all.
         </li>
         <li>Click Apply and import.</li>
         <li>Read the import log. It names each item that it skipped and why.</li>
@@ -89,17 +86,12 @@ export function DmvExporter() {
 
       <h2 className="mt-4 text-lg">If a character has unresolved content</h2>
       <p className="mt-2">
-        A character can use a race, a class, a spell or another option that the app cannot find. The Imported
-        characters section then shows "Unresolved content" under the character. The sheet leaves that content out.
+        A character can use a race, a class, a spell or another option that the app cannot find. The Imported characters section then shows "Unresolved content"
+        under the character. The sheet leaves that content out.
       </p>
       <ul className="mt-2 list-disc space-y-1 pl-6">
-        <li>
-          The usual cause is a homebrew pack that is not loaded. Load the pack in step 1 of the {importPage}. Then
-          click Check again.
-        </li>
-        <li>
-          If the app suggests a new key, choose it. Then click Remap. The app saves the character with the new key.
-        </li>
+        <li>The usual cause is a homebrew pack that is not loaded. Load the pack in step 1 of the {importPage}. Then click Check again.</li>
+        <li>If the app suggests a new key, choose it. Then click Remap. The app saves the character with the new key.</li>
         <li>If you do not have the content, leave it unresolved. The rest of the character still works.</li>
       </ul>
 

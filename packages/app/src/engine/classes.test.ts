@@ -62,16 +62,7 @@ test("fighter-3-wizard-2 by the builder's calls builds as the fixture, and remov
   select([...wizard, "levels", "level-2", "arcane-tradition"], "school-of-evocation");
   select(
     [...wizard, "wizard-spells-known"],
-    ...[
-      "alarm",
-      "burning-hands",
-      "charm-person",
-      "color-spray",
-      "comprehend-languages",
-      "detect-magic",
-      "disguise-self",
-      "expeditious-retreat",
-    ],
+    ...["alarm", "burning-hands", "charm-person", "color-spray", "comprehend-languages", "detect-magic", "disguise-self", "expeditious-retreat"],
   );
 
   const built = JSON.parse(JSON.stringify(e.evaluate(entity).built));

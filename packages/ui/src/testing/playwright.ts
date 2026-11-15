@@ -1,6 +1,6 @@
 // Test helpers for apps that use this package, for Playwright.
 import type { Locator } from "@playwright/test";
-import { nameList, type Names } from "./names.ts";
+import { type Names, nameList } from "./names.ts";
 
 /**
  * Picks the option named `name` in a Select, Combobox, Autocomplete or
@@ -17,7 +17,10 @@ export async function pickOption(control: Locator, name: string | RegExp): Promi
   await page.waitForFunction((el) => el.getAttribute("aria-expanded") === "true", element);
   // The list is the element that the control controls.
   const list = page.locator(`[id="${await element!.getAttribute("aria-controls")}"]`);
-  await list.getByRole("option", { name, exact: true }).or(list.getByRole("menuitem", { name, exact: true })).click();
+  await list
+    .getByRole("option", { name, exact: true })
+    .or(list.getByRole("menuitem", { name, exact: true }))
+    .click();
   await list.waitFor({ state: "hidden" });
 }
 

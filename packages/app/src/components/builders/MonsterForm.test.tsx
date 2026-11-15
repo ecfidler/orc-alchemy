@@ -31,7 +31,8 @@ function renderAt(path: string) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const problems = (label: string) => screen.queryByRole("list", { name: `Problems: ${label}` })?.textContent ?? null;
 /** The groups of the add list, in form order. */
 const ADDED = ["Armor notes", "Damage vulnerabilities", "Senses", "Special traits", "Legendary actions"];
@@ -212,7 +213,9 @@ test("the languages include a language of an enabled pack", async () => {
 
 test("the languages leave out a pack language that the old app's flag turns off", async () => {
   await useHomebrew.getState().saveItem("Swamp", "~:orcpub.dnd.e5/languages", { "~:key": "~:mudspeak", "~:name": "Mudspeak", "~:option-pack": "Swamp" });
-  await useHomebrew.getState().saveItem("Swamp", "~:orcpub.dnd.e5/languages", { "~:key": "~:bogspeak", "~:name": "Bogspeak", "~:option-pack": "Swamp", "~:disabled?": true });
+  await useHomebrew
+    .getState()
+    .saveItem("Swamp", "~:orcpub.dnd.e5/languages", { "~:key": "~:bogspeak", "~:name": "Bogspeak", "~:option-pack": "Swamp", "~:disabled?": true });
   renderAt("/content/new/monster");
   const names = await addList(await screen.findByRole("button", { name: "Add a language" }), "Add a language");
   expect(names).toContain("Mudspeak");

@@ -8,15 +8,31 @@
 // form shows the level modifiers always, and the user adds the skill choices
 // and the selections from a list (modifiers.tsx). The spells are a table of
 // tokens (docs/design/homebrew-forms.md, "Subclass").
-import { AddChip, Field, Fieldset, Label, ListModal, Token, type ListItem } from "@orc-alchemy/ui";
+import { AddChip, Field, Fieldset, Label, type ListItem, ListModal, Token } from "@orc-alchemy/ui";
 import { useRef, useState } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { intKey, tag, untag } from "../../engine/content.ts";
 import { ordinal } from "../CharacterSheet.tsx";
 import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
-import { editor, fieldErrors, FormColumn, Help, range, SelectField, SKILLS, TextField, Traits, WithChoices, YES_NO, type BuilderType, type Edit, type FormProps, type Problem } from "./fields.tsx";
-import { Modifiers, type Modifier } from "./modifiers.tsx";
+import {
+  type BuilderType,
+  type Edit,
+  editor,
+  FormColumn,
+  type FormProps,
+  fieldErrors,
+  Help,
+  type Problem,
+  range,
+  SelectField,
+  SKILLS,
+  TextField,
+  Traits,
+  WithChoices,
+  YES_NO,
+} from "./fields.tsx";
 import { choiceModifier } from "./modifier-kinds.tsx";
+import { type Modifier, Modifiers } from "./modifiers.tsx";
 
 /**
  * The parent classes whose subclasses add spells: the field, its title, and
@@ -76,7 +92,11 @@ function SpellsTable({ edit, parent, choices }: { edit: Edit; parent: string; ch
   const narrowTop = "max-[519px]:align-top max-[519px]:pt-[10px]";
   return (
     <Fieldset legend={title} look="section">
-      <Help>{at ? `A ${parent} of this subclass always has these spells prepared, from the ${parent} level in the first column.` : `A ${parent} of this subclass can choose these spells as ${parent} spells.`}</Help>
+      <Help>
+        {at
+          ? `A ${parent} of this subclass always has these spells prepared, from the ${parent} level in the first column.`
+          : `A ${parent} of this subclass can choose these spells as ${parent} spells.`}
+      </Help>
       <table ref={table} className="w-full border-collapse">
         <caption className="sr-only">{title}</caption>
         <thead>
@@ -150,7 +170,12 @@ function subclassModifiers(edit: Edit, problems: Problem[], choices: BuilderChoi
   return [
     choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS, { add: "Add a skill option" }),
     choiceModifier(edit, "skill-expertise-options", "Skill Expertise Choice", "Choose n skills for expertise", SKILLS, { add: "Add a skill option" }),
-    { id: "level-modifiers", name: "Modifiers", common: true, render: ({ name }) => <LevelModifiers edit={edit} problems={problems} choices={choices} legend={name} /> },
+    {
+      id: "level-modifiers",
+      name: "Modifiers",
+      common: true,
+      render: ({ name }) => <LevelModifiers edit={edit} problems={problems} choices={choices} legend={name} />,
+    },
     {
       id: "level-selections",
       name: "Selections",

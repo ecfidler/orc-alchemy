@@ -249,8 +249,7 @@ const sentence = (text: string) => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1) + (trimmed.endsWith(".") ? "" : ".");
 };
 
-const byName = <T extends { name: string }>(items: T[]) =>
-  items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+const byName = <T extends { name: string }>(items: T[]) => items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
 /** The name a feature or special attack shows when the engine gives it none. */
 export const UNNAMED_FEATURE = "Unnamed feature";
@@ -263,8 +262,7 @@ export const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 /** The old app's mod-str, for initiative and attack and damage rolls: "+0" for zero. */
 export const modStr = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 
-const blankToNull = (value: unknown) =>
-  (typeof value === "string" && value.trim() !== "") || typeof value === "number" ? String(value) : null;
+const blankToNull = (value: unknown) => ((typeof value === "string" && value.trim() !== "") || typeof value === "number" ? String(value) : null);
 
 /** The old display's unit-amount-description: "1 minute", "60 feet", "2 rounds". */
 const unitAmount = (value: Amount) => {
@@ -293,10 +291,7 @@ export type FeatureSection = keyof Sheet["features"];
  * How a feature's uses show: in a use bubble with circles, in a use bubble
  * with a pool, or as plain text with no bubble.
  */
-export type UsesDisplay =
-  | { kind: "circles"; count: number }
-  | { kind: "pool"; max: number; step: number }
-  | { kind: "plain" };
+export type UsesDisplay = { kind: "circles"; count: number } | { kind: "pool"; max: number; step: number } | { kind: "plain" };
 
 /** The section of each homebrew feature type. A type the sheet does not know, "other", or none, is a trait. */
 const SECTION_OF_TYPE: Record<string, FeatureSection> = {
@@ -410,11 +405,7 @@ export function toSheetFeature(feature: Feature): SheetFeature {
   let text = summary ?? description ?? "";
   if (range || duration) {
     const concentration = (duration as { concentration?: boolean } | undefined)?.concentration ? "conc. " : "";
-    const parts = [
-      qualifier,
-      range && `range ${unitAmount(range)}`,
-      duration && `lasts ${concentration}${unitAmount(duration)}`,
-    ];
+    const parts = [qualifier, range && `range ${unitAmount(range)}`, duration && `lasts ${concentration}${unitAmount(duration)}`];
     text += ` (${parts.filter(Boolean).join(", ")})`;
   }
   if (frequency && usesDisplay(frequency).kind !== "plain")
@@ -465,9 +456,7 @@ function toSpeeds(built: Built2014): Speed[] {
   const bonus = built["unarmored-speed-bonus"];
   const base = built["base-land-speed"];
   const unarmored = withArmor?.find((entry) => entry.armor === null)?.speed ?? base;
-  const speeds: Speed[] = [
-    { feet: unarmored + (bonus ?? 0), label: withArmor !== null || bonus !== null ? "unarmored" : null },
-  ];
+  const speeds: Speed[] = [{ feet: unarmored + (bonus ?? 0), label: withArmor !== null || bonus !== null ? "unarmored" : null }];
   if (withArmor !== null) {
     for (const { armor, speed } of withArmor) {
       if (armor !== null) speeds.push({ feet: speed, label: `${keyToName(armor)} armor` });
@@ -530,7 +519,7 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
       .sort((a, b) => a.level - b.level),
     casters: Object.values(built["spell-modifiers"] ?? {}).map((caster) => ({
       name: caster.class,
-      ability: (unqualify(caster.ability) as Ability),
+      ability: unqualify(caster.ability) as Ability,
       saveDc: caster["spell-save-dc"],
       attackBonus: caster["spell-attack-modifier"],
       prepares: prepares[caster.class] === true,
@@ -549,7 +538,7 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
             return {
               ...named(key),
               source: caster,
-              ability: (unqualify(spell.ability) as Ability),
+              ability: unqualify(spell.ability) as Ability,
               alwaysPrepared: always,
               prepared: always || (preparer && (prepared[caster]?.has(key) ?? false)),
             };
@@ -656,9 +645,7 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     vulnerabilities: toResistances(built["damage-vulnerabilities"]),
 
     languages: (built.languages ?? []).map(keyToName),
-    tools: byName(
-      Object.keys(built["tool-profs"] ?? {}).map((key) => ({ ...named(key), bonus: built["tool-bonus"]?.[key] ?? 0 })),
-    ),
+    tools: byName(Object.keys(built["tool-profs"] ?? {}).map((key) => ({ ...named(key), bonus: built["tool-bonus"]?.[key] ?? 0 }))),
     weaponProficiencies: (built["weapon-profs"] ?? []).map(keyToName),
     armorProficiencies: (built["armor-profs"] ?? []).map(keyToName),
 

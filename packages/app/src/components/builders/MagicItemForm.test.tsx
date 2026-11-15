@@ -39,18 +39,30 @@ async function form(name: string) {
   await screen.findByLabelText("Rarity");
 }
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
-const type = (label: string, value: string) => fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.queryByRole("textbox", { name: label }) ?? screen.getByRole("combobox", { name: label }), { target: { value } });
 const group = (name: string) => within(screen.getByRole("group", { name }));
 const stored = (key: string) => useHomebrew.getState().magicItems.find((r) => r.id === key);
 const MI = "~:orcpub.dnd.e5.magic-items/";
 const W = "~:orcpub.dnd.e5.weapons/";
 /** The modifiers of the add list, in form order. */
-const ADDED = ["Ability scores", "Saving throw bonus", "Speed bonus", "Damage resistances", "Damage vulnerabilities", "Damage immunities", "Condition immunities"];
+const ADDED = [
+  "Ability scores",
+  "Saving throw bonus",
+  "Speed bonus",
+  "Damage resistances",
+  "Damage vulnerabilities",
+  "Damage immunities",
+  "Condition immunities",
+];
 /** A stored modifier entry, as the old save stores it: keyword args, then int args. */
 const mod = (key: string, keywords: string[] = [], ints: number[] = []) => ({
   "~:orcpub.modifiers/key": `~:${key}`,
   ...(keywords.length + ints.length > 0 && {
-    "~:orcpub.modifiers/args": [...keywords.map((k) => ({ "~:orcpub.modifiers/keyword-arg": `~:${k}` })), ...ints.map((n) => ({ "~:orcpub.modifiers/int-arg": n }))],
+    "~:orcpub.modifiers/args": [
+      ...keywords.map((k) => ({ "~:orcpub.modifiers/keyword-arg": `~:${k}` })),
+      ...ints.map((n) => ({ "~:orcpub.modifiers/int-arg": n })),
+    ],
   }),
 });
 const wis = (n: number) => mod("ability", ["orcpub.dnd.e5.character/wis"], [n]);
@@ -250,7 +262,19 @@ test("the attunement classes include a class of an enabled pack", async () => {
   const names = await addList(group("Attunement").getByRole("button", { name: "Add an attunement limit" }), "Add an attunement limit");
   expect(names.slice(0, 2)).toEqual(["Spellcaster", "Barbarian"]);
   expect(names).toContain("Artificer (Tinkers)");
-  expect(names.slice(-11)).toEqual(["Good", "Evil", "Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil", "Chaotic Good", "Chaotic Neutral", "Chaotic Evil"]);
+  expect(names.slice(-11)).toEqual([
+    "Good",
+    "Evil",
+    "Lawful Good",
+    "Lawful Neutral",
+    "Lawful Evil",
+    "Neutral Good",
+    "Neutral",
+    "Neutral Evil",
+    "Chaotic Good",
+    "Chaotic Neutral",
+    "Chaotic Evil",
+  ]);
   await pick("Attunement", "Add an attunement limit", "Artificer (Tinkers)");
   expect(group("Attunement").queryByText("No limits: any creature can attune to it.")).toBeNull();
   fireEvent.click(save());
@@ -270,7 +294,13 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   // The old first details (magic_items.cljc apply-subtype-toggle).
   const details = group("Base weapon details");
   const detail = (label: string) => details.getByRole("combobox", { name: label }).textContent;
-  expect(["Damage die number", "Damage die", "Simple / martial", "Melee / ranged", "Damage type"].map(detail)).toEqual(["1", "d4", "Simple", "Melee", "bludgeoning"]);
+  expect(["Damage die number", "Damage die", "Simple / martial", "Melee / ranged", "Damage type"].map(detail)).toEqual([
+    "1",
+    "d4",
+    "Simple",
+    "Melee",
+    "bludgeoning",
+  ]);
   expect(details.queryByLabelText("Range min")).toBeNull();
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
@@ -358,7 +388,12 @@ test("a Custom base weapon stores the old details, and another base weapon remov
     expect(screen.queryByRole("group", { name: "Base weapon details" })).toBeNull();
     fireEvent.click(save());
     await screen.findByRole("heading", { name: "My Content" });
-    expect(stored("bone-club")!.item).toEqual({ [`${MI}name`]: "Bone Club", [`${MI}type`]: "~:weapon", [`${MI}rarity`]: "~:common", [`${MI}subtypes`]: subtypes });
+    expect(stored("bone-club")!.item).toEqual({
+      [`${MI}name`]: "Bone Club",
+      [`${MI}type`]: "~:weapon",
+      [`${MI}rarity`]: "~:common",
+      [`${MI}subtypes`]: subtypes,
+    });
   }
 }, 30_000);
 
@@ -374,7 +409,12 @@ test("a new item shows only its base groups, and the add list has the modifiers 
 });
 
 test("an item opens with each modifier that has an entry, also one with a 0 bonus", async () => {
-  const item = { [`${MI}name`]: "Plain Ring", [`${MI}type`]: "~:ring", [`${MI}rarity`]: "~:common", [`${MI}modifiers`]: [mod("saving-throw-bonus", ["orcpub.dnd.e5.character/dex"], [0]), mod("condition-immunity", ["charmed"])] };
+  const item = {
+    [`${MI}name`]: "Plain Ring",
+    [`${MI}type`]: "~:ring",
+    [`${MI}rarity`]: "~:common",
+    [`${MI}modifiers`]: [mod("saving-throw-bonus", ["orcpub.dnd.e5.character/dex"], [0]), mod("condition-immunity", ["charmed"])],
+  };
   await useHomebrew.getState().loadMagicItems([item]);
   renderAt("/content/edit/magicItem/plain-ring");
   await form("Edit magic item");
@@ -425,7 +465,9 @@ test("Remove of the last entries leaves no modifiers key, and a new entry after 
   expect(stored("ember-ring")!.item).toEqual({ [`${MI}name`]: "Ember Ring", [`${MI}type`]: "~:ring", [`${MI}rarity`]: "~:rare" });
   cleanup();
 
-  await useHomebrew.getState().loadMagicItems([{ ...item, [`${MI}modifiers`]: [mod("damage-immunity", ["fire"]), mod("saving-throw-bonus", ["orcpub.dnd.e5.character/con"], [1])] }]);
+  await useHomebrew
+    .getState()
+    .loadMagicItems([{ ...item, [`${MI}modifiers`]: [mod("damage-immunity", ["fire"]), mod("saving-throw-bonus", ["orcpub.dnd.e5.character/con"], [1])] }]);
   renderAt("/content/edit/magicItem/ember-ring");
   await form("Edit magic item");
   fireEvent.click(screen.getByRole("button", { name: "Remove Damage immunities" }));
@@ -455,7 +497,12 @@ test("Undo puts an entry back at its index, also after the user changed an earli
   fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Undo" }));
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
-  expect((stored("wave-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([wis(3), mod("damage-resistance", ["fire"]), mod("speed", [], [10]), mod("damage-resistance", ["cold"])]);
+  expect((stored("wave-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([
+    wis(3),
+    mod("damage-resistance", ["fire"]),
+    mod("speed", [], [10]),
+    mod("damage-resistance", ["cold"]),
+  ]);
 });
 
 test("Undo puts an entry back at its index between two equal entries of another modifier", async () => {
@@ -486,7 +533,12 @@ test("an imported item with unknown subtypes, limits and args, hidden weapon fie
     // A weapon field with a specific subtype: the form does not show it.
     [`${W}finesse?`]: false,
     [`${MI}attunement`]: ["~:wizard", "~:an-old-order", "~:lawful-good"],
-    [`${MI}modifiers`]: [mod("damage-resistance", ["psionic"]), mod("damage-resistance", ["fire"]), mod("condition-immunity", ["charmed"]), mod("an-old-mod", ["x"])],
+    [`${MI}modifiers`]: [
+      mod("damage-resistance", ["psionic"]),
+      mod("damage-resistance", ["fire"]),
+      mod("condition-immunity", ["charmed"]),
+      mod("an-old-mod", ["x"]),
+    ],
     [`${MI}an-old-field`]: false,
   };
   await useHomebrew.getState().loadMagicItems([item]);
@@ -546,7 +598,14 @@ test("in each picker a pick then a remove stores what the old double click store
 });
 
 test("Specific from Any or New weapon stores what the old app stored for a base weapon picked and then removed", async () => {
-  const defaults = { [`${W}damage-die-count`]: 1, [`${W}damage-die`]: 4, [`${W}type`]: "~:simple", [`${W}damage-type`]: "~:bludgeoning", [`${W}melee?`]: true, [`${W}ranged?`]: false };
+  const defaults = {
+    [`${W}damage-die-count`]: 1,
+    [`${W}damage-die`]: 4,
+    [`${W}type`]: "~:simple",
+    [`${W}damage-type`]: "~:bludgeoning",
+    [`${W}melee?`]: true,
+    [`${W}ranged?`]: false,
+  };
   const base = { [`${MI}name`]: "Old Blade", [`${MI}type`]: "~:weapon", [`${MI}rarity`]: "~:rare" };
   for (const before of [{ [`${MI}subtypes`]: ["~:all"] }, { [`${MI}subtypes`]: ["~:other"], ...defaults, [`${W}reach?`]: true }]) {
     await useHomebrew.getState().loadMagicItems([{ ...base, ...before }]);
@@ -585,7 +644,11 @@ test("a damage picker adds an entry at the end, and the X of an arg stored twice
   await unpick("Damage immunities", "Fire");
   fireEvent.click(save());
   await screen.findByRole("heading", { name: "My Content" });
-  expect((stored("twin-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([wis(1), mod("damage-immunity", ["cold"]), mod("damage-immunity", ["acid"])]);
+  expect((stored("twin-ring")!.item as Record<string, unknown>)[`${MI}modifiers`]).toEqual([
+    wis(1),
+    mod("damage-immunity", ["cold"]),
+    mod("damage-immunity", ["acid"]),
+  ]);
 });
 
 test("on armor, a stored :other is a token, and its X removes only it: no New weapon details", async () => {

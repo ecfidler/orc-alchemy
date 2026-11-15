@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
-import { applyResolutions, conflictSources, conflictsToChoose, internalCopies, settledBy, type KeyConflict, type Resolution } from "./conflicts.ts";
+import { applyResolutions, conflictSources, conflictsToChoose, internalCopies, type KeyConflict, type Resolution, settledBy } from "./conflicts.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { missingContent } from "./reconcile.ts";
 
@@ -184,10 +184,21 @@ describe("an internal conflict where a copy has the old app's off flag (ORC-131)
     const stored = engine().parseOrcbrew(`{${packEdn("S")}}`).data!;
     const { data, conflicts } = engine().parseOrcbrew(`{${packEdn("A")} ${packEdn("B", { off: true })}}`, { existing: stored });
     const homebrew = data!;
-    const about = (c: KeyConflict) => `${c.type} ${c.key} ${c["import-source"] ?? conflictSources(c).map((s) => s.source).join()}`;
-    expect(conflicts.map(about).sort()).toEqual(
-      ["external keen A", "external keen B", "external zap A", "external zap B", "internal keen A,B", "internal zap A,B"],
-    );
+    const about = (c: KeyConflict) =>
+      `${c.type} ${c.key} ${
+        c["import-source"] ??
+        conflictSources(c)
+          .map((s) => s.source)
+          .join()
+      }`;
+    expect(conflicts.map(about).sort()).toEqual([
+      "external keen A",
+      "external keen B",
+      "external zap A",
+      "external zap B",
+      "internal keen A,B",
+      "internal zap A,B",
+    ]);
     // The internal choice renames or removes B's copies, so only A's external conflicts stay open.
     const open = conflictsToChoose(conflicts, homebrew);
     expect(open.map(about).sort()).toEqual(["external keen A", "external zap A", "internal keen A,B", "internal zap A,B"]);
@@ -228,7 +239,12 @@ describe.skipIf(!existsSync(privateExport))("the owner's real export", () => {
     // conflict's sources, which the engine lists in its own map order, not always the file's.
     // No key that only those two packs share is renamed in the pack that is on.
     const onPack = "Tashas_Cauldron_of_Everything";
-    const shared = parsed.conflicts.filter((c) => conflictSources(c).map((s) => s.source).join() === `${onPack},${onPack}_2`);
+    const shared = parsed.conflicts.filter(
+      (c) =>
+        conflictSources(c)
+          .map((s) => s.source)
+          .join() === `${onPack},${onPack}_2`,
+    );
     expect(shared.length).toBeGreaterThan(0);
     expect(renames.filter((r) => r.pack === onPack && shared.some((c) => c.key === r.from && c["content-type"] === r.contentType))).toEqual([]);
     expect(reparse(resolved).conflicts).toEqual([]);

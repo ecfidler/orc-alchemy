@@ -1,6 +1,6 @@
 import { Field as BaseField } from "@base-ui/react/field";
 import { Fieldset as BaseFieldset } from "@base-ui/react/fieldset";
-import { useId, type ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 
 const errorItems = (errors: string[]) => errors.map((error, i) => <li key={i}>{error}</li>);
 
@@ -51,7 +51,12 @@ export function Fieldset({
 }) {
   const errorsId = useId();
   // With a name, the legend is only shown, so it does not name the group.
-  const legendNode = name === undefined ? <BaseFieldset.Legend className="ui-fieldset-legend">{legend}</BaseFieldset.Legend> : <div className="ui-fieldset-legend">{legend}</div>;
+  const legendNode =
+    name === undefined ? (
+      <BaseFieldset.Legend className="ui-fieldset-legend">{legend}</BaseFieldset.Legend>
+    ) : (
+      <div className="ui-fieldset-legend">{legend}</div>
+    );
   return (
     <BaseFieldset.Root
       data-look={look}

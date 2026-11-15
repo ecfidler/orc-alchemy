@@ -6,9 +6,9 @@
 // reads a pack and makes the changed items; the page shows the rows, and the
 // store saves the items (useHomebrew saveItems).
 import type { Choice } from "../../engine/builder-choices.ts";
-import type { ContentType } from "../../engine/engine.ts";
 import { CONTENT_TYPES, tag, untag } from "../../engine/content.ts";
-import { FEATURE_LIST, setIn, type Options, type Path } from "./fields.tsx";
+import type { ContentType } from "../../engine/engine.ts";
+import { FEATURE_LIST, type Options, type Path, setIn } from "./fields.tsx";
 import { MONSTER_FEATURES } from "./MonsterForm.tsx";
 import { readFeatureText, suggestedTypeOption, type TypeSuggestion, type UsesHint, type UsesSuggestion } from "./suggested-uses.ts";
 import { suggestedFrequency, usesKind } from "./uses.ts";

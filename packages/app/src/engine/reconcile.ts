@@ -2,7 +2,7 @@
 // the option keys of a character that the loaded packs do not resolve, with
 // the engine's suggestions, and a remap of one key to a suggestion.
 import type { ContentSuggestion } from "@pubdoor/dmv";
-import { engine, type Content, type StrictEntity } from "./engine.ts";
+import { type Content, engine, type StrictEntity } from "./engine.ts";
 
 export type { ContentSuggestion };
 
@@ -60,8 +60,7 @@ function remapIn(parent: Node, [selectionKey, optionKey, ...rest]: string[], new
   if (index === -1) throw notFound(path);
   const selection = selections[index] as Node;
 
-  const change = (option: Node): Node =>
-    rest.length === 0 ? { ...option, [KEY]: `~:${newKey}` } : remapIn(option, rest, newKey, path);
+  const change = (option: Node): Node => (rest.length === 0 ? { ...option, [KEY]: `~:${newKey}` } : remapIn(option, rest, newKey, path));
   let changed: Node;
   const single = selection[OPTION] as Node | undefined;
   if (single?.[KEY] === `~:${optionKey}`) {

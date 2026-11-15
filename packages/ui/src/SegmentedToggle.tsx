@@ -11,7 +11,10 @@ export type SegmentedToggleProps<T extends string> = {
   size?: "normal" | "small";
   /** Layout classes. */
   className?: string;
-} & ({ /** The group's name. */ "aria-label": string; "aria-labelledby"?: never } | { /** The id of the element that names the group. */ "aria-labelledby": string; "aria-label"?: never });
+} & (
+  | { /** The group's name. */ "aria-label": string; "aria-labelledby"?: never }
+  | { /** The id of the element that names the group. */ "aria-labelledby": string; "aria-label"?: never }
+);
 
 /**
  * A segmented toggle for one value from a short list, for example

@@ -4,7 +4,7 @@
 // server's EDN as text, and custom magic items. Each character read goes
 // through the engine's importCharacter, and each one written through its
 // exportCharacter.
-import { engine, type Content, type Rules, type StrictEntity } from "./engine.ts";
+import { type Content, engine, type Rules, type StrictEntity } from "./engine.ts";
 import { missingContent, type UnresolvedKey } from "./reconcile.ts";
 
 export interface CharacterFileEntry {
@@ -263,8 +263,7 @@ export function readBundleMagicItems(text: string): BundleMagicItems | null {
  * gives options keyed "<key>-<base>".
  */
 export function magicItemKey(item: object): string {
-  return magicItemName(item)
-    .toLowerCase().replace(/'/g, "").replace(/\W/g, "-").replace(/-+/g, "-");
+  return magicItemName(item).toLowerCase().replace(/'/g, "").replace(/\W/g, "-").replace(/-+/g, "-");
 }
 
 function bundlePacks(data: Record<string, unknown>): Record<string, object> | null {
