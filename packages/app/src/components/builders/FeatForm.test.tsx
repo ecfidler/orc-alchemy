@@ -142,7 +142,7 @@ test("each field is stored as the old events store it, and Edit loads it back", 
   expect([pressed("Initiative Bonuses"), pressed("Skill or Tool Proficiency")]).toEqual(["5", "2"]);
   expect(tokens("Tool Proficiency or Expertise")).toEqual(["Navigator's Tools"]);
   // Medium Armor holds only false, and Languages nothing, so they are not on the form.
-  expect(groups()).toEqual([...COMMON, ...ADDED.filter((name) => name !== "Languages" && name !== "Medium Armor"), ...TAIL]);
+  expect(groups()).toEqual([...COMMON, ...ADDED.filter((name) => name !== "Languages" && name !== "Medium Armor"), "Other modifiers", ...TAIL]);
   // A save keeps the values of a modifier that is not on the form.
   const before = stored("sea-legs");
   fireEvent.click(save());
@@ -153,13 +153,13 @@ test("each field is stored as the old events store it, and Edit loads it back", 
 test("a new feat shows only the common modifiers; the add list has the others in form order, each with a short example", async () => {
   renderAt("/content/new/feat");
   await screen.findByRole("button", { name: "Add a prerequisite" });
-  expect(groups()).toEqual([...COMMON, ...TAIL]);
+  expect(groups()).toEqual([...COMMON, "Other modifiers", ...TAIL]);
   expect(screen.queryByRole("heading", { name: "Modifiers" })).toBeNull();
   // A common modifier has no Remove link.
   expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
   const add = screen.getByRole("button", { name: "Add a modifier" });
   expect(add.getAttribute("aria-haspopup")).toBe("dialog");
-  expect(add.textContent).toMatch(/14 more$/);
+  expect(add.textContent).toBe("+ Add a modifierSkill or Tool Proficiency, Languages, Weapon Proficiency and 11 more");
   expect(await addList()).toEqual(ADDED);
   // A real click puts the focus on the button.
   add.focus();
@@ -172,7 +172,7 @@ test("a new feat shows only the common modifiers; the add list has the others in
   expect(within(dialog).queryByRole("button", { name: "Done" })).toBeNull();
   fireEvent.keyDown(dialog, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(groups()).toEqual([...COMMON, ...TAIL]);
+  expect(groups()).toEqual([...COMMON, "Other modifiers", ...TAIL]);
   await waitFor(() => expect(document.activeElement).toBe(add));
 });
 
@@ -181,7 +181,7 @@ test("an added modifier goes to its place in form order, flashes once and takes 
   await screen.findByRole("button", { name: "Add a prerequisite" });
   await addModifier("Speed Bonuses");
   await addModifier("Hit Points");
-  expect(groups()).toEqual([...COMMON, "Hit Points", "Speed Bonuses", ...TAIL]);
+  expect(groups()).toEqual([...COMMON, "Hit Points", "Speed Bonuses", "Other modifiers", ...TAIL]);
   const hp = screen.getByRole("group", { name: "Hit Points" });
   expect(hp.closest("[data-modifier]")?.classList.contains("ui-flash")).toBe(true);
   expect(screen.getByRole("group", { name: "Speed Bonuses" }).closest("[data-modifier]")?.classList.contains("ui-flash")).toBe(false);
@@ -231,7 +231,7 @@ test("the stored feat after Add and a pick is as the old layout stored it; Remov
   const edit = renderAt(`/content/edit/feat/${encodeURIComponent(DEFAULT)}/tough-hide`);
   await screen.findByRole("button", { name: "Add a prerequisite" });
   // The resistances hold only false, so the feat opens without them.
-  expect(groups()).toEqual([...COMMON, "Hit Points", ...TAIL]);
+  expect(groups()).toEqual([...COMMON, "Hit Points", "Other modifiers", ...TAIL]);
   fireEvent.click(screen.getByRole("button", { name: "Remove Hit Points" }));
   fireEvent.click(within(screen.getByRole("status")).getByRole("button", { name: "Dismiss" }));
   expect(screen.queryByRole("status")).toBeNull();
@@ -261,7 +261,7 @@ test("an added modifier stays on the form while it is empty, and a saved item op
   cleanup();
   renderAt(`/content/edit/feat/${encodeURIComponent(DEFAULT)}/quiet-step`);
   await screen.findByRole("button", { name: "Add a prerequisite" });
-  expect(groups()).toEqual([...COMMON, ...TAIL]);
+  expect(groups()).toEqual([...COMMON, "Other modifiers", ...TAIL]);
 });
 
 test("an imported feat with false values, unknown keys and a number that is no segment opens, saves and stays equal", async () => {
@@ -290,7 +290,7 @@ test("an imported feat with false values, unknown keys and a number that is no s
   await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/feats", item);
   const router = renderAt("/content/edit/feat/Reef/old-salt");
   await screen.findByRole("button", { name: "Add a prerequisite" });
-  expect(groups()).toEqual([...COMMON, "Skill or Tool Proficiency", "Armor Proficiency", "Medium Armor", "Damage Resistances", "Initiative Bonuses", "Misc. Modifiers", "Tool Proficiency or Expertise", ...TAIL]);
+  expect(groups()).toEqual([...COMMON, "Skill or Tool Proficiency", "Armor Proficiency", "Medium Armor", "Damage Resistances", "Initiative Bonuses", "Misc. Modifiers", "Tool Proficiency or Expertise", "Other modifiers", ...TAIL]);
   expect(tokens("Prerequisites")).toEqual(["Wisdom 13 or higher", "Dwarf race"]);
   expect(tokens("Medium Armor")).toEqual(["When wearing medium armor, you can add 3 to your AC if your Dexterity is 16+"]);
   expect(tokens("Damage Resistances")).toEqual(["Cold"]);

@@ -110,17 +110,17 @@ test("a cleric subclass stores its domain spells as the old app stores them, and
   expect(table("Domain Spells")[5]).toEqual(["9th", "5th", "Cone of Cold", "+"]);
   expect(tokens("Skill Proficiency Choice")).toEqual(["Religion"]);
   expect(shown("Modifier 1 value")).toBe("30 ft.");
-  expect(groups()).toEqual(["Domain Spells", "Skill Proficiency Choice", "Modifiers", "Features"]);
+  expect(groups()).toEqual(["Domain Spells", "Skill Proficiency Choice", "Modifiers", "Other modifiers", "Features"]);
 });
 
 test("a new subclass shows only the common groups, and the add list has the others in form order", async () => {
   renderAt("/content/new/subclass");
   await screen.findByRole("textbox", { name: "Name" });
-  expect(groups()).toEqual(["Modifiers", "Features"]);
+  expect(groups()).toEqual(["Modifiers", "Other modifiers", "Features"]);
   expect(await addList()).toEqual(["Skill Proficiency Choice", "Skill Expertise Choice", "Selections"]);
   await addModifier("Selections");
   await addModifier("Skill Expertise Choice");
-  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Features"]);
+  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Other modifiers", "Features"]);
   expect(await addList()).toEqual(["Skill Proficiency Choice"]);
 });
 
@@ -138,7 +138,7 @@ test("an imported subclass opens with each group that holds a value, and a save 
   await useHomebrew.getState().saveItem("Reef", "~:orcpub.dnd.e5/subclasses", item);
   const router = renderAt("/content/edit/subclass/Reef/path-of-tides");
   await screen.findByRole("textbox", { name: "Name" });
-  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Features"]);
+  expect(groups()).toEqual(["Skill Expertise Choice", "Modifiers", "Selections", "Other modifiers", "Features"]);
   expect(shown("Selection 1 level")).toBe("3");
   fireEvent.click(save());
   await waitFor(() => expect(router.state.location.pathname).toBe("/content"), { timeout: 10_000 });

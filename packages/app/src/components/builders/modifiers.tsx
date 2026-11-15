@@ -7,7 +7,7 @@
 // stays on the form until the form closes, and nothing about it is stored.
 // The module also has useAddList: the add, flash and focus logic of such a
 // list. The tool proficiencies of the background form use it too.
-import { AddButton, AlertNote, Button, ListModal } from "@orc-alchemy/ui";
+import { AddButton, AlertNote, Button, Fieldset, ListModal } from "@orc-alchemy/ui";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { isSet, setItems } from "../../engine/content.ts";
 import { getIn, removeIn, setIn, type ItemRecord, type Path } from "./fields.tsx";
@@ -195,6 +195,16 @@ export function useAddList(initial: () => Iterable<string>) {
   };
 }
 
+/**
+ * The text in the "+ Add a modifier" button: the first three names, then
+ * the number of the others, as "Saves, Speeds, Languages and 4 more".
+ */
+export function addExamples(names: string[]): string {
+  const rest = names.length - 3;
+  const first = names.slice(0, 3).join(", ");
+  return rest > 0 ? `${first} and ${rest} more` : first;
+}
+
 /** A removed modifier and the record at the time of Remove, for Undo. */
 interface Removed {
   modifier: Added;
@@ -204,10 +214,11 @@ interface Removed {
 /**
  * The modifiers of a form, in form order: the common ones, the ones that
  * hold a value and the ones the user added. Then the info note of the last
- * Remove, with Undo, and the "+ Add a modifier" button, while a modifier is
- * left to add. Put it after the base fields of the form, and Features after
- * it. A base field that is between two modifiers in form order can be a
- * common modifier, so that the form keeps its order.
+ * Remove, with Undo, and the "Other modifiers" section with the
+ * "+ Add a modifier" button, while a modifier is left to add. Put it after
+ * the base fields of the form, and Features after it. A base field that is
+ * between two modifiers in form order can be a common modifier, so that the
+ * form keeps its order.
  */
 export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord; onChange: (record: ItemRecord) => void; modifiers: Modifier[] }) {
   // The added modifiers: at first, the ones that hold a value.
@@ -267,7 +278,11 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
           </AlertNote>
         </div>
       )}
-      {hidden.length > 0 && <AddButton ref={list.addButton} label="Add a modifier" remaining={hidden.length} aria-haspopup="dialog" onClick={list.openList} />}
+      {hidden.length > 0 && (
+        <Fieldset legend="Other modifiers" look="section">
+          <AddButton ref={list.addButton} label="Add a modifier" detail={addExamples(hidden.map((m) => m.name))} aria-haspopup="dialog" onClick={list.openList} />
+        </Fieldset>
+      )}
       <ListModal title="Add a modifier" items={hidden.map((m) => ({ value: m.id, label: m.name, example: m.example }))} {...list.modal(show)} />
     </>
   );

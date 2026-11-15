@@ -130,6 +130,19 @@ from a list.
 ## Add a modifier
 
 * A full-width "+ Add a modifier" button is at the end of the modifiers.
+  It is below a section heading, "Other modifiers", with the same rule as
+  the other sections.
+* The button shows examples after its label: the names of the first three
+  modifiers that are not on the form, in form order, then the number of the
+  others. Example: "Skill or Tool Proficiency, Languages, Weapon
+  Proficiency and 11 more". If three or fewer modifiers are left, it shows
+  only their names.
+* The examples are small muted text on the line of the label, and "…" cuts
+  text that is too long. The button keeps the height of the other buttons.
+  In a button that is narrower than 520px, the examples are on a second
+  line and they wrap.
+* The examples are the accessible description of the button.
+* When no modifier is left to add, the form shows no button and no heading.
 * The button opens a modal: a title, a close X, and one list that scrolls.
   The list has the modifiers that are not on the form, in form order.
 * Each row has the name, a short example and an "Add" mark.
