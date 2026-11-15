@@ -47,7 +47,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
         ([found]) => {
           if (!current) return;
           if (found) {
-            useCharacter.getState().load(id, found.entity, found.dirty);
+            useCharacter.getState().load(id, found.entity, found.dirty, found.custom);
             setRecovered(found.dirty);
           } else setProblem("Character not found");
         },

@@ -7,6 +7,7 @@
 // thrown to the caller. useStorage reports a failed write; a failed read is
 // for its caller to report, since nothing unsaved is at risk.
 import { create } from "zustand";
+import { hasCustomItems } from "../engine/custom.ts";
 import type { Rules, StrictEntity } from "../engine/engine.ts";
 import type { Sheet } from "../engine/sheet.ts";
 
@@ -21,6 +22,12 @@ export interface CharacterRecord {
   /** The old app's id, kept for reference. */
   legacyId: string | null;
   entity: StrictEntity;
+  /**
+   * The character's own customized options (ORC-133), a single-plugin map in
+   * the form of a stored pack's plugin. Only this character builds against
+   * them. A record without it has none.
+   */
+  custom?: object;
 }
 
 /** What the list page shows for a character. Content keys are qualified by edition, as "2014/fighter". */
@@ -34,15 +41,20 @@ export interface CharacterSummary {
   updatedAt: string;
   /**
    * The fingerprint of the homebrew the summary was built with (homebrew.ts).
+   * With custom content, it also holds customHash (summaryFingerprint).
    * A summary written before ORC-115 has none.
    */
   fingerprint?: string;
+  /** The customHash of the record's custom content; absent with none. */
+  customHash?: string;
 }
 
 /** Unsaved changes to a character, kept until autosave writes its record. */
 export interface Draft {
   id: string;
   entity: StrictEntity;
+  /** The custom content that belongs with the entity; absent with none. */
+  custom?: object;
   updatedAt: string;
 }
 
@@ -57,7 +69,30 @@ export const useStorage = create<{ inMemory: boolean; failed: boolean; outdated:
 export const useSummariesVersion = create<number>(() => 0);
 const summariesChanged = () => useSummariesVersion.setState((version) => version + 1, true);
 
+/** A short hash of the custom content, for a character summary's fingerprint; undefined with no items. */
+export function customHash(custom: object | undefined): string | undefined {
+  if (!hasCustomItems(custom)) return undefined;
+  // FNV-1a, 32 bits.
+  const text = JSON.stringify(custom);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * The fingerprint of a character summary: the homebrew fingerprint, and,
+ * when the character has custom content, its customHash.
+ */
+export function summaryFingerprint(homebrewFingerprint: string, hash: string | undefined): string {
+  return hash === undefined ? homebrewFingerprint : `${homebrewFingerprint}+custom:${hash}`;
+}
+
+/** The summary of a record; fingerprint is the homebrew fingerprint, and the record's custom content is added to it. */
 function toSummary(record: CharacterRecord, sheet: Sheet, fingerprint: string): CharacterSummary {
+  const hash = customHash(record.custom);
   return {
     id: record.id,
     rules: record.rules,
@@ -66,11 +101,16 @@ function toSummary(record: CharacterRecord, sheet: Sheet, fingerprint: string): 
     classes: sheet.classes.map((c) => ({ key: `${record.rules}/${c.key}`, name: c.name, level: c.level })),
     portrait: sheet.portrait,
     updatedAt: record.updatedAt,
-    fingerprint,
+    fingerprint: summaryFingerprint(fingerprint, hash),
+    ...(hash === undefined ? {} : { customHash: hash }),
   };
 }
 
-/** Writes a character's record and its summary together; fingerprint names the homebrew the sheet was built with. */
+/**
+ * Writes a character's record and its summary together. fingerprint names
+ * the homebrew the sheet was built with; the summary's fingerprint also
+ * names the record's custom content.
+ */
 export function saveCharacter(record: CharacterRecord, sheet: Sheet, fingerprint: string): Promise<void> {
   return write([
     { store: "characters", put: record },
@@ -83,7 +123,7 @@ export function saveCharacter(record: CharacterRecord, sheet: Sheet, fingerprint
  * are. A summary is written only if its record is still stored as it was
  * built, so a character deleted or saved since keeps what that wrote. A
  * failed write is thrown, but not reported in useStorage: no character is
- * lost.
+ * lost. Each fingerprint is the homebrew fingerprint, as in saveCharacter.
  */
 export function saveSummaries(summaries: { record: CharacterRecord; sheet: Sheet; fingerprint: string }[]): Promise<void> {
   return run((db) => db.putSummaries(summaries.map(({ record, sheet, fingerprint }) => toSummary(record, sheet, fingerprint)))).then(summariesChanged);

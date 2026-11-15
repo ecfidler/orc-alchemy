@@ -49,6 +49,12 @@ export const isSet = (value: unknown): boolean => value !== null && typeof value
 /** A class's name as the old class list shows it: with its pack after it, unless the pack is the default one. */
 export const classDisplayName = (name: string, pack: string) => (pack === DEFAULT_PACK ? name : `${name} (${pack})`);
 
+/** The key of an option in a strict entity, Transit-encoded. */
+export const OPTION_KEY = "~:orcpub.entity.strict/key";
+
+/** Whether the value is a map: an object that is not null and not an array. */
+export const isMap = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+
 /** The items of one tagged content type in a plugin. */
 export const itemsAt = (plugin: object, taggedType: string) => (plugin as Record<string, Record<string, object> | undefined>)[taggedType];
 

@@ -5,7 +5,6 @@ import { Button, NoteCount, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import { type BuilderOption, type BuilderSelection, remainingByStep, unfilled, useBuilderSteps } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { useHomebrew } from "../state/homebrew.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
@@ -14,8 +13,7 @@ import { Hands, Inventory } from "./Equipment.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 
 export function Builder() {
-  const { selections, sheet } = useOpenCharacter();
-  const content = useHomebrew((state) => state.content);
+  const { selections, sheet, content } = useOpenCharacter();
   // The Description step has no selections, so builderSteps does not give
   // it. Before the character loads there are no steps at all.
   const engineSteps = useBuilderSteps(selections, content);

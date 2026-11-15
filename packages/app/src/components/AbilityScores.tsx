@@ -21,15 +21,13 @@ import {
 import type { BuilderSelection } from "../engine/builder.ts";
 import { ABILITIES, type Ability, bonusStr } from "../engine/sheet.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
-import { useHomebrew } from "../state/homebrew.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
 
 /** The ability-scores selection: its methods as toggles, then a table of base scores and what is added to them. */
 export function AbilityScores({ selection }: { selection: BuilderSelection }) {
   const id = useId();
-  const { entity, built, selections } = useOpenCharacter();
-  const content = useHomebrew((state) => state.content);
+  const { entity, built, selections, content } = useOpenCharacter();
   const [error, setError] = useState<string | null>(null);
   const { method, scores } = useMemo(() => baseScores(entity!), [entity]);
   const rows = useMemo(() => abilityRows(built!, selections!), [built, selections]);
