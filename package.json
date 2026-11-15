@@ -10,10 +10,12 @@
   "scripts": {
     "docs:check": "bun scripts/okf-check.ts docs",
     "lint": "biome ci .",
-    "format": "biome check --write ."
+    "format": "biome check --write .",
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.7",
+    "husky": "9.1.7",
     "typescript": "^5.0.0"
   }
 }

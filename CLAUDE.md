@@ -49,7 +49,9 @@ tools/exporter-bookmarklet/  M5
 
 Run `bun install` once from the root. Each package owns its dependencies
 and scripts. From the root, `bun run format` formats the code and sorts
-the imports, and `bun run lint` is the check that CI runs.
+the imports, and `bun run lint` is the check that CI runs. `bun install` also
+installs a pre-commit hook (`.husky/pre-commit`) that runs Biome on the
+staged files and stages its fixes.
 
 ## Agent skills
 
