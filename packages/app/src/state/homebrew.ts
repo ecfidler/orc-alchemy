@@ -10,6 +10,7 @@ import {
   type BackgroundKeyWarning,
   backgroundKeyWarnings,
   disabledInFile,
+  isMap,
   itemAt,
   withDisabledFlag,
   withItem,
@@ -365,7 +366,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     saveItems: (pack, items) =>
       queued(async () => {
         await restorePacks();
-        checkPackName(pack);
+        checkPackName(pack); // before the next check, so the reserved name gets its own message
         if (!get().packs.some((p) => p.id === pack)) throw new Error(`No pack named ${pack}`);
         await putItems(pack, items, "these items");
       }),
@@ -486,8 +487,6 @@ export function bundleHomebrew(): BundleHomebrew {
 
 /** The multi-plugin map of these packs, as stored. */
 const pluginMap = (packs: PackRecord[]) => Object.fromEntries(packs.map((p) => [p.id, p.plugin]));
-
-const isMap = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** True if the stored record is a magic item record whose item is valid; else warns, so it is skipped. */
 function wellFormedMagicItem(record: unknown): record is MagicItemRecord {

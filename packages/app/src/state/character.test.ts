@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { useBuilderSteps } from "../engine/builder.ts";
-import { CUSTOM_PACK, customHash, summaryFingerprint } from "../engine/custom.ts";
+import { CUSTOM_PACK } from "../engine/custom.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
-import { deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft, useStorage } from "../storage/characters.ts";
+import { customHash, deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft, summaryFingerprint, useStorage } from "../storage/characters.ts";
 import {
   AUTOSAVE_DELAY_MS,
   addCharacter,

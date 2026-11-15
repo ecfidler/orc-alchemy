@@ -2,6 +2,7 @@
 // the option keys of a character that the loaded packs do not resolve, with
 // the engine's suggestions, and a remap of one key to a suggestion.
 import type { ContentSuggestion } from "@pubdoor/dmv";
+import { OPTION_KEY } from "./content.ts";
 import { type Content, engine, type StrictEntity } from "./engine.ts";
 
 export type { ContentSuggestion };
@@ -30,7 +31,7 @@ export function missingContent(entity: StrictEntity, { homebrew, magicItems }: C
 
 // The strict entity's Transit-JSON keys.
 const SELECTIONS = "~:orcpub.entity.strict/selections";
-const KEY = "~:orcpub.entity.strict/key";
+const KEY = OPTION_KEY;
 const OPTION = "~:orcpub.entity.strict/option";
 const OPTIONS = "~:orcpub.entity.strict/options";
 

@@ -2,7 +2,7 @@
 // truth; built and selections are derived from it with useEvaluation.
 import { useMemo } from "react";
 import { create } from "zustand";
-import { characterContent, pruneCustom, summaryFingerprint } from "../engine/custom.ts";
+import { characterContent, pruneCustom } from "../engine/custom.ts";
 import { type Content, engine, loadEngine, type Rules, type StrictEntity, useEvaluation } from "../engine/engine.ts";
 import { missingContent, remapOption, type UnresolvedKey } from "../engine/reconcile.ts";
 import { toSheet } from "../engine/sheet.ts";
@@ -16,6 +16,7 @@ import {
   saveCharacter,
   saveDraft,
   saveSummaries,
+  summaryFingerprint,
   useStorage,
 } from "../storage/characters.ts";
 import { restorePacks, useHomebrew } from "./homebrew.ts";
@@ -46,11 +47,7 @@ export const useCharacter = create<CharacterState>()((set, get) => ({
   custom: undefined,
   dirty: false,
   load: (id, entity, dirty = false, custom = undefined) => set({ id, entity, dirty, custom }),
-  update: (mutate) => {
-    const { entity } = get();
-    if (entity === null) throw new Error("No character is open");
-    set({ entity: mutate(entity), dirty: true });
-  },
+  update: (mutate) => get().updateWithCustom(get().custom, mutate),
   updateWithCustom: (custom, mutate) => {
     const { entity } = get();
     if (entity === null) throw new Error("No character is open");
@@ -94,11 +91,11 @@ export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId:
  * the custom items that entity selects are stored (pruneCustom), and the
  * custom content stored is returned: undefined when none is left.
  */
-async function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity" | "custom">, entity: StrictEntity, custom: object | undefined) {
+async function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, entity: StrictEntity, custom: object | undefined) {
   const { content, fingerprint } = useHomebrew.getState();
-  const kept = pruneCustom(entity, content, custom);
+  const kept = pruneCustom(entity, custom);
   const sheet = buildSheet(entity, characterContent(content, kept));
-  const { custom: _, ...rest } = record as CharacterRecord;
+  const { custom: _, ...rest } = record;
   await saveCharacter({ ...rest, name: sheet.name, updatedAt: now(), entity, ...(kept === undefined ? {} : { custom: kept }) }, sheet, fingerprint);
   return kept;
 }
@@ -136,8 +133,7 @@ export async function remapStoredCharacter(id: string, path: string[], newKey: s
  * homebrew (ORC-115), and writes them together. A summary of a character
  * with custom content is compared, and rebuilt, with that content too. A
  * pack change does not rebuild them, since each build takes tens of
- * milliseconds; the list page
- * calls this instead. Restores the packs first, and loads the engine only if
+ * milliseconds; the list page calls this instead. Restores the packs first, and loads the engine only if
  * a summary needs it. Builds one character at a time, so the page does not
  * stop. Stops, and writes nothing, as soon as isCurrent returns false, or if
  * the packs change. A character that does not build keeps its summary.

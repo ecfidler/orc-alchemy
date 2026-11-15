@@ -7,7 +7,7 @@
 // thrown to the caller. useStorage reports a failed write; a failed read is
 // for its caller to report, since nothing unsaved is at risk.
 import { create } from "zustand";
-import { customHash, summaryFingerprint } from "../engine/custom.ts";
+import { hasCustomItems } from "../engine/custom.ts";
 import type { Rules, StrictEntity } from "../engine/engine.ts";
 import type { Sheet } from "../engine/sheet.ts";
 
@@ -68,6 +68,27 @@ export const useStorage = create<{ inMemory: boolean; failed: boolean; outdated:
 /** Counts writes to the summaries index, so the list page can re-read it when it changes. */
 export const useSummariesVersion = create<number>(() => 0);
 const summariesChanged = () => useSummariesVersion.setState((version) => version + 1, true);
+
+/** A short hash of the custom content, for a character summary's fingerprint; undefined with no items. */
+export function customHash(custom: object | undefined): string | undefined {
+  if (!hasCustomItems(custom)) return undefined;
+  // FNV-1a, 32 bits.
+  const text = JSON.stringify(custom);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * The fingerprint of a character summary: the homebrew fingerprint, and,
+ * when the character has custom content, its customHash.
+ */
+export function summaryFingerprint(homebrewFingerprint: string, hash: string | undefined): string {
+  return hash === undefined ? homebrewFingerprint : `${homebrewFingerprint}+custom:${hash}`;
+}
 
 /** The summary of a record; fingerprint is the homebrew fingerprint, and the record's custom content is added to it. */
 function toSummary(record: CharacterRecord, sheet: Sheet, fingerprint: string): CharacterSummary {

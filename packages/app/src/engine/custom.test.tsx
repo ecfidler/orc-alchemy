@@ -5,7 +5,8 @@ import { act, cleanup, render, renderHook, screen, within } from "@testing-libra
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
-import { CUSTOM_PACK, characterContent, customHash, hasCustomItems, pruneCustom, summaryFingerprint } from "./custom.ts";
+import { customHash, summaryFingerprint } from "../storage/characters.ts";
+import { CUSTOM_PACK, characterContent, hasCustomItems, pruneCustom } from "./custom.ts";
 import { type Content, engine, loadEngine, type StrictEntity } from "./engine.ts";
 
 beforeAll(() => loadEngine());
@@ -58,10 +59,10 @@ test("pruneCustom keeps the feat, background, race and language that the charact
   let entity: StrictEntity = e.select(e.emptyCharacter(), ["race"], "gnome-custom", options);
   entity = e.select(entity, ["background"], "sage-custom", options);
   entity = withFeats(entity, "skill-expert-custom");
-  // A language option elsewhere in the entity, at any depth: the report does not list a language with its type.
+  // A language option elsewhere in the entity, at any depth.
   const all = withOptions(entity, "languages", "sylvan-custom");
 
-  expect(pruneCustom(all, SRD, CUSTOM)).toBe(CUSTOM);
+  expect(pruneCustom(all, CUSTOM)).toBe(CUSTOM);
   // The report gives each content type and its bare key.
   expect(
     e
@@ -74,12 +75,11 @@ test("pruneCustom keeps the feat, background, race and language that the charact
     { contentType: "feat", key: "skill-expert-custom", path: ["feats", "skill-expert-custom"] },
   ]);
   const { [LANGUAGES]: _, ...withoutLanguage } = CUSTOM;
-  expect(pruneCustom(entity, SRD, CUSTOM)).toEqual(withoutLanguage);
-  expect(pruneCustom(e.emptyCharacter(), SRD, CUSTOM)).toBeUndefined();
-  expect(pruneCustom(entity, SRD, undefined)).toBeUndefined();
-  // A feat key that the loaded content resolves without custom is not the custom feat's.
-  const packFeat = { "Some Pack": { [FEATS]: { "~:skill-expert-custom": { ...CUSTOM[FEATS]["~:skill-expert-custom"], "~:option-pack": "Some Pack" } } } };
-  expect(pruneCustom(entity, { homebrew: packFeat }, { [FEATS]: CUSTOM[FEATS] })).toBeUndefined();
+  expect(pruneCustom(entity, CUSTOM)).toEqual(withoutLanguage);
+  expect(pruneCustom(e.emptyCharacter(), CUSTOM)).toBeUndefined();
+  expect(pruneCustom(entity, undefined)).toBeUndefined();
+  // A selected item stays when a loaded pack has its key too: the check does not read the loaded content.
+  expect(pruneCustom(entity, { [FEATS]: CUSTOM[FEATS] })).toEqual({ [FEATS]: CUSTOM[FEATS] });
 });
 
 test("customHash is short and the same for the same content; summaryFingerprint adds it to the homebrew fingerprint", () => {
