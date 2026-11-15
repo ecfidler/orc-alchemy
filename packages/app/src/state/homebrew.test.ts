@@ -435,3 +435,37 @@ test("loading a magic item again keeps its off flag", async () => {
   expect(plate).toMatchObject({ enabled: false, item: { "~:orcpub.dnd.e5.magic-items/description": "Changed." } });
   expect(app.useHomebrew.getState().magicItemsOn).toHaveLength(3);
 });
+
+// The pack name of a character's own content (ORC-133).
+const RESERVED = "Custom (this character)";
+const reservedMessage = `The pack name ${RESERVED} is reserved for content that one character customizes. Rename the pack.`;
+
+test("a file or bundle with a pack named as the reserved custom pack stores nothing, and its import log says why", async () => {
+  const app = await reload();
+  await app.load("warlock-test-content");
+  const loaded = app.useHomebrew.getState().homebrew;
+
+  // A single-plugin file loads as a pack named for the file.
+  await app.useHomebrew.getState().load(`${RESERVED}.orcbrew`, readPack("warlock-test-content"));
+  const { lastImport } = app.useHomebrew.getState();
+  expect(lastImport).toMatchObject({ fileName: `${RESERVED}.orcbrew`, success: false, packs: [], conflicts: [] });
+  expect(lastImport?.log.message).toBe("Nothing was loaded from the file.");
+  expect(lastImport?.log.errors).toContain(reservedMessage);
+  expect(app.useHomebrew.getState().homebrew).toBe(loaded);
+  expect((await app.listPacks()).map((p) => (p as PackRecord).id)).toEqual(["warlock-test-content"]);
+
+  const plugin = app.engine().parseOrcbrew(readPack("community-mezzoloth-race"), { name: RESERVED }).data!;
+  await app.useHomebrew.getState().loadBundle({ homebrew: plugin, flags: {} }, "dmv-export.json");
+  expect(app.useHomebrew.getState().lastImport?.log.errors).toContain(reservedMessage);
+  expect(app.useHomebrew.getState().homebrew).toBe(loaded);
+});
+
+test("an item cannot be saved into the reserved custom pack", async () => {
+  const app = await reload();
+  const item = { "~:key": "~:keen", "~:name": "Keen", "~:option-pack": RESERVED };
+  await expect(app.useHomebrew.getState().saveItem(RESERVED, "~:orcpub.dnd.e5/feats", item)).rejects.toThrow(reservedMessage);
+  await expect(app.useHomebrew.getState().saveItems(RESERVED, [{ contentType: "~:orcpub.dnd.e5/feats", key: "~:keen", item }])).rejects.toThrow(
+    reservedMessage,
+  );
+  expect(await app.listPacks()).toEqual([]);
+});

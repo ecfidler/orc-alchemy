@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Built2014 } from "@pubdoor/dmv";
 import { expect, test, vi } from "vitest";
+import { customHash, summaryFingerprint } from "../engine/custom.ts";
 import { toSheet } from "../engine/sheet.ts";
 import {
   type CharacterRecord,
@@ -85,6 +86,24 @@ test("rebuilt summaries are written only for records stored as they were built f
   expect(summaries.find((s) => s.id === "i")).toBeUndefined();
   await deleteCharacter("g");
   await deleteCharacter("h");
+});
+
+test("a record's custom content is stored, and its summary has its hash in the fingerprint", async () => {
+  const sheet = sheetOf("wizard-5");
+  const custom = { "~:orcpub.dnd.e5/feats": { "~:keen-custom": { "~:key": "~:keen-custom", "~:name": "Keen Custom" } } };
+  await saveCharacter({ ...record("k", sheet.name), custom }, sheet, "packs");
+  expect((await getCharacter("k"))?.custom).toEqual(custom);
+  const summary = (await listSummaries()).find((s) => s.id === "k");
+  expect(summary).toMatchObject({ customHash: customHash(custom), fingerprint: summaryFingerprint("packs", customHash(custom)) });
+
+  // Without custom content, the summary has the homebrew fingerprint alone.
+  await saveCharacter(record("k", sheet.name), sheet, "packs");
+  expect((await listSummaries()).find((s) => s.id === "k")).toMatchObject({ fingerprint: "packs" });
+  expect((await listSummaries()).find((s) => s.id === "k")).not.toHaveProperty("customHash");
+
+  await saveSummaries([{ record: { ...record("k", sheet.name), custom }, sheet, fingerprint: "new" }]);
+  expect((await listSummaries()).find((s) => s.id === "k")).toMatchObject({ fingerprint: summaryFingerprint("new", customHash(custom)) });
+  await deleteCharacter("k");
 });
 
 test("drafts are kept until deleted", async () => {

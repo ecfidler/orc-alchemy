@@ -3,11 +3,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
-import { engine, loadEngine } from "../engine/engine.ts";
+import { useBuilderSteps } from "../engine/builder.ts";
+import { CUSTOM_PACK, customHash, summaryFingerprint } from "../engine/custom.ts";
+import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { deleteCharacter, getCharacter, getDraft, listSummaries, saveDraft, useStorage } from "../storage/characters.ts";
 import {
   AUTOSAVE_DELAY_MS,
   addCharacter,
+  checkStoredCharacter,
   flushAutosave,
   readCharacter,
   refreshSummaries,
@@ -22,7 +25,7 @@ beforeAll(() => loadEngine());
 afterEach(async () => {
   await flushAutosave();
   vi.useRealTimers();
-  useCharacter.setState({ id: null, entity: null, dirty: false });
+  useCharacter.setState({ id: null, entity: null, custom: undefined, dirty: false });
   for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
   useHomebrew.setState({ lastImport: null });
 });
@@ -35,7 +38,7 @@ const removePack = (name: string) => useHomebrew.getState().remove(name);
 /** Opens a stored character as the sheet page does. */
 async function openCharacter(id: string) {
   const found = await readCharacter(id);
-  if (found) useCharacter.getState().load(id, found.entity, found.dirty);
+  if (found) useCharacter.getState().load(id, found.entity, found.dirty, found.custom);
   return found !== null;
 }
 
@@ -43,7 +46,7 @@ const rename = (name: string) => useCharacter.getState().update((entity) => engi
 
 test("built, sheet and selections follow the entity; a mutation marks it dirty", () => {
   const { result } = renderHook(() => useOpenCharacter());
-  expect(result.current).toEqual({ entity: null, built: null, sheet: null, selections: null, dirty: false });
+  expect(result.current).toEqual({ entity: null, built: null, sheet: null, selections: null, dirty: false, content: { homebrew: undefined } });
 
   act(() => useCharacter.getState().load("x", engine().emptyCharacter()));
   expect(result.current.built?.classes).toEqual(["barbarian"]);
@@ -313,4 +316,139 @@ test("refreshSummaries rebuilds the summaries built with other homebrew, unless 
   await refreshSummaries(await listSummaries(), () => true);
   expect(await summary()).toMatchObject({ race: "Ironwrought", fingerprint: useHomebrew.getState().fingerprint });
   await deleteCharacter(id);
+});
+
+// Character-local content (ORC-133).
+const FEATS = "~:orcpub.dnd.e5/feats";
+const RACES = "~:orcpub.dnd.e5/races";
+const customFeat = (description = "You are an expert.") => ({
+  "~:key": "~:skill-expert-custom",
+  "~:name": "Skill Expert Custom",
+  "~:option-pack": CUSTOM_PACK,
+  "~:description": description,
+});
+const CUSTOM_FEAT = { [FEATS]: { "~:skill-expert-custom": customFeat() } };
+const CUSTOM_RACE = { [RACES]: { "~:gnome-custom": { "~:key": "~:gnome-custom", "~:name": "Gnome Custom", "~:option-pack": CUSTOM_PACK, "~:speed": 30 } } };
+const selectFeat = (entity: StrictEntity) => engine().select(entity, ["feats"], "skill-expert-custom", { homebrew: { [CUSTOM_PACK]: CUSTOM_FEAT } });
+const deselectFeat = (entity: StrictEntity) => engine().deselect(entity, ["feats"], "skill-expert-custom", { homebrew: { [CUSTOM_PACK]: CUSTOM_FEAT } });
+
+/** Stores a new character with this custom content, changed by mutate, through the open character and autosave. */
+async function addWithCustom(entity: StrictEntity, custom: object, mutate: (e: StrictEntity) => StrictEntity = (e) => e) {
+  const id = await addCharacter(entity, "2014", null);
+  await openCharacter(id);
+  useCharacter.getState().updateWithCustom(custom, mutate);
+  await flushAutosave();
+  return id;
+}
+
+test("a character's custom feat is in its feat list and builds; another character neither lists it nor builds with it", async () => {
+  const { result } = renderHook(() => {
+    const open = useOpenCharacter();
+    return { ...open, steps: useBuilderSteps(open.selections, open.content) };
+  });
+  const featOptions = () =>
+    result.current.steps
+      .flatMap((step) => step.selections)
+      .find((s) => s.key === "feats")
+      ?.options.map((o) => o.name);
+  const featNames = () =>
+    Object.values(result.current.sheet!.features)
+      .flat()
+      .map((f) => f.name);
+
+  const id = await addWithCustom(readFixture("warlock-10-drow.strict.json"), CUSTOM_FEAT, selectFeat);
+  expect((await getCharacter(id))?.custom).toEqual(CUSTOM_FEAT);
+  const other = await addCharacter(readFixture("warlock-10-drow.strict.json"), "2014", null);
+
+  await act(() => openCharacter(id));
+  expect(result.current.content.homebrew).toEqual({ [CUSTOM_PACK]: CUSTOM_FEAT });
+  expect(featOptions()).toContain("Skill Expert Custom");
+  expect(result.current.selections!.find((s) => s.key === "feats")?.selected).toContain("skill-expert-custom");
+  expect(featNames()).toContain("Skill Expert Custom");
+
+  // The other character, even with the key selected, has no such feat.
+  await act(() => openCharacter(other));
+  expect(useCharacter.getState().custom).toBeUndefined();
+  expect(featOptions()).not.toContain("Skill Expert Custom");
+  act(() => useCharacter.getState().load(other, selectFeat(useCharacter.getState().entity!)));
+  expect(featNames()).not.toContain("Skill Expert Custom");
+  await deleteCharacter(id);
+  await deleteCharacter(other);
+});
+
+test("saving a character that no longer selects its custom feat removes the feat from custom", async () => {
+  const id = await addWithCustom(readFixture("warlock-10-drow.strict.json"), { ...CUSTOM_FEAT, ...CUSTOM_RACE }, selectFeat);
+  // The custom race is not selected, so the first save already drops it.
+  expect((await getCharacter(id))?.custom).toEqual(CUSTOM_FEAT);
+  expect(useCharacter.getState()).toMatchObject({ custom: CUSTOM_FEAT, dirty: false });
+
+  useCharacter.getState().update(deselectFeat);
+  await flushAutosave();
+  const record = await getCharacter(id);
+  expect(record).not.toHaveProperty("custom");
+  expect((await listSummaries()).find((s) => s.id === id)).not.toHaveProperty("customHash");
+  // The open character holds what was stored, and the prune is not a change to save.
+  expect(useCharacter.getState()).toMatchObject({ custom: undefined, dirty: false });
+  expect(await getDraft(id)).toBeUndefined();
+  await deleteCharacter(id);
+});
+
+test("a change of custom content alone is saved, and a draft keeps the custom content with its entity", async () => {
+  const id = await addWithCustom(readFixture("warlock-10-drow.strict.json"), CUSTOM_FEAT, selectFeat);
+  const changed = { [FEATS]: { "~:skill-expert-custom": customFeat("You are a true expert.") } };
+  const { entity } = useCharacter.getState();
+  useCharacter.getState().updateWithCustom(changed, (e) => e);
+  expect(useCharacter.getState()).toMatchObject({ entity, custom: changed, dirty: true });
+  await vi.waitFor(async () => expect((await getDraft(id))?.custom).toEqual(changed));
+  await flushAutosave();
+  expect((await getCharacter(id))?.custom).toEqual(changed);
+  expect(await readCharacter(id)).toMatchObject({ dirty: false, custom: changed });
+
+  // As after a reload mid-edit: the draft opens, dirty, with its own custom content.
+  await saveDraft({ id, entity: entity!, custom: CUSTOM_FEAT, updatedAt: "2026-11-15T00:00:00.000Z" });
+  expect(await readCharacter(id)).toMatchObject({ dirty: true, custom: CUSTOM_FEAT });
+  await openCharacter(id);
+  expect(useCharacter.getState()).toMatchObject({ custom: CUSTOM_FEAT, dirty: true });
+  await deleteCharacter(id);
+});
+
+test("the summary fingerprint changes with the custom content, and refreshSummaries rebuilds a stale summary with it", async () => {
+  const summary = async (id: string) => (await listSummaries()).find((s) => s.id === id);
+  const raceIs = (entity: StrictEntity) => engine().select(entity, ["race"], "gnome-custom", { homebrew: { [CUSTOM_PACK]: CUSTOM_RACE } });
+  await loadPack("warlock-test-content");
+  const withPack = useHomebrew.getState().fingerprint;
+  const id = await addWithCustom(engine().emptyCharacter(), CUSTOM_RACE, raceIs);
+  const hash = customHash(CUSTOM_RACE);
+  expect(await summary(id)).toMatchObject({ race: "Gnome Custom", customHash: hash, fingerprint: summaryFingerprint(withPack, hash) });
+  expect(summaryFingerprint(withPack, hash)).not.toBe(withPack);
+
+  const renamed = { [RACES]: { "~:gnome-custom": { ...CUSTOM_RACE[RACES]["~:gnome-custom"], "~:name": "Deep Gnome Custom" } } };
+  useCharacter.getState().updateWithCustom(renamed, (e) => e);
+  await flushAutosave();
+  const after = await summary(id);
+  expect(after).toMatchObject({ race: "Deep Gnome Custom", customHash: customHash(renamed) });
+  expect(after?.fingerprint).not.toBe(summaryFingerprint(withPack, hash));
+
+  // A summary is current while the homebrew is as it was built with.
+  await refreshSummaries(await listSummaries(), () => true);
+  expect(await summary(id)).toEqual(after);
+
+  // With other homebrew it is stale, and is rebuilt with its custom content.
+  await removePack("warlock-test-content");
+  await refreshSummaries(await listSummaries(), () => true);
+  expect(await summary(id)).toMatchObject({
+    race: "Deep Gnome Custom",
+    customHash: customHash(renamed),
+    fingerprint: summaryFingerprint("", customHash(renamed)),
+  });
+  await deleteCharacter(id);
+});
+
+test("checkStoredCharacter checks a stored character with its own custom content", async () => {
+  const id = await addWithCustom(readFixture("warlock-10-drow.strict.json"), CUSTOM_FEAT, selectFeat);
+  const other = await addCharacter(selectFeat(readFixture("warlock-10-drow.strict.json")), "2014", null);
+  expect((await checkStoredCharacter(id))?.map((u) => u.key)).not.toContain("skill-expert-custom");
+  expect((await checkStoredCharacter(other))?.map((u) => u.key)).toContain("skill-expert-custom");
+  await deleteCharacter(id);
+  await deleteCharacter(other);
 });

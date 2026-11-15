@@ -16,6 +16,7 @@ import {
   withoutDisabledFlag,
   withoutItem,
 } from "../engine/content.ts";
+import { CUSTOM_PACK, reservedPackMessage } from "../engine/custom.ts";
 import { type Content, engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
 import { type BundleHomebrew, magicItemKey } from "../engine/import.ts";
 import { deleteMagicItem, deletePack, listMagicItems, listPacks, type MagicItemRecord, type PackRecord, saveMagicItems, savePacks } from "../storage/packs.ts";
@@ -60,7 +61,8 @@ interface HomebrewState {
    * single-plugin file loads as a pack named for the file. New packs are
    * enabled. A failed import leaves the packs as they were. A file with key
    * conflicts stores nothing yet: it becomes pending, and resolveConflicts or
-   * cancelImport ends it. Throws, leaving the packs as they were and
+   * cancelImport ends it. A file with a pack named CUSTOM_PACK stores
+   * nothing, and its log says why. Throws, leaving the packs as they were and
    * lastImport null, if the file has a pack named as a quarantined record,
    * or if the importer throws.
    * Needs the engine loaded.
@@ -103,8 +105,9 @@ interface HomebrewState {
    * Stores one item, as its type's validator returned it, under its key in
    * the pack named pack. It replaces the item with that key. A pack that is
    * not stored is created, enabled. contentType is Transit-encoded. Throws,
-   * and stores nothing, if the item has no key, if the pack is quarantined,
-   * or if the packs do not build with the item. Needs the engine loaded.
+   * and stores nothing, if the item has no key, if the pack is quarantined
+   * or named CUSTOM_PACK, or if the packs do not build with the item. Needs
+   * the engine loaded.
    */
   saveItem: (pack: string, contentType: string, item: object) => Promise<void>;
   /**
@@ -112,9 +115,9 @@ interface HomebrewState {
    * key, as saveItem stores one item: it replaces the item with that key,
    * and the packs must build with them. Each change gives the tagged content
    * type, the tagged key and the item. The Review uses page saves its rows
-   * with it. Throws, and stores nothing, if the pack is not stored, if it is
-   * quarantined, or if the packs do not build with the items. Needs the
-   * engine loaded.
+   * with it. Throws, and stores nothing, if the pack is named CUSTOM_PACK,
+   * if it is not stored, if it is quarantined, or if the packs do not build
+   * with the items. Needs the engine loaded.
    */
   saveItems: (pack: string, items: ItemChange[]) => Promise<void>;
   /** Removes a record that could not be read from storage, and its warning. */
@@ -225,9 +228,23 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
       fileName,
       packs: existing === undefined ? Object.keys(data) : Object.keys(engine().parseOrcbrew(text, { name }).data ?? {}),
     };
+    // A character's own content builds as the pack CUSTOM_PACK (ORC-133), so no stored pack can have the name.
+    if (CUSTOM_PACK in data) return set({ lastImport: refused(lastImport, reservedPackMessage()) });
     checkQuarantine(data);
     if (askOnConflicts && lastImport.conflicts.length > 0) return set({ pending: { id: crypto.randomUUID(), result: lastImport, homebrew: data } });
     await store(data, flags, lastImport);
+  }
+
+  /** The import's result when nothing of it is stored, with the reason as an error of its log. */
+  function refused(lastImport: LastImport, reason: string): LastImport {
+    const { log } = lastImport;
+    return {
+      ...lastImport,
+      success: false,
+      log: { ...log, message: "Nothing was loaded from the file.", errors: [...log.errors, reason] },
+      conflicts: [],
+      packs: [],
+    };
   }
 
   /** Throws if the homebrew has a pack named as a quarantined record. */
@@ -273,6 +290,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
    * Runs inside queued.
    */
   async function putItems(pack: string, items: ItemChange[], what: string) {
+    checkPackName(pack);
     checkQuarantine({ [pack]: {} });
     const { packs } = get();
     const stored: Omit<PackRecord, "updatedAt"> = packs.find((p) => p.id === pack) ?? { id: pack, rules: "2014", enabled: true, disabledItems: [], plugin: {} };
@@ -347,6 +365,7 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     saveItems: (pack, items) =>
       queued(async () => {
         await restorePacks();
+        checkPackName(pack);
         if (!get().packs.some((p) => p.id === pack)) throw new Error(`No pack named ${pack}`);
         await putItems(pack, items, "these items");
       }),
@@ -418,6 +437,11 @@ export function restorePacks(): Promise<void> {
       throw e;
     });
   return restoring;
+}
+
+/** Throws if the pack name is CUSTOM_PACK, which no stored pack can have. */
+function checkPackName(pack: string) {
+  if (pack === CUSTOM_PACK) throw new Error(reservedPackMessage());
 }
 
 /**

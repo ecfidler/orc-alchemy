@@ -8,8 +8,7 @@ import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
 import { type Content, type Engine, engine, type StrictEntity } from "../engine/engine.ts";
 import { ABILITIES, unqualify } from "../engine/sheet.ts";
-import { useCharacter, useOpenCharacter } from "../state/character.ts";
-import { useHomebrew } from "../state/homebrew.ts";
+import { useCharacter, useCharacterContent, useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
 
 const MAX_LEVEL = 20;
@@ -18,7 +17,7 @@ type Mutation = (e: Engine, entity: StrictEntity, options: Content) => StrictEnt
 
 /** An engine mutation with the loaded content; its error, if it throws, for the alert. */
 export function useMutation(): [error: string | null, run: (mutate: Mutation) => void] {
-  const content = useHomebrew((state) => state.content);
+  const content = useCharacterContent();
   const [error, setError] = useState<string | null>(null);
   function run(mutate: Mutation) {
     setError(null);

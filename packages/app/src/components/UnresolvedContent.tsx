@@ -2,8 +2,7 @@ import { Button, Select, StuckNote } from "@orc-alchemy/ui";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { type ContentSuggestion, missingContent, OPTION_LABEL, type UnresolvedKey } from "../engine/reconcile.ts";
-import { useCharacter } from "../state/character.ts";
-import { useHomebrew } from "../state/homebrew.ts";
+import { useCharacter, useCharacterContent } from "../state/character.ts";
 
 type OnRemap = (unresolved: UnresolvedKey, newKey: string) => Promise<void>;
 
@@ -90,7 +89,7 @@ function Remap({ unresolved, onRemap }: { unresolved: UnresolvedKey; onRemap: On
  */
 export function OpenCharacterGaps({ characterName }: { characterName: string }) {
   const entity = useCharacter((state) => state.entity);
-  const content = useHomebrew((state) => state.content);
+  const content = useCharacterContent();
   const unresolved = useMemo(() => (entity === null ? [] : missingContent(entity, content)), [entity, content]);
   if (unresolved.length === 0) return null;
   const note = (
