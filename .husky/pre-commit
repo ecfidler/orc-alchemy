@@ -1,0 +1,27 @@
+# Formats the staged files, sorts their imports and lints them (ORC-216).
+# CI runs the same check on every PR, so this hook only saves a CI run.
+
+biome=./node_modules/.bin/biome
+if [ ! -x "$biome" ]; then
+  echo "pre-commit: Biome is not installed, so the check did not run. Run 'bun install'."
+  exit 0
+fi
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+# A file with staged and unstaged changes: a fix would stage the unstaged
+# part too. For such a commit the hook only checks. Biome reads the file
+# from the working tree, so the check includes the unstaged part.
+unstaged=$(git diff --name-only)
+if [ -n "$unstaged" ] && printf '%s\n' "$staged" | grep -Fxq -- "$unstaged"; then
+  "$biome" check --staged --no-errors-on-unmatched || {
+    echo "pre-commit: Biome found errors. Run 'bunx biome check --write <file>'. Then stage the file and commit again."
+    exit 1
+  }
+  exit 0
+fi
+
+"$biome" check --write --staged --no-errors-on-unmatched || exit 1
+# Stage the fixes. No staged file has an unstaged change, so this adds only what Biome wrote.
+git update-index --again
