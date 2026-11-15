@@ -11,11 +11,12 @@ staged=$(git diff --cached --name-only --diff-filter=ACMR)
 [ -z "$staged" ] && exit 0
 
 # A file with staged and unstaged changes: a fix would stage the unstaged
-# part too. For such a commit the hook only checks.
+# part too. For such a commit the hook only checks. Biome reads the file
+# from the working tree, so the check includes the unstaged part.
 unstaged=$(git diff --name-only)
 if [ -n "$unstaged" ] && printf '%s\n' "$staged" | grep -Fxq -- "$unstaged"; then
   "$biome" check --staged --no-errors-on-unmatched || {
-    echo "pre-commit: run 'bunx biome check --write <file>', stage the result, and commit again."
+    echo "pre-commit: Biome found errors. Run 'bunx biome check --write <file>'. Then stage the file and commit again."
     exit 1
   }
   exit 0
