@@ -3,6 +3,8 @@
 // proficiency and a feature with uses, a pack subrace of it, and fighter-20
 // with it, or with the SRD race Dwarf and its subrace Hill Dwarf, in place
 // of his Human.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { fighter20 } from "./test-feats.ts";
 
@@ -55,8 +57,11 @@ export function withSylvar(subrace = false): StrictEntity {
   return subrace ? e.select(entity, ["race", "sylvar", "subrace"], "deep-sylvar", options) : entity;
 }
 
-/** fighter-20 with the SRD race Dwarf and its subrace Hill Dwarf in place of Human. */
-export function withHillDwarf(): StrictEntity {
+/** wizard-1, a High Elf wizard: he has no martial weapon proficiency, so a race's martial weapons show on his sheet. */
+export const wizard1 = (): StrictEntity => JSON.parse(readFileSync(join(import.meta.dirname, "../../../../fixtures/characters/wizard-1.strict.json"), "utf8"));
+
+/** The character, fighter-20 by default, with the SRD race Dwarf and its subrace Hill Dwarf in place of his race. */
+export function withHillDwarf(character: StrictEntity = fighter20()): StrictEntity {
   const e = engine();
-  return e.select(e.select(fighter20(), ["race"], "dwarf"), ["race", "dwarf", "subrace"], "hill-dwarf");
+  return e.select(e.select(character, ["race"], "dwarf"), ["race", "dwarf", "subrace"], "hill-dwarf");
 }

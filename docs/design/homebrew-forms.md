@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T03:19:06Z }
+generated: { by: claude-code/agent, at: 2026-11-16T03:33:43Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -718,7 +718,7 @@ section says so.
   the book is not SRD content. It is `--ink-muted` text, because it needs
   no action. Only the race has this note.
 * If a save of the copy removes picks of the character, a line above the
-  form names them. See [The choices that Save removes](#the-choices-that-save-removes).
+  form names them. See [The picks that Save removes](#the-picks-that-save-removes).
 * The modals of the form open above the dialog, for example "+ Add a
   modifier", the pickers (for a background, also "+ Add equipment" with
   its search) and the delete confirmation. The focus comes back into the
@@ -761,6 +761,11 @@ section says so.
   description (`:help`), size, speed, darkvision, ability score
   increases, languages, weapon proficiencies and features. The summary of
   a feature becomes its description, as for a background.
+* The list has no ability score increases for the Human. The engine gives
+  the Human +1 to each ability with its variant Standard Human. Thus the
+  copy of the Human opens with +1 in each of the six abilities, and a copy
+  of a standard Human with no edits keeps the scores. For a Variant Human,
+  the user must change the increases in the form.
 * The list does not have all of an SRD race. Thus the copy of an SRD race
   does not have these:
   * The damage resistances, for example the poison resistance of the
@@ -771,10 +776,10 @@ section says so.
     weapon of the Dragonborn.
   * The choices under the race, for example the subrace, the variant and
     the extra language of the Human, the tool of the Dwarf and the
-    ancestry of the Dragonborn. The Human gets +1 to each ability from its
-    variant Standard Human, so its copy has no ability score increase.
+    ancestry of the Dragonborn. Save removes the character's picks of
+    these choices.
   * The subraces. A copy never has a subrace (see
-    [The choices that Save removes](#the-choices-that-save-removes)).
+    [The picks that Save removes](#the-picks-that-save-removes)).
 * If the content list does not load, an alert under the lines says so,
   and the dialog does not open.
 * The name is "{name} (Custom)". The user can change it.
@@ -828,70 +833,31 @@ them together:
 
 After Save, the line shows Edit custom, and its button has the focus.
 
-## The choices that Save removes
+## The picks that Save removes
 
 Step 4 removes each pick under the copy that does not resolve. Before
 Save, the dialog tells the user which picks these are.
 
-* When Customize opens the dialog, the app does a test save of the copy as
-  it opens. The picks that the test save removes show on a line above the
-  form, in `--warning` text: "Save removes these choices of the character,
-  because the copy does not have them: Subrace (Illuskan), Variant
-  (Standard Human)."
-* Each pick shows as the name of its selection and, in parentheses, the
-  name of its option. A pick under a removed pick does not show.
-* If the test save removes no pick, the line does not show. Edit custom
-  does not show the line.
-* The line is for the copy as it opens. A change in the form can change
-  which picks Save removes.
+* The app does a test save of the form's record as it is now, with the
+  same steps as Save. The picks that the test save removes show on a line
+  above the form, in `--warning` text: "Save removes these picks of the
+  character: Subrace (Illuskan), Variant (Standard Human)."
+* The text gives no reason, because there are two: the copy does not offer
+  the choice, or the pack of the pick is turned off now.
+* Each pick shows as the name of its choice and, in parentheses, the name
+  of its option. A pick under a removed pick does not show.
+* The line follows the form. When the dialog opens, the line is correct at
+  once. After a change, the line changes when the form has not changed
+  for 300 ms, so typing stays smooth. While the form has problems, the
+  line stays as it was.
+* Customize and Edit custom both show the line. For example, if the user
+  removes the artisan's tool choice of a background copy, the line names
+  the character's pick of that choice, such as Smith's Tools.
+* If the test save removes no pick, the line does not show.
 * A race copy never keeps a subrace pick. An SRD race has its subraces in
   the engine, and the copy does not get them. A pack subrace names its race
   by the race's key, and the copy has a new key. Thus Save removes the
   subrace pick, and the line names it. The values of the subrace, for
   example an ability score increase, go from the sheet.
-* This line is the same for each type. A feat or a background copy shows
-  it only when the copy does not offer a choice that the character
-  picked.
-
-# Build order
-
-This is the order in which the M9 build tickets were filed. Linear holds the
-tickets, their blocking relations and their status. When this list and
-Linear disagree, Linear wins.
-
-1. Pin `@pubdoor/dmv` 0.4.0 and copy the fixtures (ORC-194).
-2. Layout and field styling on all 13 forms (ORC-195).
-3. The picker, token and number toggle controls (ORC-196).
-4. Add a modifier on the feat and race forms (ORC-197).
-5. Add a modifier on the subrace, subclass, magic item and monster forms
-   (ORC-198).
-6. New controls on the feat, race and subrace forms (ORC-199).
-7. New controls on the background form (ORC-200).
-8. New controls on the class and subclass forms, with the spells table
-   (ORC-201).
-9. New controls on the magic item, monster and spell forms (ORC-202).
-10. Sheet: features by type, and no bubble for 0 uses (ORC-203).
-11. The uses control, the preview and delete with confirmation (ORC-204).
-12. Feat: uses of the feat and a feature list (ORC-205).
-13. Suggested uses: the rules and the line in the form (ORC-206).
-14. The Review uses page (ORC-207).
-
-Tickets 2 to 9 do not need the new engine. If the engine release is late,
-move the pin to a place before ticket 10.
-
-**Review:** each ticket that changes a page attaches Playwright screenshots
-to its PR, light first and then dark.
-
-# Out of scope for M9
-
-* Level tables for uses. No pack in the data needs them, and a pack can
-  unlock a feature at a level.
-* Recording spent uses on the sheet.
-* A suggestion from an AI model.
-* Backward compatibility with the old app for content that has scaled uses.
-* Magic items in the `.orcbrew` export. They stay out, as in M5.
-* The Customize flow. M5.1 added it after M9, on these forms. See
-  [Customize](#customize).
-
-[^orc-180]: Map: improve the homebrew content forms and feature uses, <https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses>
-[^builder-notes]: Notes regarding the content builder pages, <https://linear.app/orc-alchemy/document/notes-regarding-the-content-builder-pages-88f7f6f937ac>
+* The line is the same for each type. A feat or a background copy shows
+  it when the copy does not offer a choice that the character picked.

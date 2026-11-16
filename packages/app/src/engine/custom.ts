@@ -129,6 +129,12 @@ export function copyKey(contentType: ContentType, name: string): string {
   return contentType === BACKGROUND_TYPE ? optionKeyOf(contentType, { "~:name": name }) : trimmed;
 }
 
+/** The copy key of the item's name (copyKey), or "" when the item has no name. */
+export function copyKeyOf(contentType: ContentType, item: object): string {
+  const name = (item as Record<string, unknown>)[tag("name")];
+  return typeof name === "string" ? copyKey(contentType, name) : "";
+}
+
 /**
  * The item of the plugin's content type that gives the option with the
  * key: the item at the key, or for a background the last item with that
@@ -179,6 +185,9 @@ export function formRecord(item: Record<string, unknown>): Record<string, unknow
   return rest;
 }
 
+/** The character's features: its traits, actions, bonus actions and reactions, in this order. */
+export const features = (built: Built2014) => [built.traits, built.actions, built["bonus-actions"], built.reactions].flatMap((list) => list ?? []);
+
 /**
  * The text of a built-in option, such as an SRD feat, for its copy: the
  * description, or else the summary, of the character's feature with the
@@ -187,8 +196,7 @@ export function formRecord(item: Record<string, unknown>): Record<string, unknow
  * built is the character as the engine builds it (useOpenCharacter).
  */
 export function builtInText(built: Built2014, name: string): string {
-  const features = [built.traits, built.actions, built["bonus-actions"], built.reactions].flatMap((list) => list ?? []);
-  const feature = features.find((f) => f.name === name);
+  const feature = features(built).find((f) => f.name === name);
   const text = (feature?.description ?? feature?.summary ?? "").trim();
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -216,8 +224,7 @@ export function customizeOption(
   custom: object | undefined,
   { contentType, path, item, replacedKey }: Customization,
 ): { entity: StrictEntity; custom: object } {
-  const name = (item as Record<string, unknown>)[tag("name")];
-  const key = typeof name === "string" ? copyKey(contentType, name) : "";
+  const key = copyKeyOf(contentType, item);
   if (key === "") throw new Error("The copy needs a name with a letter or a digit");
   const type = tag(contentType);
   const without = replacedKey === undefined || replacedKey === key ? (custom ?? {}) : withoutItem(custom ?? {}, type, tag(replacedKey));
@@ -286,13 +293,18 @@ export async function srdBackgroundRecord(key: string): Promise<Record<string, u
   return tagKeys({ ...rest, ...(allChoices.length > 0 && { "equipment-choices": allChoices }), traits: formTraits(traits) }) as Record<string, unknown>;
 }
 
+/** The six ability keys, as a race's :abilities has them. */
+const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"].map((a) => `orcpub.dnd.e5.character/${a}`);
+
 /**
  * The SRD race with the key as a form record in the shape of a pack race
  * (RaceForm.tsx), for its copy, or undefined if the engine's content list
  * (content/races.json) has no such race. The record has what the list has:
  * the name, the description (:help), the size, the speed, the darkvision,
  * the ability score increases, the languages, the weapon proficiencies and
- * the features (formTraits). The list has no damage resistances, saving
+ * the features (formTraits). The Human gets +1 to each ability, which
+ * the engine gives with its variant Standard Human, so that a copy keeps
+ * a standard Human's scores. The list has no damage resistances, saving
  * throw advantages, spells or choices of the race, and the copy has no
  * subraces, so those are not in the record. The SRD list loads once, as
  * its own chunk.
@@ -302,6 +314,8 @@ export async function srdRaceRecord(key: string): Promise<Record<string, unknown
   const race = (list as Record<string, unknown>[]).find((r) => r.key === key);
   if (race === undefined) return undefined;
   const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, ...rest } = race;
+  // The list has no ability score increases for the Human: its +1 to each ability comes from the variant Standard Human.
+  if (key === "human" && rest.abilities === undefined) rest.abilities = Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1]));
   const weaponProfs = Array.isArray(weapons) ? Object.fromEntries(weapons.map((w) => [w, true])) : {};
   const record = tagKeys({
     ...rest,
@@ -316,6 +330,14 @@ export async function srdRaceRecord(key: string): Promise<Record<string, unknown
   };
 }
 
+/** The options under the option at path that do not resolve against the content, as missingContent gives them. */
+function unresolvedUnder(entity: StrictEntity, path: string[], content: Content) {
+  return missingContent(entity, content).filter((u) => u.path.length > path.length && path.every((key, i) => u.path[i] === key));
+}
+
+/** The entity without the options at the paths of the unresolved options. */
+const withoutAll = (entity: StrictEntity, unresolved: { path: string[] }[]) => unresolved.reduce((result, u) => withoutOption(result, u.path), entity);
+
 /**
  * The entity without the options under the option at path that do not
  * resolve against the content, such as a choice that the original offers
@@ -325,31 +347,43 @@ export async function srdRaceRecord(key: string): Promise<Record<string, unknown
  * none.
  */
 export function withoutUnresolvedUnder(entity: StrictEntity, path: string[], content: Content): StrictEntity {
-  const under = missingContent(entity, content).filter((u) => u.path.length > path.length && path.every((key, i) => u.path[i] === key));
-  return under.reduce((result, u) => withoutOption(result, u.path), entity);
+  return withoutAll(entity, unresolvedUnder(entity, path, content));
+}
+
+export interface SavedCopy {
+  /** The entity with the copy selected and the picks under it that do not resolve removed (withoutUnresolvedUnder). */
+  entity: StrictEntity;
+  custom: object;
+  /** The key of the copy (copyKeyOf). */
+  key: string;
+  /** What the character builds against with the new custom content. */
+  content: Content;
+  /**
+   * The picks that the save removed, as their paths in the entity before
+   * the save, such as ["race", "dwarf", "subrace", "hill-dwarf"]. A pick
+   * under a removed pick is not listed.
+   */
+  removed: string[][];
 }
 
 /**
- * The picks under the option that a save of the copy removes
- * (withoutUnresolvedUnder), as their paths in the entity before the save,
- * such as ["race", "dwarf", "subrace", "hill-dwarf"]. A pick under a pick
- * that goes is not listed. [] when the copy keeps each pick, or when the
- * copy's name gives no key. content is what the character builds against,
- * without custom.
+ * The save of a copy: customizeOption, then the picks under the copy that
+ * do not resolve go. content is what the character builds against, without
+ * custom. The dialog's Save stores the result, and its line of removed
+ * picks shows `removed` before Save. Throws as customizeOption throws.
  */
-export function picksRemovedBySave(entity: StrictEntity, custom: object | undefined, content: Content, customization: Customization): string[][] {
-  const name = (customization.item as Record<string, unknown>)[tag("name")];
-  const key = typeof name === "string" ? copyKey(customization.contentType, name) : "";
-  if (key === "") return [];
-  const { path } = customization;
+export function saveCopy(entity: StrictEntity, custom: object | undefined, content: Content, customization: Customization): SavedCopy {
   const next = customizeOption(entity, custom, customization);
+  const key = copyKeyOf(customization.contentType, customization.item);
+  const { path } = customization;
   const at = path.length - 1;
   const copyPath = [...path.slice(0, at), key];
-  const under = missingContent(next.entity, characterContent(content, next.custom))
-    .map((u) => u.path)
-    .filter((p) => p.length > copyPath.length && copyPath.every((k, i) => p[i] === k))
-    .map((p) => p.map((k, i) => (i === at ? path[at] : k)));
-  return under.filter((p) => !under.some((q) => q.length < p.length && q.every((k, i) => p[i] === k)));
+  const withCopy = characterContent(content, next.custom);
+  const under = unresolvedUnder(next.entity, copyPath, withCopy);
+  const kept = withoutAll(next.entity, under);
+  const paths = under.map((u) => u.path.map((k, i) => (i === at ? path[at] : k)));
+  const removed = paths.filter((p) => !paths.some((q) => q.length < p.length && q.every((k, i) => p[i] === k)));
+  return { entity: kept, custom: next.custom, key, content: withCopy, removed };
 }
 
 /** The values of a background's starting equipment that addStartingEquipment gives: the items and the gold. */

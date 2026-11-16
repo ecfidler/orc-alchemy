@@ -6,23 +6,20 @@
 // feat (ORC-134), the background (ORC-135) and the race (ORC-136).
 
 import { Button, Dialog, useConfirm } from "@orc-alchemy/ui";
-import { type ReactNode, useCallback, useRef, useState } from "react";
-import type { BuilderSelection } from "../engine/builder.ts";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type BuilderSelection, pickName } from "../engine/builder.ts";
 import { tag } from "../engine/content.ts";
 import {
   builtInText,
   CUSTOM_PACK,
-  characterContent,
-  copyKey,
-  customizeOption,
+  copyKeyOf,
   customName,
   formRecord,
   optionOrigin,
-  picksRemovedBySave,
+  saveCopy,
   srdBackgroundRecord,
   srdRaceRecord,
   withCopyStartingEquipment,
-  withoutUnresolvedUnder,
 } from "../engine/custom.ts";
 import type { Built2014, Content, ContentType, StrictEntity } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -79,7 +76,7 @@ const CUSTOMIZABLE: Customizable[] = [
     // Our own words for the optional rule; Tasha's Cauldron of Everything is not SRD content.
     note: (
       <>
-        Customizing your origin: an optional rule in <cite>Tasha's Cauldron of Everything</cite> (page 8) lets a character move the race's ability score
+        The optional rule "Customizing Your Origin" in <cite>Tasha's Cauldron of Everything</cite> (page 8) lets a character move the race's ability score
         increases to other abilities, and change its languages and proficiencies for others. Make those changes here. Skill, weapon and tool proficiencies are
         in the "+ Add a modifier" list.
       </>
@@ -104,8 +101,12 @@ export interface CustomizeDialogProps {
   check?: (item: ItemRecord) => Problem[];
   /** A short note above the form (Customizable note). */
   note?: ReactNode;
-  /** The names of the character's picks that Save removes, such as "Subrace (Hill Dwarf)". */
-  removes?: string[];
+  /**
+   * The names of the character's picks that a save of the item, as
+   * validated, removes, such as "Subrace (Hill Dwarf)". The dialog shows
+   * them on a line above the form, for the record as it is now.
+   */
+  removedPicks?: (item: ItemRecord) => string[];
   /** Stores the item as the validator returned it. A throw shows its message, and the dialog stays open. */
   onSave: (item: ItemRecord) => void;
   /** Closes the dialog without a save. With changes, the dialog asks first. */
@@ -123,12 +124,13 @@ export interface CustomizeDialogProps {
  * item goes in the character's custom content. Mount it again (a new key)
  * for each open, so the form starts from initial.
  */
-export function CustomizeDialog({ open, builder, initial, title, check, note, removes = [], onSave, onClose, finalFocus }: CustomizeDialogProps) {
+export function CustomizeDialog({ open, builder, initial, title, check, note, removedPicks, onSave, onClose, finalFocus }: CustomizeDialogProps) {
   const { one, fields, Form } = builder;
   const [record, setRecord] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [confirm, confirmDialog] = useConfirm();
   const { problems, item, ok, changed } = useCheckedRecord(builder, record, initial, { optionPack: CUSTOM_PACK, check });
+  const removes = useRemovedPicks(ok ? item : null, removedPicks);
   // The form has no draft, so a reload or a close of the tab warns first, as on the My Content forms.
   useUnloadWarning(open && changed);
 
@@ -168,7 +170,7 @@ export function CustomizeDialog({ open, builder, initial, title, check, note, re
         )}
         {removes.length > 0 && (
           <p role="note" className="text-warning">
-            Save removes these choices of the character, because the copy does not have them: {removes.join(", ")}.
+            Save removes these picks of the character: {removes.join(", ")}.
           </p>
         )}
         <FormProblems problems={problems} fields={fields} />
@@ -178,6 +180,30 @@ export function CustomizeDialog({ open, builder, initial, title, check, note, re
       {confirmDialog}
     </Dialog>
   );
+}
+
+/** How long the line of removed picks waits after a change of the form, so that typing stays smooth: a test save builds the character. */
+const REMOVED_PICKS_DELAY = 300;
+
+/**
+ * The names of the picks that a save of the item removes (removedPicks).
+ * The first item counts at once, so the line shows when the dialog opens.
+ * A later item counts when the form has not changed for
+ * REMOVED_PICKS_DELAY. While the record has problems (item null), the last
+ * names stay.
+ */
+function useRemovedPicks(item: ItemRecord | null, removedPicks: ((item: ItemRecord) => string[]) | undefined): string[] {
+  const counted = useRef(item);
+  const [removes, setRemoves] = useState<string[]>(() => (item !== null && removedPicks ? removedPicks(item) : []));
+  useEffect(() => {
+    if (item === null || removedPicks === undefined || item === counted.current) return;
+    const timer = setTimeout(() => {
+      counted.current = item;
+      setRemoves(removedPicks(item));
+    }, REMOVED_PICKS_DELAY);
+    return () => clearTimeout(timer);
+  }, [item, removedPicks]);
+  return removes;
 }
 
 /** The open dialog: what it edits, and a number that mounts a new dialog at each open. */
@@ -190,32 +216,6 @@ interface Session {
   initial: ItemRecord;
   /** The key of the copy in custom, when the dialog edits a copy. */
   replacedKey?: string;
-  /** The names of the picks that a save of initial removes. */
-  removes: string[];
-}
-
-/**
- * The name of the pick at path in the selection's tree, as "Subrace (Hill
- * Dwarf)": the name of its selection and of its option. The bare key when
- * the tree does not have it.
- */
-function pickName(selection: BuilderSelection, path: string[]): string {
-  const key = path.at(-1) ?? "";
-  const parent = path.slice(0, -1).join("/");
-  const find = (s: BuilderSelection): string | undefined => {
-    if (s.actualPath.join("/") === parent) {
-      const option = s.options.find((o) => o.key === key);
-      return option && `${s.name} (${option.name})`;
-    }
-    for (const option of s.options) {
-      for (const child of option.selections) {
-        const found = find(child);
-        if (found) return found;
-      }
-    }
-    return undefined;
-  };
-  return find(selection) ?? key;
 }
 
 /**
@@ -223,10 +223,10 @@ function pickName(selection: BuilderSelection, path: string[]): string {
  * its name and a small Customize button, or Edit custom for a copy. The
  * button is not in the card, because a card is a toggle. Customize opens the
  * form on a copy of the option, named customName of it; Edit custom opens it
- * on the copy. A save writes the copy and selects it (customizeOption),
- * drops the choices under it that the copy does not offer, and then does
- * the type's afterSave. Before Save, the dialog names the picks that a save
- * of the copy as it opens removes (picksRemovedBySave), such as a subrace.
+ * on the copy. A save writes the copy and selects it, drops the picks
+ * under it that do not resolve (saveCopy), and then does the type's
+ * afterSave. Before Save, the dialog names the picks that a save of the
+ * form's record removes, such as a subrace.
  */
 export function CustomizeLines({ selection, customizable }: { selection: BuilderSelection; customizable: Customizable }) {
   const { builder } = customizable;
@@ -258,7 +258,6 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
         return;
       }
     }
-    const removes = origin.from === "custom" ? [] : removedPicks(key, initial);
     setSession((last) => ({
       id: (last?.id ?? 0) + 1,
       open: true,
@@ -266,22 +265,32 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
       title: origin.from === "custom" ? `Edit custom ${builder.one}` : `Customize ${name}`,
       initial,
       replacedKey: origin.from === "custom" ? key : undefined,
-      removes,
     }));
   }
 
-  /** The names of the character's picks under the option with the key that a save of the item removes. */
-  function removedPicks(key: string, item: ItemRecord): string[] {
-    const state = useCharacter.getState();
-    if (state.entity === null) return [];
-    const path = [...selection.actualPath, key];
-    try {
-      return picksRemovedBySave(state.entity, state.custom, useHomebrew.getState().content, { contentType, path, item }).map((p) => pickName(selection, p));
-    } catch {
-      // The save itself shows why it cannot go, such as a name that another option has.
-      return [];
-    }
-  }
+  /** The save of the item in the open session, with the character as it is now (saveCopy). Throws as saveCopy throws. */
+  const saved = useCallback(
+    (item: ItemRecord) => {
+      if (session === null) throw new Error("No dialog is open");
+      const state = useCharacter.getState();
+      if (state.entity === null) throw new Error("No character is open");
+      const path = [...selection.actualPath, session.key];
+      return saveCopy(state.entity, state.custom, useHomebrew.getState().content, { contentType, path, item, replacedKey: session.replacedKey });
+    },
+    [session, selection.actualPath, contentType],
+  );
+
+  const removedPicks = useCallback(
+    (item: ItemRecord): string[] => {
+      try {
+        return saved(item).removed.map((p) => pickName(selection, p));
+      } catch {
+        // remapOption throws when the selection has an option with the copy's key already; the Name problem (check) shows that case.
+        return [];
+      }
+    },
+    [saved, selection],
+  );
 
   // A name whose key another option of the selection has would replace it or collide with it: the original, a pack item or another copy.
   // A copy in custom that the character no longer selects does not count: autosave prunes it (pruneCustom), and a save replaces it now.
@@ -289,7 +298,7 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
   const { options } = selection;
   const check = useCallback(
     (item: ItemRecord): Problem[] => {
-      const key = typeof item[tag("name")] === "string" ? copyKey(contentType, item[tag("name")] as string) : "";
+      const key = copyKeyOf(contentType, item);
       const stale = (o: (typeof options)[number]) => !o.selected && optionOrigin(homebrew, custom, contentType, o.key).from === "custom";
       if (key === "" || key === replacedKey || !options.some((o) => o.key === key && !stale(o))) return [];
       return [{ path: ["name"], text: `Another ${builder.one} in the list has this name, or one with the same key (${key}). Choose another name.` }];
@@ -299,20 +308,11 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
 
   function save(item: ItemRecord) {
     if (session === null) return;
-    const state = useCharacter.getState();
-    if (state.entity === null) throw new Error("No character is open");
-    const next = customizeOption(state.entity, state.custom, {
-      contentType,
-      path: [...selection.actualPath, session.key],
-      item,
-      replacedKey: session.replacedKey,
-    });
-    const key = copyKey(contentType, String(item[tag("name")]));
-    const content = characterContent(useHomebrew.getState().content, next.custom);
-    // A choice under the original that the copy does not offer goes, so the sheet does not ask to load content for it.
-    const kept = withoutUnresolvedUnder(next.entity, [...selection.actualPath, key], content);
-    const entity = customizable.afterSave?.(kept, key, session.initial, item, content) ?? kept;
-    state.updateWithCustom(next.custom, () => entity);
+    // A pick under the original that does not resolve under the copy goes, so the sheet does not ask to load content for it.
+    const next = saved(item);
+    const { key } = next;
+    const entity = customizable.afterSave?.(next.entity, key, session.initial, item, next.content) ?? next.entity;
+    useCharacter.getState().updateWithCustom(next.custom, () => entity);
     focusKey.current = key;
     setSession({ ...session, open: false });
   }
@@ -347,7 +347,7 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
           title={session.title}
           check={check}
           note={customizable.note}
-          removes={session.removes}
+          removedPicks={removedPicks}
           onSave={save}
           onClose={() => setSession({ ...session, open: false })}
           finalFocus={finalFocus}
