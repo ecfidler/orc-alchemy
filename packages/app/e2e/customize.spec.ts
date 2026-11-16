@@ -244,7 +244,7 @@ test("Custom Origin with the keyboard: move a bonus, swap a language and a skill
     await expect(list).toBeHidden();
     await expect(dialog.getByRole("button", { name: now })).toBeFocused();
   }
-  await expect(dialog.getByRole("note").nth(1)).toHaveText("Save removes these picks of the character: Subrace (Illuskan).");
+  await expect(dialog.getByRole("note").nth(1)).toHaveText("Save removes these picks of the character: Subrace (Illuskan), Variant (Standard Human).");
 
   await dialog.getByRole("button", { name: "Save" }).focus();
   await page.keyboard.press("Enter");
