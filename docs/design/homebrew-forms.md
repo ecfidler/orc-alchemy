@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T20:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T16:57:43Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -914,21 +914,26 @@ The dialog is one page that scrolls, in the ui `Dialog`, with the title
    is not offered. A new base race resets the picks. Under the select, a
    muted line names the choices of the race that the copy does not keep,
    for example "Subrace, Tool Proficiency" for the Dwarf.
-4. **Ability bonuses:** one line for each positive bonus of the race: the
-   amount, a select of the abilities, then "{Race} gives {Ability}", or
-   "moved from {Ability}" and a **Put back** link. The bonuses keep the
-   race's amounts. An ability that another bonus holds is not offered,
-   so two bonuses never go on one ability. When the race gives a bonus to
+4. **Ability bonuses:** one line for each positive bonus of the base
+   race's record: the amount, a select of the abilities, then "{Race}
+   gives {Ability}", or "moved from {Ability}" and a **Put back** link.
+   The bonuses keep the race's amounts. A subrace's bonus is not a slot,
+   and the copy does not have it. An ability that another bonus holds is
+   not offered, so two bonuses never go on one ability. An ability that
+   the record holds outside its bonuses, such as a negative bonus, is not
+   offered either. When the race gives a bonus to
    each ability (the Human), a line says that there is nothing to move.
 5. **Languages:** one token for each language of the race.
 6. **Proficiencies:** one token for each skill, tool and weapon
    proficiency of the race, then a help line: a skill becomes another
-   skill, a tool another tool, and a weapon another weapon or a tool.
+   skill, and a tool another tool. A weapon can become another weapon or
+   a tool.
    A section with nothing to swap says so.
 
 A click on a token opens the list of its slot over the dialog, for one
 pick. The list closes on a pick, and the focus goes back to the token.
-An option that another slot holds is not offered. The race's own value
+An option that another slot holds is not offered, and nor is a value
+that the record holds outside its slots. The race's own value
 shows "{Race} gives this". A list of more than 20 options has a search
 field. A changed token is marked, and its X, "Put back {value}", puts the
 race's value back.
@@ -962,9 +967,12 @@ dialog has changes.
   race. Thus a new base race in Edit gives a new name and key, and
   replaces the old copy.
 * Edit does not store the picks apart. It compares the copy with the
-  base race's record now. A value of the race that the copy has stays on
-  its slot. Each other slot takes the next value of the copy that it can
-  take. Thus the picks never go out of step with the copy.
+  base race's record now. A value of the race that the copy has, with the
+  same bonus, stays on its slot. Each other slot takes the next value of
+  the copy that no slot took and that it can take. That value can be one
+  that another slot of the race gives. For example, a Half-Orc copy with
+  +2 Constitution and +1 Strength shows both bonuses as moved. Thus the
+  picks never go out of step with the copy.
 * If the base race is not in the race list now, for example because its
   pack is turned off, Edit opens with no base race and a line that says
   so.

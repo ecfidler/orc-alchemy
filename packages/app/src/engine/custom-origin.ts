@@ -7,8 +7,8 @@
 // a comparison of the copy with the base race's record (originPicks), so
 // the picks are never stored apart from the values that they make.
 
-import { asSet, isMap, OPTION_PACK, setItems, tag, untag } from "./content.ts";
-import { CUSTOM_PACK, characterContent, copyKey, formRecord, optionOrigin, type SavedCopy, saveCopy, srdRaceRecord } from "./custom.ts";
+import { asSet, isMap, setItems, tag, untag } from "./content.ts";
+import { characterContent, formRecord, isCustomCopy, optionOrigin, type SavedCopy, saveCopy, srdRaceRecord, storedCopy } from "./custom.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { ABILITIES, ABILITY_NAMES, type Ability } from "./sheet.ts";
 
@@ -139,12 +139,28 @@ const takes = (kind: OriginKind): OriginKind[] => (kind === "weapon" ? ["weapon"
 const choicesOf = (kind: OriginKind, lists: OriginLists): OriginChoice[] => (kind === "ability" ? ABILITY_CHOICES : lists[kind]);
 
 /**
- * The picks that slot i can take, as ids with their names, in the order of
- * the lists: each option of its kinds that no other slot holds. The slot's
- * own value is in the list.
+ * Each pick that the record holds that is no slot, such as a negative
+ * bonus ("ability:int" for Int -2) or a weapon stored as false.
  */
-export function slotOptions(slots: OriginSlot[], i: number, lists: OriginLists): { id: string; name: string; group?: string }[] {
-  const held = new Set(slots.filter((_, j) => j !== i).map((slot) => slot.value));
+function fixedPicks(record: Record<string, unknown>): Set<string> {
+  const slots = new Set(given(record).map((g) => g.id));
+  const all = SLOT_ORDER.flatMap((kind) =>
+    kind === "language"
+      ? setItems(record[LANGUAGES]).map((name) => pickId(kind, String(name)))
+      : Object.keys(mapAt(record, MAP_PATHS[kind]) ?? {}).map((entry) => pickId(kind, keyOfEntry(kind, entry))),
+  );
+  return new Set(all.filter((id) => !slots.has(id)));
+}
+
+/**
+ * The picks that slot i can take, as ids with their names, in the order of
+ * the lists: each option of its kinds that no other slot holds, and that
+ * the base race's record does not hold outside its slots (fixedPicks).
+ * Thus two bonuses never go on one ability, and a pick never takes the
+ * place of a value of the record. The slot's own value is in the list.
+ */
+export function slotOptions(base: Record<string, unknown>, slots: OriginSlot[], i: number, lists: OriginLists): { id: string; name: string; group?: string }[] {
+  const held = new Set([...slots.filter((_, j) => j !== i).map((slot) => slot.value), ...fixedPicks(base)]);
   return takes(slots[i].kind).flatMap((kind) =>
     choicesOf(kind, lists)
       .map((choice) => ({ id: pickId(kind, choice.key), name: choice.name, ...(choice.group !== undefined && { group: choice.group }) }))
@@ -153,7 +169,7 @@ export function slotOptions(slots: OriginSlot[], i: number, lists: OriginLists):
 }
 
 /** The name of a pick in the lists, or its key when no list has it. */
-export function pickName(id: string, lists: OriginLists): string {
+export function slotValueName(id: string, lists: OriginLists): string {
   const { kind, key } = pickOf(id);
   return choicesOf(kind, lists).find((choice) => choice.key === key)?.name ?? key;
 }
@@ -205,9 +221,11 @@ export function originRecord(base: Record<string, unknown>, slots: OriginSlot[],
 
 /**
  * The slots of the base race's record, with the values that the copy has:
- * a slot whose race value the copy still has keeps it, and each other
- * slot takes the first value of the copy that no race slot gives and no
- * slot took, of a kind that it can take (an ability with the same bonus).
+ * a slot whose race value the copy still has (with the same bonus) keeps
+ * it, and each other slot takes the first value of the copy that no slot
+ * took, of a kind that it can take (an ability with the same bonus). That
+ * value can be one that another slot of the race gives, such as a bonus
+ * moved onto another of the race's abilities.
  * originRecord with these slots gives the copy again. A slot with no such
  * value keeps what the race gives.
  */
@@ -220,10 +238,9 @@ export function originPicks(base: Record<string, unknown>, copy: Record<string, 
     if (same) taken.add(same.id);
     return same !== undefined;
   });
-  const race = new Set(slots.map((slot) => slot.race));
   return slots.map((slot, i) => {
     if (kept[i]) return slot;
-    const next = has.find((g) => !taken.has(g.id) && !race.has(g.id) && takes(slot.kind).includes(pickOf(g.id).kind) && g.amount === slot.amount);
+    const next = has.find((g) => !taken.has(g.id) && takes(slot.kind).includes(pickOf(g.id).kind) && g.amount === slot.amount);
     if (next === undefined) return slot;
     taken.add(next.id);
     return { ...slot, value: next.id };
@@ -256,8 +273,8 @@ function raceChoices(key: string, content: Content): Map<string, string> {
  * the character's custom content.
  */
 export function lostChoices(baseKey: string, copy: Record<string, unknown>, content: Content): string[] {
-  const key = copyKey(RACE_TYPE, String(copy[tag("name")] ?? ""));
-  const withCopy = characterContent(content, { [tag(RACE_TYPE)]: { [tag(key)]: { ...copy, [tag("key")]: tag(key), [OPTION_PACK]: CUSTOM_PACK } } });
+  const { key, stored } = storedCopy(RACE_TYPE, copy);
+  const withCopy = characterContent(content, { [tag(RACE_TYPE)]: { [tag(key)]: stored } });
   const kept = raceChoices(key, withCopy);
   return [...raceChoices(baseKey, content)].filter(([k]) => !kept.has(k)).map(([, name]) => name);
 }
@@ -280,6 +297,26 @@ export function saveCustomOrigin(
     const withBase = engine().select(entity, ["race"], baseKey, characterContent(content, custom));
     return saveCopy(withBase, custom, content, { contentType: RACE_TYPE, path: ["race", baseKey], item });
   }
-  const isCopy = optionOrigin(content.homebrew, custom, RACE_TYPE, selected).from === "custom";
-  return saveCopy(entity, custom, content, { contentType: RACE_TYPE, path: ["race", selected], item, replacedKey: isCopy ? selected : undefined });
+  const replacedKey = isCustomCopy(content.homebrew, custom, RACE_TYPE, selected) ? selected : undefined;
+  return saveCopy(entity, custom, content, { contentType: RACE_TYPE, path: ["race", selected], item, replacedKey });
+}
+
+/**
+ * The key of the base race of the character's race option with the key,
+ * when it is a Custom Origin copy in custom (originBase); else undefined.
+ * homebrew is the loaded content's, without custom.
+ */
+export function customOriginBase(homebrew: Content["homebrew"], custom: object | undefined, key: string): string | undefined {
+  return customOriginCopy(homebrew, custom, key)?.base;
+}
+
+/** The Custom Origin copy with the key in custom, and the key of its base race (customOriginBase); else undefined. */
+export function customOriginCopy(
+  homebrew: Content["homebrew"],
+  custom: object | undefined,
+  key: string,
+): { base: string; item: Record<string, unknown> } | undefined {
+  const origin = optionOrigin(homebrew, custom, RACE_TYPE, key);
+  const base = origin.from === "custom" ? originBase(origin.item) : undefined;
+  return origin.from === "custom" && base !== undefined ? { base, item: origin.item } : undefined;
 }

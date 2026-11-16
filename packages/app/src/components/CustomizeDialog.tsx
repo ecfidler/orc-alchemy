@@ -15,6 +15,7 @@ import {
   copyKeyOf,
   customName,
   formRecord,
+  isCustomCopy,
   optionOrigin,
   type SavedCopy,
   saveCopy,
@@ -330,7 +331,7 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
   const check = useCallback(
     (item: ItemRecord): Problem[] => {
       const key = copyKeyOf(contentType, item);
-      const stale = (o: (typeof options)[number]) => !o.selected && optionOrigin(homebrew, custom, contentType, o.key).from === "custom";
+      const stale = (o: (typeof options)[number]) => !o.selected && isCustomCopy(homebrew, custom, contentType, o.key);
       if (key === "" || key === replacedKey || !options.some((o) => o.key === key && !stale(o))) return [];
       return [{ path: ["name"], text: `Another ${builder.one} in the list has this name, or one with the same key (${key}). Choose another name.` }];
     },
@@ -355,7 +356,7 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
       {selected.length > 0 && (
         <ul ref={lines} aria-label={`Customize ${selection.name}`} className="space-y-1 text-[15px]">
           {selected.map((option) => {
-            const isCopy = optionOrigin(homebrew, custom, contentType, option.key).from === "custom";
+            const isCopy = isCustomCopy(homebrew, custom, contentType, option.key);
             const owner = isCopy && guided?.owns(option.key) ? guided : undefined;
             const label = owner ? owner.label : isCopy ? "Edit custom" : "Customize";
             return (

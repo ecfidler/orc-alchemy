@@ -41,27 +41,27 @@ test("a token can hold a small control, which keeps its own name", () => {
 test("with onOpen the text is a button with its own name and a hint; removeName names the X; a marked token says so in its data", () => {
   const openSlot = vi.fn();
   const putBack = vi.fn();
-  render(<Token label="Sylvan" onOpen={openSlot} openName="Change language Sylvan" openHint="Change" removeName="Put back Elvish" onRemove={putBack} marked />);
-  const button = screen.getByRole("button", { name: "Change language Sylvan" });
-  expect([button.className, button.textContent]).toEqual(["ui-token-label ui-token-open", "SylvanChange"]);
+  render(<Token label="Plums" onOpen={openSlot} openName="Change basket Plums" openHint="Change" removeName="Put back Pears" onRemove={putBack} marked />);
+  const button = screen.getByRole("button", { name: "Change basket Plums" });
+  expect([button.className, button.textContent]).toEqual(["ui-token-label ui-token-open", "PlumsChange"]);
   expect(button.querySelector(".ui-token-hint")?.getAttribute("aria-hidden")).toBe("true");
   fireEvent.click(button);
   expect(openSlot).toHaveBeenCalledOnce();
-  fireEvent.click(screen.getByRole("button", { name: "Put back Elvish" }));
+  fireEvent.click(screen.getByRole("button", { name: "Put back Pears" }));
   expect(putBack).toHaveBeenCalledOnce();
   expect(document.querySelector<HTMLElement>(".ui-token")!.dataset.marked).toBe("");
 });
 
 test("a token without onRemove has no X, and is not marked unless marked is set", () => {
-  render(<Token label="Common" onOpen={() => {}} />);
-  expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Common"]);
+  render(<Token label="Apples" onOpen={() => {}} />);
+  expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Apples"]);
   expect(document.querySelector<HTMLElement>(".ui-token")!.dataset.marked).toBeUndefined();
 });
 
 test("when a click on an X takes the X away and the token stays, the focus goes to the token's text button", () => {
   function Slots() {
-    const [values, setValues] = useState(["Sylvan", "Orc"]);
-    const first = ["Elvish", "Common"];
+    const [values, setValues] = useState(["Plums", "Melons"]);
+    const first = ["Pears", "Apples"];
     return (
       <Tokens>
         {values.map((value, i) => (
@@ -78,9 +78,9 @@ test("when a click on an X takes the X away and the token stays, the focus goes 
     );
   }
   render(<Slots />);
-  const x = screen.getByRole("button", { name: "Put back Elvish" });
+  const x = screen.getByRole("button", { name: "Put back Pears" });
   x.focus();
   fireEvent.click(x);
-  expect(screen.queryByRole("button", { name: "Put back Elvish" })).toBeNull();
-  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change Elvish" }));
+  expect(screen.queryByRole("button", { name: "Put back Pears" })).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change Pears" }));
 });

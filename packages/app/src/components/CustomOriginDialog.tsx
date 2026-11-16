@@ -10,10 +10,12 @@ import { type ReactNode, useCallback, useId, useMemo, useRef, useState } from "r
 import type { BuilderSelection } from "../engine/builder.ts";
 import type { BuilderChoices } from "../engine/builder-choices.ts";
 import { sameRecord } from "../engine/content.ts";
-import { optionOrigin } from "../engine/custom.ts";
+import { isCustomCopy } from "../engine/custom.ts";
 import {
   baseRaceRecord,
   changedSlots,
+  customOriginBase,
+  customOriginCopy,
   lostChoices,
   type OriginLists,
   type OriginSlot,
@@ -21,11 +23,11 @@ import {
   originPicks,
   originRecord,
   originSlots,
-  pickName,
   putBack,
   RACE_TYPE,
   saveCustomOrigin,
   slotOptions,
+  slotValueName,
   withPick,
 } from "../engine/custom-origin.ts";
 import { useCharacter } from "../state/character.ts";
@@ -215,8 +217,8 @@ function Slots({ base, slots, lists, onChange }: { base: OriginBase; slots: Orig
   const languages = indexed.filter(({ slot }) => slot.kind === "language");
   const profs = indexed.filter(({ slot }) => slot.kind !== "ability" && slot.kind !== "language");
   // With a bonus on each ability (the Human), no bonus can move: two bonuses cannot go on one ability.
-  const fixed = bonuses.length > 0 && bonuses.every(({ i }) => slotOptions(slots, i, lists).length === 1);
-  const name = (id: string) => pickName(id, lists);
+  const fixed = bonuses.length > 0 && bonuses.every(({ i }) => slotOptions(base.record, slots, i, lists).length === 1);
+  const name = (id: string) => slotValueName(id, lists);
 
   const token = ({ slot, i }: { slot: OriginSlot; i: number }) => {
     const label = name(slot.value);
@@ -244,7 +246,7 @@ function Slots({ base, slots, lists, onChange }: { base: OriginBase; slots: Orig
   const items: ListItem<string>[] =
     picking === null || target === null
       ? []
-      : slotOptions(slots, picking, lists)
+      : slotOptions(base.record, slots, picking, lists)
           .filter((option) => option.id !== target.value)
           .map((option) => ({
             value: option.id,
@@ -265,7 +267,7 @@ function Slots({ base, slots, lists, onChange }: { base: OriginBase; slots: Orig
                 key={i}
                 base={base}
                 slot={slot}
-                options={slotOptions(slots, i, lists)}
+                options={slotOptions(base.record, slots, i, lists)}
                 name={name}
                 onPick={(id) => onChange(withPick(slots, i, id))}
                 onPutBack={() => onChange(putBack(slots, i))}
@@ -385,8 +387,7 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
   if (actualPath.length !== 1 || actualPath[0] !== "race") return null;
 
   const { homebrew } = content;
-  const isCopy = (key: string) => optionOrigin(homebrew, custom, RACE_TYPE, key).from === "custom";
-  const bases = selection.options.filter((o) => !isCopy(o.key)).map(({ key, name }) => ({ key, name }));
+  const bases = selection.options.filter((o) => !isCustomCopy(homebrew, custom, RACE_TYPE, o.key)).map(({ key, name }) => ({ key, name }));
   const selected = selection.options.find((o) => o.selected)?.key;
 
   async function loadBase(key: string): Promise<OriginBase> {
@@ -401,16 +402,16 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
   async function edit(key: string) {
     setError(null);
     focusKey.current = key;
-    const origin = optionOrigin(homebrew, custom, RACE_TYPE, key);
-    const baseKey = origin.from === "custom" ? originBase(origin.item) : undefined;
-    if (origin.from !== "custom" || baseKey === undefined) return;
+    const copy = customOriginCopy(homebrew, custom, key);
+    if (copy === undefined) return;
+    const { base: baseKey, item } = copy;
     if (!bases.some((b) => b.key === baseKey)) {
       start(EMPTY, `The base race of this copy (${baseKey}) is not in the race list now. Choose a base race.`);
       return;
     }
     try {
       const base = await loadBase(baseKey);
-      start({ base, slots: originPicks(base.record, origin.item) });
+      start({ base, slots: originPicks(base.record, item) });
     } catch (e) {
       setError(`Could not open the custom origin: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -460,10 +461,7 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
     card,
     guided: {
       label: "Edit custom origin",
-      owns: (key) => {
-        const origin = optionOrigin(homebrew, custom, RACE_TYPE, key);
-        return origin.from === "custom" && originBase(origin.item) !== undefined;
-      },
+      owns: (key) => customOriginBase(homebrew, custom, key) !== undefined,
       open: (key) => void edit(key),
     },
     dialog: (

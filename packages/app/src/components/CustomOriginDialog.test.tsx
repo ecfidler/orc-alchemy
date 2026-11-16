@@ -10,7 +10,7 @@ import { CUSTOM_ORIGIN, originRecord, originSlots, withPick } from "../engine/cu
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { remapOption, withoutOption } from "../engine/reconcile.ts";
 import { fighter20 } from "../engine/test-feats.ts";
-import { TAGGED_RACES } from "../engine/test-races.ts";
+import { SYLVAR, TAGGED_RACES, withSylvar } from "../engine/test-races.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
@@ -252,4 +252,22 @@ test("closing with changes asks first; Close drops them and selects nothing", as
   await closed();
   expect(race()[0]).toEqual(["race", ["human"]]);
   expect(useCharacter.getState().custom).toBeUndefined();
+});
+
+test("Edit of a copy whose base race is not in the race list now, as when its pack is off, opens with no base race and a line that says so", async () => {
+  const { "~:key": _key, "~:option-pack": _pack, ...sylvar } = SYLVAR;
+  const copy = originRecord(sylvar, withPick(originSlots(sylvar), 4, "weapon:battleaxe"), "sylvar", "Sylvar");
+  const custom = { [TAGGED_RACES]: { "~:sylvar-custom-origin": { ...copy, "~:key": "~:sylvar-custom-origin", "~:option-pack": CUSTOM_PACK } } };
+  // The pack of Sylvar is not loaded: the character builds with the copy alone.
+  const entity = remapOption(withSylvar(), ["race", "sylvar"], "sylvar-custom-origin");
+  act(() => useCharacter.getState().load("custom-origin", entity, false, custom));
+  render(<Builder />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit custom origin Sylvar (Custom Origin)" }));
+  const dialog = await screen.findByRole("dialog", { name: "Custom Origin" });
+  await within(dialog).findByRole("combobox", { name: "Base race" });
+  expect(within(dialog).getByRole("alert")).toHaveTextContent("The base race of this copy (sylvar) is not in the race list now. Choose a base race.");
+  expect(baseRace(dialog)).toHaveTextContent("Choose a race…");
+  expect(within(dialog).queryByRole("group", { name: "Ability bonuses" })).toBeNull();
+  expect(save(dialog).disabled).toBe(true);
 });

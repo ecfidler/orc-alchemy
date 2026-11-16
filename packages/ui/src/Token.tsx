@@ -9,11 +9,11 @@ export type TokenProps = {
   onRemove?: () => void;
   /** The name in the X's name "Remove {name}", when it is not `label`, for example "Row 4" for a token that shows "4". */
   name?: string;
-  /** The X's whole name, when "Remove" is not the right word, for example "Put back Elvish". */
+  /** The X's whole name, when "Remove" is not the right word, for example "Put back Pears". */
   removeName?: string;
   /** With it, the text is a button that calls it, for example to open a list that changes the pick. */
   onOpen?: () => void;
-  /** The name of the text's button, when it is not `label`, for example "Change language Elvish". */
+  /** The name of the text's button, when it is not `label`, for example "Change basket Pears". */
   openName?: string;
   /** A short word after the text in the button, in small muted type, for example "Change". It is not a part of the button's name. */
   openHint?: string;

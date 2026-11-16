@@ -5,7 +5,7 @@ import { beforeAll, expect, test } from "vitest";
 import { addCharacter } from "../state/character.ts";
 import { getCharacter } from "../storage/characters.ts";
 import { CONTENT_TYPES } from "./content.ts";
-import { CUSTOM_PACK, characterContent, srdRaceRecord } from "./custom.ts";
+import { CUSTOM_PACK, characterContent, saveCopy, srdRaceRecord } from "./custom.ts";
 import {
   baseRaceRecord,
   CUSTOM_ORIGIN,
@@ -17,11 +17,11 @@ import {
   originPicks,
   originRecord,
   originSlots,
-  pickName,
   putBack,
   RACE_TYPE,
   saveCustomOrigin,
   slotOptions,
+  slotValueName,
   withPick,
 } from "./custom-origin.ts";
 import { type Content, engine, loadEngine } from "./engine.ts";
@@ -122,32 +122,33 @@ test("the copy with moved bonuses and swapped picks: each value in the place of 
 });
 
 test("an option that another slot holds is not offered; the slot's own value is; Put back trades places with the slot that holds the race's value", async () => {
-  const { slots } = await movedHalfOrc();
+  const { base, slots } = await movedHalfOrc();
   // +2 is on Dexterity and +1 on Wisdom: the +2 slot can take each ability but Wisdom.
-  expect(slotOptions(slots, 0, LISTS).map((o) => o.id)).toEqual(["ability:str", "ability:dex", "ability:con", "ability:int", "ability:cha"]);
-  expect(slotOptions(slots, 3, LISTS).map((o) => o.name)).toEqual(["Dwarvish", "Elvish", "Orc", "Sylvan"]);
-  expect(slotOptions(slots, 4, LISTS).map((o) => o.name)).toEqual(["Intimidation", "Perception", "Stealth"]);
+  expect(slotOptions(base, slots, 0, LISTS).map((o) => o.id)).toEqual(["ability:str", "ability:dex", "ability:con", "ability:int", "ability:cha"]);
+  expect(slotOptions(base, slots, 3, LISTS).map((o) => o.name)).toEqual(["Dwarvish", "Elvish", "Orc", "Sylvan"]);
+  expect(slotOptions(base, slots, 4, LISTS).map((o) => o.name)).toEqual(["Intimidation", "Perception", "Stealth"]);
   // The +1 moves to Strength, which the +2 slot gives; Put back on the +2 slot then trades: +2 Strength, +1 Dexterity.
   const traded = putBack(withPick(slots, 1, "ability:str"), 0);
   expect(traded.slice(0, 2)).toEqual([slot("ability", "ability:str", "ability:str", 2), slot("ability", "ability:con", "ability:dex", 1)]);
   expect(putBack(slots, 3)[3]).toEqual(slot("language", "language:Orc"));
-  expect(pickName("ability:wis", LISTS)).toBe("Wisdom");
-  expect(pickName("tool:smiths-tools", LISTS)).toBe("Smith's Tools");
-  expect(pickName("language:Abyssal", LISTS)).toBe("Abyssal");
+  expect(slotValueName("ability:wis", LISTS)).toBe("Wisdom");
+  expect(slotValueName("tool:smiths-tools", LISTS)).toBe("Smith's Tools");
+  expect(slotValueName("language:Abyssal", LISTS)).toBe("Abyssal");
 });
 
 test("Human: +1 on each of the six abilities, so no bonus slot can take another ability", async () => {
-  const slots = originSlots((await srdRaceRecord("human"))!);
+  const human = (await srdRaceRecord("human"))!;
+  const slots = originSlots(human);
   const bonuses = slots.flatMap((s, i) => (s.kind === "ability" ? [i] : []));
   expect(bonuses).toHaveLength(6);
-  for (const i of bonuses) expect(slotOptions(slots, i, LISTS).map((o) => o.id)).toEqual([slots[i].race]);
+  for (const i of bonuses) expect(slotOptions(human, slots, i, LISTS).map((o) => o.id)).toEqual([slots[i].race]);
 });
 
 test("Dwarf: a weapon can become a tool, which goes into the tools; Edit finds the weapon slot that holds it", async () => {
   const base = (await srdRaceRecord("dwarf"))!;
   const slots = originSlots(base);
   const battleaxe = slots.findIndex((s) => s.race === "weapon:battleaxe");
-  expect(slotOptions(slots, battleaxe, LISTS)).toEqual([
+  expect(slotOptions(base, slots, battleaxe, LISTS)).toEqual([
     { id: "weapon:battleaxe", name: "Battleaxe" },
     { id: "weapon:longbow", name: "Longbow" },
     { id: "tool:smiths-tools", name: "Smith's Tools", group: "Artisan's tools" },
@@ -255,4 +256,70 @@ test("the copy's base race survives the character file's export and import, so E
   expect(originPicks(base, item)).toEqual(slots);
   expect(CONTENT_TYPES.find((t) => t.type === RACE_TYPE)?.validator).toBe("race");
   expect(characterContent(SRD, characters[0].custom)).toEqual({ homebrew: { [CUSTOM_PACK]: saved.custom } });
+});
+
+test("a bonus moved onto another of the race's own abilities: Edit finds the picks, and a save after Edit writes the same copy", async () => {
+  const base = (await srdRaceRecord("half-orc"))!;
+  for (const [plus2, plus1] of [
+    ["ability:con", "ability:str"],
+    ["ability:wis", "ability:str"],
+  ]) {
+    const slots = withPick(withPick(originSlots(base), 1, plus1 === "ability:str" ? "ability:int" : plus1), 0, plus2);
+    const picked = withPick(slots, 1, plus1);
+    const copy = originRecord(base, picked, "half-orc", "Half-Orc");
+    expect(copy["~:abilities"]).toEqual({ [`~:orcpub.dnd.e5.character/${plus2.slice(8)}`]: 2, [`~:orcpub.dnd.e5.character/${plus1.slice(8)}`]: 1 });
+    const again = originPicks(base, copy);
+    expect(again).toEqual(picked);
+    expect(changedSlots(again)).toBe(true);
+    // The save after Edit writes the same copy, and the character the same entity.
+    expect(originRecord(base, again, "half-orc", "Half-Orc")).toEqual(copy);
+    const first = saveCustomOrigin(fighter20(), undefined, SRD, { item: copy, baseKey: "half-orc", selected: "human" });
+    const second = saveCustomOrigin(first.entity, first.custom, SRD, {
+      item: originRecord(base, again, "half-orc", "Half-Orc"),
+      baseKey: "half-orc",
+      selected: "half-orc-custom-origin",
+    });
+    expect([second.entity, second.custom]).toEqual([first.entity, first.custom]);
+  }
+});
+
+test("a language moved onto another language of the race keeps the copy's languages after Edit", async () => {
+  const base = (await srdRaceRecord("half-orc"))!;
+  // Orc becomes Elvish, then Common becomes Orc: the copy speaks Orc and Elvish.
+  const picked = withPick(withPick(originSlots(base), 3, "language:Elvish"), 2, "language:Orc");
+  const copy = originRecord(base, picked, "half-orc", "Half-Orc");
+  expect(copy["~:languages"]).toEqual({ "~#set": ["Orc", "Elvish"] });
+  const again = originPicks(base, copy);
+  expect(changedSlots(again)).toBe(true);
+  expect(new Set(setOf(originRecord(base, again, "half-orc", "Half-Orc")["~:languages"]))).toEqual(new Set(["Orc", "Elvish"]));
+});
+const setOf = (value: unknown) => (value as { "~#set": string[] })["~#set"];
+
+test("a value that the record holds outside its slots is not offered, so a pick never replaces it", () => {
+  const base = {
+    "~:name": "Stonefolk",
+    "~:abilities": { "~:orcpub.dnd.e5.character/con": 2, "~:orcpub.dnd.e5.character/int": -2, "~:orcpub.dnd.e5.character/wis": 1 },
+    "~:languages": { "~#set": ["Common"] },
+    "~:props": { "~:weapon-prof": { "~:battleaxe": true, "~:longbow": false } },
+  };
+  const slots = originSlots(base);
+  expect(slots.map((s) => s.race)).toEqual(["ability:con", "ability:wis", "language:Common", "weapon:battleaxe"]);
+  expect(slotOptions(base, slots, 1, LISTS).map((o) => o.id)).toEqual(["ability:str", "ability:dex", "ability:wis", "ability:cha"]);
+  expect(slotOptions(base, slots, 3, LISTS).map((o) => o.id)).not.toContain("weapon:longbow");
+  const copy = originRecord(base, withPick(slots, 1, "ability:str"), "stonefolk", "Stonefolk");
+  expect(copy["~:abilities"]).toEqual({
+    "~:orcpub.dnd.e5.character/con": 2,
+    "~:orcpub.dnd.e5.character/int": -2,
+    "~:orcpub.dnd.e5.character/str": 1,
+  });
+});
+
+test("Custom Origin on a race that is a plain Customize copy replaces the copy, so the character keeps one copy", async () => {
+  const elf = (await srdRaceRecord("elf"))!;
+  const withElf = engine().select(fighter20(), ["race"], "elf");
+  const plain = saveCopy(withElf, undefined, SRD, { contentType: RACE_TYPE, path: ["race", "elf"], item: { ...elf, "~:name": "Elf (Custom)" } });
+  const copy = originRecord(elf, withPick(originSlots(elf), 0, "ability:str"), "elf", "Elf");
+  const saved = saveCustomOrigin(plain.entity, plain.custom, SRD, { item: copy, baseKey: "elf", selected: "elf-custom" });
+  expect(Object.keys((saved.custom as Record<string, object>)[TAGGED_RACES])).toEqual(["~:elf-custom-origin"]);
+  expect(saved.entity).toEqual(remapOption(plain.entity, ["race", "elf-custom"], "elf-custom-origin"));
 });
