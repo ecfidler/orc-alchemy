@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-11-16
+
+* **Creation**: Added [The 5e-bits 2024 data as a content source](kb/5e-bits-2024-data.md) to the knowledge base (ORC-219).
+
 ## 2026-11-12
 
 * **Creation**: Added the [Homebrew forms spec](design/homebrew-forms.md), with copies of the four homebrew form prototypes (ORC-187).
