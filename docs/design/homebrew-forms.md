@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T16:57:43Z }
+generated: { by: claude-code/agent, at: 2026-11-16T20:45:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -771,8 +771,9 @@ section says so.
   increases, languages, weapon proficiencies and features. The summary of
   a feature becomes its description, as for a background.
 * The list does not have all of an SRD race. The engine builds a new
-  character of level 20 with only the race, and the record gets what that
-  character has from the race (ORC-138, ORC-244):
+  character of level 20 with the race, and the same character with no
+  race. The new character has the engine's default class. The record
+  gets what only the character with the race has (ORC-138, ORC-244):
   * The skill proficiencies. These are Perception for the Elf and
     Intimidation for the Half-Orc.
   * The damage resistances. These are poison for the Dwarf and fire for
@@ -784,6 +785,7 @@ section says so.
   * The features that the list does not have. These are Hellish Resistance
     and Infernal Legacy for the Tiefling. The text of a feature is its text
     at level 20, so Infernal Legacy names each of the three spells.
+
   Thus a copy of a Tiefling with no edits keeps the sheet.
 * The list has no ability score increases for the Human. The engine gives
   the Human +1 to each ability with its variant Standard Human. Thus the

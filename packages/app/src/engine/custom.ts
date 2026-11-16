@@ -23,6 +23,7 @@ import {
 } from "./content.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { missingContent, remapOption, withoutOption } from "./reconcile.ts";
+import type { Resistance } from "./sheet.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
 export const CUSTOM_PACK = "Custom (this character)";
@@ -322,7 +323,7 @@ interface RaceGives {
   traits: Record<string, unknown>[];
 }
 
-/** The level of the probe character: each spell of a race is unlocked, and a trait's text names each one. */
+/** The level of the probe character: each spell of a race is unlocked, and a trait's text names each spell. */
 const PROBE_LEVEL = 20;
 
 /** What the probe reads of a character as the engine builds it. */
@@ -331,7 +332,7 @@ function probed(entity: StrictEntity) {
   return {
     skills: Object.keys(built["skill-profs"] ?? {}),
     // A resistance with a qualifier has no place in a pack race, which stores the damage type only.
-    resistances: ((built.resistances as { value: string; qualifier?: string | null }[] | null) ?? []).filter((r) => !r.qualifier).map((r) => r.value),
+    resistances: ((built.resistances as Resistance[] | null) ?? []).filter((r) => !r.qualifier).map((r) => r.value),
     spells: Object.entries(built["spells-known"] ?? {}).flatMap(([level, known]) =>
       (known?.__entries ?? []).map(([[source], spell]) => ({ source, level: Number(level), ability: spell.ability, key: spell.key })),
     ),
@@ -369,8 +370,10 @@ function raceGives(key: string): RaceGives {
     const raceSpells = top.spells.filter((spell) => !before.spells.some((s) => s.source === spell.source && s.key === spell.key));
     const unlocked = new Map<string, number>();
     for (let level = 1; level <= PROBE_LEVEL && unlocked.size < raceSpells.length; level++) {
-      const known = new Set(withRace(level).spells.map((s) => s.key));
-      for (const spell of raceSpells) if (!unlocked.has(spell.key) && known.has(spell.key)) unlocked.set(spell.key, level);
+      const known = withRace(level).spells;
+      for (const spell of raceSpells) {
+        if (!unlocked.has(spell.key) && known.some((s) => s.source === spell.source && s.key === spell.key)) unlocked.set(spell.key, level);
+      }
     }
     const ownTraits = new Set(before.traits.map((t) => t.name));
     gives = {
