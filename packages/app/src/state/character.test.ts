@@ -61,9 +61,11 @@ test("built, sheet and selections follow the entity; a mutation marks it dirty",
 });
 
 test("an added character is stored with its summary and opens as stored", async () => {
-  const id = await addCharacter(engine().setValue(engine().emptyCharacter(), "character-name", "Pike"), "2014", "17");
+  const entity = engine().setValue(engine().emptyCharacter(), "character-name", "Pike");
+  const id = await addCharacter(entity, "2014", "17");
 
-  expect(await getCharacter(id)).toMatchObject({ format: "dmv-character", version: 1, rules: "2014", name: "Pike", legacyId: "17" });
+  const record = await getCharacter(id);
+  expect(record).toEqual({ format: "dmv-character", version: 2, rules: "2014", id, name: "Pike", updatedAt: record!.updatedAt, legacyId: "17", entity });
   expect((await listSummaries()).find((s) => s.id === id)).toMatchObject({ rules: "2014", name: "Pike", classes: [{ key: "2014/barbarian" }] });
 
   expect(await openCharacter(id)).toBe(true);

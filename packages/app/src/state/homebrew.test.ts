@@ -259,7 +259,7 @@ test("a bundle's packs and flags round-trip through an empty database, with its 
   const { homebrew, flags } = app.bundleHomebrew();
   expect(Object.keys(homebrew)).toEqual(["community-mezzoloth-race", "warlock-test-content"]);
   expect(flags["community-mezzoloth-race"]).toEqual({ enabled: false, disabledItems: [] });
-  const text = JSON.stringify(app.exportBundle([character.entity], "https://alchemy.example", { homebrew, flags }));
+  const text = JSON.stringify(app.exportBundle([character], "https://alchemy.example", { homebrew, flags }));
 
   vi.stubGlobal("indexedDB", new IDBFactory());
   app = await reload();

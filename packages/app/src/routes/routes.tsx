@@ -7,7 +7,7 @@ import { Builder } from "../components/Builder.tsx";
 import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { DmvExporter } from "../components/DmvExporter.tsx";
-import { ExportCharacter, ExportEverything } from "../components/Export.tsx";
+import { ExportCharacter, ExportEverything, ExportMessageLines, type ExportMessages } from "../components/Export.tsx";
 import { Home } from "../components/Home.tsx";
 import { HomebrewBuilder } from "../components/HomebrewBuilder.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
@@ -120,6 +120,10 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
 }
 
 function SheetPage() {
+  // The export's messages show under the action row, so the row keeps its one line. They belong to the character they came from.
+  const { id: openId } = useParams();
+  const [exported, setExported] = useState<{ id: string; messages: ExportMessages } | null>(null);
+  const exportMessages = exported !== null && exported.id === openId ? exported.messages : null;
   return (
     <OpenCharacter
       actions={(id) => (
@@ -127,12 +131,17 @@ function SheetPage() {
           <ButtonLink variant="solid" render={<Link to={`/build/${id}`} />}>
             Edit
           </ButtonLink>
-          <ExportCharacter id={id} label="Export" variant="ghost" />
+          <ExportCharacter id={id} label="Export" variant="ghost" onMessages={(messages) => setExported({ id, messages })} />
         </>
       )}
     >
       {(sheet) => (
         <>
+          {exportMessages && (exportMessages.message || exportMessages.warning) && (
+            <div className="mb-4 space-y-1">
+              <ExportMessageLines {...exportMessages} />
+            </div>
+          )}
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
           <CharacterSheet sheet={sheet} />
         </>

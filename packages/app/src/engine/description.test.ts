@@ -17,7 +17,7 @@ test("every description field round-trips through export and import, and shows o
   let entity: StrictEntity = e.emptyCharacter();
   for (const { key } of DESCRIPTION_FIELDS) entity = setDescription(e, entity, key, typed(key));
 
-  const { characters, failures } = readCharacterFile(JSON.stringify(exportBundle([entity], "test")));
+  const { characters, failures } = readCharacterFile(JSON.stringify(exportBundle([{ entity }], "test")));
   expect(failures).toEqual([]);
   const imported = characters[0].entity;
   expect(strictValues(imported)).toEqual(strictValues(entity));

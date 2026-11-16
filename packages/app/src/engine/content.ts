@@ -1,22 +1,23 @@
 // The content of one homebrew pack, as the old My Content page lists it
 // (views.cljs my-content-item): one list per content type, in its order.
 import type { ContentType } from "@pubdoor/dmv";
+import type { Engine } from "./engine.ts";
 
-/** The old page's lists, in its order, with the name for one item and for more. */
-export const CONTENT_TYPES: { type: ContentType; one: string; many: string }[] = [
-  { type: "orcpub.dnd.e5/spells", one: "spell", many: "spells" },
-  { type: "orcpub.dnd.e5/monsters", one: "monster", many: "monsters" },
-  { type: "orcpub.dnd.e5/encounters", one: "encounter", many: "encounters" },
-  { type: "orcpub.dnd.e5/backgrounds", one: "background", many: "backgrounds" },
-  { type: "orcpub.dnd.e5/races", one: "race", many: "races" },
-  { type: "orcpub.dnd.e5/subraces", one: "subrace", many: "subraces" },
-  { type: "orcpub.dnd.e5/classes", one: "class", many: "classes" },
-  { type: "orcpub.dnd.e5/subclasses", one: "subclass", many: "subclasses" },
-  { type: "orcpub.dnd.e5/invocations", one: "eldritch invocation", many: "eldritch invocations" },
-  { type: "orcpub.dnd.e5/boons", one: "pact boon", many: "pact boons" },
-  { type: "orcpub.dnd.e5/feats", one: "feat", many: "feats" },
-  { type: "orcpub.dnd.e5/languages", one: "language", many: "languages" },
-  { type: "orcpub.dnd.e5/selections", one: "selection", many: "selections" },
+/** The old page's lists, in its order, with the name for one item and for more, and the validator of an item. */
+export const CONTENT_TYPES: { type: ContentType; one: string; many: string; validator: keyof Engine["validate"] }[] = [
+  { type: "orcpub.dnd.e5/spells", one: "spell", many: "spells", validator: "spell" },
+  { type: "orcpub.dnd.e5/monsters", one: "monster", many: "monsters", validator: "monster" },
+  { type: "orcpub.dnd.e5/encounters", one: "encounter", many: "encounters", validator: "encounter" },
+  { type: "orcpub.dnd.e5/backgrounds", one: "background", many: "backgrounds", validator: "background" },
+  { type: "orcpub.dnd.e5/races", one: "race", many: "races", validator: "race" },
+  { type: "orcpub.dnd.e5/subraces", one: "subrace", many: "subraces", validator: "subrace" },
+  { type: "orcpub.dnd.e5/classes", one: "class", many: "classes", validator: "class" },
+  { type: "orcpub.dnd.e5/subclasses", one: "subclass", many: "subclasses", validator: "subclass" },
+  { type: "orcpub.dnd.e5/invocations", one: "eldritch invocation", many: "eldritch invocations", validator: "invocation" },
+  { type: "orcpub.dnd.e5/boons", one: "pact boon", many: "pact boons", validator: "boon" },
+  { type: "orcpub.dnd.e5/feats", one: "feat", many: "feats", validator: "feat" },
+  { type: "orcpub.dnd.e5/languages", one: "language", many: "languages", validator: "language" },
+  { type: "orcpub.dnd.e5/selections", one: "selection", many: "selections", validator: "selection" },
 ];
 
 /** The pack name that the old class list leaves off a class's name. */

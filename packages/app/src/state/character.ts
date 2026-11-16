@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { create } from "zustand";
 import { characterContent, pruneCustom } from "../engine/custom.ts";
 import { type Content, engine, loadEngine, type Rules, type StrictEntity, useEvaluation } from "../engine/engine.ts";
+import { FILE_VERSION } from "../engine/import.ts";
 import { missingContent, remapOption, type UnresolvedKey } from "../engine/reconcile.ts";
 import { toSheet } from "../engine/sheet.ts";
 import {
@@ -78,15 +79,19 @@ export function useOpenCharacter() {
   return { entity, built, sheet, selections: evaluation?.selections ?? null, dirty, content };
 }
 
-/** Stores a new character and returns its id. Needs the engine loaded. */
-export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId: string | null): Promise<string> {
+/**
+ * Stores a new character, with its custom content, and returns its id. Only
+ * the custom items that the entity selects are stored (save). Needs the
+ * engine loaded.
+ */
+export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId: string | null, custom?: object): Promise<string> {
   const id = crypto.randomUUID();
-  await save({ format: "dmv-character", version: 1, rules, id, legacyId }, entity, undefined);
+  await save({ format: "dmv-character", version: FILE_VERSION, rules, id, legacyId }, entity, custom);
   return id;
 }
 
 /**
- * Saves a record with entity, its custom content, its name, and the time; and
+ * Saves a record, as version FILE_VERSION, with entity, its custom content, its name, and the time; and
  * its summary, built with the loaded homebrew and the custom content. Only
  * the custom items that entity selects are stored (pruneCustom), and the
  * custom content stored is returned: undefined when none is left.
@@ -96,7 +101,11 @@ async function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity
   const kept = pruneCustom(entity, custom);
   const sheet = buildSheet(entity, characterContent(content, kept));
   const { custom: _, ...rest } = record;
-  await saveCharacter({ ...rest, name: sheet.name, updatedAt: now(), entity, ...(kept === undefined ? {} : { custom: kept }) }, sheet, fingerprint);
+  await saveCharacter(
+    { ...rest, version: FILE_VERSION, name: sheet.name, updatedAt: now(), entity, ...(kept === undefined ? {} : { custom: kept }) },
+    sheet,
+    fingerprint,
+  );
   return kept;
 }
 
