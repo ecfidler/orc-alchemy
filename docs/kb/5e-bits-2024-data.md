@@ -4,7 +4,7 @@ title: The 5e-bits 2024 data as a content source
 description: "License, coverage, quality, and structure of the 5e-bits SRD 5.2 JSON, measured against the SRD 5.2.1 PDF, with the ways to consume it."
 tags: [rules-2024, srd, engine]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T04:20:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T04:45:00Z }
 stale_after: 2027-02-16T00:00:00Z
 sources:
   - id: srd-api
@@ -27,15 +27,15 @@ sources:
 # The 5e-bits 2024 data as a content source
 
 **Analyzed:** 2026-11-16, for ORC-219.
-**Scope:** Facts about the 5e-bits SRD 5.2 JSON, and a comparison of the ways to use it. The last section gives a recommendation for ORC-96. ORC-96 makes the decision.
+**Scope:** Facts about the 5e-bits SRD 5.2 JSON, and a comparison of the ways to use it. This document makes no recommendation. The recommendation for ORC-96 is a comment on ORC-219.
 
 ## Summary
 
 - **License.** We can use the data. The upstream documentation says that the 2024 data comes from SRD 5.2 and that SRD 5.2 has the CC-BY-4.0 license. The code and the JSON structure have the MIT license. The OGL sentence in the database README is about the 2014 data.
-- **Coverage.** Each count in ORC-219 agrees with SRD 5.2.1. No record is missing.
-- **Quality.** The prose is almost a copy of the SRD. I found 24 records with an error in 716 records that I compared. Most errors are in spell tables and in one spell field.
+- **Coverage.** Each count in ORC-219 agrees with SRD 5.2.1. No counted record is missing. Some SRD options are only prose in the data.
+- **Quality.** The prose is almost a copy of the SRD. 26 of the 716 records that I compared differ from the SRD. Most differences are in spell tables and in one spell field.
 - **Structure.** Tables, proficiencies, choices, equipment, and spell headers are data. The effect of each feature, feat, and trait is prose. The engine must author these effects by hand.
-- **How to consume it.** Use a one-time import script that reads a pinned upstream commit and writes our format. Upstream publishes no npm package.
+- **How to consume it.** Three ways are possible: a one-time import script, a committed snapshot, and a Git reference. Upstream publishes no npm package.
 
 ## Sources and how they were read
 
@@ -45,9 +45,11 @@ sources:
 | SRD 5.2.1 PDF, 364 pages | The copy in `kmfarley11/ez-chars` at `docs/ext/5e2024/SRD_CC_v5.2.1.pdf`. SHA-256 `8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87`. This is the same file as in [SRD 5.2 rules delta](srd-5.2-rules-delta.md). |
 | `open5e/open5e-api` | Commit `bdcddf2b5f7995c42ac89722d8da563346b6744a` (2026-11-02). Sparse clone of `data/v2/wizards-of-the-coast/srd-2024`. |
 
-**Method.** I extracted the PDF text one column at a time with `pdftotext`. Then a script compared the JSON with the text. For each spell, the script compared the level, school, class list, casting time, range, components, material, duration, and full text. For each other record type, the script looked for each sentence of the JSON prose in the PDF text. I examined each difference by hand. A difference that came from the PDF extraction, for example a word that the PDF divides at a line end, is not in the error lists.
+**Method.** I extracted the PDF text one column at a time with `pdftotext`. Then a script compared the JSON with the text. For each spell, the script compared the level, school, class list, casting time, range, components, material, duration, and full text. For each other record type, the script looked for each sentence of the JSON prose in the PDF text. I examined each difference by hand for spells, features, class `spellcasting` text, feats, backgrounds, conditions, and species. A difference that came from the PDF extraction, for example a sentence that a table interrupts, is not in the error lists.
 
-**Not read.** The GitHub API for the upstream repositories was not available in this session. I searched the issue and pull request titles, but I could not read the issue bodies.
+**Not read.** The GitHub API for the upstream repositories was not available in this session. I searched the issues and pull requests through the public search API, which searches titles and bodies and returns titles. I could not open an issue to read it.
+
+**Page numbers.** The spell descriptions start on 5.2.1 p107 and are in alphabetical order. The backgrounds are on p83, and the Origin feats are on p87.
 
 ## 1. License
 
@@ -55,7 +57,7 @@ sources:
 
 - The root `LICENSE.md` and `packages/5e-database/LICENSE.md` are the MIT license.[^srd-api]
 - `packages/5e-database/README.md` says: "The underlying material is released using the Open Gaming License Version 1.0a".[^srd-api-db-readme] This file came from the archived `5e-bits/5e-database` repository. The sentence is older than the 2024 data.
-- The 2024 documentation has this statement in its FAQ: "The 2024 API only covers data that can be found in SRD 5.2", and "SRD 5.2 is released under the Creative Commons Attribution 4.0 International license (CC-BY-4.0)".[^srd-api-faq] Commit `fc05487` added the statement on 2026-09-20.
+- The 2024 documentation has this statement in its FAQ: "The 2024 API only covers data that can be found in SRD 5.2", and "SRD 5.2 is released under the Creative Commons Attribution 4.0 International license (CC-BY-4.0)".[^srd-api-faq] Commit [`fc05487`](https://github.com/5e-bits/5e-srd-api/commit/fc05487) added the statement on 2026-09-20.
 - The same FAQ says that the API has the MIT license and that "the underlying data accessible via the API is supported under the SRD and its license".
 - A search of the issues and pull requests in both repositories for "license", "CC-BY", and "creative commons" found no other statement about the 2024 data.
 
@@ -79,7 +81,7 @@ The legal page also says not to add other attribution to Wizards. CC-BY-4.0 sect
 Three limits apply:
 
 - Upstream names SRD 5.2, not SRD 5.2.1, and links the 5.2 PDF. We correct the content against SRD 5.2.1, so our attribution names 5.2.1.
-- Upstream does not promise that each record is in the SRD. Section 2 found no record that is outside the SRD in the types that the ticket lists.
+- Upstream does not promise that each record is in the SRD. For the types that have an SRD count in section 2, the counts agree, and the 339 spell names are the same set as in the SRD. The other types were not checked for records that are outside the SRD.
 - This is a reading of the license texts. It is not legal advice.
 
 ## 2. Coverage
@@ -108,7 +110,7 @@ The 2024 data is 25 JSON files. The counts for the types in ORC-219 agree with S
 
 The other files hold ability scores, alignments, damage types, equipment categories, magic schools, poisons, proficiencies, and weapon properties.
 
-**Records that the SRD has and the data does not have as records:**
+**Content that the SRD has and the data does not have as records:**
 
 - The Eldritch Invocation options. They are prose in the one feature `warlock-eldritch-invocations`.
 - The Metamagic options. They are prose in the one feature `sorcerer-metamagic`.
@@ -117,7 +119,13 @@ The other files hold ability scores, alignments, damage types, equipment categor
 
 ## 3. Quality
 
-The check was larger than the sample in the ticket, because a script did the comparison. It compared all 339 spells, all 232 features, all 17 feats, all 68 traits, all 12 subclasses, all 4 backgrounds, the 15 conditions, the 8 mastery properties, the 9 species headers, the 12 class records, and the Fighter and Wizard level tables. That is 716 records and two tables. 24 records have a confirmed error.
+The check was larger than the sample in ORC-219, because a script did the comparison. It compared 716 records and two tables:
+
+- All 339 spells, 232 features, 17 feats, 68 traits, 12 subclasses, and 4 backgrounds.
+- The 15 conditions, the 8 mastery properties, the 9 species headers, and the 12 class records.
+- The Fighter and Wizard level tables.
+
+26 of the 716 records differ from the SRD. 22 have an error that changes a value or loses content. 4 have only a typing error or a small wording difference. One more error, in equipment, was found by chance.
 
 ### Results by type
 
@@ -128,17 +136,17 @@ The check was larger than the sample in the ticket, because a script did the com
 | Fighter levels 1 to 20 | 20 rows | No error: proficiency bonus, features, Second Wind, Weapon Mastery. |
 | Wizard levels 1 to 20 | 20 rows | No error: proficiency bonus, features, cantrips, prepared spells, spell slots. |
 | Fighter and Wizard features | 36 features | No error in the feature text. |
-| All features | 232 features, 1,049 sentences | 1 confirmed error. 6 more sentences did not match, and I did not confirm them by hand. |
-| Class `spellcasting` text | 8 classes, 131 sentences | 3 confirmed errors. 9 more sentences did not match, and I did not confirm them by hand. |
+| All features | 232 features, 1,049 sentences | 1 typing error. 6 more sentences did not match, and each one is a PDF extraction difference. |
+| Class `spellcasting` text | 8 classes, 131 sentences | 2 errors, 1 typing error, and 7 small wording differences, in 4 classes. 2 more sentences did not match, and each one is a PDF extraction difference. |
 | Backgrounds | 4 | No error: ability scores, feat, proficiencies, equipment. |
-| Feats | 17, all 4 Origin feats | No error in the text. |
+| Feats | All 17, which includes the 4 Origin feats | No error in the text, type, or prerequisites. |
 | Species | 9 | 1 error. |
 | Traits | 68 | The text agrees where upstream copied it. See the note below the error list. |
 | Subclasses | 12 | No error in the summary and description. |
 | Conditions | 15 | 2 errors. |
 | Mastery properties | 8 | No error. |
 
-### Confirmed errors
+### Differences from the SRD
 
 | Record | Field | Data value | SRD 5.2.1 value |
 |---|---|---|---|
@@ -151,9 +159,11 @@ The check was larger than the sample in the ticket, because a script did the com
 | Spells Prismatic Spray and Prismatic Wall | `description` | Most rows are missing, for example Red, Yellow, Blue, and Violet. | The tables have 8 rows and 7 rows. |
 | Spell Control Weather | `description` | The text stops in the middle of a sentence. The three tables are missing. | |
 | Spell Control Water | `description` | The text includes the end of Control Weather and its tables. | |
-| Class Wizard | `spellcasting.info`, Prepared Spells | "choose two level four spells" | "choose four level 1 spells" |
+| Class Wizard | `spellcasting.info`, Prepared Spells | "choose two level four spells" | "choose four spells" (p77) |
 | Class Wizard | `spellcasting.info`, Spellcasting Focus | "an Arcane Focus" | "an Arcane Focus or your spellbook" |
-| Class Cleric | `spellcasting.info` | "oyu" | "you" |
+| Class Cleric | `spellcasting.info` | "oyu". Also "you can learn another cantrip". | "you". "you learn another cantrip". |
+| Class Sorcerer | `spellcasting.info` | "all expended spell slots", "six spells of level 1 or 2" | "all expended slots", "six Sorcerer spells of level 1 or 2" |
+| Class Warlock | `spellcasting.info` | "The Warlock table", "what the level of those slots are", "the number on the table", "your spellcasting ability" | "The Warlock Features table", "the level of those slots", "the number in the table", "the spellcasting ability" |
 | Feature `bard-subclass` | `description` | "The The College of Lore" | "The College of Lore" |
 | Species Human | `size` | `Medium`, with no choice | Medium or Small, chosen when you select the species. The Tiefling record has this choice as `size_options`. |
 | Condition Charmed | `description` | "on ability checks to interact socially with you" | "on any ability check to interact with you socially" |
@@ -166,7 +176,7 @@ The check was larger than the sample in the ticket, because a script did the com
 
 ### Upstream changes quickly
 
-Seven fix commits changed the 2024 data on 2026-11-12 and 2026-11-13. They include a missing Fighter proficiency, wrong Rogue proficiencies, and a wrong Wizard prepared-spells value. The data that an import reads on one day is not the data of the next week. Thus each import must record the upstream commit.
+Seven fix commits changed the 2024 data on 2026-11-12 and 2026-11-13, from [`66bdb61`](https://github.com/5e-bits/5e-srd-api/commit/66bdb61) to [`87c8fdc`](https://github.com/5e-bits/5e-srd-api/commit/87c8fdc). They include a missing Fighter proficiency, wrong Rogue proficiencies, and a wrong Wizard prepared-spells value. The data that an import reads on one day is not the data of the next week. Thus each import must record the upstream commit.
 
 ## 4. Structure
 
@@ -210,10 +220,10 @@ The data gives the engine the names, the levels, the tables, the proficiencies, 
 |---|---|---|---|
 | A. One-time import script, commit the output | A script reads an upstream checkout at a pinned commit and writes files in our format. We commit the output and the commit hash. After the import, our files are the source. | Our format has no upstream shape in it. Corrections are plain edits. The build has no network step. | An upstream fix after the import does not arrive automatically. |
 | B. Committed snapshot of the upstream JSON, convert at build | We commit the 25 files as they are, and a build step converts them. | The diff against a new upstream commit is easy to read. | We keep about 3 MB of files in a shape that we do not use, 1.3 MB of it monsters. Each correction needs a patch layer on top of the snapshot. |
-| C. npm dependency | Not possible. `packages/5e-database/package.json` has `"private": true`, and the npm registry has no `5e-database` package. | | |
+| C. npm dependency | Not possible. `packages/5e-database/package.json` has `"private": true`, and `https://registry.npmjs.org/5e-database` returned "Not found" on 2026-11-16. | | |
 | D. Git reference (submodule or fetch at build) | The build reads the upstream repository at a pinned commit. | No upstream file in our repository. | The build needs the network and Git. The upstream repository was moved once already, on 2026-10-02. Corrections need a patch layer. |
 
-Option A fits the data. Section 3 shows that the engine must correct records, and section 4 shows that the engine must add rules to most records by hand. After that work, our files differ from upstream in almost each record, and a second automatic import has little value. Option A can keep one thing from option B: the import script stays in the repository, so a later run against a newer commit can print a difference report for a person to read.
+Two facts from the earlier sections bear on the choice. Section 3 shows that some records need a correction. Section 4 shows that most records need rules that a person authors. After that work, our files differ from upstream in almost every record. With option A, the import script can stay in the repository. Then a later run against a newer commit can print a difference report.
 
 In each case, record the upstream repository, the commit hash, and the date in a file next to the data. Keep the upstream `index` of each record, so that a later comparison can match records.
 
@@ -221,21 +231,11 @@ In each case, record the upstream repository, the commit hash, and the date in a
 
 | Source | Coverage | Shape | License statement | Notes |
 |---|---|---|---|---|
-| 5e-bits 2024 | Complete for the ticket list | API-shaped JSON, one file for each type | FAQ names SRD 5.2 and CC-BY-4.0. Code is MIT. | Subspecies are records. Level tables are data. |
+| 5e-bits 2024 | Complete for the ORC-219 list | API-shaped JSON, one file for each type | FAQ names SRD 5.2 and CC-BY-4.0. Code is MIT. | Subspecies are records. Level tables are data. |
 | Open5e `srd-2024`[^open5e] | 339 spells, 17 feats, 4 backgrounds, 9 species, 24 class rows (classes and subclasses), 352 class features, 331 creatures | Django fixtures: a list of `model`, `pk`, and `fields`. Keys have a document prefix, for example `srd-2024_acolyte`. | The document record lists `cc-by-40`. The code has a "Modified MIT License". | Feat and background benefits are child rows of prose. Level tables are `ClassFeatureItem` rows (1,812). No subspecies rows. Spells have `SpellCastingOption` rows for higher-level casting. Quality was not measured. |
 | By hand from the PDF | What we type | Our format from the start | CC-BY-4.0 only | No third-party notice. The cost is high: 339 spells and 232 features of prose, and typing errors of our own. |
 
-Open5e is a possible second source to check a value against. Its fixture shape is further from our needs than the 5e-bits shape, and it has no subspecies records. Authoring by hand gives up text that needs no work for about 95 percent of the spells (321 of 339 have no confirmed error).
-
-## Recommendation for ORC-96
-
-1. **Use the 5e-bits 2024 data as the start of the built-in content.** The license permits it and the coverage is complete.
-2. **Consume it with option A.** Write a one-time import script. Pin commit `3b6da29a45b3b328c2409cf97a14e2507e291bf8` or a later one. Commit only the converted files and a provenance file. ORC-224 owns this work.
-3. **Do not adopt the upstream schema.** It has the shape of an API: `url` fields, reference objects, and prose effects. Design the content format for the engine, and treat the upstream files as input to a converter.
-4. **Keep the upstream `index` as the start of the key scheme.** The values are lowercase words joined by hyphens. A class feature has the class as a prefix, for example `fighter-second-wind`. A subclass feature has the subclass as a prefix, for example `champion-improved-critical`. The values are unique in each file but not across files, so a key needs the record type too. ORC-96 must decide the keys for records that upstream does not have: invocations, Metamagic options, and the variants that upstream divides into trait records.
-5. **Plan for two layers in the format.** One layer is display content that the import fills: names, prose, tables. The other layer is rules that we author: effects, uses, choices. The format must let a record have prose and no rules, because the rules arrive class by class in E1.
-6. **Correct the known errors in the import.** Fix the 9 `range` and `components` values in the script. Fix the 9 spell tables and the other records in section 3 by hand from the SRD. Then run a comparison against the PDF text as a test, at least for spell header fields.
-7. **Add the attribution with the content.** Show the SRD 5.2.1 statement in the app, and say that the data is modified. Keep the 5e-bits MIT notice in the repository next to the data.
+Open5e is a possible second source to check a value against. Its data has no subspecies records. In the 5e-bits data, 321 of the 339 spells have no difference from the SRD. Authoring by hand does that typing again.
 
 [^srd-api]: 5e-bits/5e-srd-api at commit 3b6da29a (2026-11-14)
 [^srd-api-faq]: 5e-srd-api documentation, FAQ for the 2024 rules
