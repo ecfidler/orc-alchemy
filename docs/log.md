@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-11-16
+
+* **Creation**: Added [The 2024 engine spike](reports/2024-engine-spike.md), the report of the spike in `packages/engine` (ORC-95).
+
 ## 2026-11-12
 
 * **Creation**: Added the [Homebrew forms spec](design/homebrew-forms.md), with copies of the four homebrew form prototypes (ORC-187).
