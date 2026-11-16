@@ -179,7 +179,7 @@ test("Customize the SRD race: the note and the removed picks show, and a new fea
   const dialog = page.getByRole("dialog", { name: "Customize Human" });
   await expect(dialog.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Human (Custom)");
   await expect(dialog.getByRole("note").first()).toContainText("Tasha's Cauldron of Everything (page 8)");
-  await expect(dialog.getByRole("note").nth(1)).toHaveText("Save removes these picks of the character: Subrace (Illuskan), Variant (Standard Human).");
+  await expect(dialog.getByRole("note").nth(1)).toHaveText("Save removes these picks of the character: Subrace (Illuskan).");
 
   // The proficiencies that the note names are in the "+ Add a modifier" list, which opens over the dialog.
   await dialog.getByRole("button", { name: "Add a modifier" }).click();
@@ -244,7 +244,7 @@ test("Custom Origin with the keyboard: move a bonus, swap a language and a skill
     await expect(list).toBeHidden();
     await expect(dialog.getByRole("button", { name: now })).toBeFocused();
   }
-  await expect(dialog.getByRole("note").nth(1)).toHaveText("Save removes these picks of the character: Subrace (Illuskan), Variant (Standard Human).");
+  await expect(dialog.getByRole("note").nth(1)).toHaveText("Save removes these picks of the character: Subrace (Illuskan).");
 
   await dialog.getByRole("button", { name: "Save" }).focus();
   await page.keyboard.press("Enter");

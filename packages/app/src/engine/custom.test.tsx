@@ -21,6 +21,7 @@ import {
   pruneCustom,
   saveCopy,
   srdBackgroundRecord,
+  srdRaceCopy,
   srdRaceRecord,
   withCopyStartingEquipment,
   withoutUnresolvedUnder,
@@ -633,6 +634,28 @@ test("srdRaceRecord gives the SRD race in the form's shape, with the resistance 
   });
 });
 
+/** The options of the language choice of an SRD race, as a record has them: each SRD language. */
+const ALL_LANGUAGES = Object.fromEntries(
+  [
+    "draconic",
+    "deep-speech",
+    "orc",
+    "dwarvish",
+    "gnomish",
+    "sylvan",
+    "elvish",
+    "abyssal",
+    "infernal",
+    "celestial",
+    "common",
+    "undercommon",
+    "primordial",
+    "giant",
+    "halfling",
+    "goblin",
+  ].map((key) => [`~:${key}`, true]),
+);
+
 /** The spells that the character knows from the source, such as its race: each key, with its spell level and ability. */
 function spellsFrom(entity: StrictEntity, custom: object | undefined, source: string) {
   const { built } = engine().evaluate(entity, characterContent(SRD, custom));
@@ -716,9 +739,11 @@ test("the SRD Human record has +1 in each ability, so a no-edit copy of a standa
       "~:orcpub.dnd.e5.character/cha": 1,
     },
     "~:languages": { "~#set": ["Common"] },
+    // The Human's extra language is a choice of the record, with the SRD race's options.
+    "~:profs": { "~:language-options": { "~:choose": 1, "~:options": ALL_LANGUAGES } },
     "~:traits": [],
   });
-  // fighter-20 is a standard Human of the subrace Illuskan.
+  // fighter-20 is a standard Human of the subrace Illuskan. Without held, saveCopy lists each pick that the save removes.
   const next = saveCopy(
     fighter20(),
     undefined,
@@ -730,4 +755,181 @@ test("the SRD Human record has +1 in each ability, so a no-edit copy of a standa
     ["race", "human", "variant", "standard-human"],
   ]);
   expect(raceParts(next.entity, next.custom)).toEqual({ ...raceParts(fighter20(), undefined), race: "Human (Custom)", subrace: null });
+});
+
+// The choices of an SRD race (ORC-247). A pick of the character under the race becomes a fixed value of the copy, or stays as the pick of a choice of the copy.
+
+/** What the sheet shows of the race's choices: the scores, the skills, the tools, the languages, the resistances and the picks still to make or to remove. */
+function choiceParts(entity: StrictEntity, custom: object | undefined) {
+  const { built, selections } = engine().evaluate(entity, characterContent(SRD, custom));
+  return {
+    abilities: built.abilities,
+    skills: Object.keys(built["skill-profs"] ?? {}),
+    tools: Object.keys(built["tool-profs"] ?? {}),
+    languages: built.languages,
+    resistances: built.resistances,
+    // The path of a choice under the race has the key of the race, which the copy changes.
+    remaining: selections.filter((s) => s.remaining !== 0 && s.path[0] !== "race").map((s) => [s.path.join("/"), s.remaining]),
+    raceRemaining: selections.filter((s) => s.remaining !== 0 && s.path[0] === "race").map((s) => [s.key, s.remaining]),
+  };
+}
+
+/** The save of a copy with no edits of the character's SRD race, as the dialog does it. */
+async function noEditCopy(entity: StrictEntity, key: string, name: string) {
+  const copy = (await srdRaceCopy(key, entity))!;
+  const saved = saveCopy(entity, undefined, SRD, { contentType: RACE_TYPE, path: ["race", key], item: { ...copy.record, "~:name": name }, held: copy.held });
+  return { copy, saved };
+}
+
+const ability = (key: string) => `orcpub.dnd.e5.character/${key}`;
+
+test("a Dwarf's tool pick is a tool proficiency of the copy, and Save does not list the pick", async () => {
+  const e = engine();
+  const entity = e.select(e.select(fighter20(), ["race"], "dwarf"), ["race", "dwarf", "tool-proficiency"], "smiths-tools");
+  const { copy, saved } = await noEditCopy(entity, "dwarf", "Dwarf (Custom)");
+  expect(copy.held).toEqual([["race", "dwarf", "tool-proficiency", "smiths-tools"]]);
+  expect(copy.record).toEqual({ ...(await srdRaceRecord("dwarf")), "~:profs": { "~:tool": { "~:smiths-tools": true } } });
+  expect(saved.removed).toEqual([]);
+  // The save removes the pick from the character; the copy gives the tool.
+  expect(saved.entity).toEqual(remapOption(withoutOption(entity, ["race", "dwarf", "tool-proficiency", "smiths-tools"]), ["race", "dwarf"], "dwarf-custom"));
+  const before = choiceParts(entity, undefined);
+  expect(before.tools).toEqual(["smiths-tools"]);
+  // The Dwarf had no subrace pick, and the copy has no subrace choice.
+  expect(before.raceRemaining).toEqual([["subrace", 1]]);
+  expect(choiceParts(saved.entity, saved.custom)).toEqual({ ...before, raceRemaining: [] });
+
+  // Without held, saveCopy lists the pick.
+  const plain = saveCopy(entity, undefined, SRD, { contentType: RACE_TYPE, path: ["race", "dwarf"], item: { ...copy.record, "~:name": "Dwarf (Custom)" } });
+  expect(plain.removed).toEqual([["race", "dwarf", "tool-proficiency", "smiths-tools"]]);
+});
+
+test("a Half-Elf's ability picks are increases of the copy, and its skill and language choices are choices of the copy that keep their picks", async () => {
+  const e = engine();
+  let entity = e.select(fighter20(), ["race"], "half-elf");
+  for (const key of ["dex", "wis"]) entity = e.increaseAbility(entity, ["race", "half-elf", "asi"], ability(key));
+  for (const skill of ["arcana", "stealth"]) entity = e.select(entity, ["race", "half-elf", "skill-proficiency"], skill);
+  const { copy, saved } = await noEditCopy(entity, "half-elf", "Half-Elf (Custom)");
+  expect(copy.held).toEqual([
+    ["race", "half-elf", "asi", ability("dex")],
+    ["race", "half-elf", "asi", ability("wis")],
+  ]);
+  const record = (await srdRaceRecord("half-elf"))!;
+  expect(record["~:abilities"]).toEqual({ [`~:${ability("cha")}`]: 2 });
+  expect(record["~:profs"]).toEqual({
+    "~:skill-options": {
+      "~:choose": 2,
+      "~:options": Object.fromEntries(
+        [
+          "acrobatics",
+          "animal-handling",
+          "arcana",
+          "athletics",
+          "deception",
+          "history",
+          "insight",
+          "intimidation",
+          "investigation",
+          "medicine",
+          "nature",
+          "perception",
+          "performance",
+          "persuasion",
+          "religion",
+          "sleight-of-hand",
+          "stealth",
+          "survival",
+        ].map((skill) => [`~:${skill}`, true]),
+      ),
+    },
+    "~:language-options": { "~:choose": 1, "~:options": ALL_LANGUAGES },
+  });
+  expect(copy.record).toEqual({ ...record, "~:abilities": { [`~:${ability("cha")}`]: 2, [`~:${ability("dex")}`]: 1, [`~:${ability("wis")}`]: 1 } });
+  expect(saved.removed).toEqual([]);
+  // The skill picks stay under the copy. Only the ability picks go.
+  let expected = withoutOption(entity, ["race", "half-elf", "asi", ability("dex")]);
+  expected = withoutOption(expected, ["race", "half-elf", "asi", ability("wis")]);
+  expect(saved.entity).toEqual(remapOption(expected, ["race", "half-elf"], "half-elf-custom"));
+  const before = choiceParts(entity, undefined);
+  expect(before.skills).toEqual(expect.arrayContaining(["arcana", "stealth"]));
+  expect(choiceParts(saved.entity, saved.custom)).toEqual(before);
+});
+
+test("a Variant Human's ability picks and skill pick are values of the copy; a Human without a variant pick gets +1 in each ability", async () => {
+  const e = engine();
+  const variant = ["race", "human", "variant", "variant-human"];
+  // fighter-20 with a new Human: no subrace pick. His feat is a pick of the feats list, not of the race.
+  let entity = e.select(e.select(fighter20(), ["race"], "dwarf"), ["race"], "human");
+  const noVariant = (await srdRaceCopy("human", entity))!;
+  expect(noVariant).toEqual({ held: [], record: await srdRaceRecord("human") });
+
+  entity = e.select(entity, ["race", "human", "variant"], "variant-human");
+  for (const key of ["dex", "wis"]) entity = e.increaseAbility(entity, [...variant, "asi"], ability(key));
+  entity = e.select(entity, [...variant, "skill-proficiency"], "arcana");
+  const { copy, saved } = await noEditCopy(entity, "human", "Human (Custom)");
+  expect(copy.held).toEqual([variant, [...variant, "asi", ability("dex")], [...variant, "asi", ability("wis")], [...variant, "skill-proficiency", "arcana"]]);
+  expect(copy.record).toEqual({
+    ...(await srdRaceRecord("human")),
+    "~:abilities": { [`~:${ability("dex")}`]: 1, [`~:${ability("wis")}`]: 1 },
+    "~:props": { "~:skill-prof": { "~:arcana": true } },
+  });
+  expect(saved.removed).toEqual([]);
+  expect(saved.entity).toEqual(remapOption(withoutOption(entity, variant), ["race", "human"], "human-custom"));
+  const before = choiceParts(entity, undefined);
+  expect(before.raceRemaining).toEqual([
+    ["subrace", 1],
+    ["languages", -2],
+  ]);
+  // The language choice keeps its count. The copy has no subrace choice.
+  expect(choiceParts(saved.entity, saved.custom)).toEqual({ ...before, raceRemaining: [["languages", -2]] });
+  expect(engine().evaluate(saved.entity, saved.content).built.feats).toEqual(["grappler"]);
+
+  // fighter-20 is a standard Human: the variant is a value of the copy, and Save lists only the subrace.
+  const standard = await noEditCopy(fighter20(), "human", "Human (Custom)");
+  expect(standard.copy).toEqual({ held: [["race", "human", "variant", "standard-human"]], record: await srdRaceRecord("human") });
+  expect(standard.saved.removed).toEqual([["race", "human", "subrace", "illuskan"]]);
+});
+
+test("a Dragonborn's ancestry gives the copy its damage resistance and the Breath Weapon as a feature; without the pick, the copy has neither", async () => {
+  const e = engine();
+  const dragonborn = e.select(fighter20(), ["race"], "dragonborn");
+  const plain = (await srdRaceRecord("dragonborn"))!;
+  expect(plain["~:props"]).toBeUndefined();
+  expect(plain["~:traits"]).toEqual([]);
+  expect(await srdRaceCopy("dragonborn", dragonborn)).toEqual({ held: [], record: plain });
+
+  const entity = e.select(dragonborn, ["race", "dragonborn", "draconic-ancestry"], "blue");
+  const { copy, saved } = await noEditCopy(entity, "dragonborn", "Dragonborn (Custom)");
+  expect(copy.held).toEqual([["race", "dragonborn", "draconic-ancestry", "blue"]]);
+  expect(copy.record).toEqual({
+    ...plain,
+    "~:props": { "~:damage-resistance": { "~:lightning": true } },
+    "~:traits": [
+      {
+        "~:name": "Breath Weapon",
+        "~:type": "~:action",
+        "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/short-rest", "~:amount": 1 },
+        "~:description":
+          "Each creature in a line 5 ft. wide and 30 ft. long makes a DEX saving throw, DC 8 + your CON modifier + your proficiency bonus. " +
+          "It takes 2d6 lightning damage on a failed save, and half on a success. The damage is 3d6 at level 6, 4d6 at level 11 and 5d6 at level 16.",
+      },
+    ],
+  });
+  expect(saved.removed).toEqual([]);
+  const before = choiceParts(entity, undefined);
+  expect(before.resistances).toEqual([{ value: "lightning", qualifier: null }]);
+  expect(choiceParts(saved.entity, saved.custom)).toEqual(before);
+  // The Breath Weapon is an attack of the SRD race. The copy gives it as a trait of the type action with one use, which the sheet shows with the actions.
+  expect(e.evaluate(entity).built.attacks?.map((a) => a.name)).toEqual(["Breath Weapon"]);
+  const after = e.evaluate(saved.entity, saved.content).built;
+  expect(after.attacks).toBeNull();
+  expect(after.traits.find((t) => t.name === "Breath Weapon")).toMatchObject({
+    type: "action",
+    frequency: { units: "orcpub.dnd.e5.units/short-rest", amount: 1 },
+  });
+
+  // A red dragon breathes a cone.
+  const red = (await srdRaceCopy("dragonborn", e.select(dragonborn, ["race", "dragonborn", "draconic-ancestry"], "red")))!;
+  expect((red.record["~:traits"] as Record<string, string>[])[0]["~:description"]).toMatch(
+    /^Each creature in a 15 ft\. cone makes a DEX saving throw.* 2d6 fire damage/,
+  );
 });
