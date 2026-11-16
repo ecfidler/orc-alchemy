@@ -741,8 +741,11 @@ says so.
   engine keys the choice by its name, so the character's pick under it
   stays. Thus a copy of Acolyte with no edits keeps the Amulet on the
   sheet.
-* The form has no control for the holy symbol choice. The choice stays in
-  the copy as it is.
+* The form has no control for the equipment choices of an SRD background.
+  For Acolyte, they are Prayer Book/Wheel and Holy Symbol. They stay in
+  the copy as they are.
+* If the content list does not load, an alert under the lines says so,
+  and the dialog does not open.
 * The name is "{name} (Custom)". The user can change it.
 * Edit custom opens the copy as it is stored.
 

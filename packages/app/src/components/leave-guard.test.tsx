@@ -5,10 +5,10 @@ import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
+import { sameRecord } from "../engine/content.ts";
 import { loadEngine } from "../engine/engine.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { BUILDERS, HomebrewBuilder } from "./HomebrewBuilder.tsx";
-import { sameRecord } from "./leave-guard.tsx";
 
 beforeAll(() => loadEngine());
 

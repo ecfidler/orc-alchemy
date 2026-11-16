@@ -9,7 +9,7 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { CUSTOM_PACK, characterContent, srdBackgroundRecord } from "../engine/custom.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { setQuantity } from "../engine/equipment.ts";
-import { missingContent } from "../engine/reconcile.ts";
+import { missingContent, remapOption } from "../engine/reconcile.ts";
 import { BACKGROUND_PACK, SAGE, TAGGED_BACKGROUNDS, withSage } from "../engine/test-backgrounds.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "../engine/test-feats.ts";
 import { useCharacter } from "../state/character.ts";
@@ -364,6 +364,8 @@ test("Customize with no edits keeps an inventory that the user changed, with eac
   expect(after.background).toBe("Acolyte (Custom)");
   expect(after.equipment).toEqual(before.equipment);
   expect(after.treasure).toEqual(before.treasure);
+  // The save changes only the key of the background.
+  expect(useCharacter.getState().entity).toEqual(remapOption(entity, ["background", "acolyte"], "acolyte-custom-"));
   const equipment = (useCharacter.getState().entity as Record<string, Record<string, unknown>[]>)["~:orcpub.entity.strict/selections"].find(
     (sel) => sel["~:orcpub.entity.strict/key"] === "~:equipment",
   )!["~:orcpub.entity.strict/options"] as Record<string, string>[];

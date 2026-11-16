@@ -6,9 +6,6 @@ import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import { type Blocker, useBlocker } from "react-router";
 import { warnBeforeUnload } from "../state/unload-warning.ts";
 
-// sameRecord is pure, so it is in engine/content.ts, where the engine layer uses it too.
-export { sameRecord } from "../engine/content.ts";
-
 /**
  * Asks `question` each time the blocker blocks a navigation: `action` lets
  * it go on, and `cancel` stops it. Render the dialog of `confirm` in the

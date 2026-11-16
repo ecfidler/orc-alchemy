@@ -4,9 +4,8 @@
 // each change, and the problems of fields that the form does not show are
 // listed at the top.
 import { useMemo } from "react";
-import { OPTION_PACK } from "../../engine/content.ts";
+import { OPTION_PACK, sameRecord } from "../../engine/content.ts";
 import { engine } from "../../engine/engine.ts";
-import { sameRecord } from "../leave-guard.tsx";
 import { type BuilderType, type ItemRecord, type Problem, problemText } from "./fields.tsx";
 
 export interface CheckedRecord {
