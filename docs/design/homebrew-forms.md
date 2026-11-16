@@ -317,6 +317,12 @@ headings, each with one control.
   with search. Its groups are Player's choice (any 1 artisan's tool, any 1
   musical instrument), Clothing, Artisan's tools, Other tools, Holy symbols
   and Other equipment.
+  * A background can have an equipment choice with another name. For
+    example, a custom copy of the SRD Acolyte has "Holy Symbol". Such a
+    choice shows as a token after the player's choices, with the text
+    "Choice: " and its name, for example "Choice: Holy Symbol". The X
+    removes the choice from the background. The form does not edit the
+    items of the choice, and the list has no row that adds it again.
 * **Features:** the feature list.
 
 If a background has a tool key that no list has, keep the key on save.
@@ -761,9 +767,11 @@ section says so.
   engine keys the choice by its name, so the character's pick under it
   stays. Thus a copy of Acolyte with no edits keeps the Amulet on the
   sheet.
-* The form has no control for the equipment choices of an SRD background.
-  For Acolyte, they are Prayer Book/Wheel and Holy Symbol. They stay in
-  the copy as they are.
+* The form shows each equipment choice of an SRD background as a token
+  with an X (see [Background](#background)). For Acolyte, they are
+  "Choice: Prayer Book/Wheel" and "Choice: Holy Symbol". The form does not
+  edit their items. A choice stays in the copy as it is until the user
+  removes it.
 * An SRD race is also in the engine's content list,
   `@pubdoor/dmv/content/races.json`, in a shape near that of a pack race.
   Customize on an SRD race opens that record in the race form: the

@@ -7,7 +7,7 @@
 // {:artisans-tool n} and :profs :language-options {:choose n :options {:any
 // true}}, the gold in :treasure :gp, the equipment in :equipment {:key 1},
 // the "Any 1" equipment choices in :equipment-choices [{:name :options {:key
-// 1}}], and :traits a vector of :name, :type and :description maps. The
+// 1}}] (a choice with another name shows as a token with an X), and :traits a vector of :name, :type and :description maps. The
 // controls are those of docs/design/homebrew-forms.md, "Background". The
 // form has no "+ Add a modifier" button: its five groups always show.
 import { AddButton, FieldLabel, Fieldset, type ListItem, ListModal, NumberField, NumberToggle, Picker, Token, Tokens, XButton } from "@orc-alchemy/ui";
@@ -298,8 +298,11 @@ function parseEquipment(value: string): { store: EquipmentStore; key: string } {
   return { store: value.slice(0, at) as EquipmentStore, key: value.slice(at + 1) };
 }
 
+const PLAYERS_CHOICE = "Player's choice";
+/** The names of the choices that the list can add. */
+const KNOWN_CHOICES = new Set(EQUIPMENT_CHOICES.map((c) => c.name));
 const EQUIPMENT_OPTIONS: ListItem<string>[] = [
-  ...EQUIPMENT_CHOICES.map((c) => ({ value: equipmentValue("choice", c.name), label: c.label, group: "Player's choice" })),
+  ...EQUIPMENT_CHOICES.map((c) => ({ value: equipmentValue("choice", c.name), label: c.label, group: PLAYERS_CHOICE })),
   ...EQUIPMENT_GROUPS.flatMap(([group, items]) => items.map((item) => ({ value: equipmentValue("item", item.key), label: item.name, group }))),
 ];
 
@@ -308,7 +311,11 @@ const EQUIPMENT_OPTIONS: ListItem<string>[] = [
  * its old checkbox wrote it. An item stores 1 in :equipment, and its
  * removal removes the key. A player's choice adds {:name :options {:key 1}}
  * at the end of :equipment-choices, and its removal takes out each entry
- * with its name. Keys and entries that are no option keep their values.
+ * with its name. An entry of :equipment-choices that has another name,
+ * such as "Holy Symbol" in a copy of the SRD Acolyte, shows as a token
+ * "Choice: Holy Symbol" after the two player's choices. Its X takes out
+ * each entry with its name, and no row of the list adds it again. A key
+ * of :equipment that is no option keeps its value.
  */
 function EquipmentPicker({ edit }: { edit: Edit }) {
   const choices = (edit.get("equipment-choices") ?? []) as ItemRecord[];
@@ -316,11 +323,16 @@ function EquipmentPicker({ edit }: { edit: Edit }) {
     const { store, key } = parseEquipment(value);
     return store === "choice" ? choices.some((c) => c[tag("name")] === key) : Boolean(edit.get("equipment", key));
   };
-  const picked = EQUIPMENT_OPTIONS.map((o) => o.value).filter(holds);
+  const otherChoices = [...new Set(choices.map((c) => c[tag("name")]))]
+    .filter((name): name is string => typeof name === "string" && !KNOWN_CHOICES.has(name))
+    .map((name) => ({ value: equipmentValue("choice", name), label: `Choice: ${name}`, group: PLAYERS_CHOICE }));
+  // The other choices go after the known ones, so the rows and the tokens of the group stay together.
+  const options = [...EQUIPMENT_OPTIONS.slice(0, EQUIPMENT_CHOICES.length), ...otherChoices, ...EQUIPMENT_OPTIONS.slice(EQUIPMENT_CHOICES.length)];
+  const picked = options.map((o) => o.value).filter(holds);
   return (
     <Picker
       label="Add equipment"
-      options={EQUIPMENT_OPTIONS}
+      options={options}
       value={picked}
       search
       pickedText={pickedText}

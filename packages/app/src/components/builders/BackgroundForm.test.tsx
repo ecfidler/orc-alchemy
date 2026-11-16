@@ -319,6 +319,41 @@ test("each sub-selection: add, pick, and its stored value", async () => {
   });
 });
 
+// A background with two equipment choices that the list cannot add, as a custom copy of the SRD Acolyte has, around one that it can.
+const HOLY_SYMBOL = { "~:name": "Holy Symbol", "~:options": { "~:amulet": 1, "~:emblem": 1, "~:reliquary": 1 } };
+const PRAYER = { "~:name": "Prayer Book/Wheel", "~:options": { "~:prayer-book": 1, "~:prayer-wheel": 1 } };
+const WITH_CHOICES = {
+  ...IMPORTED,
+  "~:equipment-choices": [PRAYER, { "~:name": "Artisan's Tools", "~:options": { "~:smiths-tools": 1 } }, HOLY_SYMBOL],
+};
+
+test("an equipment choice that the list cannot add shows as a token, and is no row of the list", async () => {
+  await useHomebrew.getState().saveItem(DEFAULT, "~:orcpub.dnd.e5/backgrounds", WITH_CHOICES);
+  const router = renderAt(PATH);
+  await screen.findByRole("form", { name: "Edit background" });
+  expect(tokens("Starting equipment")).toEqual(["Any 1 artisan's tool", "Choice: Prayer Book/Wheel", "Choice: Holy Symbol", "Amulet", "Rope, silk"]);
+  const list = await addList(equipmentButton(), "Add equipment");
+  expect(list.filter((name) => name.startsWith("Choice: "))).toEqual([]);
+  expect(list.slice(0, 2)).toEqual(["Any 1 musical instrument", "Clothes, common"]);
+  await saved(router);
+  expect(stored("tidewatch")).toEqual(WITH_CHOICES);
+});
+
+test("the X of an equipment choice that the list cannot add removes its entry, and the other entries stay", async () => {
+  await useHomebrew.getState().saveItem(DEFAULT, "~:orcpub.dnd.e5/backgrounds", WITH_CHOICES);
+  const router = renderAt(PATH);
+  await screen.findByRole("form", { name: "Edit background" });
+  await unpick("Starting equipment", "Choice: Holy Symbol");
+  expect(tokens("Starting equipment")).toEqual(["Any 1 artisan's tool", "Choice: Prayer Book/Wheel", "Amulet", "Rope, silk"]);
+  // The list has no row that adds the choice again.
+  expect((await addList(equipmentButton(), "Add equipment")).filter((name) => name.includes("Holy Symbol"))).toEqual([]);
+  await saved(router);
+  expect(stored("tidewatch")).toEqual({
+    ...IMPORTED,
+    "~:equipment-choices": [PRAYER, { "~:name": "Artisan's Tools", "~:options": { "~:smiths-tools": 1 } }],
+  });
+});
+
 test("the equipment picker has search and group headings, and each group stores its old shape", async () => {
   const router = renderAt("/content/new/background");
   await screen.findByRole("textbox", { name: "Name" });
