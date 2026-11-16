@@ -264,8 +264,9 @@ own extension:
    a second adapter. The app's `Sheet` then gains what 2024 adds: the
    mastery property, the feat category, and uses with two rest rules.
 4. **Plan for the builder, not only for the app's `Sheet`.** Besides
-   `sheet.ts`, at least five files in `packages/app/src/engine` read 2014 keys: `abilities.ts`,
-   `builder-choices.ts`, `equipment.ts`, `spells.ts`, and `description.ts`.
+   `sheet.ts`, at least five files in `packages/app/src/engine` read 2014
+   keys: `abilities.ts`, `builder-choices.ts`, `equipment.ts`, `spells.ts`,
+   and `description.ts`.
    The 2024 app milestone must give each of them a 2024 counterpart.
 
 ## Part 3: the engine model
@@ -292,8 +293,8 @@ model without a new concept in the core:
 
 ### The strict entity
 
-Keep it. A character is its choices, and the built character is computed. The port
-makes three changes:
+Keep it. A character is its choices, and the built character is computed.
+The port makes three changes:
 
 - **One form.** The Clojure engine has a strict entity and a raw entity.
   The split serves Datomic. The port has one form, and its selections are

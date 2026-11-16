@@ -42,7 +42,7 @@ export interface Modifier<S> {
   readonly apply: (current: never, q: Reader<S>) => unknown;
   /** The modifier applies only if this passes (the Clojure `conditions`). */
   readonly when?: (q: Reader<S>) => boolean;
-  /** Sorts the modifiers of one key, and of keys with no dependency between them: lowest first, absent first of all. */
+  /** Sorts the modifiers of one key: lowest first, absent first of all. */
   readonly order?: number;
   /** A label for the source of the change. */
   readonly name?: string;
@@ -178,12 +178,11 @@ function compareOrder(a: number | undefined, b: number | undefined): number {
  * built entity (entity/apply-options from the sort on, and
  * modifiers/apply-modifiers).
  *
- * The order is the dependency order of the keys first. A key that has no
- * dependency and that nothing depends on comes before the others. Within
- * one key, the order is the `order` number, lowest first and absent first
- * of all. Modifiers with the same number keep the order of the list, which
- * is the order of
- * the choices in the entity.
+ * The order is the dependency order of the keys first. Keys with no
+ * dependency between them keep the order of their first use. Within one
+ * key, the order is the `order` number, lowest first and absent first of
+ * all. Modifiers with the same number keep the order of the list, which is
+ * the order of the choices in the entity.
  */
 export function applyModifiers<S>(base: Base<S>, modifiers: readonly Modifier<S>[]): S {
   const state = new Map<string, unknown>(Object.entries(base));
