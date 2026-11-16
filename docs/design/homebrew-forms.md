@@ -317,12 +317,15 @@ headings, each with one control.
   with search. Its groups are Player's choice (any 1 artisan's tool, any 1
   musical instrument), Clothing, Artisan's tools, Other tools, Holy symbols
   and Other equipment.
-  * A background can have an equipment choice with another name. For
-    example, a custom copy of the SRD Acolyte has "Holy Symbol". Such a
-    choice shows as a token after the player's choices, with the text
-    "Choice: " and its name, for example "Choice: Holy Symbol". The X
+  * A background can have an equipment choice whose name is not in the
+    list. For example, a custom copy of the SRD Acolyte has "Holy Symbol".
+    Such a choice shows as a token after the player's choices, with the
+    text "Choice: " and its name, for example "Choice: Holy Symbol". The X
     removes the choice from the background. The form does not edit the
     items of the choice, and the list has no row that adds it again.
+    Choices with the same name show as one token, and its X removes each
+    of them, because the engine keys a choice by its name. A choice with
+    no name does not show, and stays in the background.
 * **Features:** the feature list.
 
 If a background has a tool key that no list has, keep the key on save.

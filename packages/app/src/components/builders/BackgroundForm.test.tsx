@@ -322,9 +322,10 @@ test("each sub-selection: add, pick, and its stored value", async () => {
 // A background with two equipment choices that the list cannot add, as a custom copy of the SRD Acolyte has, around one that it can.
 const HOLY_SYMBOL = { "~:name": "Holy Symbol", "~:options": { "~:amulet": 1, "~:emblem": 1, "~:reliquary": 1 } };
 const PRAYER = { "~:name": "Prayer Book/Wheel", "~:options": { "~:prayer-book": 1, "~:prayer-wheel": 1 } };
+const ARTISAN = { "~:name": "Artisan's Tools", "~:options": { "~:smiths-tools": 1 } };
 const WITH_CHOICES = {
   ...IMPORTED,
-  "~:equipment-choices": [PRAYER, { "~:name": "Artisan's Tools", "~:options": { "~:smiths-tools": 1 } }, HOLY_SYMBOL],
+  "~:equipment-choices": [PRAYER, ARTISAN, HOLY_SYMBOL],
 };
 
 test("an equipment choice that the list cannot add shows as a token, and is no row of the list", async () => {
@@ -350,7 +351,7 @@ test("the X of an equipment choice that the list cannot add removes its entry, a
   await saved(router);
   expect(stored("tidewatch")).toEqual({
     ...IMPORTED,
-    "~:equipment-choices": [PRAYER, { "~:name": "Artisan's Tools", "~:options": { "~:smiths-tools": 1 } }],
+    "~:equipment-choices": [PRAYER, ARTISAN],
   });
 });
 

@@ -7,9 +7,10 @@
 // {:artisans-tool n} and :profs :language-options {:choose n :options {:any
 // true}}, the gold in :treasure :gp, the equipment in :equipment {:key 1},
 // the "Any 1" equipment choices in :equipment-choices [{:name :options {:key
-// 1}}] (a choice with another name shows as a token with an X), and :traits a vector of :name, :type and :description maps. The
-// controls are those of docs/design/homebrew-forms.md, "Background". The
-// form has no "+ Add a modifier" button: its five groups always show.
+// 1}}] (a choice whose name is not in the list shows as a token with an X),
+// and :traits a vector of :name, :type and :description maps. The controls
+// are those of docs/design/homebrew-forms.md, "Background". The form has no
+// "+ Add a modifier" button: its five groups always show.
 import { AddButton, FieldLabel, Fieldset, type ListItem, ListModal, NumberField, NumberToggle, Picker, Token, Tokens, XButton } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import type { Choice } from "../../engine/builder-choices.ts";
@@ -292,7 +293,7 @@ const EQUIPMENT_GROUPS: [string, Choice[]][] = [
 type EquipmentStore = "choice" | "item";
 /** The picker value of an equipment option, such as "item:amulet". */
 const equipmentValue = (store: EquipmentStore, key: string) => `${store}:${key}`;
-/** The store and the key of a picker value. A choice name has no colon, so the first colon ends the store. */
+/** The store and the key of a picker value. A store has no colon, so the first colon ends it. */
 function parseEquipment(value: string): { store: EquipmentStore; key: string } {
   const at = value.indexOf(":");
   return { store: value.slice(0, at) as EquipmentStore, key: value.slice(at + 1) };
@@ -301,20 +302,21 @@ function parseEquipment(value: string): { store: EquipmentStore; key: string } {
 const PLAYERS_CHOICE = "Player's choice";
 /** The names of the choices that the list can add. */
 const KNOWN_CHOICES = new Set(EQUIPMENT_CHOICES.map((c) => c.name));
-const EQUIPMENT_OPTIONS: ListItem<string>[] = [
-  ...EQUIPMENT_CHOICES.map((c) => ({ value: equipmentValue("choice", c.name), label: c.label, group: PLAYERS_CHOICE })),
-  ...EQUIPMENT_GROUPS.flatMap(([group, items]) => items.map((item) => ({ value: equipmentValue("item", item.key), label: item.name, group }))),
-];
+const CHOICE_OPTIONS: ListItem<string>[] = EQUIPMENT_CHOICES.map((c) => ({ value: equipmentValue("choice", c.name), label: c.label, group: PLAYERS_CHOICE }));
+const ITEM_OPTIONS: ListItem<string>[] = EQUIPMENT_GROUPS.flatMap(([group, items]) =>
+  items.map((item) => ({ value: equipmentValue("item", item.key), label: item.name, group })),
+);
 
 /**
  * The starting equipment as one picker over two stores, each written as
  * its old checkbox wrote it. An item stores 1 in :equipment, and its
  * removal removes the key. A player's choice adds {:name :options {:key 1}}
  * at the end of :equipment-choices, and its removal takes out each entry
- * with its name. An entry of :equipment-choices that has another name,
- * such as "Holy Symbol" in a copy of the SRD Acolyte, shows as a token
- * "Choice: Holy Symbol" after the two player's choices. Its X takes out
- * each entry with its name, and no row of the list adds it again. A key
+ * with its name. An entry of :equipment-choices whose name is not in the
+ * list, such as "Holy Symbol" in a copy of the SRD Acolyte, shows as a token
+ * "Choice: Holy Symbol" after the two player's choices. Entries with the same name are one token, because
+ * the engine keys a choice by its name. Its X takes out each entry with
+ * its name, and no row of the list adds it again. A key
  * of :equipment that is no option keeps its value.
  */
 function EquipmentPicker({ edit }: { edit: Edit }) {
@@ -324,10 +326,10 @@ function EquipmentPicker({ edit }: { edit: Edit }) {
     return store === "choice" ? choices.some((c) => c[tag("name")] === key) : Boolean(edit.get("equipment", key));
   };
   const otherChoices = [...new Set(choices.map((c) => c[tag("name")]))]
-    .filter((name): name is string => typeof name === "string" && !KNOWN_CHOICES.has(name))
+    .filter((name): name is string => typeof name === "string" && name !== "" && !KNOWN_CHOICES.has(name))
     .map((name) => ({ value: equipmentValue("choice", name), label: `Choice: ${name}`, group: PLAYERS_CHOICE }));
   // The other choices go after the known ones, so the rows and the tokens of the group stay together.
-  const options = [...EQUIPMENT_OPTIONS.slice(0, EQUIPMENT_CHOICES.length), ...otherChoices, ...EQUIPMENT_OPTIONS.slice(EQUIPMENT_CHOICES.length)];
+  const options = [...CHOICE_OPTIONS, ...otherChoices, ...ITEM_OPTIONS];
   const picked = options.map((o) => o.value).filter(holds);
   return (
     <Picker
