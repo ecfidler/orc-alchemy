@@ -7,7 +7,7 @@ import { Builder } from "../components/Builder.tsx";
 import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { DmvExporter } from "../components/DmvExporter.tsx";
-import { ExportCharacter, ExportEverything, ExportMessageLines, type ExportMessages } from "../components/Export.tsx";
+import { ExportCharacter, ExportEverything, ExportMessageLine } from "../components/Export.tsx";
 import { Home } from "../components/Home.tsx";
 import { HomebrewBuilder } from "../components/HomebrewBuilder.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
@@ -120,10 +120,10 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
 }
 
 function SheetPage() {
-  // The export's messages show under the action row, so the row keeps its one line. They belong to the character they came from.
+  // Why an export failed shows under the action row, so the row keeps its one line. It belongs to the character it came from.
   const { id: openId } = useParams();
-  const [exported, setExported] = useState<{ id: string; messages: ExportMessages } | null>(null);
-  const exportMessages = exported !== null && exported.id === openId ? exported.messages : null;
+  const [exported, setExported] = useState<{ id: string; message: string | null } | null>(null);
+  const exportMessage = exported !== null && exported.id === openId ? exported.message : null;
   return (
     <OpenCharacter
       actions={(id) => (
@@ -131,13 +131,13 @@ function SheetPage() {
           <ButtonLink variant="solid" render={<Link to={`/build/${id}`} />}>
             Edit
           </ButtonLink>
-          <ExportCharacter id={id} label="Export" variant="ghost" onMessages={(messages) => setExported({ id, messages })} />
+          <ExportCharacter id={id} label="Export" variant="ghost" onMessage={(message) => setExported({ id, message })} />
         </>
       )}
     >
       {(sheet) => (
         <>
-          {exportMessages && <ExportMessageLines {...exportMessages} className="mb-4" />}
+          <ExportMessageLine message={exportMessage} className="mb-4" />
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
           <CharacterSheet sheet={sheet} />
         </>

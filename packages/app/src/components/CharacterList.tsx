@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { removeCharacter } from "../state/character.ts";
 import type { CharacterSummary } from "../storage/characters.ts";
 import { raceAndClasses, useCreateCharacter, useSummaries } from "./character-hooks.ts";
-import { ExportCharacter, ExportMessageLines, type ExportMessages } from "./Export.tsx";
+import { ExportCharacter, ExportMessageLine } from "./Export.tsx";
 
 /** The New character and Random character buttons of the character list. */
 export function NewCharacter() {
@@ -56,8 +56,8 @@ export function CharacterList() {
 function CharacterRow({ summary, confirm, onDeleted }: { summary: CharacterSummary; confirm: Confirm; onDeleted: () => void }) {
   const name = summary.name ?? "Unnamed character";
   const [error, setError] = useState<string | null>(null);
-  // The export's messages show on a line under the row, as on the sheet, so the buttons keep their place.
-  const [exportMessages, setExportMessages] = useState<ExportMessages>({ message: null, warning: null });
+  // Why an export failed shows on a line under the row, as on the sheet, so the buttons keep their place.
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
 
   async function onDelete() {
     if (!(await confirm(`Delete ${name}? This cannot be undone.`, "Delete"))) return;
@@ -86,13 +86,13 @@ function CharacterRow({ summary, confirm, onDeleted }: { summary: CharacterSumma
             Export <span className="sr-only">{name}</span>
           </>
         }
-        onMessages={setExportMessages}
+        onMessage={setExportMessage}
       />
       <Button onClick={onDelete} variant="link">
         Delete <span className="sr-only">{name}</span>
       </Button>
       {error && <p role="alert">{error}</p>}
-      <ExportMessageLines {...exportMessages} className="basis-full" />
+      <ExportMessageLine message={exportMessage} className="basis-full" />
     </li>
   );
 }

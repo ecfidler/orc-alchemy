@@ -21,8 +21,6 @@ test("a character exports as a dmv-character file that imports back", async ({ p
   const file = JSON.parse(readFileSync(await download.path(), "utf8"));
   expect(file).toMatchObject({ format: "dmv-character", version: 2, rules: "2014", name: "Brannor Ironfist" });
   expect(file).not.toHaveProperty("custom");
-  // A character without custom content gets no warning.
-  await expect(page.getByRole("note")).toHaveCount(0);
 
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(await download.path());
@@ -43,7 +41,6 @@ test("export everything downloads a dmv-export bundle that imports back", async 
   const bundle = JSON.parse(readFileSync(await download.path(), "utf8"));
   expect(bundle).toMatchObject({ format: "dmv-export", version: 2, magicItems: [] });
   expect(bundle.characters).toHaveLength(2);
-  await expect(page.getByRole("note")).toHaveCount(0);
 
   await page.goto("/import");
   await page.getByLabel("Import dmv-export bundle").setInputFiles(await download.path());
@@ -57,8 +54,6 @@ test("export everything with nothing stored says so", async ({ page }) => {
   await page.getByRole("button", { name: "Export everything" }).click();
   await expect(page.getByRole("alert")).toHaveText("There are no characters or homebrew to export");
 });
-
-const OLD_APP_WARNING = /The old Dungeon Master's Vault cannot read them/;
 
 /** Imports fighter-20 and gives him a custom copy of his feat Grappler in the builder, then goes back to his sheet and saves. */
 async function customizeGrappler(page: Page) {
@@ -79,13 +74,13 @@ async function customizeGrappler(page: Page) {
   await expect(page.getByRole("button", { name: "Save", exact: true })).toBeHidden();
 }
 
-test("a character with a custom feat exports as version 2 with a warning, and imports back with the feat", async ({ page }) => {
+test("a character with a custom feat exports as version 2 with no warning, and imports back with the feat", async ({ page }) => {
   await customizeGrappler(page);
 
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
   const download = await downloading;
-  await expect(page.getByRole("note")).toHaveText(OLD_APP_WARNING);
+  await expect(page.getByRole("note")).toHaveCount(0);
   const file = JSON.parse(readFileSync(await download.path(), "utf8"));
   expect(file).toMatchObject({
     format: "dmv-character",
@@ -101,7 +96,7 @@ test("a character with a custom feat exports as version 2 with a warning, and im
   await expect(page.getByRole("note")).toHaveCount(0);
 });
 
-test("export everything warns when a character has custom content, and the bundle imports it back", async ({ page }) => {
+test("export everything of a character with custom content shows no warning, and the bundle imports it back", async ({ page }) => {
   await customizeGrappler(page);
   await importFixture(page, "fighter-1", "Brannor Ironfist");
 
@@ -109,7 +104,7 @@ test("export everything warns when a character has custom content, and the bundl
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export everything" }).click();
   const download = await downloading;
-  await expect(page.getByRole("note")).toHaveText(/Some characters have custom options/);
+  await expect(page.getByRole("note")).toHaveCount(0);
   const bundle = JSON.parse(readFileSync(await download.path(), "utf8"));
   expect(bundle.characters.map((c: { custom?: object }) => c.custom !== undefined).sort()).toEqual([false, true]);
 

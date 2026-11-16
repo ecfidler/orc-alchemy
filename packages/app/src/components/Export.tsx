@@ -1,6 +1,5 @@
 import { Button, type ButtonVariant } from "@orc-alchemy/ui";
 import { type ReactNode, useState } from "react";
-import { hasCustomItems } from "../engine/custom.ts";
 import { loadEngine } from "../engine/engine.ts";
 import { characterFile, exportBundle } from "../engine/import.ts";
 import { exportOrcbrew } from "../engine/orcbrew-export.ts";
@@ -8,40 +7,34 @@ import { flushAutosave } from "../state/character.ts";
 import { bundleHomebrew, orcbrewHomebrew, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { getCharacter, listCharacters } from "../storage/characters.ts";
 
-/** What the old Dungeon Master's Vault does with custom options, for the export of one character and of all (ORC-137). */
-const CUSTOM_WARNING_ONE = "This character has custom options. The old Dungeon Master's Vault cannot read them, so the character does not open there as it is.";
-const CUSTOM_WARNING_ALL =
-  "Some characters have custom options. The old Dungeon Master's Vault cannot read them, so those characters do not open there as they are.";
-
 /**
  * Downloads a stored character as a dmv-character file, after saving any
- * pending changes. With custom content, it then warns that the old app
- * cannot read the custom options. Its messages show under the button, or,
- * with onMessages, where the caller puts them (ExportMessageLines), so a
- * row of buttons keeps its line. Loads the engine on demand.
+ * pending changes, with its custom content. Why an export failed shows
+ * under the button, or, with onMessage, where the caller puts it
+ * (ExportMessageLine), so a row of buttons keeps its line. Loads the
+ * engine on demand.
  */
 export function ExportCharacter({
   id,
   label = "Export this character",
   variant,
-  onMessages,
+  onMessage,
 }: {
   id: string;
   label?: ReactNode;
   variant?: ButtonVariant;
-  onMessages?: (messages: ExportMessages) => void;
+  onMessage?: (message: string | null) => void;
 }) {
   return (
     <ExportButton
       label={label}
       variant={variant}
-      onMessages={onMessages}
+      onMessage={onMessage}
       onExport={async () => {
         await Promise.all([loadEngine(), flushAutosave()]);
         const record = await getCharacter(id);
         if (record === undefined) throw new Error("The character is no longer stored");
         download(`${fileName(record.name)}.json`, characterFile(record));
-        return { warning: hasCustomItems(record.custom) ? CUSTOM_WARNING_ONE : null };
       }}
     />
   );
@@ -55,9 +48,8 @@ export function ExportCharacter({
  * maps without their flags, so a browser that has none of them loads each one
  * enabled. A pack that fails validateForExport stops the .orcbrew file, not
  * the bundle. Quarantined records are left out, with a notice. Each
- * character goes in with its custom content, and when one has some, a
- * warning says that the old app cannot read it. The .orcbrew file has
- * packs only, never custom content. Loads the engine on demand.
+ * character goes in with its custom content. The .orcbrew file has packs
+ * only, never custom content. Loads the engine on demand.
  */
 export function ExportEverything() {
   return (
@@ -84,7 +76,7 @@ export function ExportEverything() {
               notices.push(`all-content.orcbrew was not written: the old app would refuse ${names}. To see why, or to export anyway, use My Content.`);
             } else downloadText(orcbrew.fileName, orcbrew.text, "application/edn");
           }
-          return { message: notices.join(" ") || null, warning: records.some((r) => hasCustomItems(r.custom)) ? CUSTOM_WARNING_ALL : null };
+          return notices.join(" ") || null;
         }}
       />
       <p>With homebrew, it also writes all-content.orcbrew for the old app. That file has no magic items, because the old app has no magic-item homebrew.</p>
@@ -92,56 +84,39 @@ export function ExportEverything() {
   );
 }
 
-/** What an export button shows after a click, or onExport returns after the download. */
-export interface ExportMessages {
-  /** Why the export failed, or the notice of a partial export. */
-  message: string | null;
-  /** What the old app cannot read in the export. */
-  warning: string | null;
-}
-
-const NO_MESSAGES: ExportMessages = { message: null, warning: null };
-
-/** An export's messages in their own block: the message as an alert, and the warning as a note in --warning text. Nothing with neither. */
-export function ExportMessageLines({ message, warning, className = "" }: ExportMessages & { className?: string }) {
-  if (!message && !warning) return null;
+/** Why an export failed, or the notice of a partial export, as an alert line in its own block. Nothing without a message. */
+export function ExportMessageLine({ message, className = "" }: { message: string | null; className?: string }) {
+  if (!message) return null;
   return (
-    <div className={`space-y-1 ${className}`}>
-      {message && <p role="alert">{message}</p>}
-      {warning && (
-        <p role="note" className="text-warning">
-          {warning}
-        </p>
-      )}
-    </div>
+    <p role="alert" className={className}>
+      {message}
+    </p>
   );
 }
 
-/** With onMessages, the button gives its messages to the caller and does not show them. */
+/** onExport returns a notice to show when the export is only partly done. With onMessage, the button gives its message to the caller and does not show it. */
 function ExportButton({
   label,
   variant = "link",
   onExport,
-  onMessages,
+  onMessage,
 }: {
   label: ReactNode;
   variant?: ButtonVariant;
-  /** Downloads the file, and returns what to show after it, or nothing. */
-  onExport: () => Promise<Partial<ExportMessages> | void>;
-  onMessages?: (messages: ExportMessages) => void;
+  onExport: () => Promise<string | null | void>;
+  onMessage?: (message: string | null) => void;
 }) {
-  const [messages, setMessages] = useState<ExportMessages>(NO_MESSAGES);
-  const show = (next: ExportMessages) => (onMessages ?? setMessages)(next);
+  const [message, setMessage] = useState<string | null>(null);
+  const show = (next: string | null) => (onMessage ?? setMessage)(next);
   async function onClick() {
-    show(NO_MESSAGES);
+    show(null);
     try {
-      const result = await onExport();
-      show({ ...NO_MESSAGES, ...result });
+      show((await onExport()) ?? null);
     } catch (e) {
-      show({ message: e instanceof Error ? e.message : String(e), warning: null });
+      show(e instanceof Error ? e.message : String(e));
     }
   }
-  if (onMessages) {
+  if (onMessage) {
     return (
       <Button onClick={onClick} variant={variant}>
         {label}
@@ -153,7 +128,7 @@ function ExportButton({
       <Button onClick={onClick} variant={variant}>
         {label}
       </Button>
-      <ExportMessageLines {...messages} />
+      <ExportMessageLine message={message} />
     </div>
   );
 }

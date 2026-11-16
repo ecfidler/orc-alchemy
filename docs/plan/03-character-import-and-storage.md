@@ -4,7 +4,7 @@ title: "03: Character import and storage"
 description: "How characters leave an old instance through the exporter bookmarklet, how the new app imports them, and the native character format."
 tags: [plan, characters, import]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T14:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T18:00:00Z }
 ---
 
 # 03: Character import and storage
@@ -181,13 +181,6 @@ envelope file. It reads each other object as a bare entity, so a version
 higher bundle version. An app from before ORC-137 refuses all of a
 version 2 bundle, its packs and magic items too. Its message is
 "Unsupported dmv-export version: 2".
-
-When an exported character has custom content, the export shows one line
-of `--warning` text after the download. The line says that the old
-Dungeon Master's Vault cannot read the custom options, so the character
-does not open there as it is. "Export everything" shows it when any
-character has custom content. The warning does not stop the download, and an export without
-custom content shows no warning.
 
 The bundle from the new app adds two fields when packs are stored (ORC-54):
 
