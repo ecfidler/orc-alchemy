@@ -111,7 +111,8 @@ function importEnvelope(data: Record<string, unknown>, content: Content | undefi
     throw new Error(`This character uses the ${String(data.rules)} rules, which this app does not support yet`);
   }
   const { custom, problems } = checkCustom(data.custom);
-  const character = importOne(data.entity, content, custom, problems);
+  const { character, customLeftOut } = importWithCustom(data.entity, content, custom);
+  if (customLeftOut) problems.push(CUSTOM_BUILD_FAILURE);
   if (typeof data.legacyId === "string") character.legacyId = data.legacyId;
   const name = character.name ?? "Unnamed character";
   return { character, failures: problems.map((problem) => `${name}: ${problem}`) };
@@ -392,10 +393,10 @@ export const CUSTOM_BUILD_FAILURE = "The custom options were left out: the app c
  * One strict entity, with its checked custom content (checkCustom), which is
  * kept only for the options that the entity selects. Custom items can pass
  * their validator and still stop the build: then the character imports
- * without its custom content, and problems gets CUSTOM_BUILD_FAILURE. An
- * entity that does not build alone throws, as it does without custom content.
+ * without its custom content, and customLeftOut is true. An entity that
+ * does not build alone throws, as it does without custom content.
  */
-function importOne(entity: unknown, content: Content | undefined, checked?: object, problems: string[] = []): CharacterFileEntry {
+function importWithCustom(entity: unknown, content: Content | undefined, checked?: object): { character: CharacterFileEntry; customLeftOut: boolean } {
   // importCharacter accepts any object, and gives an empty character for one
   // that is not verbose Transit-JSON, so check for a strict entity first.
   if (!isObject(entity) || !("~:orcpub.entity.strict/selections" in entity)) {
@@ -410,6 +411,7 @@ function importOne(entity: unknown, content: Content | undefined, checked?: obje
   };
   let custom = pruneCustom(imported.entity, checked);
   let result: { name: string | null; unresolved: UnresolvedKey[] };
+  let customLeftOut = false;
   if (custom === undefined) result = check(content);
   else {
     try {
@@ -417,12 +419,15 @@ function importOne(entity: unknown, content: Content | undefined, checked?: obje
     } catch {
       result = check(content); // throws if the entity does not build alone either
       custom = undefined;
-      problems.push(CUSTOM_BUILD_FAILURE);
+      customLeftOut = true;
     }
   }
   // Every importable character is 2014: old-app files are, and readCharacterFile refuses other envelopes.
-  return { ...imported, rules: "2014", ...result, ...(custom !== undefined && { custom }) };
+  return { character: { ...imported, rules: "2014", ...result, ...(custom !== undefined && { custom }) }, customLeftOut };
 }
+
+/** One strict entity that has no custom content. */
+const importOne = (entity: unknown, content: Content | undefined): CharacterFileEntry => importWithCustom(entity, content).character;
 
 /** Throws for a version the app cannot read: it reads 1 to FILE_VERSION. */
 function checkVersion(data: Record<string, unknown>) {

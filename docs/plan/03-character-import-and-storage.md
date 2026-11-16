@@ -4,7 +4,7 @@ title: "03: Character import and storage"
 description: "How characters leave an old instance through the exporter bookmarklet, how the new app imports them, and the native character format."
 tags: [plan, characters, import]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T14:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T14:50:00Z }
 ---
 
 # 03: Character import and storage
@@ -138,11 +138,11 @@ steps:
 
 1. The content must be a map of content types that a pack can have. Each
    content type must be a map of items under Transit keyword keys.
-2. Each item must pass the validator of its type, as an item that the
+2. An item of each type except backgrounds must have its map key as its
+   `:key`, as the app writes it. Another key would select another option.
+   The engine keys a background by its name.
+3. Each item must pass the validator of its type, as an item that the
    Customize dialog saves does.
-3. An item of each type except backgrounds must have its map key as its
-   `:key`. The engine keys these items by `:key`, so another key would
-   select another option. The engine keys a background by its name.
 4. Each kept item gets `Custom (this character)` as its `option-pack`, so
    the file cannot name a loaded pack.
 5. The importer drops the items that the entity does not select
