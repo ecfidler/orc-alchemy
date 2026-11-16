@@ -1,10 +1,10 @@
 ---
 type: Reference
 title: Homebrew forms spec
-description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1.
+description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T02:40:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T03:33:43Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -676,9 +676,9 @@ incorrectly and can fail.
 Added in M5.1 (ORC-134). The builder lets the user make a copy of a
 selected option for one character. The copy is stored in the character's
 custom content (ORC-133), and other characters do not see it. ORC-134 does
-this for feats, and ORC-135 for the background, with the same parts. The
-race (ORC-136) follows. Where the background is different, this section
-says so.
+this for feats, ORC-135 for the background, and ORC-136 for the race, with
+the same parts. Where the background or the race is different, this
+section says so.
 
 ## The line under the option cards
 
@@ -689,7 +689,8 @@ says so.
   **Edit custom** for a copy.
 * Each place that picks the option shows the line. For a feat, that is the
   Feats step and the "Ability Score Improvement or Feat" choice of a class
-  level. For a background, that is the Background step.
+  level. For a background, that is the Background step. For a race, that
+  is the Race step.
 * The copy shows in the list of cards by its name only, with no badge. The
   original stays in the list.
 
@@ -708,6 +709,16 @@ says so.
   saved. Close anyway?" with **Stay** and **Close**. The rule for a change
   is the rule of [Leaving a changed form](#leaving-a-changed-form). A
   reload or a close of the tab shows the warning of the browser.
+* For a race, a short note shows above the form. It names the optional
+  rule "Customizing Your Origin" of *Tasha's Cauldron of Everything*, page
+  8. It tells what the rule permits: move the race's ability score
+  increases to other abilities, and change its languages and proficiencies
+  for others. It also tells that the skill, weapon and tool proficiencies
+  are in the "+ Add a modifier" list. The note is in our own words, because
+  the book is not SRD content. It is `--ink-muted` text, because it needs
+  no action. Only the race has this note.
+* If a save of the copy removes picks of the character, a line above the
+  form names them. See [The picks that Save removes](#the-picks-that-save-removes).
 * The modals of the form open above the dialog, for example "+ Add a
   modifier", the pickers (for a background, also "+ Add equipment" with
   its search) and the delete confirmation. The focus comes back into the
@@ -744,6 +755,31 @@ says so.
 * The form has no control for the equipment choices of an SRD background.
   For Acolyte, they are Prayer Book/Wheel and Holy Symbol. They stay in
   the copy as they are.
+* An SRD race is also in the engine's content list,
+  `@pubdoor/dmv/content/races.json`, in a shape near that of a pack race.
+  Customize on an SRD race opens that record in the race form: the
+  description (`:help`), size, speed, darkvision, ability score
+  increases, languages, weapon proficiencies and features. The summary of
+  a feature becomes its description, as for a background.
+* The list has no ability score increases for the Human. The engine gives
+  the Human +1 to each ability with its variant Standard Human. Thus the
+  copy of the Human opens with +1 in each of the six abilities, and a copy
+  of a standard Human with no edits keeps the scores. For a Variant Human,
+  the user must change the increases in the form.
+* The list does not have all of an SRD race. Thus the copy of an SRD race
+  does not have these:
+  * The damage resistances, for example the poison resistance of the
+    Dwarf.
+  * The saving throw advantages and the spells, for example the spells of
+    the Tiefling.
+  * The features that the list does not have, for example the breath
+    weapon of the Dragonborn.
+  * The choices under the race, for example the subrace, the variant and
+    the extra language of the Human, the tool of the Dwarf and the
+    ancestry of the Dragonborn. Save removes the character's picks of
+    these choices.
+  * The subraces. A copy never has a subrace (see
+    [The picks that Save removes](#the-picks-that-save-removes)).
 * If the content list does not load, an alert under the lines says so,
   and the dialog does not open.
 * The name is "{name} (Custom)". The user can change it.
@@ -760,6 +796,9 @@ says so.
   kept. This is the key that the engine gives. "Sage (Custom)" gives
   `sage-custom-`. The copy is stored under this key, and the pick uses
   it.
+* The engine keys a race by its stored key, as it keys a feat. Thus a
+  race copy has the key of its name without the dashes: "Dwarf (Custom)"
+  gives `dwarf-custom`.
 * A name without a letter or a digit has no key. This is true for each
   type.
 * The key must not be the key of another option in the character's list:
@@ -793,6 +832,38 @@ them together:
    same. If they did not change, the inventory stays as it is.
 
 After Save, the line shows Edit custom, and its button has the focus.
+
+## The picks that Save removes
+
+Step 4 removes each pick under the copy that does not resolve. Before
+Save, the dialog tells the user which picks these are.
+
+* The app does a test save of the form's record as it is now, with the
+  same steps as Save. The picks that the test save removes show on a line
+  above the form, in `--warning` text: "Save removes these picks of the
+  character: Subrace (Illuskan), Variant (Standard Human)."
+* The text gives no reason, because there are two: the copy does not offer
+  the choice, or the pack of the pick is turned off now.
+* Each pick shows as the name of its choice and, in parentheses, the name
+  of its option. A pick under a removed pick does not show.
+* The line follows the form. When the dialog opens, the line is correct at
+  once. After a change, the line changes when the form has not changed
+  for 300 ms, so typing stays smooth. While the form has problems, the
+  line stays as it was.
+* Customize and Edit custom both show the line. For example, if the user
+  removes the artisan's tool choice of a background copy, the line names
+  the character's pick of that choice, such as Smith's Tools.
+* If the test save removes no pick, the line does not show.
+* A race copy never keeps a subrace pick. An SRD race has its subraces in
+  the engine, and the copy does not get them. A pack subrace names its race
+  by the race's key, and the copy has a new key. Thus Save removes the
+  subrace pick, and the line names it. The values of the subrace, for
+  example an ability score increase, go from the sheet.
+* The line is the same for each type. A feat or a background copy shows
+  it when the copy does not offer a choice that the character picked.
+* The line follows the form after a short delay. If Save comes before
+  the line shows the picks that this save removes, the first Save only
+  updates the line, and the dialog stays open. The next Save saves.
 
 # Build order
 

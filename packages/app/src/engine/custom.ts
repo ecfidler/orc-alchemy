@@ -5,6 +5,7 @@
 // never see it.
 import type { Built2014 } from "@pubdoor/dmv";
 import {
+  asSet,
   BACKGROUND_TYPE,
   disabledInFile,
   isMap,
@@ -118,12 +119,20 @@ export const customName = (name: string) => `${name} (Custom)`;
  * a background with the name (optionKeyOf), with each "-" kept: "Sage
  * (Custom)" is sage-custom-. A copy of each other type has the nameToKw key
  * without a "-" at the start or the end: "Skill Expert (Custom)" is
- * skill-expert-custom. "" for a name without letters or digits.
+ * skill-expert-custom. The engine keys a feat or a race by its stored key,
+ * which customizeOption sets to this key. "" for a name without letters or
+ * digits.
  */
 export function copyKey(contentType: ContentType, name: string): string {
   const trimmed = nameToKw(name).replace(/^-+|-+$/g, "");
   if (trimmed === "") return "";
   return contentType === BACKGROUND_TYPE ? optionKeyOf(contentType, { "~:name": name }) : trimmed;
+}
+
+/** The copy key of the item's name (copyKey), or "" when the item has no name. */
+export function copyKeyOf(contentType: ContentType, item: object): string {
+  const name = (item as Record<string, unknown>)[tag("name")];
+  return typeof name === "string" ? copyKey(contentType, name) : "";
 }
 
 /**
@@ -176,6 +185,9 @@ export function formRecord(item: Record<string, unknown>): Record<string, unknow
   return rest;
 }
 
+/** The character's features: its traits, actions, bonus actions and reactions, in this order. */
+export const features = (built: Built2014) => [built.traits, built.actions, built["bonus-actions"], built.reactions].flatMap((list) => list ?? []);
+
 /**
  * The text of a built-in option, such as an SRD feat, for its copy: the
  * description, or else the summary, of the character's feature with the
@@ -184,8 +196,7 @@ export function formRecord(item: Record<string, unknown>): Record<string, unknow
  * built is the character as the engine builds it (useOpenCharacter).
  */
 export function builtInText(built: Built2014, name: string): string {
-  const features = [built.traits, built.actions, built["bonus-actions"], built.reactions].flatMap((list) => list ?? []);
-  const feature = features.find((f) => f.name === name);
+  const feature = features(built).find((f) => f.name === name);
   const text = (feature?.description ?? feature?.summary ?? "").trim();
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -213,8 +224,7 @@ export function customizeOption(
   custom: object | undefined,
   { contentType, path, item, replacedKey }: Customization,
 ): { entity: StrictEntity; custom: object } {
-  const name = (item as Record<string, unknown>)[tag("name")];
-  const key = typeof name === "string" ? copyKey(contentType, name) : "";
+  const key = copyKeyOf(contentType, item);
   if (key === "") throw new Error("The copy needs a name with a letter or a digit");
   const type = tag(contentType);
   const without = replacedKey === undefined || replacedKey === key ? (custom ?? {}) : withoutItem(custom ?? {}, type, tag(replacedKey));
@@ -252,28 +262,81 @@ function templateChoices(key: string, listed: unknown[]): Record<string, unknown
 }
 
 /**
+ * The features of an SRD option in the engine's content list, as a form
+ * edits them: the summary of a feature without a description is its
+ * description, the field that the form edits. [] when traits is not a list.
+ */
+function formTraits(traits: unknown): unknown[] {
+  return (Array.isArray(traits) ? traits : []).map((trait: Record<string, unknown>) => {
+    const { summary, ...more } = trait;
+    return more.description === undefined && typeof summary === "string" ? { ...more, description: summary } : trait;
+  });
+}
+
+/**
  * The SRD background with the key as a form record, for its copy, or
  * undefined if the SRD has no such background. The source is the engine's
  * content list (content/backgrounds.json), which has each SRD background
  * with the fields of a pack background (BackgroundForm.tsx). The keys are
- * made Transit keywords, and the summary of a feature is its description,
- * the field that the form edits. An equipment choice that the list leaves
- * out comes from the engine's template (templateChoices), so the copy
- * keeps the character's pick. The SRD list loads once, as its own chunk.
+ * made Transit keywords, and the features are as the form edits them
+ * (formTraits). An equipment choice that the list leaves out comes from
+ * the engine's template (templateChoices), so the copy keeps the
+ * character's pick. The SRD list loads once, as its own chunk.
  */
 export async function srdBackgroundRecord(key: string): Promise<Record<string, unknown> | undefined> {
   const { default: list } = await import("@pubdoor/dmv/content/backgrounds.json");
   const background = (list as Record<string, unknown>[]).find((b) => b.key === key);
   if (background === undefined) return undefined;
   const { key: _key, traits, "equipment-choices": choices, ...rest } = background;
-  const features = (Array.isArray(traits) ? traits : []).map((trait: Record<string, unknown>) => {
-    const { summary, ...more } = trait;
-    return more.description === undefined && typeof summary === "string" ? { ...more, description: summary } : trait;
-  });
   const listed = Array.isArray(choices) ? choices : [];
   const allChoices = [...listed, ...templateChoices(key, listed)];
-  return tagKeys({ ...rest, ...(allChoices.length > 0 && { "equipment-choices": allChoices }), traits: features }) as Record<string, unknown>;
+  return tagKeys({ ...rest, ...(allChoices.length > 0 && { "equipment-choices": allChoices }), traits: formTraits(traits) }) as Record<string, unknown>;
 }
+
+/** The six ability keys, as a race's :abilities has them. */
+const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"].map((a) => `orcpub.dnd.e5.character/${a}`);
+
+/**
+ * The SRD race with the key as a form record in the shape of a pack race
+ * (RaceForm.tsx), for its copy, or undefined if the engine's content list
+ * (content/races.json) has no such race. The record has what the list has:
+ * the name, the description (:help), the size, the speed, the darkvision,
+ * the ability score increases, the languages, the weapon proficiencies and
+ * the features (formTraits). The Human gets +1 to each ability, which
+ * the engine gives with its variant Standard Human, so that a copy keeps
+ * a standard Human's scores. The list has no damage resistances, saving
+ * throw advantages, spells or choices of the race, and the copy has no
+ * subraces, so those are not in the record. The SRD list loads once, as
+ * its own chunk.
+ */
+export async function srdRaceRecord(key: string): Promise<Record<string, unknown> | undefined> {
+  const { default: list } = await import("@pubdoor/dmv/content/races.json");
+  const race = (list as Record<string, unknown>[]).find((r) => r.key === key);
+  if (race === undefined) return undefined;
+  const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, ...rest } = race;
+  // The list has no ability score increases for the Human: its +1 to each ability comes from the variant Standard Human.
+  if (key === "human" && rest.abilities === undefined) rest.abilities = Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1]));
+  const weaponProfs = Array.isArray(weapons) ? Object.fromEntries(weapons.map((w) => [w, true])) : {};
+  const record = tagKeys({
+    ...rest,
+    ...(Object.keys(weaponProfs).length > 0 && { props: { "weapon-prof": weaponProfs } }),
+    traits: formTraits(traits),
+  }) as Record<string, unknown>;
+  // A keyword value and a set, which tagKeys does not make.
+  return {
+    ...record,
+    ...(typeof size === "string" && { [tag("size")]: tag(size) }),
+    [tag("languages")]: asSet(Array.isArray(languages) ? languages : []),
+  };
+}
+
+/** The options under the option at path that do not resolve against the content, as missingContent gives them. */
+function unresolvedUnder(entity: StrictEntity, path: string[], content: Content) {
+  return missingContent(entity, content).filter((u) => u.path.length > path.length && path.every((key, i) => u.path[i] === key));
+}
+
+/** The entity without the options at the paths of the unresolved options. */
+const withoutAll = (entity: StrictEntity, unresolved: { path: string[] }[]) => unresolved.reduce((result, u) => withoutOption(result, u.path), entity);
 
 /**
  * The entity without the options under the option at path that do not
@@ -284,8 +347,43 @@ export async function srdBackgroundRecord(key: string): Promise<Record<string, u
  * none.
  */
 export function withoutUnresolvedUnder(entity: StrictEntity, path: string[], content: Content): StrictEntity {
-  const under = missingContent(entity, content).filter((u) => u.path.length > path.length && path.every((key, i) => u.path[i] === key));
-  return under.reduce((result, u) => withoutOption(result, u.path), entity);
+  return withoutAll(entity, unresolvedUnder(entity, path, content));
+}
+
+export interface SavedCopy {
+  /** The entity with the copy selected and the picks under it that do not resolve removed (withoutUnresolvedUnder). */
+  entity: StrictEntity;
+  custom: object;
+  /** The key of the copy (copyKeyOf). */
+  key: string;
+  /** What the character builds against with the new custom content. */
+  content: Content;
+  /**
+   * The picks that the save removed, as their paths in the entity before
+   * the save, such as ["race", "dwarf", "subrace", "hill-dwarf"]. A pick
+   * under a removed pick is not listed.
+   */
+  removed: string[][];
+}
+
+/**
+ * The save of a copy: customizeOption, then the picks under the copy that
+ * do not resolve go. content is what the character builds against, without
+ * custom. The dialog's Save stores the result, and its line of removed
+ * picks shows `removed` before Save. Throws as customizeOption throws.
+ */
+export function saveCopy(entity: StrictEntity, custom: object | undefined, content: Content, customization: Customization): SavedCopy {
+  const next = customizeOption(entity, custom, customization);
+  const key = copyKeyOf(customization.contentType, customization.item);
+  const { path } = customization;
+  const at = path.length - 1;
+  const copyPath = [...path.slice(0, at), key];
+  const withCopy = characterContent(content, next.custom);
+  const under = unresolvedUnder(next.entity, copyPath, withCopy);
+  const kept = withoutAll(next.entity, under);
+  const paths = under.map((u) => u.path.map((k, i) => (i === at ? path[at] : k)));
+  const removed = paths.filter((p) => !paths.some((q) => q.length < p.length && q.every((k, i) => p[i] === k)));
+  return { entity: kept, custom: next.custom, key, content: withCopy, removed };
 }
 
 /** The values of a background's starting equipment that addStartingEquipment gives: the items and the gold. */
