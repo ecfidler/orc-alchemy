@@ -9,6 +9,7 @@ import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
+import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
@@ -121,6 +122,8 @@ function Options({ selection }: { selection: BuilderSelection }) {
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
   // A feat, a background or a race has a Customize line under the cards (ORC-134, ORC-135, ORC-136).
   const customizable = customizableFor(selection);
+  // The race has the Custom Origin entry after its cards (ORC-138).
+  const origin = useCustomOrigin(selection);
 
   // Classes in the entity's order, as their rows.
   const opened = (isClass ? selection.selected.map((key) => selection.options.find((o) => o.key === key)!) : selection.options).filter(
@@ -130,7 +133,9 @@ function Options({ selection }: { selection: BuilderSelection }) {
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
       {isClass ? <Classes selection={selection} /> : !selection.sequential && <OptionCards selection={selection} options={selection.options} />}
-      {customizable && <CustomizeLines selection={selection} customizable={customizable} />}
+      {origin?.card}
+      {customizable && <CustomizeLines selection={selection} customizable={customizable} guided={origin?.guided} />}
+      {origin?.dialog}
       {opened.map((option) => (
         <div key={option.key} className="ml-2 space-y-4 border-l border-rule-strong pl-4">
           <h4 className="italic">{option.name}</h4>

@@ -297,13 +297,27 @@ export async function srdBackgroundRecord(key: string): Promise<Record<string, u
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"].map((a) => `orcpub.dnd.e5.character/${a}`);
 
 /**
+ * The skill proficiencies that the SRD race with the key gives, such as
+ * Perception for the Elf, which its content list does not have: the skills
+ * of a new character with only the race, without those of a new character.
+ */
+function raceSkills(key: string): string[] {
+  const e = engine();
+  const empty = e.emptyCharacter();
+  const skills = (entity: StrictEntity) => Object.keys(e.evaluate(entity).built["skill-profs"] ?? {});
+  const before = skills(empty);
+  return skills(e.select(empty, ["race"], key)).filter((skill) => !before.includes(skill));
+}
+
+/**
  * The SRD race with the key as a form record in the shape of a pack race
  * (RaceForm.tsx), for its copy, or undefined if the engine's content list
  * (content/races.json) has no such race. The record has what the list has:
  * the name, the description (:help), the size, the speed, the darkvision,
  * the ability score increases, the languages, the weapon proficiencies and
- * the features (formTraits). The Human gets +1 to each ability, which
- * the engine gives with its variant Standard Human, so that a copy keeps
+ * the features (formTraits). The skill proficiencies, which the list does
+ * not have, come from the engine (raceSkills). The Human gets +1 to each
+ * ability, which the engine gives with its variant Standard Human, so that a copy keeps
  * a standard Human's scores. The list has no damage resistances, saving
  * throw advantages, spells or choices of the race, and the copy has no
  * subraces, so those are not in the record. The SRD list loads once, as
@@ -316,10 +330,14 @@ export async function srdRaceRecord(key: string): Promise<Record<string, unknown
   const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, ...rest } = race;
   // The list has no ability score increases for the Human: its +1 to each ability comes from the variant Standard Human.
   if (key === "human" && rest.abilities === undefined) rest.abilities = Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1]));
-  const weaponProfs = Array.isArray(weapons) ? Object.fromEntries(weapons.map((w) => [w, true])) : {};
+  const skills = raceSkills(key);
+  const props = {
+    ...(Array.isArray(weapons) && weapons.length > 0 && { "weapon-prof": Object.fromEntries(weapons.map((w) => [w, true])) }),
+    ...(skills.length > 0 && { "skill-prof": Object.fromEntries(skills.map((s) => [s, true])) }),
+  };
   const record = tagKeys({
     ...rest,
-    ...(Object.keys(weaponProfs).length > 0 && { props: { "weapon-prof": weaponProfs } }),
+    ...(Object.keys(props).length > 0 && { props }),
     traits: formTraits(traits),
   }) as Record<string, unknown>;
   // A keyword value and a set, which tagKeys does not make.

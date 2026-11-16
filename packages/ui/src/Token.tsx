@@ -1,14 +1,24 @@
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { XButton } from "./Button.tsx";
 import { useRefocus } from "./refocus.ts";
 
 export type TokenProps = {
   /** The text of the token. A long text wraps inside the token. */
   label: string;
-  /** Gets a click on the X. */
-  onRemove: () => void;
+  /** Gets a click on the X. Leave it out for a token with no X. */
+  onRemove?: () => void;
   /** The name in the X's name "Remove {name}", when it is not `label`, for example "Row 4" for a token that shows "4". */
   name?: string;
+  /** The X's whole name, when "Remove" is not the right word, for example "Put back Elvish". */
+  removeName?: string;
+  /** With it, the text is a button that calls it, for example to open a list that changes the pick. */
+  onOpen?: () => void;
+  /** The name of the text's button, when it is not `label`, for example "Change language Elvish". */
+  openName?: string;
+  /** A short word after the text in the button, in small muted type, for example "Change". It is not a part of the button's name. */
+  openHint?: string;
+  /** Marks the token, for example as a pick that the user changed: a thicker border, a yellow bar on the left and semibold text. Say so in a name too. */
+  marked?: boolean;
   /** A small control after the text, for example a NumberToggle with `size="small"`. Give it its own name. */
   children?: ReactNode;
   /** Layout classes. */
@@ -17,15 +27,28 @@ export type TokenProps = {
 
 /**
  * One pick: a small box with its text and an X. The X is named
- * "Remove {label}", and removes the pick. Put tokens in Tokens, or put one
- * token alone in a cell.
+ * "Remove {label}", and removes the pick. With `onOpen`, the text is a
+ * button, for example for a slot that holds one value: the button opens a
+ * list for a new value, and the X puts the first value back. Put tokens in
+ * Tokens, or put one token alone in a cell.
  */
-export function Token({ label, onRemove, name, children, className }: TokenProps) {
+export function Token({ label, onRemove, name, removeName, onOpen, openName, openHint, marked, children, className }: TokenProps) {
   return (
-    <span className={className ? `ui-token ${className}` : "ui-token"}>
-      <span className="ui-token-label">{label}</span>
+    <span className={className ? `ui-token ${className}` : "ui-token"} data-marked={marked ? "" : undefined}>
+      {onOpen ? (
+        <button type="button" className="ui-token-label ui-token-open" aria-label={openName} onClick={onOpen}>
+          {label}
+          {openHint && (
+            <span className="ui-token-hint" aria-hidden="true">
+              {openHint}
+            </span>
+          )}
+        </button>
+      ) : (
+        <span className="ui-token-label">{label}</span>
+      )}
       {children}
-      <XButton size="small" aria-label={`Remove ${name ?? label}`} onClick={onRemove} />
+      {onRemove && <XButton size="small" aria-label={removeName ?? `Remove ${name ?? label}`} onClick={onRemove} />}
     </span>
   );
 }
@@ -33,19 +56,37 @@ export function Token({ label, onRemove, name, children, className }: TokenProps
 /**
  * The tokens of a group on one line that wraps. When an X removes its
  * token, the focus goes to the X of the next token, or of the last one, or
- * to the first button after the tokens when none is left. Other children,
- * for example an add menu, sit at the end of the line.
+ * to the first button after the tokens when none is left. When the X goes
+ * and its token stays, the focus goes to the token's text button. Other
+ * children, for example an add menu, sit at the end of the line.
  */
 export function Tokens({ children, className }: { children?: ReactNode; className?: string }) {
   const line = useRef<HTMLDivElement>(null);
   const x = ".ui-token > .ui-x-button";
+  // The token of the X that was clicked. This runs before useRefocus, so a token that stays keeps the focus.
+  const clickedToken = useRef<Element | null>(null);
+  useLayoutEffect(() => {
+    const token = clickedToken.current;
+    clickedToken.current = null;
+    const active = document.activeElement;
+    if (!token?.isConnected || token.querySelector(".ui-x-button") || (active && active !== document.body)) return;
+    token.querySelector<HTMLElement>(".ui-token-open")?.focus();
+  });
   const refocus = useRefocus(line, x, () => {
     const own = [...(line.current?.querySelectorAll<HTMLElement>("button") ?? [])].find((b) => !b.closest(".ui-token"));
     const after = line.current?.nextElementSibling;
     return own ?? (after?.matches("button") ? (after as HTMLElement) : after?.querySelector<HTMLElement>("button"));
   });
   return (
-    <div ref={line} className={className ? `ui-tokens ${className}` : "ui-tokens"} onClickCapture={(e) => refocus(e.target)}>
+    <div
+      ref={line}
+      className={className ? `ui-tokens ${className}` : "ui-tokens"}
+      onClickCapture={(e) => {
+        const target = e.target instanceof Element ? e.target : null;
+        clickedToken.current = target?.closest(x) ? target.closest(".ui-token") : null;
+        refocus(e.target);
+      }}
+    >
       {children}
     </div>
   );

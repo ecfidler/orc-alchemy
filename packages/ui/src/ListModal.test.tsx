@@ -304,3 +304,29 @@ test("finalFocus can be a function, for an element that the pick made", async ()
   expect(screen.queryByRole("button", { name: "Add to the slot" })).toBeNull();
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Remove Lime" })));
 });
+
+test("a list that closes on a click can have a search field and its own row mark", async () => {
+  const pick = vi.fn();
+  function OneSlot() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button onClick={() => setOpen(true)}>Change the basket</button>
+        <ListModal open={open} onOpenChange={setOpen} title="Change the basket" items={BASKETS} onPick={pick} search mark="Choose" />
+      </>
+    );
+  }
+  render(<OneSlot />);
+  const { button, dialog } = await open("Change the basket");
+  const search = within(dialog).getByRole("searchbox", { name: "Search" });
+  await waitFor(() => expect(document.activeElement).toBe(search));
+  fireEvent.change(search, { target: { value: "stone" } });
+  const plums = within(dialog).getByRole("button", { name: "Plums" });
+  expect(within(dialog).queryByRole("button", { name: "Apples" })).toBeNull();
+  expect(plums.querySelector(".ui-list-add")?.textContent).toBe("Choose");
+  expect(within(dialog).queryByRole("button", { name: "Done" })).toBeNull();
+  fireEvent.click(plums);
+  expect(pick).toHaveBeenCalledWith("plum");
+  await closed();
+  await waitFor(() => expect(document.activeElement).toBe(button));
+});

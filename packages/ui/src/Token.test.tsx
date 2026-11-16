@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { NumberToggle } from "./NumberToggle.tsx";
 import { Token, Tokens } from "./Token.tsx";
@@ -35,4 +36,51 @@ test("a token can hold a small control, which keeps its own name", () => {
   expect(change).toHaveBeenCalledWith(3);
   // A click on the control is not a removal, so the focus stays where it is.
   expect(within(token).getByRole("button", { name: "Remove Any melon" })).toBeTruthy();
+});
+
+test("with onOpen the text is a button with its own name and a hint; removeName names the X; a marked token says so in its data", () => {
+  const openSlot = vi.fn();
+  const putBack = vi.fn();
+  render(<Token label="Sylvan" onOpen={openSlot} openName="Change language Sylvan" openHint="Change" removeName="Put back Elvish" onRemove={putBack} marked />);
+  const button = screen.getByRole("button", { name: "Change language Sylvan" });
+  expect([button.className, button.textContent]).toEqual(["ui-token-label ui-token-open", "SylvanChange"]);
+  expect(button.querySelector(".ui-token-hint")?.getAttribute("aria-hidden")).toBe("true");
+  fireEvent.click(button);
+  expect(openSlot).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "Put back Elvish" }));
+  expect(putBack).toHaveBeenCalledOnce();
+  expect(document.querySelector<HTMLElement>(".ui-token")!.dataset.marked).toBe("");
+});
+
+test("a token without onRemove has no X, and is not marked unless marked is set", () => {
+  render(<Token label="Common" onOpen={() => {}} />);
+  expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Common"]);
+  expect(document.querySelector<HTMLElement>(".ui-token")!.dataset.marked).toBeUndefined();
+});
+
+test("when a click on an X takes the X away and the token stays, the focus goes to the token's text button", () => {
+  function Slots() {
+    const [values, setValues] = useState(["Sylvan", "Orc"]);
+    const first = ["Elvish", "Common"];
+    return (
+      <Tokens>
+        {values.map((value, i) => (
+          <Token
+            key={i}
+            label={value}
+            onOpen={() => {}}
+            openName={`Change ${value}`}
+            onRemove={value === first[i] ? undefined : () => setValues(values.map((v, j) => (j === i ? first[j] : v)))}
+            removeName={`Put back ${first[i]}`}
+          />
+        ))}
+      </Tokens>
+    );
+  }
+  render(<Slots />);
+  const x = screen.getByRole("button", { name: "Put back Elvish" });
+  x.focus();
+  fireEvent.click(x);
+  expect(screen.queryByRole("button", { name: "Put back Elvish" })).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change Elvish" }));
 });

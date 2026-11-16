@@ -16,6 +16,7 @@ import {
   customName,
   formRecord,
   optionOrigin,
+  type SavedCopy,
   saveCopy,
   srdBackgroundRecord,
   srdRaceRecord,
@@ -192,9 +193,10 @@ const REMOVED_PICKS_DELAY = 300;
  * The first item counts at once, so the line shows when the dialog opens.
  * A later item counts when the form has not changed for
  * REMOVED_PICKS_DELAY. While the record has problems (item null), the last
- * names stay.
+ * names stay. The Custom Origin dialog (CustomOriginDialog.tsx) shows its
+ * line with this hook too.
  */
-function useRemovedPicks(
+export function useRemovedPicks(
   item: ItemRecord | null,
   removedPicks: ((item: ItemRecord) => string[]) | undefined,
 ): [removes: string[], removesNow: (item: ItemRecord) => boolean] {
@@ -219,6 +221,30 @@ function useRemovedPicks(
   return [removes, removesNow];
 }
 
+/**
+ * The names of the picks that a save removes, such as "Subrace (Hill
+ * Dwarf)", as the line above the form shows them. save does the test save
+ * with the character as it is now. [] when it throws: remapOption throws
+ * when the selection has an option with the copy's key already, and the
+ * dialog shows that case another way.
+ */
+export function removedPickNames(selection: BuilderSelection, save: () => SavedCopy): string[] {
+  try {
+    return save().removed.map((p) => pickName(selection, p));
+  } catch {
+    return [];
+  }
+}
+
+/** A line's other button for a copy that another dialog edits, such as "Edit custom origin" for a Custom Origin copy (CustomOriginDialog.tsx). */
+export interface GuidedEdit {
+  /** The button's text. */
+  label: string;
+  /** True when this dialog edits the selected option with the key. */
+  owns: (key: string) => boolean;
+  open: (key: string) => void;
+}
+
 /** The open dialog: what it edits, and a number that mounts a new dialog at each open. */
 interface Session {
   id: number;
@@ -239,9 +265,10 @@ interface Session {
  * on the copy. A save writes the copy and selects it, drops the picks
  * under it that do not resolve (saveCopy), and then does the type's
  * afterSave. Before Save, the dialog names the picks that a save of the
- * form's record removes, such as a subrace.
+ * form's record removes, such as a subrace. A copy that guided owns has
+ * the guided button in place of Edit custom.
  */
-export function CustomizeLines({ selection, customizable }: { selection: BuilderSelection; customizable: Customizable }) {
+export function CustomizeLines({ selection, customizable, guided }: { selection: BuilderSelection; customizable: Customizable; guided?: GuidedEdit }) {
   const { builder } = customizable;
   const contentType = builder.contentType as ContentType;
   const homebrew = useHomebrew((state) => state.content.homebrew);
@@ -293,17 +320,8 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
     [session, selection.actualPath, contentType],
   );
 
-  const removedPicks = useCallback(
-    (item: ItemRecord): string[] => {
-      try {
-        return saved(item).removed.map((p) => pickName(selection, p));
-      } catch {
-        // remapOption throws when the selection has an option with the copy's key already; the Name problem (check) shows that case.
-        return [];
-      }
-    },
-    [saved, selection],
-  );
+  // The Name problem (check) shows a key that another option has.
+  const removedPicks = useCallback((item: ItemRecord): string[] => removedPickNames(selection, () => saved(item)), [saved, selection]);
 
   // A name whose key another option of the selection has would replace it or collide with it: the original, a pack item or another copy.
   // A copy in custom that the character no longer selects does not count: autosave prunes it (pruneCustom), and a save replaces it now.
@@ -338,11 +356,17 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
         <ul ref={lines} aria-label={`Customize ${selection.name}`} className="space-y-1 text-[15px]">
           {selected.map((option) => {
             const isCopy = optionOrigin(homebrew, custom, contentType, option.key).from === "custom";
-            const label = isCopy ? "Edit custom" : "Customize";
+            const owner = isCopy && guided?.owns(option.key) ? guided : undefined;
+            const label = owner ? owner.label : isCopy ? "Edit custom" : "Customize";
             return (
               <li key={option.key} className="flex flex-wrap items-baseline gap-x-3">
                 <span>{option.name}</span>
-                <Button variant="link" data-customize={option.key} aria-label={`${label} ${option.name}`} onClick={() => void open(option.key, option.name)}>
+                <Button
+                  variant="link"
+                  data-customize={option.key}
+                  aria-label={`${label} ${option.name}`}
+                  onClick={() => (owner ? owner.open(option.key) : void open(option.key, option.name))}
+                >
                   {label}
                 </Button>
               </li>
