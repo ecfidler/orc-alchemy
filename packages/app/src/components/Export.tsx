@@ -7,12 +7,29 @@ import { flushAutosave } from "../state/character.ts";
 import { bundleHomebrew, orcbrewHomebrew, restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { getCharacter, listCharacters } from "../storage/characters.ts";
 
-/** Downloads a stored character as a dmv-character file, after saving any pending changes. Loads the engine on demand. */
-export function ExportCharacter({ id, label = "Export this character", variant }: { id: string; label?: ReactNode; variant?: ButtonVariant }) {
+/**
+ * Downloads a stored character as a dmv-character file, after saving any
+ * pending changes, with its custom content. Why an export failed shows
+ * under the button, or, with onMessage, where the caller puts it
+ * (ExportMessageLine), so a row of buttons keeps its line. Loads the
+ * engine on demand.
+ */
+export function ExportCharacter({
+  id,
+  label = "Export this character",
+  variant,
+  onMessage,
+}: {
+  id: string;
+  label?: ReactNode;
+  variant?: ButtonVariant;
+  onMessage?: (message: string | null) => void;
+}) {
   return (
     <ExportButton
       label={label}
       variant={variant}
+      onMessage={onMessage}
       onExport={async () => {
         await Promise.all([loadEngine(), flushAutosave()]);
         const record = await getCharacter(id);
@@ -30,8 +47,9 @@ export function ExportCharacter({ id, label = "Export this character", variant }
  * marks them with the old app's :disabled? flag. Magic items go in as item
  * maps without their flags, so a browser that has none of them loads each one
  * enabled. A pack that fails validateForExport stops the .orcbrew file, not
- * the bundle. Quarantined records are left out, with a notice. Loads the
- * engine on demand.
+ * the bundle. Quarantined records are left out, with a notice. Each
+ * character goes in with its custom content. The .orcbrew file has packs
+ * only, never custom content. Loads the engine on demand.
  */
 export function ExportEverything() {
   return (
@@ -45,15 +63,7 @@ export function ExportEverything() {
           const hasPacks = Object.keys(packs.homebrew).length > 0;
           const magicItems = useHomebrew.getState().magicItems.map((r) => r.item);
           if (records.length === 0 && !hasPacks && magicItems.length === 0) throw new Error("There are no characters or homebrew to export");
-          download(
-            "dmv-export.json",
-            exportBundle(
-              records.map((r) => r.entity),
-              window.location.origin,
-              packs,
-              magicItems,
-            ),
-          );
+          download("dmv-export.json", exportBundle(records, window.location.origin, packs, magicItems));
           const notices: string[] = [];
           const { quarantined } = useHomebrew.getState();
           if (quarantined.length > 0) {
@@ -66,7 +76,7 @@ export function ExportEverything() {
               notices.push(`all-content.orcbrew was not written: the old app would refuse ${names}. To see why, or to export anyway, use My Content.`);
             } else downloadText(orcbrew.fileName, orcbrew.text, "application/edn");
           }
-          return notices.join(" ") || undefined;
+          return notices.join(" ") || null;
         }}
       />
       <p>With homebrew, it also writes all-content.orcbrew for the old app. That file has no magic items, because the old app has no magic-item homebrew.</p>
@@ -74,24 +84,51 @@ export function ExportEverything() {
   );
 }
 
-/** onExport returns a notice to show when the export is only partly done. */
-function ExportButton({ label, variant = "link", onExport }: { label: ReactNode; variant?: ButtonVariant; onExport: () => Promise<string | void> }) {
-  /** Why the export failed, or the notice of a partial export. */
+/** Why an export failed, or the notice of a partial export, as an alert line in its own block. Nothing without a message. */
+export function ExportMessageLine({ message, className = "" }: { message: string | null; className?: string }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className={className}>
+      {message}
+    </p>
+  );
+}
+
+/** onExport returns a notice to show when the export is only partly done. With onMessage, the button gives its message to the caller and does not show it. */
+function ExportButton({
+  label,
+  variant = "link",
+  onExport,
+  onMessage,
+}: {
+  label: ReactNode;
+  variant?: ButtonVariant;
+  onExport: () => Promise<string | null | void>;
+  onMessage?: (message: string | null) => void;
+}) {
   const [message, setMessage] = useState<string | null>(null);
+  const show = (next: string | null) => (onMessage ?? setMessage)(next);
   async function onClick() {
-    setMessage(null);
+    show(null);
     try {
-      setMessage((await onExport()) ?? null);
+      show((await onExport()) ?? null);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : String(e));
+      show(e instanceof Error ? e.message : String(e));
     }
+  }
+  if (onMessage) {
+    return (
+      <Button onClick={onClick} variant={variant}>
+        {label}
+      </Button>
+    );
   }
   return (
     <div className="space-y-1">
       <Button onClick={onClick} variant={variant}>
         {label}
       </Button>
-      {message && <p role="alert">{message}</p>}
+      <ExportMessageLine message={message} />
     </div>
   );
 }

@@ -17,7 +17,7 @@
 // A level amount on a feat counts the character level.
 import { Checkbox, Picker } from "@orc-alchemy/ui";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
-import { asSet, setItems, tag, untag } from "../../engine/content.ts";
+import { asSet, packType, setItems, tag, untag } from "../../engine/content.ts";
 import {
   ABILITIES,
   abilityKey,
@@ -218,9 +218,7 @@ function FeatForm({ record, onChange, problems }: FormProps) {
 }
 
 export const featBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/feats",
-  validator: "feat",
-  one: "feat",
+  ...packType("orcpub.dnd.e5/feats"),
   // The old builder's new feat (db.cljs default-feat) has an empty :prereqs
   // too; it is left out here, and added at the first prerequisite, so an
   // item without prerequisites is stored as the old packs have it.

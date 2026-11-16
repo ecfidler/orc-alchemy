@@ -83,7 +83,7 @@ test("a dmv-export bundle lists its characters to open", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Fimble Nackle" })).toBeVisible();
 });
 
-test("a dmv-character envelope opens its sheet", async ({ page }) => {
+test("a version 1 dmv-character envelope opens its sheet", async ({ page }) => {
   const envelope = { format: "dmv-character", version: 1, rules: "2014", entity: readJson("characters/wizard-5.strict.json") };
 
   await page.goto("/import");
@@ -158,4 +158,27 @@ test("the sheet marks the content that does not resolve", async ({ page }) => {
   await expectNoteClearOfContent(note);
   await note.getByRole("link", { name: "Import page" }).click();
   await expect(page).toHaveURL("/import");
+});
+
+test("a version 2 envelope with a custom item that is not valid lists the character and says what was left out", async ({ page }) => {
+  const custom = { "~:orcpub.dnd.e5/feats": { "~:grappler-custom": { "~:key": "~:grappler-custom", "~:name": "" } } };
+  const envelope = { format: "dmv-character", version: 2, rules: "2014", entity: readJson("characters/wizard-5.strict.json"), custom };
+
+  await page.goto("/import");
+  await page
+    .getByLabel("Import character file")
+    .setInputFiles({ name: "fimble.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(envelope)) });
+
+  await expect(page.getByRole("heading", { name: "Imported 1 character" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Fimble Nackle: The custom feat grappler-custom was left out: name is missing.");
+  await page.getByRole("button", { name: "Fimble Nackle", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Fimble Nackle" })).toBeVisible();
+});
+
+test("a later file version is refused with its version", async ({ page }) => {
+  await page.goto("/import");
+  await page
+    .getByLabel("Import character file")
+    .setInputFiles({ name: "later.json", mimeType: "application/json", buffer: Buffer.from('{"format":"dmv-character","version":3}') });
+  await expect(page.getByRole("alert")).toHaveText("Unsupported dmv-character version: 3");
 });

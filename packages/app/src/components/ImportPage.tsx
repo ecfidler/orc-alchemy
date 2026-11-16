@@ -185,7 +185,7 @@ function CharacterImport() {
       const file = readCharacterFile(text, useHomebrew.getState().content);
       const characters = await Promise.all(
         file.characters.map(async (c) => ({
-          id: await addCharacter(c.entity, c.rules, c.legacyId),
+          id: await addCharacter(c.entity, c.rules, c.legacyId, c.custom),
           name: c.name,
           unresolved: c.unresolved,
         })),

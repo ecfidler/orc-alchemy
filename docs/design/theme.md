@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T00:07:32Z }
+generated: { by: claude-code/agent, at: 2026-11-16T18:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -475,6 +475,9 @@ same row.
   (`ButtonLink`). Export is a button.
 * When unsaved changes come back from a draft, a blue info note under the
   row says so.
+* Why an export failed shows as an alert line under the row, not in it,
+  so the row keeps its one line (ORC-137). In the character list, it shows
+  on a line under the character's row, after Export and Delete.
 
 ## Header
 

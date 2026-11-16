@@ -16,7 +16,7 @@
 import { Select, SelectBox, XButton } from "@orc-alchemy/ui";
 import { type ReactNode, useState } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
-import { asSet, tag } from "../../engine/content.ts";
+import { asSet, packType, tag } from "../../engine/content.ts";
 import {
   ABILITIES,
   ABILITY_OPTIONS,
@@ -301,9 +301,7 @@ function RaceForm({ record, onChange, problems }: FormProps) {
 }
 
 export const raceBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/races",
-  validator: "race",
-  one: "race",
+  ...packType("orcpub.dnd.e5/races"),
   // The old builder's new race (db.cljs default-race).
   empty: { [tag("size")]: tag("medium"), [tag("speed")]: 30, [LANGUAGES]: asSet([]), [tag("traits")]: [] },
   fields: ["name"],

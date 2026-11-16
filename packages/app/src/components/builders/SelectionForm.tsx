@@ -7,7 +7,7 @@
 // appends {:name "Option N"} with the first N not in use, and delete
 // removes the option at its index.
 import { Field, FieldLabel, Fieldset, TextArea, TextInput, XButton } from "@orc-alchemy/ui";
-import { tag } from "../../engine/content.ts";
+import { packType, tag } from "../../engine/content.ts";
 import { AddButton, type BuilderType, Card, editor, FormColumn, type FormProps, fieldErrors, type ItemRecord, problemText, TextField } from "./fields.tsx";
 
 const OPTIONS = tag("options");
@@ -92,9 +92,7 @@ function SelectionForm({ record, onChange, problems }: FormProps) {
 }
 
 export const selectionBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/selections",
-  validator: "selection",
-  one: "selection",
+  ...packType("orcpub.dnd.e5/selections"),
   empty: { [OPTIONS]: [] },
   fields: ["name", "options"],
   Form: SelectionForm,

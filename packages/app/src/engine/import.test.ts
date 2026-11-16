@@ -103,7 +103,7 @@ test("a bundle with only magic items is not refused, and one with an empty magic
 test("a bundle's magic items export as item maps and read back the same, and its character resolves them", () => {
   const items = engine().readServerEdn(customItemsEdn());
   const [character] = readCharacterFile(readText("characters/fighter-5-custom-magic-items.strict.json"), { homebrew: undefined, magicItems: items }).characters;
-  const text = JSON.stringify(exportBundle([character.entity], "https://alchemy.example", undefined, items));
+  const text = JSON.stringify(exportBundle([character], "https://alchemy.example", undefined, items));
   const read = readBundleMagicItems(text)!;
   expect(read).toEqual({ items, failures: [] });
   const [back] = readCharacterFile(text, { homebrew: undefined, magicItems: read.items }).characters;
@@ -233,7 +233,8 @@ test.each([
   ["a JSON array", "[]", "This is not a character file"],
   ["an object that is not an entity", '{"foo":1}', "This is not a character file"],
   ["an unknown format", '{"format":"orcbrew"}', "Unsupported file format: orcbrew"],
-  ["a later envelope version", '{"format":"dmv-character","version":2}', "Unsupported dmv-character version: 2"],
+  ["a later envelope version", '{"format":"dmv-character","version":3}', "Unsupported dmv-character version: 3"],
+  ["a later bundle version", '{"format":"dmv-export","version":3,"characters":[]}', "Unsupported dmv-export version: 3"],
   ["an empty bundle", '{"format":"dmv-export","version":1,"characters":[]}', "This export has no characters"],
   ["a bundle with an empty EDN list", '{"format":"dmv-export","version":1,"characters":["[]"]}', "This export has no characters"],
 ])("refuses %s", (_, text, message) => {
@@ -248,21 +249,27 @@ test.each(strictFiles)("%s, stored, exports to a dmv-character file that imports
   const record = (await getCharacter(await addCharacter(imported.entity, imported.rules, imported.legacyId)))!;
 
   const exported = characterFile(record);
-  expect(exported).toMatchObject({ format: "dmv-character", version: 1, rules: "2014", id: record.id, name: record.name });
+  expect(exported).toEqual({ ...record, version: 2, entity: engine().exportCharacter(record.entity) });
+  expect(exported).not.toHaveProperty("custom");
   const { characters, failures } = reimport(exported);
   expect(failures).toEqual([]);
   expect(characters).toEqual([{ entity: record.entity, rules: "2014", legacyId: record.legacyId, name: imported.name, unresolved: imported.unresolved }]);
 });
 
-test("every stored character exports to one dmv-export bundle that imports back", () => {
-  const entities = strictFiles.map((file) => readCharacterFile(readText(file)).characters[0].entity);
-  const bundle = exportBundle(entities, "https://alchemy.example");
+test("every stored character exports to one dmv-export bundle of dmv-character files that imports back", async () => {
+  const records = await Promise.all(
+    strictFiles.map(async (file) => {
+      const [imported] = readCharacterFile(readText(file)).characters;
+      return (await getCharacter(await addCharacter(imported.entity, imported.rules, imported.legacyId)))!;
+    }),
+  );
+  const bundle = exportBundle(records, "https://alchemy.example");
 
-  expect(bundle).toMatchObject({ format: "dmv-export", version: 1, exportedFrom: "https://alchemy.example", magicItems: [] });
-  expect(bundle).not.toHaveProperty("homebrew");
+  expect(bundle).toEqual({ format: "dmv-export", version: 2, exportedFrom: "https://alchemy.example", characters: records.map(characterFile), magicItems: [] });
   const { characters, failures } = reimport(bundle);
   expect(failures).toEqual([]);
-  expect(characters.map((c) => c.entity)).toEqual(entities);
+  expect(characters.map((c) => c.entity)).toEqual(records.map((r) => r.entity));
+  expect(characters.map((c) => c.legacyId)).toEqual(records.map((r) => r.legacyId));
 });
 
 // Selection order drives modifier order (doc 02, wrinkle 3), so the files must keep it.
@@ -285,7 +292,7 @@ test.each([
 ])("a reordered entity still builds differently after export and import: %s", (_, file, reorder) => {
   const entity = readCharacterFile(readText(file)).characters[0].entity;
   const reordered = { ...(entity as object), [SELECTIONS]: reorder(selectionsOf(entity)) };
-  const roundTrip = (e: StrictEntity) => reimport(characterFile({ format: "dmv-character", version: 1, entity: e })).characters[0].entity;
+  const roundTrip = (e: StrictEntity) => reimport(characterFile({ entity: e })).characters[0].entity;
 
   const built = engine().evaluate(roundTrip(entity)).built;
   const reorderedBuilt = engine().evaluate(roundTrip(reordered)).built;

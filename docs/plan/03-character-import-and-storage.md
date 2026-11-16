@@ -4,7 +4,7 @@ title: "03: Character import and storage"
 description: "How characters leave an old instance through the exporter bookmarklet, how the new app imports them, and the native character format."
 tags: [plan, characters, import]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-10T00:22:28Z }
+generated: { by: claude-code/agent, at: 2026-11-16T18:00:00Z }
 ---
 
 # 03: Character import and storage
@@ -45,8 +45,10 @@ character id is necessary. It then downloads one `dmv-export.json` bundle:
 
 An entry in `characters` or `magicItems` can be a string: the raw EDN
 text of one old server response. A list response holds many values. A
-`characters` entry can also be one character as an object, as the app's own export
-writes it. The format stays `dmv-export` version 1.
+`characters` entry can also be one character as an object. It is a bare
+strict entity, as the app's version 1 export wrote it, or a
+`dmv-character` envelope, as its version 2 export writes it (see below).
+The bookmarklet format stays `dmv-export` version 1.
 
 The calls are same-origin, so CORS is not a problem. The old server sends
 no CORS headers in production, so a cross-origin fetch from the new app is
@@ -104,14 +106,61 @@ tree. And it makes import a normalization step rather than a translation.
 Wrap it in an envelope the app owns:
 
 ```json
-{ "format": "dmv-character", "version": 1, "rules": "2014",
+{ "format": "dmv-character", "version": 2, "rules": "2014",
   "id": "…", "name": "Fizban", "updatedAt": "…", "legacyId": "…",
-  "entity": { "~:orcpub.entity.strict/selections": [...], "~:orcpub.entity.strict/values": {...} } }
+  "entity": { "~:orcpub.entity.strict/selections": [...], "~:orcpub.entity.strict/values": {...} },
+  "custom": { "~:orcpub.dnd.e5/feats": { "~:grappler-custom": {...} } } }
 ```
 
-`legacyId` is the old app's id, or `null`. It is optional on import. The
-`dmv-export` bundle holds bare entities, so it keeps neither `legacyId` nor
-the app's `id`.
+`legacyId` is the old app's id, or `null`. It is optional on import.
+
+`custom` is the character's own custom content (ORC-133 to ORC-137). It
+is one single-plugin map in the form of a stored pack's plugin. It holds
+the options that the user customized for this character only. The character builds
+against it as one more pack, under the reserved name
+`Custom (this character)`. A character without custom content has no
+`custom` field.
+
+**Versions (ORC-137).** Version 2 adds `custom`. The app writes version 2
+for every character, with or without custom content, so there is one
+writer version. A record stored before ORC-137 keeps version 1 until its
+next save. The importer reads versions 1 and 2:
+
+- A version 1 file has no custom content as this document defines it.
+  The app wrote the stored record's `custom` into version 1 files before
+  ORC-137, so the importer reads `custom` from either version.
+- A higher version is refused with "Unsupported dmv-character version: N",
+  and nothing is stored. An app from before ORC-137 refuses a version 2
+  file in the same way.
+
+**Imported custom content is untrusted.** The importer checks it in these
+steps:
+
+1. The content must be a map of content types that a pack can have. Each
+   content type must be a map of items under Transit keyword keys.
+2. An item of each type except backgrounds must have its map key as its
+   `:key`, as the app writes it. Another key would select another option.
+   The engine keys a background by its name.
+3. Each item must pass the validator of its type, as an item that the
+   Customize dialog saves does.
+4. Each kept item gets `Custom (this character)` as its `option-pack`, so
+   the file cannot name a loaded pack.
+5. The importer drops the items that the entity does not select
+   (`pruneCustom`).
+6. The importer builds the character with the custom content. Some items
+   pass their validator and still stop the build. Then the character
+   imports without its custom content, and the import log says "The
+   custom options were left out: the app cannot build the character with
+   them." A character that does not build without custom content fails
+   as before.
+
+The character builds with its custom content as the last pack. Thus a
+custom item can shadow a pack item with the same key, for this character
+only. It cannot change a loaded pack. A part that is not valid is left
+out, and the import log names it. An example is "Fimble Nackle: The
+custom feat grappler-custom was left out: name is missing." The character
+still imports. An option whose custom item was left out shows as
+unresolved content.
 
 `rules` is the rules edition the character is built with, and the app
 passes it to `evaluate`. It is always `"2014"` in this plan. Import reads a
@@ -122,6 +171,16 @@ share the format (option E, [`docs/reports/2024-rules-support.md`](../reports/20
 Export from the new app is this envelope for a single character or the
 `dmv-export` bundle above for all characters plus homebrew. These are
 new-app formats. The old app cannot read them and does not need to.
+
+The bundle from the new app is `dmv-export` version 2 (ORC-137). Each
+entry in `characters` is the character's version 2 envelope, with its
+`custom`. Thus the bundle keeps `legacyId` and the character's custom
+content. The importer reads an entry that is an envelope as a single
+envelope file. It reads each other object as a bare entity, so a version
+1 bundle from the app or the bookmarklet still imports. It refuses a
+higher bundle version. An app from before ORC-137 refuses all of a
+version 2 bundle, its packs and magic items too. Its message is
+"Unsupported dmv-export version: 2".
 
 The bundle from the new app adds two fields when packs are stored (ORC-54):
 
@@ -137,6 +196,8 @@ same `parseOrcbrew` path as a pack file. Then it imports the characters
 against the loaded packs. A bundle with packs and no characters is valid.
 "Export everything" also writes the packs as `all-content.orcbrew` for the
 old app, if `validateForExport` passes. That file cannot keep the flags.
+It holds the stored packs only: no character's custom content goes in it,
+and no magic items.
 
 One ordering rule (doc 02 wrinkle 3): serialize selections as arrays, never
 as key-ordered objects, so that selection order, which affects modifier

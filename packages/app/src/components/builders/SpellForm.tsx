@@ -6,7 +6,7 @@
 // :material booleans and the :material-component text, and :spell-lists a
 // map of class keyword to true or false.
 import { Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput } from "@orc-alchemy/ui";
-import { tag } from "../../engine/content.ts";
+import { packType, tag } from "../../engine/content.ts";
 import { ordinal } from "../CharacterSheet.tsx";
 import {
   type BuilderType,
@@ -96,9 +96,7 @@ function SpellForm({ record, onChange, problems }: FormProps) {
 }
 
 export const spellBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/spells",
-  validator: "spell",
-  one: "spell",
+  ...packType("orcpub.dnd.e5/spells"),
   // The old builder's new spell (db.cljs default-spell), without its
   // :spell-lists of all eight classes: the user picks the classes.
   empty: { [tag("level")]: 0, [tag("school")]: "abjuration" },
