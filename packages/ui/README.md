@@ -110,10 +110,12 @@ bun run test       # vitest
   - `AlertDialog`: the dialog that `useConfirm()` shows. The owner sets
     `open`, and closes it from `onAnswer`. Styles: `src/dialog.css`.
   - `Dialog`: Base UI Dialog, a modal with a `title`, a body (`children`)
-    that scrolls, and a footer: a close button ("Cancel", or the text of
-    `close`), then the owner's `actions`. It is up to 720px wide, and at
-    600px and less it fills the screen. The focus goes to the first
-    control of the body when it opens. The close button, Escape and a
+    that scrolls, and a footer: Cancel, then the owner's `actions`. It is
+    up to 720px wide, and at 600px and less it fills the screen. When it
+    opens, the focus goes to the first control of the body (any control
+    that takes the focus). If the body shows its controls later, for
+    example after it reads data, the first one gets the focus when it
+    shows, unless the focus is in the body already. Cancel, Escape and a
     click outside call `onOpenChange(false)`; the dialog stays open until
     the owner sets `open` to false, so the owner can ask first. A
     ListModal, an AlertDialog or a Dialog that the body opens shows above

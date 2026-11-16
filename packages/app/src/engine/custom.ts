@@ -3,8 +3,10 @@
 // a stored pack's plugin. The character builds against the loaded content
 // with `custom` added as one more pack, named CUSTOM_PACK. Other characters
 // never see it.
-import { disabledInFile, isMap, itemAt, nameToKw, OPTION_KEY, tag, untag, withItem, withoutItem } from "./content.ts";
-import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
+
+import type { Built2014 } from "@pubdoor/dmv";
+import { disabledInFile, isMap, itemAt, nameToKw, OPTION_KEY, OPTION_PACK, tag, untag, withItem, withoutItem } from "./content.ts";
+import type { Content, ContentType, StrictEntity } from "./engine.ts";
 import { remapOption } from "./reconcile.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
@@ -135,11 +137,10 @@ export function optionOrigin(homebrew: Content["homebrew"], custom: object | und
 }
 
 const KEY = tag("key");
-const PACK = tag("option-pack");
 
 /** The item as the form edits it: without its key and its option source, which the save sets. */
 export function formRecord(item: Record<string, unknown>): Record<string, unknown> {
-  const { [KEY]: _key, [PACK]: _pack, ...rest } = item;
+  const { [KEY]: _key, [OPTION_PACK]: _pack, ...rest } = item;
   return rest;
 }
 
@@ -148,9 +149,9 @@ export function formRecord(item: Record<string, unknown>): Record<string, unknow
  * description, or else the summary, of the character's feature with the
  * option's name, with a capital first letter. "" when the character has no
  * such feature. The engine gives no other text for a built-in option.
+ * built is the character as the engine builds it (useOpenCharacter).
  */
-export function builtInText(entity: StrictEntity, content: Content, name: string): string {
-  const { built } = engine().evaluate(entity, content);
+export function builtInText(built: Built2014, name: string): string {
   const features = [built.traits, built.actions, built["bonus-actions"], built.reactions].flatMap((list) => list ?? []);
   const feature = features.find((f) => f.name === name);
   const text = (feature?.description ?? feature?.summary ?? "").trim();
@@ -185,6 +186,6 @@ export function customizeOption(
   if (key === "") throw new Error("The copy needs a name with a letter or a digit");
   const type = tag(contentType);
   const without = replacedKey === undefined || replacedKey === key ? (custom ?? {}) : withoutItem(custom ?? {}, type, tag(replacedKey));
-  const next = withItem(without, type, tag(key), { ...item, [KEY]: tag(key), [PACK]: CUSTOM_PACK });
+  const next = withItem(without, type, tag(key), { ...item, [KEY]: tag(key), [OPTION_PACK]: CUSTOM_PACK });
   return { entity: untag(path.at(-1)) === key ? entity : remapOption(entity, path, key), custom: next };
 }

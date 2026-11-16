@@ -146,3 +146,27 @@ test("finalFocus gives the focus to the element that it finds at the close", asy
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Edit" })));
 });
+
+test("a body that shows its controls after the dialog opens gives the focus to its first control, a button too", async () => {
+  function Late() {
+    const [open, setOpen] = useState(false);
+    const [ready, setReady] = useState(false);
+    return (
+      <>
+        <button onClick={() => setOpen(true)}>Open</button>
+        <Dialog open={open} onOpenChange={setOpen} title="Late">
+          {ready ? <button>First</button> : <p>Reading…</p>}
+        </Dialog>
+        {/* Outside the dialog, so the test can show the body's controls while the page is inert. */}
+        <output hidden onClick={() => setReady(true)} />
+      </>
+    );
+  }
+  render(<Late />);
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  const dialog = await screen.findByRole("dialog", { name: "Late" });
+  await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Cancel" }));
+  fireEvent.click(document.querySelector("output")!);
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "First" })));
+});

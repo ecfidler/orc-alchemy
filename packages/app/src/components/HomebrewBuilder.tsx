@@ -4,16 +4,16 @@
 // or, for a type stored outside packs, by the type's own save. Each type
 // with a form plugs in a BuilderType (builders/fields.tsx).
 import { Autocomplete, Button, FieldLabel } from "@orc-alchemy/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { DEFAULT_PACK, itemAt, tag } from "../engine/content.ts";
-import { engine } from "../engine/engine.ts";
+import { DEFAULT_PACK, itemAt, OPTION_PACK, tag } from "../engine/content.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { backgroundBuilder } from "./builders/BackgroundForm.tsx";
 import { boonBuilder } from "./builders/BoonForm.tsx";
 import { classBuilder } from "./builders/ClassForm.tsx";
+import { FormProblems, useCheckedRecord } from "./builders/checked-form.tsx";
 import { featBuilder } from "./builders/FeatForm.tsx";
-import { type BuilderType, type ItemRecord, problemText } from "./builders/fields.tsx";
+import type { BuilderType, ItemRecord } from "./builders/fields.tsx";
 import { invocationBuilder } from "./builders/InvocationForm.tsx";
 import { languageBuilder } from "./builders/LanguageForm.tsx";
 import { magicItemBuilder } from "./builders/MagicItemForm.tsx";
@@ -23,7 +23,7 @@ import { selectionBuilder } from "./builders/SelectionForm.tsx";
 import { spellBuilder } from "./builders/SpellForm.tsx";
 import { subclassBuilder } from "./builders/SubclassForm.tsx";
 import { subraceBuilder } from "./builders/SubraceForm.tsx";
-import { sameRecord, useLeaveGuard } from "./leave-guard.tsx";
+import { useLeaveGuard } from "./leave-guard.tsx";
 
 /**
  * The types that have a form, by the name in the routes /content/new/:type
@@ -45,8 +45,6 @@ export const BUILDERS: Record<string, BuilderType> = {
   boon: boonBuilder,
   selection: selectionBuilder,
 };
-
-const OPTION_PACK = tag("option-pack");
 
 /** The page: a new item of the route's type, or the stored item at its pack and key. */
 export function HomebrewBuilder() {
@@ -93,7 +91,7 @@ function NotFound({ text }: { text: string }) {
 
 /** The form of a new item, or, with editing, of the stored item with that key. */
 function BuilderForm({ builder, initial, editing }: { builder: BuilderType; initial: ItemRecord; editing?: string }) {
-  const { one, validator, fields, Form } = builder;
+  const { one, fields, Form } = builder;
   const navigate = useNavigate();
   const packIds = useHomebrew((state) => state.packs.map((p) => p.id).join("\n"));
   const packNames = useMemo(() => packIds.split("\n").filter(Boolean), [packIds]);
@@ -104,14 +102,9 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
   const optionPack = String(record[OPTION_PACK] ?? "").trim() || DEFAULT_PACK;
   // A type stored outside packs has no option source.
   const outside = builder.save !== undefined;
-  const { problems, item } = useMemo(() => {
-    const { problems, item } = engine().validate[validator](outside ? record : { ...record, [OPTION_PACK]: optionPack });
-    return { problems: [...problems, ...(builder.check?.(item, editing) ?? [])], item };
-  }, [validator, record, optionPack, outside, builder, editing]);
-  const ok = problems.length === 0;
-  const others = problems.filter((p) => !fields.includes(String(p.path[0])));
+  const check = useCallback((item: ItemRecord) => builder.check?.(item, editing) ?? [], [builder, editing]);
   // Leaving a changed form asks first (ORC-211). The form has no draft, so the changes would be lost.
-  const changed = useMemo(() => !sameRecord(record, initial), [record, initial]);
+  const { problems, item, ok, changed } = useCheckedRecord(builder, record, initial, { optionPack: outside ? undefined : optionPack, check });
   const guard = useLeaveGuard(changed, `This ${one} has changes that are not saved. Leave anyway?`);
 
   async function save() {
@@ -139,13 +132,7 @@ function BuilderForm({ builder, initial, editing }: { builder: BuilderType; init
     >
       {guard.dialog}
       <h1 className="text-xl">{`${editing ? "Edit" : "New"} ${one}`}</h1>
-      {others.length > 0 && (
-        <ul aria-label="Problems" className="text-danger">
-          {others.map((problem, i) => (
-            <li key={i}>{problemText(problem.path.join(" "), problem)}</li>
-          ))}
-        </ul>
-      )}
+      <FormProblems problems={problems} fields={fields} />
       {!outside && (
         <>
           <FieldLabel label="Option source (pack)">

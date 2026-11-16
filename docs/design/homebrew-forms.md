@@ -1,10 +1,10 @@
 ---
 type: Reference
 title: Homebrew forms spec
-description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, and engine 0.4.0.
+description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T22:04:53Z }
+generated: { by: claude-code/agent, at: 2026-11-16T00:07:32Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -30,7 +30,8 @@ and notes. This document adds the layout of a form and the new controls.
 When this document and a prototype disagree, this document wins. When this
 document says nothing, use the prototype.
 
-M5.1 — Customize opens these forms in a dialog, so it runs after M9.
+M5.1 opens these forms in a dialog in the character builder, to customize
+an option for one character. See [Customize](#customize).
 
 ## Prototypes
 
@@ -670,6 +671,88 @@ Dungeon Master's Vault does not need to show the new content correctly. It
 imports a scaled amount with no error, but its sheet shows the amount
 incorrectly and can fail.
 
+# Customize
+
+Added in M5.1 (ORC-134). The builder lets the user make a copy of a
+selected option for one character. The copy is stored in the character's
+custom content (ORC-133), and other characters do not see it. ORC-134 does
+this for feats. The background (ORC-135) and the race (ORC-136) follow,
+with the same parts.
+
+## The line under the option cards
+
+* An option card is a toggle, so it holds no other button.
+* Under the cards of the selection, each selected option has one line: its
+  name, then a small link button.
+* The button is **Customize** for a pack item or an SRD option. It is
+  **Edit custom** for a copy.
+* Each place that picks the option shows the line. For a feat, that is the
+  Feats step and the "Ability Score Improvement or Feat" choice of a class
+  level.
+* The copy shows in the list of cards by its name only, with no badge. The
+  original stays in the list.
+
+## The dialog
+
+* The dialog is the ui `Dialog`. The title is "Customize {name}", or "Edit
+  custom feat" for a copy.
+* The body is the type's form, the same form as on My Content. The form
+  has no "Option source (pack)" field.
+* The footer has **Cancel** and **Save** only. There is no delete button.
+* The validator checks the form at each change, as on My Content. The
+  problems show in the same way, and Save is disabled while there are
+  problems.
+* Cancel, Esc and a click outside close the dialog. If the form has
+  changes, a dialog asks first: "This feat has changes that are not
+  saved. Close anyway?" with **Stay** and **Close**. The rule for a change
+  is the rule of [Leaving a changed form](#leaving-a-changed-form). A
+  reload or a close of the tab shows the warning of the browser.
+* The modals of the form open above the dialog, for example "+ Add a
+  modifier", the pickers and the delete confirmation. The focus comes back
+  into the dialog when they close.
+
+## The first values
+
+* Customize on a pack item opens a copy of the pack item. Each modifier
+  that holds a value shows.
+* Customize on an SRD option opens with only its name and its description.
+  The form shows only the common modifiers. The engine cannot give an SRD
+  option as a pack item, so the other values are not copied.
+* The description of an SRD feat is the text of the character's feature
+  with the feat's name: its description, or else its summary. For
+  Grappler this is only the summary, "Restrain a creature you are
+  grappling". If the character has no such feature, the description is
+  empty.
+* The name is "{name} (Custom)". The user can change it.
+* Edit custom opens the copy as it is stored.
+
+## The name and the key
+
+* The key of the copy is the key of its name, without a "-" at the start
+  or the end. "Skill Expert (Custom)" gives `skill-expert-custom`.
+* The key must not be the key of another option in the character's list:
+  the original, a pack item or another copy. If it is, the Name field
+  shows a problem and Save is disabled. Thus a save never replaces or
+  collides with another option.
+* A copy that the character no longer selects does not count. Autosave
+  removes it. A save before then replaces it.
+
+## Save
+
+Save does these steps in one change of the character, so autosave stores
+them together:
+
+1. Write the copy into the character's custom content, under its content
+   type, with its key and the reserved pack name.
+2. Move the character's pick from the original to the copy. The choices
+   under the pick stay, for example the skill of a feat.
+3. For an edit with a new key, remove the old copy, and move the pick
+   again.
+
+After Save, the line shows Edit custom, and its button has the focus. A
+copy that the character no longer selects is removed at the next save of
+the character (ORC-133).
+
 # Build order
 
 This is the order in which the M9 build tickets were filed. Linear holds the
@@ -707,7 +790,8 @@ to its PR, light first and then dark.
 * A suggestion from an AI model.
 * Backward compatibility with the old app for content that has scaled uses.
 * Magic items in the `.orcbrew` export. They stay out, as in M5.
-* The Customize flow. M5.1 builds it on these forms.
+* The Customize flow. M5.1 added it after M9, on these forms. See
+  [Customize](#customize).
 
 [^orc-180]: Map: improve the homebrew content forms and feature uses, <https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses>
 [^builder-notes]: Notes regarding the content builder pages, <https://linear.app/orc-alchemy/document/notes-regarding-the-content-builder-pages-88f7f6f937ac>

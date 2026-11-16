@@ -2,13 +2,12 @@
 // builder's feat cards, the feat form in a dialog, and the save that writes
 // the copy into the character's custom content and selects it.
 import "fake-indexeddb/auto";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { characterContent } from "../engine/custom.ts";
-import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
+import { engine, loadEngine } from "../engine/engine.ts";
+import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "../engine/test-feats.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
@@ -21,22 +20,10 @@ afterEach(async () => {
 });
 
 const FEATS = "~:orcpub.dnd.e5/feats";
-const PACK = "Feat Pack";
-const SKILL_EXPERT = {
-  "~:key": "~:skill-expert",
-  "~:name": "Skill Expert",
-  "~:option-pack": PACK,
-  "~:description": "You know skills.",
-  "~:ability-increases": { "~#set": [] },
-  "~:props": { "~:skill-tool-choice": 1 },
-};
-const SKILL = ["feats", "skill-expert", "skill-tool-1"];
-
-const fighter20 = (): StrictEntity => JSON.parse(readFileSync(join(import.meta.dirname, "../../../../fixtures/characters/fighter-20.strict.json"), "utf8"));
 
 /** fighter-20, who takes the SRD feat Grappler, or with `pack` the pack feat Skill Expert with Arcana for its skill. */
 async function open(pack = false) {
-  await useHomebrew.getState().saveItem(PACK, FEATS, SKILL_EXPERT);
+  await useHomebrew.getState().saveItem(FEAT_PACK, FEATS, SKILL_EXPERT);
   let entity = fighter20();
   if (pack) {
     const e = engine();
@@ -193,4 +180,41 @@ test("closing with changes asks first; Stay keeps the dialog, and Close drops th
   fireEvent.click(button);
   dialog = await dialogNamed("Customize Skill Expert");
   expect(field(dialog, "Description").value).toBe("You know skills.");
+});
+
+test("a copy that the character no longer selects does not block its name: Customize on the original again replaces it", async () => {
+  const lines = await open(true);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Skill Expert" }));
+  fireEvent.click(save(await dialogNamed("Customize Skill Expert")));
+  await closed();
+  // The user drops the copy and picks the original again, before autosave prunes the copy.
+  act(() =>
+    useCharacter.getState().update((entity) => {
+      const e = engine();
+      const options = characterContent(useHomebrew.getState().content, useCharacter.getState().custom);
+      return e.select(e.deselect(entity, ["feats"], "skill-expert-custom", options), ["feats"], "skill-expert", options);
+    }),
+  );
+  expect(selectedFeats()).toEqual(["skill-expert"]);
+  expect(cards().map((card) => card.textContent)).toContain("Skill Expert (Custom)");
+
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Skill Expert" }));
+  const dialog = await dialogNamed("Customize Skill Expert");
+  fireEvent.change(field(dialog, "Description"), { target: { value: "A new copy." } });
+  expect(within(dialog).queryByRole("list", { name: "Problems: Name" })).toBeNull();
+  expect(save(dialog).disabled).toBe(false);
+  fireEvent.click(save(dialog));
+  await closed();
+  expect(selectedFeats()).toEqual(["skill-expert-custom"]);
+  expect(useCharacter.getState().custom).toEqual({
+    [FEATS]: {
+      "~:skill-expert-custom": {
+        ...SKILL_EXPERT,
+        "~:key": "~:skill-expert-custom",
+        "~:name": "Skill Expert (Custom)",
+        "~:description": "A new copy.",
+        "~:option-pack": "Custom (this character)",
+      },
+    },
+  });
 });
