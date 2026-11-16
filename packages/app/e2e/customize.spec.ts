@@ -1,10 +1,12 @@
 import { join } from "node:path";
+import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
 // ORC-134: Customize a feat for one character. The feat form opens in a
 // dialog over the builder, and its own modals (the "+ Add a modifier" list
 // and a picker) open over the dialog, with the keyboard only. ORC-135 does
-// the same for a background, with the equipment and tool pickers.
+// the same for a background, with the equipment and tool pickers, and
+// ORC-136 for a race, with its note and a feature with uses.
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 
@@ -168,4 +170,39 @@ test("Customize the SRD background, then add equipment and a tool with the picke
   await page.keyboard.press("Escape");
   await expect(again).toBeHidden();
   await expect(edit).toBeFocused();
+});
+
+test("Customize the SRD race: the note and the removed choices show, and a new feature with uses shows on the sheet", async ({ page }) => {
+  const builder = await openStep(page, /^Race/);
+  await builder.getByRole("button", { name: "Customize Human" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Customize Human" });
+  await expect(dialog.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Human (Custom)");
+  await expect(dialog.getByRole("note").first()).toContainText("Tasha's Cauldron of Everything (page 8)");
+  await expect(dialog.getByRole("note").nth(1)).toHaveText(
+    "Save removes these choices of the character, because the copy does not have them: Subrace (Illuskan), Variant (Standard Human).",
+  );
+
+  // The proficiencies that the note names are in the "+ Add a modifier" list, which opens over the dialog.
+  await dialog.getByRole("button", { name: "Add a modifier" }).click();
+  const modifiers = page.getByRole("dialog", { name: "Add a modifier" });
+  for (const name of ["Skill Proficiencies", "Weapon Proficiencies", "Tool Proficiency"]) await expect(modifiers.getByRole("button", { name })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(modifiers).toBeHidden();
+  await expect(dialog).toBeVisible();
+
+  // A feature of the copy with two uses, back on a long rest.
+  await dialog.getByRole("button", { name: "Add a feature" }).click();
+  await dialog.getByRole("textbox", { name: "Feature 1 name" }).fill("Second Wind of the Plains");
+  await dialog.getByRole("group", { name: "Feature 1 Uses" }).getByRole("button", { name: "Fixed" }).click();
+  await pickOption(dialog.getByRole("combobox", { name: "Feature 1 amount", exact: true }), "2");
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(builder.getByRole("button", { name: "Edit custom Human (Custom)" })).toBeFocused();
+  const sheet = page.getByRole("region", { name: "Preview" });
+  await expect(sheet.getByLabel("Race", { exact: true })).toHaveText("Human (Custom)");
+  const bubble = sheet.getByRole("group", { name: "Second Wind of the Plains" });
+  await expect(bubble.getByRole("button", { name: /^Use / })).toHaveCount(2);
+  await expect(bubble.getByText("Long rest")).toBeVisible();
 });

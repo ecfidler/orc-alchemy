@@ -17,15 +17,18 @@ import {
   formRecord,
   hasCustomItems,
   optionOrigin,
+  picksRemovedBySave,
   pruneCustom,
   srdBackgroundRecord,
+  srdRaceRecord,
   withCopyStartingEquipment,
   withoutUnresolvedUnder,
 } from "./custom.ts";
-import { type Content, engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { missingContent, remapOption } from "./reconcile.ts";
+import { type Built2014, type Content, engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { missingContent, remapOption, withoutOption } from "./reconcile.ts";
 import { ARTISAN, BACKGROUND_PACK, SAGE, SAGE_PACKS, TAGGED_BACKGROUNDS, withSage } from "./test-backgrounds.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "./test-feats.ts";
+import { RACE_PACKS, RACE_TYPE, SYLVAR, TAGGED_RACES, withHillDwarf, withSylvar } from "./test-races.ts";
 
 beforeAll(() => loadEngine());
 afterEach(() => {
@@ -466,4 +469,125 @@ test("withCopyStartingEquipment gives the copy's items and gold only when they c
     .flatMap((sel) => (sel["~:orcpub.entity.strict/options"] as Record<string, string>[]).map((o) => o["~:orcpub.entity.strict/key"]));
   expect(new Set(keys).size).toBe(keys.length);
   expect(keys).toContain("~:lamp");
+});
+
+// Customize a race (ORC-136). The engine keys a race, as a feat, by its stored key.
+
+/** What the sheet shows of a race: the race and subrace, the ability scores, the speed, darkvision, languages, resistances, and the race's features with their uses. */
+function raceParts(entity: StrictEntity, custom: object | undefined) {
+  const features = (built: Built2014) => [built.traits, built.actions, built["bonus-actions"], built.reactions].flatMap((list) => list ?? []);
+  // fighter-20's own features, from his class, feat and background.
+  const own = new Set(features(engine().evaluate(fighter20()).built).map((f) => f.name));
+  const { built } = engine().evaluate(entity, characterContent({ homebrew: RACE_PACKS }, custom));
+  return {
+    race: built.race,
+    subrace: built.subrace,
+    abilities: built.abilities,
+    speed: built["base-land-speed"],
+    darkvision: built.darkvision,
+    languages: built.languages,
+    resistances: built.resistances,
+    features: features(built)
+      .filter((f) => !own.has(f.name))
+      .map((f) => ({ name: f.name, frequency: f.frequency ?? null })),
+  };
+}
+
+test("a race copy has the key of its name without the dashes, and the engine keys the race by the stored key", () => {
+  expect(copyKey(RACE_TYPE, "Sylvar (Custom)")).toBe("sylvar-custom");
+  expect(copyKey(RACE_TYPE, "Dwarf")).toBe("dwarf");
+  // The stored key, not the key of the name, is the option's key.
+  const custom = { [TAGGED_RACES]: { "~:other-key": { ...SYLVAR, "~:key": "~:other-key", "~:name": "Sylvar (Custom)", "~:option-pack": CUSTOM_PACK } } };
+  const keys = engine()
+    .buildTemplate(characterContent({ homebrew: undefined }, custom).homebrew)
+    .shape.find((s) => s.key === "race")!
+    .options.map((o) => o.key);
+  expect(keys).toContain("other-key");
+  expect(keys).not.toContain("sylvar-custom");
+  expect(optionOrigin(RACE_PACKS, undefined, RACE_TYPE, "sylvar")).toEqual({ from: "pack", pack: "Race Pack", item: SYLVAR });
+  expect(optionOrigin(RACE_PACKS, undefined, RACE_TYPE, "dwarf")).toEqual({ from: "built-in" });
+});
+
+test("customizeOption selects a pack race copy, and the sheet shows its abilities, speed, languages and the feature with its uses", () => {
+  const entity = withSylvar();
+  const original = raceParts(entity, undefined);
+  expect(original).toEqual({
+    race: "Sylvar",
+    subrace: null,
+    abilities: {
+      "orcpub.dnd.e5.character/str": 19,
+      "orcpub.dnd.e5.character/dex": 17,
+      "orcpub.dnd.e5.character/con": 19,
+      "orcpub.dnd.e5.character/int": 12,
+      "orcpub.dnd.e5.character/wis": 14,
+      "orcpub.dnd.e5.character/cha": 9,
+    },
+    speed: 35,
+    darkvision: 60,
+    languages: ["common", "draconic", "elvish", "sylvan"],
+    resistances: [],
+    features: [{ name: "Leafstep", frequency: { units: "orcpub.dnd.e5.units/long-rest", amount: 1 } }],
+  });
+  const item = { ...formRecord(SYLVAR), "~:name": "Sylvar (Custom)" };
+  const next = customizeOption(entity, undefined, { contentType: RACE_TYPE, path: ["race", "sylvar"], item });
+  expect(next.custom).toEqual({ [TAGGED_RACES]: { "~:sylvar-custom": { ...item, "~:key": "~:sylvar-custom", "~:option-pack": CUSTOM_PACK } } });
+  expect(next.entity).toEqual(remapOption(entity, ["race", "sylvar"], "sylvar-custom"));
+  expect(raceParts(next.entity, next.custom)).toEqual({ ...original, race: "Sylvar (Custom)" });
+  expect(missingContent(next.entity, characterContent({ homebrew: RACE_PACKS }, next.custom))).toEqual([]);
+  expect(picksRemovedBySave(entity, undefined, { homebrew: RACE_PACKS }, { contentType: RACE_TYPE, path: ["race", "sylvar"], item })).toEqual([]);
+  expect(pruneCustom(next.entity, next.custom)).toBe(next.custom);
+});
+
+test("a pack subrace names its race by key, so it does not attach to the copy: the save removes it, and picksRemovedBySave names it first", () => {
+  const entity = withSylvar(true);
+  expect(raceParts(entity, undefined).subrace).toBe("Deep Sylvar");
+  const item = { ...formRecord(SYLVAR), "~:name": "Sylvar (Custom)" };
+  const customization = { contentType: RACE_TYPE, path: ["race", "sylvar"], item };
+  expect(picksRemovedBySave(entity, undefined, { homebrew: RACE_PACKS }, customization)).toEqual([["race", "sylvar", "subrace", "deep-sylvar"]]);
+
+  const next = customizeOption(entity, undefined, customization);
+  const content = characterContent({ homebrew: RACE_PACKS }, next.custom);
+  const kept = withoutUnresolvedUnder(next.entity, ["race", "sylvar-custom"], content);
+  // Only the subrace goes, with the pick moved to the copy.
+  expect(kept).toEqual(remapOption(withoutOption(entity, ["race", "sylvar", "subrace", "deep-sylvar"]), ["race", "sylvar"], "sylvar-custom"));
+  expect(missingContent(kept, content)).toEqual([]);
+  // The copy keeps the race's values; the subrace's +1 Intelligence goes.
+  expect(raceParts(kept, next.custom)).toEqual({ ...raceParts(withSylvar(), undefined), race: "Sylvar (Custom)" });
+});
+
+test("srdRaceRecord gives the SRD race of the engine's content list in the form's shape, and a copy keeps what the list has", async () => {
+  const record = await srdRaceRecord("dwarf");
+  expect(record).toEqual({
+    "~:name": "Dwarf",
+    "~:help": "Dwarves are short and stout and tend to be skilled warriors and craftmen in stone and metal.",
+    "~:size": "~:medium",
+    "~:speed": 25,
+    "~:darkvision": 60,
+    "~:abilities": { "~:orcpub.dnd.e5.character/con": 2 },
+    "~:languages": { "~#set": ["Dwarvish", "Common"] },
+    "~:props": { "~:weapon-prof": { "~:handaxe": true, "~:battleaxe": true, "~:light-hammer": true, "~:warhammer": true } },
+    // The summary of a feature is its description, the field that the form edits.
+    "~:traits": [
+      { "~:name": "Dwarven Resilience", "~:page": 20, "~:description": "Advantage on poison saves, resistance to poison damage" },
+      { "~:name": "Stonecunning", "~:page": 20, "~:description": "2X prof bonus on stonework-related history checks" },
+    ],
+  });
+  expect(await srdRaceRecord("no-such-race")).toBeUndefined();
+
+  // fighter-20 as a Hill Dwarf. The copy has no subraces, so the save removes Hill Dwarf.
+  const entity = withHillDwarf();
+  const before = raceParts(entity, undefined);
+  const customization = { contentType: RACE_TYPE, path: ["race", "dwarf"], item: { ...record, "~:name": "Dwarf (Custom)" } };
+  expect(picksRemovedBySave(entity, undefined, { homebrew: undefined }, customization)).toEqual([["race", "dwarf", "subrace", "hill-dwarf"]]);
+  const next = customizeOption(entity, undefined, customization);
+  const kept = withoutUnresolvedUnder(next.entity, ["race", "dwarf-custom"], characterContent({ homebrew: undefined }, next.custom));
+  expect(kept).toEqual(remapOption(withoutOption(entity, ["race", "dwarf", "subrace", "hill-dwarf"]), ["race", "dwarf"], "dwarf-custom"));
+  // What the copy loses: the subrace (+1 Wisdom) and the poison resistance, which the list does not have. The rest stays.
+  expect(raceParts(kept, next.custom)).toEqual({
+    ...before,
+    race: "Dwarf (Custom)",
+    subrace: null,
+    abilities: { ...before.abilities, "orcpub.dnd.e5.character/wis": before.abilities["orcpub.dnd.e5.character/wis"] - 1 },
+    resistances: [],
+  });
 });

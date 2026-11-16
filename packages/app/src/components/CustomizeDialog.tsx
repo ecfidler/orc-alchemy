@@ -3,10 +3,10 @@
 // copy goes in the character's custom content, and the character selects it
 // in place of the option (customizeOption in engine/custom.ts). The parts
 // here take a Customizable, so a type adds one entry to CUSTOMIZABLE: the
-// feat (ORC-134) and the background (ORC-135).
+// feat (ORC-134), the background (ORC-135) and the race (ORC-136).
 
 import { Button, Dialog, useConfirm } from "@orc-alchemy/ui";
-import { useCallback, useRef, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { tag } from "../engine/content.ts";
 import {
@@ -18,7 +18,9 @@ import {
   customName,
   formRecord,
   optionOrigin,
+  picksRemovedBySave,
   srdBackgroundRecord,
+  srdRaceRecord,
   withCopyStartingEquipment,
   withoutUnresolvedUnder,
 } from "../engine/custom.ts";
@@ -29,6 +31,7 @@ import { backgroundBuilder } from "./builders/BackgroundForm.tsx";
 import { FormProblems, useCheckedRecord } from "./builders/checked-form.tsx";
 import { featBuilder } from "./builders/FeatForm.tsx";
 import type { BuilderType, ItemRecord, Problem } from "./builders/fields.tsx";
+import { raceBuilder } from "./builders/RaceForm.tsx";
 import { useUnloadWarning } from "./leave-guard.tsx";
 
 /** A type of option that the builder can customize: the top-level selection that picks it, its form, and what differs by type. */
@@ -48,9 +51,11 @@ export interface Customizable {
    * content is what the character builds against with the new custom content.
    */
   afterSave?: (entity: StrictEntity, key: string, before: ItemRecord, after: ItemRecord, content: Content) => StrictEntity;
+  /** A short note that the dialog shows above the form. */
+  note?: ReactNode;
 }
 
-/** The selections whose options have a Customize line. ORC-136 adds the race. */
+/** The selections whose options have a Customize line. */
 const CUSTOMIZABLE: Customizable[] = [
   {
     selection: "feats",
@@ -65,6 +70,20 @@ const CUSTOMIZABLE: Customizable[] = [
     builtIn: async ({ key }) => (await srdBackgroundRecord(key)) ?? backgroundBuilder.empty,
     // Selecting a background gives its starting equipment, so a copy with other starting equipment gives its own.
     afterSave: withCopyStartingEquipment,
+  },
+  {
+    selection: "race",
+    builder: raceBuilder,
+    // The engine's content list has each SRD race with most fields of a pack race, but no subraces.
+    builtIn: async ({ key }) => (await srdRaceRecord(key)) ?? raceBuilder.empty,
+    // Our own words for the optional rule; Tasha's Cauldron of Everything is not SRD content.
+    note: (
+      <>
+        Customizing your origin: an optional rule in <cite>Tasha's Cauldron of Everything</cite> (page 8) lets a character move the race's ability score
+        increases to other abilities, and change its languages and proficiencies for others. Make those changes here. Skill, weapon and tool proficiencies are
+        in the "+ Add a modifier" list.
+      </>
+    ),
   },
 ];
 
@@ -83,6 +102,10 @@ export interface CustomizeDialogProps {
   title: string;
   /** More problems with the item, as validated, that stop its save, such as a name that another option has. */
   check?: (item: ItemRecord) => Problem[];
+  /** A short note above the form (Customizable note). */
+  note?: ReactNode;
+  /** The names of the character's picks that Save removes, such as "Subrace (Hill Dwarf)". */
+  removes?: string[];
   /** Stores the item as the validator returned it. A throw shows its message, and the dialog stays open. */
   onSave: (item: ItemRecord) => void;
   /** Closes the dialog without a save. With changes, the dialog asks first. */
@@ -100,7 +123,7 @@ export interface CustomizeDialogProps {
  * item goes in the character's custom content. Mount it again (a new key)
  * for each open, so the form starts from initial.
  */
-export function CustomizeDialog({ open, builder, initial, title, check, onSave, onClose, finalFocus }: CustomizeDialogProps) {
+export function CustomizeDialog({ open, builder, initial, title, check, note, removes = [], onSave, onClose, finalFocus }: CustomizeDialogProps) {
   const { one, fields, Form } = builder;
   const [record, setRecord] = useState(initial);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +161,16 @@ export function CustomizeDialog({ open, builder, initial, title, check, onSave, 
       }
     >
       <div className="space-y-3">
+        {note && (
+          <p role="note" className="text-ink-muted">
+            {note}
+          </p>
+        )}
+        {removes.length > 0 && (
+          <p role="note" className="text-warning">
+            Save removes these choices of the character, because the copy does not have them: {removes.join(", ")}.
+          </p>
+        )}
         <FormProblems problems={problems} fields={fields} />
         <Form record={record} onChange={setRecord} problems={problems} />
         {error && <p role="alert">{error}</p>}
@@ -157,6 +190,32 @@ interface Session {
   initial: ItemRecord;
   /** The key of the copy in custom, when the dialog edits a copy. */
   replacedKey?: string;
+  /** The names of the picks that a save of initial removes. */
+  removes: string[];
+}
+
+/**
+ * The name of the pick at path in the selection's tree, as "Subrace (Hill
+ * Dwarf)": the name of its selection and of its option. The bare key when
+ * the tree does not have it.
+ */
+function pickName(selection: BuilderSelection, path: string[]): string {
+  const key = path.at(-1) ?? "";
+  const parent = path.slice(0, -1).join("/");
+  const find = (s: BuilderSelection): string | undefined => {
+    if (s.actualPath.join("/") === parent) {
+      const option = s.options.find((o) => o.key === key);
+      return option && `${s.name} (${option.name})`;
+    }
+    for (const option of s.options) {
+      for (const child of option.selections) {
+        const found = find(child);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  };
+  return find(selection) ?? key;
 }
 
 /**
@@ -166,7 +225,8 @@ interface Session {
  * form on a copy of the option, named customName of it; Edit custom opens it
  * on the copy. A save writes the copy and selects it (customizeOption),
  * drops the choices under it that the copy does not offer, and then does
- * the type's afterSave.
+ * the type's afterSave. Before Save, the dialog names the picks that a save
+ * of the copy as it opens removes (picksRemovedBySave), such as a subrace.
  */
 export function CustomizeLines({ selection, customizable }: { selection: BuilderSelection; customizable: Customizable }) {
   const { builder } = customizable;
@@ -198,6 +258,7 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
         return;
       }
     }
+    const removes = origin.from === "custom" ? [] : removedPicks(key, initial);
     setSession((last) => ({
       id: (last?.id ?? 0) + 1,
       open: true,
@@ -205,7 +266,21 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
       title: origin.from === "custom" ? `Edit custom ${builder.one}` : `Customize ${name}`,
       initial,
       replacedKey: origin.from === "custom" ? key : undefined,
+      removes,
     }));
+  }
+
+  /** The names of the character's picks under the option with the key that a save of the item removes. */
+  function removedPicks(key: string, item: ItemRecord): string[] {
+    const state = useCharacter.getState();
+    if (state.entity === null) return [];
+    const path = [...selection.actualPath, key];
+    try {
+      return picksRemovedBySave(state.entity, state.custom, useHomebrew.getState().content, { contentType, path, item }).map((p) => pickName(selection, p));
+    } catch {
+      // The save itself shows why it cannot go, such as a name that another option has.
+      return [];
+    }
   }
 
   // A name whose key another option of the selection has would replace it or collide with it: the original, a pack item or another copy.
@@ -271,6 +346,8 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
           initial={session.initial}
           title={session.title}
           check={check}
+          note={customizable.note}
+          removes={session.removes}
           onSave={save}
           onClose={() => setSession({ ...session, open: false })}
           finalFocus={finalFocus}
