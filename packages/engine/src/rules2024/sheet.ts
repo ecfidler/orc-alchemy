@@ -3,6 +3,7 @@
 // dnd/e5/template_base.cljc, for the keys the Fighter slice needs.
 
 import { type Base, modifiersFor } from "../core/modifiers.ts";
+import { nameToKey } from "../core/template.ts";
 import { ARMOR } from "./content/armor.ts";
 import { WEAPONS, type WeaponMastery } from "./content/weapons.ts";
 
@@ -152,7 +153,13 @@ export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2);
 }
 
-function forEachAbility(value: (ability: Ability) => number): AbilityScores {
+/** A feature with its key: the key of its source, then the key of its name. */
+export function feature(source: string, name: string, summary: string, more: Pick<Feature, "level" | "uses"> = {}): Feature {
+  return { key: `${source}/${nameToKey(name)}`, name, summary, source, ...more };
+}
+
+/** A value for each ability. */
+export function forEachAbility(value: (ability: Ability) => number): AbilityScores {
   return Object.fromEntries(ABILITIES.map((ability) => [ability, value(ability)])) as AbilityScores;
 }
 

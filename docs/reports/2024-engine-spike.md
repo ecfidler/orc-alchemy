@@ -4,7 +4,7 @@ title: The 2024 engine spike
 description: "Results of the ORC-95 spike: a TypeScript port of the generic core, a 2024 Fighter slice on it, an estimate for the full SRD 5.2.1 ruleset, and answers on the facade and the engine model."
 tags: [rules-2024, engine, spike]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T04:20:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T04:22:00Z }
 sources:
   - id: orc-95
     resource: https://linear.app/orc-alchemy/issue/ORC-95
@@ -16,7 +16,7 @@ sources:
     resource: ../kb/srd-5.2-rules-delta.md
     title: SRD 5.2 rules delta for a character builder
   - id: dmv-types
-    resource: https://github.com/ecfidler/orcpub/blob/pubdoor/engine-js/types/index.d.ts
+    resource: https://github.com/ecfidler/orcpub/blob/812f5b5b3f2f928a279ce800ead5d04254e7706e/engine-js/types/index.d.ts
     title: "@pubdoor/dmv 0.4.0 types/index.d.ts"
   - id: charnik
     resource: https://github.com/FernDragonborn/charnik/tree/main/src/lib/rules
@@ -49,11 +49,11 @@ The three answers that ORC-95 asks for:
    fewer lines. The gain is typed content and no ClojureScript compiler.
 2. **Facade.** The shape `evaluate(entity, { rules })` to
    `{ built, selections }` describes a second engine without strain, and
-   `AvailableSelection` fits unchanged. The shared sheet type
-   `BuiltCharacter` does not. It is the 2014 accessor list with 2014 names
+   `AvailableSelection` fits unchanged. The shared type `BuiltCharacter`
+   does not. It is the 2014 accessor list with 2014 names
    and 2014 key namespaces. The recommendation is that each engine returns
-   its own typed sheet, and that the app's own `Sheet` type stays the
-   edition-neutral contract.
+   its own typed built character, and that the app's own `Sheet` type
+   stays the edition-neutral contract.
 3. **Engine model.** Keep all three parts: the strict entity as the
    character format, a template of selections and options, and modifiers
    with declared dependencies. Every rule in the slice fits the model. The
@@ -63,11 +63,11 @@ The three answers that ORC-95 asks for:
 
 | Part | Files | Lines |
 |---|---|---|
-| Core | `src/core/entity.ts`, `template.ts`, `modifiers.ts`, `build.ts` | 353 |
-| 2024 sheet | `src/rules2024/sheet.ts` | 202 |
-| 2024 content | `src/rules2024/content/` (6 files) and `template.ts` | 561 |
-| Facade | `src/rules2024/evaluate.ts` | 177 |
-| Tests | 3 files, 67 tests | 622 |
+| Core | `src/core/entity.ts`, `template.ts`, `modifiers.ts`, `build.ts` | 356 |
+| Built 2024 character | `src/rules2024/sheet.ts` | 206 |
+| 2024 content | `src/rules2024/content/` (6 files) and `template.ts` | 557 |
+| Facade | `src/rules2024/evaluate.ts` | 178 |
+| Tests | 3 files, 69 tests | 633 |
 
 Lines are code lines: no blank lines and no comment lines.
 
@@ -108,9 +108,12 @@ Each expected number in `fighter.test.ts` has its arithmetic in a comment.
 The rules behind the arithmetic come from `docs/kb/srd-5.2-rules-delta.md`,
 which cites SRD 5.2.1 pages. The spike could not read the SRD PDF, because
 this environment blocks `dndbeyond.com`. As a second source, the spike
-compared the slice content with the 5e-bits 2024 data: the Fighter features
-and their levels, the Dwarf traits, the Soldier background, the 8 feats,
-the 12 armors, and the 38 weapons.
+compared the slice content with the 5e-bits 2024 data. The comparison
+covered:
+
+- The Fighter features and their levels.
+- The Dwarf traits and the Soldier background.
+- The 8 feats, the 12 armors, and the 38 weapons.
 
 The comparison found two differences in the weapons table:
 
@@ -130,17 +133,18 @@ estimate is a judgment from one slice, not a count.
 
 | Part | Measured in the spike | Estimate for the full ruleset | Basis |
 |---|---|---|---|
-| Core | 353 | 500 to 700 | Add the merge of homebrew into the template, and a cache for the build. |
-| Facade and mutations | 177, `evaluate` only | 1,500 to 2,500 | The 2014 facade has 26 functions in 2,751 lines of ClojureScript: `evaluate`, 15 mutations, `autofill`, and the import, export, and homebrew functions. The 2024 facade does not need the `.orcbrew` import. |
-| Sheet base | 202 for 42 keys | 700 to 1,000 | Add spellcasting, multiclass rules, equipment, speeds, and senses. The 2014 base and its accessors are `template_base.cljc` (332 lines) and `character.cljc` (885 lines). |
+| Core | 356 | 500 to 700 | Add the merge of homebrew into the template, and a cache for the build. |
+| Facade and mutations | 178, `evaluate` only | 1,500 to 2,500 | The 2014 facade has 26 functions in 2,751 lines of ClojureScript: `evaluate`, 15 mutations, `autofill`, and the import, export, and homebrew functions. The 2024 facade does not need the `.orcbrew` import. |
+| Base of the built character | 206 for 42 keys | 700 to 1,000 | Add spellcasting, multiclass rules, equipment, speeds, and senses. The 2014 base and its accessors are `template_base.cljc` (332 lines) and `character.cljc` (885 lines). |
 | Classes and subclasses | 136 for 5 levels of one class | 3,000 to 6,000 | See below. |
-| Species | 38 for the Dwarf | 400 to 800 | Six of the nine species have a lineage or ancestry choice. Three have spells. |
+| Species | 37 for the Dwarf | 400 to 800 | Six of the nine species have a lineage or ancestry choice. Three have spells. |
 | Backgrounds | 66 | About 90 | 55 lines are shared. A background is about 8 lines of data. |
-| Feats | 168 for 8 feats | 300 to 400 | About 60 lines are shared. Magic Initiate and one Epic Boon need spells. |
+| Feats | 165 for 8 feats | 300 to 400 | About 60 lines are shared. Magic Initiate and one Epic Boon need spells. |
 | Equipment tables | 106 | 400 to 600 | Add gear, tools, packs, and the starting equipment packages. |
-| **Code total** | **1,293** | **About 7,000 to 12,000** | |
-| Spell records | 0 | 339 records | Data, not code. Generate them from source data (ORC-219), then correct them. `spells.cljc` is 4,229 lines for the 2014 set. |
-| Tests | 622 | About half of the code size or more | The slice has one test line for each two code lines. |
+| Top of the template | 47 | 100 to 200 | The top selections: ability scores, languages, and carried equipment. |
+| **Code total** | **1,297** | **About 7,000 to 12,000** | |
+| Spell records | 0 | 339 records, about 4,000 to 7,000 lines of data | Data, not code, at 12 to 20 lines for each record. Generate the records from source data (ORC-219), then check each one against the SRD. The check is the cost, and the spike did not measure it. `spells.cljc` is 4,229 lines for the 2014 set. |
+| Tests | 633 | About half of the code size or more | The slice has one test line for each two code lines. |
 
 **Classes.** The Fighter content is 136 lines. About half of them are the
 class frame: proficiencies, the skill choice, the level helper, and the
@@ -216,10 +220,12 @@ The five keys that do not fit:
 - `weapons` and `armor`. Each is an inventory with namespaced 2014 keys,
   for example `orcpub.dnd.e5.character.equipment/quantity`.
 
-Four of the 27 filled keys fit only with a loss:
+Eight of the 27 filled keys fit only with a loss, in four groups:
 
 - **Ability keys.** `AbilityKey` is `orcpub.dnd.e5.character/str`. A 2024
-  engine must write the namespace of the 2014 engine in every ability map.
+  engine must write the namespace of the 2014 engine in each of the four
+  ability maps: `abilities`, `ability-bonuses`, `save-bonuses`, and
+  `saving-throws`.
 - **`traits`.** `Feature.frequency` holds one amount and one unit. Second
   Wind regains one use on a Short Rest and all uses on a Long Rest. The
   type cannot say that.
@@ -234,11 +240,15 @@ entity is plain typed JSON.
 
 ### What the facade lacks for 2024
 
-The slice returns these values in its own extension, because the shared
-type has no key for them: the species, the size, the creature type, the
-feats with their categories, the Weapon Mastery choices, the weapon attacks
-with their mastery property, the Critical Hit range, the damage
-resistances, and features with full use rules.
+The shared type has no key for these values. The slice returns them in its
+own extension:
+
+- The species, the size, and the creature type.
+- The feats with their categories.
+- The Weapon Mastery choices.
+- The weapon attacks with their mastery property.
+- The Critical Hit range and the damage resistances.
+- Features with full use rules.
 
 ### Recommendation for ORC-220
 
@@ -247,14 +257,14 @@ resistances, and features with full use rules.
    app's engine folder picks the engine from the character's `rules` tag.
 2. **Do not make the 2024 engine return `BuiltCharacter`.** The type is not
    neutral. It is the 2014 accessor list under a neutral name. Each engine
-   returns its own typed sheet.
+   returns its own typed built character.
 3. **Keep the app's `Sheet` as the neutral type.** The app already renders
    from its own `Sheet` (`packages/app/src/engine/sheet.ts`, ORC-48), and
    `toSheet` is the one adapter from the 2014 engine. The 2024 engine needs
    a second adapter. The app's `Sheet` then gains what 2024 adds: the
    mastery property, the feat category, and uses with two rest rules.
-4. **Plan for the builder, not only for the sheet.** Besides `sheet.ts`,
-   five files in `packages/app/src/engine` read 2014 keys: `abilities.ts`,
+4. **Plan for the builder, not only for the app's `Sheet`.** Besides
+   `sheet.ts`, at least five files in `packages/app/src/engine` read 2014 keys: `abilities.ts`,
    `builder-choices.ts`, `equipment.ts`, `spells.ts`, and `description.ts`.
    The 2024 app milestone must give each of them a 2024 counterpart.
 
@@ -282,7 +292,7 @@ model without a new concept in the core:
 
 ### The strict entity
 
-Keep it. A character is its choices, and the sheet is computed. The port
+Keep it. A character is its choices, and the built character is computed. The port
 makes three changes:
 
 - **One form.** The Clojure engine has a strict entity and a raw entity.
@@ -324,7 +334,8 @@ entity does not store a history.
 
 Keep them. Explicit declaration costs little. Of the 49 modifier
 constructor calls in the slice, 5 declare a dependency. The other calls
-append a constant. The 12 derived values of the sheet all declare theirs.
+read no other key: each sets or appends a constant, or changes its own
+key. The 12 derived values of the built character all declare theirs.
 
 The port adds two guards that the Clojure macros do not need:
 
@@ -333,8 +344,8 @@ The port adds two guards that the Clojure macros do not need:
   first test that runs the modifier.
 - **A cycle throws and names its keys.** The Clojure sort returns nil.
 
-The types add a third guard: a modifier of a key that the sheet does not
-have, or a value of the wrong type, does not compile.
+The types add a third guard: a modifier of a key that the built character
+does not have, or a value of the wrong type, does not compile.
 
 The spike considered recording each read at run time in place of a
 declaration. That fails for a read inside a condition, which runs only for
@@ -364,6 +375,22 @@ because it changes what `evaluate` returns.
    facade returns each occurrence, and the app must add the counts.
 6. A data format for content that maps to the modifier constructors
    (ORC-96).
+
+## Where the port differs from the Clojure core
+
+The port keeps the semantics of the functions that it names, with these
+declared differences:
+
+- **Order.** The Clojure sort breaks ties between unrelated keys by hash
+  order. The port breaks them by first use, so a build is repeatable.
+  Modifiers of unrelated keys do not read each other, so the result is the
+  same.
+- **Cycles and undeclared reads** throw, as *Part 3* describes.
+- **A deferred modifier with no value and no default** gives nothing. The
+  Clojure core calls the function with nil.
+- **Derived values** are computed once between two modifiers, not on each
+  read.
+- **`ref` pools** come back from `availableSelections` as one selection.
 
 ## What the port did not include
 
@@ -396,7 +423,7 @@ because it changes what `evaluate` returns.
   option E and the recommendation for this spike.
 - [SRD 5.2 rules delta](../kb/srd-5.2-rules-delta.md): the rules facts with
   SRD 5.2.1 page numbers.
-- The fork `ecfidler/orcpub` at branch `pubdoor`:
+- The fork `ecfidler/orcpub` at commit `812f5b5b` of branch `pubdoor`:
   `src/cljc/orcpub/entity.cljc`, `template.cljc`, `modifiers.cljc`, and
   `entity_spec.cljc`, and `engine-js/types/index.d.ts` at 0.4.0.
 - Charnik, `src/lib/rules/pipeline.ts` and `core.ts`, read on 2026-11-16

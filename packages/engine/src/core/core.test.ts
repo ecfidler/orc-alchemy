@@ -92,7 +92,8 @@ const wagon: StrictEntity<Wagon> = {
 describe("selection and option defaults", () => {
   it("makes a key from the name", () => {
     expect(nameToKey("Three-Dragon Ante")).toBe("three-dragon-ante");
-    expect(nameToKey("Thieves' Tools")).toBe("thieves--tools");
+    expect(nameToKey("Thieves' Tools")).toBe("thieves-tools");
+    expect(nameToKey("Crossbow, light")).toBe("crossbow-light");
   });
 
   it("chooses exactly one by default", () => {
@@ -101,6 +102,11 @@ describe("selection and option defaults", () => {
 
   it("is a multiselect when the maximum is above 1", () => {
     expect(selection({ name: "A", max: 3, options: [] }).multiselect).toBe(true);
+  });
+
+  it("computes multiselect from the given maximum, as selection-cfg does", () => {
+    expect(selection({ name: "A", min: 2, max: null, options: [] }).multiselect).toBe(false);
+    expect(selection({ name: "A", max: 3, multiselect: false, options: [] }).multiselect).toBe(true);
   });
 
   it("gives a null maximum to a multiselect only", () => {
@@ -170,9 +176,17 @@ describe("applying modifiers", () => {
     expect(built.label).toBe("b");
   });
 
-  it("sorts by the order number before the dependency order", () => {
+  it("sorts the modifiers of one key by the order number", () => {
     const built = applyModifiers(base, [w.push("log", "late", { order: 2 }), w.push("log", "early", { order: 1 }), w.push("log", "no number")]);
     expect(built.log).toEqual(["no number", "early", "late"]);
+  });
+
+  it("puts the dependency order before the order number", () => {
+    // The capacity bonus has the lower number, and it still reads the final wheels.
+    const built = applyModifiers(base, [w.add("wheels", 4, { order: 5 }), w.add("capacity", 50, { order: 1 })]);
+    expect(built.capacity).toBe(450);
+    const copy = applyModifiers(base, [w.add("wheels", 10, { order: 5 }), w.update("load", (_, q) => q("wheels"), { deps: ["wheels"], order: 1 })]);
+    expect(copy.load).toBe(10);
   });
 
   it("skips a modifier when its condition fails, and reads the condition's keys in order", () => {

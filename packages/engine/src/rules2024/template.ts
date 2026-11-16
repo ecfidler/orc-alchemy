@@ -6,14 +6,14 @@ import { BACKGROUNDS } from "./content/backgrounds.ts";
 import { FIGHTER } from "./content/fighter.ts";
 import { SPECIES } from "./content/species.ts";
 import { WEAPONS } from "./content/weapons.ts";
-import { ABILITIES, type AbilityScores, base, m, type Sheet } from "./sheet.ts";
+import { type AbilityScores, base, forEachAbility, m, type Sheet } from "./sheet.ts";
 
 /** The Standard Languages without Common, which every character knows (SRD 5.2.1 p20). */
 const STANDARD_LANGUAGES = ["Common Sign Language", "Draconic", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc"];
 
 function readScores(value: unknown): AbilityScores {
   const scores = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
-  return Object.fromEntries(ABILITIES.map((ability) => [ability, typeof scores[ability] === "number" ? scores[ability] : 10])) as AbilityScores;
+  return forEachAbility((ability) => (typeof scores[ability] === "number" ? scores[ability] : 10));
 }
 
 export const template2024: Template<Sheet> = {

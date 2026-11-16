@@ -2,8 +2,8 @@
 // p49).
 
 import type { OptionModifier, Reader } from "../../core/modifiers.ts";
-import { nameToKey, type Option, option, type Selection, selection } from "../../core/template.ts";
-import { type Feature, m, type Sheet, type Skill, type Uses } from "../sheet.ts";
+import { type Option, option, type Selection, selection } from "../../core/template.ts";
+import { feature, m, type Sheet, type Skill, type Uses } from "../sheet.ts";
 import { featSelection } from "./feats.ts";
 import { WEAPONS } from "./weapons.ts";
 
@@ -26,9 +26,9 @@ const SKILL_NAMES: Partial<Record<Skill, string>> = {
 
 /** A class feature. `uses` reads the Fighter level, so the feature updates as the class gains levels. */
 function classFeature(level: number, name: string, summary: string, uses?: (fighterLevel: number) => Uses): OptionModifier<Sheet> {
-  const feature: Feature = { key: `${CLASS}/${nameToKey(name)}`, name, summary, source: CLASS, level };
-  if (!uses) return m.push("features", feature);
-  return m.push("features", (q: Reader<Sheet>) => ({ ...feature, uses: uses(q("classLevels")[CLASS] ?? 0) }), { deps: ["classLevels"] });
+  const granted = feature(CLASS, name, summary, { level });
+  if (!uses) return m.push("features", granted);
+  return m.push("features", (q: Reader<Sheet>) => ({ ...granted, uses: uses(q("classLevels")[CLASS] ?? 0) }), { deps: ["classLevels"] });
 }
 
 /**

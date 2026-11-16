@@ -1,5 +1,5 @@
 // Building an entity against a template. Port of the build half of
-// orcpub.entity (entity.cljc:423-621 and :723-759).
+// orcpub.entity (entity.cljc:423-621 and :711-759).
 
 import { type ChoiceTree, chosenPaths, type FlatOption, flattenOptions, optionsAt, pathKey, type StrictEntity } from "./entity.ts";
 import { applyModifiers, type Base, type Modifier } from "./modifiers.ts";
@@ -11,7 +11,7 @@ export interface ActiveSelection<S> extends Selection<S> {
 }
 
 /** Where the choices of a selection are stored (entity/actual-path). */
-export function actualPath<S>(selection: ActiveSelection<S>): readonly string[] {
+export function actualPath<S>(selection: Pick<ActiveSelection<S>, "path" | "ref">): readonly string[] {
   return selection.ref ?? selection.path;
 }
 
@@ -53,7 +53,9 @@ function templateOptions<S>(selections: readonly ActiveSelection<S>[]): Map<stri
 /**
  * The modifiers of every chosen option, in the order of the entity
  * (entity/collect-modifiers-2). A deferred modifier gets the value of its
- * option. A chosen option that the template does not have gives nothing.
+ * option, or its default value. With neither, it gives nothing: the Clojure
+ * core calls the function with nil. A chosen option that the template does
+ * not have gives nothing.
  */
 export function collectModifiers<S>(flatOptions: readonly FlatOption[], selections: readonly ActiveSelection<S>[]): Modifier<S>[] {
   const options = templateOptions(selections);
@@ -118,7 +120,7 @@ export function availableSelections<S>(entity: ChoiceTree, built: S, template: T
 
 /** The keys of the options chosen in a selection. With `requireValue`, an option without a value does not count. */
 export function selectedKeys<S>(entity: ChoiceTree, selection: Pick<ActiveSelection<S>, "path" | "ref" | "requireValue">): string[] {
-  return optionsAt(entity, selection.ref ?? selection.path)
+  return optionsAt(entity, actualPath(selection))
     .filter((option) => !selection.requireValue || option.value !== undefined)
     .map((option) => option.key);
 }

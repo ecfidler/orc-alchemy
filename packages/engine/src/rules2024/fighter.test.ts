@@ -266,8 +266,8 @@ describe("level 3", () => {
   });
 
   it("uses a rolled Hit Point number in place of the fixed 6", () => {
-    // Level 2 rolled 9, and level 3 rolled 3: 10 + 9 + 3 + 6 + 3.
-    expect(build({ level: 3, rolledHitPoints: { 2: 9, 3: 3 } }).built["max-hit-points"]).toBe(31);
+    // Level 2 rolled 9, and level 3 rolled 4: 10 + 9 + 4 + 6 + 3.
+    expect(build({ level: 3, rolledHitPoints: { 2: 9, 3: 4 } }).built["max-hit-points"]).toBe(32);
     // Level 2 rolled 10: 10 + 10 + 6 + 6 + 3.
     expect(build({ level: 3, rolledHitPoints: { 2: 10 } }).built["max-hit-points"]).toBe(35);
   });

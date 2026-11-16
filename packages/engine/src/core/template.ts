@@ -53,9 +53,14 @@ export interface Template<S> {
   selections: readonly Selection<S>[];
 }
 
-/** A key from a name (common/name-to-kw): lower case, with "-" for each character that is not a letter, a digit or "_". */
+/**
+ * A key from a name (common/name-to-kw): lower case, without apostrophes,
+ * and with one "-" for each run of characters that are not a letter, a
+ * digit or "_". "Thieves' Tools" gives "thieves-tools". The app has the
+ * same function for 2014 keys, nameToKw in packages/app/src/engine/content.ts.
+ */
 export function nameToKey(name: string): string {
-  return name.toLowerCase().replace(/\W/g, "-");
+  return name.toLowerCase().replace(/'/g, "").replace(/\W+/g, "-");
 }
 
 export interface OptionConfig<S> extends Partial<Omit<Option<S>, "name">> {
@@ -75,7 +80,9 @@ export interface SelectionConfig<S> extends Partial<Omit<Selection<S>, "name" | 
 /**
  * A selection with the defaults of template/selection-cfg: choose exactly
  * one. Without `max`, the maximum is 1. With `max: null`, a multiselect has
- * no maximum and any other selection has `min` as its maximum.
+ * no maximum and any other selection has `min` as its maximum. A selection
+ * is a multiselect when the config says so or when the given `max` is above
+ * 1, so `multiselect: false` does not turn that off.
  */
 export function selection<S>(config: SelectionConfig<S>): Selection<S> {
   const min = config.min ?? 1;
@@ -88,6 +95,6 @@ export function selection<S>(config: SelectionConfig<S>): Selection<S> {
     ...config,
     min,
     max,
-    multiselect: config.multiselect ?? (max !== null && max > 1),
+    multiselect: Boolean(config.multiselect) || (config.max ?? 1) > 1,
   };
 }

@@ -3,7 +3,7 @@
 // and Grappler, and the four Fighting Style feats.
 
 import { nameToKey, type Option, option, type Prereq, type Selection, selection } from "../../core/template.ts";
-import { ABILITIES, type Ability, type FeatCategory, type Feature, m, type Sheet } from "../sheet.ts";
+import { ABILITIES, type Ability, type FeatCategory, feature, m, type Sheet } from "../sheet.ts";
 
 export interface Feat {
   key: string;
@@ -38,10 +38,6 @@ export function abilityIncreaseOptions(
 const level4: Prereq<Sheet> = { label: "Level 4+", test: (built) => built.totalLevel >= 4 };
 // Any class can grant the feature, so the class part of the key does not count.
 const fightingStyleFeature: Prereq<Sheet> = { label: "Fighting Style feature", test: (built) => built.features.some((f) => f.key.endsWith("/fighting-style")) };
-
-function feature(feat: string, name: string, summary: string): Feature {
-  return { key: `${feat}/${nameToKey(name)}`, name, summary, source: feat };
-}
 
 function feat(config: Pick<Feat, "name" | "category"> & Partial<Feat>): Feat {
   return { key: nameToKey(config.name), repeatable: false, prereqs: [], modifiers: [], selections: [], ...config };

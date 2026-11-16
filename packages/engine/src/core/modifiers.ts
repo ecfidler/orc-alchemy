@@ -42,7 +42,7 @@ export interface Modifier<S> {
   readonly apply: (current: never, q: Reader<S>) => unknown;
   /** The modifier applies only if this passes (the Clojure `conditions`). */
   readonly when?: (q: Reader<S>) => boolean;
-  /** Sorts before the dependency order, lowest first, absent first of all. */
+  /** Sorts the modifiers of one key, and of keys with no dependency between them: lowest first, absent first of all. */
   readonly order?: number;
   /** A label for the source of the change. */
   readonly name?: string;
@@ -165,13 +165,24 @@ export function dependencyOrder(graph: ReadonlyMap<string, ReadonlySet<string>>)
   return order;
 }
 
+// Infinity minus Infinity is NaN, so two absent numbers compare as equal here.
+function compareOrder(a: number | undefined, b: number | undefined): number {
+  if (a === b) return 0;
+  if (a === undefined) return -1;
+  if (b === undefined) return 1;
+  return a - b;
+}
+
 /**
  * Applies the modifiers to the base in dependency order and returns the
  * built entity (entity/apply-options from the sort on, and
  * modifiers/apply-modifiers).
  *
- * The order is: `order` first, then the dependency order of the keys.
- * Modifiers of one key keep the order of the list, which is the order of
+ * The order is the dependency order of the keys first. A key that has no
+ * dependency and that nothing depends on comes before the others. Within
+ * one key, the order is the `order` number, lowest first and absent first
+ * of all. Modifiers with the same number keep the order of the list, which
+ * is the order of
  * the choices in the entity.
  */
 export function applyModifiers<S>(base: Base<S>, modifiers: readonly Modifier<S>[]): S {
@@ -205,10 +216,7 @@ export function applyModifiers<S>(base: Base<S>, modifiers: readonly Modifier<S>
   const ordered = modifiers
     .map((modifier, index) => ({ modifier, index }))
     .sort(
-      (a, b) =>
-        (a.modifier.order ?? -Infinity) - (b.modifier.order ?? -Infinity) ||
-        (rank.get(a.modifier.key) ?? -1) - (rank.get(b.modifier.key) ?? -1) ||
-        a.index - b.index,
+      (a, b) => (rank.get(a.modifier.key) ?? -1) - (rank.get(b.modifier.key) ?? -1) || compareOrder(a.modifier.order, b.modifier.order) || a.index - b.index,
     );
 
   for (const { modifier } of ordered) {

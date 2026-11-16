@@ -4,7 +4,7 @@
 // second engine and where they do not.
 
 import type { AbilityKey, AvailableSelection, BuiltCharacter, Feature as SharedFeature } from "@pubdoor/dmv";
-import { availableSelections, build, countRemaining, selectedKeys } from "../core/build.ts";
+import { actualPath, availableSelections, build, countRemaining, selectedKeys } from "../core/build.ts";
 import type { StrictEntity } from "../core/entity.ts";
 import { ARMOR } from "./content/armor.ts";
 import { ABILITIES, type Ability, type AbilityScores, type FeatTaken, type Feature, type Sheet, type WeaponAttack } from "./sheet.ts";
@@ -153,6 +153,7 @@ export function evaluate(entity: Entity2024, options: EvaluateOptions2024): Eval
   if (options.rules !== "2024") throw new Error(`Unsupported rules edition: ${String(options.rules)}`);
   const sheet = buildSheet(entity);
   const wornArmor = ARMOR.find((armor) => armor.key === sheet.wornArmor);
+  const classNames = new Map(template2024.selections.find((s) => s.key === "class")?.options.map((o) => [o.key, o.name]));
 
   const built: Built2024 = {
     "character-name": sheet.name || null,
@@ -163,7 +164,7 @@ export function evaluate(entity: Entity2024, options: EvaluateOptions2024): Eval
         key,
         {
           "class-level": sheet.classLevels[key] ?? 0,
-          "class-name": template2024.selections.find((s) => s.key === "class")?.options.find((o) => o.key === key)?.name ?? key,
+          "class-name": classNames.get(key) ?? key,
           "hit-die": sheet.hitDice[key] ?? 0,
           ...(sheet.subclasses[key] ? { subclass: sheet.subclasses[key] } : {}),
         },
@@ -211,7 +212,7 @@ export function evaluate(entity: Entity2024, options: EvaluateOptions2024): Eval
       key: selection.key,
       name: selection.name,
       path: selection.path,
-      actualPath: [...(selection.ref ?? selection.path)],
+      actualPath: [...actualPath(selection)],
       min: selection.min,
       max: selection.max,
       remaining: countRemaining(entity, selection),

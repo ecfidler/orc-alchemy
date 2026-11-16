@@ -1,6 +1,6 @@
 // The strict entity: the stored character. It records only the choices, as
 // a tree of selections and options. Port of orcpub.entity.strict and the
-// option walk in orcpub.entity (entity.cljc:277-304).
+// option walk in orcpub.entity (entity.cljc:274-300).
 //
 // The Clojure engine has two forms, the strict entity and a raw entity whose
 // selections are a map. This port has one form. Selections stay arrays, so
