@@ -6,35 +6,8 @@ import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import { type Blocker, useBlocker } from "react-router";
 import { warnBeforeUnload } from "../state/unload-warning.ts";
 
-/**
- * Whether a value of a record is the same as no value: a field that the
- * user empties holds "", a checkbox that the user clears holds false, and
- * a list with no picks holds an empty list or set.
- */
-function empty(value: unknown): boolean {
-  if (value === undefined || value === "" || value === false) return true;
-  if (typeof value !== "object" || value === null) return false;
-  return Array.isArray(value) ? value.length === 0 : filled(value).length === 0;
-}
-
-/** The entries of the object that have a value. */
-const filled = (record: object) => Object.entries(record).filter(([, value]) => !empty(value));
-
-/**
- * Whether two values of a form's record are the same. The order of the keys
- * of an object does not count, and a key with an empty value is the same
- * as no key. Thus a change that the user reverses is not a change.
- */
-export function sameRecord(a: unknown, b: unknown): boolean {
-  if (Object.is(a, b) || (empty(a) && empty(b))) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
-  if (Array.isArray(a) || Array.isArray(b)) {
-    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((value, i) => sameRecord(value, b[i]));
-  }
-  const left = filled(a);
-  const right = new Map(filled(b));
-  return left.length === right.size && left.every(([key, value]) => right.has(key) && sameRecord(value, right.get(key)));
-}
+// sameRecord is pure, so it is in engine/content.ts, where the engine layer uses it too.
+export { sameRecord } from "../engine/content.ts";
 
 /**
  * Asks `question` each time the blocker blocks a navigation: `action` lets

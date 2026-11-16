@@ -4,7 +4,7 @@ import { expect, type Page, test } from "@playwright/test";
 // ORC-134: Customize a feat for one character. The feat form opens in a
 // dialog over the builder, and its own modals (the "+ Add a modifier" list
 // and a picker) open over the dialog, with the keyboard only. ORC-135 does
-// the same for a background, with the equipment picker.
+// the same for a background, with the equipment and tool pickers.
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 
@@ -91,7 +91,7 @@ test("Customize a feat, then add a modifier and a prerequisite in the dialog wit
   await expect(edit).toBeFocused();
 });
 
-test("Customize the SRD background, then add equipment with the picker in the dialog with the keyboard", async ({ page }) => {
+test("Customize the SRD background, then add equipment and a tool with the pickers in the dialog with the keyboard", async ({ page }) => {
   const builder = await openStep(page, /^Background/);
   const customize = builder.getByRole("button", { name: "Customize Acolyte" });
   await customize.focus();
@@ -121,6 +121,30 @@ test("Customize the SRD background, then add equipment with the picker in the di
   await expect(add).toBeFocused();
   await expect(dialog.getByText("Crowbar", { exact: true })).toBeVisible();
 
+  // "+ Add a tool proficiency" opens its list over the dialog. The second row adds the Artisan's tools block, whose picker opens over the dialog too.
+  const addTool = dialog.getByRole("button", { name: /^Add a tool proficiency/ });
+  await addTool.focus();
+  await page.keyboard.press("Enter");
+  const subs = page.getByRole("dialog", { name: "Add a tool proficiency" });
+  await expect(subs.getByRole("button", { name: /^Any artisan's tool/ })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(subs.getByRole("button", { name: /^Artisan's tools/ })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(subs).toBeHidden();
+  const block = dialog.getByRole("group", { name: "Artisan's tools" });
+  await expect(block).toBeVisible();
+  const addArtisan = block.getByRole("button", { name: /^Add an artisan's tool/ });
+  await addArtisan.focus();
+  await page.keyboard.press("Enter");
+  const tools = page.getByRole("dialog", { name: "Add an artisan's tool" });
+  await expect(tools.getByRole("button", { name: "Alchemist's Supplies" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Escape");
+  await expect(tools).toBeHidden();
+  await expect(dialog).toBeVisible();
+  await expect(addArtisan).toBeFocused();
+  await expect(block.getByText("Alchemist's Supplies", { exact: true })).toBeVisible();
+
   // A rename back to the original's name is refused.
   await name.fill("Acolyte");
   await expect(dialog.getByRole("list", { name: "Problems: Name" })).toContainText("Another background in the list has this name");
@@ -140,6 +164,7 @@ test("Customize the SRD background, then add equipment with the picker in the di
   await page.keyboard.press("Enter");
   const again = page.getByRole("dialog", { name: "Edit custom background" });
   await expect(again.getByText("Crowbar", { exact: true })).toBeVisible();
+  await expect(again.getByRole("group", { name: "Artisan's tools" }).getByText("Alchemist's Supplies", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(again).toBeHidden();
   await expect(edit).toBeFocused();

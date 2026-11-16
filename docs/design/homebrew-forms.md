@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T02:08:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T02:40:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -733,9 +733,16 @@ says so.
   that record: the description (`:help`), skills, languages, tools,
   equipment, gold and features. The summary of a feature becomes its
   description, because the form edits the description.
-* The content list does not have each choice of the SRD background. For
-  example, it has no holy symbol choice for Acolyte. See
-  [Save](#save) for what happens to that pick.
+* The content list does not have each equipment choice of the SRD
+  background. For example, it has no holy symbol choice for Acolyte. The
+  engine's template has the choice, with a name such as "Starting
+  Equipment: Holy Symbol" and its items. The copy gets each such choice
+  from the template, with the name after "Starting Equipment: ". The
+  engine keys the choice by its name, so the character's pick under it
+  stays. Thus a copy of Acolyte with no edits keeps the Amulet on the
+  sheet.
+* The form has no control for the holy symbol choice. The choice stays in
+  the copy as it is.
 * The name is "{name} (Custom)". The user can change it.
 * Edit custom opens the copy as it is stored.
 
@@ -746,10 +753,12 @@ says so.
 * A background is different. The engine keys a background by the key of
   its name, and it ignores the stored key (ORC-130; quirk in
   `docs/plan/01-compatibility-contract.md`). Thus the key of a background
-  copy is the key of its name with each "-", the key that the engine
-  gives: "Sage (Custom)" gives `sage-custom-`. The copy is stored under
-  this key, and the pick uses it. A name without a letter or a digit has
-  no key, for each type.
+  copy is the key of its name, with its "-" at the start and the end
+  kept. This is the key that the engine gives. "Sage (Custom)" gives
+  `sage-custom-`. The copy is stored under this key, and the pick uses
+  it.
+* A name without a letter or a digit has no key. This is true for each
+  type.
 * The key must not be the key of another option in the character's list:
   the original, a pack item or another copy. If it is, the Name field
   shows a problem and Save is disabled. Thus a save never replaces or
@@ -769,14 +778,16 @@ them together:
    tool of a background.
 3. For an edit with a new key, remove the old copy, and move the pick
    again.
-4. Remove each pick under the copy that the copy does not offer, for
-   example a choice that the user removed from the form, or the holy
-   symbol of an SRD Acolyte. Otherwise the sheet tells the user to load
-   content for it.
-5. For a background, if the starting equipment or the gold of the copy is
-   not the same as before the dialog opened, replace the character's
-   background starting equipment with that of the copy, as a new pick of
-   a background does. Other changes keep the inventory as it is.
+4. Remove each pick under the copy that does not resolve. An example is
+   a choice that the user removed from the form. Otherwise the sheet
+   tells the user to load content for it. This step also removes a pick
+   that does not resolve only because its pack is turned off now.
+5. For a background, compare the items and the gold of the copy with
+   those that the dialog opened with. The equipment choices do not count,
+   because the engine does not give them as starting equipment. If the
+   items or the gold changed, replace the character's background starting
+   equipment with that of the copy. A new pick of a background does the
+   same. If they did not change, the inventory stays as it is.
 
 After Save, the line shows Edit custom, and its button has the focus.
 

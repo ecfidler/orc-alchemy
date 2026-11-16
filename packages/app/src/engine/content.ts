@@ -126,6 +126,23 @@ export function packItems(pack: string, plugin: object, type: ContentType): Pack
 /** A name as a key, as common/name-to-kw keys it: "Lawful Good" to "lawful-good", and "Thieves' Tools" to "thieves-tools". */
 export const nameToKw = (name: string) => name.toLowerCase().replace(/'/g, "").replace(/\W+/g, "-");
 
+/** The content type of the backgrounds, whose option key comes from the name (optionKeyOf). */
+export const BACKGROUND_TYPE: ContentType = "orcpub.dnd.e5/backgrounds";
+
+/**
+ * The key of the option that the engine makes from a pack item of the
+ * content type. The engine keys a background by the nameToKw key of its
+ * name and ignores the stored key (doc 01 §Known quirks, ORC-130), with each
+ * "-" kept: "Sage (Custom)" is sage-custom-. Each other item, and a
+ * background without a name, has its stored key, else `tagged`, its key in
+ * the plugin map.
+ */
+export function optionKeyOf(contentType: ContentType, item: Record<string, unknown>, tagged = ""): string {
+  const name = item["~:name"];
+  if (contentType === BACKGROUND_TYPE && typeof name === "string" && name !== "") return nameToKw(name);
+  return untag(item["~:key"] ?? tagged);
+}
+
 /** A background whose stored key is not the key of its name. */
 export interface BackgroundKeyWarning {
   pack: string;
@@ -142,12 +159,42 @@ export interface BackgroundKeyWarning {
  * the background.
  */
 export function backgroundKeyWarnings(pack: string, plugin: object): BackgroundKeyWarning[] {
-  const backgrounds = (itemsAt(plugin, tag("orcpub.dnd.e5/backgrounds")) ?? {}) as Record<string, Record<string, unknown> | null>;
+  const backgrounds = (itemsAt(plugin, tag(BACKGROUND_TYPE)) ?? {}) as Record<string, Record<string, unknown> | null>;
   return Object.entries(backgrounds).flatMap(([tagged, item]) => {
     const name = item?.["~:name"];
-    if (typeof name !== "string" || name === "") return [];
-    const key = untag(item?.["~:key"] ?? tagged);
-    const nameKey = nameToKw(name);
+    if (item === null || typeof name !== "string" || name === "") return [];
+    const key = untag(item["~:key"] ?? tagged);
+    const nameKey = optionKeyOf(BACKGROUND_TYPE, item, tagged);
     return key === nameKey ? [] : [{ pack, name, key, nameKey }];
   });
+}
+
+/**
+ * Whether a value of a record is the same as no value: a field that the
+ * user empties holds "", a checkbox that the user clears holds false, and
+ * a list with no picks holds an empty list or set.
+ */
+function empty(value: unknown): boolean {
+  if (value === undefined || value === "" || value === false) return true;
+  if (typeof value !== "object" || value === null) return false;
+  return Array.isArray(value) ? value.length === 0 : filled(value).length === 0;
+}
+
+/** The entries of the object that have a value. */
+const filled = (record: object) => Object.entries(record).filter(([, value]) => !empty(value));
+
+/**
+ * Whether two values of a form's record are the same. The order of the keys
+ * of an object does not count, and a key with an empty value is the same
+ * as no key. Thus a change that the user reverses is not a change.
+ */
+export function sameRecord(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b) || (empty(a) && empty(b))) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((value, i) => sameRecord(value, b[i]));
+  }
+  const left = filled(a);
+  const right = new Map(filled(b));
+  return left.length === right.size && left.every(([key, value]) => right.has(key) && sameRecord(value, right.get(key)));
 }

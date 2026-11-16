@@ -4,9 +4,24 @@
 // with `custom` added as one more pack, named CUSTOM_PACK. Other characters
 // never see it.
 import type { Built2014 } from "@pubdoor/dmv";
-import { disabledInFile, isMap, itemAt, itemsAt, nameToKw, OPTION_KEY, OPTION_PACK, tag, untag, withItem, withoutItem } from "./content.ts";
-import type { Content, ContentType, StrictEntity } from "./engine.ts";
-import { missingContent, remapOption } from "./reconcile.ts";
+import {
+  BACKGROUND_TYPE,
+  disabledInFile,
+  isMap,
+  itemAt,
+  itemsAt,
+  nameToKw,
+  OPTION_KEY,
+  OPTION_PACK,
+  optionKeyOf,
+  sameRecord,
+  tag,
+  untag,
+  withItem,
+  withoutItem,
+} from "./content.ts";
+import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
+import { missingContent, remapOption, withoutOption } from "./reconcile.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
 export const CUSTOM_PACK = "Custom (this character)";
@@ -98,35 +113,28 @@ export function pruneCustom(entity: StrictEntity, custom: object | undefined): o
 export const customName = (name: string) => `${name} (Custom)`;
 
 /**
- * The key of a copy with the name: its nameToKw key without a "-" at the
- * start or the end, so "Skill Expert (Custom)" is skill-expert-custom. ""
- * for a name without letters or digits.
- */
-export const customKey = (name: string) => nameToKw(name).replace(/^-+|-+$/g, "");
-
-const BACKGROUNDS: ContentType = "orcpub.dnd.e5/backgrounds";
-
-/**
- * The key of a copy of the content type with the name: the key that the
- * engine gives the option. The engine keys a background by the nameToKw key
- * of its name and ignores its stored key (ORC-130), so a background's copy
- * has that key, with its dashes: "Sage (Custom)" is sage-custom-. Each other
- * type has customKey. "" for a name without letters or digits.
+ * The key of a copy of the content type with the name, which is also the
+ * key of its option. A background's copy has the key that the engine gives
+ * a background with the name (optionKeyOf), with each "-" kept: "Sage
+ * (Custom)" is sage-custom-. A copy of each other type has the nameToKw key
+ * without a "-" at the start or the end: "Skill Expert (Custom)" is
+ * skill-expert-custom. "" for a name without letters or digits.
  */
 export function copyKey(contentType: ContentType, name: string): string {
-  const key = customKey(name);
-  return key !== "" && contentType === BACKGROUNDS ? nameToKw(name) : key;
+  const trimmed = nameToKw(name).replace(/^-+|-+$/g, "");
+  if (trimmed === "") return "";
+  return contentType === BACKGROUND_TYPE ? optionKeyOf(contentType, { "~:name": name }) : trimmed;
 }
 
 /**
  * The item of the plugin's content type that gives the option with the
- * key: the item at the key, or for a background the last item whose name
- * gives the key, as the engine finds it.
+ * key: the item at the key, or for a background the last item with that
+ * option key (optionKeyOf), as the engine finds it.
  */
 function itemFor(plugin: object, contentType: ContentType, key: string): unknown {
   const type = tag(contentType);
-  if (contentType !== BACKGROUNDS) return itemAt(plugin, type, tag(key));
-  return Object.values(itemsAt(plugin, type) ?? {}).findLast((item) => isMap(item) && typeof item["~:name"] === "string" && nameToKw(item["~:name"]) === key);
+  if (contentType !== BACKGROUND_TYPE) return itemAt(plugin, type, tag(key));
+  return Object.entries(itemsAt(plugin, type) ?? {}).findLast(([tagged, item]) => isMap(item) && optionKeyOf(contentType, item, tagged) === key)?.[1];
 }
 
 /**
@@ -134,7 +142,7 @@ function itemFor(plugin: object, contentType: ContentType, key: string): unknown
  * - "custom": the character's custom content has an item with the key. The
  *   character builds with custom as the last pack, so its item is the one
  *   that the character has, even when a loaded pack has the key too.
- *   A background's item is found by the key of its name (copyKey).
+ *   A background's item is found by the key of its name (optionKeyOf).
  * - "pack": an enabled loaded pack has an enabled item with the key. With
  *   several, the last pack in the homebrew's order, which the engine merges
  *   last.
@@ -218,57 +226,85 @@ export function customizeOption(
 const tagKeys = (value: unknown): unknown =>
   Array.isArray(value) ? value.map(tagKeys) : isMap(value) ? Object.fromEntries(Object.entries(value).map(([k, v]) => [tag(k), tagKeys(v)])) : value;
 
+/** The prefix of the name of a background's equipment choice in the template, as "Starting Equipment: Holy Symbol". */
+const CHOICE_PREFIX = "Starting Equipment: ";
+
+/**
+ * The equipment choices of the SRD background with the key that the
+ * engine's template has and that the content list leaves out, such as the
+ * holy symbol of Acolyte, in the form's :equipment-choices shape. The
+ * template gives each choice's name and options. A copy with the choice
+ * keeps the character's pick under it: the engine keys the choice as
+ * "starting-equipment-" and the key of its name.
+ */
+function templateChoices(key: string, listed: unknown[]): Record<string, unknown>[] {
+  const option = engine()
+    .buildTemplate()
+    .shape.find((s) => s.key === "background")
+    ?.options.find((o) => o.key === key);
+  const has = new Set(listed.map((c) => `starting-equipment-${nameToKw(String((c as Record<string, unknown>).name ?? ""))}`));
+  return (option?.selections ?? [])
+    .filter((s) => (s.tags ?? []).includes("starting-equipment") && !has.has(s.key) && s.name.startsWith(CHOICE_PREFIX))
+    .map((s) => ({
+      name: s.name.slice(CHOICE_PREFIX.length),
+      options: Object.fromEntries(s.options.filter((o) => o.key !== "none").map((o) => [o.key, 1])),
+    }));
+}
+
 /**
  * The SRD background with the key as a form record, for its copy, or
  * undefined if the SRD has no such background. The source is the engine's
  * content list (content/backgrounds.json), which has each SRD background
  * with the fields of a pack background (BackgroundForm.tsx). The keys are
  * made Transit keywords, and the summary of a feature is its description,
- * the field that the form edits. The SRD list loads once, as its own chunk.
+ * the field that the form edits. An equipment choice that the list leaves
+ * out comes from the engine's template (templateChoices), so the copy
+ * keeps the character's pick. The SRD list loads once, as its own chunk.
  */
 export async function srdBackgroundRecord(key: string): Promise<Record<string, unknown> | undefined> {
   const { default: list } = await import("@pubdoor/dmv/content/backgrounds.json");
   const background = (list as Record<string, unknown>[]).find((b) => b.key === key);
   if (background === undefined) return undefined;
-  const { key: _key, traits, ...rest } = background;
+  const { key: _key, traits, "equipment-choices": choices, ...rest } = background;
   const features = (Array.isArray(traits) ? traits : []).map((trait: Record<string, unknown>) => {
     const { summary, ...more } = trait;
     return more.description === undefined && typeof summary === "string" ? { ...more, description: summary } : trait;
   });
-  return tagKeys({ ...rest, traits: features }) as Record<string, unknown>;
-}
-
-const SELECTIONS = "~:orcpub.entity.strict/selections";
-const OPTION = "~:orcpub.entity.strict/option";
-const OPTIONS = "~:orcpub.entity.strict/options";
-
-/** The node without the option at path, which alternates selection and option keys. A selection left with no option goes too. The node itself when path is not in it. */
-function withoutOptionAt(node: Record<string, unknown>, [selectionKey, optionKey, ...rest]: string[]): Record<string, unknown> {
-  const selections = node[SELECTIONS];
-  if (!Array.isArray(selections)) return node;
-  const changed = selections.flatMap((selection: Record<string, unknown>) => {
-    if (selection[OPTION_KEY] !== tag(selectionKey)) return [selection];
-    const single = selection[OPTION] as Record<string, unknown> | undefined;
-    if (single?.[OPTION_KEY] === tag(optionKey)) return rest.length === 0 ? [] : [{ ...selection, [OPTION]: withoutOptionAt(single, rest) }];
-    const options = selection[OPTIONS];
-    if (!Array.isArray(options)) return [selection];
-    const kept = options.flatMap((option: Record<string, unknown>) =>
-      option[OPTION_KEY] !== tag(optionKey) ? [option] : rest.length === 0 ? [] : [withoutOptionAt(option, rest)],
-    );
-    return kept.length === 0 ? [] : [{ ...selection, [OPTIONS]: kept }];
-  });
-  return { ...node, [SELECTIONS]: changed };
+  const listed = Array.isArray(choices) ? choices : [];
+  const allChoices = [...listed, ...templateChoices(key, listed)];
+  return tagKeys({ ...rest, ...(allChoices.length > 0 && { "equipment-choices": allChoices }), traits: features }) as Record<string, unknown>;
 }
 
 /**
  * The entity without the options under the option at path that do not
  * resolve against the content, such as a choice that the original offers
  * and its copy does not. A save of a copy drops them, so the sheet does not
- * show them as content to load. entity itself when there are none.
+ * show them as content to load. This also drops a pick that is unresolved
+ * only because its pack is turned off now. entity itself when there are
+ * none.
  */
 export function withoutUnresolvedUnder(entity: StrictEntity, path: string[], content: Content): StrictEntity {
   const under = missingContent(entity, content).filter((u) => u.path.length > path.length && path.every((key, i) => u.path[i] === key));
-  if (under.length === 0) return entity;
-  const root = (typeof entity === "string" ? JSON.parse(entity) : entity) as Record<string, unknown>;
-  return under.reduce((node, u) => withoutOptionAt(node, u.path), root);
+  return under.reduce((result, u) => withoutOption(result, u.path), entity);
+}
+
+/** The values of a background's starting equipment that addStartingEquipment gives: the items and the gold. */
+const startingEquipment = (record: Record<string, unknown>) => [record[tag("equipment")], record[tag("treasure")]];
+
+/**
+ * The entity after a save of a background copy with the key: when the
+ * items or the gold of `after` are not those of `before`, the character's
+ * background starting equipment is replaced with the copy's, as a new pick
+ * of a background does (engine addStartingEquipment). Else entity itself,
+ * so other changes to the inventory stay. content is what the character
+ * builds against with the copy.
+ */
+export function withCopyStartingEquipment(
+  entity: StrictEntity,
+  key: string,
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  content: Content,
+): StrictEntity {
+  return sameRecord(startingEquipment(before), startingEquipment(after)) ? entity : engine().addStartingEquipment(entity, key, content);
 }

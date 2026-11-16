@@ -5,9 +5,10 @@ import { engine, type StrictEntity } from "./engine.ts";
 import { fighter20 } from "./test-feats.ts";
 
 export const BACKGROUND_PACK = "Background Pack";
-export const BACKGROUNDS = "~:orcpub.dnd.e5/backgrounds";
+/** The backgrounds' content type as a Transit keyword, the key of the items in a plugin. */
+export const TAGGED_BACKGROUNDS = "~:orcpub.dnd.e5/backgrounds";
 
-/** A pack background with two skills, Thieves' Tools, one artisan's tool and one language of the player's choice, two items, gold and a feature. */
+/** A pack background with two skills, Thieves' Tools, one artisan's tool and one language of the player's choice, two items, gold and a feature with uses. */
 export const SAGE = {
   "~:key": "~:sage",
   "~:name": "Sage",
@@ -21,11 +22,19 @@ export const SAGE = {
   },
   "~:equipment": { "~:ink": 1, "~:ink-pen": 1 },
   "~:treasure": { "~:gp": 10 },
-  "~:traits": [{ "~:name": "Researcher", "~:description": "You know where to find lore." }],
+  // A feature with uses: one use, back on a long rest.
+  "~:traits": [
+    {
+      "~:name": "Researcher",
+      "~:description": "You know where to find lore.",
+      "~:type": "~:action",
+      "~:frequency": { "~:units": "~:orcpub.dnd.e5.units/long-rest", "~:amount": 1 },
+    },
+  ],
 };
 
 /** The homebrew with SAGE. */
-export const SAGE_PACKS = { [BACKGROUND_PACK]: { [BACKGROUNDS]: { "~:sage": SAGE } } };
+export const SAGE_PACKS = { [BACKGROUND_PACK]: { [TAGGED_BACKGROUNDS]: { "~:sage": SAGE } } };
 
 /** The path of Sage's artisan's tool choice. */
 export const ARTISAN = ["background", "sage", "tool-proficiency-artisans-tools"];

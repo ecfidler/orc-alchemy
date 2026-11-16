@@ -6,7 +6,6 @@
 // feat (ORC-134) and the background (ORC-135).
 
 import { Button, Dialog, useConfirm } from "@orc-alchemy/ui";
-import type { Built2014 } from "@pubdoor/dmv";
 import { useCallback, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { tag } from "../engine/content.ts";
@@ -20,16 +19,17 @@ import {
   formRecord,
   optionOrigin,
   srdBackgroundRecord,
+  withCopyStartingEquipment,
   withoutUnresolvedUnder,
 } from "../engine/custom.ts";
-import { type Content, type ContentType, engine, type StrictEntity } from "../engine/engine.ts";
+import type { Built2014, Content, ContentType, StrictEntity } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { backgroundBuilder } from "./builders/BackgroundForm.tsx";
 import { FormProblems, useCheckedRecord } from "./builders/checked-form.tsx";
 import { featBuilder } from "./builders/FeatForm.tsx";
 import type { BuilderType, ItemRecord, Problem } from "./builders/fields.tsx";
-import { sameRecord, useUnloadWarning } from "./leave-guard.tsx";
+import { useUnloadWarning } from "./leave-guard.tsx";
 
 /** A type of option that the builder can customize: the top-level selection that picks it, its form, and what differs by type. */
 export interface Customizable {
@@ -50,9 +50,6 @@ export interface Customizable {
   afterSave?: (entity: StrictEntity, key: string, before: ItemRecord, after: ItemRecord, content: Content) => StrictEntity;
 }
 
-/** The values of a background's starting equipment. */
-const startingEquipment = (record: ItemRecord) => [record[tag("equipment")], record[tag("equipment-choices")], record[tag("treasure")]];
-
 /** The selections whose options have a Customize line. ORC-136 adds the race. */
 const CUSTOMIZABLE: Customizable[] = [
   {
@@ -67,8 +64,7 @@ const CUSTOMIZABLE: Customizable[] = [
     // The engine's content list has each SRD background with the fields of a pack background.
     builtIn: async ({ key }) => (await srdBackgroundRecord(key)) ?? backgroundBuilder.empty,
     // Selecting a background gives its starting equipment, so a copy with other starting equipment gives its own.
-    afterSave: (entity, key, before, after, content) =>
-      sameRecord(startingEquipment(before), startingEquipment(after)) ? entity : engine().addStartingEquipment(entity, key, content),
+    afterSave: withCopyStartingEquipment,
   },
 ];
 
@@ -179,19 +175,29 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
   const custom = useCharacter((state) => state.custom);
   const { built } = useOpenCharacter();
   const [session, setSession] = useState<Session | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const lines = useRef<HTMLUListElement>(null);
   // The key of the button to give the focus to when the dialog closes. A save changes the line's key.
   const focusKey = useRef<string | null>(null);
   const selected = selection.options.filter((o) => o.selected);
 
   async function open(key: string, name: string) {
+    setError(null);
     const origin = optionOrigin(homebrew, custom, contentType, key);
     focusKey.current = key;
     let initial: ItemRecord;
     if (origin.from === "custom") initial = formRecord(origin.item);
     else if (origin.from === "pack") initial = { ...formRecord(origin.item), [tag("name")]: customName(name) };
-    // The engine cannot give a built-in as a pack item: the copy starts from what the type has for it, with the name.
-    else initial = { ...(await customizable.builtIn({ key, name }, built)), [tag("name")]: customName(name) };
+    else {
+      // The engine cannot give a built-in as a pack item: the copy starts from what the type has for it, with the name.
+      // That can load a content list, which can fail, for example offline.
+      try {
+        initial = { ...(await customizable.builtIn({ key, name }, built)), [tag("name")]: customName(name) };
+      } catch (e) {
+        setError(`Could not open ${name} to customize: ${e instanceof Error ? e.message : String(e)}`);
+        return;
+      }
+    }
     setSession((last) => ({
       id: (last?.id ?? 0) + 1,
       open: true,
@@ -256,6 +262,7 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
           })}
         </ul>
       )}
+      {error && <p role="alert">{error}</p>}
       {session && (
         <CustomizeDialog
           key={session.id}
