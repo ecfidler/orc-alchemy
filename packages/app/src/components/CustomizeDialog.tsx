@@ -130,7 +130,7 @@ export function CustomizeDialog({ open, builder, initial, title, check, note, re
   const [error, setError] = useState<string | null>(null);
   const [confirm, confirmDialog] = useConfirm();
   const { problems, item, ok, changed } = useCheckedRecord(builder, record, initial, { optionPack: CUSTOM_PACK, check });
-  const removes = useRemovedPicks(ok ? item : null, removedPicks);
+  const [removes, removesNow] = useRemovedPicks(ok ? item : null, removedPicks);
   // The form has no draft, so a reload or a close of the tab warns first, as on the My Content forms.
   useUnloadWarning(open && changed);
 
@@ -141,6 +141,8 @@ export function CustomizeDialog({ open, builder, initial, title, check, note, re
 
   function save() {
     setError(null);
+    // The line can be behind the form by its delay. A save must not remove a pick that the line did not name.
+    if (removesNow(item)) return;
     try {
       onSave(item);
     } catch (e) {
@@ -192,7 +194,10 @@ const REMOVED_PICKS_DELAY = 300;
  * REMOVED_PICKS_DELAY. While the record has problems (item null), the last
  * names stay.
  */
-function useRemovedPicks(item: ItemRecord | null, removedPicks: ((item: ItemRecord) => string[]) | undefined): string[] {
+function useRemovedPicks(
+  item: ItemRecord | null,
+  removedPicks: ((item: ItemRecord) => string[]) | undefined,
+): [removes: string[], removesNow: (item: ItemRecord) => boolean] {
   const counted = useRef(item);
   const [removes, setRemoves] = useState<string[]>(() => (item !== null && removedPicks ? removedPicks(item) : []));
   useEffect(() => {
@@ -203,7 +208,15 @@ function useRemovedPicks(item: ItemRecord | null, removedPicks: ((item: ItemReco
     }, REMOVED_PICKS_DELAY);
     return () => clearTimeout(timer);
   }, [item, removedPicks]);
-  return removes;
+  /** Brings the line up to date for the item at once. True when the line then names a pick that it did not name. */
+  function removesNow(current: ItemRecord): boolean {
+    if (removedPicks === undefined || current === counted.current) return false;
+    counted.current = current;
+    const next = removedPicks(current);
+    setRemoves(next);
+    return next.some((name) => !removes.includes(name));
+  }
+  return [removes, removesNow];
 }
 
 /** The open dialog: what it edits, and a number that mounts a new dialog at each open. */

@@ -577,7 +577,7 @@ test("Customize on a pack race with a pack subrace says that Save removes the su
 
 const REMOVES_SMITHS = "Save removes these picks of the character: Tool Proficiency: Artisans Tools (Smith's Tools).";
 
-test("a form edit that removes a choice with a pick under it names the pick before Save, and an undo of the edit hides the line", async () => {
+test("a form edit that removes a choice with a pick under it names the pick before Save, and a name with a problem keeps the line", async () => {
   const lines = await openBackground(true);
   fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
   const dialog = await dialogNamed("Customize Sage");
@@ -592,6 +592,20 @@ test("a form edit that removes a choice with a pick under it names the pick befo
   fireEvent.click(save(dialog));
   await closed();
   expect(evaluate().selections.some((s) => s.actualPath.join("/") === "background/sage-custom-/tool-proficiency-artisans-tools")).toBe(false);
+  expect(useCharacter.getState().entity).toEqual(remapOption(withoutOption(withSage(), [...ARTISAN, "smiths-tools"]), ["background", "sage"], "sage-custom-"));
+});
+
+test("a Save that comes before the line names a removed pick only updates the line, and the next Save saves", async () => {
+  const lines = await openBackground(true);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
+  const dialog = await dialogNamed("Customize Sage");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Remove Any artisan's tool" }));
+  expect(within(dialog).queryByRole("note")).toBeNull();
+  fireEvent.click(save(dialog));
+  expect(within(dialog).getByRole("note")).toHaveTextContent(REMOVES_SMITHS);
+  expect(useCharacter.getState().entity).toEqual(withSage());
+  fireEvent.click(save(dialog));
+  await closed();
   expect(useCharacter.getState().entity).toEqual(remapOption(withoutOption(withSage(), [...ARTISAN, "smiths-tools"]), ["background", "sage"], "sage-custom-"));
 });
 

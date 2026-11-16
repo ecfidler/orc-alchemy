@@ -861,3 +861,49 @@ Save, the dialog tells the user which picks these are.
   example an ability score increase, go from the sheet.
 * The line is the same for each type. A feat or a background copy shows
   it when the copy does not offer a choice that the character picked.
+* The line follows the form after a short delay. If Save comes before
+  the line shows the picks that this save removes, the first Save only
+  updates the line, and the dialog stays open. The next Save saves.
+
+# Build order
+
+This is the order in which the M9 build tickets were filed. Linear holds the
+tickets, their blocking relations and their status. When this list and
+Linear disagree, Linear wins.
+
+1. Pin `@pubdoor/dmv` 0.4.0 and copy the fixtures (ORC-194).
+2. Layout and field styling on all 13 forms (ORC-195).
+3. The picker, token and number toggle controls (ORC-196).
+4. Add a modifier on the feat and race forms (ORC-197).
+5. Add a modifier on the subrace, subclass, magic item and monster forms
+   (ORC-198).
+6. New controls on the feat, race and subrace forms (ORC-199).
+7. New controls on the background form (ORC-200).
+8. New controls on the class and subclass forms, with the spells table
+   (ORC-201).
+9. New controls on the magic item, monster and spell forms (ORC-202).
+10. Sheet: features by type, and no bubble for 0 uses (ORC-203).
+11. The uses control, the preview and delete with confirmation (ORC-204).
+12. Feat: uses of the feat and a feature list (ORC-205).
+13. Suggested uses: the rules and the line in the form (ORC-206).
+14. The Review uses page (ORC-207).
+
+Tickets 2 to 9 do not need the new engine. If the engine release is late,
+move the pin to a place before ticket 10.
+
+**Review:** each ticket that changes a page attaches Playwright screenshots
+to its PR, light first and then dark.
+
+# Out of scope for M9
+
+* Level tables for uses. No pack in the data needs them, and a pack can
+  unlock a feature at a level.
+* Recording spent uses on the sheet.
+* A suggestion from an AI model.
+* Backward compatibility with the old app for content that has scaled uses.
+* Magic items in the `.orcbrew` export. They stay out, as in M5.
+* The Customize flow. M5.1 added it after M9, on these forms. See
+  [Customize](#customize).
+
+[^orc-180]: Map: improve the homebrew content forms and feature uses, <https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses>
+[^builder-notes]: Notes regarding the content builder pages, <https://linear.app/orc-alchemy/document/notes-regarding-the-content-builder-pages-88f7f6f937ac>
