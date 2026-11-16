@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-13T19:38:15Z }
+generated: { by: claude-code/agent, at: 2026-11-16T00:07:32Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -232,6 +232,17 @@ homebrew forms. They have no game words: the app gives the lists.
   modifier list gives no groups. The owner sets `open`, so a caller
   can open and close it itself, for example for one slot of a table. Its
   backdrop is a 40% ink wash, as in the prototypes.
+* **Dialog:** a modal for a form or other content, added for Customize
+  (ORC-134). It has a title, a body that scrolls, and a footer. The footer
+  shows Cancel, then the owner's actions, for example a solid Save. It is
+  up to 720px wide. At 600px and less it fills the screen. Its backdrop is
+  the ListModal's 40% ink wash. When it opens, the focus goes to the first
+  control of the body. If the body shows its controls later, the first
+  control gets the focus when it shows. Cancel, Esc and a click outside
+  ask the owner to close it, so the owner can ask first. A ListModal, an
+  AlertDialog or another Dialog that the body opens shows above it. Esc
+  and a click outside then close only the top one, and the focus comes
+  back into the Dialog.
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control.

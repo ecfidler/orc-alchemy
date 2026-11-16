@@ -57,6 +57,15 @@ export function useAskOnBlock(blocker: Blocker, confirm: Confirm, question: stri
   }, [blocker, confirm, question, action, cancel]);
 }
 
+/** While `changed` is true, a reload or a close of the tab shows the browser's own warning. */
+export function useUnloadWarning(changed: boolean) {
+  useEffect(() => {
+    if (!changed) return;
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [changed]);
+}
+
 /**
  * While `changed` is true, navigation in the app asks `question` with Stay
  * and Leave first, and a reload or a close of the tab shows the browser's
@@ -68,12 +77,6 @@ export function useLeaveGuard(changed: boolean, question: string): { dialog: Rea
   const passed = useRef(false);
   const blocker = useBlocker(useCallback(() => changed && !passed.current, [changed]));
   useAskOnBlock(blocker, confirm, question, "Leave", "Stay");
-
-  useEffect(() => {
-    if (!changed) return;
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [changed]);
-
+  useUnloadWarning(changed);
   return { dialog, pass: useCallback(() => void (passed.current = true), []) };
 }

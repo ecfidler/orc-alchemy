@@ -5,6 +5,7 @@ export { Button, ButtonLink, type ButtonProps, type ButtonSize, type ButtonVaria
 export { Checkbox, type CheckboxProps } from "./Checkbox.tsx";
 export { AddChip, type AddChipProps, Chips, type ChipsProps } from "./Chips.tsx";
 export { Combobox, type ComboboxProps } from "./Combobox.tsx";
+export { Dialog, type DialogProps } from "./Dialog.tsx";
 export { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
 export { type ListItem, ListModal, type ListModalProps } from "./ListModal.tsx";
 export { Menu, type MenuProps } from "./Menu.tsx";

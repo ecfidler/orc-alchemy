@@ -49,6 +49,9 @@ export const isSet = (value: unknown): boolean => value !== null && typeof value
 /** A class's name as the old class list shows it: with its pack after it, unless the pack is the default one. */
 export const classDisplayName = (name: string, pack: string) => (pack === DEFAULT_PACK ? name : `${name} (${pack})`);
 
+/** The field of an item that names its pack, its option source, Transit-encoded. */
+export const OPTION_PACK = "~:option-pack";
+
 /** The key of an option in a strict entity, Transit-encoded. */
 export const OPTION_KEY = "~:orcpub.entity.strict/key";
 

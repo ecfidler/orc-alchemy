@@ -34,7 +34,7 @@ bun run test       # vitest
   (`src/button.css`), the fieldset and field styles (`src/field.css`), the
   flash (`src/flash.css`), the checkbox and radio styles
   (`src/check.css`), the number field styles (`src/number-field.css`), the
-  alert dialog styles (`src/dialog.css`),
+  alert dialog and modal dialog styles (`src/dialog.css`),
   the select, combobox, autocomplete and menu styles (`src/select.css`),
   the list modal, token, picker, number toggle, segmented toggle and chips styles
   (`src/picker.css`),
@@ -109,6 +109,21 @@ bun run test       # vitest
     the focus when the dialog opens.
   - `AlertDialog`: the dialog that `useConfirm()` shows. The owner sets
     `open`, and closes it from `onAnswer`. Styles: `src/dialog.css`.
+  - `Dialog`: Base UI Dialog, a modal with a `title`, a body (`children`)
+    that scrolls, and a footer: Cancel, then the owner's `actions`. It is
+    up to 720px wide, and at 600px and less it fills the screen. When it
+    opens, the focus goes to the first control of the body (any control
+    that takes the focus). If the body shows its controls later, for
+    example after it reads data, the first one gets the focus when it
+    shows, unless the focus is in the body already. Cancel, Escape and a
+    click outside call `onOpenChange(false)`; the dialog stays open until
+    the owner sets `open` to false, so the owner can ask first. A
+    ListModal, an AlertDialog or a Dialog that the body opens shows above
+    it, Escape and a click outside close only that one, and the focus
+    comes back into the dialog. When it closes, the focus goes to
+    `finalFocus` (a ref, or a function that runs at the close), or else
+    back to where it was before it opened. The backdrop is the list
+    modal's ink wash. Styles: `src/dialog.css`.
   - `Select`: Base UI Select, a pick of one value from a list. Its role is
     combobox, and its text is the picked option. It is controlled by
     `value` (null while nothing is picked) and `onValueChange`. Each of
