@@ -212,14 +212,6 @@ export interface Customization {
 }
 
 /**
- * Saves a copy in one change: writes item into custom under its content
- * type, keyed by copyKey of its name, with CUSTOM_PACK as its option
- * source, and gives the option at path the copy's key (remapOption), so its
- * own selections stay. An edit with replacedKey replaces that item; when the
- * name gives a new key, the old item goes and the option is remapped again.
- * Throws if the name gives no key, or as remapOption throws.
- */
-/**
  * The item as custom stores a copy of the content type: keyed by copyKeyOf
  * of its name, with CUSTOM_PACK as its option source. key is "" for a name
  * without letters or digits.
@@ -233,6 +225,14 @@ export function storedCopy(contentType: ContentType, item: object): { key: strin
 export const isCustomCopy = (homebrew: Content["homebrew"], custom: object | undefined, contentType: ContentType, key: string) =>
   optionOrigin(homebrew, custom, contentType, key).from === "custom";
 
+/**
+ * Saves a copy in one change: writes item into custom under its content
+ * type, keyed by copyKey of its name, with CUSTOM_PACK as its option
+ * source, and gives the option at path the copy's key (remapOption), so its
+ * own selections stay. An edit with replacedKey replaces that item; when the
+ * name gives a new key, the old item goes and the option is remapped again.
+ * Throws if the name gives no key, or as remapOption throws.
+ */
 export function customizeOption(
   entity: StrictEntity,
   custom: object | undefined,

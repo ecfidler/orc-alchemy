@@ -264,7 +264,7 @@ test("a bonus moved onto another of the race's own abilities: Edit finds the pic
     ["ability:con", "ability:str"],
     ["ability:wis", "ability:str"],
   ]) {
-    const slots = withPick(withPick(originSlots(base), 1, plus1 === "ability:str" ? "ability:int" : plus1), 0, plus2);
+    const slots = withPick(withPick(originSlots(base), 1, "ability:int"), 0, plus2);
     const picked = withPick(slots, 1, plus1);
     const copy = originRecord(base, picked, "half-orc", "Half-Orc");
     expect(copy["~:abilities"]).toEqual({ [`~:orcpub.dnd.e5.character/${plus2.slice(8)}`]: 2, [`~:orcpub.dnd.e5.character/${plus1.slice(8)}`]: 1 });
