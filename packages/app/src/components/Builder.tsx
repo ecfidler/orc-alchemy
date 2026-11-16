@@ -119,7 +119,7 @@ function Options({ selection }: { selection: BuilderSelection }) {
   // The classes are rows, not cards. They stay here, not in Selection, because
   // each class's choices open below the rows as any selected option's do.
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
-  // A feat or a background has a Customize line under the cards (ORC-134, ORC-135).
+  // A feat, a background or a race has a Customize line under the cards (ORC-134, ORC-135, ORC-136).
   const customizable = customizableFor(selection);
 
   // Classes in the entity's order, as their rows.

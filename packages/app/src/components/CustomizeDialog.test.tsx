@@ -1,4 +1,4 @@
-// Customize a feat (ORC-134) or a background (ORC-135) for one character:
+// Customize a feat (ORC-134), a background (ORC-135) or a race (ORC-136) for one character:
 // the Customize line under the builder's option cards, the type's form in a
 // dialog, and the save that writes the copy into the character's custom
 // content and selects it.
@@ -6,12 +6,13 @@ import "fake-indexeddb/auto";
 import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
-import { CUSTOM_PACK, characterContent, srdBackgroundRecord } from "../engine/custom.ts";
+import { CUSTOM_PACK, characterContent, srdBackgroundRecord, srdRaceRecord } from "../engine/custom.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { setQuantity } from "../engine/equipment.ts";
-import { missingContent, remapOption } from "../engine/reconcile.ts";
-import { BACKGROUND_PACK, SAGE, TAGGED_BACKGROUNDS, withSage } from "../engine/test-backgrounds.ts";
+import { missingContent, remapOption, withoutOption } from "../engine/reconcile.ts";
+import { ARTISAN, BACKGROUND_PACK, SAGE, TAGGED_BACKGROUNDS, withSage } from "../engine/test-backgrounds.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "../engine/test-feats.ts";
+import { DEEP_SYLVAR, RACE_PACK, SYLVAR, TAGGED_RACES, TAGGED_SUBRACES, withSylvar } from "../engine/test-races.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
@@ -82,6 +83,8 @@ test("Customize on a pack feat makes '<Name> (Custom)', selects it, and keeps th
   expect(within(dialog).getByRole("group", { name: "Skill or Tool Proficiency" })).toBeTruthy();
   expect(within(dialog).queryByRole("combobox", { name: "Option source (pack)" })).toBeNull();
   expect(within(dialog).queryByRole("button", { name: /delete/i })).toBeNull();
+  // The note is for a race, and the line of removed picks shows only when a save removes a pick.
+  expect(within(dialog).queryByRole("note")).toBeNull();
   expect(save(dialog).disabled).toBe(false);
   fireEvent.click(save(dialog));
   await closed();
@@ -468,4 +471,156 @@ test("Edit custom of a background copy: new gold gives the copy's starting equip
   expect(within(lines).getByRole("button", { name: "Edit custom Loremaster" })).toBeTruthy();
   expect(backgroundCards().map((card) => card.textContent)).toEqual(expect.arrayContaining(["Sage", "Loremaster"]));
   expect(backgroundCards().map((card) => card.textContent)).not.toContain("Sage (Custom)");
+});
+
+// The race (ORC-136). fighter-20 is a Human, of the subrace Illuskan and the variant Standard Human.
+
+/** fighter-20 on the Race step, a Human, or with `entity` another character, with the pack race Sylvar and its subrace Deep Sylvar loaded. */
+async function openRace(entity: StrictEntity = fighter20()) {
+  await useHomebrew.getState().saveItem(RACE_PACK, TAGGED_RACES, SYLVAR);
+  await useHomebrew.getState().saveItem(RACE_PACK, TAGGED_SUBRACES, DEEP_SYLVAR);
+  act(() => useCharacter.getState().load("customize", entity));
+  render(<Builder />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ }));
+  return screen.getByRole("list", { name: "Customize Race" });
+}
+const race = () =>
+  evaluate()
+    .selections.filter((s) => s.actualPath[0] === "race")
+    .map((s) => [s.actualPath.join("/"), s.selected]);
+const ORIGIN_NOTE =
+  'The optional rule "Customizing Your Origin" in Tasha\'s Cauldron of Everything (page 8) lets a character move the race\'s ability score increases to other abilities, and change its languages and proficiencies for others. Make those changes here. Skill, weapon and tool proficiencies are in the "+ Add a modifier" list.';
+
+test("Customize on a pack race makes '<Name> (Custom)', selects it, and the sheet shows its ability bonuses, speed, languages and the feature with its uses", async () => {
+  const lines = await openRace(withSylvar());
+  expect(within(lines).getByRole("listitem")).toHaveTextContent("SylvarCustomize");
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sylvar" }));
+  const dialog = await dialogNamed("Customize Sylvar");
+  expect(field(dialog, "Name").value).toBe("Sylvar (Custom)");
+  expect(field(dialog, "Description").value).toBe(SYLVAR["~:help"]);
+  // The note names the optional rule. The copy keeps each pick, so no line says that Save removes one.
+  expect(within(dialog).getByRole("note")).toHaveTextContent(ORIGIN_NOTE);
+  expect(within(dialog).getByRole<HTMLInputElement>("textbox", { name: "Feature 1 name" }).value).toBe("Leafstep");
+  fireEvent.click(save(dialog));
+  await closed();
+
+  expect(race()).toEqual([["race", ["sylvar-custom"]]]);
+  expect(useCharacter.getState().custom).toEqual({
+    [TAGGED_RACES]: { "~:sylvar-custom": { ...SYLVAR, "~:key": "~:sylvar-custom", "~:name": "Sylvar (Custom)", "~:option-pack": CUSTOM_PACK } },
+  });
+  expect(useCharacter.getState().entity).toEqual(remapOption(withSylvar(), ["race", "sylvar"], "sylvar-custom"));
+  const sheet = preview();
+  await waitFor(() => expect(sheet).toHaveTextContent("Sylvar (Custom)"));
+  // +2 Wisdom and +1 Dexterity on fighter-20's scores, as before the save.
+  expect(within(sheet).getByLabelText("WIS").textContent).toBe("14+2");
+  expect(within(sheet).getByLabelText("DEX").textContent).toBe("17+3");
+  expect(within(sheet).getByRole("group", { name: "Speed" }).textContent).toBe("35 ft.");
+  expect(within(sheet).getByLabelText("Darkvision").textContent).toContain("60");
+  for (const text of ["Common, Draconic, Elvish, Sylvan", "Leafstep"]) expect(sheet).toHaveTextContent(text);
+  // The feature keeps its uses: one use, back on a long rest.
+  const bubble = within(within(sheet).getByRole("group", { name: "Features & traits" })).getByRole("group", { name: "Leafstep" });
+  expect(within(bubble).getAllByRole("button", { name: /^Use / })).toHaveLength(1);
+  expect(within(bubble).getByText("Long rest")).toBeTruthy();
+  const edit = within(lines).getByRole("button", { name: "Edit custom Sylvar (Custom)" });
+  await waitFor(() => expect(document.activeElement).toBe(edit));
+
+  // Edit custom opens the copy with the same note.
+  fireEvent.click(edit);
+  const again = await dialogNamed("Edit custom race");
+  expect(within(again).getByRole("note")).toHaveTextContent(ORIGIN_NOTE);
+});
+
+test("Customize on the SRD race opens a form with its name and description, and the note; the line names the subrace and the variant that Save removes", async () => {
+  const lines = await openRace();
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Human" }));
+  const dialog = await dialogNamed("Customize Human");
+  expect(field(dialog, "Name").value).toBe("Human (Custom)");
+  const record = (await srdRaceRecord("human"))!;
+  expect(field(dialog, "Description").value).toBe(record["~:help"]);
+  const [note, removes] = within(dialog).getAllByRole("note");
+  expect(note).toHaveTextContent(ORIGIN_NOTE);
+  expect(removes).toHaveTextContent("Save removes these picks of the character: Subrace (Illuskan), Variant (Standard Human).");
+  fireEvent.click(save(dialog));
+  await closed();
+
+  expect(race()).toEqual([["race", ["human-custom"]]]);
+  expect(useCharacter.getState().custom).toEqual({
+    [TAGGED_RACES]: { "~:human-custom": { ...record, "~:key": "~:human-custom", "~:name": "Human (Custom)", "~:option-pack": CUSTOM_PACK } },
+  });
+  // The save moves the pick to the copy and removes the subrace and the variant, and nothing else.
+  let expected = withoutOption(fighter20(), ["race", "human", "subrace", "illuskan"]);
+  expected = withoutOption(expected, ["race", "human", "variant", "standard-human"]);
+  expect(useCharacter.getState().entity).toEqual(remapOption(expected, ["race", "human"], "human-custom"));
+  const { entity, custom } = useCharacter.getState();
+  expect(missingContent(entity!, characterContent(useHomebrew.getState().content, custom))).toEqual([]);
+});
+
+test("Customize on a pack race with a pack subrace says that Save removes the subrace, and Save removes it", async () => {
+  const lines = await openRace(withSylvar(true));
+  expect(race()).toEqual([
+    ["race", ["sylvar"]],
+    ["race/sylvar/subrace", ["deep-sylvar"]],
+  ]);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sylvar" }));
+  const dialog = await dialogNamed("Customize Sylvar");
+  expect(within(dialog).getAllByRole("note")[1]).toHaveTextContent("Save removes these picks of the character: Subrace (Deep Sylvar).");
+  fireEvent.click(save(dialog));
+  await closed();
+  expect(race()).toEqual([["race", ["sylvar-custom"]]]);
+  expect(useCharacter.getState().entity).toEqual(
+    remapOption(withoutOption(withSylvar(true), ["race", "sylvar", "subrace", "deep-sylvar"]), ["race", "sylvar"], "sylvar-custom"),
+  );
+  expect(evaluate().built.subrace).toBeNull();
+});
+
+// The line of removed picks follows the form (ORC-136): Sage's artisan's tool choice holds fighter-20's Smith's Tools.
+
+const REMOVES_SMITHS = "Save removes these picks of the character: Tool Proficiency: Artisans Tools (Smith's Tools).";
+
+test("a form edit that removes a choice with a pick under it names the pick before Save, and a name with a problem keeps the line", async () => {
+  const lines = await openBackground(true);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
+  const dialog = await dialogNamed("Customize Sage");
+  expect(within(dialog).queryByRole("note")).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Remove Any artisan's tool" }));
+  await waitFor(() => expect(within(dialog).getByRole("note")).toHaveTextContent(REMOVES_SMITHS));
+  // A name with a problem keeps the line as it is.
+  fireEvent.change(field(dialog, "Name"), { target: { value: "Sage" } });
+  expect(save(dialog).disabled).toBe(true);
+  expect(within(dialog).getByRole("note")).toHaveTextContent(REMOVES_SMITHS);
+  fireEvent.change(field(dialog, "Name"), { target: { value: "Sage (Custom)" } });
+  fireEvent.click(save(dialog));
+  await closed();
+  expect(evaluate().selections.some((s) => s.actualPath.join("/") === "background/sage-custom-/tool-proficiency-artisans-tools")).toBe(false);
+  expect(useCharacter.getState().entity).toEqual(remapOption(withoutOption(withSage(), [...ARTISAN, "smiths-tools"]), ["background", "sage"], "sage-custom-"));
+});
+
+test("a Save that comes before the line names a removed pick only updates the line, and the next Save saves", async () => {
+  const lines = await openBackground(true);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
+  const dialog = await dialogNamed("Customize Sage");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Remove Any artisan's tool" }));
+  expect(within(dialog).queryByRole("note")).toBeNull();
+  fireEvent.click(save(dialog));
+  expect(within(dialog).getByRole("note")).toHaveTextContent(REMOVES_SMITHS);
+  expect(useCharacter.getState().entity).toEqual(withSage());
+  fireEvent.click(save(dialog));
+  await closed();
+  expect(useCharacter.getState().entity).toEqual(remapOption(withoutOption(withSage(), [...ARTISAN, "smiths-tools"]), ["background", "sage"], "sage-custom-"));
+});
+
+test("Edit custom shows the line too, for an edit of the copy", async () => {
+  const lines = await openBackground(true);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
+  fireEvent.click(save(await dialogNamed("Customize Sage")));
+  await closed();
+
+  fireEvent.click(within(lines).getByRole("button", { name: "Edit custom Sage (Custom)" }));
+  const dialog = await dialogNamed("Edit custom background");
+  expect(within(dialog).queryByRole("note")).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Remove Any artisan's tool" }));
+  await waitFor(() => expect(within(dialog).getByRole("note")).toHaveTextContent(REMOVES_SMITHS));
+  fireEvent.click(save(dialog));
+  await closed();
+  expect(Object.keys(evaluate().built["tool-profs"])).toEqual(["thieves-tools"]);
 });

@@ -175,6 +175,20 @@ export function unfilled(steps: BuilderStep[]): BuilderSelection[] {
 }
 
 /**
+ * The name of the pick at path in the selection's tree, as "Subrace (Hill
+ * Dwarf)": the name of its selection and of its option. path alternates
+ * selection and option keys, as an UnresolvedKey's path does. The bare
+ * option key when the tree does not have the pick.
+ */
+export function pickName(selection: BuilderSelection, path: string[]): string {
+  const key = path.at(-1) ?? "";
+  const parent = path.slice(0, -1).join("/");
+  const node = nodes([selection]).find((s) => s.actualPath.join("/") === parent);
+  const option = node?.options.find((o) => o.key === key);
+  return node && option ? `${node.name} (${option.name})` : key;
+}
+
+/**
  * The picks to make (toDo) and to remove (tooMany) in each step; the old
  * sum-remaining is their sum. A merged selection counts only in the first
  * step that shows it. Unlike the summary, this counts starting equipment, as

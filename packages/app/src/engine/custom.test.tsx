@@ -14,18 +14,22 @@ import {
   characterContent,
   copyKey,
   customizeOption,
+  features,
   formRecord,
   hasCustomItems,
   optionOrigin,
   pruneCustom,
+  saveCopy,
   srdBackgroundRecord,
+  srdRaceRecord,
   withCopyStartingEquipment,
   withoutUnresolvedUnder,
 } from "./custom.ts";
 import { type Content, engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { missingContent, remapOption } from "./reconcile.ts";
+import { missingContent, remapOption, withoutOption } from "./reconcile.ts";
 import { ARTISAN, BACKGROUND_PACK, SAGE, SAGE_PACKS, TAGGED_BACKGROUNDS, withSage } from "./test-backgrounds.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "./test-feats.ts";
+import { RACE_PACKS, RACE_TYPE, SYLVAR, TAGGED_RACES, withHillDwarf, withSylvar, wizard1 } from "./test-races.ts";
 
 beforeAll(() => loadEngine());
 afterEach(() => {
@@ -466,4 +470,193 @@ test("withCopyStartingEquipment gives the copy's items and gold only when they c
     .flatMap((sel) => (sel["~:orcpub.entity.strict/options"] as Record<string, string>[]).map((o) => o["~:orcpub.entity.strict/key"]));
   expect(new Set(keys).size).toBe(keys.length);
   expect(keys).toContain("~:lamp");
+});
+
+// Customize a race (ORC-136). The engine keys a race, as a feat, by its stored key.
+
+/**
+ * What the sheet shows of a race: the race and subrace, the ability scores, the speed, darkvision, languages,
+ * weapon proficiencies, resistances, and the race's features with their uses. base is the character before his race changed.
+ */
+function raceParts(entity: StrictEntity, custom: object | undefined, base: StrictEntity = fighter20()) {
+  // The character's own features, from his class, feat and background.
+  const own = new Set(features(engine().evaluate(base).built).map((f) => f.name));
+  const { built } = engine().evaluate(entity, characterContent({ homebrew: RACE_PACKS }, custom));
+  return {
+    race: built.race,
+    subrace: built.subrace,
+    abilities: built.abilities,
+    speed: built["base-land-speed"],
+    darkvision: built.darkvision,
+    languages: built.languages,
+    weapons: built["weapon-profs"],
+    resistances: built.resistances,
+    features: features(built)
+      .filter((f) => !own.has(f.name))
+      .map((f) => ({ name: f.name, frequency: f.frequency ?? null })),
+  };
+}
+
+test("a race copy has the key of its name without the dashes, and the engine keys the race by the stored key", () => {
+  expect(copyKey(RACE_TYPE, "Sylvar (Custom)")).toBe("sylvar-custom");
+  expect(copyKey(RACE_TYPE, "Dwarf")).toBe("dwarf");
+  // The stored key, not the key of the name, is the option's key.
+  const custom = { [TAGGED_RACES]: { "~:other-key": { ...SYLVAR, "~:key": "~:other-key", "~:name": "Sylvar (Custom)", "~:option-pack": CUSTOM_PACK } } };
+  const keys = engine()
+    .buildTemplate(characterContent({ homebrew: undefined }, custom).homebrew)
+    .shape.find((s) => s.key === "race")!
+    .options.map((o) => o.key);
+  expect(keys).toContain("other-key");
+  expect(keys).not.toContain("sylvar-custom");
+  expect(optionOrigin(RACE_PACKS, undefined, RACE_TYPE, "sylvar")).toEqual({ from: "pack", pack: "Race Pack", item: SYLVAR });
+  expect(optionOrigin(RACE_PACKS, undefined, RACE_TYPE, "dwarf")).toEqual({ from: "built-in" });
+});
+
+test("saveCopy selects a pack race copy, and the sheet shows its abilities, speed, languages and the feature with its uses", () => {
+  const entity = withSylvar();
+  const original = raceParts(entity, undefined);
+  expect(original).toEqual({
+    race: "Sylvar",
+    subrace: null,
+    abilities: {
+      "orcpub.dnd.e5.character/str": 19,
+      "orcpub.dnd.e5.character/dex": 17,
+      "orcpub.dnd.e5.character/con": 19,
+      "orcpub.dnd.e5.character/int": 12,
+      "orcpub.dnd.e5.character/wis": 14,
+      "orcpub.dnd.e5.character/cha": 9,
+    },
+    speed: 35,
+    darkvision: 60,
+    languages: ["common", "draconic", "elvish", "sylvan"],
+    weapons: ["simple", "martial"],
+    resistances: [],
+    features: [{ name: "Leafstep", frequency: { units: "orcpub.dnd.e5.units/long-rest", amount: 1 } }],
+  });
+  const item = { ...formRecord(SYLVAR), "~:name": "Sylvar (Custom)" };
+  const next = saveCopy(entity, undefined, { homebrew: RACE_PACKS }, { contentType: RACE_TYPE, path: ["race", "sylvar"], item });
+  expect(next.key).toBe("sylvar-custom");
+  expect(next.removed).toEqual([]);
+  expect(next.custom).toEqual({ [TAGGED_RACES]: { "~:sylvar-custom": { ...item, "~:key": "~:sylvar-custom", "~:option-pack": CUSTOM_PACK } } });
+  expect(next.content).toEqual(characterContent({ homebrew: RACE_PACKS }, next.custom));
+  expect(next.entity).toEqual(remapOption(entity, ["race", "sylvar"], "sylvar-custom"));
+  expect(raceParts(next.entity, next.custom)).toEqual({ ...original, race: "Sylvar (Custom)" });
+  expect(missingContent(next.entity, next.content)).toEqual([]);
+  expect(pruneCustom(next.entity, next.custom)).toBe(next.custom);
+});
+
+test("a pack subrace names its race by key, so it does not attach to the copy: saveCopy removes it and names it", () => {
+  const entity = withSylvar(true);
+  expect(raceParts(entity, undefined).subrace).toBe("Deep Sylvar");
+  const item = { ...formRecord(SYLVAR), "~:name": "Sylvar (Custom)" };
+  const next = saveCopy(entity, undefined, { homebrew: RACE_PACKS }, { contentType: RACE_TYPE, path: ["race", "sylvar"], item });
+  expect(next.removed).toEqual([["race", "sylvar", "subrace", "deep-sylvar"]]);
+  // Only the subrace goes, with the pick moved to the copy.
+  expect(next.entity).toEqual(remapOption(withoutOption(entity, ["race", "sylvar", "subrace", "deep-sylvar"]), ["race", "sylvar"], "sylvar-custom"));
+  expect(missingContent(next.entity, next.content)).toEqual([]);
+  // The copy keeps the race's values; the subrace's +1 Intelligence goes.
+  expect(raceParts(next.entity, next.custom)).toEqual({ ...raceParts(withSylvar(), undefined), race: "Sylvar (Custom)" });
+});
+
+test("saveCopy of an edit names a pick that the edited copy no longer offers, by its path before the save", () => {
+  const first = saveCopy(
+    withSage(),
+    undefined,
+    { homebrew: SAGE_PACKS },
+    {
+      contentType: BACKGROUND_TYPE,
+      path: ["background", "sage"],
+      item: { ...formRecord(SAGE), "~:name": "Sage (Custom)" },
+    },
+  );
+  expect(first.removed).toEqual([]);
+  // Edit custom removes the artisan's tool choice of the copy.
+  const { "~:tool-options": _, ...profs } = SAGE["~:profs"];
+  const edited = saveCopy(
+    first.entity,
+    first.custom,
+    { homebrew: SAGE_PACKS },
+    {
+      contentType: BACKGROUND_TYPE,
+      path: ["background", "sage-custom-"],
+      item: { ...formRecord(SAGE), "~:name": "Sage (Custom)", "~:profs": profs },
+      replacedKey: "sage-custom-",
+    },
+  );
+  expect(edited.removed).toEqual([["background", "sage-custom-", "tool-proficiency-artisans-tools", "smiths-tools"]]);
+  expect(edited.entity).toEqual(withoutOption(first.entity, ["background", "sage-custom-", "tool-proficiency-artisans-tools", "smiths-tools"]));
+});
+
+test("srdRaceRecord gives the SRD race of the engine's content list in the form's shape, and a copy keeps what the list has", async () => {
+  const record = await srdRaceRecord("dwarf");
+  expect(record).toEqual({
+    "~:name": "Dwarf",
+    "~:help": "Dwarves are short and stout and tend to be skilled warriors and craftmen in stone and metal.",
+    "~:size": "~:medium",
+    "~:speed": 25,
+    "~:darkvision": 60,
+    "~:abilities": { "~:orcpub.dnd.e5.character/con": 2 },
+    "~:languages": { "~#set": ["Dwarvish", "Common"] },
+    "~:props": { "~:weapon-prof": { "~:handaxe": true, "~:battleaxe": true, "~:light-hammer": true, "~:warhammer": true } },
+    // The summary of a feature is its description, the field that the form edits.
+    "~:traits": [
+      { "~:name": "Dwarven Resilience", "~:page": 20, "~:description": "Advantage on poison saves, resistance to poison damage" },
+      { "~:name": "Stonecunning", "~:page": 20, "~:description": "2X prof bonus on stonework-related history checks" },
+    ],
+  });
+  expect(await srdRaceRecord("no-such-race")).toBeUndefined();
+
+  // wizard-1 as a Hill Dwarf: a wizard has no martial weapon, so the Dwarf's battleaxe and warhammer show. The copy has no subraces, so the save removes Hill Dwarf.
+  const base = wizard1();
+  const entity = withHillDwarf(base);
+  const before = raceParts(entity, undefined, base);
+  expect(before.weapons).toEqual(["battleaxe", "crossbow-light", "dagger", "dart", "handaxe", "light-hammer", "quarterstaff", "sling", "warhammer"]);
+  const next = saveCopy(
+    entity,
+    undefined,
+    { homebrew: undefined },
+    { contentType: RACE_TYPE, path: ["race", "dwarf"], item: { ...record, "~:name": "Dwarf (Custom)" } },
+  );
+  expect(next.removed).toEqual([["race", "dwarf", "subrace", "hill-dwarf"]]);
+  expect(next.entity).toEqual(remapOption(withoutOption(entity, ["race", "dwarf", "subrace", "hill-dwarf"]), ["race", "dwarf"], "dwarf-custom"));
+  // What the copy loses: the subrace (+1 Wisdom) and the poison resistance, which the list does not have. The weapons and the rest stay.
+  expect(raceParts(next.entity, next.custom, base)).toEqual({
+    ...before,
+    race: "Dwarf (Custom)",
+    subrace: null,
+    abilities: { ...before.abilities, "orcpub.dnd.e5.character/wis": before.abilities["orcpub.dnd.e5.character/wis"] - 1 },
+    resistances: [],
+  });
+});
+
+test("the SRD Human record has +1 in each ability, so a no-edit copy of a standard Human keeps the scores", async () => {
+  const record = await srdRaceRecord("human");
+  expect(record).toEqual({
+    "~:name": "Human",
+    "~:help": "Humans are physically diverse and highly adaptable. They excel in nearly every profession.",
+    "~:size": "~:medium",
+    "~:speed": 30,
+    "~:abilities": {
+      "~:orcpub.dnd.e5.character/str": 1,
+      "~:orcpub.dnd.e5.character/dex": 1,
+      "~:orcpub.dnd.e5.character/con": 1,
+      "~:orcpub.dnd.e5.character/int": 1,
+      "~:orcpub.dnd.e5.character/wis": 1,
+      "~:orcpub.dnd.e5.character/cha": 1,
+    },
+    "~:languages": { "~#set": ["Common"] },
+    "~:traits": [],
+  });
+  // fighter-20 is a standard Human of the subrace Illuskan.
+  const next = saveCopy(
+    fighter20(),
+    undefined,
+    { homebrew: undefined },
+    { contentType: RACE_TYPE, path: ["race", "human"], item: { ...record, "~:name": "Human (Custom)" } },
+  );
+  expect(next.removed).toEqual([
+    ["race", "human", "subrace", "illuskan"],
+    ["race", "human", "variant", "standard-human"],
+  ]);
+  expect(raceParts(next.entity, next.custom)).toEqual({ ...raceParts(fighter20(), undefined), race: "Human (Custom)", subrace: null });
 });

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { type BuilderSelection, builderSteps, remainingByStep, remainingOf, unfilled } from "./builder.ts";
+import { type BuilderSelection, builderSteps, pickName, remainingByStep, remainingOf, unfilled } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
@@ -309,4 +309,14 @@ test("unfilled and remainingByStep count a merged selection once", () => {
   // the barbarian's 2 weapons, and the acolyte's holy symbol and prayer book.
   expect(remainingByStep(steps).map((count) => count.toDo)).toEqual([5, 1, 2, 0, 0, 4]);
   expect(remainingByStep(steps).every((count) => count.tooMany === 0)).toBe(true);
+});
+
+test("pickName names a pick by its selection and its option, at any depth, and gives the bare key for a pick not in the tree", () => {
+  const race = step(readFixture("fighter-20"), "Race").selections.find((s) => s.key === "race")!;
+  expect(pickName(race, ["race", "human", "subrace", "illuskan"])).toBe("Subrace (Illuskan)");
+  expect(pickName(race, ["race", "human", "variant", "standard-human"])).toBe("Variant (Standard Human)");
+  expect(pickName(race, ["race", "human"])).toBe("Race (Human)");
+  // A key that the tree does not have, such as a pick under an option that is gone.
+  expect(pickName(race, ["race", "human", "subrace", "no-such-subrace"])).toBe("no-such-subrace");
+  expect(pickName(race, ["race", "dwarf", "subrace", "hill-dwarf"])).toBe("hill-dwarf");
 });
