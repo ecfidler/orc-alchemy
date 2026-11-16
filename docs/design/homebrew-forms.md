@@ -749,9 +749,7 @@ them together:
 3. For an edit with a new key, remove the old copy, and move the pick
    again.
 
-After Save, the line shows Edit custom, and its button has the focus. A
-copy that the character no longer selects is removed at the next save of
-the character (ORC-133).
+After Save, the line shows Edit custom, and its button has the focus.
 
 # Build order
 

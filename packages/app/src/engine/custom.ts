@@ -3,7 +3,6 @@
 // a stored pack's plugin. The character builds against the loaded content
 // with `custom` added as one more pack, named CUSTOM_PACK. Other characters
 // never see it.
-
 import type { Built2014 } from "@pubdoor/dmv";
 import { disabledInFile, isMap, itemAt, nameToKw, OPTION_KEY, OPTION_PACK, tag, untag, withItem, withoutItem } from "./content.ts";
 import type { Content, ContentType, StrictEntity } from "./engine.ts";

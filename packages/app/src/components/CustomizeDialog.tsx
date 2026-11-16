@@ -7,7 +7,7 @@
 import { Button, Dialog, useConfirm } from "@orc-alchemy/ui";
 import { useCallback, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
-import { itemAt, tag } from "../engine/content.ts";
+import { tag } from "../engine/content.ts";
 import { builtInText, CUSTOM_PACK, customizeOption, customKey, customName, formRecord, optionOrigin } from "../engine/custom.ts";
 import type { ContentType } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -166,11 +166,11 @@ export function CustomizeLines({ selection, builder }: { selection: BuilderSelec
   const check = useCallback(
     (item: ItemRecord): Problem[] => {
       const key = typeof item[tag("name")] === "string" ? customKey(item[tag("name")] as string) : "";
-      const stale = (o: (typeof options)[number]) => !o.selected && custom !== undefined && itemAt(custom, tag(contentType), tag(o.key)) !== undefined;
+      const stale = (o: (typeof options)[number]) => !o.selected && optionOrigin(homebrew, custom, contentType, o.key).from === "custom";
       if (key === "" || key === replacedKey || !options.some((o) => o.key === key && !stale(o))) return [];
       return [{ path: ["name"], text: `Another ${builder.one} in the list has this name, or one with the same key (${key}). Choose another name.` }];
     },
-    [replacedKey, options, builder.one, custom, contentType],
+    [replacedKey, options, builder.one, homebrew, custom, contentType],
   );
 
   function save(item: ItemRecord) {

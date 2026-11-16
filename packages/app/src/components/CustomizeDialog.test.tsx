@@ -5,7 +5,7 @@ import "fake-indexeddb/auto";
 import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { characterContent } from "../engine/custom.ts";
+import { CUSTOM_PACK, characterContent } from "../engine/custom.ts";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "../engine/test-feats.ts";
 import { useCharacter } from "../state/character.ts";
@@ -80,7 +80,7 @@ test("Customize on a pack feat makes '<Name> (Custom)', selects it, and keeps th
         ...SKILL_EXPERT,
         "~:key": "~:skill-expert-custom",
         "~:name": "Skill Expert (Custom)",
-        "~:option-pack": "Custom (this character)",
+        "~:option-pack": CUSTOM_PACK,
       },
     },
   });
@@ -213,7 +213,7 @@ test("a copy that the character no longer selects does not block its name: Custo
         "~:key": "~:skill-expert-custom",
         "~:name": "Skill Expert (Custom)",
         "~:description": "A new copy.",
-        "~:option-pack": "Custom (this character)",
+        "~:option-pack": CUSTOM_PACK,
       },
     },
   });
