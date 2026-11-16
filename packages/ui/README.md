@@ -145,14 +145,15 @@ bun run test       # vitest
   - `ListModal`: Base UI Dialog with a title, a close X and one list of
     `items` that scrolls. Each item is `{ value, label, example?, group? }`.
     Each row is a button named by its `label` and described by its
-    `example`, with an "Add" mark. The owner sets `open` and gets
+    `example`, with a mark: "Add", or the text of `mark`, for example
+    "Choose". The owner sets `open` and gets
     `onOpenChange`. The X, Escape and a click outside close it. At 600px
     and less it fills the screen. By default a pick calls `onPick` and
     closes the modal. With `stayOpen`, it stays open: the caller takes the
     picked item out of `items`, and the focus goes to the next row. Then
     the footer shows `picked` as a polite status and Done. The text is
     "3 picked", or what `pickedText(n)` gives, for example "3 on the
-    form". In this mode, `search` adds a search field that filters by
+    form". In either mode, `search` adds a search field that filters by
     name, example or group.
     Rows of one `group` show under a small heading. The focus goes to the
     search field, or else to the first row, when it opens. Up and Down,
@@ -163,12 +164,19 @@ bun run test       # vitest
     function finds it with a ref or a DOM query). The backdrop is a 40%
     ink wash, as in the prototypes.
   - `Token`: a pick, a small box with its `label` and an X named
-    "Remove {label}" (or "Remove {name}") that calls `onRemove`. A long
-    label wraps inside it. Its `children` are a small control after the
-    label, for example a small NumberToggle.
+    "Remove {label}" (or "Remove {name}", or `removeName` whole) that
+    calls `onRemove`. Without `onRemove` it has no X. A long label wraps
+    inside it. Its `children` are a small control after the label, for
+    example a small NumberToggle. With `onOpen`, the label is a button
+    named `openName` (or the label), with an optional muted `openHint`
+    such as "Change", for a slot that holds one value: the button opens a
+    list for a new value. `marked` gives a thicker border, a note-yellow
+    bar on the left and semibold text, for example for a changed value;
+    say so in a name too.
   - `Tokens`: tokens on one line that wraps. After an X removes its token,
     the focus goes to the next X, or else to the first button after the
-    tokens.
+    tokens. When the X goes and its token stays, the focus goes to the
+    token's label button.
   - `AddButton`: a wide ghost button, "+ {label}" on the left, and
     "{remaining} more" on the right, which describes the button. With
     `detail`, it shows that text after the label in place of the count,

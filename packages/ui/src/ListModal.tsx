@@ -35,14 +35,17 @@ type ListModalBase<T> = {
   finalFocus?: RefObject<HTMLElement | null> | (() => HTMLElement | null);
   /** The line that shows when `items` is empty. */
   emptyText?: string;
+  /** The mark at the end of each row, "Add" by default, for example "Choose" in a list that picks one value for a slot. */
+  mark?: string;
+  /** A search field above the list, which filters by name, example or group. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 rows. */
+  search?: boolean;
 };
 
 export type ListModalProps<T> = ListModalBase<T> &
   (
     | {
-        /** Not set: a pick closes the modal. The modal has no search and no footer. */
+        /** Not set: a pick closes the modal. The modal has no footer. */
         stayOpen?: false;
-        search?: never;
         picked?: never;
         pickedText?: never;
       }
@@ -53,8 +56,6 @@ export type ListModalProps<T> = ListModalBase<T> &
         picked: number;
         /** The footer text for `picked`, for example `(n) => \`${n} on the form\``. By default it is "3 picked". */
         pickedText?: (picked: number) => string;
-        /** A search field above the list. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 rows. */
-        search?: boolean;
       }
   );
 
@@ -76,13 +77,14 @@ function sections<T>(items: readonly ListItem<T>[], query: string) {
 /**
  * A modal list, with Base UI Dialog inside: a title, a close X, and one
  * list that scrolls. Each row is a button with the name, an optional short
- * example and an "Add" mark. The X, Escape and a click outside close it. On
+ * example and a mark, "Add" by default. The X, Escape and a click outside close it. On
  * a narrow screen (600px and less) it fills the screen.
  *
  * By default a pick calls `onPick` and closes the modal. With `stayOpen`,
  * the modal stays open: the caller takes the picked row out of `items`, and
  * the focus goes to the next row. Its footer shows the number of picks,
- * which a screen reader reads, and a Done button.
+ * which a screen reader reads, and a Done button. In either mode, `search`
+ * adds a search field.
  *
  * The focus goes to the search field, or else to the first row, when the
  * modal opens. Up and Down move between the rows, and Home and End go to
@@ -119,13 +121,15 @@ function ListBody<T>({
   onPick,
   onOpenChange,
   emptyText = "Nothing is left to add.",
+  mark = "Add",
+  search,
   popup,
   ...props
 }: ListModalProps<T> & { popup: RefObject<HTMLDivElement | null> }) {
   const [query, setQuery] = useState("");
   const id = useId();
   const refocus = useRefocus(popup, ROW, () => popup.current?.querySelector<HTMLElement>(".ui-list-search, .ui-list-done"));
-  const runs = sections(items, props.stayOpen && props.search ? query : "");
+  const runs = sections(items, search ? query : "");
   const pick = (value: T) => {
     onPick(value);
     if (!props.stayOpen) onOpenChange(false);
@@ -151,7 +155,7 @@ function ListBody<T>({
   };
   return (
     <>
-      {props.stayOpen && props.search && (
+      {search && (
         <div className="ui-list-search-row">
           <Input
             type="search"
@@ -197,7 +201,7 @@ function ListBody<T>({
                           </span>
                         )}
                         <span className="ui-list-add" aria-hidden="true">
-                          Add
+                          {mark}
                         </span>
                       </button>
                     </li>

@@ -204,3 +204,68 @@ test("Customize the SRD race: the note and the removed picks show, and a new fea
   await expect(bubble.getByRole("button", { name: /^Use / })).toHaveCount(2);
   await expect(bubble.getByText("Long rest")).toBeVisible();
 });
+
+// ORC-138: the guided Custom Origin dialog, with the keyboard only.
+test("Custom Origin with the keyboard: move a bonus, swap a language and a skill, save, see the sheet, and Edit shows the picks", async ({ page }) => {
+  const builder = await openStep(page, /^Race/);
+  const entry = builder.getByRole("button", { name: "Custom Origin", exact: true });
+  await entry.focus();
+  await page.keyboard.press("Enter");
+
+  const dialog = page.getByRole("dialog", { name: "Custom Origin" });
+  const base = dialog.getByRole("combobox", { name: "Base race" });
+  await expect(base).toBeFocused();
+  await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
+  await page.keyboard.press("Enter");
+  await page.getByRole("option", { name: "Half-Orc" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(base).toHaveText("Half-Orc");
+
+  // +2 Strength goes to Dexterity.
+  const plus2 = dialog.getByRole("combobox", { name: "+2 bonus, Half-Orc gives Strength" });
+  await plus2.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("option", { name: "Dexterity" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(plus2).toHaveText("Dexterity");
+  await expect(dialog.getByRole("button", { name: "Put back +2 on Strength" })).toBeVisible();
+
+  // Orc becomes Elvish, and Intimidation becomes Stealth. Each list opens over the dialog and closes on a pick; the focus comes back to the token.
+  for (const [token, row, now] of [
+    ["Change language Orc", "Elvish", "Change language Elvish, in place of Orc"],
+    ["Change proficiency Intimidation", "Stealth", "Change proficiency Stealth, in place of Intimidation"],
+  ]) {
+    await dialog.getByRole("button", { name: token }).focus();
+    await page.keyboard.press("Enter");
+    const list = page.getByRole("dialog", { name: /^Replace / });
+    await expect(list.getByRole("button").nth(1)).toBeVisible();
+    await list.getByRole("button", { name: row, exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await expect(list).toBeHidden();
+    await expect(dialog.getByRole("button", { name: now })).toBeFocused();
+  }
+  await expect(dialog.getByRole("note").nth(1)).toHaveText("Save removes these picks of the character: Subrace (Illuskan), Variant (Standard Human).");
+
+  await dialog.getByRole("button", { name: "Save" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
+  const edit = builder.getByRole("button", { name: "Edit custom origin Half-Orc (Custom Origin)" });
+  await expect(edit).toBeFocused();
+
+  const sheet = page.getByRole("region", { name: "Preview" });
+  await expect(sheet.getByLabel("Race", { exact: true })).toHaveText("Half-Orc (Custom Origin)");
+  await expect(sheet.getByRole("group", { name: "Other proficiencies & languages" })).toContainText("Elvish");
+  const skill = (name: string) => sheet.getByRole("group", { name: "Skills" }).getByRole("listitem").filter({ hasText: name });
+  await expect(skill("Stealth").getByRole("img", { name: "Proficient" })).toBeVisible();
+  await expect(skill("Intimidation").getByRole("img", { name: "Proficient" })).toHaveCount(0);
+
+  // Edit custom origin opens the dialog with the picks.
+  await page.keyboard.press("Enter");
+  await expect(dialog.getByRole("combobox", { name: "Base race" })).toHaveText("Half-Orc");
+  await expect(dialog.getByRole("combobox", { name: "+2 bonus, Half-Orc gives Strength" })).toHaveText("Dexterity");
+  await expect(dialog.getByRole("button", { name: "Change language Elvish, in place of Orc" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Change proficiency Stealth, in place of Intimidation" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(edit).toBeFocused();
+});

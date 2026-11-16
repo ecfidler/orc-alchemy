@@ -212,6 +212,20 @@ export interface Customization {
 }
 
 /**
+ * The item as custom stores a copy of the content type: keyed by copyKeyOf
+ * of its name, with CUSTOM_PACK as its option source. key is "" for a name
+ * without letters or digits.
+ */
+export function storedCopy(contentType: ContentType, item: object): { key: string; stored: Record<string, unknown> } {
+  const key = copyKeyOf(contentType, item);
+  return { key, stored: { ...item, [KEY]: tag(key), [OPTION_PACK]: CUSTOM_PACK } };
+}
+
+/** True when the option with the key is a copy in the character's custom content (optionOrigin "custom"). */
+export const isCustomCopy = (homebrew: Content["homebrew"], custom: object | undefined, contentType: ContentType, key: string) =>
+  optionOrigin(homebrew, custom, contentType, key).from === "custom";
+
+/**
  * Saves a copy in one change: writes item into custom under its content
  * type, keyed by copyKey of its name, with CUSTOM_PACK as its option
  * source, and gives the option at path the copy's key (remapOption), so its
@@ -224,11 +238,11 @@ export function customizeOption(
   custom: object | undefined,
   { contentType, path, item, replacedKey }: Customization,
 ): { entity: StrictEntity; custom: object } {
-  const key = copyKeyOf(contentType, item);
+  const { key, stored } = storedCopy(contentType, item);
   if (key === "") throw new Error("The copy needs a name with a letter or a digit");
   const type = tag(contentType);
   const without = replacedKey === undefined || replacedKey === key ? (custom ?? {}) : withoutItem(custom ?? {}, type, tag(replacedKey));
-  const next = withItem(without, type, tag(key), { ...item, [KEY]: tag(key), [OPTION_PACK]: CUSTOM_PACK });
+  const next = withItem(without, type, tag(key), stored);
   return { entity: untag(path.at(-1)) === key ? entity : remapOption(entity, path, key), custom: next };
 }
 
@@ -296,18 +310,42 @@ export async function srdBackgroundRecord(key: string): Promise<Record<string, u
 /** The six ability keys, as a race's :abilities has them. */
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"].map((a) => `orcpub.dnd.e5.character/${a}`);
 
+const raceSkillsCache = new Map<string, string[]>();
+let newCharacterSkills: string[] | undefined;
+
+/**
+ * The skill proficiencies that the SRD race with the key gives, such as
+ * Perception for the Elf, which its content list does not have: the skills
+ * of a new character with only the race, without those of a new character.
+ * The pinned SRD content does not change, so each key is computed once.
+ */
+function raceSkills(key: string): string[] {
+  let skills = raceSkillsCache.get(key);
+  if (skills === undefined) {
+    const e = engine();
+    const empty = e.emptyCharacter();
+    const of = (entity: StrictEntity) => Object.keys(e.evaluate(entity).built["skill-profs"] ?? {});
+    newCharacterSkills ??= of(empty);
+    const before = newCharacterSkills;
+    skills = of(e.select(empty, ["race"], key)).filter((skill) => !before.includes(skill));
+    raceSkillsCache.set(key, skills);
+  }
+  return skills;
+}
+
 /**
  * The SRD race with the key as a form record in the shape of a pack race
  * (RaceForm.tsx), for its copy, or undefined if the engine's content list
  * (content/races.json) has no such race. The record has what the list has:
  * the name, the description (:help), the size, the speed, the darkvision,
  * the ability score increases, the languages, the weapon proficiencies and
- * the features (formTraits). The Human gets +1 to each ability, which
- * the engine gives with its variant Standard Human, so that a copy keeps
- * a standard Human's scores. The list has no damage resistances, saving
- * throw advantages, spells or choices of the race, and the copy has no
- * subraces, so those are not in the record. The SRD list loads once, as
- * its own chunk.
+ * the features (formTraits). The skill proficiencies, which the list does
+ * not have, come from the engine (raceSkills). The Human gets +1 to each
+ * ability, which the engine gives with its variant Standard Human, so that
+ * a copy keeps a standard Human's scores. The list has no damage
+ * resistances, saving throw advantages, spells or choices of the race,
+ * and the copy has no subraces, so those are not in the record. The SRD
+ * list loads once, as its own chunk.
  */
 export async function srdRaceRecord(key: string): Promise<Record<string, unknown> | undefined> {
   const { default: list } = await import("@pubdoor/dmv/content/races.json");
@@ -316,10 +354,14 @@ export async function srdRaceRecord(key: string): Promise<Record<string, unknown
   const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, ...rest } = race;
   // The list has no ability score increases for the Human: its +1 to each ability comes from the variant Standard Human.
   if (key === "human" && rest.abilities === undefined) rest.abilities = Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1]));
-  const weaponProfs = Array.isArray(weapons) ? Object.fromEntries(weapons.map((w) => [w, true])) : {};
+  const skills = raceSkills(key);
+  const props = {
+    ...(Array.isArray(weapons) && weapons.length > 0 && { "weapon-prof": Object.fromEntries(weapons.map((w) => [w, true])) }),
+    ...(skills.length > 0 && { "skill-prof": Object.fromEntries(skills.map((s) => [s, true])) }),
+  };
   const record = tagKeys({
     ...rest,
-    ...(Object.keys(weaponProfs).length > 0 && { props: { "weapon-prof": weaponProfs } }),
+    ...(Object.keys(props).length > 0 && { props }),
     traits: formTraits(traits),
   }) as Record<string, unknown>;
   // A keyword value and a set, which tagKeys does not make.

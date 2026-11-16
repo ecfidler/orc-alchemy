@@ -1,10 +1,10 @@
 ---
 type: Reference
 title: Homebrew forms spec
-description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races.
+description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T03:33:43Z }
+generated: { by: claude-code/agent, at: 2026-11-16T16:57:43Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -209,6 +209,10 @@ Use this table to choose the control for a group.
 
 The modifier modal is not a picker. It closes on a click and has no search.
 
+The list of one slot, such as a language of [Custom Origin](#custom-origin),
+is not a picker either. It closes on a click. Its rows have a "Choose"
+mark, and a list of more than 20 options has a search field.
+
 ## Token
 
 * A token is a small box with the name and an X. The X removes the pick.
@@ -216,6 +220,10 @@ The modifier modal is not a picker. It closes on a click and has no search.
 * The tokens are in the order of the picker list, not in the order of the
   clicks.
 * A long pick, for example a feat sentence, wraps inside its token.
+* A token can be a slot that holds one value, as in
+  [Custom Origin](#custom-origin). Its name is a button that opens the
+  list of the slot. A changed slot is marked, and its X puts the first
+  value back.
 
 ## Number toggle
 
@@ -686,7 +694,8 @@ section says so.
 * Under the cards of the selection, each selected option has one line: its
   name, then a small link button.
 * The button is **Customize** for a pack item or an SRD option. It is
-  **Edit custom** for a copy.
+  **Edit custom** for a copy. For a Custom Origin copy, it is **Edit
+  custom origin** (see [Custom Origin](#custom-origin)).
 * Each place that picks the option shows the line. For a feat, that is the
   Feats step and the "Ability Score Improvement or Feat" choice of a class
   level. For a background, that is the Background step. For a race, that
@@ -761,6 +770,10 @@ section says so.
   description (`:help`), size, speed, darkvision, ability score
   increases, languages, weapon proficiencies and features. The summary of
   a feature becomes its description, as for a background.
+* The list has no skill proficiencies of a race. The engine builds a new
+  character with only the race, and the record gets each skill that the
+  race gives (ORC-138). These are Perception for the Elf and Intimidation
+  for the Half-Orc.
 * The list has no ability score increases for the Human. The engine gives
   the Human +1 to each ability with its variant Standard Human. Thus the
   copy of the Human opens with +1 in each of the six abilities, and a copy
@@ -864,6 +877,105 @@ Save, the dialog tells the user which picks these are.
 * The line follows the form after a short delay. If Save comes before
   the line shows the picks that this save removes, the first Save only
   updates the line, and the dialog stays open. The next Save saves.
+
+## Custom Origin
+
+Added in ORC-138. A guided dialog makes a race copy with the optional rule
+"Customizing Your Origin" of *Tasha's Cauldron of Everything*. The dialog
+uses our own words, because the book is not SRD content.
+
+### The entry
+
+* **Custom Origin** is the last entry of the race cards. It is a button,
+  not a toggle, with a dashed border and the line "Move the bonuses,
+  languages and proficiencies of a race".
+* The entry opens the dialog. It selects nothing until Save.
+* After Save, the line under the cards shows the copy, "{Base race}
+  (Custom Origin)", and a button **Edit custom origin**. The button opens
+  the guided dialog again, with the earlier picks.
+* A Custom Origin copy has only the guided dialog. The line does not
+  offer the race form for it. To edit the copy as a race form, the user
+  makes a Customize copy of a race instead.
+
+### The dialog
+
+The dialog is one page that scrolls, in the ui `Dialog`, with the title
+"Custom Origin". From the top:
+
+1. A note in `--ink-muted` text. It names the optional rule and its book,
+   and tells the user to ask the DM first. It tells what the dialog
+   changes. It also tells that the copy of an SRD race does not keep its
+   damage resistances, saving throw advantages or spells.
+2. The line of the picks that Save removes, as in
+   [The picks that Save removes](#the-picks-that-save-removes). For a
+   Human with a subrace, it names the subrace and the variant.
+3. **Base race:** a select of the races of the race list that the content
+   lists have: the nine SRD races and the races of enabled packs. A copy
+   is not offered. A new base race resets the picks. Under the select, a
+   muted line names the choices of the race that the copy does not keep,
+   for example "Subrace, Tool Proficiency" for the Dwarf.
+4. **Ability bonuses:** one line for each positive bonus of the base
+   race's record: the amount, a select of the abilities, then "{Race}
+   gives {Ability}", or "moved from {Ability}" and a **Put back** link.
+   The bonuses keep the race's amounts. A subrace's bonus is not a slot,
+   and the copy does not have it. An ability that another bonus holds is
+   not offered, so two bonuses never go on one ability. An ability that
+   the record holds outside its bonuses, such as a negative bonus, is not
+   offered either. When the race gives a bonus to
+   each ability (the Human), a line says that there is nothing to move.
+5. **Languages:** one token for each language of the race.
+6. **Proficiencies:** one token for each skill, tool and weapon
+   proficiency of the race, then a help line: a skill becomes another
+   skill, and a tool another tool. A weapon can become another weapon or
+   a tool.
+   A section with nothing to swap says so.
+
+A click on a token opens the list of its slot over the dialog, for one
+pick. The list closes on a pick, and the focus goes back to the token.
+An option that another slot holds is not offered, and nor is a value
+that the record holds outside its slots. The race's own value
+shows "{Race} gives this". A list of more than 20 options has a search
+field. A changed token is marked, and its X, "Put back {value}", puts the
+race's value back.
+
+A choice that the race leaves to the user, such as the extra language of
+the Human or the skills of the Half-Elf, is not a slot. The copy of an
+SRD race does not keep such a choice. The line under Base race names it.
+
+The footer has **Cancel** and **Save**. Save is disabled until a base race
+is set and one value differs from the race's. While nothing differs, a
+muted line says so. Cancel, Esc and a click outside ask first when the
+dialog has changes.
+
+### What a save writes
+
+* The copy is the base race's record with the picks in place of the
+  race's values: the ability score increases, the languages, the skill
+  and tool proficiencies in `:props` and `:profs`, and the weapons. A
+  weapon that becomes a tool goes into the tools. The record of an SRD
+  race comes from [The first values](#the-first-values); the record of a
+  pack race is its pack item.
+* The name is "{Base race} (Custom Origin)". The key follows
+  [The name and the key](#the-name-and-the-key): "Half-Orc (Custom
+  Origin)" gives `half-orc-custom-origin`.
+* The copy has one more key, `:custom-origin`, with the key of the base
+  race as a keyword, for example `:half-orc`. The validator, the engine
+  and the character file keep it.
+* Save uses the steps of [Save](#save). The copy takes the place of the
+  character's race. When the race is a copy, the copy goes, so a
+  character has one copy. Without a race, Save first selects the base
+  race. Thus a new base race in Edit gives a new name and key, and
+  replaces the old copy.
+* Edit does not store the picks apart. It compares the copy with the
+  base race's record now. A value of the race that the copy has, with the
+  same bonus, stays on its slot. Each other slot takes the next value of
+  the copy that no slot took and that it can take. That value can be one
+  that another slot of the race gives. For example, a Half-Orc copy with
+  +2 Constitution and +1 Strength shows both bonuses as moved. Thus the
+  picks never go out of step with the copy.
+* If the base race is not in the race list now, for example because its
+  pack is turned off, Edit opens with no base race and a line that says
+  so.
 
 # Build order
 

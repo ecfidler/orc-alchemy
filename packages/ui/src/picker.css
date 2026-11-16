@@ -225,6 +225,42 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
+  /* A token whose text is a button (onOpen): the button fills the text's place, with a muted hint after the text. */
+  .ui-token-open {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: -1px 0 -1px -9px;
+    padding: 1px 6px 1px 9px;
+    min-height: 26px;
+    text-align: left;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .ui-token-open:hover {
+    background: var(--panel);
+  }
+  .ui-token-hint {
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  /* A marked token, such as a pick that the user changed: a thicker border, a note-yellow bar on the left, semibold text. */
+  .ui-token:where([data-marked]) {
+    border-width: 1.5px;
+    box-shadow: inset 4px 0 0 var(--note);
+    padding-left: 12px;
+  }
+  .ui-token:where([data-marked]) > .ui-token-label {
+    font-weight: 600;
+  }
+  .ui-token:where([data-marked]) > .ui-token-open {
+    margin-left: -12px;
+    padding-left: 12px;
+  }
   .ui-token > .ui-segmented {
     flex: none;
     margin-left: 6px;
