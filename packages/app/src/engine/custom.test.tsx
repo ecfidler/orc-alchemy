@@ -587,7 +587,7 @@ test("saveCopy of an edit names a pick that the edited copy no longer offers, by
   expect(edited.entity).toEqual(withoutOption(first.entity, ["background", "sage-custom-", "tool-proficiency-artisans-tools", "smiths-tools"]));
 });
 
-test("srdRaceRecord gives the SRD race of the engine's content list in the form's shape, and a copy keeps what the list has", async () => {
+test("srdRaceRecord gives the SRD race in the form's shape, with the resistance that the engine gives, and a copy keeps both", async () => {
   const record = await srdRaceRecord("dwarf");
   expect(record).toEqual({
     "~:name": "Dwarf",
@@ -597,7 +597,11 @@ test("srdRaceRecord gives the SRD race of the engine's content list in the form'
     "~:darkvision": 60,
     "~:abilities": { "~:orcpub.dnd.e5.character/con": 2 },
     "~:languages": { "~#set": ["Dwarvish", "Common"] },
-    "~:props": { "~:weapon-prof": { "~:handaxe": true, "~:battleaxe": true, "~:light-hammer": true, "~:warhammer": true } },
+    // The list has the weapons. The poison resistance comes from the engine.
+    "~:props": {
+      "~:weapon-prof": { "~:handaxe": true, "~:battleaxe": true, "~:light-hammer": true, "~:warhammer": true },
+      "~:damage-resistance": { "~:poison": true },
+    },
     // The summary of a feature is its description, the field that the form edits.
     "~:traits": [
       { "~:name": "Dwarven Resilience", "~:page": 20, "~:description": "Advantage on poison saves, resistance to poison damage" },
@@ -619,14 +623,81 @@ test("srdRaceRecord gives the SRD race of the engine's content list in the form'
   );
   expect(next.removed).toEqual([["race", "dwarf", "subrace", "hill-dwarf"]]);
   expect(next.entity).toEqual(remapOption(withoutOption(entity, ["race", "dwarf", "subrace", "hill-dwarf"]), ["race", "dwarf"], "dwarf-custom"));
-  // What the copy loses: the subrace (+1 Wisdom) and the poison resistance, which the list does not have. The weapons and the rest stay.
+  // What the copy loses: the subrace (+1 Wisdom). The poison resistance, the weapons and the rest stay.
+  expect(before.resistances).toEqual([{ value: "poison", qualifier: null }]);
   expect(raceParts(next.entity, next.custom, base)).toEqual({
     ...before,
     race: "Dwarf (Custom)",
     subrace: null,
     abilities: { ...before.abilities, "orcpub.dnd.e5.character/wis": before.abilities["orcpub.dnd.e5.character/wis"] - 1 },
-    resistances: [],
   });
+});
+
+/** The spells that the character knows from the source, such as its race: each key, with its spell level and ability. */
+function spellsFrom(entity: StrictEntity, custom: object | undefined, source: string) {
+  const { built } = engine().evaluate(entity, characterContent(SRD, custom));
+  return Object.entries(built["spells-known"]).flatMap(([level, known]) =>
+    known.__entries.filter(([[from]]) => from === source).map(([, spell]) => ({ level: Number(level), key: spell.key, ability: spell.ability })),
+  );
+}
+
+test("the SRD Tiefling record has the fire resistance, the spells with their unlock levels and the features, and a no-edit copy keeps them", async () => {
+  const record = await srdRaceRecord("tiefling");
+  const CHA = "~:orcpub.dnd.e5.character/cha";
+  expect(record).toEqual({
+    "~:name": "Tiefling",
+    "~:help":
+      "Tieflings bear the distinct marks of their infernal ancestry: horns, a tail, pointed teeth, and solid-colored eyes. They are smart and charismatic.",
+    "~:size": "~:medium",
+    "~:speed": 30,
+    "~:darkvision": 60,
+    "~:abilities": { "~:orcpub.dnd.e5.character/int": 1, [CHA]: 2 },
+    "~:languages": { "~#set": ["Common", "Infernal"] },
+    // The content list has none of the three values below: the engine gives them.
+    "~:props": { "~:damage-resistance": { "~:fire": true } },
+    "~:spells": [
+      { "~:level": 1, "~:value": { "~:level": 0, "~:ability": CHA, "~:key": "~:thaumaturgy" } },
+      { "~:level": 3, "~:value": { "~:level": 1, "~:ability": CHA, "~:key": "~:hellish-rebuke" } },
+      { "~:level": 5, "~:value": { "~:level": 2, "~:ability": CHA, "~:key": "~:darkness" } },
+    ],
+    "~:traits": [
+      { "~:name": "Hellish Resistance", "~:page": 43, "~:description": "Resistance to fire damage" },
+      {
+        "~:name": "Infernal Legacy",
+        "~:page": 43,
+        "~:description": "You know thaumaturgy and can cast Hellish Rebuke and Darkness once per day. CHA is the spellcasting ability.",
+      },
+    ],
+  });
+
+  const copyOf = (entity: StrictEntity) =>
+    saveCopy(entity, undefined, SRD, { contentType: RACE_TYPE, path: ["race", "tiefling"], item: { ...record, "~:name": "Tiefling (Custom)" } });
+  const cha = "orcpub.dnd.e5.character/cha";
+  const spells = [
+    { level: 0, key: "thaumaturgy", ability: cha },
+    { level: 1, key: "hellish-rebuke", ability: cha },
+    { level: 2, key: "darkness", ability: cha },
+  ];
+
+  // fighter-20 as a Tiefling: the copy gives each spell, the resistance and the features. The Tiefling has no choices, so Save removes no pick.
+  const tiefling = engine().select(fighter20(), ["race"], "tiefling");
+  const before = raceParts(tiefling, undefined);
+  expect(before.resistances).toEqual([{ value: "fire", qualifier: null }]);
+  expect(before.features).toEqual([
+    { name: "Hellish Resistance", frequency: null },
+    { name: "Infernal Legacy", frequency: null },
+  ]);
+  expect(spellsFrom(tiefling, undefined, "Tiefling")).toEqual(spells);
+  const next = copyOf(tiefling);
+  expect(next.removed).toEqual([]);
+  expect(raceParts(next.entity, next.custom)).toEqual({ ...before, race: "Tiefling (Custom)" });
+  expect(spellsFrom(next.entity, next.custom, "Tiefling (Custom)")).toEqual(spells);
+
+  // wizard-1 as a Tiefling: at level 1, the copy unlocks only the cantrip, as the race does.
+  const young = engine().select(wizard1(), ["race"], "tiefling");
+  expect(spellsFrom(young, undefined, "Tiefling")).toEqual(spells.slice(0, 1));
+  const youngCopy = copyOf(young);
+  expect(spellsFrom(youngCopy.entity, youngCopy.custom, "Tiefling (Custom)")).toEqual(spells.slice(0, 1));
 });
 
 test("the SRD Human record has +1 in each ability, so a no-edit copy of a standard Human keeps the scores", async () => {
