@@ -7,6 +7,7 @@
 // a comparison of the copy with the base race's record (originPicks), so
 // the picks are never stored apart from the values that they make.
 
+import type { Choice } from "./builder-choices.ts";
 import { asSet, isMap, setItems, tag, untag } from "./content.ts";
 import { characterContent, formRecord, isCustomCopy, optionOrigin, type SavedCopy, saveCopy, srdRaceRecord, storedCopy } from "./custom.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
@@ -194,13 +195,16 @@ export function heldElsewhere(
   custom: object | undefined,
   content: Content,
   selected: string | undefined,
-  languages: { key: string; name: string }[],
+  languages: Choice[],
 ): Set<string> {
   const others = selected === undefined ? entity : withoutOption(entity, ["race", selected]);
   const { built } = engine().evaluate(others, characterContent(content, custom));
   const names = new Map(languages.map(({ key, name }) => [key, name]));
   return new Set([
-    ...(built.languages ?? []).flatMap((key) => (names.has(key) ? [pickId("language", names.get(key) as string)] : [])),
+    ...(built.languages ?? []).flatMap((key) => {
+      const name = names.get(key);
+      return name === undefined ? [] : [pickId("language", name)];
+    }),
     ...Object.keys(built["skill-profs"] ?? {}).map((key) => pickId("skill", key)),
     ...Object.keys(built["tool-profs"] ?? {}).map((key) => pickId("tool", key)),
     ...(built["weapon-profs"] ?? []).map((key) => pickId("weapon", key)),

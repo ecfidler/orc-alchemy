@@ -8,7 +8,7 @@
 import { Button, Dialog, type ListItem, ListModal, Select, Token, Tokens, useConfirm } from "@orc-alchemy/ui";
 import { type ReactNode, useCallback, useId, useMemo, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
-import type { BuilderChoices } from "../engine/builder-choices.ts";
+import type { BuilderChoices, Choice } from "../engine/builder-choices.ts";
 import { sameRecord } from "../engine/content.ts";
 import { isCustomCopy } from "../engine/custom.ts";
 import {
@@ -87,7 +87,7 @@ export interface CustomOriginDialogProps {
   /** A line above the sections, such as why the earlier base race is not in the list. */
   problem?: string;
   /** The picks that the character holds without its race, which the lists leave out (heldElsewhere). */
-  elsewhere?: (languages: { key: string; name: string }[]) => ReadonlySet<string>;
+  elsewhere: (languages: Choice[]) => ReadonlySet<string>;
   /** The names of the character's picks that a save of the item removes (useRemovedPicks). */
   removedPicks: (item: ItemRecord) => string[];
   /** Stores the copy of the base race with the key. A throw shows its message, and the dialog stays open. */
@@ -204,7 +204,7 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, el
                 slots={slots}
                 lists={originLists(choices)}
                 elsewhere={elsewhere}
-                languages={choices.languages}
+                languageChoices={choices.languages}
                 onChange={(next) => setDraft({ base, slots: next })}
               />
             )}
@@ -224,19 +224,19 @@ function Slots({
   slots,
   lists,
   elsewhere,
-  languages: languageList,
+  languageChoices,
   onChange,
 }: {
   base: OriginBase;
   slots: OriginSlot[];
   lists: OriginLists;
-  elsewhere?: CustomOriginDialogProps["elsewhere"];
-  languages: BuilderChoices["languages"];
+  elsewhere: CustomOriginDialogProps["elsewhere"];
+  languageChoices: Choice[];
   onChange: (slots: OriginSlot[]) => void;
 }) {
   const [picking, setPicking] = useState<number | null>(null);
   // The engine builds the character without its race once, not at each render.
-  const held = useMemo(() => elsewhere?.(languageList), [elsewhere, languageList]);
+  const held = useMemo(() => elsewhere(languageChoices), [elsewhere, languageChoices]);
   const tokens = useRef<HTMLDivElement>(null);
   // The slot whose list was open last: the list closes before its finalFocus runs.
   const opened = useRef<number | null>(null);
@@ -319,7 +319,7 @@ function Slots({
           </>
         )}
       </Section>
-      {languages.length + profs.length > 0 && (
+      {held.size > 0 && languages.length + profs.length > 0 && (
         <p className="text-[14.5px] text-ink-muted">The lists leave out what the character has from its class, its background and its other picks.</p>
       )}
       <ListModal
@@ -418,7 +418,15 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
   const { actualPath } = selection;
   const selected = selection.options.find((o) => o.selected)?.key;
   const elsewhere = useCallback(
-    (languages: { key: string; name: string }[]) => (entity === null ? new Set<string>() : heldElsewhere(entity, custom, content, selected, languages)),
+    (languages: Choice[]): ReadonlySet<string> => {
+      if (entity === null) return new Set();
+      // An engine error must not close the dialog: the lists then leave nothing out.
+      try {
+        return heldElsewhere(entity, custom, content, selected, languages);
+      } catch {
+        return new Set();
+      }
+    },
     [entity, custom, content, selected],
   );
   if (actualPath.length !== 1 || actualPath[0] !== "race") return null;
