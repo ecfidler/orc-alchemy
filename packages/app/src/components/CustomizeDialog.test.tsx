@@ -1,12 +1,15 @@
-// Customize a feat for one character (ORC-134): the Customize line under the
-// builder's feat cards, the feat form in a dialog, and the save that writes
-// the copy into the character's custom content and selects it.
+// Customize a feat (ORC-134) or a background (ORC-135) for one character:
+// the Customize line under the builder's option cards, the type's form in a
+// dialog, and the save that writes the copy into the character's custom
+// content and selects it.
 import "fake-indexeddb/auto";
 import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { CUSTOM_PACK, characterContent } from "../engine/custom.ts";
-import { engine, loadEngine } from "../engine/engine.ts";
+import { CUSTOM_PACK, characterContent, srdBackgroundRecord } from "../engine/custom.ts";
+import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
+import { missingContent } from "../engine/reconcile.ts";
+import { BACKGROUND_PACK, BACKGROUNDS, SAGE, withSage } from "../engine/test-backgrounds.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "../engine/test-feats.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
@@ -217,4 +220,145 @@ test("a copy that the character no longer selects does not block its name: Custo
       },
     },
   });
+});
+
+// The background (ORC-135). fighter-20 has the SRD background Acolyte.
+
+/** fighter-20 on the Background step, with Acolyte, or with `pack` the pack background Sage and Smith's Tools for its artisan's tool. */
+async function openBackground(pack = false) {
+  await useHomebrew.getState().saveItem(BACKGROUND_PACK, BACKGROUNDS, SAGE);
+  const entity: StrictEntity = pack ? withSage() : fighter20();
+  act(() => useCharacter.getState().load("customize", entity));
+  render(<Builder />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Background/ }));
+  return screen.getByRole("list", { name: "Customize Background" });
+}
+const background = () => evaluate().selections.find((s) => s.key === "background")!.selected;
+const backgroundCards = () => within(within(screen.getByRole("region", { name: "Builder" })).getByRole("group", { name: "Background" })).getAllByRole("button");
+const preview = () => screen.getByRole("region", { name: "Preview" });
+
+test("Customize on a pack background makes '<Name> (Custom)', selects it by the engine's key, and the sheet shows its skills, tools, languages and equipment", async () => {
+  const lines = await openBackground(true);
+  expect(within(lines).getByRole("listitem")).toHaveTextContent("SageCustomize");
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
+  const dialog = await dialogNamed("Customize Sage");
+  expect(field(dialog, "Name").value).toBe("Sage (Custom)");
+  expect(field(dialog, "Description").value).toBe(SAGE["~:help"]);
+  // The five groups of the background form show, with no "+ Add a modifier".
+  for (const legend of ["Skill proficiencies", "Languages", "Tool proficiencies", "Starting equipment", "Features"])
+    expect(within(dialog).getByRole("group", { name: legend })).toBeTruthy();
+  expect(within(dialog).queryByRole("button", { name: "Add a modifier" })).toBeNull();
+  expect(within(dialog).queryByRole("combobox", { name: "Option source (pack)" })).toBeNull();
+  expect(save(dialog).disabled).toBe(false);
+  fireEvent.click(save(dialog));
+  await closed();
+
+  // The engine keys a background by the key of its name, with its dashes.
+  expect(background()).toEqual(["sage-custom-"]);
+  expect(useCharacter.getState().custom).toEqual({
+    [BACKGROUNDS]: { "~:sage-custom-": { ...SAGE, "~:key": "~:sage-custom-", "~:name": "Sage (Custom)", "~:option-pack": CUSTOM_PACK } },
+  });
+  // The artisan's tool chosen under Sage stays under the copy.
+  expect(evaluate().selections.find((s) => s.actualPath.join("/") === "background/sage-custom-/tool-proficiency-artisans-tools")!.selected).toEqual([
+    "smiths-tools",
+  ]);
+  const sheet = preview();
+  await waitFor(() => expect(sheet).toHaveTextContent("Sage (Custom)"));
+  for (const text of [
+    "+7 Arcana",
+    "+7 History",
+    "Smiths Tools (+6), Thieves Tools (+6)",
+    "Common, Draconic, Elvish",
+    "Ink (equipped)",
+    "Ink Pen (equipped)",
+    "Researcher",
+  ])
+    expect(sheet).toHaveTextContent(text);
+  const edit = within(lines).getByRole("button", { name: "Edit custom Sage (Custom)" });
+  await waitFor(() => expect(document.activeElement).toBe(edit));
+  expect(backgroundCards().map((card) => card.textContent)).toEqual(expect.arrayContaining(["Sage", "Sage (Custom)", "Acolyte"]));
+});
+
+test("Customize on the SRD background opens a form with its name and description, from the engine's content list", async () => {
+  const lines = await openBackground();
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Acolyte" }));
+  const dialog = await dialogNamed("Customize Acolyte");
+  expect(field(dialog, "Name").value).toBe("Acolyte (Custom)");
+  expect(field(dialog, "Description").value).toBe("Your life has been devoted to serving a god or gods.");
+  expect(within(dialog).getByRole<HTMLInputElement>("textbox", { name: "Feature 1 name" }).value).toBe("Shelter the Faithful");
+  fireEvent.click(save(dialog));
+  await closed();
+  expect(background()).toEqual(["acolyte-custom-"]);
+  const record = await srdBackgroundRecord("acolyte");
+  expect(useCharacter.getState().custom).toEqual({
+    [BACKGROUNDS]: { "~:acolyte-custom-": { ...record, "~:key": "~:acolyte-custom-", "~:name": "Acolyte (Custom)", "~:option-pack": CUSTOM_PACK } },
+  });
+  // The copy has no holy symbol choice, so the save drops the pick under it; nothing is left unresolved.
+  const { entity, custom } = useCharacter.getState();
+  expect(missingContent(entity!, characterContent(useHomebrew.getState().content, custom))).toEqual([]);
+  expect(
+    evaluate()
+      .selections.filter((s) => s.actualPath[0] === "background")
+      .map((s) => s.actualPath.join("/")),
+  ).toEqual(["background", "background/acolyte-custom-/starting-equipment-prayer-book-wheel"]);
+});
+
+test("a rename back to the original's name, or to another background's, is a problem on Name, and Save is disabled", async () => {
+  const lines = await openBackground(true);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
+  let dialog = await dialogNamed("Customize Sage");
+  for (const name of ["Sage", "acolyte"]) {
+    fireEvent.change(field(dialog, "Name"), { target: { value: name } });
+    expect(within(dialog).getByRole("list", { name: "Problems: Name" })).toHaveTextContent("Another background in the list has this name");
+    expect(save(dialog).disabled).toBe(true);
+  }
+  fireEvent.change(field(dialog, "Name"), { target: { value: "Sage (Custom)" } });
+  expect(within(dialog).queryByRole("list", { name: "Problems: Name" })).toBeNull();
+  fireEvent.click(save(dialog));
+  await closed();
+
+  // The copy's own name is not a problem in Edit custom; the original's name is.
+  fireEvent.click(within(lines).getByRole("button", { name: "Edit custom Sage (Custom)" }));
+  dialog = await dialogNamed("Edit custom background");
+  expect(within(dialog).queryByRole("list", { name: "Problems: Name" })).toBeNull();
+  fireEvent.change(field(dialog, "Name"), { target: { value: "Sage" } });
+  expect(within(dialog).getByRole("list", { name: "Problems: Name" })).toHaveTextContent(
+    "Another background in the list has this name, or one with the same key (sage). Choose another name.",
+  );
+  expect(save(dialog).disabled).toBe(true);
+  // The close question names the background.
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  expect(await answerConfirmDialog("Close")).toBe("This background has changes that are not saved. Close anyway?");
+  await closed();
+  expect(background()).toEqual(["sage-custom-"]);
+});
+
+test("Edit custom of a background copy: new gold gives the copy's starting equipment, and a new name replaces the copy", async () => {
+  const lines = await openBackground(true);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
+  fireEvent.click(save(await dialogNamed("Customize Sage")));
+  await closed();
+
+  fireEvent.click(within(lines).getByRole("button", { name: "Edit custom Sage (Custom)" }));
+  const dialog = await dialogNamed("Edit custom background");
+  fireEvent.change(field(dialog, "Name"), { target: { value: "Loremaster" } });
+  const gold = within(dialog).getByRole("textbox", { name: "Gold" });
+  fireEvent.change(gold, { target: { value: "25" } });
+  fireEvent.blur(gold);
+  fireEvent.click(save(dialog));
+  await closed();
+
+  expect(background()).toEqual(["loremaster"]);
+  expect(useCharacter.getState().custom).toEqual({
+    [BACKGROUNDS]: {
+      "~:loremaster": { ...SAGE, "~:key": "~:loremaster", "~:name": "Loremaster", "~:treasure": { "~:gp": 25 }, "~:option-pack": CUSTOM_PACK },
+    },
+  });
+  expect(evaluate().built.treasure?.gp["orcpub.dnd.e5.character.equipment/quantity"]).toBe(25);
+  expect(evaluate().selections.find((s) => s.actualPath.join("/") === "background/loremaster/tool-proficiency-artisans-tools")!.selected).toEqual([
+    "smiths-tools",
+  ]);
+  expect(within(lines).getByRole("button", { name: "Edit custom Loremaster" })).toBeTruthy();
+  expect(backgroundCards().map((card) => card.textContent)).toEqual(expect.arrayContaining(["Sage", "Loremaster"]));
+  expect(backgroundCards().map((card) => card.textContent)).not.toContain("Sage (Custom)");
 });

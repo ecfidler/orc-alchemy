@@ -3,21 +3,20 @@ import { expect, type Page, test } from "@playwright/test";
 
 // ORC-134: Customize a feat for one character. The feat form opens in a
 // dialog over the builder, and its own modals (the "+ Add a modifier" list
-// and a picker) open over the dialog, with the keyboard only.
+// and a picker) open over the dialog, with the keyboard only. ORC-135 does
+// the same for a background, with the equipment picker.
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 
-/** Opens fighter-20, who takes the SRD feat Grappler, on the builder's Feats step. */
-async function openFeats(page: Page) {
+/** Opens fighter-20, who takes the SRD feat Grappler and the SRD background Acolyte, on the builder's step. */
+async function openStep(page: Page, step: RegExp) {
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "fighter-20.strict.json"));
   await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await page
-    .getByRole("navigation", { name: "Steps" })
-    .getByRole("button", { name: /^Feats/ })
-    .click();
+  await page.getByRole("navigation", { name: "Steps" }).getByRole("button", { name: step }).click();
   return page.getByRole("region", { name: "Builder" });
 }
+const openFeats = (page: Page) => openStep(page, /^Feats/);
 
 /** True when the focused element is inside the element. */
 const holdsFocus = (page: Page, name: string) =>
@@ -87,6 +86,60 @@ test("Customize a feat, then add a modifier and a prerequisite in the dialog wit
   await expect(again.getByRole("textbox", { name: "Name" })).toHaveValue("Grappler (Custom)");
   await expect(again.getByText("The ability to cast at least one spell", { exact: true })).toBeVisible();
   await expect(again.getByRole("group", { name: "Skill or Tool Proficiency", exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(again).toBeHidden();
+  await expect(edit).toBeFocused();
+});
+
+test("Customize the SRD background, then add equipment with the picker in the dialog with the keyboard", async ({ page }) => {
+  const builder = await openStep(page, /^Background/);
+  const customize = builder.getByRole("button", { name: "Customize Acolyte" });
+  await customize.focus();
+  await page.keyboard.press("Enter");
+
+  const dialog = page.getByRole("dialog", { name: "Customize Acolyte" });
+  const name = dialog.getByRole("textbox", { name: "Name", exact: true });
+  await expect(name).toBeFocused();
+  await expect(name).toHaveValue("Acolyte (Custom)");
+  await expect(dialog.getByRole("textbox", { name: "Description", exact: true })).toHaveValue("Your life has been devoted to serving a god or gods.");
+  await expect(dialog.getByRole("button", { name: "Add a modifier" })).toHaveCount(0);
+
+  // The equipment picker opens over the dialog with the focus in its search. A search and Enter on the first row pick it; Escape closes only the list.
+  const add = dialog.getByRole("button", { name: /^Add equipment/ });
+  await add.focus();
+  await page.keyboard.press("Enter");
+  const list = page.getByRole("dialog", { name: "Add equipment" });
+  const search = list.getByRole("searchbox", { name: "Search" });
+  await expect(search).toBeFocused();
+  await page.keyboard.type("crowbar");
+  await page.keyboard.press("ArrowDown");
+  await expect(list.getByRole("button", { name: "Crowbar" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Escape");
+  await expect(list).toBeHidden();
+  await expect(dialog).toBeVisible();
+  await expect(add).toBeFocused();
+  await expect(dialog.getByText("Crowbar", { exact: true })).toBeVisible();
+
+  // A rename back to the original's name is refused.
+  await name.fill("Acolyte");
+  await expect(dialog.getByRole("list", { name: "Problems: Name" })).toContainText("Another background in the list has this name");
+  await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
+  await name.fill("Acolyte (Custom)");
+
+  // Save selects the copy, and the focus goes to the line's new button.
+  await dialog.getByRole("button", { name: "Save" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
+  const edit = builder.getByRole("button", { name: "Edit custom Acolyte (Custom)" });
+  await expect(edit).toBeFocused();
+  const cards = builder.getByRole("group", { name: "Background", exact: true });
+  await expect(cards.getByRole("button", { name: "Acolyte (Custom)", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(cards.getByRole("button", { name: "Acolyte", exact: true })).toHaveAttribute("aria-pressed", "false");
+
+  await page.keyboard.press("Enter");
+  const again = page.getByRole("dialog", { name: "Edit custom background" });
+  await expect(again.getByText("Crowbar", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(again).toBeHidden();
   await expect(edit).toBeFocused();

@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T00:07:32Z }
+generated: { by: claude-code/agent, at: 2026-11-16T02:08:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -676,8 +676,9 @@ incorrectly and can fail.
 Added in M5.1 (ORC-134). The builder lets the user make a copy of a
 selected option for one character. The copy is stored in the character's
 custom content (ORC-133), and other characters do not see it. ORC-134 does
-this for feats. The background (ORC-135) and the race (ORC-136) follow,
-with the same parts.
+this for feats, and ORC-135 for the background, with the same parts. The
+race (ORC-136) follows. Where the background is different, this section
+says so.
 
 ## The line under the option cards
 
@@ -688,14 +689,14 @@ with the same parts.
   **Edit custom** for a copy.
 * Each place that picks the option shows the line. For a feat, that is the
   Feats step and the "Ability Score Improvement or Feat" choice of a class
-  level.
+  level. For a background, that is the Background step.
 * The copy shows in the list of cards by its name only, with no badge. The
   original stays in the list.
 
 ## The dialog
 
 * The dialog is the ui `Dialog`. The title is "Customize {name}", or "Edit
-  custom feat" for a copy.
+  custom {type}" for a copy, for example "Edit custom background".
 * The body is the type's form, the same form as on My Content. The form
   has no "Option source (pack)" field.
 * The footer has **Cancel** and **Save** only. There is no delete button.
@@ -703,13 +704,14 @@ with the same parts.
   problems show in the same way, and Save is disabled while there are
   problems.
 * Cancel, Esc and a click outside close the dialog. If the form has
-  changes, a dialog asks first: "This feat has changes that are not
+  changes, a dialog asks first: "This {type} has changes that are not
   saved. Close anyway?" with **Stay** and **Close**. The rule for a change
   is the rule of [Leaving a changed form](#leaving-a-changed-form). A
   reload or a close of the tab shows the warning of the browser.
 * The modals of the form open above the dialog, for example "+ Add a
-  modifier", the pickers and the delete confirmation. The focus comes back
-  into the dialog when they close.
+  modifier", the pickers (for a background, also "+ Add equipment" with
+  its search) and the delete confirmation. The focus comes back into the
+  dialog when they close.
 
 ## The first values
 
@@ -723,6 +725,17 @@ with the same parts.
   Grappler this is only the summary, "Restrain a creature you are
   grappling". If the character has no such feature, the description is
   empty.
+* An SRD background is different. Its feature has another name (Acolyte
+  has "Shelter the Faithful"), so the character has no feature with the
+  background's name. But the engine's content list,
+  `@pubdoor/dmv/content/backgrounds.json`, has each SRD background with
+  the fields of a pack background. Customize on an SRD background opens
+  that record: the description (`:help`), skills, languages, tools,
+  equipment, gold and features. The summary of a feature becomes its
+  description, because the form edits the description.
+* The content list does not have each choice of the SRD background. For
+  example, it has no holy symbol choice for Acolyte. See
+  [Save](#save) for what happens to that pick.
 * The name is "{name} (Custom)". The user can change it.
 * Edit custom opens the copy as it is stored.
 
@@ -730,6 +743,13 @@ with the same parts.
 
 * The key of the copy is the key of its name, without a "-" at the start
   or the end. "Skill Expert (Custom)" gives `skill-expert-custom`.
+* A background is different. The engine keys a background by the key of
+  its name, and it ignores the stored key (ORC-130; quirk in
+  `docs/plan/01-compatibility-contract.md`). Thus the key of a background
+  copy is the key of its name with each "-", the key that the engine
+  gives: "Sage (Custom)" gives `sage-custom-`. The copy is stored under
+  this key, and the pick uses it. A name without a letter or a digit has
+  no key, for each type.
 * The key must not be the key of another option in the character's list:
   the original, a pack item or another copy. If it is, the Name field
   shows a problem and Save is disabled. Thus a save never replaces or
@@ -745,9 +765,18 @@ them together:
 1. Write the copy into the character's custom content, under its content
    type, with its key and the reserved pack name.
 2. Move the character's pick from the original to the copy. The choices
-   under the pick stay, for example the skill of a feat.
+   under the pick stay, for example the skill of a feat or the artisan's
+   tool of a background.
 3. For an edit with a new key, remove the old copy, and move the pick
    again.
+4. Remove each pick under the copy that the copy does not offer, for
+   example a choice that the user removed from the form, or the holy
+   symbol of an SRD Acolyte. Otherwise the sheet tells the user to load
+   content for it.
+5. For a background, if the starting equipment or the gold of the copy is
+   not the same as before the dialog opened, replace the character's
+   background starting equipment with that of the copy, as a new pick of
+   a background does. Other changes keep the inventory as it is.
 
 After Save, the line shows Edit custom, and its button has the focus.
 

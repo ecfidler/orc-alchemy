@@ -2,35 +2,80 @@
 // a feat, made with the type's homebrew form (builders/) in a dialog. The
 // copy goes in the character's custom content, and the character selects it
 // in place of the option (customizeOption in engine/custom.ts). The parts
-// here take a BuilderType and its content type, so a background or a race
-// adds one entry to CUSTOMIZABLE.
+// here take a Customizable, so a type adds one entry to CUSTOMIZABLE: the
+// feat (ORC-134) and the background (ORC-135).
+
 import { Button, Dialog, useConfirm } from "@orc-alchemy/ui";
+import type { Built2014 } from "@pubdoor/dmv";
 import { useCallback, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { tag } from "../engine/content.ts";
-import { builtInText, CUSTOM_PACK, customizeOption, customKey, customName, formRecord, optionOrigin } from "../engine/custom.ts";
-import type { ContentType } from "../engine/engine.ts";
+import {
+  builtInText,
+  CUSTOM_PACK,
+  characterContent,
+  copyKey,
+  customizeOption,
+  customName,
+  formRecord,
+  optionOrigin,
+  srdBackgroundRecord,
+  withoutUnresolvedUnder,
+} from "../engine/custom.ts";
+import { type Content, type ContentType, engine, type StrictEntity } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
+import { backgroundBuilder } from "./builders/BackgroundForm.tsx";
 import { FormProblems, useCheckedRecord } from "./builders/checked-form.tsx";
 import { featBuilder } from "./builders/FeatForm.tsx";
 import type { BuilderType, ItemRecord, Problem } from "./builders/fields.tsx";
-import { useUnloadWarning } from "./leave-guard.tsx";
+import { sameRecord, useUnloadWarning } from "./leave-guard.tsx";
 
-/** A type of option that the builder can customize: the top-level selection that picks it, and its form. */
-interface Customizable {
+/** A type of option that the builder can customize: the top-level selection that picks it, its form, and what differs by type. */
+export interface Customizable {
   /** The selection's actualPath, one key, such as "feats". */
   selection: string;
   builder: BuilderType;
+  /**
+   * The record that the copy of a built-in (SRD) option opens with, before
+   * its name: the engine gives no pack item for a built-in option. built is
+   * the character as the engine builds it, null before it builds.
+   */
+  builtIn: (option: { key: string; name: string }, built: Built2014 | null) => Promise<ItemRecord>;
+  /**
+   * Changes the entity after a save selects the copy with the key. before
+   * is the record that the dialog opened with, and after the saved item.
+   * content is what the character builds against with the new custom content.
+   */
+  afterSave?: (entity: StrictEntity, key: string, before: ItemRecord, after: ItemRecord, content: Content) => StrictEntity;
 }
 
-/** The selections whose options have a Customize line. ORC-135 adds the background and ORC-136 the race. */
-const CUSTOMIZABLE: Customizable[] = [{ selection: "feats", builder: featBuilder }];
+/** The values of a background's starting equipment. */
+const startingEquipment = (record: ItemRecord) => [record[tag("equipment")], record[tag("equipment-choices")], record[tag("treasure")]];
 
-/** The form of the selection's options, if the builder can customize them. */
-export function customizableBuilder(selection: BuilderSelection): BuilderType | undefined {
+/** The selections whose options have a Customize line. ORC-136 adds the race. */
+const CUSTOMIZABLE: Customizable[] = [
+  {
+    selection: "feats",
+    builder: featBuilder,
+    // The text of the character's feature with the feat's name (builtInText).
+    builtIn: async ({ name }, built) => ({ ...featBuilder.empty, [tag("description")]: built === null ? "" : builtInText(built, name) }),
+  },
+  {
+    selection: "background",
+    builder: backgroundBuilder,
+    // The engine's content list has each SRD background with the fields of a pack background.
+    builtIn: async ({ key }) => (await srdBackgroundRecord(key)) ?? backgroundBuilder.empty,
+    // Selecting a background gives its starting equipment, so a copy with other starting equipment gives its own.
+    afterSave: (entity, key, before, after, content) =>
+      sameRecord(startingEquipment(before), startingEquipment(after)) ? entity : engine().addStartingEquipment(entity, key, content),
+  },
+];
+
+/** What the builder customizes of the selection's options, if it can customize them. */
+export function customizableFor(selection: BuilderSelection): Customizable | undefined {
   const { actualPath } = selection;
-  return actualPath.length === 1 ? CUSTOMIZABLE.find((c) => c.selection === actualPath[0])?.builder : undefined;
+  return actualPath.length === 1 ? CUSTOMIZABLE.find((c) => c.selection === actualPath[0]) : undefined;
 }
 
 export interface CustomizeDialogProps {
@@ -123,9 +168,12 @@ interface Session {
  * its name and a small Customize button, or Edit custom for a copy. The
  * button is not in the card, because a card is a toggle. Customize opens the
  * form on a copy of the option, named customName of it; Edit custom opens it
- * on the copy. A save writes the copy and selects it (customizeOption).
+ * on the copy. A save writes the copy and selects it (customizeOption),
+ * drops the choices under it that the copy does not offer, and then does
+ * the type's afterSave.
  */
-export function CustomizeLines({ selection, builder }: { selection: BuilderSelection; builder: BuilderType }) {
+export function CustomizeLines({ selection, customizable }: { selection: BuilderSelection; customizable: Customizable }) {
+  const { builder } = customizable;
   const contentType = builder.contentType as ContentType;
   const homebrew = useHomebrew((state) => state.content.homebrew);
   const custom = useCharacter((state) => state.custom);
@@ -136,27 +184,22 @@ export function CustomizeLines({ selection, builder }: { selection: BuilderSelec
   const focusKey = useRef<string | null>(null);
   const selected = selection.options.filter((o) => o.selected);
 
-  function open(key: string, name: string) {
+  async function open(key: string, name: string) {
     const origin = optionOrigin(homebrew, custom, contentType, key);
     focusKey.current = key;
     let initial: ItemRecord;
     if (origin.from === "custom") initial = formRecord(origin.item);
     else if (origin.from === "pack") initial = { ...formRecord(origin.item), [tag("name")]: customName(name) };
-    // The engine cannot give a built-in as a pack item: the copy starts from the type's new item, with the name and the text.
-    else
-      initial = {
-        ...builder.empty,
-        [tag("name")]: customName(name),
-        [tag("description")]: built === null ? "" : builtInText(built, name),
-      };
-    setSession({
-      id: (session?.id ?? 0) + 1,
+    // The engine cannot give a built-in as a pack item: the copy starts from what the type has for it, with the name.
+    else initial = { ...(await customizable.builtIn({ key, name }, built)), [tag("name")]: customName(name) };
+    setSession((last) => ({
+      id: (last?.id ?? 0) + 1,
       open: true,
       key,
       title: origin.from === "custom" ? `Edit custom ${builder.one}` : `Customize ${name}`,
       initial,
       replacedKey: origin.from === "custom" ? key : undefined,
-    });
+    }));
   }
 
   // A name whose key another option of the selection has would replace it or collide with it: the original, a pack item or another copy.
@@ -165,7 +208,7 @@ export function CustomizeLines({ selection, builder }: { selection: BuilderSelec
   const { options } = selection;
   const check = useCallback(
     (item: ItemRecord): Problem[] => {
-      const key = typeof item[tag("name")] === "string" ? customKey(item[tag("name")] as string) : "";
+      const key = typeof item[tag("name")] === "string" ? copyKey(contentType, item[tag("name")] as string) : "";
       const stale = (o: (typeof options)[number]) => !o.selected && optionOrigin(homebrew, custom, contentType, o.key).from === "custom";
       if (key === "" || key === replacedKey || !options.some((o) => o.key === key && !stale(o))) return [];
       return [{ path: ["name"], text: `Another ${builder.one} in the list has this name, or one with the same key (${key}). Choose another name.` }];
@@ -183,8 +226,13 @@ export function CustomizeLines({ selection, builder }: { selection: BuilderSelec
       item,
       replacedKey: session.replacedKey,
     });
-    state.updateWithCustom(next.custom, () => next.entity);
-    focusKey.current = customKey(String(item[tag("name")]));
+    const key = copyKey(contentType, String(item[tag("name")]));
+    const content = characterContent(useHomebrew.getState().content, next.custom);
+    // A choice under the original that the copy does not offer goes, so the sheet does not ask to load content for it.
+    const kept = withoutUnresolvedUnder(next.entity, [...selection.actualPath, key], content);
+    const entity = customizable.afterSave?.(kept, key, session.initial, item, content) ?? kept;
+    state.updateWithCustom(next.custom, () => entity);
+    focusKey.current = key;
     setSession({ ...session, open: false });
   }
 
@@ -200,7 +248,7 @@ export function CustomizeLines({ selection, builder }: { selection: BuilderSelec
             return (
               <li key={option.key} className="flex flex-wrap items-baseline gap-x-3">
                 <span>{option.name}</span>
-                <Button variant="link" data-customize={option.key} aria-label={`${label} ${option.name}`} onClick={() => open(option.key, option.name)}>
+                <Button variant="link" data-customize={option.key} aria-label={`${label} ${option.name}`} onClick={() => void open(option.key, option.name)}>
                   {label}
                 </Button>
               </li>
