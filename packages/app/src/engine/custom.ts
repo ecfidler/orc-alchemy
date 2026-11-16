@@ -310,27 +310,82 @@ export async function srdBackgroundRecord(key: string): Promise<Record<string, u
 /** The six ability keys, as a race's :abilities has them. */
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"].map((a) => `orcpub.dnd.e5.character/${a}`);
 
-const raceSkillsCache = new Map<string, string[]>();
-let newCharacterSkills: string[] | undefined;
+/** What the engine gives an SRD race and the content list does not have (raceGives). */
+interface RaceGives {
+  /** The keys of the skill proficiencies, such as "perception". */
+  skills: string[];
+  /** The damage types of the resistances, such as "poison". */
+  resistances: string[];
+  /** The spells, as a race stores them: the character level that unlocks the spell, and its level, ability and key. */
+  spells: { level: number; value: { level: number; ability: string; key: string } }[];
+  /** The traits, each with its name, page and summary. */
+  traits: Record<string, unknown>[];
+}
+
+/** The level of the probe character: each spell of a race is unlocked, and a trait's text names each one. */
+const PROBE_LEVEL = 20;
+
+/** What the probe reads of a character as the engine builds it. */
+function probed(entity: StrictEntity) {
+  const { built } = engine().evaluate(entity);
+  return {
+    skills: Object.keys(built["skill-profs"] ?? {}),
+    // A resistance with a qualifier has no place in a pack race, which stores the damage type only.
+    resistances: ((built.resistances as { value: string; qualifier?: string | null }[] | null) ?? []).filter((r) => !r.qualifier).map((r) => r.value),
+    spells: Object.entries(built["spells-known"] ?? {}).flatMap(([level, known]) =>
+      (known?.__entries ?? []).map(([[source], spell]) => ({ source, level: Number(level), ability: spell.ability, key: spell.key })),
+    ),
+    traits: built.traits ?? [],
+  };
+}
+
+const raceGivesCache = new Map<string, RaceGives>();
+let probeBase: { levels: StrictEntity[]; top: ReturnType<typeof probed> } | undefined;
 
 /**
- * The skill proficiencies that the SRD race with the key gives, such as
- * Perception for the Elf, which its content list does not have: the skills
- * of a new character with only the race, without those of a new character.
- * The pinned SRD content does not change, so each key is computed once.
+ * What the SRD race with the key gives that its content list does not
+ * have: the skill proficiencies (Perception for the Elf), the damage
+ * resistances (poison for the Dwarf), the spells (the Tiefling) and the
+ * traits. They are what a new character of level PROBE_LEVEL with only the
+ * race has, without what that character has with no race. A spell's unlock
+ * level is the first level at which the character with the race knows it.
+ * The choices of the race have no pick, so what a pick gives, such as the
+ * resistance of a Dragonborn's ancestry, is not here. The pinned SRD
+ * content does not change, so each key is computed once.
  */
-function raceSkills(key: string): string[] {
-  let skills = raceSkillsCache.get(key);
-  if (skills === undefined) {
+function raceGives(key: string): RaceGives {
+  let gives = raceGivesCache.get(key);
+  if (gives === undefined) {
     const e = engine();
-    const empty = e.emptyCharacter();
-    const of = (entity: StrictEntity) => Object.keys(e.evaluate(entity).built["skill-profs"] ?? {});
-    newCharacterSkills ??= of(empty);
-    const before = newCharacterSkills;
-    skills = of(e.select(empty, ["race"], key)).filter((skill) => !before.includes(skill));
-    raceSkillsCache.set(key, skills);
+    if (probeBase === undefined) {
+      const levels = [e.emptyCharacter() as StrictEntity];
+      const classKey = Object.keys(e.evaluate(levels[0]).built.levels ?? {})[0];
+      while (levels.length < PROBE_LEVEL) levels.push(e.addLevel(levels[levels.length - 1], classKey));
+      probeBase = { levels, top: probed(levels[PROBE_LEVEL - 1]) };
+    }
+    const { levels, top: before } = probeBase;
+    const withRace = (level: number) => probed(e.select(levels[level - 1], ["race"], key));
+    const top = withRace(PROBE_LEVEL);
+    const raceSpells = top.spells.filter((spell) => !before.spells.some((s) => s.source === spell.source && s.key === spell.key));
+    const unlocked = new Map<string, number>();
+    for (let level = 1; level <= PROBE_LEVEL && unlocked.size < raceSpells.length; level++) {
+      const known = new Set(withRace(level).spells.map((s) => s.key));
+      for (const spell of raceSpells) if (!unlocked.has(spell.key) && known.has(spell.key)) unlocked.set(spell.key, level);
+    }
+    const ownTraits = new Set(before.traits.map((t) => t.name));
+    gives = {
+      skills: top.skills.filter((skill) => !before.skills.includes(skill)),
+      resistances: top.resistances.filter((r) => !before.resistances.includes(r)),
+      spells: raceSpells
+        .map((spell) => ({ level: unlocked.get(spell.key) ?? 1, value: { level: spell.level, ability: spell.ability, key: spell.key } }))
+        .sort((a, b) => a.level - b.level),
+      traits: top.traits
+        .filter((t) => !ownTraits.has(t.name))
+        .map((t) => ({ name: t.name, ...(t.page != null && { page: t.page }), ...(t.summary != null && { summary: t.summary }) })),
+    };
+    raceGivesCache.set(key, gives);
   }
-  return skills;
+  return gives;
 }
 
 /**
@@ -339,13 +394,15 @@ function raceSkills(key: string): string[] {
  * (content/races.json) has no such race. The record has what the list has:
  * the name, the description (:help), the size, the speed, the darkvision,
  * the ability score increases, the languages, the weapon proficiencies and
- * the features (formTraits). The skill proficiencies, which the list does
- * not have, come from the engine (raceSkills). The Human gets +1 to each
- * ability, which the engine gives with its variant Standard Human, so that
- * a copy keeps a standard Human's scores. The list has no damage
- * resistances, saving throw advantages, spells or choices of the race,
- * and the copy has no subraces, so those are not in the record. The SRD
- * list loads once, as its own chunk.
+ * the features (formTraits). What the list does not have comes from the
+ * engine (raceGives): the skill proficiencies, the damage resistances, the
+ * spells, and each trait whose name the list does not have, such as those
+ * of the Tiefling. The Human gets +1 to each ability, which the engine
+ * gives with its variant Standard Human, so that a copy keeps a standard
+ * Human's scores. The race form has no saving throw advantage, so the copy
+ * has it only as the text of a feature. The record has no choices of the
+ * race, and the copy has no subraces. The SRD list loads once, as its own
+ * chunk.
  */
 export async function srdRaceRecord(key: string): Promise<Record<string, unknown> | undefined> {
   const { default: list } = await import("@pubdoor/dmv/content/races.json");
@@ -354,21 +411,32 @@ export async function srdRaceRecord(key: string): Promise<Record<string, unknown
   const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, ...rest } = race;
   // The list has no ability score increases for the Human: its +1 to each ability comes from the variant Standard Human.
   if (key === "human" && rest.abilities === undefined) rest.abilities = Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1]));
-  const skills = raceSkills(key);
+  const gives = raceGives(key);
+  const flags = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, true]));
   const props = {
-    ...(Array.isArray(weapons) && weapons.length > 0 && { "weapon-prof": Object.fromEntries(weapons.map((w) => [w, true])) }),
-    ...(skills.length > 0 && { "skill-prof": Object.fromEntries(skills.map((s) => [s, true])) }),
+    ...(Array.isArray(weapons) && weapons.length > 0 && { "weapon-prof": flags(weapons) }),
+    ...(gives.skills.length > 0 && { "skill-prof": flags(gives.skills) }),
+    ...(gives.resistances.length > 0 && { "damage-resistance": flags(gives.resistances) }),
   };
+  const listed = Array.isArray(traits) ? traits : [];
+  const names = new Set(listed.map((t: Record<string, unknown>) => t.name));
   const record = tagKeys({
     ...rest,
     ...(Object.keys(props).length > 0 && { props }),
-    traits: formTraits(traits),
+    traits: formTraits([...listed, ...gives.traits.filter((t) => !names.has(t.name))]),
   }) as Record<string, unknown>;
   // A keyword value and a set, which tagKeys does not make.
   return {
     ...record,
     ...(typeof size === "string" && { [tag("size")]: tag(size) }),
     [tag("languages")]: asSet(Array.isArray(languages) ? languages : []),
+    // A spell's ability and key are keywords.
+    ...(gives.spells.length > 0 && {
+      [tag("spells")]: gives.spells.map(({ level, value }) => ({
+        [tag("level")]: level,
+        [tag("value")]: { [tag("level")]: value.level, [tag("ability")]: tag(value.ability), [tag("key")]: tag(value.key) },
+      })),
+    }),
   };
 }
 

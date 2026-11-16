@@ -160,7 +160,8 @@ test("Dwarf: a weapon can become a tool, which goes into the tools; Edit finds t
     ...base,
     "~:name": "Dwarf (Custom Origin)",
     [CUSTOM_ORIGIN]: "~:dwarf",
-    "~:props": { "~:weapon-prof": { "~:handaxe": true, "~:light-hammer": true, "~:warhammer": true } },
+    // The poison resistance of the base record stays.
+    "~:props": { "~:weapon-prof": { "~:handaxe": true, "~:light-hammer": true, "~:warhammer": true }, "~:damage-resistance": { "~:poison": true } },
     "~:profs": { "~:tool": { "~:smiths-tools": true } },
   });
   expect(originPicks(base, copy)).toEqual(picked);
