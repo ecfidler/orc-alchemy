@@ -4,7 +4,7 @@ title: The 5e-bits 2024 data as a content source
 description: "License, coverage, quality, and structure of the 5e-bits SRD 5.2 JSON, measured against the SRD 5.2.1 PDF, with the ways to consume it."
 tags: [rules-2024, srd, engine]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T04:45:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T04:50:00Z }
 stale_after: 2027-02-16T00:00:00Z
 sources:
   - id: srd-api
@@ -125,7 +125,7 @@ The check was larger than the sample in ORC-219, because a script did the compar
 - The 15 conditions, the 8 mastery properties, the 9 species headers, and the 12 class records.
 - The Fighter and Wizard level tables.
 
-26 of the 716 records differ from the SRD. 22 have an error that changes a value or loses content. 4 have only a typing error or a small wording difference. One more error, in equipment, was found by chance.
+26 of the 716 records differ from the SRD. 22 have an error that changes a value or loses content. 4 have only a typing error or a small wording difference. Four more errors, in equipment, were found by chance.
 
 ### Results by type
 
@@ -169,8 +169,13 @@ The check was larger than the sample in ORC-219, because a script did the compar
 | Condition Charmed | `description` | "on ability checks to interact socially with you" | "on any ability check to interact with you socially" |
 | Condition Frightened | `description` | "the source of your fear" | "the source of fear" |
 | Equipment Scholar's Pack | `description` | The list includes a Blanket. | The list has no Blanket. This error was found by chance. Equipment was not checked as a set. |
+| Equipment Trident | `damage`, `two_handed_damage` | 1d6, and 1d8 with two hands | 1d8, and Versatile (1d10) (p91). The data has the SRD 5.1 values. |
+| Equipment Sling | `damage.damage_type` | Piercing | Bludgeoning (p91) |
+| Equipment Hide Armor | `equipment_categories` | `light-armor` | Medium Armor (p92) |
 
 **Traits.** Upstream divides some SRD traits into one record for each variant, for example `draconic-breath-weapon-acid`. For these records upstream wrote new sentences, so 33 of the 68 trait records have a sentence that is not in the SRD. These sentences are upstream text, not SRD text. I found no rules error in them.
+
+**Equipment.** The four equipment errors were found by chance: one in this check and three in the ORC-95 spike, which compared a small set of items. Thus the equipment file probably has more errors, and it needs a full comparison before use.
 
 **Not checked.** Monsters, magic items, and equipment were not compared as a set. The structured fields `damage` and `attack_type` on spells were not compared.
 
