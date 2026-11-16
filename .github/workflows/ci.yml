@@ -50,6 +50,14 @@ jobs:
               working-directory: packages/ui
               run: bun run test
 
+            - name: Engine package typecheck
+              working-directory: packages/engine
+              run: bun run typecheck
+
+            - name: Engine package tests
+              working-directory: packages/engine
+              run: bun run test
+
             - name: Bookmarklet typecheck
               working-directory: tools/exporter-bookmarklet
               run: bun run typecheck

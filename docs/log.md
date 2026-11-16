@@ -2,6 +2,7 @@
 
 ## 2026-11-16
 
+* **Creation**: Added [The 2024 engine spike](reports/2024-engine-spike.md), the report of the spike in `packages/engine` (ORC-95).
 * **Creation**: Added [The 5e-bits 2024 data as a content source](kb/5e-bits-2024-data.md) to the knowledge base (ORC-219).
 
 ## 2026-11-12

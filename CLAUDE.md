@@ -44,6 +44,7 @@ scripts/okf-check.ts     the docs bundle check
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
 packages/ui/             @orc-alchemy/ui: theme and controls (ORC-155)
+packages/engine/         @orc-alchemy/engine: the 2024 engine spike (ORC-95)
 tools/exporter-bookmarklet/  M5
 ```
 
