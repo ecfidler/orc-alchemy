@@ -8,7 +8,7 @@ import { useOpenCharacter } from "../state/character.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
-import { CustomizeLines, customizableBuilder } from "./CustomizeDialog.tsx";
+import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
@@ -119,8 +119,8 @@ function Options({ selection }: { selection: BuilderSelection }) {
   // The classes are rows, not cards. They stay here, not in Selection, because
   // each class's choices open below the rows as any selected option's do.
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
-  // A feat, for example, has a Customize line under the cards (ORC-134).
-  const customizable = customizableBuilder(selection);
+  // A feat or a background has a Customize line under the cards (ORC-134, ORC-135).
+  const customizable = customizableFor(selection);
 
   // Classes in the entity's order, as their rows.
   const opened = (isClass ? selection.selected.map((key) => selection.options.find((o) => o.key === key)!) : selection.options).filter(
@@ -130,7 +130,7 @@ function Options({ selection }: { selection: BuilderSelection }) {
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
       {isClass ? <Classes selection={selection} /> : !selection.sequential && <OptionCards selection={selection} options={selection.options} />}
-      {customizable && <CustomizeLines selection={selection} builder={customizable} />}
+      {customizable && <CustomizeLines selection={selection} customizable={customizable} />}
       {opened.map((option) => (
         <div key={option.key} className="ml-2 space-y-4 border-l border-rule-strong pl-4">
           <h4 className="italic">{option.name}</h4>

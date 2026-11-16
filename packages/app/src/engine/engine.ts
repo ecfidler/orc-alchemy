@@ -2,10 +2,10 @@
 // app loads the engine through here and treats the strict entity as opaque.
 
 import type * as Dmv from "@pubdoor/dmv";
-import type { ContentType, Evaluation, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity, ValidationProblem } from "@pubdoor/dmv";
+import type { Built2014, ContentType, Evaluation, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity, ValidationProblem } from "@pubdoor/dmv";
 import { useMemo } from "react";
 
-export type { ContentType, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity, ValidationProblem };
+export type { Built2014, ContentType, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity, ValidationProblem };
 
 /**
  * The content a character builds against, as the engine's options take it:

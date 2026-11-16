@@ -1,13 +1,30 @@
 // Character-local content (ORC-133): the helpers of custom.ts, and a custom
 // feat with scaled uses on the open character's sheet.
 import "fake-indexeddb/auto";
+import type { Inventory } from "@pubdoor/dmv";
 import { act, cleanup, render, renderHook, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { customHash, summaryFingerprint } from "../storage/characters.ts";
-import { builtInText, CUSTOM_PACK, characterContent, customizeOption, customKey, formRecord, hasCustomItems, optionOrigin, pruneCustom } from "./custom.ts";
+import { BACKGROUND_TYPE, optionKeyOf } from "./content.ts";
+import {
+  builtInText,
+  CUSTOM_PACK,
+  characterContent,
+  copyKey,
+  customizeOption,
+  formRecord,
+  hasCustomItems,
+  optionOrigin,
+  pruneCustom,
+  srdBackgroundRecord,
+  withCopyStartingEquipment,
+  withoutUnresolvedUnder,
+} from "./custom.ts";
 import { type Content, engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { missingContent, remapOption } from "./reconcile.ts";
+import { ARTISAN, BACKGROUND_PACK, SAGE, SAGE_PACKS, TAGGED_BACKGROUNDS, withSage } from "./test-backgrounds.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "./test-feats.ts";
 
 beforeAll(() => loadEngine());
@@ -17,7 +34,6 @@ afterEach(() => {
 });
 
 const FEATS = "~:orcpub.dnd.e5/feats";
-const BACKGROUNDS = "~:orcpub.dnd.e5/backgrounds";
 const RACES = "~:orcpub.dnd.e5/races";
 const LANGUAGES = "~:orcpub.dnd.e5/languages";
 const SELECTIONS = "~:orcpub.entity.strict/selections";
@@ -26,7 +42,7 @@ const KEY = "~:orcpub.entity.strict/key";
 const feat = (key: string, name: string, more: object = {}) => ({ "~:key": `~:${key}`, "~:name": name, "~:option-pack": CUSTOM_PACK, ...more });
 const CUSTOM = {
   [FEATS]: { "~:skill-expert-custom": feat("skill-expert-custom", "Skill Expert Custom", { "~:description": "You are an expert." }) },
-  [BACKGROUNDS]: { "~:sage-custom": feat("sage-custom", "Sage Custom") },
+  [TAGGED_BACKGROUNDS]: { "~:sage-custom": feat("sage-custom", "Sage Custom") },
   [RACES]: { "~:gnome-custom": feat("gnome-custom", "Gnome Custom", { "~:speed": 30 }) },
   [LANGUAGES]: { "~:sylvan-custom": feat("sylvan-custom", "Sylvan Custom") },
 };
@@ -151,10 +167,11 @@ const feats = (entity: StrictEntity, custom: object | undefined) =>
     .evaluate(entity, characterContent({ homebrew: PACKS }, custom))
     .selections.find((s) => s.key === "feats")!.selected;
 
-test("customKey is the key of the name without a dash at either end", () => {
-  expect(customKey("Skill Expert (Custom)")).toBe("skill-expert-custom");
-  expect(customKey("Grappler's Edge!")).toBe("grapplers-edge");
-  expect(customKey("()")).toBe("");
+test("copyKey of a feat is the key of the name without a dash at either end", () => {
+  const feat = "orcpub.dnd.e5/feats";
+  expect(copyKey(feat, "Skill Expert (Custom)")).toBe("skill-expert-custom");
+  expect(copyKey(feat, "Grappler's Edge!")).toBe("grapplers-edge");
+  expect(copyKey(feat, "()")).toBe("");
 });
 
 test("optionOrigin tells a custom copy, a pack item and a built-in apart", () => {
@@ -246,4 +263,207 @@ test("builtInText gives the text of the SRD feat's feature", () => {
   const { built } = engine().evaluate(fighter20());
   expect(builtInText(built, "Grappler")).toBe("Restrain a creature you are grappling");
   expect(builtInText(built, "No Such Feat")).toBe("");
+});
+
+// Customize a background (ORC-135). The engine keys a background by the name, not by the stored key.
+
+const evaluateWith = (entity: StrictEntity, custom: object | undefined) => engine().evaluate(entity, characterContent({ homebrew: SAGE_PACKS }, custom));
+/** What the sheet shows of a background: the background, the skills and tools, the language picks, the starting equipment and the features. */
+function backgroundParts(entity: StrictEntity, custom: object | undefined) {
+  const { built, selections } = evaluateWith(entity, custom);
+  const fromBackground = (items: Inventory) =>
+    Object.keys(items ?? {}).filter((key) => items?.[key]["orcpub.dnd.e5.character.equipment/background-starting-equipment?"]);
+  return {
+    background: built.background,
+    // The skills that the background gives, by their source.
+    skills: Object.entries(built["skill-profs"] ?? {})
+      .filter(([, sources]) => built.background !== null && Object.keys(sources as object).includes(built.background))
+      .map(([key]) => key)
+      .sort(),
+    tools: Object.keys(built["tool-profs"] ?? {}).sort(),
+    languages: selections.find((s) => s.key === "languages")!.max,
+    equipment: fromBackground(built.equipment).sort(),
+    gold: built.treasure?.gp?.["orcpub.dnd.e5.character.equipment/quantity"],
+    features: (built.traits ?? []).map((t) => t.name).filter((name) => !["Grappler Feat", "Remarkable Athlete", "Survivor", "Indomitable"].includes(name)),
+  };
+}
+
+test("copyKey gives a background copy the engine's key of its name, with its dashes, and a feat copy the key without the dashes", () => {
+  expect(copyKey(BACKGROUND_TYPE, "Sage (Custom)")).toBe("sage-custom-");
+  expect(copyKey("orcpub.dnd.e5/feats", "Sage (Custom)")).toBe("sage-custom");
+  expect(copyKey(BACKGROUND_TYPE, "Sage")).toBe("sage");
+  expect(copyKey(BACKGROUND_TYPE, "()")).toBe("");
+  // The engine gives the option the key of the name and ignores the stored key.
+  for (const stored of ["sage-custom", "sage-custom-"]) {
+    const custom = { [TAGGED_BACKGROUNDS]: { [`~:${stored}`]: { ...SAGE, "~:key": `~:${stored}`, "~:name": "Sage (Custom)", "~:option-pack": CUSTOM_PACK } } };
+    const shape = engine().buildTemplate(characterContent({ homebrew: undefined }, custom).homebrew).shape;
+    expect(shape.find((s) => s.key === "background")!.options.map((o) => o.key)).toContain("sage-custom-");
+    expect(shape.find((s) => s.key === "background")!.options.map((o) => o.key)).not.toContain("sage-custom");
+  }
+});
+
+test("optionOrigin finds a background by the key of its name, as the engine does", () => {
+  // A pack background whose stored key is not the key of its name (ORC-130).
+  const odd = { ...SAGE, "~:key": "~:old-sage" };
+  const packs = { [BACKGROUND_PACK]: { [TAGGED_BACKGROUNDS]: { "~:old-sage": odd } } };
+  expect(optionOrigin(packs, undefined, BACKGROUND_TYPE, "sage")).toEqual({ from: "pack", pack: BACKGROUND_PACK, item: odd });
+  expect(optionOrigin(packs, undefined, BACKGROUND_TYPE, "old-sage")).toEqual({ from: "built-in" });
+  const copy = { ...SAGE, "~:key": "~:sage-custom-", "~:name": "Sage (Custom)" };
+  expect(optionOrigin(packs, { [TAGGED_BACKGROUNDS]: { "~:sage-custom-": copy } }, BACKGROUND_TYPE, "sage-custom-")).toEqual({ from: "custom", item: copy });
+  expect(optionOrigin(packs, undefined, BACKGROUND_TYPE, "acolyte")).toEqual({ from: "built-in" });
+});
+
+test("customizeOption selects a background copy by the engine's key; its tool choice stays, and an edit and a rename keep the sheet", () => {
+  const entity = withSage();
+  const original = backgroundParts(entity, undefined);
+  expect(original).toEqual({
+    background: "Sage",
+    skills: ["arcana", "history"],
+    tools: ["smiths-tools", "thieves-tools"],
+    languages: 1,
+    equipment: ["ink", "ink-pen"],
+    gold: 10,
+    features: ["Researcher"],
+  });
+  const item = { ...formRecord(SAGE), "~:name": "Sage (Custom)" };
+  const first = customizeOption(entity, undefined, { contentType: BACKGROUND_TYPE, path: ["background", "sage"], item });
+  expect(first.custom).toEqual({ [TAGGED_BACKGROUNDS]: { "~:sage-custom-": { ...item, "~:key": "~:sage-custom-", "~:option-pack": CUSTOM_PACK } } });
+  expect(backgroundParts(first.entity, first.custom)).toEqual({ ...original, background: "Sage (Custom)" });
+  expect(
+    evaluateWith(first.entity, first.custom).selections.find((s) => s.actualPath.join("/") === "background/sage-custom-/tool-proficiency-artisans-tools")!
+      .selected,
+  ).toEqual(["smiths-tools"]);
+  expect(missingContent(first.entity, characterContent({ homebrew: SAGE_PACKS }, first.custom))).toEqual([]);
+  expect(pruneCustom(first.entity, first.custom)).toBe(first.custom);
+
+  const edited = { ...item, "~:help": "Changed." };
+  const same = customizeOption(first.entity, first.custom, {
+    contentType: BACKGROUND_TYPE,
+    path: ["background", "sage-custom-"],
+    item: edited,
+    replacedKey: "sage-custom-",
+  });
+  expect(same.entity).toBe(first.entity);
+  expect(same.custom).toEqual({ [TAGGED_BACKGROUNDS]: { "~:sage-custom-": { ...edited, "~:key": "~:sage-custom-", "~:option-pack": CUSTOM_PACK } } });
+
+  const renamed = customizeOption(same.entity, same.custom, {
+    contentType: BACKGROUND_TYPE,
+    path: ["background", "sage-custom-"],
+    item: { ...edited, "~:name": "Loremaster!" },
+    replacedKey: "sage-custom-",
+  });
+  expect(renamed.custom).toEqual({
+    [TAGGED_BACKGROUNDS]: { "~:loremaster-": { ...edited, "~:name": "Loremaster!", "~:key": "~:loremaster-", "~:option-pack": CUSTOM_PACK } },
+  });
+  expect(backgroundParts(renamed.entity, renamed.custom)).toEqual({ ...original, background: "Loremaster!" });
+  expect(pruneCustom(renamed.entity, renamed.custom)).toBe(renamed.custom);
+  // The original stays a background to pick.
+  expect(
+    engine()
+      .buildTemplate(characterContent({ homebrew: SAGE_PACKS }, renamed.custom).homebrew)
+      .shape.find((s) => s.key === "background")!
+      .options.map((o) => o.key),
+  ).toEqual(expect.arrayContaining(["sage", "loremaster-", "acolyte"]));
+});
+
+test("a choice under the background that the copy does not offer is unresolved after the remap, and withoutUnresolvedUnder drops it", () => {
+  const { "~:tool-options": _, ...profs } = SAGE["~:profs"];
+  const item = { ...formRecord(SAGE), "~:name": "Sage (Custom)", "~:profs": profs };
+  const next = customizeOption(withSage(), undefined, { contentType: BACKGROUND_TYPE, path: ["background", "sage"], item });
+  const content = characterContent({ homebrew: SAGE_PACKS }, next.custom);
+  expect(missingContent(next.entity, content).map((u) => u.path)).toEqual([[...ARTISAN.slice(0, 1), "sage-custom-", ARTISAN[2], "smiths-tools"]]);
+  const kept = withoutUnresolvedUnder(next.entity, ["background", "sage-custom-"], content);
+  // The entity is the one with Sage picked and no artisan's tool, with the pick moved to the copy: only the tool choice goes.
+  const e = engine();
+  const expected = remapOption(e.select(fighter20(), ["background"], "sage", { homebrew: SAGE_PACKS }), ["background", "sage"], "sage-custom-");
+  expect(kept).toEqual(expected);
+  expect(missingContent(kept, content)).toEqual([]);
+  expect(backgroundParts(kept, next.custom).tools).toEqual(["thieves-tools"]);
+  // An entity without unresolved options is returned as it is.
+  expect(withoutUnresolvedUnder(kept, ["background", "sage-custom-"], content)).toBe(kept);
+});
+
+test("optionKeyOf gives a background the key of its name, with its dashes, and another item its stored key", () => {
+  expect(optionKeyOf(BACKGROUND_TYPE, { "~:key": "~:old-sage", "~:name": "Sage (Custom)" })).toBe("sage-custom-");
+  expect(optionKeyOf(BACKGROUND_TYPE, { "~:key": "~:old-sage" })).toBe("old-sage");
+  expect(optionKeyOf(BACKGROUND_TYPE, {}, "~:at-key")).toBe("at-key");
+  expect(optionKeyOf("orcpub.dnd.e5/feats", { "~:key": "~:skill-expert", "~:name": "Other Name" })).toBe("skill-expert");
+});
+
+test("srdBackgroundRecord gives the SRD background of the engine's content list, with the template's holy symbol choice, and a copy keeps the sheet", async () => {
+  const record = await srdBackgroundRecord("acolyte");
+  expect(record).toEqual({
+    "~:name": "Acolyte",
+    "~:help": "Your life has been devoted to serving a god or gods.",
+    "~:profs": { "~:skill": { "~:insight": true, "~:religion": true }, "~:language-options": { "~:choose": 2, "~:options": { "~:any": true } } },
+    "~:equipment": { "~:clothes-common": 1, "~:pouch": 1, "~:incense": 5, "~:vestements": 1 },
+    "~:treasure": { "~:gp": 15 },
+    // The list has Prayer Book/Wheel. The holy symbol choice is only in the engine's template ("Starting Equipment: Holy Symbol").
+    "~:equipment-choices": [
+      { "~:name": "Prayer Book/Wheel", "~:options": { "~:prayer-book": 1, "~:prayer-wheel": 1 } },
+      { "~:name": "Holy Symbol", "~:options": { "~:amulet": 1, "~:emblem": 1, "~:reliquary": 1 } },
+    ],
+    // The feature's summary is its description, the field that the form edits.
+    "~:traits": [
+      {
+        "~:name": "Shelter the Faithful",
+        "~:page": 127,
+        "~:description": "You and your companions can expect free healing at an establishment of your faith.",
+      },
+    ],
+  });
+  expect(await srdBackgroundRecord("no-such-background")).toBeUndefined();
+  // The character's features have no feature named Acolyte, so builtInText has no text for it.
+  expect(builtInText(engine().evaluate(fighter20()).built, "Acolyte")).toBe("");
+
+  // fighter-20 picked the Amulet under the holy symbol choice. The copy has the choice with the same key, so the pick resolves.
+  const before = engine().evaluate(fighter20()).built;
+  const srd = backgroundParts(fighter20(), undefined);
+  const next = customizeOption(fighter20(), undefined, {
+    contentType: BACKGROUND_TYPE,
+    path: ["background", "acolyte"],
+    item: { ...record, "~:name": "Acolyte (Custom)" },
+  });
+  const content = characterContent({ homebrew: SAGE_PACKS }, next.custom);
+  expect(missingContent(next.entity, content)).toEqual([]);
+  expect(withoutUnresolvedUnder(next.entity, ["background", "acolyte-custom-"], content)).toBe(next.entity);
+  const after = engine().evaluate(next.entity, content).built;
+  expect(after.equipment).toEqual(before.equipment);
+  expect(after.equipment?.amulet).toBeDefined();
+  expect(after.treasure).toEqual(before.treasure);
+  expect(backgroundParts(next.entity, next.custom)).toEqual({ ...srd, background: "Acolyte (Custom)" });
+});
+
+test("withCopyStartingEquipment gives the copy's items and gold only when they change, and keeps the user's other items once", () => {
+  const e = engine();
+  const user = e.addInventoryItem(withSage(), "equipment", "lamp");
+  const item = { ...formRecord(SAGE), "~:name": "Sage (Custom)" };
+  const first = customizeOption(user, undefined, { contentType: BACKGROUND_TYPE, path: ["background", "sage"], item });
+  const content = characterContent({ homebrew: SAGE_PACKS }, first.custom);
+  const equipment = (entity: StrictEntity) => engine().evaluate(entity, content).built.equipment ?? {};
+  // No change to the items and the gold, or only to the equipment choices: the entity stays as it is.
+  expect(withCopyStartingEquipment(first.entity, "sage-custom-", item, { ...item, "~:help": "New." }, content)).toBe(first.entity);
+  const choice = { ...item, "~:equipment-choices": [{ "~:name": "Musical Instruments", "~:options": { "~:lute": 1 } }] };
+  expect(withCopyStartingEquipment(first.entity, "sage-custom-", item, choice, content)).toBe(first.entity);
+
+  const changed = { ...item, "~:equipment": { "~:ink": 1, "~:book": 1 }, "~:treasure": { "~:gp": 25 } };
+  const copy = customizeOption(first.entity, first.custom, {
+    contentType: BACKGROUND_TYPE,
+    path: ["background", "sage-custom-"],
+    item: changed,
+    replacedKey: "sage-custom-",
+  });
+  const copyContent = characterContent({ homebrew: SAGE_PACKS }, copy.custom);
+  const result = withCopyStartingEquipment(copy.entity, "sage-custom-", item, changed, copyContent);
+  const built = engine().evaluate(result, copyContent).built;
+  const background = Object.keys(built.equipment ?? {}).filter((k) => built.equipment?.[k]["orcpub.dnd.e5.character.equipment/background-starting-equipment?"]);
+  expect(background.sort()).toEqual(["book", "ink"]);
+  expect(built.treasure?.gp["orcpub.dnd.e5.character.equipment/quantity"]).toBe(25);
+  // The item that the user added stays, and each item is in the entity once.
+  expect(built.equipment?.lamp).toEqual(equipment(first.entity).lamp);
+  const keys = (result as Record<string, Record<string, unknown>[]>)["~:orcpub.entity.strict/selections"]
+    .filter((sel) => sel["~:orcpub.entity.strict/key"] === "~:equipment")
+    .flatMap((sel) => (sel["~:orcpub.entity.strict/options"] as Record<string, string>[]).map((o) => o["~:orcpub.entity.strict/key"]));
+  expect(new Set(keys).size).toBe(keys.length);
+  expect(keys).toContain("~:lamp");
 });

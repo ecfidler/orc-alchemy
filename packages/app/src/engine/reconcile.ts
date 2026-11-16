@@ -40,6 +40,44 @@ type Node = Record<string, unknown>;
 const notFound = (path: string[]) => new Error(`The option ${path.join(" / ")} is not in the character`);
 
 /**
+ * The parent with the option at path changed: path alternates selection
+ * and option keys. change gets the option and its selection, and gives the
+ * new option, or null to remove it; a selection left with no option goes
+ * too. missing gives the result when the path is not in the parent.
+ */
+function changeOptionAt(parent: Node, path: string[], change: (option: Node, selection: Node) => Node | null, missing: () => Node): Node {
+  const [selectionKey, optionKey, ...rest] = path;
+  const selections = parent[SELECTIONS];
+  if (!Array.isArray(selections)) return missing();
+  const index = selections.findIndex((s: Node) => s[KEY] === `~:${selectionKey}`);
+  if (index === -1) return missing();
+  const selection = selections[index] as Node;
+
+  const next = (option: Node) => (rest.length === 0 ? change(option, selection) : changeOptionAt(option, rest, change, missing));
+  let changed: Node | null;
+  const single = selection[OPTION] as Node | undefined;
+  if (single?.[KEY] === `~:${optionKey}`) {
+    const option = next(single);
+    changed = option === null ? null : { ...selection, [OPTION]: option };
+  } else {
+    const options = selection[OPTIONS];
+    if (!Array.isArray(options)) return missing();
+    const at = options.findIndex((o: Node) => o[KEY] === `~:${optionKey}`);
+    if (at === -1) return missing();
+    const option = next(options[at]);
+    const kept = option === null ? options.filter((_, i) => i !== at) : options.map((o: Node, i) => (i === at ? option : o));
+    changed = kept.length === 0 ? null : { ...selection, [OPTIONS]: kept };
+  }
+  if (changed !== null) return { ...parent, [SELECTIONS]: selections.map((s, i) => (i === index ? changed : s)) };
+  // An option with no selection left has no selections key, as the engine writes it.
+  const { [SELECTIONS]: _, ...withoutSelections } = parent;
+  return selections.length === 1 ? withoutSelections : { ...parent, [SELECTIONS]: selections.filter((_, i) => i !== index) };
+}
+
+/** The entity as a node: a stored entity is an object; the engine also takes Transit-JSON text. */
+const rootOf = (entity: StrictEntity) => (typeof entity === "string" ? JSON.parse(entity) : entity) as Node;
+
+/**
  * Gives the option at path a new key, and returns the new entity. path
  * alternates selection and option keys, as an UnresolvedKey's path does. The
  * option keeps its own selections, so a remapped class keeps its levels.
@@ -49,32 +87,38 @@ const notFound = (path: string[]) => new Error(`The option ${path.join(" / ")} i
  */
 export function remapOption(entity: StrictEntity, path: string[], newKey: string): StrictEntity {
   if (path.length < 2 || path.length % 2 !== 0) throw notFound(path);
-  // A stored entity is an object; the engine also takes Transit-JSON text.
-  const root = (typeof entity === "string" ? JSON.parse(entity) : entity) as Node;
-  return remapIn(root, path, newKey, path);
+  return changeOptionAt(
+    rootOf(entity),
+    path,
+    (option, selection) => {
+      const options = selection[OPTIONS];
+      if (Array.isArray(options) && options.some((o: Node) => o[KEY] === `~:${newKey}`)) {
+        throw new Error(`The character already has ${newKey} under ${path.at(-2)}`);
+      }
+      return { ...option, [KEY]: `~:${newKey}` };
+    },
+    () => {
+      throw notFound(path);
+    },
+  );
 }
 
-function remapIn(parent: Node, [selectionKey, optionKey, ...rest]: string[], newKey: string, path: string[]): Node {
-  const selections = parent[SELECTIONS];
-  if (!Array.isArray(selections)) throw notFound(path);
-  const index = selections.findIndex((s: Node) => s[KEY] === `~:${selectionKey}`);
-  if (index === -1) throw notFound(path);
-  const selection = selections[index] as Node;
-
-  const change = (option: Node): Node => (rest.length === 0 ? { ...option, [KEY]: `~:${newKey}` } : remapIn(option, rest, newKey, path));
-  let changed: Node;
-  const single = selection[OPTION] as Node | undefined;
-  if (single?.[KEY] === `~:${optionKey}`) {
-    changed = { ...selection, [OPTION]: change(single) };
-  } else {
-    const options = selection[OPTIONS];
-    if (!Array.isArray(options)) throw notFound(path);
-    const at = options.findIndex((o: Node) => o[KEY] === `~:${optionKey}`);
-    if (at === -1) throw notFound(path);
-    if (rest.length === 0 && options.some((o: Node) => o[KEY] === `~:${newKey}`)) {
-      throw new Error(`The character already has ${newKey} under ${selectionKey}`);
-    }
-    changed = { ...selection, [OPTIONS]: options.map((o: Node, i) => (i === at ? change(o) : o)) };
-  }
-  return { ...parent, [SELECTIONS]: selections.map((s, i) => (i === index ? changed : s)) };
+/**
+ * The entity without the option at path, which alternates selection and
+ * option keys, and without its own selections. A selection left with no
+ * option goes too. The entity as it is when the path is not in it.
+ */
+export function withoutOption(entity: StrictEntity, path: string[]): StrictEntity {
+  if (path.length < 2 || path.length % 2 !== 0) return entity;
+  let found = true;
+  const result = changeOptionAt(
+    rootOf(entity),
+    path,
+    () => null,
+    () => {
+      found = false;
+      return {};
+    },
+  );
+  return found ? result : entity;
 }
