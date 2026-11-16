@@ -36,7 +36,7 @@ import { useUnloadWarning } from "./leave-guard.tsx";
 /** What the copy of a built-in option opens with. */
 export interface BuiltInCopy {
   record: ItemRecord;
-  /** The paths of the character's picks under the option whose values the record has (saveCopy held). */
+  /** The paths of the character's picks under the option whose values the record has (Customization held). */
   held?: string[][];
 }
 

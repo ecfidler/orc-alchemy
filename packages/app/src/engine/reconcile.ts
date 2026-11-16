@@ -133,11 +133,17 @@ const optionsOf = (selection: Node): Node[] => {
 
 /** The node of the option at path in the parent, or undefined. path alternates selection and option keys. */
 function findOption(parent: Node, path: string[]): Node | undefined {
-  const [selectionKey, optionKey, ...rest] = path;
-  const selections = parent[SELECTIONS];
-  const selection = Array.isArray(selections) ? (selections as Node[]).find((s) => s[KEY] === `~:${selectionKey}`) : undefined;
-  const option = selection && optionsOf(selection).find((o) => o[KEY] === `~:${optionKey}`);
-  return option === undefined || rest.length === 0 ? option : findOption(option, rest);
+  let found: Node | undefined;
+  changeOptionAt(
+    parent,
+    path,
+    (option) => {
+      found = option;
+      return option;
+    },
+    () => parent,
+  );
+  return found;
 }
 
 /**

@@ -767,13 +767,17 @@ section says so.
 * An SRD race is also in the engine's content list,
   `@pubdoor/dmv/content/races.json`, in a shape near that of a pack race.
   Customize on an SRD race opens that record in the race form: the
-  description (`:help`), size, speed, darkvision, ability score
-  increases, languages, weapon proficiencies and features. The summary of
+  description (`:help`), size, speed, darkvision, languages, weapon
+  proficiencies and features. The summary of
   a feature becomes its description, as for a background.
 * The list does not have all of an SRD race. The engine builds a new
   character of level 20 with the race, and the same character with no
   race. The new character has the engine's default class. The record
-  gets what only the character with the race has (ORC-138, ORC-244):
+  gets what only the character with the race has (ORC-138, ORC-244,
+  ORC-247):
+  * The ability score increases. The record does not use those of the
+    list.
+  * The tool proficiencies, when the character has a pick that gives one.
   * The skill proficiencies. These are Perception for the Elf and
     Intimidation for the Half-Orc.
   * The damage resistances. These are poison for the Dwarf and fire for
@@ -810,8 +814,9 @@ section says so.
 * A choice of this kind with no pick gives the copy no value. For
   example, the copy of a Dragonborn without an ancestry has no Breath
   Weapon.
-* The Human with no variant pick gets +1 in each of the six abilities,
-  as the Standard Human.
+* The Human with no variant pick is the exception: its copy gets +1 in
+  each of the six abilities, as the Standard Human. The copy has no
+  variant choice, so without this rule the Human gets no increase.
 * The feat of a Variant Human is a pick of the character's feat list, not
   of the race. Save does not remove it. The copy does not give the place
   for it, so the builder then shows one feat too many.
@@ -889,6 +894,9 @@ Save, the dialog tells the user which picks these are.
   Save removes the tool pick of a Dwarf, and the copy gives that tool, so
   the character loses nothing. A pick under such a pick shows if the copy
   does not have its value.
+* The app finds these picks one time, when the dialog opens. If the user
+  then deletes such a value from the form, the line does not name the
+  pick. The user sees the change in the form.
 * Each pick shows as the name of its choice and, in parentheses, the name
   of its option. A pick under a removed pick does not show.
 * The line follows the form. When the dialog opens, the line is correct at

@@ -23,7 +23,7 @@ import {
 } from "./content.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { missingContent, picksUnder, remapOption, withOptionOf, withoutOption } from "./reconcile.ts";
-import type { Resistance } from "./sheet.ts";
+import { type Resistance, unqualify } from "./sheet.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
 export const CUSTOM_PACK = "Custom (this character)";
@@ -212,7 +212,7 @@ export interface Customization {
   replacedKey?: string;
   /**
    * The paths of the picks under the option whose values the copy has
-   * (RaceCopy held). The save removes them, and saveCopy does not list
+   * (BuiltInCopy held). The save removes them, and saveCopy does not list
    * them as removed.
    */
   held?: string[][];
@@ -346,7 +346,7 @@ interface RaceGives {
   spells: { level: number; value: { level: number; ability: string; key: string } }[];
   /** The traits, each with its name, page and summary. */
   traits: Record<string, unknown>[];
-  /** The attacks, which a pack race holds only as the text of a feature (attackTrait). */
+  /** The attacks, which a pack race holds only as the text of a feature (breathWeaponTrait). */
   attacks: AreaAttack[];
 }
 
@@ -438,23 +438,21 @@ function raceGives(key: string, picked?: StrictEntity): RaceGives {
   return gives;
 }
 
-/** The short name of an ability, from its full key: "DEX". */
-const abilityAbbr = (key: string) => key.slice(key.lastIndexOf("/") + 1).toUpperCase();
-
 /**
- * An area attack as a feature of a pack race, which has no attacks: an
+ * The Breath Weapon, the only area attack of an SRD race, as a feature
+ * of a pack race, which has no attacks: an
  * action with one use for each short rest, and the area, the saving throw
  * and the damage type as its text. The text has the damage of the SRD
  * Breath Weapon by level, in our own words, because the engine gives the
  * dice for one level only.
  */
-function attackTrait(attack: AreaAttack): Record<string, unknown> {
+function breathWeaponTrait(attack: AreaAttack): Record<string, unknown> {
   const area =
     attack["area-type"] === "line"
       ? `a line ${attack["line-width"]} ft. wide and ${attack["line-length"]} ft. long`
       : `a ${attack.length} ft. ${attack["area-type"]}`;
   const die = `d${attack["damage-die"]}`;
-  const save = abilityAbbr(attack.save ?? "");
+  const save = unqualify(attack.save ?? "").toUpperCase();
   return {
     name: attack.name,
     type: tag("action"),
@@ -535,7 +533,7 @@ export interface RaceCopy {
  * With the entity of a character of this race, the record also has what
  * the character's picks under the race give, as fixed values (racePicks):
  * a tool, ability score increases, a skill, a damage resistance, and an
- * attack as a feature (attackTrait). held has those picks.
+ * attack as a feature (breathWeaponTrait). held has those picks.
  *
  * Without a variant pick, the Human gets +1 to each ability, which the
  * engine gives with its variant Standard Human. The race form has no
@@ -569,7 +567,7 @@ export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Pr
     ...(Object.keys(abilities).length > 0 && { abilities }),
     ...(Object.keys(props).length > 0 && { props }),
     ...(Object.keys(profs).length > 0 && { profs }),
-    traits: [...formTraits([...listed, ...gives.traits.filter((t) => !names.has(t.name))]), ...gives.attacks.map(attackTrait)],
+    traits: [...formTraits([...listed, ...gives.traits.filter((t) => !names.has(t.name))]), ...gives.attacks.map(breathWeaponTrait)],
   }) as Record<string, unknown>;
   // A keyword value and a set, which tagKeys does not make.
   return {
