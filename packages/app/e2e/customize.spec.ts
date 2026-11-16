@@ -230,9 +230,9 @@ test("Custom Origin with the keyboard: move a bonus, swap a language and a skill
   await expect(plus2).toHaveText("Dexterity");
   await expect(dialog.getByRole("button", { name: "Put back +2 on Strength" })).toBeVisible();
 
-  // Orc becomes Elvish, and Intimidation becomes Stealth. Each list opens over the dialog and closes on a pick; the focus comes back to the token.
+  // Orc becomes Dwarvish, and Intimidation becomes Stealth. Each list opens over the dialog and closes on a pick; the focus comes back to the token.
   for (const [token, row, now] of [
-    ["Change language Orc", "Elvish", "Change language Elvish, in place of Orc"],
+    ["Change language Orc", "Dwarvish", "Change language Dwarvish, in place of Orc"],
     ["Change proficiency Intimidation", "Stealth", "Change proficiency Stealth, in place of Intimidation"],
   ]) {
     await dialog.getByRole("button", { name: token }).focus();
@@ -254,7 +254,7 @@ test("Custom Origin with the keyboard: move a bonus, swap a language and a skill
 
   const sheet = page.getByRole("region", { name: "Preview" });
   await expect(sheet.getByLabel("Race", { exact: true })).toHaveText("Half-Orc (Custom Origin)");
-  await expect(sheet.getByRole("group", { name: "Other proficiencies & languages" })).toContainText("Elvish");
+  await expect(sheet.getByRole("group", { name: "Other proficiencies & languages" })).toContainText("Dwarvish");
   const skill = (name: string) => sheet.getByRole("group", { name: "Skills" }).getByRole("listitem").filter({ hasText: name });
   await expect(skill("Stealth").getByRole("img", { name: "Proficient" })).toBeVisible();
   await expect(skill("Intimidation").getByRole("img", { name: "Proficient" })).toHaveCount(0);
@@ -263,7 +263,7 @@ test("Custom Origin with the keyboard: move a bonus, swap a language and a skill
   await page.keyboard.press("Enter");
   await expect(dialog.getByRole("combobox", { name: "Base race" })).toHaveText("Half-Orc");
   await expect(dialog.getByRole("combobox", { name: "+2 bonus, Half-Orc gives Strength" })).toHaveText("Dexterity");
-  await expect(dialog.getByRole("button", { name: "Change language Elvish, in place of Orc" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Change language Dwarvish, in place of Orc" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Change proficiency Stealth, in place of Intimidation" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();

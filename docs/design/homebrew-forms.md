@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T16:57:43Z }
+generated: { by: claude-code/agent, at: 2026-11-16T20:33:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -933,7 +933,15 @@ The dialog is one page that scrolls, in the ui `Dialog`, with the title
 A click on a token opens the list of its slot over the dialog, for one
 pick. The list closes on a pick, and the focus goes back to the token.
 An option that another slot holds is not offered, and nor is a value
-that the record holds outside its slots. The race's own value
+that the record holds outside its slots. A language or a proficiency
+that the character has without its race is not offered either (ORC-245):
+a second source of the value makes the builder ask the user to remove a
+selection. The app builds the character without its race to find these
+values, so a value from the class, the background, a feat or the
+Languages selection counts. The engine builds the weapons of a class as
+"simple" and "martial", so one weapon of such a group is still offered.
+A muted line under the sections says that the lists leave these values
+out. The race's own value stays in its list, and
 shows "{Race} gives this". A list of more than 20 options has a search
 field. A changed token is marked, and its X, "Put back {value}", puts the
 race's value back.
