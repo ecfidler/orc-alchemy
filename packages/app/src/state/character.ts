@@ -86,7 +86,7 @@ export function useOpenCharacter() {
  */
 export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId: string | null, custom?: object): Promise<string> {
   const id = crypto.randomUUID();
-  await save({ format: "dmv-character", version: FILE_VERSION, rules, id, legacyId }, entity, custom);
+  await save({ format: "dmv-character", rules, id, legacyId }, entity, custom);
   return id;
 }
 
@@ -96,7 +96,7 @@ export async function addCharacter(entity: StrictEntity, rules: Rules, legacyId:
  * the custom items that entity selects are stored (pruneCustom), and the
  * custom content stored is returned: undefined when none is left.
  */
-async function save(record: Omit<CharacterRecord, "name" | "updatedAt" | "entity">, entity: StrictEntity, custom: object | undefined) {
+async function save(record: Omit<CharacterRecord, "version" | "name" | "updatedAt" | "entity">, entity: StrictEntity, custom: object | undefined) {
   const { content, fingerprint } = useHomebrew.getState();
   const kept = pruneCustom(entity, custom);
   const sheet = buildSheet(entity, characterContent(content, kept));

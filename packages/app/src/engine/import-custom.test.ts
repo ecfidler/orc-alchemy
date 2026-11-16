@@ -11,7 +11,7 @@ import { type CharacterRecord, getCharacter } from "../storage/characters.ts";
 import { BACKGROUND_TYPE, CONTENT_TYPES } from "./content.ts";
 import { CUSTOM_PACK, characterContent, saveCopy, srdBackgroundRecord, srdRaceRecord } from "./custom.ts";
 import { type Content, type ContentType, engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { characterFile, checkCustom, exportBundle, readCharacterFile } from "./import.ts";
+import { CUSTOM_BUILD_FAILURE, characterFile, checkCustom, exportBundle, readCharacterFile } from "./import.ts";
 import { exportOrcbrew } from "./orcbrew-export.ts";
 import { toSheet } from "./sheet.ts";
 import { fighter20 } from "./test-feats.ts";
@@ -193,4 +193,73 @@ test("the .orcbrew export has the packs only, never a character's custom content
   if (!("text" in result)) throw new Error("The pack does not export");
   expect(result.text).toContain("warlock-test-content");
   for (const name of ["Grappler (Custom)", "Acolyte (Custom)", "Human (Custom)", CUSTOM_PACK]) expect(result.text).not.toContain(name);
+});
+
+test("checkCustom leaves out an item whose key is not its map key, but not a background, which the engine keys by its name", async () => {
+  const { custom } = await customized();
+  const typed = custom as Record<string, Record<string, Record<string, unknown>>>;
+  const grappler = typed[FEATS]["~:grappler-custom"];
+  const human = typed["~:orcpub.dnd.e5/races"]["~:human-custom"];
+  const acolyte = typed["~:orcpub.dnd.e5/backgrounds"]["~:acolyte-custom-"];
+  const { "~:key": _, ...noKey } = grappler;
+  expect(
+    checkCustom({
+      [FEATS]: { "~:grappler-custom": noKey },
+      "~:orcpub.dnd.e5/races": { "~:human-custom": { ...human, "~:key": "~:human" } },
+      "~:orcpub.dnd.e5/backgrounds": { "~:acolyte-custom-": { ...acolyte, "~:key": "~:other" } },
+    }),
+  ).toEqual({
+    custom: { "~:orcpub.dnd.e5/backgrounds": { "~:acolyte-custom-": { ...acolyte, "~:key": "~:other" } } },
+    problems: [
+      "The custom feat Grappler (Custom) was left out: its key is not its map key.",
+      "The custom race Human (Custom) was left out: its key is not its map key.",
+    ],
+  });
+});
+
+/** fighter-20's file with a custom feat that passes the feat validator but stops the build. */
+async function unbuildable() {
+  const { entity, custom } = await customized();
+  const typed = custom as Record<string, Record<string, Record<string, unknown>>>;
+  const broken = { ...typed, [FEATS]: { "~:grappler-custom": { ...typed[FEATS]["~:grappler-custom"], "~:ability-increases": "str" } } };
+  expect(checkCustom(broken)).toEqual({ custom: broken, problems: [] });
+  const file = characterFile({
+    format: "dmv-character" as const,
+    version: 2 as const,
+    rules: "2014" as const,
+    id: "x",
+    name: "Ser Aldric",
+    updatedAt: "t",
+    legacyId: null,
+    entity,
+  });
+  return { file: { ...file, custom: broken }, entity };
+}
+
+/** The record of fighter-20's entity stored with no custom content, as an import of it stores it. */
+const plainRecord = (record: CharacterRecord, entity: StrictEntity): CharacterRecord => ({
+  format: "dmv-character",
+  version: 2,
+  rules: "2014",
+  id: record.id,
+  name: "Ser Aldric",
+  updatedAt: record.updatedAt,
+  legacyId: null,
+  entity: engine().importCharacter(engine().exportCharacter(entity)).entity,
+});
+
+test("a custom item that passes its validator but stops the build leaves the custom content out, and the character imports", async () => {
+  const { file, entity } = await unbuildable();
+  const { records, failures } = await importText(JSON.stringify(file));
+  expect(failures).toEqual([`Ser Aldric: ${CUSTOM_BUILD_FAILURE}`]);
+  expect(records).toEqual([plainRecord(records[0], entity)]);
+});
+
+test("in a bundle, a character whose custom content stops the build imports without it, and the others import as they are", async () => {
+  const { file, entity } = await unbuildable();
+  const other = (await getCharacter(await addCharacter(fighter20(), "2014", null)))!;
+  const bundle = { ...exportBundle([other], "https://alchemy.example"), characters: [file, characterFile(other)] };
+  const { records, failures } = await importText(JSON.stringify(bundle));
+  expect(failures).toEqual([`Ser Aldric: ${CUSTOM_BUILD_FAILURE}`]);
+  expect(records).toEqual([plainRecord(records[0], entity), { ...other, id: records[1].id, updatedAt: records[1].updatedAt }]);
 });

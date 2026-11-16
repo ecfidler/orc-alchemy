@@ -45,10 +45,10 @@ character id is necessary. It then downloads one `dmv-export.json` bundle:
 
 An entry in `characters` or `magicItems` can be a string: the raw EDN
 text of one old server response. A list response holds many values. A
-`characters` entry can also be one character as an object: a bare strict
-entity, as the app's version 1 export wrote it, or a `dmv-character`
-envelope, as its version 2 export writes it (see below). The bookmarklet
-format stays `dmv-export` version 1.
+`characters` entry can also be one character as an object. It is a bare
+strict entity, as the app's version 1 export wrote it, or a
+`dmv-character` envelope, as its version 2 export writes it (see below).
+The bookmarklet format stays `dmv-export` version 1.
 
 The calls are same-origin, so CORS is not a problem. The old server sends
 no CORS headers in production, so a cross-origin fetch from the new app is
@@ -114,9 +114,9 @@ Wrap it in an envelope the app owns:
 
 `legacyId` is the old app's id, or `null`. It is optional on import.
 
-`custom` is the character's own custom content (ORC-133 to ORC-137): one
-single-plugin map in the form of a stored pack's plugin, with the options
-that the user customized for this character only. The character builds
+`custom` is the character's own custom content (ORC-133 to ORC-137). It
+is one single-plugin map in the form of a stored pack's plugin. It holds
+the options that the user customized for this character only. The character builds
 against it as one more pack, under the reserved name
 `Custom (this character)`. A character without custom content has no
 `custom` field.
@@ -133,18 +133,34 @@ next save. The importer reads versions 1 and 2:
   and nothing is stored. An app from before ORC-137 refuses a version 2
   file in the same way.
 
-**Imported custom content is untrusted.** The importer keeps it only in
-this shape: a map of content types that a pack can have, each one a map
-of items under Transit keyword keys. Each item must pass the validator of
-its type, as an item that the Customize dialog saves does. Each kept item
-gets `Custom (this character)` as its `option-pack`, so the file cannot
-name a loaded pack, and the character builds against it only as the
-reserved pack, so it cannot replace a loaded pack. The importer then
-drops the items that the entity does not select (`pruneCustom`). A part
-that is not valid is left out, and the import log names it, for example
-"Fimble Nackle: The custom feat grappler-custom was left out: name is
-missing." The character still imports. An option whose custom item was
-left out shows as unresolved content.
+**Imported custom content is untrusted.** The importer checks it in these
+steps:
+
+1. The content must be a map of content types that a pack can have. Each
+   content type must be a map of items under Transit keyword keys.
+2. Each item must pass the validator of its type, as an item that the
+   Customize dialog saves does.
+3. An item of each type except backgrounds must have its map key as its
+   `:key`. The engine keys these items by `:key`, so another key would
+   select another option. The engine keys a background by its name.
+4. Each kept item gets `Custom (this character)` as its `option-pack`, so
+   the file cannot name a loaded pack.
+5. The importer drops the items that the entity does not select
+   (`pruneCustom`).
+6. The importer builds the character with the custom content. Some items
+   pass their validator and still stop the build. Then the character
+   imports without its custom content, and the import log says "The
+   custom options were left out: the app cannot build the character with
+   them." A character that does not build without custom content fails
+   as before.
+
+The character builds with its custom content as the last pack. Thus a
+custom item can shadow a pack item with the same key, for this character
+only. It cannot change a loaded pack. A part that is not valid is left
+out, and the import log names it. An example is "Fimble Nackle: The
+custom feat grappler-custom was left out: name is missing." The character
+still imports. An option whose custom item was left out shows as
+unresolved content.
 
 `rules` is the rules edition the character is built with, and the app
 passes it to `evaluate`. It is always `"2014"` in this plan. Import reads a
@@ -158,19 +174,19 @@ new-app formats. The old app cannot read them and does not need to.
 
 The bundle from the new app is `dmv-export` version 2 (ORC-137). Each
 entry in `characters` is the character's version 2 envelope, with its
-`custom`, so the bundle keeps `legacyId` and the character's custom
-content. The importer reads each entry that is an envelope as a single
-envelope file, and each other object as a bare entity, so a version 1
-bundle from the app or the bookmarklet still imports. It refuses a
-higher bundle version. An app from before ORC-137 refuses a version 2
-bundle as a whole with "Unsupported dmv-export version: 2", its packs and
-magic items too.
+`custom`. Thus the bundle keeps `legacyId` and the character's custom
+content. The importer reads an entry that is an envelope as a single
+envelope file. It reads each other object as a bare entity, so a version
+1 bundle from the app or the bookmarklet still imports. It refuses a
+higher bundle version. An app from before ORC-137 refuses all of a
+version 2 bundle, its packs and magic items too. Its message is
+"Unsupported dmv-export version: 2".
 
 When an exported character has custom content, the export shows one line
-of `--warning` text after the download: the old Dungeon Master's Vault
-cannot read the custom options, so the character does not open there as
-it is. "Export everything" shows it when any character has custom
-content. The warning does not stop the download, and an export without
+of `--warning` text after the download. The line says that the old
+Dungeon Master's Vault cannot read the custom options, so the character
+does not open there as it is. "Export everything" shows it when any
+character has custom content. The warning does not stop the download, and an export without
 custom content shows no warning.
 
 The bundle from the new app adds two fields when packs are stored (ORC-54):

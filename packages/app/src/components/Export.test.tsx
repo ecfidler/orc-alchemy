@@ -1,13 +1,15 @@
 // The export buttons (ORC-137): the warning about custom options shows only
 // when an exported character has custom content.
 import "fake-indexeddb/auto";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import { customizeOption } from "../engine/custom.ts";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { fighter20 } from "../engine/test-feats.ts";
 import { addCharacter, removeCharacter } from "../state/character.ts";
 import { listCharacters } from "../storage/characters.ts";
+import { CharacterList } from "./CharacterList.tsx";
 import { ExportCharacter, ExportEverything } from "./Export.tsx";
 
 const ONE = "This character has custom options. The old Dungeon Master's Vault cannot read them, so the character does not open there as it is.";
@@ -67,4 +69,22 @@ test("export everything warns when any character has custom content, and not oth
   render(<ExportEverything />);
   fireEvent.click(screen.getByRole("button", { name: "Export everything" }));
   expect(await screen.findByRole("note")).toHaveTextContent(ALL);
+});
+
+test("in the character list, the warning shows on its own line under the row of the character, not between its buttons", async () => {
+  const { entity, custom } = withCustomFeat();
+  await addCharacter(entity, "2014", null, custom);
+  render(
+    <MemoryRouter>
+      <CharacterList />
+    </MemoryRouter>,
+  );
+  const row = await screen.findByRole("listitem", { name: "Ser Aldric" });
+  fireEvent.click(within(row).getByRole("button", { name: "Export Ser Aldric" }));
+  const note = await within(row).findByRole("note");
+  expect(note).toHaveTextContent(ONE);
+  // The line is the row's last item, at the full width of the row, after Delete.
+  const line = note.parentElement!;
+  expect(line).toHaveClass("basis-full");
+  expect(row.lastElementChild).toBe(line);
 });

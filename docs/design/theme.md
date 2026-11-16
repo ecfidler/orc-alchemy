@@ -476,7 +476,8 @@ same row.
 * When unsaved changes come back from a draft, a blue info note under the
   row says so.
 * The messages of Export show under the row, not in it, so the row keeps
-  its one line (ORC-137). A failed export is an alert line. When the
+  its one line (ORC-137). In the character list, they show on a line
+  under the character's row, after Export and Delete. A failed export is an alert line. When the
   character has custom content, Export downloads the file and then shows
   one line of `--warning` text: "This character has custom options. The
   old Dungeon Master's Vault cannot read them, so the character does not

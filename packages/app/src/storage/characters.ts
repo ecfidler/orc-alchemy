@@ -9,13 +9,14 @@
 import { create } from "zustand";
 import { hasCustomItems } from "../engine/custom.ts";
 import type { Rules, StrictEntity } from "../engine/engine.ts";
+import type { FILE_VERSION } from "../engine/import.ts";
 import type { Sheet } from "../engine/sheet.ts";
 
 /** The dmv-character envelope (doc 03), as stored. */
 export interface CharacterRecord {
   format: "dmv-character";
-  /** The app saves version 2 (ORC-137). A record saved before then keeps version 1 until its next save; the two have the same fields. */
-  version: 1 | 2;
+  /** The app saves FILE_VERSION (ORC-137). A record saved before then keeps version 1 until its next save; the two have the same fields. */
+  version: 1 | typeof FILE_VERSION;
   rules: Rules;
   id: string;
   name: string | null;

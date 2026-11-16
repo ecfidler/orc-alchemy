@@ -137,11 +137,7 @@ function SheetPage() {
     >
       {(sheet) => (
         <>
-          {exportMessages && (exportMessages.message || exportMessages.warning) && (
-            <div className="mb-4 space-y-1">
-              <ExportMessageLines {...exportMessages} />
-            </div>
-          )}
+          {exportMessages && <ExportMessageLines {...exportMessages} className="mb-4" />}
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
           <CharacterSheet sheet={sheet} />
         </>

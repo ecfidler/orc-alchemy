@@ -41,7 +41,7 @@ export function ExportCharacter({
         const record = await getCharacter(id);
         if (record === undefined) throw new Error("The character is no longer stored");
         download(`${fileName(record.name)}.json`, characterFile(record));
-        return hasCustomItems(record.custom) ? { warning: CUSTOM_WARNING_ONE } : undefined;
+        return { warning: hasCustomItems(record.custom) ? CUSTOM_WARNING_ONE : null };
       }}
     />
   );
@@ -84,7 +84,7 @@ export function ExportEverything() {
               notices.push(`all-content.orcbrew was not written: the old app would refuse ${names}. To see why, or to export anyway, use My Content.`);
             } else downloadText(orcbrew.fileName, orcbrew.text, "application/edn");
           }
-          return { notice: notices.join(" ") || undefined, warning: records.some((r) => hasCustomItems(r.custom)) ? CUSTOM_WARNING_ALL : undefined };
+          return { message: notices.join(" ") || null, warning: records.some((r) => hasCustomItems(r.custom)) ? CUSTOM_WARNING_ALL : null };
         }}
       />
       <p>With homebrew, it also writes all-content.orcbrew for the old app. That file has no magic items, because the old app has no magic-item homebrew.</p>
@@ -92,13 +92,7 @@ export function ExportEverything() {
   );
 }
 
-/** What an export shows after its download: notice when it is only partly done, and warning about what the old app cannot read. */
-interface ExportResult {
-  notice?: string;
-  warning?: string;
-}
-
-/** What an export button shows after a click. */
+/** What an export button shows after a click, or onExport returns after the download. */
 export interface ExportMessages {
   /** Why the export failed, or the notice of a partial export. */
   message: string | null;
@@ -106,17 +100,20 @@ export interface ExportMessages {
   warning: string | null;
 }
 
-/** An export's messages: the message as an alert, and the warning as a note in --warning text. */
-export function ExportMessageLines({ message, warning }: ExportMessages) {
+const NO_MESSAGES: ExportMessages = { message: null, warning: null };
+
+/** An export's messages in their own block: the message as an alert, and the warning as a note in --warning text. Nothing with neither. */
+export function ExportMessageLines({ message, warning, className = "" }: ExportMessages & { className?: string }) {
+  if (!message && !warning) return null;
   return (
-    <>
+    <div className={`space-y-1 ${className}`}>
       {message && <p role="alert">{message}</p>}
       {warning && (
         <p role="note" className="text-warning">
           {warning}
         </p>
       )}
-    </>
+    </div>
   );
 }
 
@@ -129,16 +126,17 @@ function ExportButton({
 }: {
   label: ReactNode;
   variant?: ButtonVariant;
-  onExport: () => Promise<ExportResult | void>;
+  /** Downloads the file, and returns what to show after it, or nothing. */
+  onExport: () => Promise<Partial<ExportMessages> | void>;
   onMessages?: (messages: ExportMessages) => void;
 }) {
-  const [messages, setMessages] = useState<ExportMessages>({ message: null, warning: null });
+  const [messages, setMessages] = useState<ExportMessages>(NO_MESSAGES);
   const show = (next: ExportMessages) => (onMessages ?? setMessages)(next);
   async function onClick() {
-    show({ message: null, warning: null });
+    show(NO_MESSAGES);
     try {
       const result = await onExport();
-      show({ message: result?.notice ?? null, warning: result?.warning ?? null });
+      show({ ...NO_MESSAGES, ...result });
     } catch (e) {
       show({ message: e instanceof Error ? e.message : String(e), warning: null });
     }

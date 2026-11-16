@@ -4,12 +4,11 @@
 // and its save (events.cljs ::langs/save-language) adds only :key, so an
 // .orcbrew export round-trips. The invocation and boon forms have the same
 // fields, so they use the same form, NameDescriptionForm in fields.tsx.
+import { packType } from "../../engine/content.ts";
 import { type BuilderType, NameDescriptionForm } from "./fields.tsx";
 
 export const languageBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/languages",
-  validator: "language",
-  one: "language",
+  ...packType("orcpub.dnd.e5/languages"),
   empty: {},
   fields: ["name"],
   Form: NameDescriptionForm,

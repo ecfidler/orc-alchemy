@@ -12,7 +12,7 @@
 // list (modifiers.tsx).
 import { Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode } from "react";
-import { tag } from "../../engine/content.ts";
+import { packType, tag } from "../../engine/content.ts";
 import {
   ABILITIES,
   type BuilderType,
@@ -280,9 +280,7 @@ function MonsterForm({ record, onChange, problems }: FormProps) {
 }
 
 export const monsterBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/monsters",
-  validator: "monster",
-  one: "monster",
+  ...packType("orcpub.dnd.e5/monsters"),
   // The old builder's new monster (db.cljs default-monster).
   empty: {
     [tag("size")]: tag("large"),

@@ -20,6 +20,17 @@ export const CONTENT_TYPES: { type: ContentType; one: string; many: string; vali
   { type: "orcpub.dnd.e5/selections", one: "selection", many: "selections", validator: "selection" },
 ];
 
+/**
+ * The fields of a pack content type's form (BuilderType) that CONTENT_TYPES
+ * holds: the content type, its validator, and the name of one item. Throws
+ * for a type that is not in CONTENT_TYPES.
+ */
+export function packType(type: ContentType): { contentType: ContentType; validator: keyof Engine["validate"]; one: string } {
+  const entry = CONTENT_TYPES.find((t) => t.type === type);
+  if (entry === undefined) throw new Error(`${type} is not a pack content type`);
+  return { contentType: type, validator: entry.validator, one: entry.one };
+}
+
 /** The pack name that the old class list leaves off a class's name. */
 export const DEFAULT_PACK = "Default Option Source";
 

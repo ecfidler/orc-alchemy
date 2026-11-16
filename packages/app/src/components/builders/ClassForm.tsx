@@ -16,7 +16,7 @@
 import { Chips, FieldErrors, Fieldset, XButton } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
-import { intKey, intKeyValue, setItems, tag, untag } from "../../engine/content.ts";
+import { intKey, intKeyValue, packType, setItems, tag, untag } from "../../engine/content.ts";
 import { ordinal } from "../CharacterSheet.tsx";
 import {
   ABILITIES,
@@ -420,9 +420,7 @@ function ClassForm({ record, onChange, problems }: FormProps) {
 }
 
 export const classBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/classes",
-  validator: "class",
-  one: "class",
+  ...packType("orcpub.dnd.e5/classes"),
   // The old builder's new class (db.cljs default-class).
   empty: { [tag("hit-die")]: 6, [tag("ability-increase-levels")]: [4, 8, 12, 16, 19], [tag("traits")]: [], [tag("level-modifiers")]: [] },
   fields: [

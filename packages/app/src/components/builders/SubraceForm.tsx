@@ -10,7 +10,7 @@
 // (modifiers.tsx).
 import { Field } from "@orc-alchemy/ui";
 import type { BuilderChoices, RaceChoice } from "../../engine/builder-choices.ts";
-import { tag, untag } from "../../engine/content.ts";
+import { packType, tag, untag } from "../../engine/content.ts";
 import {
   type BuilderType,
   type Edit,
@@ -122,9 +122,7 @@ function SubraceForm({ record, onChange, problems }: FormProps) {
 }
 
 export const subraceBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/subraces",
-  validator: "subrace",
-  one: "subrace",
+  ...packType("orcpub.dnd.e5/subraces"),
   // The old builder's new subrace (db.cljs default-subrace).
   empty: { [tag("race")]: tag("dwarf"), [tag("traits")]: [] },
   fields: ["name", "race"],

@@ -11,7 +11,7 @@
 import { AddChip, Field, Fieldset, Label, type ListItem, ListModal, Token } from "@orc-alchemy/ui";
 import { useRef, useState } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
-import { intKey, tag, untag } from "../../engine/content.ts";
+import { intKey, packType, tag, untag } from "../../engine/content.ts";
 import { ordinal } from "../CharacterSheet.tsx";
 import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
 import {
@@ -221,9 +221,7 @@ function SubclassForm({ record, onChange, problems }: FormProps) {
 }
 
 export const subclassBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/subclasses",
-  validator: "subclass",
-  one: "subclass",
+  ...packType("orcpub.dnd.e5/subclasses"),
   // The old builder's new subclass (db.cljs default-subclass).
   empty: { [tag("class")]: tag("barbarian"), [tag("traits")]: [], [tag("level-modifiers")]: [] },
   fields: ["name", "class", "level-modifiers", "level-selections", "traits"],

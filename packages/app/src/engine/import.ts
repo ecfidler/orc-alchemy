@@ -5,10 +5,11 @@
 // through the engine's importCharacter, and each one written through its
 // exportCharacter. An envelope's custom content (ORC-137) is checked as
 // untrusted input before it is kept.
-import { CONTENT_TYPES, OPTION_PACK, untag } from "./content.ts";
+import { BACKGROUND_TYPE, CONTENT_TYPES, OPTION_PACK, tag, untag } from "./content.ts";
 import { CUSTOM_PACK, characterContent, hasCustomItems, pruneCustom } from "./custom.ts";
 import { type Content, engine, type Rules, type StrictEntity, type ValidationProblem } from "./engine.ts";
 import { missingContent, type UnresolvedKey } from "./reconcile.ts";
+import { toSheet } from "./sheet.ts";
 
 /**
  * The version of the dmv-character envelope and the dmv-export bundle that
@@ -110,7 +111,7 @@ function importEnvelope(data: Record<string, unknown>, content: Content | undefi
     throw new Error(`This character uses the ${String(data.rules)} rules, which this app does not support yet`);
   }
   const { custom, problems } = checkCustom(data.custom);
-  const character = importOne(data.entity, content, custom);
+  const character = importOne(data.entity, content, custom, problems);
   if (typeof data.legacyId === "string") character.legacyId = data.legacyId;
   const name = character.name ?? "Unnamed character";
   return { character, failures: problems.map((problem) => `${name}: ${problem}`) };
@@ -124,11 +125,14 @@ const isEnvelope = (value: unknown): value is Record<string, unknown> => isObjec
  * and why each part of it that is left out was left out. Each content type
  * must be one that a pack has, and each item a map under a Transit keyword
  * key that passes its type's validator, as the item that the Customize
- * dialog saves does. Each item kept gets CUSTOM_PACK as its option source,
- * so it never names a loaded pack; the character builds against it as the
- * pack CUSTOM_PACK (characterContent), so it cannot replace a loaded pack.
- * An item is kept as the file has it, so a file that the app wrote imports
- * the same. undefined when no item is left.
+ * dialog saves does. An item of each type but backgrounds must have its
+ * map key as its :key, by which the engine keys it. Each item kept gets
+ * CUSTOM_PACK as its option source, so it never names a loaded pack. The
+ * character builds against it as the last pack, CUSTOM_PACK
+ * (characterContent): an item can shadow a pack item with its key for this
+ * character, but no loaded pack changes. An item is kept as the file has
+ * it, so a file that the app wrote imports the same. undefined when no item
+ * is left.
  */
 export function checkCustom(custom: unknown): { custom: object | undefined; problems: string[] } {
   if (custom === undefined || custom === null) return { custom: undefined, problems: [] };
@@ -136,7 +140,7 @@ export function checkCustom(custom: unknown): { custom: object | undefined; prob
   const kept: Record<string, Record<string, object>> = {};
   const problems: string[] = [];
   for (const [type, items] of Object.entries(custom)) {
-    const contentType = CONTENT_TYPES.find((t) => `~:${t.type}` === type);
+    const contentType = CONTENT_TYPES.find((t) => tag(t.type) === type);
     if (contentType === undefined) {
       problems.push(`The custom options of the type ${untag(type)} were left out: the app has no such content type.`);
       continue;
@@ -150,6 +154,11 @@ export function checkCustom(custom: unknown): { custom: object | undefined; prob
       const left = (why: string) => problems.push(`The custom ${contentType.one} ${name} was left out: ${why}.`);
       if (!isObject(item) || !key.startsWith("~:")) {
         left("it is not an item");
+        continue;
+      }
+      // The engine keys each item but a background by its :key (copyKey), so a :key that is not the map key would select another option.
+      if (contentType.type !== BACKGROUND_TYPE && item["~:key"] !== key) {
+        left("its key is not its map key");
         continue;
       }
       const withPack = { ...item, [OPTION_PACK]: CUSTOM_PACK };
@@ -376,20 +385,43 @@ function isFlags(value: unknown): value is PackFlags {
   return isObject(value) && typeof value.enabled === "boolean" && Array.isArray(value.disabledItems) && value.disabledItems.every(isItem);
 }
 
-/** One strict entity, with its checked custom content (checkCustom), which is kept only for the options that the entity selects. */
-function importOne(entity: unknown, content: Content | undefined, checked?: object): CharacterFileEntry {
+/** The line of the import log when a character does not build with its custom content. */
+export const CUSTOM_BUILD_FAILURE = "The custom options were left out: the app cannot build the character with them.";
+
+/**
+ * One strict entity, with its checked custom content (checkCustom), which is
+ * kept only for the options that the entity selects. Custom items can pass
+ * their validator and still stop the build: then the character imports
+ * without its custom content, and problems gets CUSTOM_BUILD_FAILURE. An
+ * entity that does not build alone throws, as it does without custom content.
+ */
+function importOne(entity: unknown, content: Content | undefined, checked?: object, problems: string[] = []): CharacterFileEntry {
   // importCharacter accepts any object, and gives an empty character for one
   // that is not verbose Transit-JSON, so check for a strict entity first.
   if (!isObject(entity) || !("~:orcpub.entity.strict/selections" in entity)) {
     throw new Error("This is not a character file");
   }
   const imported = engine().importCharacter(entity);
-  const custom = pruneCustom(imported.entity, checked);
-  const withCustom = custom === undefined ? content : characterContent(content ?? { homebrew: undefined }, custom);
-  const name = engine().evaluate(imported.entity, withCustom).built["character-name"];
-  const unresolved = missingContent(imported.entity, withCustom);
+  /** The name and the unresolved keys against the content; this builds the sheet too, as a save does, so it throws where a save would. */
+  const check = (withContent: Content | undefined) => {
+    const { built } = engine().evaluate(imported.entity, withContent);
+    toSheet(built, imported.entity);
+    return { name: built["character-name"] || null, unresolved: missingContent(imported.entity, withContent) };
+  };
+  let custom = pruneCustom(imported.entity, checked);
+  let result: { name: string | null; unresolved: UnresolvedKey[] };
+  if (custom === undefined) result = check(content);
+  else {
+    try {
+      result = check(characterContent(content ?? { homebrew: undefined }, custom));
+    } catch {
+      result = check(content); // throws if the entity does not build alone either
+      custom = undefined;
+      problems.push(CUSTOM_BUILD_FAILURE);
+    }
+  }
   // Every importable character is 2014: old-app files are, and readCharacterFile refuses other envelopes.
-  return { ...imported, rules: "2014", name: name || null, ...(custom !== undefined && { custom }), unresolved };
+  return { ...imported, rules: "2014", ...result, ...(custom !== undefined && { custom }) };
 }
 
 /** Throws for a version the app cannot read: it reads 1 to FILE_VERSION. */

@@ -13,7 +13,7 @@
 import { AddButton, FieldLabel, Fieldset, type ListItem, ListModal, NumberField, NumberToggle, Picker, Token, Tokens, XButton } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import type { Choice } from "../../engine/builder-choices.ts";
-import { tag, untag } from "../../engine/content.ts";
+import { packType, tag, untag } from "../../engine/content.ts";
 import {
   ARTISANS_TOOLS,
   type BuilderType,
@@ -391,9 +391,7 @@ function BackgroundForm({ record, onChange, problems }: FormProps) {
 }
 
 export const backgroundBuilder: BuilderType = {
-  contentType: "orcpub.dnd.e5/backgrounds",
-  validator: "background",
-  one: "background",
+  ...packType("orcpub.dnd.e5/backgrounds"),
   // The old builder's new background (db.cljs default-background).
   empty: { [tag("traits")]: [] },
   fields: ["name"],
