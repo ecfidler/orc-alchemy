@@ -6,7 +6,10 @@
 // :languages a set of language names, the picks in :props as
 // {:weapon-prof {:dart true}} (a removed pick stores false, as the old
 // second click), :lizardfolk-ac and :tortle-ac true or false, the flying and
-// swimming speeds in :props as integers, the tool proficiencies and the
+// swimming speeds in :props as integers, :props :max-hp-bonus a positive
+// integer or absent (the hit points for each level; 1 or 2 from the
+// toggle, and more in a copy of a race with a subrace), the tool
+// proficiencies and the
 // proficiency choices in :profs, :spells a vector of {:level unlock-level
 // :value {:level :ability :key}}, and :traits a vector of :name, :type and
 // :description maps. The form shows its common modifiers always, and the
@@ -44,7 +47,17 @@ import {
   Traits,
   WithChoices,
 } from "./fields.tsx";
-import { armorModifier, choiceModifier, DAMAGE_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES, toolModifier, weaponChoices } from "./modifier-kinds.tsx";
+import {
+  armorModifier,
+  choiceModifier,
+  DAMAGE_CHOICES,
+  hitPointsModifier,
+  mapPicker,
+  propModifier,
+  RESISTANCE_CHOICES,
+  toolModifier,
+  weaponChoices,
+} from "./modifier-kinds.tsx";
 import { type Modifier, Modifiers } from "./modifiers.tsx";
 
 export const SIZES = ["small", "medium", "large"];
@@ -256,6 +269,7 @@ function raceModifiers(edit: Edit, lists: BuilderChoices): Modifier[] {
       render: mapPicker(edit, ["props", "damage-resistance"], RESISTANCE_CHOICES, { add: "Add a damage resistance" }),
     },
     propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", DAMAGE_CHOICES, { add: "Add a damage immunity" }),
+    hitPointsModifier(edit),
     propModifier(edit, "skill-prof", "Skill Proficiencies", "Perception, Stealth …", SKILLS, { add: "Add a skill" }),
     choiceModifier(edit, "skill-options", "Skill Proficiency Choice", "Choose n skills from a list", SKILLS, { add: "Add a skill option" }),
     {

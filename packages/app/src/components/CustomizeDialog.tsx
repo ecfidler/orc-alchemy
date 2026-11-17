@@ -22,6 +22,7 @@ import {
   srdBackgroundRecord,
   srdRaceCopy,
   withCopyStartingEquipment,
+  withPickedSubrace,
 } from "../engine/custom.ts";
 import type { Built2014, Content, ContentType, StrictEntity } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -53,6 +54,13 @@ export interface Customizable {
    */
   builtIn: (option: { key: string; name: string }, built: Built2014 | null, entity: StrictEntity | null) => Promise<BuiltInCopy>;
   /**
+   * The copy of a pack or built-in option with the values of the
+   * character's picks under the option with the key that the copy does
+   * not have yet, such as those of a pack subrace. homebrew is the loaded
+   * content's.
+   */
+  withPicks?: (copy: Required<BuiltInCopy>, key: string, entity: StrictEntity | null, homebrew: Content["homebrew"]) => BuiltInCopy;
+  /**
    * Changes the entity after a save selects the copy with the key. before
    * is the record that the dialog opened with, and after the saved item.
    * content is what the character builds against with the new custom content.
@@ -83,6 +91,8 @@ const CUSTOMIZABLE: Customizable[] = [
     builder: raceBuilder,
     // The engine's content list has each SRD race with most fields of a pack race. The copy also gets the values of the character's picks under the race.
     builtIn: async ({ key }, _built, entity) => (await srdRaceCopy(key, entity)) ?? { record: raceBuilder.empty },
+    // The values of an SRD subrace come with the SRD race. The values of a pack subrace come from its record.
+    withPicks: withPickedSubrace,
     // Our own words for the optional rule; Tasha's Cauldron of Everything is not SRD content.
     note: (
       <>
@@ -113,7 +123,7 @@ export interface CustomizeDialogProps {
   note?: ReactNode;
   /**
    * The names of the character's picks that a save of the item, as
-   * validated, removes, such as "Subrace (Hill Dwarf)". The dialog shows
+   * validated, removes, such as "Subrace (Custom)". The dialog shows
    * them on a line above the form, for the record as it is now.
    */
   removedPicks?: (item: ItemRecord) => string[];
@@ -231,8 +241,8 @@ export function useRemovedPicks(
 }
 
 /**
- * The names of the picks that a save removes, such as "Subrace (Hill
- * Dwarf)", as the line above the form shows them. save does the test save
+ * The names of the picks that a save removes, such as "Subrace
+ * (Custom)", as the line above the form shows them. save does the test save
  * with the character as it is now. [] when it throws: remapOption throws
  * when the selection has an option with the copy's key already, and the
  * dialog shows that case another way.
@@ -299,18 +309,23 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
     let initial: ItemRecord;
     let held: string[][] | undefined;
     if (origin.from === "custom") initial = formRecord(origin.item);
-    else if (origin.from === "pack") initial = { ...formRecord(origin.item), [tag("name")]: customName(name) };
     else {
-      // The engine cannot give a built-in as a pack item: the copy starts from what the type has for it, with the name.
-      // That can load a content list, which can fail, for example offline.
-      try {
-        const copy = await customizable.builtIn({ key, name }, built, useCharacter.getState().entity);
-        initial = { ...copy.record, [tag("name")]: customName(name) };
-        held = copy.held;
-      } catch (e) {
-        setError(`Could not open ${name} to customize: ${e instanceof Error ? e.message : String(e)}`);
-        return;
+      const { entity } = useCharacter.getState();
+      let copy: BuiltInCopy;
+      if (origin.from === "pack") copy = { record: formRecord(origin.item) };
+      else {
+        // The engine cannot give a built-in as a pack item: the copy starts from what the type has for it, with the name.
+        // That can load a content list, which can fail, for example offline.
+        try {
+          copy = await customizable.builtIn({ key, name }, built, entity);
+        } catch (e) {
+          setError(`Could not open ${name} to customize: ${e instanceof Error ? e.message : String(e)}`);
+          return;
+        }
       }
+      copy = customizable.withPicks?.({ record: copy.record, held: copy.held ?? [] }, key, entity, homebrew) ?? copy;
+      initial = { ...copy.record, [tag("name")]: customName(name) };
+      held = copy.held;
     }
     setSession((last) => ({
       id: (last?.id ?? 0) + 1,

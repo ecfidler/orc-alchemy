@@ -141,6 +141,9 @@ export const nameToKw = (name: string) => name.toLowerCase().replace(/'/g, "").r
 /** The content type of the backgrounds, whose option key comes from the name (optionKeyOf). */
 export const BACKGROUND_TYPE: ContentType = "orcpub.dnd.e5/backgrounds";
 
+/** The content type of the subraces. */
+export const SUBRACE_TYPE: ContentType = "orcpub.dnd.e5/subraces";
+
 /**
  * The key of the option that the engine makes from a pack item of the
  * content type. The engine keys a background by the nameToKw key of its
