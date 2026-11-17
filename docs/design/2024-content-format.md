@@ -77,7 +77,7 @@ A pack has an envelope and one list for each record type.
 }
 ```
 
-| Key | Rule |
+| Field | Rule |
 |---|---|
 | `format` | Always `alchemy-content`. |
 | `version` | An integer. It starts at 1. It increases when a change to the format breaks an older reader. |
@@ -88,7 +88,8 @@ A pack has an envelope and one list for each record type.
 
 The record types are `classes`, `subclasses`, `species`, `backgrounds`,
 `feats`, `spells`, `equipment`, and `monsters`. A list that is empty can be
-left out. ORC-223 adds a type when the content needs one, for example for
+left out. To make a complete pack, put each record in the list of its
+type. ORC-223 adds a type when the content needs one, for example for
 Eldritch Invocations and Metamagic options.
 
 ## The schema and the version
@@ -106,40 +107,56 @@ The loader reads the `version` of a pack before it reads the records.
 - If the version is newer, the loader refuses the pack and says that the
   app is too old for it.
 
-A record that fails validation does not stop the pack. The loader keeps the
-other records and reports the bad record, as the 2014 import does (ORC-53).
+A proposal for ORC-223, not a decision: a record that fails validation
+does not stop the pack. The loader keeps the other records and reports the
+bad record.
+
+## Names
+
+- A field name and a sheet value use camel case, for example
+  `castingTime` and `maxHitPoints`.
+- A key, a pack id, a hook name, and a value from a fixed list use
+  lowercase words with hyphens, for example `long-rest`.
 
 # 2. Two layers in each record
 
 Each record has two layers.
 
-- **The display layer** has the name, the prose, and the tables. The import
-  from 5e-bits fills it.
+- **The display layer** has the name, the prose, and the tables. The prose
+  of each trait of a species and of each benefit of a feat is in this
+  layer, in the `traits` list. The import from 5e-bits fills the layer.
 - **The rules layer** has the effects, the uses, and the choices. We write
-  it. It is the `rules` key of the record.
+  it. It is the `effects` field of the record.
 
-A record is valid with a display layer and no `rules` key. The engine then
-shows the record and applies no effect. This matters because the rules
+A record is valid with a display layer and no `effects` field. The engine
+then shows the record with all its prose and applies no effect. The sheet
+shows each trait as a feature. This rule matters because the rules
 arrive class by class in E1, and the display data arrives in one import.
 
-Some facts are typed fields of the record, not entries in `rules`. A spell
+Some facts are typed fields of the record, not entries in `effects`. A spell
 has `level` and `school`. A background has `abilityScores`, `feat`, and
 `skills`. The engine knows what each typed field does. For example, the
 engine makes the ability score choice of a background (+2 and +1, or +1 to
 all three) from `abilityScores`. A homebrew background thus gets the same
-choice with no rule of its own.
+choice with no rule of its own. A typed field can hold a choice, written
+`{ "choose": 1, "from": ... }`. The `selection` effect uses the same shape
+for its count and its options.
 
 # 3. Rules as data, with named hooks
 
-The `rules` key holds a list of effects. Each effect is data that maps to
-one constructor of the engine. The spike gave the first word list.[^spike]
+The `effects` field holds a list of effects. Each effect is data that maps
+to one constructor of the engine. The word list starts from the
+constructors of the spike.[^spike] It leaves out `put`, which the Fighter
+slice did not need in data. It has `selection` in place of the two
+constructors that make feat and ability choices. It adds `uses` and
+`hook`.
 
 | Effect | Meaning |
 |---|---|
 | `set` | Give a sheet value. |
 | `add` | Add a number to a sheet value. |
 | `push` | Add an item to a list on the sheet, for example a resistance or a proficiency. |
-| `feature` | Add a feature to the sheet, with its text and its uses. |
+| `uses` | Give uses and their recovery to a trait of the record. |
 | `grantFeat` | Give a feat with its effects and its choices. |
 | `selection` | Add a choice with a count and a list of options. Each option has its own effects. |
 | `hook` | Call a named rule of the engine with arguments. |
@@ -147,7 +164,8 @@ one constructor of the engine. The spike gave the first word list.[^spike]
 A value in an effect is a constant, or a read of a sheet value, written
 `{ "read": "proficiencyBonus" }`. The engine gets the declared
 dependencies of an effect from its reads, so a pack does not write them.
-An effect can have a condition, for example "the character wears armor",
+An effect can have a `name`. The name is the label of the effect in the
+contributions that `evaluate` returns (ORC-220). An effect can have a condition, for example "the character wears armor",
 and an option can have prerequisites. ORC-223 defines the full list of
 value forms and conditions.
 
@@ -202,9 +220,8 @@ The rules for keys:
 
 1. A key has lowercase letters, digits, and hyphens only.
 2. A key of the built-in pack starts from the `index` value of the 5e-bits
-   record, for example `fighter-second-wind`.[^5e-bits] The record keeps
-   the upstream `index` in `source`, so that a later comparison can match
-   records.
+   record, for example `fighter`.[^5e-bits] The record keeps the upstream
+   `index` in `source`, so that a later comparison can match records.
 3. The field of a reference gives the record type. `feat` in a background
    refers to a feat. Thus `srd52:shield` can be a spell and also an item of
    equipment without a collision.
@@ -215,6 +232,8 @@ The rules for keys:
 6. A homebrew pack gets an id when the app creates it. The id does not
    change when the user changes the name of the pack.
 7. Always write the full reference, also for a record in the same pack.
+8. A trait is not a record. Its key is unique in its record only. An effect
+   of the same record refers to the trait by that key.
 
 A 2024 reference cannot collide with a 2014 key. A 2014 key has no pack
 prefix. A character has one edition, from the `rules` tag on its envelope,
@@ -245,8 +264,8 @@ ORC-224 is the build ticket.
 SRD 5.2.1 requires the statement in the pack example above, and it permits
 no other attribution to Wizards of the Coast.[^rules-delta]
 
-- The app gets an About page. The page shows the SRD 5.1 statement and the
-  SRD 5.2.1 statement, and it says that the data is modified.
+- The app gets an About page. The page shows the statement of the
+  CC-BY-4.0 edition of SRD 5.1 and the SRD 5.2.1 statement, and it says that the data is modified.
 - The built-in pack carries the SRD 5.2.1 statement in `pack.attribution`.
 - The MIT notice of 5e-bits is in a file next to the built-in packs in the
   repository.
@@ -278,38 +297,41 @@ SRD 5.2.1 PDF for this document, and the prose is shortened. The import
   "size": "medium",
   "speed": 30,
   "description": "Dwarves were raised from the earth in the elder days by a deity of the forge.",
-  "rules": [
+  "traits": [
+    { "key": "darkvision", "name": "Darkvision", "text": "You have Darkvision with a range of 120 feet." },
+    {
+      "key": "dwarven-resilience",
+      "name": "Dwarven Resilience",
+      "text": "You have Resistance to Poison damage. You have Advantage on saving throws to avoid or end the Poisoned condition."
+    },
+    {
+      "key": "dwarven-toughness",
+      "name": "Dwarven Toughness",
+      "text": "Your Hit Point maximum increases by 1, and by 1 again whenever you gain a level."
+    },
+    {
+      "key": "stonecunning",
+      "name": "Stonecunning",
+      "text": "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on or touching a stone surface."
+    }
+  ],
+  "effects": [
     { "set": "darkvision", "value": 120 },
     { "push": "resistances", "value": "poison" },
-    {
-      "feature": {
-        "key": "dwarven-resilience",
-        "name": "Dwarven Resilience",
-        "text": "You have Resistance to Poison damage. You have Advantage on saving throws to avoid or end the Poisoned condition."
-      }
-    },
-    {
-      "feature": {
-        "key": "dwarven-toughness",
-        "name": "Dwarven Toughness",
-        "text": "Your Hit Point maximum increases by 1, and by 1 again whenever you gain a level."
-      }
-    },
     { "add": "maxHitPoints", "value": { "read": "totalLevel" }, "name": "Dwarven Toughness" },
     {
-      "feature": {
-        "key": "stonecunning",
-        "name": "Stonecunning",
-        "text": "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on or touching a stone surface.",
-        "uses": {
-          "amount": { "read": "proficiencyBonus" },
-          "recover": [{ "on": "long-rest", "amount": "all" }]
-        }
+      "uses": {
+        "trait": "stonecunning",
+        "amount": { "read": "proficiencyBonus" },
+        "recover": [{ "on": "long-rest", "amount": "all" }]
       }
     }
   ]
 }
 ```
+
+Without the `effects` field, this record still shows the four traits with
+their text.
 
 `recover` is a list because a 2024 feature can have two rules. Second Wind
 has `{ "on": "short-rest", "amount": 1 }` and
@@ -327,17 +349,17 @@ has `{ "on": "short-rest", "amount": 1 }` and
   "feat": "srd52:savage-attacker",
   "skills": ["athletics", "intimidation"],
   "tool": { "choose": 1, "from": { "category": "gaming-set" } },
-  "equipment": [
+  "startingEquipment": [
     {
       "items": [
         { "item": "srd52:spear", "quantity": 1 },
+        { "item": { "chosen": "tool" }, "quantity": 1 },
         { "item": "srd52:shortbow", "quantity": 1 },
         { "item": "srd52:arrow", "quantity": 20 },
         { "item": "srd52:healers-kit", "quantity": 1 },
         { "item": "srd52:quiver", "quantity": 1 },
         { "item": "srd52:travelers-clothes", "quantity": 1 }
       ],
-      "toolFromChoice": true,
       "gold": 14
     },
     { "gold": 50 }
@@ -345,8 +367,9 @@ has `{ "on": "short-rest", "amount": 1 }` and
 }
 ```
 
-This record has no `rules` key. Each fact is a typed field, and the engine
-knows the rule for each field.
+This record has no `effects` field. Each fact is a typed field, and the
+engine knows the rule for each field. `{ "chosen": "tool" }` is the tool
+that the character chose in the `tool` field.
 
 ## A feat
 
@@ -358,16 +381,19 @@ knows the rule for each field.
   "category": "origin",
   "repeatable": false,
   "description": "You gain the following benefits.",
-  "rules": [
-    { "add": "initiative", "value": { "read": "proficiencyBonus" }, "name": "Alert" },
+  "traits": [
     {
-      "feature": {
-        "key": "initiative-swap",
-        "name": "Initiative Swap",
-        "text": "After you roll Initiative, you can swap your Initiative with one willing ally in the same combat."
-      }
+      "key": "initiative-proficiency",
+      "name": "Initiative Proficiency",
+      "text": "When you roll Initiative, you can add your Proficiency Bonus to the roll."
+    },
+    {
+      "key": "initiative-swap",
+      "name": "Initiative Swap",
+      "text": "After you roll Initiative, you can swap your Initiative with one willing ally in the same combat."
     }
-  ]
+  ],
+  "effects": [{ "add": "initiative", "value": { "read": "proficiencyBonus" }, "name": "Alert" }]
 }
 ```
 
@@ -392,7 +418,7 @@ knows the rule for each field.
 }
 ```
 
-A spell has no `rules` key. The sheet shows a spell and does not compute
+A spell has no `effects` field. The sheet shows a spell and does not compute
 its effect.
 
 # Related documents
