@@ -530,7 +530,7 @@ test("Customize on a pack race makes '<Name> (Custom)', selects it, and the shee
   expect(within(again).getByRole("note")).toHaveTextContent(ORIGIN_NOTE);
 });
 
-test("Customize on the SRD race opens a form with its name and description, and the note; the line names the subrace and the variant that Save removes", async () => {
+test("Customize on the SRD race opens a form with its name and description, and the note; the line names the subrace that Save removes, not the variant that the copy holds", async () => {
   const lines = await openRace();
   fireEvent.click(within(lines).getByRole("button", { name: "Customize Human" }));
   const dialog = await dialogNamed("Customize Human");
@@ -539,7 +539,7 @@ test("Customize on the SRD race opens a form with its name and description, and 
   expect(field(dialog, "Description").value).toBe(record["~:help"]);
   const [note, removes] = within(dialog).getAllByRole("note");
   expect(note).toHaveTextContent(ORIGIN_NOTE);
-  expect(removes).toHaveTextContent("Save removes these picks of the character: Subrace (Illuskan), Variant (Standard Human).");
+  expect(removes).toHaveTextContent("Save removes these picks of the character: Subrace (Illuskan).");
   fireEvent.click(save(dialog));
   await closed();
 
@@ -547,12 +547,29 @@ test("Customize on the SRD race opens a form with its name and description, and 
   expect(useCharacter.getState().custom).toEqual({
     [TAGGED_RACES]: { "~:human-custom": { ...record, "~:key": "~:human-custom", "~:name": "Human (Custom)", "~:option-pack": CUSTOM_PACK } },
   });
-  // The save moves the pick to the copy and removes the subrace and the variant, and nothing else.
+  // The save moves the pick to the copy and removes the subrace and the variant, and nothing else. The copy has the variant's +1 in each ability.
   let expected = withoutOption(fighter20(), ["race", "human", "subrace", "illuskan"]);
   expected = withoutOption(expected, ["race", "human", "variant", "standard-human"]);
   expect(useCharacter.getState().entity).toEqual(remapOption(expected, ["race", "human"], "human-custom"));
   const { entity, custom } = useCharacter.getState();
   expect(missingContent(entity!, characterContent(useHomebrew.getState().content, custom))).toEqual([]);
+});
+
+test("Customize on an SRD Dwarf with a tool pick: the copy has the tool, so no line says that Save removes a pick", async () => {
+  const e = engine();
+  const dwarf = e.select(e.select(fighter20(), ["race"], "dwarf"), ["race", "dwarf", "tool-proficiency"], "smiths-tools");
+  const lines = await openRace(dwarf);
+  fireEvent.click(within(lines).getByRole("button", { name: "Customize Dwarf" }));
+  const dialog = await dialogNamed("Customize Dwarf");
+  // Only the note of the optional rule shows.
+  expect(within(dialog).getAllByRole("note")).toHaveLength(1);
+  fireEvent.click(save(dialog));
+  await closed();
+  expect(race()).toEqual([["race", ["dwarf-custom"]]]);
+  expect(useCharacter.getState().entity).toEqual(
+    remapOption(withoutOption(dwarf, ["race", "dwarf", "tool-proficiency", "smiths-tools"]), ["race", "dwarf"], "dwarf-custom"),
+  );
+  expect(Object.keys(evaluate().built["tool-profs"])).toEqual(["smiths-tools"]);
 });
 
 test("Customize on a pack race with a pack subrace says that Save removes the subrace, and Save removes it", async () => {

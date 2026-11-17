@@ -20,7 +20,7 @@ import {
   type SavedCopy,
   saveCopy,
   srdBackgroundRecord,
-  srdRaceRecord,
+  srdRaceCopy,
   withCopyStartingEquipment,
 } from "../engine/custom.ts";
 import type { Built2014, Content, ContentType, StrictEntity } from "../engine/engine.ts";
@@ -33,6 +33,13 @@ import type { BuilderType, ItemRecord, Problem } from "./builders/fields.tsx";
 import { raceBuilder } from "./builders/RaceForm.tsx";
 import { useUnloadWarning } from "./leave-guard.tsx";
 
+/** What the copy of a built-in option opens with. */
+export interface BuiltInCopy {
+  record: ItemRecord;
+  /** The paths of the character's picks under the option whose values the record has (Customization held). */
+  held?: string[][];
+}
+
 /** A type of option that the builder can customize: the top-level selection that picks it, its form, and what differs by type. */
 export interface Customizable {
   /** The selection's actualPath, one key, such as "feats". */
@@ -41,9 +48,10 @@ export interface Customizable {
   /**
    * The record that the copy of a built-in (SRD) option opens with, before
    * its name: the engine gives no pack item for a built-in option. built is
-   * the character as the engine builds it, null before it builds.
+   * the character as the engine builds it, null before it builds, and
+   * entity is the character.
    */
-  builtIn: (option: { key: string; name: string }, built: Built2014 | null) => Promise<ItemRecord>;
+  builtIn: (option: { key: string; name: string }, built: Built2014 | null, entity: StrictEntity | null) => Promise<BuiltInCopy>;
   /**
    * Changes the entity after a save selects the copy with the key. before
    * is the record that the dialog opened with, and after the saved item.
@@ -60,21 +68,21 @@ const CUSTOMIZABLE: Customizable[] = [
     selection: "feats",
     builder: featBuilder,
     // The text of the character's feature with the feat's name (builtInText).
-    builtIn: async ({ name }, built) => ({ ...featBuilder.empty, [tag("description")]: built === null ? "" : builtInText(built, name) }),
+    builtIn: async ({ name }, built) => ({ record: { ...featBuilder.empty, [tag("description")]: built === null ? "" : builtInText(built, name) } }),
   },
   {
     selection: "background",
     builder: backgroundBuilder,
     // The engine's content list has each SRD background with the fields of a pack background.
-    builtIn: async ({ key }) => (await srdBackgroundRecord(key)) ?? backgroundBuilder.empty,
+    builtIn: async ({ key }) => ({ record: (await srdBackgroundRecord(key)) ?? backgroundBuilder.empty }),
     // Selecting a background gives its starting equipment, so a copy with other starting equipment gives its own.
     afterSave: withCopyStartingEquipment,
   },
   {
     selection: "race",
     builder: raceBuilder,
-    // The engine's content list has each SRD race with most fields of a pack race, but no subraces.
-    builtIn: async ({ key }) => (await srdRaceRecord(key)) ?? raceBuilder.empty,
+    // The engine's content list has each SRD race with most fields of a pack race. The copy also gets the values of the character's picks under the race.
+    builtIn: async ({ key }, _built, entity) => (await srdRaceCopy(key, entity)) ?? { record: raceBuilder.empty },
     // Our own words for the optional rule; Tasha's Cauldron of Everything is not SRD content.
     note: (
       <>
@@ -256,6 +264,8 @@ interface Session {
   initial: ItemRecord;
   /** The key of the copy in custom, when the dialog edits a copy. */
   replacedKey?: string;
+  /** The picks whose values initial has (BuiltInCopy held). */
+  held?: string[][];
 }
 
 /**
@@ -287,13 +297,16 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
     const origin = optionOrigin(homebrew, custom, contentType, key);
     focusKey.current = key;
     let initial: ItemRecord;
+    let held: string[][] | undefined;
     if (origin.from === "custom") initial = formRecord(origin.item);
     else if (origin.from === "pack") initial = { ...formRecord(origin.item), [tag("name")]: customName(name) };
     else {
       // The engine cannot give a built-in as a pack item: the copy starts from what the type has for it, with the name.
       // That can load a content list, which can fail, for example offline.
       try {
-        initial = { ...(await customizable.builtIn({ key, name }, built)), [tag("name")]: customName(name) };
+        const copy = await customizable.builtIn({ key, name }, built, useCharacter.getState().entity);
+        initial = { ...copy.record, [tag("name")]: customName(name) };
+        held = copy.held;
       } catch (e) {
         setError(`Could not open ${name} to customize: ${e instanceof Error ? e.message : String(e)}`);
         return;
@@ -306,6 +319,7 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
       title: origin.from === "custom" ? `Edit custom ${builder.one}` : `Customize ${name}`,
       initial,
       replacedKey: origin.from === "custom" ? key : undefined,
+      held,
     }));
   }
 
@@ -316,7 +330,13 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
       const state = useCharacter.getState();
       if (state.entity === null) throw new Error("No character is open");
       const path = [...selection.actualPath, session.key];
-      return saveCopy(state.entity, state.custom, useHomebrew.getState().content, { contentType, path, item, replacedKey: session.replacedKey });
+      return saveCopy(state.entity, state.custom, useHomebrew.getState().content, {
+        contentType,
+        path,
+        item,
+        replacedKey: session.replacedKey,
+        held: session.held,
+      });
     },
     [session, selection.actualPath, contentType],
   );

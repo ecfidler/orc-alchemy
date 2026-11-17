@@ -237,7 +237,7 @@ test("Human gives a bonus to each ability, so there is nothing to move; its one 
   );
   expect(within(dialog).queryByRole("combobox", { name: /bonus/ })).toBeNull();
   expect(within(dialog).getByRole("group", { name: "Proficiencies" })).toHaveTextContent("Human gives no skill, tool or weapon proficiency.");
-  expect(dialog).toHaveTextContent("The copy does not keep these choices of Human: Subrace, Languages, Variant.");
+  expect(dialog).toHaveTextContent("The copy does not keep these choices of Human: Subrace, Variant.");
   await swap(dialog, "Change language Common", "Dwarvish");
   expect(save(dialog).disabled).toBe(false);
 });

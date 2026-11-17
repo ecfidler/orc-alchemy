@@ -122,3 +122,65 @@ export function withoutOption(entity: StrictEntity, path: string[]): StrictEntit
   );
   return found ? result : entity;
 }
+
+/** The options of a selection node: its one option, or its list of options. */
+const optionsOf = (selection: Node): Node[] => {
+  const single = selection[OPTION];
+  if (single !== undefined) return [single as Node];
+  const options = selection[OPTIONS];
+  return Array.isArray(options) ? (options as Node[]) : [];
+};
+
+/** The node of the option at path in the parent, or undefined. path alternates selection and option keys. */
+function findOption(parent: Node, path: string[]): Node | undefined {
+  let found: Node | undefined;
+  changeOptionAt(
+    parent,
+    path,
+    (option) => {
+      found = option;
+      return option;
+    },
+    () => parent,
+  );
+  return found;
+}
+
+/**
+ * The paths of the picks under the option at path, at any depth: each
+ * alternates selection and option keys from the root, as an
+ * UnresolvedKey's path does. A pick comes before the picks under it. []
+ * when the path is not in the entity.
+ */
+export function picksUnder(entity: StrictEntity, path: string[]): string[][] {
+  const walk = (option: Node, at: string[]): string[][] => {
+    const selections = option[SELECTIONS];
+    if (!Array.isArray(selections)) return [];
+    return (selections as Node[]).flatMap((selection) =>
+      optionsOf(selection).flatMap((o) => {
+        const next = [...at, String(selection[KEY]).slice(2), String(o[KEY]).slice(2)];
+        return [next, ...walk(o, next)];
+      }),
+    );
+  };
+  const option = findOption(rootOf(entity), path);
+  return option === undefined ? [] : walk(option, path);
+}
+
+/**
+ * The entity `into` with the option at path, and the picks under it, as
+ * the entity `from` has it at the same path. Throws if a path is not in
+ * its entity.
+ */
+export function withOptionOf(into: StrictEntity, from: StrictEntity, path: string[]): StrictEntity {
+  const option = findOption(rootOf(from), path);
+  if (option === undefined) throw notFound(path);
+  return changeOptionAt(
+    rootOf(into),
+    path,
+    () => option,
+    () => {
+      throw notFound(path);
+    },
+  );
+}

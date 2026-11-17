@@ -190,7 +190,9 @@ test("the choices of a base race that its copy does not have", async () => {
     return lostChoices(key, originRecord(base, originSlots(base), key, key), SRD);
   };
   expect(await lost("dwarf")).toEqual(["Subrace", "Tool Proficiency"]);
-  expect(await lost("half-elf")).toEqual(["Ability Score Improvement", "Skill Proficiency", "Languages"]);
+  // The copy keeps the skill choice and the language choice of the Half-Elf.
+  expect(await lost("half-elf")).toEqual(["Ability Score Improvement"]);
+  expect(await lost("human")).toEqual(["Subrace", "Variant"]);
   expect(await lost("half-orc")).toEqual([]);
 });
 

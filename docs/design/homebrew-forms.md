@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T20:45:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T21:15:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -778,13 +778,17 @@ section says so.
 * An SRD race is also in the engine's content list,
   `@pubdoor/dmv/content/races.json`, in a shape near that of a pack race.
   Customize on an SRD race opens that record in the race form: the
-  description (`:help`), size, speed, darkvision, ability score
-  increases, languages, weapon proficiencies and features. The summary of
+  description (`:help`), size, speed, darkvision, languages, weapon
+  proficiencies and features. The summary of
   a feature becomes its description, as for a background.
 * The list does not have all of an SRD race. The engine builds a new
   character of level 20 with the race, and the same character with no
   race. The new character has the engine's default class. The record
-  gets what only the character with the race has (ORC-138, ORC-244):
+  gets what only the character with the race has (ORC-138, ORC-244,
+  ORC-247):
+  * The ability score increases. The record does not use those of the
+    list.
+  * The tool proficiencies, when the character has a pick that gives one.
   * The skill proficiencies. These are Perception for the Elf and
     Intimidation for the Half-Orc.
   * The damage resistances. These are poison for the Dwarf and fire for
@@ -798,21 +802,39 @@ section says so.
     at level 20, so Infernal Legacy names each of the three spells.
 
   Thus a copy of a Tiefling with no edits keeps the sheet.
-* The list has no ability score increases for the Human. The engine gives
-  the Human +1 to each ability with its variant Standard Human. Thus the
-  copy of the Human opens with +1 in each of the six abilities, and a copy
-  of a standard Human with no edits keeps the scores. For a Variant Human,
-  the user must change the increases in the form.
+* A pack race can hold a language choice and a skill choice. The record
+  gets each such choice of the SRD race from the engine's template, with
+  the number to choose and the options (ORC-247). These are the extra
+  language of the Human, and the language and the two skills of the
+  Half-Elf. The engine gives the choice of the copy the key of the SRD
+  choice, so the character's picks stay.
+* A pack race cannot hold the other choices of an SRD race. For these,
+  Customize gives the copy what the character's picks give, as fixed
+  values (ORC-247). The probe character gets the race as the character
+  has it, with these picks, and the record gets what the probe has:
+  * The tool of the Dwarf is a tool proficiency.
+  * The two ability picks of the Half-Elf are +1 each.
+  * The variant of the Human. The Standard Human gives +1 in each
+    ability. The Variant Human gives its two +1 picks and its skill.
+  * The ancestry of the Dragonborn gives its damage resistance and the
+    Breath Weapon.
+* A pack race has no attacks. Thus the Breath Weapon is a feature of the
+  copy: an action with one use for each short rest. Its text has the
+  area, the saving throw, the damage type and the damage by level, in our
+  own words. The sheet shows it with the actions, not with the attacks.
+* A choice of this kind with no pick gives the copy no value. For
+  example, the copy of a Dragonborn without an ancestry has no Breath
+  Weapon.
+* The Human with no variant pick is the exception: its copy gets +1 in
+  each of the six abilities, as the Standard Human. The copy has no
+  variant choice, so without this rule the Human gets no increase.
+* The feat of a Variant Human is a pick of the character's feat list, not
+  of the race. Save does not remove it. The copy does not give the place
+  for it, so the builder then shows one feat too many.
 * The copy of an SRD race does not have these:
   * The saving throw advantages and the immunity to magical sleep. The
     race form has no field for them. They stay as the text of a feature,
     for example Dwarven Resilience and Fey Ancestry.
-  * The choices under the race, for example the subrace, the variant and
-    the extra language of the Human, the tool of the Dwarf and the
-    ancestry of the Dragonborn. Save removes the character's picks of
-    these choices.
-  * What a pick of such a choice gives, for example the breath weapon and
-    the damage resistance of the Dragonborn's ancestry.
   * The subraces. A copy never has a subrace (see
     [The picks that Save removes](#the-picks-that-save-removes)).
 * If the content list does not load, an alert under the lines says so,
@@ -876,9 +898,16 @@ Save, the dialog tells the user which picks these are.
 * The app does a test save of the form's record as it is now, with the
   same steps as Save. The picks that the test save removes show on a line
   above the form, in `--warning` text: "Save removes these picks of the
-  character: Subrace (Illuskan), Variant (Standard Human)."
+  character: Subrace (Illuskan)."
 * The text gives no reason, because there are two: the copy does not offer
   the choice, or the pack of the pick is turned off now.
+* The line does not name a pick whose value the copy has. For example,
+  Save removes the tool pick of a Dwarf, and the copy gives that tool, so
+  the character loses nothing. A pick under such a pick shows if the copy
+  does not have its value.
+* The app finds these picks one time, when the dialog opens. If the user
+  then deletes such a value from the form, the line does not name the
+  pick. The user sees the change in the form.
 * Each pick shows as the name of its choice and, in parentheses, the name
   of its option. A pick under a removed pick does not show.
 * The line follows the form. When the dialog opens, the line is correct at
@@ -969,7 +998,11 @@ race's value back.
 
 A choice that the race leaves to the user, such as the extra language of
 the Human or the skills of the Half-Elf, is not a slot. The copy of an
-SRD race does not keep such a choice. The line under Base race names it.
+SRD race keeps a language choice and a skill choice. It does not keep
+another choice, such as the subrace or the tool of the Dwarf. The line
+under Base race names each choice that the copy does not keep. The
+guided dialog does not give the copy the values of the character's picks
+(ORC-248).
 
 The footer has **Cancel** and **Save**. Save is disabled until a base race
 is set and one value differs from the race's. While nothing differs, a

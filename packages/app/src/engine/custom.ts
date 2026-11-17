@@ -22,8 +22,8 @@ import {
   withoutItem,
 } from "./content.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
-import { missingContent, remapOption, withoutOption } from "./reconcile.ts";
-import type { Resistance } from "./sheet.ts";
+import { missingContent, picksUnder, remapOption, withOptionOf, withoutOption } from "./reconcile.ts";
+import { type Resistance, unqualify } from "./sheet.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
 export const CUSTOM_PACK = "Custom (this character)";
@@ -210,6 +210,12 @@ export interface Customization {
   item: object;
   /** The key of the copy in custom that item replaces, when the user edits a copy. */
   replacedKey?: string;
+  /**
+   * The paths of the picks under the option whose values the copy has
+   * (BuiltInCopy held). The save removes them, and saveCopy does not list
+   * them as removed.
+   */
+  held?: string[][];
 }
 
 /**
@@ -311,16 +317,37 @@ export async function srdBackgroundRecord(key: string): Promise<Record<string, u
 /** The six ability keys, as a race's :abilities has them. */
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"].map((a) => `orcpub.dnd.e5.character/${a}`);
 
+/** An area attack of the built character, such as a Dragonborn's Breath Weapon. */
+interface AreaAttack {
+  name: string;
+  "attack-type"?: string;
+  "area-type"?: string;
+  /** The length of a cone, in feet. */
+  length?: number;
+  "line-width"?: number;
+  "line-length"?: number;
+  /** The ability of the saving throw, as a full key. */
+  save?: string;
+  "damage-type"?: string;
+  "damage-die"?: number;
+}
+
 /** What the engine gives an SRD race and the content list does not have (raceGives). */
 interface RaceGives {
   /** The keys of the skill proficiencies, such as "perception". */
   skills: string[];
+  /** The keys of the tool proficiencies, such as "smiths-tools". */
+  tools: string[];
   /** The damage types of the resistances, such as "poison". */
   resistances: string[];
+  /** The ability score increases, by the full key of the ability. */
+  abilities: Record<string, number>;
   /** The spells, as a race stores them: the character level that unlocks the spell, and its level, ability and key. */
   spells: { level: number; value: { level: number; ability: string; key: string } }[];
   /** The traits, each with its name, page and summary. */
   traits: Record<string, unknown>[];
+  /** The attacks, which a pack race holds only as the text of a feature (breathWeaponTrait). */
+  attacks: AreaAttack[];
 }
 
 /** The level of the probe character: each spell of a race is unlocked, and a trait's text names each spell. */
@@ -331,12 +358,17 @@ function probed(entity: StrictEntity) {
   const { built } = engine().evaluate(entity);
   return {
     skills: Object.keys(built["skill-profs"] ?? {}),
+    tools: Object.keys(built["tool-profs"] ?? {}),
     // A resistance with a qualifier has no place in a pack race, which stores the damage type only.
     resistances: ((built.resistances as Resistance[] | null) ?? []).filter((r) => !r.qualifier).map((r) => r.value),
+    // The scores, not the engine's ability-increases, which do not have the ability picks of a Half-Elf or a Variant Human.
+    abilities: built.abilities as Record<string, number>,
     spells: Object.entries(built["spells-known"] ?? {}).flatMap(([level, known]) =>
       (known?.__entries ?? []).map(([[source], spell]) => ({ source, level: Number(level), ability: spell.ability, key: spell.key })),
     ),
     traits: built.traits ?? [],
+    // Without the pick that gives its area, such as a Dragonborn's ancestry, an attack has no area yet.
+    attacks: ((built.attacks as AreaAttack[] | null) ?? []).filter((a) => a["attack-type"] === "area" && a["area-type"] != null),
   };
 }
 
@@ -345,50 +377,145 @@ let probeBase: { levels: StrictEntity[]; top: ReturnType<typeof probed> } | unde
 
 /**
  * What the SRD race with the key gives that its content list does not
- * have: the skill proficiencies (Perception for the Elf), the damage
- * resistances (poison for the Dwarf), the spells (the Tiefling) and the
- * traits. They are what a new character of level PROBE_LEVEL with only the
- * race has, without what that character has with no race. A spell's unlock
- * level is the first level at which the character with the race knows it.
- * The choices of the race have no pick, so what a pick gives, such as the
- * resistance of a Dragonborn's ancestry, is not here. The pinned SRD
- * content does not change, so each key is computed once.
+ * have: the skill and tool proficiencies (Perception for the Elf), the
+ * damage resistances (poison for the Dwarf), the ability score increases,
+ * the spells (the Tiefling), the traits and the attacks. They are what a
+ * new character of level PROBE_LEVEL with only the race has, without what
+ * that character has with no race. A spell's unlock level is the first
+ * level at which the character with the race knows it.
+ *
+ * With picked, the probe character has the race as that entity has it,
+ * with the picks under it. Then the result has what the picks give too,
+ * such as the tool of a Dwarf or the resistance of a Dragonborn's
+ * ancestry. Without picked, a choice of the race gives nothing, and each
+ * key is computed once: the pinned SRD content does not change.
  */
-function raceGives(key: string): RaceGives {
-  let gives = raceGivesCache.get(key);
-  if (gives === undefined) {
-    const e = engine();
-    if (probeBase === undefined) {
-      const levels = [e.emptyCharacter() as StrictEntity];
-      const classKey = Object.keys(e.evaluate(levels[0]).built.levels ?? {})[0];
-      while (levels.length < PROBE_LEVEL) levels.push(e.addLevel(levels[levels.length - 1], classKey));
-      probeBase = { levels, top: probed(levels[PROBE_LEVEL - 1]) };
-    }
-    const { levels, top: before } = probeBase;
-    const withRace = (level: number) => probed(e.select(levels[level - 1], ["race"], key));
-    const top = withRace(PROBE_LEVEL);
-    const raceSpells = top.spells.filter((spell) => !before.spells.some((s) => s.source === spell.source && s.key === spell.key));
-    const unlocked = new Map<string, number>();
-    for (let level = 1; level <= PROBE_LEVEL && unlocked.size < raceSpells.length; level++) {
-      const known = withRace(level).spells;
-      for (const spell of raceSpells) {
-        if (!unlocked.has(spell.key) && known.some((s) => s.source === spell.source && s.key === spell.key)) unlocked.set(spell.key, level);
-      }
-    }
-    const ownTraits = new Set(before.traits.map((t) => t.name));
-    gives = {
-      skills: top.skills.filter((skill) => !before.skills.includes(skill)),
-      resistances: top.resistances.filter((r) => !before.resistances.includes(r)),
-      spells: raceSpells
-        .map((spell) => ({ level: unlocked.get(spell.key) ?? 1, value: { level: spell.level, ability: spell.ability, key: spell.key } }))
-        .sort((a, b) => a.level - b.level),
-      traits: top.traits
-        .filter((t) => !ownTraits.has(t.name))
-        .map((t) => ({ name: t.name, ...(t.page != null && { page: t.page }), ...(t.summary != null && { summary: t.summary }) })),
-    };
-    raceGivesCache.set(key, gives);
+function raceGives(key: string, picked?: StrictEntity): RaceGives {
+  const cached = picked === undefined ? raceGivesCache.get(key) : undefined;
+  if (cached !== undefined) return cached;
+  const e = engine();
+  if (probeBase === undefined) {
+    const levels = [e.emptyCharacter() as StrictEntity];
+    const classKey = Object.keys(e.evaluate(levels[0]).built.levels ?? {})[0];
+    while (levels.length < PROBE_LEVEL) levels.push(e.addLevel(levels[levels.length - 1], classKey));
+    probeBase = { levels, top: probed(levels[PROBE_LEVEL - 1]) };
   }
+  const { levels, top: before } = probeBase;
+  const withRace = (level: number) => {
+    const entity = e.select(levels[level - 1], ["race"], key);
+    return probed(picked === undefined ? entity : withOptionOf(entity, picked, ["race", key]));
+  };
+  const top = withRace(PROBE_LEVEL);
+  const raceSpells = top.spells.filter((spell) => !before.spells.some((s) => s.source === spell.source && s.key === spell.key));
+  const unlocked = new Map<string, number>();
+  for (let level = 1; level <= PROBE_LEVEL && unlocked.size < raceSpells.length; level++) {
+    const known = withRace(level).spells;
+    for (const spell of raceSpells) {
+      if (!unlocked.has(spell.key) && known.some((s) => s.source === spell.source && s.key === spell.key)) unlocked.set(spell.key, level);
+    }
+  }
+  const ownTraits = new Set(before.traits.map((t) => t.name));
+  const ownAttacks = new Set(before.attacks.map((a) => a.name));
+  const gives: RaceGives = {
+    skills: top.skills.filter((skill) => !before.skills.includes(skill)),
+    tools: top.tools.filter((tool) => !before.tools.includes(tool)),
+    resistances: top.resistances.filter((r) => !before.resistances.includes(r)),
+    // The increase of each score that the race makes.
+    abilities: Object.fromEntries(
+      Object.entries(top.abilities)
+        .map(([ability, bonus]): [string, number] => [ability, bonus - (before.abilities[ability] ?? 0)])
+        .filter(([, bonus]) => bonus !== 0),
+    ),
+    spells: raceSpells
+      .map((spell) => ({ level: unlocked.get(spell.key) ?? 1, value: { level: spell.level, ability: spell.ability, key: spell.key } }))
+      .sort((a, b) => a.level - b.level),
+    traits: top.traits
+      .filter((t) => !ownTraits.has(t.name))
+      .map((t) => ({ name: t.name, ...(t.page != null && { page: t.page }), ...(t.summary != null && { summary: t.summary }) })),
+    attacks: top.attacks.filter((a) => !ownAttacks.has(a.name)),
+  };
+  if (picked === undefined) raceGivesCache.set(key, gives);
   return gives;
+}
+
+/**
+ * The Breath Weapon, the only area attack of an SRD race, as a feature
+ * of a pack race, which has no attacks: an
+ * action with one use for each short rest, and the area, the saving throw
+ * and the damage type as its text. The text has the damage of the SRD
+ * Breath Weapon by level, in our own words, because the engine gives the
+ * dice for one level only.
+ */
+function breathWeaponTrait(attack: AreaAttack): Record<string, unknown> {
+  const area =
+    attack["area-type"] === "line"
+      ? `a line ${attack["line-width"]} ft. wide and ${attack["line-length"]} ft. long`
+      : `a ${attack.length} ft. ${attack["area-type"]}`;
+  const die = `d${attack["damage-die"]}`;
+  const save = unqualify(attack.save ?? "").toUpperCase();
+  return {
+    name: attack.name,
+    type: tag("action"),
+    frequency: { units: tag("orcpub.dnd.e5.units/short-rest"), amount: 1 },
+    description:
+      `Each creature in ${area} makes a ${save} saving throw, DC 8 + your CON modifier + your proficiency bonus. ` +
+      `It takes 2${die} ${attack["damage-type"]} damage on a failed save, and half on a success. ` +
+      `The damage is 3${die} at level 6, 4${die} at level 11 and 5${die} at level 16.`,
+  };
+}
+
+/** The choices of an SRD race that a pack race can hold, by the key of the choice in the template: the key of the choice in :profs. */
+const KEPT_CHOICES: Record<string, string> = { languages: "language-options", "skill-proficiency": "skill-options" };
+
+/**
+ * The language choice and the skill choice of the SRD race with the key,
+ * as the :profs of a pack race: {:language-options {:choose 1 :options
+ * {:elvish true}}}. The template gives the number to choose and the
+ * options. The engine gives the choice of the copy the key of the SRD
+ * choice, so the character's picks stay.
+ */
+function raceChoices(key: string): Record<string, unknown> {
+  const option = engine()
+    .buildTemplate()
+    .shape.find((s) => s.key === "race")
+    ?.options.find((o) => o.key === key);
+  return Object.fromEntries(
+    (option?.selections ?? [])
+      .filter((s) => KEPT_CHOICES[s.key] !== undefined && s.options.length > 0)
+      .map((s) => [KEPT_CHOICES[s.key], { choose: s.min ?? 1, options: Object.fromEntries(s.options.map((o) => [o.key, true])) }]),
+  );
+}
+
+/** The picks of a character under its race that a copy of the race holds, and the entity that has only them under the race (racePicks). */
+interface RacePicks {
+  /** The entity without the picks under the race that the copy does not hold as values. */
+  entity: StrictEntity;
+  /** The paths of the picks that the copy holds as values, such as ["race", "dwarf", "tool-proficiency", "smiths-tools"]. */
+  held: string[][];
+}
+
+/**
+ * The picks under the race with the key that a copy holds as fixed
+ * values, because a pack race does not have their choices: the tool of a
+ * Dwarf, the ability picks of a Half-Elf, the variant of a Human with its
+ * picks, the ancestry of a Dragonborn. Not the picks of a choice that the
+ * copy keeps (KEPT_CHOICES), and not the subrace, which a copy does not
+ * have. undefined when the entity has no pick under the race with the
+ * key, for example because it has another race.
+ */
+function racePicks(entity: StrictEntity, key: string): RacePicks | undefined {
+  const picks = picksUnder(entity, ["race", key]);
+  if (picks.length === 0) return undefined;
+  const dropped = (path: string[]) => path[2] === "subrace" || KEPT_CHOICES[path[2]] !== undefined;
+  const top = picks.filter((p) => p.length === 4 && dropped(p));
+  return { entity: top.reduce((result, path) => withoutOption(result, path), entity), held: picks.filter((p) => !dropped(p)) };
+}
+
+/** A copy of an SRD race for a character (srdRaceCopy). */
+export interface RaceCopy {
+  record: Record<string, unknown>;
+  /** The paths of the character's picks under the race whose values the record has. A save of the copy removes them, but loses nothing. */
+  held: string[][];
 }
 
 /**
@@ -400,48 +527,68 @@ function raceGives(key: string): RaceGives {
  * the features (formTraits). What the list does not have comes from the
  * engine (raceGives): the skill proficiencies, the damage resistances, the
  * spells, and each trait whose name the list does not have, such as those
- * of the Tiefling. The Human gets +1 to each ability, which the engine
- * gives with its variant Standard Human, so that a copy keeps a standard
- * Human's scores. The race form has no saving throw advantage, so the copy
- * has it only as the text of a feature. The record has no choices of the
- * race, and the copy has no subraces. The SRD list loads once, as its own
+ * of the Tiefling. The language choice and the skill choice of the race
+ * are choices of the record (raceChoices).
+ *
+ * With the entity of a character of this race, the record also has what
+ * the character's picks under the race give, as fixed values (racePicks):
+ * a tool, ability score increases, a skill, a damage resistance, and an
+ * attack as a feature (breathWeaponTrait). held has those picks.
+ *
+ * Without a variant pick, the Human gets +1 to each ability, which the
+ * engine gives with its variant Standard Human. The race form has no
+ * saving throw advantage, so the copy has it only as the text of a
+ * feature. The copy has no subraces. The SRD list loads once, as its own
  * chunk.
  */
-export async function srdRaceRecord(key: string): Promise<Record<string, unknown> | undefined> {
+export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Promise<RaceCopy | undefined> {
   const { default: list } = await import("@pubdoor/dmv/content/races.json");
   const race = (list as Record<string, unknown>[]).find((r) => r.key === key);
   if (race === undefined) return undefined;
-  const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, ...rest } = race;
-  // The list has no ability score increases for the Human: its +1 to each ability comes from the variant Standard Human.
-  if (key === "human" && rest.abilities === undefined) rest.abilities = Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1]));
-  const gives = raceGives(key);
+  const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, abilities: _abilities, ...rest } = race;
+  const picks = entity == null ? undefined : racePicks(entity, key);
+  const held = picks?.held ?? [];
+  // Without a held pick, the probe is that of the race alone, which is computed once.
+  const gives = raceGives(key, held.length > 0 ? picks?.entity : undefined);
+  // The engine gives the Human's +1 to each ability with the variant Standard Human, so a Human without a variant pick gets it here.
+  const standard = key === "human" && !held.some((p) => p[2] === "variant");
+  const abilities = standard ? Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1])) : gives.abilities;
   const flags = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, true]));
   const props = {
     ...(Array.isArray(weapons) && weapons.length > 0 && { "weapon-prof": flags(weapons) }),
     ...(gives.skills.length > 0 && { "skill-prof": flags(gives.skills) }),
     ...(gives.resistances.length > 0 && { "damage-resistance": flags(gives.resistances) }),
   };
+  const profs = { ...(gives.tools.length > 0 && { tool: flags(gives.tools) }), ...raceChoices(key) };
   const listed = Array.isArray(traits) ? traits : [];
   const names = new Set(listed.map((t: Record<string, unknown>) => t.name));
   const record = tagKeys({
     ...rest,
+    ...(Object.keys(abilities).length > 0 && { abilities }),
     ...(Object.keys(props).length > 0 && { props }),
-    traits: formTraits([...listed, ...gives.traits.filter((t) => !names.has(t.name))]),
+    ...(Object.keys(profs).length > 0 && { profs }),
+    traits: [...formTraits([...listed, ...gives.traits.filter((t) => !names.has(t.name))]), ...gives.attacks.map(breathWeaponTrait)],
   }) as Record<string, unknown>;
   // A keyword value and a set, which tagKeys does not make.
   return {
-    ...record,
-    ...(typeof size === "string" && { [tag("size")]: tag(size) }),
-    [tag("languages")]: asSet(Array.isArray(languages) ? languages : []),
-    // A spell's ability and key are keywords.
-    ...(gives.spells.length > 0 && {
-      [tag("spells")]: gives.spells.map(({ level, value }) => ({
-        [tag("level")]: level,
-        [tag("value")]: { [tag("level")]: value.level, [tag("ability")]: tag(value.ability), [tag("key")]: tag(value.key) },
-      })),
-    }),
+    held,
+    record: {
+      ...record,
+      ...(typeof size === "string" && { [tag("size")]: tag(size) }),
+      [tag("languages")]: asSet(Array.isArray(languages) ? languages : []),
+      // A spell's ability and key are keywords.
+      ...(gives.spells.length > 0 && {
+        [tag("spells")]: gives.spells.map(({ level, value }) => ({
+          [tag("level")]: level,
+          [tag("value")]: { [tag("level")]: value.level, [tag("ability")]: tag(value.ability), [tag("key")]: tag(value.key) },
+        })),
+      }),
+    },
   };
 }
+
+/** The record of srdRaceCopy for no character: the SRD race with the key, with no value from a pick. */
+export const srdRaceRecord = async (key: string): Promise<Record<string, unknown> | undefined> => (await srdRaceCopy(key))?.record;
 
 /** The options under the option at path that do not resolve against the content, as missingContent gives them. */
 function unresolvedUnder(entity: StrictEntity, path: string[], content: Content) {
@@ -474,7 +621,8 @@ export interface SavedCopy {
   /**
    * The picks that the save removed, as their paths in the entity before
    * the save, such as ["race", "dwarf", "subrace", "hill-dwarf"]. A pick
-   * under a removed pick is not listed.
+   * under a listed pick is not listed. A pick whose value the copy has
+   * (Customization held) is not listed.
    */
   removed: string[][];
 }
@@ -494,7 +642,8 @@ export function saveCopy(entity: StrictEntity, custom: object | undefined, conte
   const withCopy = characterContent(content, next.custom);
   const under = unresolvedUnder(next.entity, copyPath, withCopy);
   const kept = withoutAll(next.entity, under);
-  const paths = under.map((u) => u.path.map((k, i) => (i === at ? path[at] : k)));
+  const held = new Set((customization.held ?? []).map((p) => p.join("/")));
+  const paths = under.map((u) => u.path.map((k, i) => (i === at ? path[at] : k))).filter((p) => !held.has(p.join("/")));
   const removed = paths.filter((p) => !paths.some((q) => q.length < p.length && q.every((k, i) => p[i] === k)));
   return { entity: kept, custom: next.custom, key, content: withCopy, removed };
 }

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { missingContent, remapOption } from "./reconcile.ts";
+import { missingContent, picksUnder, remapOption, withOptionOf } from "./reconcile.ts";
 
 beforeAll(() => loadEngine());
 
@@ -64,5 +64,39 @@ describe("remapOption", () => {
     expect(() => remapOption(entity, ["race", "elf"], "x")).toThrow("The option race / elf is not in the character");
     expect(() => remapOption(entity, ["feats"], "x")).toThrow("is not in the character");
     expect(() => remapOption(entity, ["class", "fighter"], "fighter")).toThrow("The character already has fighter under class");
+  });
+});
+
+describe("picksUnder and withOptionOf", () => {
+  const variant = ["race", "human", "variant", "variant-human"];
+  const human = () => {
+    const e = engine();
+    let entity = e.select(e.emptyCharacter(), ["race"], "human");
+    entity = e.select(entity, ["race", "human", "subrace"], "illuskan");
+    entity = e.select(entity, ["race", "human", "variant"], "variant-human");
+    entity = e.increaseAbility(entity, [...variant, "asi"], "orcpub.dnd.e5.character/dex");
+    return e.select(entity, [...variant, "skill-proficiency"], "arcana");
+  };
+
+  test("picksUnder gives the path of each pick under an option, a pick before the picks under it", () => {
+    expect(picksUnder(human(), ["race", "human"])).toEqual([
+      ["race", "human", "subrace", "illuskan"],
+      variant,
+      [...variant, "asi", "orcpub.dnd.e5.character/dex"],
+      [...variant, "skill-proficiency", "arcana"],
+    ]);
+    expect(picksUnder(human(), variant)).toHaveLength(2);
+    expect(picksUnder(human(), ["race", "human", "subrace", "illuskan"])).toEqual([]);
+    expect(picksUnder(human(), ["race", "dwarf"])).toEqual([]);
+  });
+
+  test("withOptionOf gives an entity the option of another entity, with its picks", () => {
+    const e = engine();
+    const plain = e.select(e.emptyCharacter(), ["race"], "human");
+    const result = withOptionOf(plain, human(), ["race", "human"]);
+    expect(result).toEqual(human());
+    expect(picksUnder(plain, ["race", "human"])).toEqual([]);
+    expect(() => withOptionOf(plain, human(), ["race", "dwarf"])).toThrow("The option race / dwarf is not in the character");
+    expect(() => withOptionOf(e.emptyCharacter(), human(), ["race", "human"])).toThrow("The option race / human is not in the character");
   });
 });
