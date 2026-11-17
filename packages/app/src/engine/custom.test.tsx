@@ -966,6 +966,13 @@ function subraceParts(entity: StrictEntity, content: Content, custom?: object) {
   };
 }
 
+/** The number of picks still to make in each choice with the key under the character's race. Less than 0: picks to remove. */
+const raceChoiceRemaining = (entity: StrictEntity, key: string, content: Content, custom?: object) =>
+  engine()
+    .evaluate(entity, characterContent(content, custom))
+    .selections.filter((s) => s.path[0] === "race" && s.key === key)
+    .map((s) => s.remaining);
+
 /** wizard-1 without his race, a High Elf. */
 const wizardWithoutRace = () => withoutOption(wizard1(), ["race", "elf"]);
 
@@ -1023,12 +1030,7 @@ test("a High Elf's copy has the +1 Intelligence, the weapons and the cantrip pic
   expect(before.spells).toContain("minor-illusion");
   expect(subraceParts(saved.entity, SRD, saved.custom)).toEqual(before);
   // The language choice of the copy holds as many picks as the choice of the High Elf did.
-  const languageChoice = (e: StrictEntity, custom?: object) =>
-    engine()
-      .evaluate(e, characterContent(SRD, custom))
-      .selections.filter((s) => s.path[0] === "race" && s.key === "languages")
-      .map((s) => s.remaining);
-  expect(languageChoice(saved.entity, saved.custom)).toEqual(languageChoice(entity));
+  expect(raceChoiceRemaining(saved.entity, "languages", SRD, saved.custom)).toEqual(raceChoiceRemaining(entity, "languages", SRD));
 });
 
 test("a Rock Gnome's copy has the +1 Constitution, the tinker's tools and the two features of the subrace, and a Lightfoot's copy the +1 Charisma and Naturally Stealthy", async () => {
@@ -1107,6 +1109,15 @@ test("withSubrace adds the values of a pack subrace to those of the race, with i
     "~:profs": { "~:skill-options": { "~:choose": choose, "~:options": Object.fromEntries(skills.map((s) => [`~:${s}`, true])) } },
   });
   expect(withSubrace(choice(1, "arcana"), choice(2, "history"))).toEqual(choice(3, "arcana", "history"));
+  // The engine uses the flying speed of the subrace, not a sum. The hit points for each level are a sum.
+  const speeds = (flying: number, hitPoints: number) => ({ "~:props": { "~:flying-speed": flying, "~:max-hp-bonus": hitPoints } });
+  expect(withSubrace(speeds(30, 1), speeds(50, 1))).toEqual(speeds(50, 2));
+  // The engine offers only the skill choice of a pack subrace, so its other choices do not go to the copy.
+  const languageChoice = { "~:language-options": { "~:choose": 1, "~:options": { "~:elvish": true } } };
+  expect(withSubrace({}, { "~:profs": languageChoice })).toEqual({});
+  expect(withSubrace({}, { "~:profs": { ...languageChoice, "~:tool": { "~:smiths-tools": true } } })).toEqual({
+    "~:profs": { "~:tool": { "~:smiths-tools": true } },
+  });
   // A subrace with no values changes nothing.
   expect(withSubrace(formRecord(SYLVAR), { "~:name": "Plain", "~:race": "~:sylvar" })).toEqual(formRecord(SYLVAR));
 });
@@ -1133,13 +1144,8 @@ test("withPickedSubrace gives the copy the pack subrace of the character, with a
   expect(saved.removed).toEqual([]);
   expect(subraceParts(saved.entity, content, saved.custom)).toEqual(subraceParts(entity, content));
   // One skill of the choice was still to pick, and it still is.
-  const toPick = (x: StrictEntity, custom?: object) =>
-    e
-      .evaluate(x, characterContent(content, custom))
-      .selections.filter((s) => s.path[0] === "race" && s.key === "skill-proficiency")
-      .map((s) => s.remaining);
-  expect(toPick(entity)).toEqual([1]);
-  expect(toPick(saved.entity, saved.custom)).toEqual([1]);
+  expect(raceChoiceRemaining(entity, "skill-proficiency", content)).toEqual([1]);
+  expect(raceChoiceRemaining(saved.entity, "skill-proficiency", content, saved.custom)).toEqual([1]);
 
   // A held pick goes with the picks under it, so saveCopy lists a pick under it that is not held.
   const partly = saveCopy(entity, undefined, content, { contentType: RACE_TYPE, path: ["race", "sylvar"], item, held: [subracePick] });
@@ -1151,4 +1157,13 @@ test("withPickedSubrace gives the copy the pack subrace of the character, with a
   const holds = { record: formRecord(SYLVAR), held: [subracePick] };
   expect(withPickedSubrace(holds, "sylvar", entity, FAR_PACKS)).toBe(holds);
   expect(withPickedSubrace(plain, "sylvar", entity, RACE_PACKS)).toBe(plain);
+});
+
+test("the copy does not hold the engine's custom subrace, whose picks the probe does not read, so Save names it", async () => {
+  const e = engine();
+  let entity = e.select(e.select(wizardWithoutRace(), ["race"], "dwarf"), ["race", "dwarf", "subrace"], "custom");
+  entity = e.select(entity, ["race", "dwarf", "subrace", "custom", "darkvision"], "ft-90");
+  const { copy, saved } = await noEditCopy(entity, "dwarf", "Dwarf (Custom)");
+  expect(copy).toEqual({ held: [], record: await srdRaceRecord("dwarf") });
+  expect(saved.removed).toEqual([["race", "dwarf", "subrace", "custom"]]);
 });

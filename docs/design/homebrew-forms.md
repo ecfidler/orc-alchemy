@@ -859,8 +859,12 @@ section says so.
     and the darkvision are those of the subrace when it has them. The
     ability score increases and the hit points for each level are sums.
     The proficiencies, the resistances, the spells and the features are
-    those of the two together. A choice of the race and the same choice
-    of the subrace become one choice.
+    those of the two together. A flying or swimming speed is that of the
+    subrace. The skill choice of the race and that of the subrace become
+    one choice. The engine offers no other choice of a pack subrace, so
+    the copy gets no other.
+  * The sum of the hit points for each level can be more than 2, the
+    highest value of the Hit Points toggle. The record keeps the sum.
   * A skill pick under a pack subrace becomes a skill proficiency of the
     copy, and the skill choice of the copy has that many fewer skills to
     choose.
@@ -952,13 +956,14 @@ Save, the dialog tells the user which picks these are.
   removes the artisan's tool choice of a background copy, the line names
   the character's pick of that choice, such as Smith's Tools.
 * If the test save removes no pick, the line does not show.
-* A race copy never keeps a subrace pick. An SRD race has its subraces in
-  the engine, and the copy does not get them. A pack subrace names its race
-  by the race's key, and the copy has a new key. Thus Save removes the
-  subrace pick. Customize gives the copy the values of the subrace, so
-  the line does not name the pick (ORC-248). In the Custom Origin dialog
-  the copy does not have those values yet (ORC-249), and the line names
-  the pick.
+* A race copy has no Subrace choice, so Save removes the subrace pick.
+  An SRD race has its subraces in the engine, and a pack subrace names
+  its race by the race's key, and the copy has a new key. Customize gives
+  the copy the values of the subrace, so the line does not name the pick
+  (ORC-248). The line names the pick in two cases. The first is the
+  engine's Custom subrace, because the copy does not get the values of
+  its picks, such as a speed. The second is the Custom Origin dialog,
+  where the copy does not have the values of the subrace yet (ORC-249).
 * The line is the same for each type. A feat or a background copy shows
   it when the copy does not offer a choice that the character picked.
 * The line follows the form after a short delay. If Save comes before

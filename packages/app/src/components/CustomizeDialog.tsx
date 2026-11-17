@@ -123,7 +123,7 @@ export interface CustomizeDialogProps {
   note?: ReactNode;
   /**
    * The names of the character's picks that a save of the item, as
-   * validated, removes, such as "Subrace (Hill Dwarf)". The dialog shows
+   * validated, removes, such as "Subrace (Custom)". The dialog shows
    * them on a line above the form, for the record as it is now.
    */
   removedPicks?: (item: ItemRecord) => string[];
@@ -241,8 +241,8 @@ export function useRemovedPicks(
 }
 
 /**
- * The names of the picks that a save removes, such as "Subrace (Hill
- * Dwarf)", as the line above the form shows them. save does the test save
+ * The names of the picks that a save removes, such as "Subrace
+ * (Custom)", as the line above the form shows them. save does the test save
  * with the character as it is now. [] when it throws: remapOption throws
  * when the selection has an option with the copy's key already, and the
  * dialog shows that case another way.
