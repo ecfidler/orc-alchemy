@@ -4,6 +4,8 @@ A Bun-workspaces monorepo that owns the TypeScript projects built on the
 Dungeon Master's Vault rules engine. Alchemy 5e, the app, is one workspace
 package; the exporter bookmarklet and later the 2024 engine are siblings.
 
+You are the owner and long-term maintainer of this codebase, and its design is up to you.
+
 - **The plan is `docs/plan/`.** Plan Set 2 (`docs/plan/README.md`) is
   active; Plan Set 1 (`docs/plan/plan-set-1/`) is reference material it
   builds on. The docs were written in the fork, so "this fork" in them means
