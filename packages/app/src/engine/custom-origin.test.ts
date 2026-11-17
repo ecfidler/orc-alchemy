@@ -10,6 +10,7 @@ import {
   baseRaceRecord,
   CUSTOM_ORIGIN,
   changedSlots,
+  heldElsewhere,
   lostChoices,
   type OriginLists,
   type OriginSlot,
@@ -313,6 +314,40 @@ test("a value that the record holds outside its slots is not offered, so a pick 
     "~:orcpub.dnd.e5.character/int": -2,
     "~:orcpub.dnd.e5.character/str": 1,
   });
+});
+
+// ORC-245. fighter-20 is an Acolyte: Insight and Religion from the background, Athletics and Perception from the
+// class, and Common, Elvish and Draconic from the Languages selection.
+test("the picks that the character holds without its race: its languages by name, and its skills", () => {
+  const languages = [...LISTS.language, { key: "Draconic", name: "Draconic" }].map(({ name }) => ({ key: name.toLowerCase(), name }));
+  const held = heldElsewhere(fighter20(), undefined, SRD, "human", languages);
+  expect([...held].sort()).toEqual([
+    "language:Common",
+    "language:Draconic",
+    "language:Elvish",
+    "skill:athletics",
+    "skill:insight",
+    "skill:perception",
+    "skill:religion",
+    "weapon:martial",
+    "weapon:simple",
+  ]);
+  // The race's own gifts are not in it: an Elf fighter with no other Perception holds no Perception without the Elf.
+  const elf = withoutOption(remapOption(fighter20(), ["race", "human"], "elf"), ["class", "fighter", "skill-proficiency", "perception"]);
+  expect(Object.keys(engine().evaluate(elf, SRD).built["skill-profs"] ?? {})).toContain("perception");
+  expect(heldElsewhere(elf, undefined, SRD, "elf", languages).has("skill:perception")).toBe(false);
+});
+
+test("a language or a skill that the character holds from another pick is not offered; the slot's own value and the race's are", async () => {
+  const base = (await srdRaceRecord("half-orc"))!;
+  const slots = originSlots(base);
+  const elsewhere = new Set(["language:Common", "language:Elvish", "skill:perception", "skill:intimidation"]);
+  // Orc: Common is the other slot's; Elvish is held from another pick.
+  expect(slotOptions(base, slots, 3, LISTS, elsewhere).map((o) => o.id)).toEqual(["language:Dwarvish", "language:Orc", "language:Sylvan"]);
+  // Intimidation is what the race gives, so it stays, as does the slot's value after a swap.
+  expect(slotOptions(base, slots, 4, LISTS, elsewhere).map((o) => o.id)).toEqual(["skill:intimidation", "skill:stealth"]);
+  const swapped = withPick(slots, 4, "skill:perception");
+  expect(slotOptions(base, swapped, 4, LISTS, elsewhere).map((o) => o.id)).toEqual(["skill:intimidation", "skill:perception", "skill:stealth"]);
 });
 
 test("Custom Origin on a race that is a plain Customize copy replaces the copy, so the character keeps one copy", async () => {

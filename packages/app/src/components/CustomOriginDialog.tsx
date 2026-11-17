@@ -8,7 +8,7 @@
 import { Button, Dialog, type ListItem, ListModal, Select, Token, Tokens, useConfirm } from "@orc-alchemy/ui";
 import { type ReactNode, useCallback, useId, useMemo, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
-import type { BuilderChoices } from "../engine/builder-choices.ts";
+import type { BuilderChoices, Choice } from "../engine/builder-choices.ts";
 import { sameRecord } from "../engine/content.ts";
 import { isCustomCopy } from "../engine/custom.ts";
 import {
@@ -16,6 +16,7 @@ import {
   changedSlots,
   customOriginBase,
   customOriginCopy,
+  heldElsewhere,
   lostChoices,
   type OriginLists,
   type OriginSlot,
@@ -84,6 +85,8 @@ export interface CustomOriginDialogProps {
   loadBase: (key: string) => Promise<OriginBase>;
   /** A line above the sections, such as why the earlier base race is not in the list. */
   problem?: string;
+  /** The picks that the character holds without its race, which the lists leave out (heldElsewhere). */
+  elsewhere: (languages: Choice[]) => ReadonlySet<string>;
   /** The names of the character's picks that a save of the item removes (useRemovedPicks). */
   removedPicks: (item: ItemRecord) => string[];
   /** Stores the copy of the base race with the key. A throw shows its message, and the dialog stays open. */
@@ -98,7 +101,7 @@ export interface CustomOriginDialogProps {
  * ability bonuses, the languages and the proficiencies. Save is disabled
  * until a base race is set and one value differs from the race's.
  */
-export function CustomOriginDialog({ open, initial, bases, loadBase, problem, removedPicks, onSave, onClose, finalFocus }: CustomOriginDialogProps) {
+export function CustomOriginDialog({ open, initial, bases, loadBase, problem, elsewhere, removedPicks, onSave, onClose, finalFocus }: CustomOriginDialogProps) {
   const [draft, setDraft] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -194,7 +197,16 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, re
                 </p>
               )}
             </Section>
-            {base && <Slots base={base} slots={slots} lists={originLists(choices)} onChange={(next) => setDraft({ base, slots: next })} />}
+            {base && (
+              <Slots
+                base={base}
+                slots={slots}
+                lists={originLists(choices)}
+                elsewhere={elsewhere}
+                languageChoices={choices.languages}
+                onChange={(next) => setDraft({ base, slots: next })}
+              />
+            )}
             {base && !changedSlots(slots) && <p className="text-ink-muted">Nothing differs from {base.name} yet. Change one value to save.</p>}
             {error && <p role="alert">{error}</p>}
           </div>
@@ -206,8 +218,24 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, re
 }
 
 /** The sections of the slots: the ability bonuses, the languages and the proficiencies. */
-function Slots({ base, slots, lists, onChange }: { base: OriginBase; slots: OriginSlot[]; lists: OriginLists; onChange: (slots: OriginSlot[]) => void }) {
+function Slots({
+  base,
+  slots,
+  lists,
+  elsewhere,
+  languageChoices,
+  onChange,
+}: {
+  base: OriginBase;
+  slots: OriginSlot[];
+  lists: OriginLists;
+  elsewhere: CustomOriginDialogProps["elsewhere"];
+  languageChoices: Choice[];
+  onChange: (slots: OriginSlot[]) => void;
+}) {
   const [picking, setPicking] = useState<number | null>(null);
+  // The engine builds the character without its race once, not at each render.
+  const held = useMemo(() => elsewhere(languageChoices), [elsewhere, languageChoices]);
   const tokens = useRef<HTMLDivElement>(null);
   // The slot whose list was open last: the list closes before its finalFocus runs.
   const opened = useRef<number | null>(null);
@@ -245,7 +273,7 @@ function Slots({ base, slots, lists, onChange }: { base: OriginBase; slots: Orig
   const items: ListItem<string>[] =
     picking === null || target === null
       ? []
-      : slotOptions(base.record, slots, picking, lists)
+      : slotOptions(base.record, slots, picking, lists, held)
           .filter((option) => option.id !== target.value)
           .map((option) => ({
             value: option.id,
@@ -290,6 +318,9 @@ function Slots({ base, slots, lists, onChange }: { base: OriginBase; slots: Orig
           </>
         )}
       </Section>
+      {held.size > 0 && languages.length + profs.length > 0 && (
+        <p className="text-[14.5px] text-ink-muted">The lists leave out what the character has from its class, its background and its other picks.</p>
+      )}
       <ListModal
         open={picking !== null}
         onOpenChange={(next) => {
@@ -377,17 +408,30 @@ export interface CustomOriginParts {
 export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts | null {
   const content = useHomebrew((state) => state.content);
   const custom = useCharacter((state) => state.custom);
+  const entity = useCharacter((state) => state.entity);
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
   const describe = useId();
   // The key of the line's button that gets the focus when the dialog closes; null for the entry.
   const focusKey = useRef<string | null>(null);
   const { actualPath } = selection;
+  const selected = selection.options.find((o) => o.selected)?.key;
+  const elsewhere = useCallback(
+    (languages: Choice[]): ReadonlySet<string> => {
+      if (entity === null) return new Set();
+      // An engine error must not close the dialog: the lists then leave nothing out.
+      try {
+        return heldElsewhere(entity, custom, content, selected, languages);
+      } catch {
+        return new Set();
+      }
+    },
+    [entity, custom, content, selected],
+  );
   if (actualPath.length !== 1 || actualPath[0] !== "race") return null;
 
   const { homebrew } = content;
   const bases = selection.options.filter((o) => !isCustomCopy(homebrew, custom, RACE_TYPE, o.key)).map(({ key, name }) => ({ key, name }));
-  const selected = selection.options.find((o) => o.selected)?.key;
 
   async function loadBase(key: string): Promise<OriginBase> {
     const name = bases.find((b) => b.key === key)?.name ?? key;
@@ -474,6 +518,7 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
             problem={session.problem}
             bases={bases}
             loadBase={loadBase}
+            elsewhere={elsewhere}
             removedPicks={(item) => removedPickNames(selection, () => saved(item, originBase(item) ?? ""))}
             onSave={save}
             onClose={() => setSession({ ...session, open: false })}

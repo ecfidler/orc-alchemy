@@ -7,9 +7,11 @@
 // a comparison of the copy with the base race's record (originPicks), so
 // the picks are never stored apart from the values that they make.
 
+import type { Choice } from "./builder-choices.ts";
 import { asSet, isMap, setItems, tag, untag } from "./content.ts";
 import { characterContent, formRecord, isCustomCopy, optionOrigin, type SavedCopy, saveCopy, srdRaceRecord, storedCopy } from "./custom.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
+import { withoutOption } from "./reconcile.ts";
 import { ABILITIES, ABILITY_NAMES, type Ability } from "./sheet.ts";
 
 export const RACE_TYPE: ContentType = "orcpub.dnd.e5/races";
@@ -158,14 +160,55 @@ function fixedPicks(record: Record<string, unknown>): Set<string> {
  * the base race's record does not hold outside its slots (fixedPicks).
  * Thus two bonuses never go on one ability, and a pick never takes the
  * place of a value of the record. The slot's own value is in the list.
+ * A pick in elsewhere (heldElsewhere) is not offered either, but for the
+ * slot's own value and what the race gives.
  */
-export function slotOptions(base: Record<string, unknown>, slots: OriginSlot[], i: number, lists: OriginLists): { id: string; name: string; group?: string }[] {
+export function slotOptions(
+  base: Record<string, unknown>,
+  slots: OriginSlot[],
+  i: number,
+  lists: OriginLists,
+  elsewhere: ReadonlySet<string> = new Set(),
+): { id: string; name: string; group?: string }[] {
+  const { race, value } = slots[i];
   const held = new Set([...slots.filter((_, j) => j !== i).map((slot) => slot.value), ...fixedPicks(base)]);
   return takes(slots[i].kind).flatMap((kind) =>
     choicesOf(kind, lists)
       .map((choice) => ({ id: pickId(kind, choice.key), name: choice.name, ...(choice.group !== undefined && { group: choice.group }) }))
-      .filter((option) => !held.has(option.id)),
+      .filter((option) => !held.has(option.id) && (!elsewhere.has(option.id) || option.id === race || option.id === value)),
   );
+}
+
+/**
+ * The picks that the character holds without its race: each language,
+ * and each skill, tool and weapon proficiency that the engine builds for
+ * the entity without the race option with the key selected (as it is
+ * when selected is undefined). A swap to one of them gives the character
+ * a value twice, and the builder then asks the user to remove a
+ * selection. The engine builds a language as its key, and a race stores
+ * its name, so languages gives the name of each key. The engine builds
+ * the weapons of a class as "simple" and "martial", which are no picks.
+ * content is the loaded content, without custom.
+ */
+export function heldElsewhere(
+  entity: StrictEntity,
+  custom: object | undefined,
+  content: Content,
+  selected: string | undefined,
+  languages: Choice[],
+): Set<string> {
+  const others = selected === undefined ? entity : withoutOption(entity, ["race", selected]);
+  const { built } = engine().evaluate(others, characterContent(content, custom));
+  const names = new Map(languages.map(({ key, name }) => [key, name]));
+  return new Set([
+    ...(built.languages ?? []).flatMap((key) => {
+      const name = names.get(key);
+      return name === undefined ? [] : [pickId("language", name)];
+    }),
+    ...Object.keys(built["skill-profs"] ?? {}).map((key) => pickId("skill", key)),
+    ...Object.keys(built["tool-profs"] ?? {}).map((key) => pickId("tool", key)),
+    ...(built["weapon-profs"] ?? []).map((key) => pickId("weapon", key)),
+  ]);
 }
 
 /** The name of a pick in the lists, or its key when no list has it. */

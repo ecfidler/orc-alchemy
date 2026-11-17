@@ -71,13 +71,13 @@ const proficient = (skill: string) => {
   return within(line).queryByRole("img", { name: "Proficient" }) !== null;
 };
 
-/** The Half-Orc copy that the first test saves: +2 Dexterity, +1 Wisdom, Elvish for Orc, Stealth for Intimidation. */
+/** The Half-Orc copy that the first test saves: +2 Dexterity, +1 Wisdom, Dwarvish for Orc, Stealth for Intimidation. */
 async function movedHalfOrc() {
   const base = (await srdRaceRecord("half-orc"))!;
   let slots = originSlots(base);
   slots = withPick(slots, 0, "ability:dex");
   slots = withPick(slots, 1, "ability:wis");
-  slots = withPick(slots, 3, "language:Elvish");
+  slots = withPick(slots, 3, "language:Dwarvish");
   slots = withPick(slots, 4, "skill:stealth");
   return originRecord(base, slots, "half-orc", "Half-Orc");
 }
@@ -113,9 +113,9 @@ test("Custom Origin on the SRD Half-Orc with the bonuses moved, a language and a
   await pickOption(plus2, "Dexterity");
   await pickOption(within(dialog).getByRole("combobox", { name: "+1 bonus, Half-Orc gives Constitution" }), "Wisdom");
   expect(within(dialog).getByRole("group", { name: "Ability bonuses" })).toHaveTextContent("moved from Strength");
-  await swap(dialog, "Change language Orc", "Elvish");
+  await swap(dialog, "Change language Orc", "Dwarvish");
   await swap(dialog, "Change proficiency Intimidation", "Stealth");
-  expect(within(dialog).getByRole("button", { name: "Change language Elvish, in place of Orc" })).toBeTruthy();
+  expect(within(dialog).getByRole("button", { name: "Change language Dwarvish, in place of Orc" })).toBeTruthy();
   expect(save(dialog).disabled).toBe(false);
   fireEvent.click(save(dialog));
   await closed();
@@ -143,7 +143,7 @@ test("Custom Origin on the SRD Half-Orc with the bonuses moved, a language and a
   expect(within(sheet).getByLabelText("DEX").textContent).toBe(
     `${after["orcpub.dnd.e5.character/dex"]}+${Math.floor((after["orcpub.dnd.e5.character/dex"] - 10) / 2)}`,
   );
-  expect(sheet).toHaveTextContent("Elvish");
+  expect(sheet).toHaveTextContent("Dwarvish");
   expect(sheet).not.toHaveTextContent(/\bOrc\b(?! \(Custom)/);
   expect([proficient("Stealth"), proficient("Intimidation")]).toEqual([true, false]);
 
@@ -158,7 +158,7 @@ test("Custom Origin on the SRD Half-Orc with the bonuses moved, a language and a
   expect(baseRace(again)).toHaveTextContent("Half-Orc");
   expect(within(again).getByRole("combobox", { name: "+2 bonus, Half-Orc gives Strength" })).toHaveTextContent("Dexterity");
   expect(within(again).getByRole("combobox", { name: "+1 bonus, Half-Orc gives Constitution" })).toHaveTextContent("Wisdom");
-  expect(within(again).getByRole("button", { name: "Change language Elvish, in place of Orc" })).toBeTruthy();
+  expect(within(again).getByRole("button", { name: "Change language Dwarvish, in place of Orc" })).toBeTruthy();
   expect(within(again).getByRole("button", { name: "Change proficiency Stealth, in place of Intimidation" })).toBeTruthy();
   expect(within(again).queryByRole("textbox", { name: "Name" })).toBeNull();
   expect(save(again).disabled).toBe(false);
@@ -197,6 +197,35 @@ test("Edit with a new base race resets the picks, and Save replaces the copy wit
   });
   expect(useCharacter.getState().entity).toEqual(remapOption(entity, ["race", "half-orc-custom-origin"], "elf-custom-origin"));
   expect(proficient("Perception")).toBe(true);
+});
+
+/** The names of the rows of the list of the token named `token`. */
+async function rows(dialog: HTMLElement, token: string) {
+  fireEvent.click(within(dialog).getByRole("button", { name: token }));
+  const list = await screen.findByRole("dialog", { name: /^Replace / });
+  const names = within(list)
+    .getAllByRole("button")
+    .filter((b) => b.classList.contains("ui-list-row"))
+    .map((b) => b.getAttribute("aria-label"));
+  fireEvent.keyDown(list, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: /^Replace / })).toBeNull());
+  return names;
+}
+
+// ORC-245. fighter-20 is an Acolyte with Elvish and Draconic from the Languages selection, Insight and Religion from
+// the background, and Athletics and Perception from the class.
+test("the lists leave out a language and a skill that the character holds from another pick, and a line says so", async () => {
+  openRace();
+  const dialog = await openEntry();
+  await chooseBase(dialog, "Half-Orc");
+  const languages = await rows(dialog, "Change language Orc");
+  expect(languages).toEqual(expect.arrayContaining(["Dwarvish", "Sylvan"]));
+  expect(languages).not.toContain("Elvish");
+  expect(languages).not.toContain("Draconic");
+  const skills = await rows(dialog, "Change proficiency Intimidation");
+  expect(skills).toEqual(expect.arrayContaining(["Stealth", "Acrobatics"]));
+  for (const held of ["Athletics", "Perception", "Insight", "Religion"]) expect(skills).not.toContain(held);
+  expect(dialog).toHaveTextContent("The lists leave out what the character has from its class, its background and its other picks.");
 });
 
 test("Human gives a bonus to each ability, so there is nothing to move; its one language can still be swapped", async () => {
