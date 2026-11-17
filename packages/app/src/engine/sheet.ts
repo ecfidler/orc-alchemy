@@ -443,13 +443,15 @@ const toItems = (...inventories: Inventory[]): SheetItem[] =>
     ),
   );
 
+/** An entry of a resistance-like accessor of the built character, such as resistances: the value, and a qualifier or null. */
+export interface Resistance {
+  value: string;
+  qualifier?: string | null;
+}
+
 /** Resistance-like accessors hold { value, qualifier } entries: "fire", "magical-sleep (qualifier)". */
 const toResistances = (...lists: unknown[]) =>
-  lists.flatMap((list) =>
-    ((list as { value: string; qualifier?: string | null }[] | null) ?? []).map(
-      ({ value, qualifier }) => keyToName(value) + (qualifier ? ` (${qualifier})` : ""),
-    ),
-  );
+  lists.flatMap((list) => ((list as Resistance[] | null) ?? []).map(({ value, qualifier }) => keyToName(value) + (qualifier ? ` (${qualifier})` : "")));
 
 function toSpeeds(built: Built2014): Speed[] {
   const withArmor = built["speed-with-armor"];

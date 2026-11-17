@@ -72,7 +72,6 @@ const NOTE = (
   <>
     Custom Origin follows the optional rule "Customizing Your Origin" in <cite>Tasha's Cauldron of Everything</cite> (page 8). Ask your DM before you use it.
     Choose a race, then move its ability score increases and swap its languages and proficiencies for others. Save makes a copy of the race for this character.
-    The copy of an SRD race does not keep its damage resistances, saving throw advantages or spells.
   </>
 );
 

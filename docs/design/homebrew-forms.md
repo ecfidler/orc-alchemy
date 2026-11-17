@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T20:33:00Z }
+generated: { by: claude-code/agent, at: 2026-11-16T20:45:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -770,27 +770,38 @@ section says so.
   description (`:help`), size, speed, darkvision, ability score
   increases, languages, weapon proficiencies and features. The summary of
   a feature becomes its description, as for a background.
-* The list has no skill proficiencies of a race. The engine builds a new
-  character with only the race, and the record gets each skill that the
-  race gives (ORC-138). These are Perception for the Elf and Intimidation
-  for the Half-Orc.
+* The list does not have all of an SRD race. The engine builds a new
+  character of level 20 with the race, and the same character with no
+  race. The new character has the engine's default class. The record
+  gets what only the character with the race has (ORC-138, ORC-244):
+  * The skill proficiencies. These are Perception for the Elf and
+    Intimidation for the Half-Orc.
+  * The damage resistances. These are poison for the Dwarf and fire for
+    the Tiefling.
+  * The spells, each with the character level that unlocks it. The
+    Tiefling has Thaumaturgy at level 1, Hellish Rebuke at level 3 and
+    Darkness at level 5. The unlock level is the first level at which the
+    character knows the spell.
+  * The features that the list does not have. These are Hellish Resistance
+    and Infernal Legacy for the Tiefling. The text of a feature is its text
+    at level 20, so Infernal Legacy names each of the three spells.
+
+  Thus a copy of a Tiefling with no edits keeps the sheet.
 * The list has no ability score increases for the Human. The engine gives
   the Human +1 to each ability with its variant Standard Human. Thus the
   copy of the Human opens with +1 in each of the six abilities, and a copy
   of a standard Human with no edits keeps the scores. For a Variant Human,
   the user must change the increases in the form.
-* The list does not have all of an SRD race. Thus the copy of an SRD race
-  does not have these:
-  * The damage resistances, for example the poison resistance of the
-    Dwarf.
-  * The saving throw advantages and the spells, for example the spells of
-    the Tiefling.
-  * The features that the list does not have, for example the breath
-    weapon of the Dragonborn.
+* The copy of an SRD race does not have these:
+  * The saving throw advantages and the immunity to magical sleep. The
+    race form has no field for them. They stay as the text of a feature,
+    for example Dwarven Resilience and Fey Ancestry.
   * The choices under the race, for example the subrace, the variant and
     the extra language of the Human, the tool of the Dwarf and the
     ancestry of the Dragonborn. Save removes the character's picks of
     these choices.
+  * What a pick of such a choice gives, for example the breath weapon and
+    the damage resistance of the Dragonborn's ancestry.
   * The subraces. A copy never has a subrace (see
     [The picks that Save removes](#the-picks-that-save-removes)).
 * If the content list does not load, an alert under the lines says so,
@@ -904,8 +915,7 @@ The dialog is one page that scrolls, in the ui `Dialog`, with the title
 
 1. A note in `--ink-muted` text. It names the optional rule and its book,
    and tells the user to ask the DM first. It tells what the dialog
-   changes. It also tells that the copy of an SRD race does not keep its
-   damage resistances, saving throw advantages or spells.
+   changes.
 2. The line of the picks that Save removes, as in
    [The picks that Save removes](#the-picks-that-save-removes). For a
    Human with a subrace, it names the subrace and the variant.
