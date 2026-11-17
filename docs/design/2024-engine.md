@@ -267,6 +267,9 @@ Its scope:
 
 The milestone gets its tickets when E1 is under way.
 
+Magic items and attunement in the engine (ORC-258) are also after E1.
+That work goes with this milestone, and E1 ends without it.
+
 [^orc-218]: ORC-218: Map: plan the 2024 engine (the decisions index)
 [^spike]: The 2024 engine spike
 [^rules-report]: Supporting the 2024 rules
