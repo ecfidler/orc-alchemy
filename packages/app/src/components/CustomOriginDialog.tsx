@@ -10,13 +10,15 @@ import { type ReactNode, useCallback, useId, useMemo, useRef, useState } from "r
 import type { BuilderSelection } from "../engine/builder.ts";
 import type { BuilderChoices, Choice } from "../engine/builder-choices.ts";
 import { sameRecord } from "../engine/content.ts";
-import { isCustomCopy } from "../engine/custom.ts";
+import { isCustomCopy, type RaceCopy } from "../engine/custom.ts";
 import {
-  baseRaceRecord,
+  baseRace,
+  baseSubraces,
   changedSlots,
   customOriginBase,
   customOriginCopy,
   heldElsewhere,
+  heldSubrace,
   lostChoices,
   type OriginLists,
   type OriginSlot,
@@ -29,6 +31,7 @@ import {
   saveCustomOrigin,
   slotOptions,
   slotValueName,
+  storedBase,
   withPick,
 } from "../engine/custom-origin.ts";
 import { useCharacter } from "../state/character.ts";
@@ -44,7 +47,17 @@ export interface OriginBase {
   name: string;
   record: ItemRecord;
   lost: string[];
+  /** The subraces of the race. The dialog shows the Subrace select for more than one. */
+  subraces: { key: string; name: string }[];
+  /** The paths of the picks under the race whose values the record has (baseRace held). The subrace of the record is one of them (heldSubrace). */
+  held: string[][];
 }
+
+/** The Custom Origin copy of the base race with the slots' values (originRecord). */
+const originItem = (base: OriginBase, slots: OriginSlot[]) => originRecord(base.record, slots, base.key, base.name, base.held);
+
+/** The value of the Subrace select for no subrace. A subrace key is the key of a name, which has no space. */
+const NO_SUBRACE = "no subrace";
 
 /** What the dialog edits: the base race, null until the user picks one, and its slots. */
 export interface OriginDraft {
@@ -81,16 +94,20 @@ export interface CustomOriginDialogProps {
   initial: OriginDraft;
   /** The races of the race selection that the user can pick as the base race: those that the content lists have (an SRD or a pack race). */
   bases: { key: string; name: string }[];
-  /** The base race with the key. A throw shows its message. */
-  loadBase: (key: string) => Promise<OriginBase>;
+  /**
+   * The base race with the key. subrace is the key of the subrace to use,
+   * or null for none; without it, the base race has its default subrace.
+   * A throw shows its message.
+   */
+  loadBase: (key: string, subrace?: string | null) => Promise<OriginBase>;
   /** A line above the sections, such as why the earlier base race is not in the list. */
   problem?: string;
   /** The picks that the character holds without its race, which the lists leave out (heldElsewhere). */
   elsewhere: (languages: Choice[]) => ReadonlySet<string>;
-  /** The names of the character's picks that a save of the item removes (useRemovedPicks). */
-  removedPicks: (item: ItemRecord) => string[];
+  /** The names of the character's picks that a save of the item removes (useRemovedPicks). held is that of the base race (OriginBase held). */
+  removedPicks: (item: ItemRecord, held: string[][]) => string[];
   /** Stores the copy of the base race with the key. A throw shows its message, and the dialog stays open. */
-  onSave: (item: ItemRecord, baseKey: string) => void;
+  onSave: (item: ItemRecord, baseKey: string, held: string[][]) => void;
   /** Closes the dialog without a save. With changes, the dialog asks first. */
   onClose: () => void;
   finalFocus?: () => HTMLElement | null;
@@ -108,17 +125,16 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, el
   const [confirm, confirmDialog] = useConfirm();
   const latest = useRef(0);
   const { base, slots } = draft;
-  const item = useMemo(() => (base === null ? null : originRecord(base.record, slots, base.key, base.name)), [base, slots]);
-  const first = useMemo(
-    () => (initial.base === null ? null : originRecord(initial.base.record, initial.slots, initial.base.key, initial.base.name)),
-    [initial],
-  );
+  const item = useMemo(() => (base === null ? null : originItem(base, slots)), [base, slots]);
+  const first = useMemo(() => (initial.base === null ? null : originItem(initial.base, initial.slots)), [initial]);
   const changed = !sameRecord(item, first);
   const canSave = base !== null && changedSlots(slots) && !loading;
   // The owner's function can be new at each render; the line counts again only when the item changes.
   const removedNow = useRef(removedPicks);
   removedNow.current = removedPicks;
-  const stableRemovedPicks = useCallback((next: ItemRecord) => removedNow.current(next), []);
+  const heldNow = useRef<string[][]>([]);
+  heldNow.current = base?.held ?? [];
+  const stableRemovedPicks = useCallback((next: ItemRecord) => removedNow.current(next, heldNow.current), []);
   const [removes, removesNow] = useRemovedPicks(item, stableRemovedPicks);
   useUnloadWarning(open && changed);
 
@@ -127,14 +143,14 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, el
     onClose();
   }
 
-  /** A new base race resets the picks. */
-  async function choose(key: string) {
-    if (key === base?.key) return;
+  /** A new base race, or a new subrace of the base race, resets the picks. */
+  async function choose(key: string, subrace?: string | null) {
+    if (key === base?.key && (subrace === undefined || subrace === heldSubrace(base.held))) return;
     const at = ++latest.current;
     setError(null);
     setLoading(true);
     try {
-      const next = await loadBase(key);
+      const next = await loadBase(key, subrace);
       if (at === latest.current) setDraft({ base: next, slots: originSlots(next.record) });
     } catch (e) {
       if (at === latest.current) setError(e instanceof Error ? e.message : String(e));
@@ -149,7 +165,7 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, el
     // The line can be behind the picks by its delay. A save must not remove a pick that the line did not name.
     if (removesNow(item)) return;
     try {
-      onSave(item, base.key);
+      onSave(item, base.key, base.held);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -190,6 +206,15 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, el
                 onValueChange={(key) => void choose(key)}
                 className="max-w-full"
               />
+              {base && base.subraces.length > 1 && (
+                <Select
+                  aria-label="Subrace"
+                  value={heldSubrace(base.held) ?? NO_SUBRACE}
+                  options={[[NO_SUBRACE, "No subrace"] as const, ...base.subraces.map(({ key, name }) => [key, name] as const)]}
+                  onValueChange={(key) => void choose(base.key, key === NO_SUBRACE ? null : key)}
+                  className="mt-[6px] max-w-full"
+                />
+              )}
               {loading && <p role="status">Reading the race…</p>}
               {base && base.lost.length > 0 && (
                 <p className="mt-[6px] text-[14.5px] text-ink-muted">
@@ -433,11 +458,20 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
   const { homebrew } = content;
   const bases = selection.options.filter((o) => !isCustomCopy(homebrew, custom, RACE_TYPE, o.key)).map(({ key, name }) => ({ key, name }));
 
-  async function loadBase(key: string): Promise<OriginBase> {
-    const name = bases.find((b) => b.key === key)?.name ?? key;
-    const record = await baseRaceRecord(homebrew, key);
-    if (record === undefined) throw new Error(`Could not read the race ${name}.`);
-    return { key, name, record, lost: lostChoices(key, originRecord(record, originSlots(record), key, name), content) };
+  const baseName = (key: string) => bases.find((b) => b.key === key)?.name ?? key;
+
+  /** The base race with the key, from its record and the picks whose values the record has (baseRace, storedBase). */
+  function originBaseOf(key: string, { record, held }: RaceCopy): OriginBase {
+    const name = baseName(key);
+    const lost = lostChoices(key, originRecord(record, originSlots(record), key, name, held), content, held);
+    return { key, name, record, lost, subraces: baseSubraces(key, content), held };
+  }
+
+  async function loadBase(key: string, subrace?: string | null): Promise<OriginBase> {
+    const state = useCharacter.getState();
+    const base = await baseRace(content, state.custom, key, state.entity, subrace);
+    if (base === undefined) throw new Error(`Could not read the race ${baseName(key)}.`);
+    return originBaseOf(key, base);
   }
 
   const start = (initial: OriginDraft, problem?: string) => setSession((last) => ({ id: (last?.id ?? 0) + 1, open: true, initial, problem }));
@@ -453,7 +487,9 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
       return;
     }
     try {
-      const base = await loadBase(baseKey);
+      // The copy holds its base record and the picks of that record. A copy from before ORC-249 holds neither: its base is the race with no subrace.
+      const stored = storedBase(item, baseKey);
+      const base = stored === undefined ? await loadBase(baseKey, null) : originBaseOf(baseKey, stored);
       start({ base, slots: originPicks(base.record, item) });
     } catch (e) {
       setError(`Could not open the custom origin: ${e instanceof Error ? e.message : String(e)}`);
@@ -461,15 +497,15 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
   }
 
   /** The save of the item with the character as it is now. Throws as saveCustomOrigin throws. */
-  function saved(item: ItemRecord, baseKey: string) {
+  function saved(item: ItemRecord, baseKey: string, held: string[][]) {
     const state = useCharacter.getState();
     if (state.entity === null) throw new Error("No character is open");
-    return saveCustomOrigin(state.entity, state.custom, useHomebrew.getState().content, { item, baseKey, selected });
+    return saveCustomOrigin(state.entity, state.custom, useHomebrew.getState().content, { item, baseKey, selected, held });
   }
 
-  function save(item: ItemRecord, baseKey: string) {
+  function save(item: ItemRecord, baseKey: string, held: string[][]) {
     if (session === null) return;
-    const next = saved(item, baseKey);
+    const next = saved(item, baseKey, held);
     useCharacter.getState().updateWithCustom(next.custom, () => next.entity);
     focusKey.current = next.key;
     setSession({ ...session, open: false });
@@ -519,7 +555,7 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
             bases={bases}
             loadBase={loadBase}
             elsewhere={elsewhere}
-            removedPicks={(item) => removedPickNames(selection, () => saved(item, originBase(item) ?? ""))}
+            removedPicks={(item, held) => removedPickNames(selection, () => saved(item, originBase(item) ?? "", held))}
             onSave={save}
             onClose={() => setSession({ ...session, open: false })}
             finalFocus={finalFocus}

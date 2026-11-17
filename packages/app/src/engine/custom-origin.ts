@@ -4,20 +4,51 @@
 // proficiencies for another one. The copy is a race in the character's
 // custom content, as a Customize copy is (custom.ts), with one more key,
 // CUSTOM_ORIGIN, that names the base race. Edit finds the earlier picks by
-// a comparison of the copy with the base race's record (originPicks), so
-// the picks are never stored apart from the values that they make.
+// a comparison of the copy with the base record (originPicks), so the
+// picks are never stored apart from the values that they make. The base
+// record has the values of a subrace and of the character's picks under
+// the race (ORC-249, baseRace), and the copy holds it for Edit, with the
+// paths of those picks.
 
 import type { Choice } from "./builder-choices.ts";
 import { asSet, isMap, setItems, tag, untag } from "./content.ts";
-import { characterContent, formRecord, isCustomCopy, optionOrigin, type SavedCopy, saveCopy, srdRaceRecord, storedCopy } from "./custom.ts";
+import {
+  characterContent,
+  formRecord,
+  isCustomCopy,
+  optionOrigin,
+  type RaceCopy,
+  raceOption,
+  type SavedCopy,
+  saveCopy,
+  srdRaceCopy,
+  storedCopy,
+  subraceOptions,
+  subracePick,
+  withPickedSubrace,
+} from "./custom.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
-import { withoutOption } from "./reconcile.ts";
+import { hasOption, picksUnder, withoutOption } from "./reconcile.ts";
 import { ABILITIES, ABILITY_NAMES, type Ability } from "./sheet.ts";
 
 export const RACE_TYPE: ContentType = "orcpub.dnd.e5/races";
 
 /** The key of a Custom Origin copy that names its base race, as a keyword: {:custom-origin :elf}. The validator, the engine and the file export keep it. */
 export const CUSTOM_ORIGIN = tag("custom-origin");
+
+/**
+ * The keys of a Custom Origin copy that hold its base record and the
+ * picks under the base race whose values that record has (ORC-249). A
+ * pick is its path below the race, as keywords: [[:subrace :hill-dwarf]
+ * [:tool-proficiency :smiths-tools]]. The character does not have these
+ * picks after the save. Thus Edit reads the base record and the picks
+ * from the copy. A copy from before ORC-249 has neither key.
+ */
+export const CUSTOM_ORIGIN_BASE = tag("custom-origin-base");
+export const CUSTOM_ORIGIN_PICKS = tag("custom-origin-picks");
+
+/** The key of the subrace among the held picks of a base race (baseRace held), or null. */
+export const heldSubrace = (held: string[][]): string | null => subracePick(held)?.[3] ?? null;
 
 /** The name of the Custom Origin copy of the race with the name. */
 export const originName = (raceName: string) => `${raceName} (Custom Origin)`;
@@ -230,11 +261,26 @@ function withMapAt(record: Record<string, unknown>, path: string[], value: Recor
  * named originName(baseName), with CUSTOM_ORIGIN baseKey. Each value takes
  * the place of what the race gives, in the same place of its map or set; a
  * weapon that becomes a tool goes to the end of the tools. The record's
- * other values stay.
+ * other values stay. The copy holds the base record itself
+ * (CUSTOM_ORIGIN_BASE). held is the paths of the picks under the base
+ * race whose values the base record has (baseRace), which the copy holds
+ * too (CUSTOM_ORIGIN_PICKS).
  */
-export function originRecord(base: Record<string, unknown>, slots: OriginSlot[], baseKey: string, baseName: string): Record<string, unknown> {
+export function originRecord(
+  base: Record<string, unknown>,
+  slots: OriginSlot[],
+  baseKey: string,
+  baseName: string,
+  held: string[][] = [],
+): Record<string, unknown> {
   const slotFor = (id: string) => slots.find((slot) => slot.race === id);
-  let record: Record<string, unknown> = { ...base, [tag("name")]: originName(baseName), [CUSTOM_ORIGIN]: tag(baseKey) };
+  let record: Record<string, unknown> = {
+    ...base,
+    [tag("name")]: originName(baseName),
+    [CUSTOM_ORIGIN]: tag(baseKey),
+    [CUSTOM_ORIGIN_BASE]: base,
+    ...(held.length > 0 && { [CUSTOM_ORIGIN_PICKS]: held.map((path) => path.slice(2).map(tag)) }),
+  };
   if (record[LANGUAGES] !== undefined) {
     record[LANGUAGES] = asSet(
       setItems(base[LANGUAGES]).map((name) => {
@@ -290,36 +336,112 @@ export function originPicks(base: Record<string, unknown>, copy: Record<string, 
   });
 }
 
+/** The subraces of a race option (raceOption), without the engine's Custom subrace, whose picks a copy does not hold. */
+const subracesOf = (race: ReturnType<typeof raceOption>) =>
+  subraceOptions(race)
+    .filter((o) => o.key !== "custom")
+    .map((o) => ({ key: o.key, name: o.name }));
+
+/** The subraces of the race with the key that the dialog offers (subracesOf). content is the loaded content, without custom. */
+export const baseSubraces = (key: string, content: Content): { key: string; name: string }[] => subracesOf(raceOption(key, content.homebrew));
+
 /**
- * The record of the race with the key, as the copy starts from it: a pack
+ * The race with the key, as a Custom Origin copy starts from it: a pack
  * race's item without its key and option source (formRecord), or the SRD
- * race's record (srdRaceRecord). undefined when neither has it. homebrew
- * is the loaded content's, without the character's custom content.
+ * race's record (srdRaceCopy), with the values of a subrace (ORC-249).
+ * undefined when no content has the race.
+ *
+ * When the character (entity) has the race, the record also has the
+ * values of the character's picks under it, and held has those picks, as
+ * for a Customize copy. Else the record is that of a new character with
+ * only the race.
+ *
+ * subrace is the key of the subrace to use, or null for none. Without it,
+ * the subrace is that of the character's race, or else the only subrace
+ * of the race, or else none. content is the loaded content, without the
+ * character's custom content. The subrace of the result is heldSubrace of
+ * its held.
  */
-export async function baseRaceRecord(homebrew: Content["homebrew"], key: string): Promise<Record<string, unknown> | undefined> {
-  const origin = optionOrigin(homebrew, undefined, RACE_TYPE, key);
-  return origin.from === "pack" ? formRecord(origin.item) : srdRaceRecord(key);
+export async function baseRace(
+  content: Content,
+  custom: object | undefined,
+  key: string,
+  entity: StrictEntity | null,
+  subrace?: string | null,
+): Promise<RaceCopy | undefined> {
+  const option = raceOption(key, content.homebrew);
+  if (option === undefined) return undefined;
+  const e = engine();
+  const path = ["race", key];
+  const own = entity !== null && hasOption(entity, path);
+  // The character's content, so that the engine finds its other options.
+  const built = own ? characterContent(content, custom) : content;
+  let probe = own ? entity : e.select(e.emptyCharacter(), ["race"], key, built);
+  const current = heldSubrace(picksUnder(probe, path));
+  const subraces = subracesOf(option);
+  const wanted = subrace !== undefined ? subrace : (current ?? (subraces.length === 1 ? subraces[0].key : null));
+  if (wanted !== current) {
+    if (current !== null) probe = withoutOption(probe, [...path, "subrace", current]);
+    if (wanted !== null) probe = e.select(probe, [...path, "subrace"], wanted, built);
+  }
+  const origin = optionOrigin(content.homebrew, undefined, RACE_TYPE, key);
+  const copy = origin.from === "pack" ? { record: formRecord(origin.item), held: [] } : await srdRaceCopy(key, probe);
+  if (copy === undefined) return undefined;
+  // The record has the values of the subrace only when a held pick is the subrace.
+  return withPickedSubrace(copy, key, probe, content.homebrew);
 }
 
-/** The names of the choices under the race, such as Subrace, of a character with only the race. */
-function raceChoices(key: string, content: Content): Map<string, string> {
+/**
+ * The base record that the Custom Origin copy of the race with baseKey
+ * holds (CUSTOM_ORIGIN_BASE), and the paths of the picks whose values it
+ * has (CUSTOM_ORIGIN_PICKS), as baseRace gave them. undefined for a copy
+ * from before ORC-249.
+ */
+export function storedBase(item: Record<string, unknown>, baseKey: string): RaceCopy | undefined {
+  const record = item[CUSTOM_ORIGIN_BASE];
+  if (!isMap(record)) return undefined;
+  const picks = item[CUSTOM_ORIGIN_PICKS];
+  const held = Array.isArray(picks) ? picks.filter(Array.isArray).map((pick) => ["race", baseKey, ...pick.map(untag)]) : [];
+  return { record, held };
+}
+
+/**
+ * The names of the choices under the race of a character with only the
+ * race, such as Subrace, by the path of the choice below the race. With
+ * subrace, the character has that subrace too, so the choices under it,
+ * such as "subrace/high-elf/high-elf-cantrips-known", are in the result.
+ */
+function raceChoices(key: string, content: Content, subrace: string | null = null): Map<string, string> {
   const e = engine();
-  const { selections } = e.evaluate(e.select(e.emptyCharacter(), ["race"], key, content), content);
-  return new Map(selections.filter((s) => s.path.length === 3 && s.path[0] === "race" && s.path[1] === key).map((s) => [s.path[2], s.name]));
+  const path = ["race", key];
+  const race = e.select(e.emptyCharacter(), ["race"], key, content);
+  const entity = subrace === null ? race : e.select(race, [...path, "subrace"], subrace, content);
+  const { selections } = e.evaluate(entity, content);
+  const under = selections.filter((s) => s.path.length % 2 === 1 && path.every((k, i) => s.path[i] === k));
+  return new Map(under.map((s) => [s.path.slice(2).join("/"), s.name]));
 }
 
 /**
  * The names of the choices of the base race that its copy does not have,
  * such as Subrace and Tool Proficiency for the Dwarf. The engine builds a
  * character with only the race, then one with only the copy, and the
- * choices under each are compared. content is the loaded content, without
- * the character's custom content.
+ * choices under each are compared by their keys. held is the paths of
+ * the picks under the base race whose values the copy has (baseRace). A
+ * choice with a held pick is not in the result. The choices under a held
+ * subrace are those of the base race too: a High Elf without a cantrip
+ * pick gives "High Elf Cantrips Known". content is the loaded content,
+ * without the character's custom content.
  */
-export function lostChoices(baseKey: string, copy: Record<string, unknown>, content: Content): string[] {
+export function lostChoices(baseKey: string, copy: Record<string, unknown>, content: Content, held: string[][] = []): string[] {
   const { key, stored } = storedCopy(RACE_TYPE, copy);
   const withCopy = characterContent(content, { [tag(RACE_TYPE)]: { [tag(key)]: stored } });
   const kept = raceChoices(key, withCopy);
-  return [...raceChoices(baseKey, content)].filter(([k]) => !kept.has(k)).map(([, name]) => name);
+  const heldChoices = new Set(held.map((p) => p.slice(2, -1).join("/")));
+  // A subrace that the content does not have now has no choices to compare.
+  const subrace = subracesOf(raceOption(baseKey, content.homebrew)).find((o) => o.key === heldSubrace(held))?.key ?? null;
+  return [...raceChoices(baseKey, content, subrace)]
+    .filter(([choice]) => !kept.has(choice.slice(choice.lastIndexOf("/") + 1)) && !heldChoices.has(choice))
+    .map(([, name]) => name);
 }
 
 /**
@@ -327,21 +449,23 @@ export function lostChoices(baseKey: string, copy: Record<string, unknown>, cont
  * the character's race, selected is its key. A selected copy in the
  * custom content (a Customize or Custom Origin copy) is replaced, so the
  * character keeps one copy. Without a race, the base race is selected
- * first, so the copy has a pick to take. content is the loaded content,
- * without custom. Throws as saveCopy throws.
+ * first, so the copy has a pick to take. held is the picks of the
+ * character under the base race whose values the copy has (baseRace),
+ * which the result does not list as removed. content is the loaded
+ * content, without custom. Throws as saveCopy throws.
  */
 export function saveCustomOrigin(
   entity: StrictEntity,
   custom: object | undefined,
   content: Content,
-  { item, baseKey, selected }: { item: Record<string, unknown>; baseKey: string; selected: string | undefined },
+  { item, baseKey, selected, held }: { item: Record<string, unknown>; baseKey: string; selected: string | undefined; held?: string[][] },
 ): SavedCopy {
   if (selected === undefined) {
     const withBase = engine().select(entity, ["race"], baseKey, characterContent(content, custom));
-    return saveCopy(withBase, custom, content, { contentType: RACE_TYPE, path: ["race", baseKey], item });
+    return saveCopy(withBase, custom, content, { contentType: RACE_TYPE, path: ["race", baseKey], item, held });
   }
   const replacedKey = isCustomCopy(content.homebrew, custom, RACE_TYPE, selected) ? selected : undefined;
-  return saveCopy(entity, custom, content, { contentType: RACE_TYPE, path: ["race", selected], item, replacedKey });
+  return saveCopy(entity, custom, content, { contentType: RACE_TYPE, path: ["race", selected], item, replacedKey, held });
 }
 
 /**
