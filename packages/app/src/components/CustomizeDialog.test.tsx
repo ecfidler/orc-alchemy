@@ -12,7 +12,7 @@ import { setQuantity } from "../engine/equipment.ts";
 import { missingContent, remapOption, withoutOption } from "../engine/reconcile.ts";
 import { ARTISAN, BACKGROUND_PACK, SAGE, TAGGED_BACKGROUNDS, withSage } from "../engine/test-backgrounds.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "../engine/test-feats.ts";
-import { DEEP_SYLVAR, RACE_PACK, SYLVAR, TAGGED_RACES, TAGGED_SUBRACES, withSylvar } from "../engine/test-races.ts";
+import { DEEP_SYLVAR, RACE_PACK, RACE_PACKS, SYLVAR, TAGGED_RACES, TAGGED_SUBRACES, withSylvar } from "../engine/test-races.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
@@ -530,16 +530,17 @@ test("Customize on a pack race makes '<Name> (Custom)', selects it, and the shee
   expect(within(again).getByRole("note")).toHaveTextContent(ORIGIN_NOTE);
 });
 
-test("Customize on the SRD race opens a form with its name and description, and the note; the line names the subrace that Save removes, not the variant that the copy holds", async () => {
+test("Customize on the SRD race opens a form with its name and description, and the note; no line names the subrace or the variant, which the copy holds", async () => {
   const lines = await openRace();
   fireEvent.click(within(lines).getByRole("button", { name: "Customize Human" }));
   const dialog = await dialogNamed("Customize Human");
   expect(field(dialog, "Name").value).toBe("Human (Custom)");
   const record = (await srdRaceRecord("human"))!;
   expect(field(dialog, "Description").value).toBe(record["~:help"]);
-  const [note, removes] = within(dialog).getAllByRole("note");
-  expect(note).toHaveTextContent(ORIGIN_NOTE);
-  expect(removes).toHaveTextContent("Save removes these picks of the character: Subrace (Illuskan).");
+  // Only the note of the optional rule shows: the copy holds the subrace and the variant.
+  const notes = within(dialog).getAllByRole("note");
+  expect(notes).toHaveLength(1);
+  expect(notes[0]).toHaveTextContent(ORIGIN_NOTE);
   fireEvent.click(save(dialog));
   await closed();
 
@@ -572,7 +573,7 @@ test("Customize on an SRD Dwarf with a tool pick: the copy has the tool, so no l
   expect(Object.keys(evaluate().built["tool-profs"])).toEqual(["smiths-tools"]);
 });
 
-test("Customize on a pack race with a pack subrace says that Save removes the subrace, and Save removes it", async () => {
+test("Customize on a pack race with a pack subrace opens with the values of the subrace, so no line says that Save removes a pick", async () => {
   const lines = await openRace(withSylvar(true));
   expect(race()).toEqual([
     ["race", ["sylvar"]],
@@ -580,7 +581,8 @@ test("Customize on a pack race with a pack subrace says that Save removes the su
   ]);
   fireEvent.click(within(lines).getByRole("button", { name: "Customize Sylvar" }));
   const dialog = await dialogNamed("Customize Sylvar");
-  expect(within(dialog).getAllByRole("note")[1]).toHaveTextContent("Save removes these picks of the character: Subrace (Deep Sylvar).");
+  // Only the note of the optional rule shows.
+  expect(within(dialog).getAllByRole("note")).toHaveLength(1);
   fireEvent.click(save(dialog));
   await closed();
   expect(race()).toEqual([["race", ["sylvar-custom"]]]);
@@ -588,6 +590,19 @@ test("Customize on a pack race with a pack subrace says that Save removes the su
     remapOption(withoutOption(withSylvar(true), ["race", "sylvar", "subrace", "deep-sylvar"]), ["race", "sylvar"], "sylvar-custom"),
   );
   expect(evaluate().built.subrace).toBeNull();
+  // The copy has the +1 Intelligence of Deep Sylvar with the increases of Sylvar.
+  expect(useCharacter.getState().custom).toEqual({
+    [TAGGED_RACES]: {
+      "~:sylvar-custom": {
+        ...SYLVAR,
+        "~:key": "~:sylvar-custom",
+        "~:name": "Sylvar (Custom)",
+        "~:option-pack": CUSTOM_PACK,
+        "~:abilities": { ...SYLVAR["~:abilities"], "~:orcpub.dnd.e5.character/int": 1 },
+      },
+    },
+  });
+  expect(evaluate().built.abilities).toEqual(engine().evaluate(withSylvar(true), { homebrew: RACE_PACKS }).built.abilities);
 });
 
 // The line of removed picks follows the form (ORC-136): Sage's artisan's tool choice holds fighter-20's Smith's Tools.

@@ -338,6 +338,10 @@ interface RaceGives {
   skills: string[];
   /** The keys of the tool proficiencies, such as "smiths-tools". */
   tools: string[];
+  /** The keys of the weapon proficiencies, such as "longsword". */
+  weapons: string[];
+  /** The hit points for each level, such as 1 for the Hill Dwarf. 0 for none. */
+  hitPoints: number;
   /** The damage types of the resistances, such as "poison". */
   resistances: string[];
   /** The ability score increases, by the full key of the ability. */
@@ -353,10 +357,18 @@ interface RaceGives {
 /** The level of the probe character: each spell of a race is unlocked, and a trait's text names each spell. */
 const PROBE_LEVEL = 20;
 
+/** The class of the probe character for the weapon proficiencies: the default class has each martial weapon, and this class has no weapon of an SRD race. */
+const WEAPON_PROBE_CLASS = "wizard";
+
+const CON = "orcpub.dnd.e5.character/con";
+
 /** What the probe reads of a character as the engine builds it. */
 function probed(entity: StrictEntity) {
   const { built } = engine().evaluate(entity);
   return {
+    weapons: (built["weapon-profs"] as string[] | null) ?? [],
+    // The hit points for each level without those of the CON modifier.
+    hitPoints: Number(built["hit-point-level-bonus"] ?? 0) - Number((built["ability-bonuses"] as Record<string, number> | null)?.[CON] ?? 0),
     skills: Object.keys(built["skill-profs"] ?? {}),
     tools: Object.keys(built["tool-profs"] ?? {}),
     // A resistance with a qualifier has no place in a pack race, which stores the damage type only.
@@ -373,7 +385,7 @@ function probed(entity: StrictEntity) {
 }
 
 const raceGivesCache = new Map<string, RaceGives>();
-let probeBase: { levels: StrictEntity[]; top: ReturnType<typeof probed> } | undefined;
+let probeBase: { levels: StrictEntity[]; top: ReturnType<typeof probed>; armed: StrictEntity; weapons: string[] } | undefined;
 
 /**
  * What the SRD race with the key gives that its content list does not
@@ -398,14 +410,17 @@ function raceGives(key: string, picked?: StrictEntity): RaceGives {
     const levels = [e.emptyCharacter() as StrictEntity];
     const classKey = Object.keys(e.evaluate(levels[0]).built.levels ?? {})[0];
     while (levels.length < PROBE_LEVEL) levels.push(e.addLevel(levels[levels.length - 1], classKey));
-    probeBase = { levels, top: probed(levels[PROBE_LEVEL - 1]) };
+    const armed = e.setClass(levels[0], 0, WEAPON_PROBE_CLASS);
+    probeBase = { levels, top: probed(levels[PROBE_LEVEL - 1]), armed, weapons: probed(armed).weapons };
   }
   const { levels, top: before } = probeBase;
-  const withRace = (level: number) => {
-    const entity = e.select(levels[level - 1], ["race"], key);
+  const probedWithRace = (base: StrictEntity) => {
+    const entity = e.select(base, ["race"], key);
     return probed(picked === undefined ? entity : withOptionOf(entity, picked, ["race", key]));
   };
+  const withRace = (level: number) => probedWithRace(levels[level - 1]);
   const top = withRace(PROBE_LEVEL);
+  const ownWeapons = probeBase.weapons;
   const raceSpells = top.spells.filter((spell) => !before.spells.some((s) => s.source === spell.source && s.key === spell.key));
   const unlocked = new Map<string, number>();
   for (let level = 1; level <= PROBE_LEVEL && unlocked.size < raceSpells.length; level++) {
@@ -419,6 +434,8 @@ function raceGives(key: string, picked?: StrictEntity): RaceGives {
   const gives: RaceGives = {
     skills: top.skills.filter((skill) => !before.skills.includes(skill)),
     tools: top.tools.filter((tool) => !before.tools.includes(tool)),
+    weapons: probedWithRace(probeBase.armed).weapons.filter((weapon) => !ownWeapons.includes(weapon)),
+    hitPoints: top.hitPoints - before.hitPoints,
     resistances: top.resistances.filter((r) => !before.resistances.includes(r)),
     // The increase of each score that the race makes.
     abilities: Object.fromEntries(
@@ -467,23 +484,40 @@ function breathWeaponTrait(attack: AreaAttack): Record<string, unknown> {
 /** The choices of an SRD race that a pack race can hold, by the key of the choice in the template: the key of the choice in :profs. */
 const KEPT_CHOICES: Record<string, string> = { languages: "language-options", "skill-proficiency": "skill-options" };
 
+/** The option of the SRD race with the key in the engine's template, which has its choices. */
+const srdRaceOption = (key: string) =>
+  engine()
+    .buildTemplate()
+    .shape.find((s) => s.key === "race")
+    ?.options.find((o) => o.key === key);
+
+/** The options of the Subrace choice of the SRD race with the key, as the engine's template has them. [] for a race with no SRD subrace. */
+const srdSubraceOptions = (key: string) => srdRaceOption(key)?.selections?.find((s) => s.key === "subrace")?.options ?? [];
+
 /**
  * The language choice and the skill choice of the SRD race with the key,
  * as the :profs of a pack race: {:language-options {:choose 1 :options
  * {:elvish true}}}. The template gives the number to choose and the
  * options. The engine gives the choice of the copy the key of the SRD
  * choice, so the character's picks stay.
+ *
+ * With subrace, the key of an SRD subrace of the race, the result also
+ * has the choices of the subrace that the character must make, such as
+ * the language of the High Elf. A choice of the race and the same choice
+ * of the subrace become one choice, of the two numbers together.
  */
-function raceChoices(key: string): Record<string, unknown> {
-  const option = engine()
-    .buildTemplate()
-    .shape.find((s) => s.key === "race")
-    ?.options.find((o) => o.key === key);
-  return Object.fromEntries(
-    (option?.selections ?? [])
-      .filter((s) => KEPT_CHOICES[s.key] !== undefined && s.options.length > 0)
-      .map((s) => [KEPT_CHOICES[s.key], { choose: s.min ?? 1, options: Object.fromEntries(s.options.map((o) => [o.key, true])) }]),
-  );
+function raceChoices(key: string, subrace?: string): Record<string, unknown> {
+  const own = (srdRaceOption(key)?.selections ?? []).map((s) => ({ ...s, min: s.min ?? 1 }));
+  const ofSubrace = srdSubraceOptions(key).find((o) => o.key === subrace)?.selections ?? [];
+  const choices: Record<string, { choose: number; options: Record<string, true> }> = {};
+  for (const s of [...own, ...ofSubrace]) {
+    const field = KEPT_CHOICES[s.key];
+    if (field === undefined || s.options.length === 0 || !s.min) continue;
+    const choice = choices[field] ?? { choose: 0, options: {} };
+    for (const o of s.options) choice.options[o.key] = true;
+    choices[field] = { choose: choice.choose + s.min, options: choice.options };
+  }
+  return choices;
 }
 
 /** The picks of a character under its race that a copy of the race holds, and the entity that has only them under the race (racePicks). */
@@ -498,15 +532,18 @@ interface RacePicks {
  * The picks under the race with the key that a copy holds as fixed
  * values, because a pack race does not have their choices: the tool of a
  * Dwarf, the ability picks of a Half-Elf, the variant of a Human with its
- * picks, the ancestry of a Dragonborn. Not the picks of a choice that the
- * copy keeps (KEPT_CHOICES), and not the subrace, which a copy does not
- * have. undefined when the entity has no pick under the race with the
- * key, for example because it has another race.
+ * picks, the ancestry of a Dragonborn, and an SRD subrace with the picks
+ * under it, such as the cantrip of a High Elf. Not the picks of a choice
+ * that the copy keeps (KEPT_CHOICES), and not a pack subrace, whose
+ * values come from its record (withSubrace). undefined when the entity
+ * has no pick under the race with the key, for example because it has
+ * another race.
  */
 function racePicks(entity: StrictEntity, key: string): RacePicks | undefined {
   const picks = picksUnder(entity, ["race", key]);
   if (picks.length === 0) return undefined;
-  const dropped = (path: string[]) => path[2] === "subrace" || KEPT_CHOICES[path[2]] !== undefined;
+  const srdSubraces = new Set(srdSubraceOptions(key).map((o) => o.key));
+  const dropped = (path: string[]) => (path[2] === "subrace" ? !srdSubraces.has(path[3]) : KEPT_CHOICES[path[2]] !== undefined);
   const top = picks.filter((p) => p.length === 4 && dropped(p));
   return { entity: top.reduce((result, path) => withoutOption(result, path), entity), held: picks.filter((p) => !dropped(p)) };
 }
@@ -533,13 +570,17 @@ export interface RaceCopy {
  * With the entity of a character of this race, the record also has what
  * the character's picks under the race give, as fixed values (racePicks):
  * a tool, ability score increases, a skill, a damage resistance, and an
- * attack as a feature (breathWeaponTrait). held has those picks.
+ * attack as a feature (breathWeaponTrait). An SRD subrace is such a pick:
+ * the record has its ability score increase, its weapons, its hit points
+ * for each level, its features and the spell that the character picked,
+ * and its language choice is a choice of the record. held has those
+ * picks.
  *
  * Without a variant pick, the Human gets +1 to each ability, which the
  * engine gives with its variant Standard Human. The race form has no
  * saving throw advantage, so the copy has it only as the text of a
- * feature. The copy has no subraces. The SRD list loads once, as its own
- * chunk.
+ * feature. The copy has no Subrace choice. The SRD list loads once, as
+ * its own chunk.
  */
 export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Promise<RaceCopy | undefined> {
   const { default: list } = await import("@pubdoor/dmv/content/races.json");
@@ -554,12 +595,18 @@ export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Pr
   const standard = key === "human" && !held.some((p) => p[2] === "variant");
   const abilities = standard ? Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1])) : gives.abilities;
   const flags = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, true]));
+  // The list has the weapons of the race. The probe also has those of a subrace.
+  const allWeapons = [...new Set([...(Array.isArray(weapons) ? (weapons as string[]) : []), ...gives.weapons])];
   const props = {
-    ...(Array.isArray(weapons) && weapons.length > 0 && { "weapon-prof": flags(weapons) }),
+    ...(allWeapons.length > 0 && { "weapon-prof": flags(allWeapons) }),
+    ...(gives.hitPoints > 0 && { "max-hp-bonus": gives.hitPoints }),
     ...(gives.skills.length > 0 && { "skill-prof": flags(gives.skills) }),
     ...(gives.resistances.length > 0 && { "damage-resistance": flags(gives.resistances) }),
   };
-  const profs = { ...(gives.tools.length > 0 && { tool: flags(gives.tools) }), ...raceChoices(key) };
+  const profs = {
+    ...(gives.tools.length > 0 && { tool: flags(gives.tools) }),
+    ...raceChoices(key, held.find((p) => p.length === 4 && p[2] === "subrace")?.[3]),
+  };
   const listed = Array.isArray(traits) ? traits : [];
   const names = new Set(listed.map((t: Record<string, unknown>) => t.name));
   const record = tagKeys({
@@ -589,6 +636,85 @@ export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Pr
 
 /** The record of srdRaceCopy for no character: the SRD race with the key, with no value from a pick. */
 export const srdRaceRecord = async (key: string): Promise<Record<string, unknown> | undefined> => (await srdRaceCopy(key))?.record;
+
+const SUBRACE_TYPE: ContentType = "orcpub.dnd.e5/subraces";
+
+/** The two values of one field of a race and its subrace as one value: maps as one map, numbers as their sum, else the subrace's value. */
+function merged(ofRace: unknown, ofSubrace: unknown): unknown {
+  if (ofRace === undefined) return ofSubrace;
+  if (typeof ofRace === "number" && typeof ofSubrace === "number") return ofRace + ofSubrace;
+  if (!isMap(ofRace) || !isMap(ofSubrace)) return ofSubrace;
+  const result: Record<string, unknown> = { ...ofRace };
+  for (const [key, value] of Object.entries(ofSubrace)) result[key] = merged(ofRace[key], value);
+  return result;
+}
+
+/** The fields of a pack subrace that replace those of the race in withSubrace, and the fields that it adds to those of the race. The other fields are the name, the key, the race and the option source. */
+const SUBRACE_OWN_FIELDS = ["size", "speed", "darkvision"].map(tag);
+const SUBRACE_ADDED_FIELDS = ["abilities", "props", "profs", "spells", "traits"].map(tag);
+
+/**
+ * The race record with the values of the pack subrace record as its own,
+ * for a copy of the race of a character with that subrace (ORC-248). The
+ * size, the speed and the darkvision are those of the subrace when it has
+ * them. Ability score increases and the hit points for each level are
+ * sums. The proficiencies, the resistances and the options of a choice
+ * are those of the two together, and a choice of both has the two numbers
+ * to choose together. The spells and the features of the subrace come
+ * after those of the race.
+ */
+export function withSubrace(race: Record<string, unknown>, subrace: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...race };
+  for (const field of SUBRACE_OWN_FIELDS) if (subrace[field] !== undefined) result[field] = subrace[field];
+  for (const field of SUBRACE_ADDED_FIELDS) {
+    const [ofRace, ofSubrace] = [race[field], subrace[field]];
+    if (ofSubrace === undefined) continue;
+    result[field] = Array.isArray(ofSubrace) ? [...(Array.isArray(ofRace) ? ofRace : []), ...ofSubrace] : merged(ofRace, ofSubrace);
+  }
+  return result;
+}
+
+/** The record with the skills as skill proficiencies, and with that many fewer skills to choose in its skill choice. A choice of no skill goes. */
+function withPickedSkills(record: Record<string, unknown>, skills: string[]): Record<string, unknown> {
+  if (skills.length === 0) return record;
+  const [PROPS, PROFS, SKILL, OPTIONS, CHOOSE] = ["props", "profs", "skill-prof", "skill-options", "choose"].map(tag);
+  const props = isMap(record[PROPS]) ? record[PROPS] : {};
+  const { [OPTIONS]: choice, ...profs } = isMap(record[PROFS]) ? record[PROFS] : {};
+  const choose = isMap(choice) ? Number(choice[CHOOSE] ?? 0) - skills.length : 0;
+  const { [PROFS]: _profs, ...rest } = record;
+  const nextProfs = { ...profs, ...(choose > 0 && { [OPTIONS]: { ...(choice as object), [CHOOSE]: choose } }) };
+  return {
+    ...rest,
+    [PROPS]: { ...props, [SKILL]: { ...(isMap(props[SKILL]) ? props[SKILL] : {}), ...Object.fromEntries(skills.map((skill) => [tag(skill), true])) } },
+    ...(Object.keys(nextProfs).length > 0 && { [PROFS]: nextProfs }),
+  };
+}
+
+/**
+ * The copy of the race with the key with the values of the character's
+ * pack subrace (withSubrace), and the subrace pick as a held pick. The
+ * character's skill picks under the subrace are skill proficiencies of
+ * the copy, and held picks: the skill choice of the copy is a choice of
+ * the race, so a pick under the subrace does not stay. The copy itself
+ * when the character has no subrace of the race, when the copy has the
+ * subrace already (an SRD subrace, srdRaceCopy), or when no enabled pack
+ * has the subrace. homebrew is the loaded content's.
+ */
+export function withPickedSubrace(copy: RaceCopy, key: string, entity: StrictEntity | null, homebrew: Content["homebrew"]): RaceCopy {
+  const picks = entity === null ? [] : picksUnder(entity, ["race", key]);
+  const pick = picks.find((p) => p.length === 4 && p[2] === "subrace");
+  if (pick === undefined || copy.held.some((p) => p.join("/") === pick.join("/"))) return copy;
+  const origin = optionOrigin(homebrew, undefined, SUBRACE_TYPE, pick[3]);
+  if (origin.from !== "pack") return copy;
+  const skills = picks.filter((p) => p.length === 6 && p[3] === pick[3] && p[4] === "skill-proficiency");
+  return {
+    record: withPickedSkills(
+      withSubrace(copy.record, origin.item),
+      skills.map((p) => p[5]),
+    ),
+    held: [...copy.held, pick, ...skills],
+  };
+}
 
 /** The options under the option at path that do not resolve against the content, as missingContent gives them. */
 function unresolvedUnder(entity: StrictEntity, path: string[], content: Content) {
@@ -643,7 +769,9 @@ export function saveCopy(entity: StrictEntity, custom: object | undefined, conte
   const under = unresolvedUnder(next.entity, copyPath, withCopy);
   const kept = withoutAll(next.entity, under);
   const held = new Set((customization.held ?? []).map((p) => p.join("/")));
-  const paths = under.map((u) => u.path.map((k, i) => (i === at ? path[at] : k))).filter((p) => !held.has(p.join("/")));
+  // The picks that do not resolve, and the picks under a held pick, which goes with all its picks.
+  const lost = [...under.map((u) => u.path.map((k, i) => (i === at ? path[at] : k))), ...(customization.held ?? []).flatMap((p) => picksUnder(entity, p))];
+  const paths = lost.filter((p) => !held.has(p.join("/")));
   const removed = paths.filter((p) => !paths.some((q) => q.length < p.length && q.every((k, i) => p[i] === k)));
   return { entity: kept, custom: next.custom, key, content: withCopy, removed };
 }

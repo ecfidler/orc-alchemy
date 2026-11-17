@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T21:15:00Z }
+generated: { by: claude-code/agent, at: 2026-11-17T01:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -269,9 +269,13 @@ Always shown: name, description, size, speed, Darkvision, Ability Score
 Increases, Languages, Language Proficiency Choice, Damage Resistances,
 Spells, Features.
 
-Add list (10): Flying speed, Swimming speed, Armor Class, Weapon
+Add list (11): Flying speed, Swimming speed, Armor Class, Weapon
 Proficiencies, Armor Proficiency, Tool Proficiency, Damage Immunities,
-Skill Proficiencies, Skill Proficiency Choice, Weapon Proficiency Choice.
+Hit Points, Skill Proficiencies, Skill Proficiency Choice, Weapon
+Proficiency Choice.
+
+Hit Points is the number toggle of the subrace form (ORC-248). The engine
+gives a race the hit points for each level, as it does for a subrace.
 
 | Group | Control |
 |---|---|
@@ -831,12 +835,42 @@ section says so.
 * The feat of a Variant Human is a pick of the character's feat list, not
   of the race. Save does not remove it. The copy does not give the place
   for it, so the builder then shows one feat too many.
-* The copy of an SRD race does not have these:
-  * The saving throw advantages and the immunity to magical sleep. The
-    race form has no field for them. They stay as the text of a feature,
-    for example Dwarven Resilience and Fey Ancestry.
-  * The subraces. A copy never has a subrace (see
-    [The picks that Save removes](#the-picks-that-save-removes)).
+* The copy of an SRD race does not have the saving throw advantages and
+  the immunity to magical sleep. The race form has no field for them.
+  They stay as the text of a feature, for example Dwarven Resilience and
+  Fey Ancestry.
+* A copy of a race has no Subrace choice. The copy gets the values of the
+  character's subrace as its own values (ORC-248):
+  * An SRD subrace is a pick under the race, so the probe character gets
+    it with the race, and with the picks under it. The record gets what
+    the probe has. The Hill Dwarf gives +1 Wisdom and one hit point for
+    each level. The High Elf gives +1 Intelligence, its four weapons and
+    the cantrip that the character picked. The Rock Gnome gives +1
+    Constitution, the tinker's tools and its two features. The Lightfoot
+    Halfling gives +1 Charisma and Naturally Stealthy.
+  * The probe for the weapons is a level 1 Wizard. The default class has
+    each martial weapon, so its character does not show the weapons of a
+    race.
+  * The language of the High Elf is a pick of the character's language
+    list. The copy gets a language choice for it, as for the Human, so
+    the pick stays.
+  * A pack subrace has a record. The copy gets its values with those of
+    the race, for a pack race and for an SRD race. The size, the speed
+    and the darkvision are those of the subrace when it has them. The
+    ability score increases and the hit points for each level are sums.
+    The proficiencies, the resistances, the spells and the features are
+    those of the two together. A choice of the race and the same choice
+    of the subrace become one choice.
+  * A skill pick under a pack subrace becomes a skill proficiency of the
+    copy, and the skill choice of the copy has that many fewer skills to
+    choose.
+  * A no-edit copy of a Hill Dwarf, a High Elf, a Rock Gnome or a
+    Lightfoot Halfling keeps the sheet. The sheet does not show the name
+    of the subrace, and it shows the copy as the source of a spell.
+  * The subrace of a Human gives no value. The copy holds the pick, and
+    the name of the subrace goes from the sheet.
+  * Custom Origin does not get the subrace yet (ORC-249). See
+    [Custom Origin](#custom-origin).
 * If the content list does not load, an alert under the lines says so,
   and the dialog does not open.
 * The name is "{name} (Custom)". The user can change it.
@@ -898,13 +932,13 @@ Save, the dialog tells the user which picks these are.
 * The app does a test save of the form's record as it is now, with the
   same steps as Save. The picks that the test save removes show on a line
   above the form, in `--warning` text: "Save removes these picks of the
-  character: Subrace (Illuskan)."
+  character: Tool Proficiency: Artisans Tools (Smith's Tools)."
 * The text gives no reason, because there are two: the copy does not offer
   the choice, or the pack of the pick is turned off now.
 * The line does not name a pick whose value the copy has. For example,
   Save removes the tool pick of a Dwarf, and the copy gives that tool, so
-  the character loses nothing. A pick under such a pick shows if the copy
-  does not have its value.
+  the character loses nothing. The subrace pick is such a pick too. A
+  pick under such a pick shows if the copy does not have its value.
 * The app finds these picks one time, when the dialog opens. If the user
   then deletes such a value from the form, the line does not name the
   pick. The user sees the change in the form.
@@ -921,8 +955,10 @@ Save, the dialog tells the user which picks these are.
 * A race copy never keeps a subrace pick. An SRD race has its subraces in
   the engine, and the copy does not get them. A pack subrace names its race
   by the race's key, and the copy has a new key. Thus Save removes the
-  subrace pick, and the line names it. The values of the subrace, for
-  example an ability score increase, go from the sheet.
+  subrace pick. Customize gives the copy the values of the subrace, so
+  the line does not name the pick (ORC-248). In the Custom Origin dialog
+  the copy does not have those values yet (ORC-249), and the line names
+  the pick.
 * The line is the same for each type. A feat or a background copy shows
   it when the copy does not offer a choice that the character picked.
 * The line follows the form after a short delay. If Save comes before

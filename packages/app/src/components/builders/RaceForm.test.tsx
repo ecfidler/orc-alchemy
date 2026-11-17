@@ -51,6 +51,7 @@ const ADDED = [
   "Armor Proficiency",
   "Tool Proficiency",
   "Damage Immunities",
+  "Hit Points",
   "Skill Proficiencies",
   "Skill Proficiency Choice",
   "Weapon Proficiency Choice",
