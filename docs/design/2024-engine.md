@@ -4,7 +4,7 @@ title: 2024 engine spec
 description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
 tags: [rules-2024, engine, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-17T04:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-17T03:51:47Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
 sources:
   - id: orc-218
@@ -51,6 +51,7 @@ Not in scope for E1:
 - The 2024 builder, the edition choice, content browse, and the 2024
   homebrew forms. They are a later milestone of Alchemy 5e.
 - 2014 rules on this engine. That is milestone *E2 — 2014 port* (ORC-97).
+  The rules report gives the reason for the order.[^rules-report]
 - Content that is not in SRD 5.2.1. A user enters it as homebrew.
 - A conversion of a 2014 character or of an `.orcbrew` file to 2024.
 
@@ -64,8 +65,10 @@ Not in scope for E1:
 | `content/` | The built-in packs as JSON, the provenance file, and the license notices. |
 | `scripts/` | The import script for the 5e-bits data. |
 
-E2 adds `src/rules2014/`. Split the package only if the engine is
-published to npm.
+The folders `src/core/` and `src/rules2024/` are the decision of ORC-220.
+The other three folders are the choice of this document. E2 adds
+`src/rules2014/`. If the engine is published to npm later, split the
+package then.
 
 # The engine model
 
@@ -79,9 +82,10 @@ parts.[^spike]
    that the rules offer. An option carries modifiers and can open more
    selections. A `ref` selection pools its count and its options with the
    other selections of the same `ref`.
-3. **Modifiers.** A modifier changes one value of the built character. A
-   modifier and a derived value declare the values that they read. The
-   engine applies them in dependency order.
+3. **Modifiers.** A modifier changes one sheet value, which is a value of
+   the built character. A modifier and a derived sheet value declare the
+   sheet values that they read. The engine applies them in dependency
+   order.
 
 ## Changes from the 2014 engine
 
@@ -89,8 +93,8 @@ parts.[^spike]
    arrays, so the order of choices is safe. The entity has no Transit, no
    namespaced keywords, and no edition. The envelope of the character
    carries the `rules` tag.
-2. **Guards on dependencies.** A read of a value that is not declared
-   throws. A cycle throws and names its values.
+2. **Guards on dependencies.** A read of a sheet value that is not
+   declared throws. A cycle throws and names its sheet values.
 3. **Problems.** `evaluate` returns a list of problems: a choice that the
    template does not offer, and a choice whose prerequisite fails.
 4. **Two meanings of a prerequisite.** "Can the character choose this" and
@@ -98,7 +102,8 @@ parts.[^spike]
 5. **One selection for each `ref` pool** in the result of `evaluate`.
 6. **Content is data.** See *Content*.
 
-A build is repeatable. Ties between unrelated values break by first use.
+A build is repeatable. Ties between unrelated sheet values break by first
+use.
 
 # The facade
 
@@ -119,17 +124,21 @@ evaluate(entity, { rules: "2024", packs }): {
 | Part | Rule |
 |---|---|
 | `entity` | The 2024 entity. |
-| `packs` | The homebrew packs of the user. The built-in packs are always present. |
+| `packs` | The homebrew packs of the user. The built-in pack `srd52` is always present. The pack `srd52-monsters` loads on demand. |
 | `built` | The typed built character of the 2024 engine. It is not `BuiltCharacter` of `@pubdoor/dmv`. Its names are 2024 names, for example `species`. |
 | `selections` | The same `AvailableSelection` type as the 2014 facade, with one entry for each `ref` pool. |
 | `problems` | See *Changes from the 2014 engine*, item 3. Each problem has the path of the choice and a reason. |
-| `contributions` | For each value of `built` that modifiers change, the list of changes with the `name` and the source of each. The app uses it to show why a value is what it is. |
+| `contributions` | For each sheet value that modifiers change, the list of changes with the `name` and the source of each. The app uses it to show why a value is what it is. |
 
 ## The other functions
 
 - **Mutations.** The functions that change an entity take a path and an
   option key, as in the 2014 facade. Each returns a new entity.
-- **`autofill`.** It fills the selections that have a default.
+- **`autofill`.** It completes each open selection of an entity, as the
+  2014 `autofill` does. It takes a seed and the packs, so the result is
+  repeatable. It goes back when a choice leaves a selection with nothing
+  to pick. It does not change a choice that the entity already has. The
+  app uses it for a random character.
 - **Content lists.** The app reads the loaded records by type, for
   browse and for the builder.
 - **Packs.** Load, validate, and upgrade a pack file. See *Content*.
@@ -159,7 +168,8 @@ The 2024 engine has no `.orcbrew` function.
 # Content
 
 The [2024 content format](2024-content-format.md) is the spec of the
-format.[^format] In short:
+format.[^format] Its status is `draft` until ORC-223 makes the schema. In
+short:
 
 - A pack is one JSON file. Built-in content and homebrew use one format.
 - A record has a display layer and an `effects` field. It is valid without
@@ -171,18 +181,15 @@ format.[^format] In short:
 ## Hooks
 
 A hook is a function in `src/rules2024/hooks/` with a name and typed
-arguments. Add a hook only when an effect cannot hold the rule. Each hook
-has a test of its own and a line in the list of hooks in the format doc.
+arguments. If an effect cannot hold a rule, add a hook. Each hook has a
+test of its own. The format doc has a list of probable hooks. The ticket
+that adds a hook puts the real hook in that list.
 
 ## The content pipeline
 
-1. The import script reads `5e-bits/5e-srd-api` at a pinned commit and
-   writes the built-in packs. It runs one time.
-2. The script corrects the known errors of the source data.
-3. We commit the packs, the script, and the provenance file.
-4. We write the `effects` of each record by hand, class by class.
-5. A test compares the spell header fields and the weapon and armor tables
-   with the SRD 5.2.1 text.
+The format doc, section *The source data*, gives the pipeline: a one-time
+import from the 5e-bits data, corrections, and a comparison test. After
+the import, we write the `effects` of each record by hand, class by class.
 
 # Test strategy
 
@@ -199,11 +206,14 @@ The 2024 rules have no oracle. The tests are thus in four groups.
 
 - There are 14: one for each of the 12 classes, and two multiclass.
 - Each class ticket writes the character of its class and makes it pass.
+- Do not copy an expected value from the output of the engine.
+
+This document adds two rules that no Linear decision has:
+
 - A golden character has checks at three levels or more, and one of them
   is level 20.
 - Each expected number has its arithmetic and its SRD 5.2.1 page in a
   comment.
-- Do not copy an expected value from the output of the engine.
 
 # Proof for E1
 
@@ -212,7 +222,8 @@ E1 is done when:
 1. Each SRD 5.2.1 class builds from level 1 to level 20 with its subclass.
 2. The 14 golden characters pass.
 3. A homebrew pack with one record of each type loads and changes a
-   character.
+   character. This check is how this document reads "homebrew on the
+   engine side is in scope".
 4. The app shows a 2024 character on the sheet behind the developer flag.
 
 # Run order
@@ -226,12 +237,14 @@ ticket, with its subclass and its golden character.
 4. The base character rules (ORC-225).
 5. Species (ORC-226), then backgrounds and feats (ORC-227), then equipment
    (ORC-228).
-6. The golden harness (ORC-237), then the Fighter.
+6. The golden harness (ORC-237), then the Fighter (ORC-230).
 7. The app ticket: a 2024 character on the sheet behind a developer flag
    (ORC-238). Each later class is then visible on a sheet.
-8. Barbarian, Monk, Rogue.
+8. Barbarian (ORC-250), Monk (ORC-251), Rogue (ORC-252).
 9. Spellcasting (ORC-229).
-10. Cleric, Druid, Wizard, Bard, Sorcerer, Warlock, Paladin, Ranger.
+10. Cleric (ORC-232), Druid (ORC-253), Wizard (ORC-254), Bard (ORC-233),
+    Sorcerer (ORC-255), Warlock (ORC-256), Paladin (ORC-231), Ranger
+    (ORC-257).
 11. Multiclassing, with the two multiclass golden characters (ORC-234).
 12. Homebrew on the engine side (ORC-235).
 13. Monsters and the Wild Shape forms (ORC-236).
@@ -256,4 +269,5 @@ The milestone gets its tickets when E1 is under way.
 
 [^orc-218]: ORC-218: Map: plan the 2024 engine (the decisions index)
 [^spike]: The 2024 engine spike
+[^rules-report]: Supporting the 2024 rules
 [^format]: 2024 content format
