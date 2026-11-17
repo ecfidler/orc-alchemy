@@ -522,7 +522,7 @@ function raceChoices(key: string, subrace?: string): Record<string, unknown> {
 }
 
 /** The subrace pick among the paths of the picks under a race, such as ["race", "dwarf", "subrace", "hill-dwarf"]. */
-const subracePick = (paths: string[][]) => paths.find((p) => p.length === 4 && p[2] === "subrace");
+export const subracePick = (paths: string[][]) => paths.find((p) => p.length === 4 && p[2] === "subrace");
 
 /** The picks of a character under its race that a copy of the race holds, and the entity that has only them under the race (racePicks). */
 interface RacePicks {

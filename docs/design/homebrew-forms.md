@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-17T01:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-17T03:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -873,8 +873,8 @@ section says so.
     of the subrace, and it shows the copy as the source of a spell.
   * The subrace of a Human gives no value. The copy holds the pick, and
     the name of the subrace goes from the sheet.
-  * Custom Origin does not get the subrace yet (ORC-249). See
-    [Custom Origin](#custom-origin).
+  * Custom Origin gets the subrace and the values of the picks in the
+    same way (ORC-249). See [Custom Origin](#custom-origin).
 * If the content list does not load, an alert under the lines says so,
   and the dialog does not open.
 * The name is "{name} (Custom)". The user can change it.
@@ -962,8 +962,10 @@ Save, the dialog tells the user which picks these are.
   the copy the values of the subrace, so the line does not name the pick
   (ORC-248). The line names the pick in two cases. The first is the
   engine's Custom subrace, because the copy does not get the values of
-  its picks, such as a speed. The second is the Custom Origin dialog,
-  where the copy does not have the values of the subrace yet (ORC-249).
+  its picks, such as a speed. The second is a Custom Origin copy whose
+  base record does not have the character's subrace: the base race is
+  another race, or the user chose another subrace or no subrace
+  (ORC-249).
 * The line is the same for each type. A feat or a background copy shows
   it when the copy does not offer a choice that the character picked.
 * The line follows the form after a short delay. If Save comes before
@@ -999,17 +1001,25 @@ The dialog is one page that scrolls, in the ui `Dialog`, with the title
    changes.
 2. The line of the picks that Save removes, as in
    [The picks that Save removes](#the-picks-that-save-removes). For a
-   Human with a subrace, it names the subrace and the variant.
+   Human with a subrace who takes another base race, it names the
+   subrace and the variant.
 3. **Base race:** a select of the races of the race list that the content
    lists have: the nine SRD races and the races of enabled packs. A copy
    is not offered. A new base race resets the picks. Under the select, a
    muted line names the choices of the race that the copy does not keep,
-   for example "Subrace, Tool Proficiency" for the Dwarf.
+   for example "Tool Proficiency" for the Dwarf. The line does not name a
+   choice whose pick the base record holds as a value.
+   **Subrace** (ORC-249): a race with one subrace gets that subrace with
+   no question. A race with more than one subrace, such as the Human or
+   a pack race, shows a second select under Base race, with "No subrace"
+   first. A new subrace resets the picks. The engine's Custom subrace is
+   not offered.
 4. **Ability bonuses:** one line for each positive bonus of the base
    race's record: the amount, a select of the abilities, then "{Race}
    gives {Ability}", or "moved from {Ability}" and a **Put back** link.
-   The bonuses keep the race's amounts. A subrace's bonus is not a slot,
-   and the copy does not have it. An ability that another bonus holds is
+   The bonuses keep the race's amounts. The bonus of the subrace is a
+   slot too: a Hill Dwarf offers +2 and +1. An ability that another bonus
+   holds is
    not offered, so two bonuses never go on one ability. An ability that
    the record holds outside its bonuses, such as a negative bonus, is not
    offered either. When the race gives a bonus to
@@ -1040,10 +1050,18 @@ race's value back.
 A choice that the race leaves to the user, such as the extra language of
 the Human or the skills of the Half-Elf, is not a slot. The copy of an
 SRD race keeps a language choice and a skill choice. It does not keep
-another choice, such as the subrace or the tool of the Dwarf. The line
-under Base race names each choice that the copy does not keep. The
-guided dialog does not give the copy the values of the character's picks
-(ORC-248).
+another choice, such as the tool of the Dwarf. The line under Base race
+names each choice that the copy does not keep.
+
+The base record has the values of the subrace, as a Customize copy has
+them (ORC-249). When the base race is the character's race, the subrace
+is the character's subrace, and the base record also has the values of
+the character's picks under the race: the tool of the Dwarf, the ability
+picks of the Half-Elf, the variant of the Human, the ancestry of the
+Dragonborn and the cantrip of the High Elf. Each such value that is a
+bonus, a language or a proficiency is a slot. Save does not name these
+picks. When the base race is another race, the base record is that of a
+new character with only the race and its subrace.
 
 The footer has **Cancel** and **Save**. Save is disabled until a base race
 is set and one value differs from the race's. While nothing differs, a
@@ -1064,13 +1082,20 @@ dialog has changes.
 * The copy has one more key, `:custom-origin`, with the key of the base
   race as a keyword, for example `:half-orc`. The validator, the engine
   and the character file keep it.
+* The copy also holds the base record, at `:custom-origin-base`, and the
+  key of its subrace, at `:custom-origin-subrace` (ORC-249). After the
+  save, the character has the copy as its race, and no longer has the
+  subrace pick and the other picks whose values the base record has.
+  Thus Edit reads the base record from the copy.
 * Save uses the steps of [Save](#save). The copy takes the place of the
   character's race. When the race is a copy, the copy goes, so a
   character has one copy. Without a race, Save first selects the base
   race. Thus a new base race in Edit gives a new name and key, and
   replaces the old copy.
 * Edit does not store the picks apart. It compares the copy with the
-  base race's record now. A value of the race that the copy has, with the
+  base record that the copy holds. A copy from before ORC-249 holds no
+  base record: Edit then uses the record of the base race with no
+  subrace. A value of the race that the copy has, with the
   same bonus, stays on its slot. Each other slot takes the next value of
   the copy that no slot took and that it can take. That value can be one
   that another slot of the race gives. For example, a Half-Orc copy with

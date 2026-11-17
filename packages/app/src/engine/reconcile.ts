@@ -146,6 +146,9 @@ function findOption(parent: Node, path: string[]): Node | undefined {
   return found;
 }
 
+/** True when the entity has the option at path, which alternates selection and option keys. */
+export const hasOption = (entity: StrictEntity, path: string[]): boolean => findOption(rootOf(entity), path) !== undefined;
+
 /**
  * The paths of the picks under the option at path, at any depth: each
  * alternates selection and option keys from the root, as an

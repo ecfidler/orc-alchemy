@@ -6,11 +6,11 @@ import { optionNames, pickOption } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { CUSTOM_PACK, characterContent, srdRaceRecord } from "../engine/custom.ts";
-import { CUSTOM_ORIGIN, originRecord, originSlots, withPick } from "../engine/custom-origin.ts";
+import { CUSTOM_ORIGIN, CUSTOM_ORIGIN_SUBRACE, baseRace as loadBaseRace, originRecord, originSlots, withPick } from "../engine/custom-origin.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { remapOption, withoutOption } from "../engine/reconcile.ts";
 import { fighter20 } from "../engine/test-feats.ts";
-import { SYLVAR, TAGGED_RACES, withSylvar } from "../engine/test-races.ts";
+import { SYLVAR, TAGGED_RACES, withHillDwarf, withSylvar } from "../engine/test-races.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
@@ -182,21 +182,57 @@ test("Edit with a new base race resets the picks, and Save replaces the copy wit
   await waitFor(() => expect(within(dialog).getByRole("combobox", { name: "+2 bonus, Elf gives Dexterity" })).toHaveTextContent("Dexterity"));
   expect(save(dialog).disabled).toBe(true);
   expect(within(dialog).getByRole("button", { name: "Change proficiency Perception" })).toBeTruthy();
-  // An Elf copy does not keep the subrace choice; the dialog says so.
-  expect(dialog).toHaveTextContent("The copy does not keep these choices of Elf: Subrace.");
-  await pickOption(within(dialog).getByRole("combobox", { name: "+2 bonus, Elf gives Dexterity" }), "Intelligence");
+  // The Elf has one subrace, the High Elf, so the base record has its values: the +1 bonus is a slot. The dialog has no Subrace select.
+  expect(within(dialog).getByRole("combobox", { name: "+1 bonus, Elf gives Intelligence" })).toHaveTextContent("Intelligence");
+  expect(within(dialog).queryByRole("combobox", { name: "Subrace" })).toBeNull();
+  expect(dialog).not.toHaveTextContent("The copy does not keep these choices");
+  await pickOption(within(dialog).getByRole("combobox", { name: "+2 bonus, Elf gives Dexterity" }), "Wisdom");
   fireEvent.click(save(dialog));
   await closed();
 
   expect(race()).toEqual([["race", ["elf-custom-origin"]]]);
-  const elf = (await srdRaceRecord("elf"))!;
-  const copy = originRecord(elf, withPick(originSlots(elf), 0, "ability:int"), "elf", "Elf");
+  const elf = (await loadBaseRace({ homebrew: undefined }, undefined, "elf", null))!;
+  expect(elf.subrace).toBe("high-elf");
+  const copy = originRecord(elf.record, withPick(originSlots(elf.record), 0, "ability:wis"), "elf", "Elf", "high-elf");
   expect(copy[CUSTOM_ORIGIN]).toBe("~:elf");
+  expect(copy[CUSTOM_ORIGIN_SUBRACE]).toBe("~:high-elf");
   expect(useCharacter.getState().custom).toEqual({
     [TAGGED_RACES]: { "~:elf-custom-origin": { ...copy, "~:key": "~:elf-custom-origin", "~:option-pack": CUSTOM_PACK } },
   });
   expect(useCharacter.getState().entity).toEqual(remapOption(entity, ["race", "half-orc-custom-origin"], "elf-custom-origin"));
   expect(proficient("Perception")).toBe(true);
+});
+
+test("a Hill Dwarf with a tool pick: the +1 of the subrace and the tool are slots, Save names no pick, and Edit shows the same picks (ORC-249)", async () => {
+  const dwarf = engine().select(withHillDwarf(), ["race", "dwarf", "tool-proficiency"], "smiths-tools");
+  openRace(dwarf);
+  const before = evaluate().built;
+  const dialog = await openEntry();
+  await chooseBase(dialog, "Dwarf");
+  // The Dwarf has one subrace, so the dialog has no Subrace select. The copy holds the subrace and the tool, so no line names a choice or a pick.
+  expect(within(dialog).queryByRole("combobox", { name: "Subrace" })).toBeNull();
+  expect(dialog).not.toHaveTextContent("The copy does not keep these choices");
+  expect(within(dialog).getByRole("button", { name: "Change proficiency Smith's Tools" })).toBeTruthy();
+  await pickOption(within(dialog).getByRole("combobox", { name: "+1 bonus, Dwarf gives Wisdom" }), "Charisma");
+  await waitFor(() => expect(save(dialog).disabled).toBe(false));
+  expect(within(dialog).getAllByRole("note")).toHaveLength(1);
+  fireEvent.click(save(dialog));
+  await closed();
+
+  expect(race()).toEqual([["race", ["dwarf-custom-origin"]]]);
+  const after = evaluate().built;
+  expect(after["max-hit-points"]).toBe(before["max-hit-points"]);
+  expect(Object.keys(after["tool-profs"] ?? {})).toEqual(["smiths-tools"]);
+  expect(after["race-ability-increases"]).toEqual({ "orcpub.dnd.e5.character/con": 2, "orcpub.dnd.e5.character/cha": 1 });
+
+  // Edit reads the base record from the copy: the character does not have the subrace and the tool picks now.
+  fireEvent.click(screen.getByRole("button", { name: "Edit custom origin Dwarf (Custom Origin)" }));
+  const again = await screen.findByRole("dialog", { name: "Custom Origin" });
+  await within(again).findByRole("group", { name: "Ability bonuses" });
+  expect(within(again).getByRole("combobox", { name: "+2 bonus, Dwarf gives Constitution" })).toHaveTextContent("Constitution");
+  expect(within(again).getByRole("combobox", { name: "+1 bonus, Dwarf gives Wisdom" })).toHaveTextContent("Charisma");
+  expect(within(again).getByRole("button", { name: "Change proficiency Smith's Tools" })).toBeTruthy();
+  expect(save(again).disabled).toBe(false);
 });
 
 /** The names of the rows of the list of the token named `token`. */
@@ -237,7 +273,14 @@ test("Human gives a bonus to each ability, so there is nothing to move; its one 
   );
   expect(within(dialog).queryByRole("combobox", { name: /bonus/ })).toBeNull();
   expect(within(dialog).getByRole("group", { name: "Proficiencies" })).toHaveTextContent("Human gives no skill, tool or weapon proficiency.");
-  expect(dialog).toHaveTextContent("The copy does not keep these choices of Human: Subrace, Variant.");
+  // fighter-20 is a Human: the base record has the values of his subrace and variant picks, so no line names those choices. The select has the nine subraces of the Human.
+  expect(dialog).not.toHaveTextContent("The copy does not keep these choices");
+  expect(within(dialog).getByRole("combobox", { name: "Subrace" })).toHaveTextContent("Illuskan");
+  expect(within(dialog).queryAllByRole("note")).toHaveLength(1);
+  // Without the subrace, the copy does not hold the subrace pick, so the line names it.
+  await pickOption(within(dialog).getByRole("combobox", { name: "Subrace" }), "No subrace");
+  await waitFor(() => expect(within(dialog).getByRole("combobox", { name: "Subrace" })).toHaveTextContent("No subrace"));
+  await waitFor(() => expect(within(dialog).getAllByRole("note")[1]).toHaveTextContent("Save removes these picks of the character: Subrace (Illuskan)."));
   await swap(dialog, "Change language Common", "Dwarvish");
   expect(save(dialog).disabled).toBe(false);
 });

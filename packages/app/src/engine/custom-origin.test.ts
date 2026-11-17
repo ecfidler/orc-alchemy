@@ -7,8 +7,11 @@ import { getCharacter } from "../storage/characters.ts";
 import { CONTENT_TYPES } from "./content.ts";
 import { CUSTOM_PACK, characterContent, saveCopy, srdRaceRecord } from "./custom.ts";
 import {
-  baseRaceRecord,
+  baseRace,
+  baseSubraces,
   CUSTOM_ORIGIN,
+  CUSTOM_ORIGIN_BASE,
+  CUSTOM_ORIGIN_SUBRACE,
   changedSlots,
   heldElsewhere,
   lostChoices,
@@ -23,13 +26,14 @@ import {
   saveCustomOrigin,
   slotOptions,
   slotValueName,
+  storedBase,
   withPick,
 } from "./custom-origin.ts";
 import { type Content, engine, loadEngine } from "./engine.ts";
 import { characterFile, readCharacterFile } from "./import.ts";
 import { remapOption, withoutOption } from "./reconcile.ts";
 import { fighter20 } from "./test-feats.ts";
-import { RACE_PACKS, SYLVAR, TAGGED_RACES, withSylvar } from "./test-races.ts";
+import { RACE_PACKS, SYLVAR, TAGGED_RACES, withHillDwarf, withSylvar } from "./test-races.ts";
 
 beforeAll(() => loadEngine());
 
@@ -107,6 +111,7 @@ test("the copy with moved bonuses and swapped picks: each value in the place of 
     ...base,
     "~:name": "Half-Orc (Custom Origin)",
     [CUSTOM_ORIGIN]: "~:half-orc",
+    [CUSTOM_ORIGIN_BASE]: base,
     "~:abilities": { "~:orcpub.dnd.e5.character/dex": 2, "~:orcpub.dnd.e5.character/wis": 1 },
     "~:languages": { "~#set": ["Common", "Elvish"] },
     "~:props": { "~:skill-prof": { "~:stealth": true } },
@@ -161,6 +166,7 @@ test("Dwarf: a weapon can become a tool, which goes into the tools; Edit finds t
     ...base,
     "~:name": "Dwarf (Custom Origin)",
     [CUSTOM_ORIGIN]: "~:dwarf",
+    [CUSTOM_ORIGIN_BASE]: base,
     // The poison resistance of the base record stays.
     "~:props": { "~:weapon-prof": { "~:handaxe": true, "~:light-hammer": true, "~:warhammer": true }, "~:damage-resistance": { "~:poison": true } },
     "~:profs": { "~:tool": { "~:smiths-tools": true } },
@@ -237,12 +243,20 @@ test("a second Custom Origin replaces the first copy, with the key of its new ba
 
 test("a pack race is a base race too: its record is the pack item", async () => {
   const content: Content = { homebrew: RACE_PACKS };
-  const base = (await baseRaceRecord(content.homebrew, "sylvar"))!;
+  // With no subrace, the base record is the pack item, or the record of the SRD race.
+  const base = (await baseRace(content, undefined, "sylvar", null, null))!.record;
   const { "~:key": _key, "~:option-pack": _pack, ...record } = SYLVAR;
   expect(base).toEqual(record);
-  expect(await baseRaceRecord(content.homebrew, "dwarf")).toEqual(await srdRaceRecord("dwarf"));
+  expect(await baseRace(content, undefined, "dwarf", null, null)).toEqual({ record: await srdRaceRecord("dwarf"), held: [], subrace: null });
+  expect(await baseRace(content, undefined, "no-such-race", null)).toBeUndefined();
   const copy = originRecord(base, withPick(originSlots(base), 4, "weapon:battleaxe"), "sylvar", "Sylvar");
-  expect(copy).toEqual({ ...record, "~:name": "Sylvar (Custom Origin)", [CUSTOM_ORIGIN]: "~:sylvar", "~:props": { "~:weapon-prof": { "~:battleaxe": true } } });
+  expect(copy).toEqual({
+    ...record,
+    "~:name": "Sylvar (Custom Origin)",
+    [CUSTOM_ORIGIN]: "~:sylvar",
+    [CUSTOM_ORIGIN_BASE]: record,
+    "~:props": { "~:weapon-prof": { "~:battleaxe": true } },
+  });
   const saved = saveCustomOrigin(withSylvar(), undefined, content, { item: copy, baseKey: "sylvar", selected: "sylvar" });
   expect(saved.entity).toEqual(remapOption(withSylvar(), ["race", "sylvar"], "sylvar-custom-origin"));
   expect(engine().evaluate(saved.entity, saved.content).built.race).toBe("Sylvar (Custom Origin)");
@@ -360,4 +374,102 @@ test("Custom Origin on a race that is a plain Customize copy replaces the copy, 
   const saved = saveCustomOrigin(plain.entity, plain.custom, SRD, { item: copy, baseKey: "elf", selected: "elf-custom" });
   expect(Object.keys((saved.custom as Record<string, object>)[TAGGED_RACES])).toEqual(["~:elf-custom-origin"]);
   expect(saved.entity).toEqual(remapOption(plain.entity, ["race", "elf-custom"], "elf-custom-origin"));
+});
+
+// The subrace and the picks of the character (ORC-249). The base record has their values, and the copy holds the base record for Edit.
+
+const ABILITY = (key: string) => `~:orcpub.dnd.e5.character/${key}`;
+
+test("a base race with one subrace gets its values, so its bonus is a slot; a race with more than one gets none without a choice", async () => {
+  const bonuses = async (key: string) => {
+    const base = (await baseRace(SRD, undefined, key, null))!;
+    return { subrace: base.subrace, held: base.held, bonuses: originSlots(base.record).filter((s) => s.kind === "ability") };
+  };
+  expect(await bonuses("dwarf")).toEqual({
+    subrace: "hill-dwarf",
+    // The picks of the probe character, not of a character: a save removes none of them.
+    held: [["race", "dwarf", "subrace", "hill-dwarf"]],
+    bonuses: [slot("ability", "ability:con", "ability:con", 2), slot("ability", "ability:wis", "ability:wis", 1)],
+  });
+  expect((await bonuses("elf")).bonuses).toEqual([slot("ability", "ability:dex", "ability:dex", 2), slot("ability", "ability:int", "ability:int", 1)]);
+  expect((await bonuses("gnome")).bonuses).toEqual([slot("ability", "ability:con", "ability:con", 1), slot("ability", "ability:int", "ability:int", 2)]);
+  expect((await bonuses("halfling")).bonuses).toEqual([slot("ability", "ability:dex", "ability:dex", 2), slot("ability", "ability:cha", "ability:cha", 1)]);
+  // The base record has the other values of the subrace too.
+  const dwarf = (await baseRace(SRD, undefined, "dwarf", null))!;
+  expect((dwarf.record["~:props"] as Record<string, unknown>)["~:max-hp-bonus"]).toBe(1);
+
+  // The lists of the Subrace select: without the engine's Custom subrace.
+  expect(baseSubraces("dwarf", SRD)).toEqual([{ key: "hill-dwarf", name: "Hill Dwarf" }]);
+  expect(baseSubraces("human", SRD).map((s) => s.name)).toEqual([
+    "Calishite",
+    "Chondathan",
+    "Damaran",
+    "Illuskan",
+    "Mulan",
+    "Rashemi",
+    "Shou",
+    "Tethyrian",
+    "Turami",
+  ]);
+  expect(baseSubraces("half-orc", SRD)).toEqual([]);
+  // The Human has nine subraces, so a new Human gets none. A subrace by its key, or none, is the caller's choice.
+  expect(await baseRace(SRD, undefined, "human", null)).toEqual({ record: await srdRaceRecord("human"), held: [], subrace: null });
+  expect((await baseRace(SRD, undefined, "human", null, "shou"))!.subrace).toBe("shou");
+  expect(await baseRace(SRD, undefined, "dwarf", null, null)).toEqual({ record: await srdRaceRecord("dwarf"), held: [], subrace: null });
+  // A pack race with one pack subrace gets the values of its record.
+  const sylvar = (await baseRace({ homebrew: RACE_PACKS }, undefined, "sylvar", null))!;
+  expect(sylvar.subrace).toBe("deep-sylvar");
+  expect(sylvar.record["~:abilities"]).toEqual({ ...SYLVAR["~:abilities"], [ABILITY("int")]: 1 });
+});
+
+test("the base race of the character's own race has the values of its picks, and the save does not list them; Edit reads the base record from the copy", async () => {
+  const e = engine();
+  const entity = e.select(withHillDwarf(), ["race", "dwarf", "tool-proficiency"], "smiths-tools");
+  const base = (await baseRace(SRD, undefined, "dwarf", entity))!;
+  const toolPick = ["race", "dwarf", "tool-proficiency", "smiths-tools"];
+  expect(base.subrace).toBe("hill-dwarf");
+  expect(base.held).toEqual([["race", "dwarf", "subrace", "hill-dwarf"], toolPick]);
+  expect(base.record["~:profs"]).toEqual({ "~:tool": { "~:smiths-tools": true } });
+  // The tool is a slot now, and the choices whose picks the record holds are not lost.
+  const slots = originSlots(base.record);
+  expect(slots.filter((s) => s.kind === "tool")).toEqual([slot("tool", "tool:smiths-tools")]);
+  const plain = originRecord(base.record, slots, "dwarf", "Dwarf", base.subrace);
+  expect(lostChoices("dwarf", plain, SRD)).toEqual(["Subrace", "Tool Proficiency"]);
+  expect(lostChoices("dwarf", plain, SRD, base.held)).toEqual([]);
+
+  // +1 Wisdom of the Hill Dwarf goes to Charisma.
+  const wis = slots.findIndex((s) => s.race === "ability:wis");
+  const picked = withPick(slots, wis, "ability:cha");
+  const copy = originRecord(base.record, picked, "dwarf", "Dwarf", base.subrace);
+  expect(copy[CUSTOM_ORIGIN_BASE]).toBe(base.record);
+  expect(copy[CUSTOM_ORIGIN_SUBRACE]).toBe("~:hill-dwarf");
+  expect(copy["~:abilities"]).toEqual({ [ABILITY("con")]: 2, [ABILITY("cha")]: 1 });
+  const before = e.evaluate(entity).built;
+  const saved = saveCustomOrigin(entity, undefined, SRD, { item: copy, baseKey: "dwarf", selected: "dwarf", held: base.held });
+  expect(saved.removed).toEqual([]);
+  // Without held, the save lists the picks.
+  expect(saveCustomOrigin(entity, undefined, SRD, { item: copy, baseKey: "dwarf", selected: "dwarf" }).removed).toEqual([
+    ["race", "dwarf", "subrace", "hill-dwarf"],
+    toolPick,
+  ]);
+  const after = e.evaluate(saved.entity, saved.content).built;
+  expect(after["max-hit-points"]).toBe(before["max-hit-points"]);
+  expect(Object.keys(after["tool-profs"] ?? {})).toEqual(Object.keys(before["tool-profs"] ?? {}));
+  expect(after.abilities).toEqual({
+    ...before.abilities,
+    "orcpub.dnd.e5.character/wis": before.abilities["orcpub.dnd.e5.character/wis"] - 1,
+    "orcpub.dnd.e5.character/cha": before.abilities["orcpub.dnd.e5.character/cha"] + 1,
+  });
+
+  // Edit: the character has the copy as its race, with no pick under it. The copy holds the base record and the subrace.
+  const item = (saved.custom as Record<string, Record<string, Record<string, unknown>>>)[TAGGED_RACES]["~:dwarf-custom-origin"];
+  const stored = storedBase(item)!;
+  expect(stored).toEqual({ record: base.record, subrace: "hill-dwarf" });
+  expect(originPicks(stored.record, item)).toEqual(picked);
+  expect(originRecord(stored.record, originPicks(stored.record, item), "dwarf", "Dwarf", stored.subrace)).toEqual(copy);
+  // The validator keeps the base record and the subrace.
+  expect(e.validate.race(item).item).toEqual(item);
+  // A copy from before ORC-249 holds no base record.
+  const { [CUSTOM_ORIGIN_BASE]: _base, [CUSTOM_ORIGIN_SUBRACE]: _subrace, ...older } = item;
+  expect(storedBase(older)).toBeUndefined();
 });
