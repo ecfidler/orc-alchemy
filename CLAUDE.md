@@ -62,6 +62,12 @@ the staged files and stages its fixes.
 
 ## Agent skills
 
+The skills in `.claude/skills/` other than `linear-issue-workflow` and
+`milestone-workflow` are copies of
+[mattpocock/skills](https://github.com/mattpocock/skills) at tag `v1.3.2`
+(ORC-259). Do not edit the copies. To update them, copy the folders under
+`skills/engineering/` and `skills/productivity/` from a newer tag.
+
 ### Issue tracker
 
 Issues live in Linear, team "Orc Alchemy", accessed via the Linear MCP tools. See `docs/agents/issue-tracker.md`.
@@ -72,4 +78,4 @@ Default five-role vocabulary; the labels already exist in Linear. See `docs/agen
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

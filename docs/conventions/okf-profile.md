@@ -36,7 +36,7 @@ only the fork, put it in the fork bundle. Otherwise, put it in orc-alchemy.
 
 These files do not get OKF frontmatter. They keep their own format.
 
-- Root `README.md`, `CLAUDE.md`, and `CONTEXT.md` files. GitHub and agent
+- Root `README.md`, `CLAUDE.md`, and `GLOSSARY.md` files. GitHub and agent
   tools read them as plain markdown.
 - Package READMEs, for example `packages/app/README.md` and
   `engine-js/README.md`. npm shows frontmatter as text.

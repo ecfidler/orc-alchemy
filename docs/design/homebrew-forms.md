@@ -54,7 +54,7 @@ replace the grid.[^builder-notes]
 
 # Terms
 
-`CONTEXT.md` at the repository root defines the terms of this document:
+`GLOSSARY.md` at the repository root defines the terms of this document:
 **Modifier**, **Common modifier**, **Picker**, **Token**, **Uses** and
 **Suggested uses**.
 
