@@ -3,7 +3,7 @@ type: Reference
 title: 2024 engine spec
 description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
 tags: [rules-2024, engine, design]
-status: draft
+status: stable
 generated: { by: claude-code/agent, at: 2026-11-17T04:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
 sources:
@@ -217,21 +217,42 @@ E1 is done when:
 
 # Run order
 
-DRAFT: this section waits for the owner's answer on ORC-221.
+The owner approved this order on 2026-11-16 (ORC-221). Each class is one
+ticket, with its subclass and its golden character.
 
 1. The engine package: core, facade, problems, contributions, CI (ORC-222).
 2. The content format: schema, loader, keys (ORC-223).
 3. The content import (ORC-224).
 4. The base character rules (ORC-225).
-5. Species (ORC-226), backgrounds and feats (ORC-227), equipment (ORC-228).
-6. The golden harness, then the Fighter.
-7. The app ticket (ORC-238).
+5. Species (ORC-226), then backgrounds and feats (ORC-227), then equipment
+   (ORC-228).
+6. The golden harness (ORC-237), then the Fighter.
+7. The app ticket: a 2024 character on the sheet behind a developer flag
+   (ORC-238). Each later class is then visible on a sheet.
 8. Barbarian, Monk, Rogue.
 9. Spellcasting (ORC-229).
 10. Cleric, Druid, Wizard, Bard, Sorcerer, Warlock, Paladin, Ranger.
-11. Multiclassing, with its two golden characters (ORC-234).
+11. Multiclassing, with the two multiclass golden characters (ORC-234).
 12. Homebrew on the engine side (ORC-235).
 13. Monsters and the Wild Shape forms (ORC-236).
+
+Linear has the tickets and their blocking relations. When Linear and this
+list disagree about the order, Linear wins.
+
+# After E1
+
+The 2024 app work is a milestone of Alchemy 5e. It comes after E1 and
+before the 2014 port (E2), because E2 changes nothing that a user sees.
+Its scope:
+
+- The edition choice on a new character.
+- The 2024 builder.
+- The 2024 values on the sheet, and the display of contributions.
+- Content browse for 2024 content.
+- The 2024 homebrew forms, with the import and export of a pack.
+- The About page with the two SRD statements.
+
+The milestone gets its tickets when E1 is under way.
 
 [^orc-218]: ORC-218: Map: plan the 2024 engine (the decisions index)
 [^spike]: The 2024 engine spike
