@@ -3,6 +3,8 @@
 ## 2026-11-17
 
 * **Creation**: Added the [2024 content format](design/2024-content-format.md), the decisions of ORC-96 with example records.
+* **Creation**: Added the [2024 engine spec](design/2024-engine.md) (ORC-221).
+* **Update**: Added the decisions after the spike to [Supporting the 2024 rules](reports/2024-rules-support.md) §Decision (ORC-221).
 
 ## 2026-11-16
 

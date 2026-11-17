@@ -1,0 +1,238 @@
+---
+type: Reference
+title: 2024 engine spec
+description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
+tags: [rules-2024, engine, design]
+status: draft
+generated: { by: claude-code/agent, at: 2026-11-17T04:00:00Z }
+resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
+sources:
+  - id: orc-218
+    resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
+    title: "ORC-218: Map: plan the 2024 engine (the decisions index)"
+  - id: spike
+    resource: ../reports/2024-engine-spike.md
+    title: The 2024 engine spike
+  - id: format
+    resource: 2024-content-format.md
+    title: 2024 content format
+  - id: rules-report
+    resource: ../reports/2024-rules-support.md
+    title: Supporting the 2024 rules
+---
+
+# Purpose
+
+This document is the spec for milestone *E1 — 2024 engine* of the Linear
+project *2024 engine*. The E1 build tickets build what it describes. It
+collects the decisions of the map ORC-218.[^orc-218] Each decision is in
+full in the comment of its Linear ticket: ORC-220 for the engine model and
+the facade, and ORC-96 for the content format.
+
+When this document and the spike report disagree, this document wins. When
+this document and a Linear decision comment disagree, the comment wins, and
+this document has an error.
+
+# Scope
+
+The engine computes a 2024 character from its choices. It is the workspace
+package `packages/engine` (`@orc-alchemy/engine`) in orc-alchemy. It is
+TypeScript and it is not published to npm.
+
+In scope for E1:
+
+- The generic core, the 2024 rules, and the facade.
+- The content format, its loader, and the built-in SRD 5.2.1 content.
+- Homebrew content in the same format, on the engine side.
+- One app ticket: a 2024 character on the sheet behind a developer flag.
+
+Not in scope for E1:
+
+- The 2024 builder, the edition choice, content browse, and the 2024
+  homebrew forms. They are a later milestone of Alchemy 5e.
+- 2014 rules on this engine. That is milestone *E2 — 2014 port* (ORC-97).
+- Content that is not in SRD 5.2.1. A user enters it as homebrew.
+- A conversion of a 2014 character or of an `.orcbrew` file to 2024.
+
+# Package layout
+
+| Folder | Contents |
+|---|---|
+| `src/core/` | The generic core. It has no rules content. |
+| `src/rules2024/` | The 2024 rules: the built character, the template, the hooks, and the facade. |
+| `src/format/` | The schema of the content format, the loader, and the validation. |
+| `content/` | The built-in packs as JSON, the provenance file, and the license notices. |
+| `scripts/` | The import script for the 5e-bits data. |
+
+E2 adds `src/rules2014/`. Split the package only if the engine is
+published to npm.
+
+# The engine model
+
+The engine keeps the model of the Dungeon Master's Vault engine, in three
+parts.[^spike]
+
+1. **The entity.** A character is its choices. The entity is a tree of
+   selections and chosen options, with a small set of free values such as
+   the name. All other values are computed.
+2. **The template.** The template is the tree of selections and options
+   that the rules offer. An option carries modifiers and can open more
+   selections. A `ref` selection pools its count and its options with the
+   other selections of the same `ref`.
+3. **Modifiers.** A modifier changes one value of the built character. A
+   modifier and a derived value declare the values that they read. The
+   engine applies them in dependency order.
+
+## Changes from the 2014 engine
+
+1. **One entity form.** The entity is plain typed JSON. Selections are
+   arrays, so the order of choices is safe. The entity has no Transit, no
+   namespaced keywords, and no edition. The envelope of the character
+   carries the `rules` tag.
+2. **Guards on dependencies.** A read of a value that is not declared
+   throws. A cycle throws and names its values.
+3. **Problems.** `evaluate` returns a list of problems: a choice that the
+   template does not offer, and a choice whose prerequisite fails.
+4. **Two meanings of a prerequisite.** "Can the character choose this" and
+   "is this choice still valid" are different tests.
+5. **One selection for each `ref` pool** in the result of `evaluate`.
+6. **Content is data.** See *Content*.
+
+A build is repeatable. Ties between unrelated values break by first use.
+
+# The facade
+
+The facade is the set of functions that the app calls. It copies the shape
+of the `@pubdoor/dmv` facade where the shape is neutral.
+
+## `evaluate`
+
+```ts
+evaluate(entity, { rules: "2024", packs }): {
+  built: Built2024;
+  selections: AvailableSelection[];
+  problems: Problem[];
+  contributions: Contributions;
+}
+```
+
+| Part | Rule |
+|---|---|
+| `entity` | The 2024 entity. |
+| `packs` | The homebrew packs of the user. The built-in packs are always present. |
+| `built` | The typed built character of the 2024 engine. It is not `BuiltCharacter` of `@pubdoor/dmv`. Its names are 2024 names, for example `species`. |
+| `selections` | The same `AvailableSelection` type as the 2014 facade, with one entry for each `ref` pool. |
+| `problems` | See *Changes from the 2014 engine*, item 3. Each problem has the path of the choice and a reason. |
+| `contributions` | For each value of `built` that modifiers change, the list of changes with the `name` and the source of each. The app uses it to show why a value is what it is. |
+
+## The other functions
+
+- **Mutations.** The functions that change an entity take a path and an
+  option key, as in the 2014 facade. Each returns a new entity.
+- **`autofill`.** It fills the selections that have a default.
+- **Content lists.** The app reads the loaded records by type, for
+  browse and for the builder.
+- **Packs.** Load, validate, and upgrade a pack file. See *Content*.
+
+The 2024 engine has no `.orcbrew` function.
+
+## What `Built2024` adds to the 2014 values
+
+- The species, the size, and the creature type.
+- Feats with their categories, and the Origin feat.
+- The Weapon Mastery choices, and the mastery property on each attack.
+- The Critical Hit range and the damage resistances.
+- Features with uses that can recover on two rests.
+
+# The seam to the app
+
+- The folder `packages/app/src/engine` picks the engine from the `rules`
+  tag on the envelope of the character. A missing tag is `"2014"`.
+- The app renders from its own `Sheet` type. There is one `Sheet` for both
+  editions. It gains optional 2024 values.
+- `toSheet` adapts the 2014 engine. A second adapter in the same folder
+  adapts `Built2024`.
+- The files of that folder that read 2014 keys need a 2024 counterpart:
+  `abilities.ts`, `builder-choices.ts`, `equipment.ts`, `spells.ts`, and
+  `description.ts`. That work is in the Alchemy 5e milestone, not in E1.
+
+# Content
+
+The [2024 content format](2024-content-format.md) is the spec of the
+format.[^format] In short:
+
+- A pack is one JSON file. Built-in content and homebrew use one format.
+- A record has a display layer and an `effects` field. It is valid without
+  effects.
+- Effects are data. A record names a hook for a rule that data cannot
+  hold. Only the engine defines a hook.
+- A reference is `pack:key`, for example `srd52:fireball`.
+
+## Hooks
+
+A hook is a function in `src/rules2024/hooks/` with a name and typed
+arguments. Add a hook only when an effect cannot hold the rule. Each hook
+has a test of its own and a line in the list of hooks in the format doc.
+
+## The content pipeline
+
+1. The import script reads `5e-bits/5e-srd-api` at a pinned commit and
+   writes the built-in packs. It runs one time.
+2. The script corrects the known errors of the source data.
+3. We commit the packs, the script, and the provenance file.
+4. We write the `effects` of each record by hand, class by class.
+5. A test compares the spell header fields and the weapon and armor tables
+   with the SRD 5.2.1 text.
+
+# Test strategy
+
+The 2024 rules have no oracle. The tests are thus in four groups.
+
+| Group | What it proves |
+|---|---|
+| Core tests | The core, on a template with no rules content. |
+| Format tests | The schema, the loader, the upgrade of a version, and each example record of the format doc. |
+| Content tests | The comparison of the built-in packs with the SRD text. Each built-in record loads with no problem. |
+| Golden characters | The rules. Each character has expected values that a person or an agent computed by hand from SRD 5.2.1. |
+
+## Golden characters
+
+- There are 14: one for each of the 12 classes, and two multiclass.
+- Each class ticket writes the character of its class and makes it pass.
+- A golden character has checks at three levels or more, and one of them
+  is level 20.
+- Each expected number has its arithmetic and its SRD 5.2.1 page in a
+  comment.
+- Do not copy an expected value from the output of the engine.
+
+# Proof for E1
+
+E1 is done when:
+
+1. Each SRD 5.2.1 class builds from level 1 to level 20 with its subclass.
+2. The 14 golden characters pass.
+3. A homebrew pack with one record of each type loads and changes a
+   character.
+4. The app shows a 2024 character on the sheet behind the developer flag.
+
+# Run order
+
+DRAFT: this section waits for the owner's answer on ORC-221.
+
+1. The engine package: core, facade, problems, contributions, CI (ORC-222).
+2. The content format: schema, loader, keys (ORC-223).
+3. The content import (ORC-224).
+4. The base character rules (ORC-225).
+5. Species (ORC-226), backgrounds and feats (ORC-227), equipment (ORC-228).
+6. The golden harness, then the Fighter.
+7. The app ticket (ORC-238).
+8. Barbarian, Monk, Rogue.
+9. Spellcasting (ORC-229).
+10. Cleric, Druid, Wizard, Bard, Sorcerer, Warlock, Paladin, Ranger.
+11. Multiclassing, with its two golden characters (ORC-234).
+12. Homebrew on the engine side (ORC-235).
+13. Monsters and the Wild Shape forms (ORC-236).
+
+[^orc-218]: ORC-218: Map: plan the 2024 engine (the decisions index)
+[^spike]: The 2024 engine spike
+[^format]: 2024 content format
