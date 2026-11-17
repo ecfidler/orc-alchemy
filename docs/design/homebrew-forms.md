@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-17T03:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-17T03:05:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -1096,15 +1096,15 @@ dialog has changes.
   character has one copy. Without a race, Save first selects the base
   race. Thus a new base race in Edit gives a new name and key, and
   replaces the old copy.
-* Edit does not store the picks of the dialog apart. It compares the copy with the
-  base record that the copy holds. A copy from before ORC-249 holds no
-  base record and no picks: Edit then uses the record of the base race with no
-  subrace. A value of the race that the copy has, with the
-  same bonus, stays on its slot. Each other slot takes the next value of
-  the copy that no slot took and that it can take. That value can be one
-  that another slot of the race gives. For example, a Half-Orc copy with
-  +2 Constitution and +1 Strength shows both bonuses as moved. Thus the
-  picks never go out of step with the copy.
+* Edit does not store the picks of the dialog apart. It compares the
+  copy with the base record that the copy holds. A copy from before
+  ORC-249 holds no base record and no picks: Edit then uses the record
+  of the base race with no subrace. A value of the race that the copy
+  has, with the same bonus, stays on its slot. Each other slot takes the
+  next value of the copy that no slot took and that it can take. That
+  value can be one that another slot of the race gives. For example, a
+  Half-Orc copy with +2 Constitution and +1 Strength shows both bonuses
+  as moved. Thus the picks never go out of step with the copy.
 * If the base race is not in the race list now, for example because its
   pack is turned off, Edit opens with no base race and a line that says
   so.
