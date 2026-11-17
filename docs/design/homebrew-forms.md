@@ -957,8 +957,8 @@ Save, the dialog tells the user which picks these are.
   the character's pick of that choice, such as Smith's Tools.
 * If the test save removes no pick, the line does not show.
 * A race copy has no Subrace choice, so Save removes the subrace pick.
-  An SRD race has its subraces in the engine, and a pack subrace names
-  its race by the race's key, and the copy has a new key. Customize gives
+  An SRD race has its subraces in the engine. A pack subrace names its
+  race by the race's key, and the copy has a new key. Customize gives
   the copy the values of the subrace, so the line does not name the pick
   (ORC-248). The line names the pick in two cases. The first is the
   engine's Custom subrace, because the copy does not get the values of

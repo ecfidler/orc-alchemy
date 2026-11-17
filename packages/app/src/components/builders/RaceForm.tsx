@@ -6,8 +6,10 @@
 // :languages a set of language names, the picks in :props as
 // {:weapon-prof {:dart true}} (a removed pick stores false, as the old
 // second click), :lizardfolk-ac and :tortle-ac true or false, the flying and
-// swimming speeds in :props as integers, :props :max-hp-bonus 1, 2 or
-// absent (the hit points for each level), the tool proficiencies and the
+// swimming speeds in :props as integers, :props :max-hp-bonus a positive
+// integer or absent (the hit points for each level; 1 or 2 from the
+// toggle, and more in a copy of a race with a subrace), the tool
+// proficiencies and the
 // proficiency choices in :profs, :spells a vector of {:level unlock-level
 // :value {:level :ability :key}}, and :traits a vector of :name, :type and
 // :description maps. The form shows its common modifiers always, and the

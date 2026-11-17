@@ -646,9 +646,8 @@ export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Pr
 /** The record of srdRaceCopy for no character: the SRD race with the key, with no value from a pick. */
 export const srdRaceRecord = async (key: string): Promise<Record<string, unknown> | undefined> => (await srdRaceCopy(key))?.record;
 
-/** The keys of the numbers of a race and its subrace that the engine adds: the hit points for each level, and the number to choose of a choice. An ability score increase is a sum too. */
-const SUMMED_KEYS = new Set(["max-hp-bonus", "choose"].map(tag));
-const ABILITY_KEY_PREFIX = tag("orcpub.dnd.e5.character/");
+/** The keys of the numbers of a race and its subrace that the engine adds: the hit points for each level, the number to choose of a choice, and each ability score increase. */
+const SUMMED_KEYS = new Set(["max-hp-bonus", "choose", ...ABILITY_KEYS].map(tag));
 
 /**
  * The two values at the key of a race and its subrace as one value: maps
@@ -659,7 +658,7 @@ const ABILITY_KEY_PREFIX = tag("orcpub.dnd.e5.character/");
 function merged(key: string, ofRace: unknown, ofSubrace: unknown): unknown {
   if (ofRace === undefined) return ofSubrace;
   if (typeof ofRace === "number" && typeof ofSubrace === "number") {
-    return SUMMED_KEYS.has(key) || key.startsWith(ABILITY_KEY_PREFIX) ? ofRace + ofSubrace : ofSubrace;
+    return SUMMED_KEYS.has(key) ? ofRace + ofSubrace : ofSubrace;
   }
   if (!isMap(ofRace) || !isMap(ofSubrace)) return ofSubrace;
   const result: Record<string, unknown> = { ...ofRace };
@@ -671,10 +670,12 @@ function merged(key: string, ofRace: unknown, ofSubrace: unknown): unknown {
 const SUBRACE_OWN_FIELDS = ["size", "speed", "darkvision"].map(tag);
 const SUBRACE_ADDED_FIELDS = ["abilities", "props", "profs", "spells", "traits"].map(tag);
 const PROFS = tag("profs");
+/** The keys of the :profs of a pack subrace that the engine uses. */
+const SUBRACE_PROFS = new Set(["tool", "skill-options"].map(tag));
 
 /** The :profs of a pack subrace that the engine uses: the tools and the skill choice. undefined when it has neither. */
 function subraceProfs(profs: Record<string, unknown>): Record<string, unknown> | undefined {
-  const used = Object.entries(profs).filter(([key]) => key === tag("tool") || key === tag("skill-options"));
+  const used = Object.entries(profs).filter(([key]) => SUBRACE_PROFS.has(key));
   return used.length > 0 ? Object.fromEntries(used) : undefined;
 }
 
@@ -705,11 +706,11 @@ export function withSubrace(race: Record<string, unknown>, subrace: Record<strin
 /** The record with the skills as skill proficiencies, and with that many fewer skills to choose in its skill choice. A choice of no skill goes. */
 function withPickedSkills(record: Record<string, unknown>, skills: string[]): Record<string, unknown> {
   if (skills.length === 0) return record;
-  const [propsKey, profsKey, skillKey, optionsKey, chooseKey] = ["props", "profs", "skill-prof", "skill-options", "choose"].map(tag);
+  const [propsKey, skillKey, optionsKey, chooseKey] = ["props", "skill-prof", "skill-options", "choose"].map(tag);
   const props = isMap(record[propsKey]) ? record[propsKey] : {};
-  const { [optionsKey]: choice, ...profs } = isMap(record[profsKey]) ? record[profsKey] : {};
+  const { [optionsKey]: choice, ...profs } = isMap(record[PROFS]) ? record[PROFS] : {};
   const choose = isMap(choice) ? Number(choice[chooseKey] ?? 0) - skills.length : 0;
-  const { [profsKey]: _profs, ...rest } = record;
+  const { [PROFS]: _profs, ...rest } = record;
   const nextProfs = { ...profs, ...(choose > 0 && { [optionsKey]: { ...(choice as object), [chooseKey]: choose } }) };
   return {
     ...rest,
@@ -717,7 +718,7 @@ function withPickedSkills(record: Record<string, unknown>, skills: string[]): Re
       ...props,
       [skillKey]: { ...(isMap(props[skillKey]) ? props[skillKey] : {}), ...Object.fromEntries(skills.map((skill) => [tag(skill), true])) },
     },
-    ...(Object.keys(nextProfs).length > 0 && { [profsKey]: nextProfs }),
+    ...(Object.keys(nextProfs).length > 0 && { [PROFS]: nextProfs }),
   };
 }
 
