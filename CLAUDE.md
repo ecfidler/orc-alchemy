@@ -2,7 +2,7 @@
 
 A Bun-workspaces monorepo that owns the TypeScript projects built on the
 Dungeon Master's Vault rules engine. Alchemy 5e, the app, is one workspace
-package; the exporter bookmarklet and later the 2024 engine are siblings.
+package; the exporter bookmarklet and the 2024 engine are siblings.
 
 You are the owner and long-term maintainer of this codebase, and its design is up to you.
 
@@ -15,7 +15,11 @@ You are the owner and long-term maintainer of this codebase, and its design is u
   `@pubdoor/dmv` serves 2014 only. Read it before any work on rules
   editions, the `rules` tag, or 2024 content. `docs/kb/srd-5.2-rules-delta.md`
   holds the rules facts it relies on.
-- **The engine is `@pubdoor/dmv`**, built and published from the
+- **The 2024 engine is `packages/engine`.** Its spec is
+  `docs/design/2024-engine.md`, and the spec of its content is
+  `docs/design/2024-content-format.md`. Linear project *2024 engine* tracks
+  the work.
+- **The 2014 engine is `@pubdoor/dmv`**, built and published from the
   `ecfidler/orcpub` fork under `engine-js/`. The fork is also the test
   oracle: expected values come from it, via `fixtures/`.
 - **Never import Clojure or the engine source.** Consume the published
@@ -46,7 +50,7 @@ scripts/okf-check.ts     the docs bundle check
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
 packages/ui/             @orc-alchemy/ui: theme and controls (ORC-155)
-packages/engine/         @orc-alchemy/engine: the 2024 engine spike (ORC-95)
+packages/engine/         @orc-alchemy/engine: the 2024 engine (spec: docs/design/2024-engine.md)
 tools/exporter-bookmarklet/  M5
 ```
 

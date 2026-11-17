@@ -4,7 +4,7 @@ title: Supporting the 2024 rules
 description: "Options for 2024 rules (SRD 5.2) support in the engine library, and the decision: option E, a separate later engine."
 tags: [rules-2024, engine, decision]
 status: stable
-generated: { by: claude-code/agent, at: 2026-10-05T02:23:51Z }
+generated: { by: claude-code/agent, at: 2026-11-17T03:51:47Z }
 ---
 
 # Supporting the 2024 rules: options for the engine library
@@ -105,7 +105,27 @@ What follows from the answers:
   old homebrew keeps working (ORC-97).
 - The 2024 content format and key scheme are a decision after the spike
   (ORC-96).
-- Linear project *2024 engine* tracks ORC-95 to ORC-97.
+- Linear project *2024 engine* tracks the work.
+
+### Update (2026-11-16): the decisions after the spike
+
+The spike (ORC-95) and the decisions that waited for it are done.
+
+- **The engine model (answer 7).** The 2024 engine keeps the strict entity,
+  the template of selections and options, and modifiers with declared
+  dependencies (ORC-220). The report is
+  [The 2024 engine spike](2024-engine-spike.md).
+- **The facade.** Each engine returns its own typed built character. The
+  app keeps one `Sheet` type for both editions, and it picks the engine
+  from the `rules` tag of the character. `evaluate` in the 2024 engine also
+  returns the contributions to each value (ORC-220).
+- **One package.** Both editions go in `packages/engine`, in one folder for
+  each edition (ORC-220).
+- **The content format (answer 4).** The format is JSON packs with
+  `pack:key` references (ORC-96). The spec is the
+  [2024 content format](../design/2024-content-format.md).
+- **The spec.** The [2024 engine spec](../design/2024-engine.md) collects
+  the decisions. The engine is the workspace package `packages/engine`.
 
 ## What "support both editions" can mean
 

@@ -30,8 +30,8 @@ that it builds on are in ORC-220 and in
 [The 2024 engine spike](../reports/2024-engine-spike.md).[^spike]
 
 The status is `draft` because the document gives the decisions and a first
-shape. ORC-221 writes the engine spec, and ORC-223 builds the schema, the
-loader, and the validation. The field names in the examples can change in
+shape. The [2024 engine spec](2024-engine.md) is the spec of the engine.
+ORC-223 builds the schema, the loader, and the validation. The field names in the examples can change in
 that work. The seven decisions do not change without the owner.
 
 `.orcbrew` stays the format of 2014 content. This format is for 2024
