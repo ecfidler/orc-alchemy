@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-11-17
+
+* **Creation**: Added the [2024 content format](design/2024-content-format.md), the decisions of ORC-96 with example records.
+
 ## 2026-11-16
 
 * **Creation**: Added [The 2024 engine spike](reports/2024-engine-spike.md), the report of the spike in `packages/engine` (ORC-95).
