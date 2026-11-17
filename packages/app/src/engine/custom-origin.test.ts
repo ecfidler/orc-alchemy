@@ -11,9 +11,10 @@ import {
   baseSubraces,
   CUSTOM_ORIGIN,
   CUSTOM_ORIGIN_BASE,
-  CUSTOM_ORIGIN_SUBRACE,
+  CUSTOM_ORIGIN_PICKS,
   changedSlots,
   heldElsewhere,
+  heldSubrace,
   lostChoices,
   type OriginLists,
   type OriginSlot,
@@ -33,7 +34,7 @@ import { type Content, engine, loadEngine } from "./engine.ts";
 import { characterFile, readCharacterFile } from "./import.ts";
 import { remapOption, withoutOption } from "./reconcile.ts";
 import { fighter20 } from "./test-feats.ts";
-import { RACE_PACKS, SYLVAR, TAGGED_RACES, withHillDwarf, withSylvar } from "./test-races.ts";
+import { RACE_PACKS, SYLVAR, TAGGED_RACES, withHillDwarf, withSylvar, wizard1 } from "./test-races.ts";
 
 beforeAll(() => loadEngine());
 
@@ -247,7 +248,7 @@ test("a pack race is a base race too: its record is the pack item", async () => 
   const base = (await baseRace(content, undefined, "sylvar", null, null))!.record;
   const { "~:key": _key, "~:option-pack": _pack, ...record } = SYLVAR;
   expect(base).toEqual(record);
-  expect(await baseRace(content, undefined, "dwarf", null, null)).toEqual({ record: await srdRaceRecord("dwarf"), held: [], subrace: null });
+  expect(await baseRace(content, undefined, "dwarf", null, null)).toEqual({ record: await srdRaceRecord("dwarf"), held: [] });
   expect(await baseRace(content, undefined, "no-such-race", null)).toBeUndefined();
   const copy = originRecord(base, withPick(originSlots(base), 4, "weapon:battleaxe"), "sylvar", "Sylvar");
   expect(copy).toEqual({
@@ -383,7 +384,7 @@ const ABILITY = (key: string) => `~:orcpub.dnd.e5.character/${key}`;
 test("a base race with one subrace gets its values, so its bonus is a slot; a race with more than one gets none without a choice", async () => {
   const bonuses = async (key: string) => {
     const base = (await baseRace(SRD, undefined, key, null))!;
-    return { subrace: base.subrace, held: base.held, bonuses: originSlots(base.record).filter((s) => s.kind === "ability") };
+    return { subrace: heldSubrace(base.held), held: base.held, bonuses: originSlots(base.record).filter((s) => s.kind === "ability") };
   };
   expect(await bonuses("dwarf")).toEqual({
     subrace: "hill-dwarf",
@@ -413,12 +414,24 @@ test("a base race with one subrace gets its values, so its bonus is a slot; a ra
   ]);
   expect(baseSubraces("half-orc", SRD)).toEqual([]);
   // The Human has nine subraces, so a new Human gets none. A subrace by its key, or none, is the caller's choice.
-  expect(await baseRace(SRD, undefined, "human", null)).toEqual({ record: await srdRaceRecord("human"), held: [], subrace: null });
-  expect((await baseRace(SRD, undefined, "human", null, "shou"))!.subrace).toBe("shou");
-  expect(await baseRace(SRD, undefined, "dwarf", null, null)).toEqual({ record: await srdRaceRecord("dwarf"), held: [], subrace: null });
+  expect(await baseRace(SRD, undefined, "human", null)).toEqual({ record: await srdRaceRecord("human"), held: [] });
+  expect((await baseRace(SRD, undefined, "human", null, "shou"))!.held).toEqual([["race", "human", "subrace", "shou"]]);
+  expect(await baseRace(SRD, undefined, "dwarf", null, null)).toEqual({ record: await srdRaceRecord("dwarf"), held: [] });
+  // The choices under the subrace are choices of the base race: a new High Elf has no cantrip pick, so the copy does not keep that choice.
+  const lost = async (key: string, subrace?: string | null) => {
+    const base = (await baseRace(SRD, undefined, key, null, subrace))!;
+    return lostChoices(key, originRecord(base.record, originSlots(base.record), key, key, base.held), SRD, base.held);
+  };
+  expect(await lost("elf")).toEqual(["High Elf Cantrips Known"]);
+  expect(await lost("dwarf")).toEqual(["Tool Proficiency"]);
+  expect(await lost("dwarf", null)).toEqual(["Subrace", "Tool Proficiency"]);
+  expect(await lost("human", "shou")).toEqual(["Variant"]);
+  // A High Elf with a cantrip pick: the copy holds the cantrip, so no choice is lost.
+  const elf = (await baseRace(SRD, undefined, "elf", wizard1()))!;
+  expect(lostChoices("elf", originRecord(elf.record, originSlots(elf.record), "elf", "Elf", elf.held), SRD, elf.held)).toEqual([]);
   // A pack race with one pack subrace gets the values of its record.
   const sylvar = (await baseRace({ homebrew: RACE_PACKS }, undefined, "sylvar", null))!;
-  expect(sylvar.subrace).toBe("deep-sylvar");
+  expect(heldSubrace(sylvar.held)).toBe("deep-sylvar");
   expect(sylvar.record["~:abilities"]).toEqual({ ...SYLVAR["~:abilities"], [ABILITY("int")]: 1 });
 });
 
@@ -427,22 +440,25 @@ test("the base race of the character's own race has the values of its picks, and
   const entity = e.select(withHillDwarf(), ["race", "dwarf", "tool-proficiency"], "smiths-tools");
   const base = (await baseRace(SRD, undefined, "dwarf", entity))!;
   const toolPick = ["race", "dwarf", "tool-proficiency", "smiths-tools"];
-  expect(base.subrace).toBe("hill-dwarf");
   expect(base.held).toEqual([["race", "dwarf", "subrace", "hill-dwarf"], toolPick]);
+  expect(heldSubrace(base.held)).toBe("hill-dwarf");
   expect(base.record["~:profs"]).toEqual({ "~:tool": { "~:smiths-tools": true } });
   // The tool is a slot now, and the choices whose picks the record holds are not lost.
   const slots = originSlots(base.record);
   expect(slots.filter((s) => s.kind === "tool")).toEqual([slot("tool", "tool:smiths-tools")]);
-  const plain = originRecord(base.record, slots, "dwarf", "Dwarf", base.subrace);
+  const plain = originRecord(base.record, slots, "dwarf", "Dwarf", base.held);
   expect(lostChoices("dwarf", plain, SRD)).toEqual(["Subrace", "Tool Proficiency"]);
   expect(lostChoices("dwarf", plain, SRD, base.held)).toEqual([]);
 
   // +1 Wisdom of the Hill Dwarf goes to Charisma.
   const wis = slots.findIndex((s) => s.race === "ability:wis");
   const picked = withPick(slots, wis, "ability:cha");
-  const copy = originRecord(base.record, picked, "dwarf", "Dwarf", base.subrace);
+  const copy = originRecord(base.record, picked, "dwarf", "Dwarf", base.held);
   expect(copy[CUSTOM_ORIGIN_BASE]).toBe(base.record);
-  expect(copy[CUSTOM_ORIGIN_SUBRACE]).toBe("~:hill-dwarf");
+  expect(copy[CUSTOM_ORIGIN_PICKS]).toEqual([
+    ["~:subrace", "~:hill-dwarf"],
+    ["~:tool-proficiency", "~:smiths-tools"],
+  ]);
   expect(copy["~:abilities"]).toEqual({ [ABILITY("con")]: 2, [ABILITY("cha")]: 1 });
   const before = e.evaluate(entity).built;
   const saved = saveCustomOrigin(entity, undefined, SRD, { item: copy, baseKey: "dwarf", selected: "dwarf", held: base.held });
@@ -461,15 +477,17 @@ test("the base race of the character's own race has the values of its picks, and
     "orcpub.dnd.e5.character/cha": before.abilities["orcpub.dnd.e5.character/cha"] + 1,
   });
 
-  // Edit: the character has the copy as its race, with no pick under it. The copy holds the base record and the subrace.
+  // Edit: the character has the copy as its race, with no pick under it. The copy holds the base record and the picks whose values it has.
   const item = (saved.custom as Record<string, Record<string, Record<string, unknown>>>)[TAGGED_RACES]["~:dwarf-custom-origin"];
-  const stored = storedBase(item)!;
-  expect(stored).toEqual({ record: base.record, subrace: "hill-dwarf" });
+  const stored = storedBase(item, "dwarf")!;
+  expect(stored).toEqual(base);
+  // So Edit does not name the choices of those picks as lost.
+  expect(lostChoices("dwarf", item, SRD, stored.held)).toEqual([]);
   expect(originPicks(stored.record, item)).toEqual(picked);
-  expect(originRecord(stored.record, originPicks(stored.record, item), "dwarf", "Dwarf", stored.subrace)).toEqual(copy);
-  // The validator keeps the base record and the subrace.
+  expect(originRecord(stored.record, originPicks(stored.record, item), "dwarf", "Dwarf", stored.held)).toEqual(copy);
+  // The validator keeps the base record and the picks.
   expect(e.validate.race(item).item).toEqual(item);
   // A copy from before ORC-249 holds no base record.
-  const { [CUSTOM_ORIGIN_BASE]: _base, [CUSTOM_ORIGIN_SUBRACE]: _subrace, ...older } = item;
-  expect(storedBase(older)).toBeUndefined();
+  const { [CUSTOM_ORIGIN_BASE]: _base, [CUSTOM_ORIGIN_PICKS]: _picks, ...older } = item;
+  expect(storedBase(older, "dwarf")).toBeUndefined();
 });

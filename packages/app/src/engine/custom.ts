@@ -483,15 +483,19 @@ function breathWeaponTrait(attack: AreaAttack): Record<string, unknown> {
 /** The choices of an SRD race that a pack race can hold, by the key of the choice in the template: the key of the choice in :profs. */
 const KEPT_CHOICES: Record<string, string> = { languages: "language-options", "skill-proficiency": "skill-options" };
 
-/** The option of the SRD race with the key in the engine's template, which has its choices. */
-const srdRaceOption = (key: string) =>
+/**
+ * The option of the race with the key in the engine's template, which has
+ * its choices. Without homebrew, the template has the SRD races only.
+ * undefined when the template has no such race.
+ */
+export const raceOption = (key: string, homebrew?: Content["homebrew"]) =>
   engine()
-    .buildTemplate()
+    .buildTemplate(homebrew)
     .shape.find((s) => s.key === "race")
     ?.options.find((o) => o.key === key);
 
-/** The options of the Subrace choice of the SRD race with the key, as the engine's template has them. [] for a race with no SRD subrace. */
-const srdSubraceOptions = (key: string) => srdRaceOption(key)?.selections?.find((s) => s.key === "subrace")?.options ?? [];
+/** The options of the Subrace choice of a race option (raceOption), as the engine's template has them. [] for a race with no subrace. */
+export const subraceOptions = (race: ReturnType<typeof raceOption>) => race?.selections?.find((s) => s.key === "subrace")?.options ?? [];
 
 /**
  * The language choice and the skill choice of the SRD race with the key,
@@ -506,8 +510,8 @@ const srdSubraceOptions = (key: string) => srdRaceOption(key)?.selections?.find(
  * of the subrace become one choice, of the two numbers together.
  */
 function raceChoices(key: string, subrace?: string): Record<string, unknown> {
-  const own = srdRaceOption(key)?.selections ?? [];
-  const ofSubrace = srdSubraceOptions(key).find((o) => o.key === subrace)?.selections ?? [];
+  const own = raceOption(key)?.selections ?? [];
+  const ofSubrace = subraceOptions(raceOption(key)).find((o) => o.key === subrace)?.selections ?? [];
   const choices: Record<string, { choose: number; options: Record<string, true> }> = {};
   for (const s of [...own, ...ofSubrace]) {
     const field = KEPT_CHOICES[s.key];
@@ -548,7 +552,7 @@ function racePicks(entity: StrictEntity, key: string): RacePicks | undefined {
   if (picks.length === 0) return undefined;
   // The engine's custom subrace has picks that the probe does not read, such as a speed, so the copy does not hold it, and Save names it.
   const srdSubraces = new Set(
-    srdSubraceOptions(key)
+    subraceOptions(raceOption(key))
       .map((o) => o.key)
       .filter((k) => k !== "custom"),
   );

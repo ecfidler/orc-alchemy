@@ -10,7 +10,7 @@ import { type ReactNode, useCallback, useId, useMemo, useRef, useState } from "r
 import type { BuilderSelection } from "../engine/builder.ts";
 import type { BuilderChoices, Choice } from "../engine/builder-choices.ts";
 import { sameRecord } from "../engine/content.ts";
-import { isCustomCopy } from "../engine/custom.ts";
+import { isCustomCopy, type RaceCopy } from "../engine/custom.ts";
 import {
   baseRace,
   baseSubraces,
@@ -18,6 +18,7 @@ import {
   customOriginBase,
   customOriginCopy,
   heldElsewhere,
+  heldSubrace,
   lostChoices,
   type OriginLists,
   type OriginSlot,
@@ -48,14 +49,12 @@ export interface OriginBase {
   lost: string[];
   /** The subraces of the race. The dialog shows the Subrace select for more than one. */
   subraces: { key: string; name: string }[];
-  /** The key of the subrace whose values the record has, or null. */
-  subrace: string | null;
-  /** The paths of the character's picks under the race whose values the record has (Customization held). */
+  /** The paths of the picks under the race whose values the record has (baseRace held). The subrace of the record is one of them (heldSubrace). */
   held: string[][];
 }
 
 /** The Custom Origin copy of the base race with the slots' values (originRecord). */
-const originItem = (base: OriginBase, slots: OriginSlot[]) => originRecord(base.record, slots, base.key, base.name, base.subrace);
+const originItem = (base: OriginBase, slots: OriginSlot[]) => originRecord(base.record, slots, base.key, base.name, base.held);
 
 /** The value of the Subrace select for no subrace. A subrace key is the key of a name, which has no space. */
 const NO_SUBRACE = "no subrace";
@@ -105,7 +104,7 @@ export interface CustomOriginDialogProps {
   problem?: string;
   /** The picks that the character holds without its race, which the lists leave out (heldElsewhere). */
   elsewhere: (languages: Choice[]) => ReadonlySet<string>;
-  /** The names of the character's picks that a save of the item removes (useRemovedPicks). held is that of the base race. */
+  /** The names of the character's picks that a save of the item removes (useRemovedPicks). held is that of the base race (OriginBase held). */
   removedPicks: (item: ItemRecord, held: string[][]) => string[];
   /** Stores the copy of the base race with the key. A throw shows its message, and the dialog stays open. */
   onSave: (item: ItemRecord, baseKey: string, held: string[][]) => void;
@@ -146,7 +145,7 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, el
 
   /** A new base race, or a new subrace of the base race, resets the picks. */
   async function choose(key: string, subrace?: string | null) {
-    if (key === base?.key && (subrace === undefined || subrace === base.subrace)) return;
+    if (key === base?.key && (subrace === undefined || subrace === heldSubrace(base.held))) return;
     const at = ++latest.current;
     setError(null);
     setLoading(true);
@@ -210,7 +209,7 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, el
               {base && base.subraces.length > 1 && (
                 <Select
                   aria-label="Subrace"
-                  value={base.subrace ?? NO_SUBRACE}
+                  value={heldSubrace(base.held) ?? NO_SUBRACE}
                   options={[[NO_SUBRACE, "No subrace"] as const, ...base.subraces.map(({ key, name }) => [key, name] as const)]}
                   onValueChange={(key) => void choose(base.key, key === NO_SUBRACE ? null : key)}
                   className="mt-[6px] max-w-full"
@@ -459,18 +458,20 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
   const { homebrew } = content;
   const bases = selection.options.filter((o) => !isCustomCopy(homebrew, custom, RACE_TYPE, o.key)).map(({ key, name }) => ({ key, name }));
 
-  /** The base race with the key, with the record and the held picks that the dialog has for it. */
-  function originBaseOf(key: string, record: ItemRecord, subrace: string | null, held: string[][]): OriginBase {
-    const name = bases.find((b) => b.key === key)?.name ?? key;
-    const lost = lostChoices(key, originRecord(record, originSlots(record), key, name, subrace), content, held);
-    return { key, name, record, lost, subraces: baseSubraces(key, content), subrace, held };
+  const baseName = (key: string) => bases.find((b) => b.key === key)?.name ?? key;
+
+  /** The base race with the key, from its record and the picks whose values the record has (baseRace, storedBase). */
+  function originBaseOf(key: string, { record, held }: RaceCopy): OriginBase {
+    const name = baseName(key);
+    const lost = lostChoices(key, originRecord(record, originSlots(record), key, name, held), content, held);
+    return { key, name, record, lost, subraces: baseSubraces(key, content), held };
   }
 
   async function loadBase(key: string, subrace?: string | null): Promise<OriginBase> {
     const state = useCharacter.getState();
     const base = await baseRace(content, state.custom, key, state.entity, subrace);
-    if (base === undefined) throw new Error(`Could not read the race ${bases.find((b) => b.key === key)?.name ?? key}.`);
-    return originBaseOf(key, base.record, base.subrace, base.held);
+    if (base === undefined) throw new Error(`Could not read the race ${baseName(key)}.`);
+    return originBaseOf(key, base);
   }
 
   const start = (initial: OriginDraft, problem?: string) => setSession((last) => ({ id: (last?.id ?? 0) + 1, open: true, initial, problem }));
@@ -486,10 +487,9 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
       return;
     }
     try {
-      // The copy holds its base record. The character does not have the picks of that record now, so held is empty.
-      const stored = storedBase(item);
-      // A copy from before ORC-249 holds no base record: its base is the race with no subrace.
-      const base = stored === undefined ? await loadBase(baseKey, null) : originBaseOf(baseKey, stored.record, stored.subrace, []);
+      // The copy holds its base record and the picks of that record. A copy from before ORC-249 holds neither: its base is the race with no subrace.
+      const stored = storedBase(item, baseKey);
+      const base = stored === undefined ? await loadBase(baseKey, null) : originBaseOf(baseKey, stored);
       start({ base, slots: originPicks(base.record, item) });
     } catch (e) {
       setError(`Could not open the custom origin: ${e instanceof Error ? e.message : String(e)}`);
