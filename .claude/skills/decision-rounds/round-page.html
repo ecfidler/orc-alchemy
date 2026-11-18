@@ -122,8 +122,8 @@ pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px s
   document.documentElement.lang = "en";
   var db = null, comments = null, rounds = [], currentId = null;
   var picked = false;  // the viewer chose a round or started to answer, so a later snapshot must not change the round
-  var state = {};      // roundId -> { answers: {qid: {choice, note, byDefault}}, submitted, submittedAt, loaded, notice }
-  var saving = false, dirty = {}, saveNote = "";
+  var state = {};      // roundId -> { answers: {qid: {choice, note, byDefault}}, submitted, submittedAt, notifiedAt, loaded, notice }
+  var saveNote = "", earlierOpen = false, snapshots = 0;
 
   function roundState(id) { return state[id] || (state[id] = { answers: {}, submitted: false, loaded: false }); }
   function isAnswered(a) { return !!(a && (a.choice || (a.note || "").trim())); }
@@ -136,23 +136,21 @@ pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px s
     var named = hashId();
     if (named && byId(named)) return named;
     if (picked && round()) return currentId;
-    var unsent = rounds.filter(function (r) { return !roundState(r.id).submitted; })[0];
-    return (unsent || rounds[0] || {}).id || null;
+    return (unsentRounds()[0] || rounds[0] || {}).id || null;
   }
+  function unsentRounds() { return rounds.filter(function (r) { var s = roundState(r.id); return !s.submitted && !s.failed; }); }
 
+  // Writes run one at a time, in order. The promise resolves when the write of this call is done.
+  var writes = Promise.resolve();
   function save(id) {
-    dirty[id] = true;
-    if (saving || !db) return;
-    saving = true;
-    (function loop() {
-      var ids = Object.keys(dirty);
-      if (!ids.length) { saving = false; return; }
-      var rid = ids[0]; delete dirty[rid];
-      var s = roundState(rid);
-      db.doc("answers/" + rid).set({ answers: s.answers, submitted: !!s.submitted, submittedAt: s.submittedAt || null })
-        .then(function () { saveNote = ""; }, function () { saveNote = "Could not save. Your answers are still on this page; use Copy answers."; })
-        .then(function () { paintBar(); loop(); });
-    })();
+    if (!db) return writes;
+    picked = true;
+    writes = writes.then(function () {
+      var s = roundState(id);
+      return db.doc("answers/" + id).set({ answers: s.answers, submitted: !!s.submitted, submittedAt: s.submittedAt || null, notifiedAt: s.notifiedAt || null })
+        .then(function () { saveNote = ""; }, function () { saveNote = "Could not save. Your answers are still on this page; use Copy answers."; });
+    }).then(paintBar);
+    return writes;
   }
   var noteTimer = null;
   function saveSoon(id) { clearTimeout(noteTimer); noteTimer = setTimeout(function () { save(id); }, 800); }
@@ -182,13 +180,14 @@ pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px s
   }
   function paintRounds() {
     var nav = $("rounds"); nav.replaceChildren();
-    var unsent = rounds.filter(function (r) { return !roundState(r.id).submitted; });
-    var sent = rounds.filter(function (r) { return roundState(r.id).submitted; });
+    var unsent = unsentRounds();
+    var sent = rounds.filter(function (r) { return unsent.indexOf(r) < 0; });
     var onUnsent = unsent.some(function (r) { return r.id === currentId; });
     if (unsent.length > 1 || (unsent.length === 1 && !onUnsent)) unsent.forEach(function (r) { nav.append(roundButton(r)); });
-    var earlier = sent.filter(function (r) { return r.id !== currentId || unsent.length; });
+    // A sent round that is on the screen, with no open round to go to, needs no entry in the list.
+    var earlier = sent.filter(function (r) { return r.id !== currentId || unsent.length > 0; });
     if (earlier.length) {
-      var d = h("details", { class: "earlier" }, h("summary", { text: "Earlier rounds (" + earlier.length + ")" }));
+      var d = h("details", { class: "earlier", open: earlierOpen, ontoggle: function () { earlierOpen = d.open; } }, h("summary", { text: "Earlier rounds (" + earlier.length + ")" }));
       var row = h("div", { class: "rounds" }); earlier.forEach(function (r) { row.append(roundButton(r)); });
       d.append(row); nav.append(d);
     }
@@ -201,18 +200,18 @@ pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px s
     status.replaceChildren();
     if (saveNote) status.append(h("span", { class: "err", text: saveNote }));
     else if (s.submitted) status.append(h("strong", { text: "Sent. " }),
-      s.notice === "notified" ? "Claude was notified and reads your answers now."
-      : s.notice === "sending" ? "Notifying Claude."
+      s.notice === "sending" ? "Notifying Claude."
+      : s.notifiedAt ? "Claude was notified."
       : s.notice === "manual" ? "Claude could not be notified from this page. Say “answered” in the thread."
       : "");
     else status.append(h("strong", { text: c.done + " of " + c.total + " answered. " }), c.open ? c.open + " open " + (c.open === 1 ? "question needs" : "questions need") + " your note." : left ? left + " left take the recommendation when you send." : "Ready to send.");
     actions.replaceChildren(
       h("button", { type: "button", onclick: function () { copy(r, s); } , text: "Copy answers" }),
       s.submitted
-        ? h("button", { type: "button", text: "Change answers", onclick: function () { s.submitted = false; s.submittedAt = null; s.notice = null; save(r.id); paint(); } })
+        ? h("button", { type: "button", text: "Change answers", onclick: function () { s.submitted = false; s.submittedAt = null; s.notifiedAt = null; s.notice = null; save(r.id); paint(); } })
         : h("button", { type: "button", class: "primary", text: "Send answers", disabled: c.open > 0, "aria-describedby": "bar-status", onclick: function () { send(r, s); } })
     );
-    if (s.submitted && s.notice !== "notified" && s.notice !== "sending")
+    if (s.submitted && !s.notifiedAt && s.notice !== "sending")
       actions.append(h("button", { type: "button", class: "primary", text: "Notify Claude", onclick: function () { notify(r, s); } }));
   }
 
@@ -231,7 +230,15 @@ pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px s
       if (!isAnswered(s.answers[q.id]) && hasRec(q)) s.answers[q.id] = { choice: q.recommended, note: "", byDefault: true };
     });
     s.submitted = true; s.submittedAt = new Date().toISOString();
-    save(r.id); paint(); notify(r, s);
+    paint();
+    save(r.id).then(function () { if (!saveNote) notify(r, s); });
+  }
+
+  // Cuts text to a number of UTF-8 bytes and does not split a character.
+  function cutBytes(text, max) {
+    var bytes = new TextEncoder().encode(text);
+    if (bytes.length <= max) return text;
+    return new TextDecoder().decode(bytes.slice(0, max)).replace(/\uFFFD+$/, "");
   }
 
   // Posts a comment that is sent to Claude. The platform wakes each Claude thread that watches this page.
@@ -240,11 +247,11 @@ pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px s
     var manual = function () { s.notice = "manual"; paintBar(); };
     if (!comments || typeof comments.sendToClaude !== "function") { manual(); return; }
     s.notice = "sending"; paintBar();
-    var text = ("Round " + r.id + " is answered.\n" + summaryText(r, s)).slice(0, 3500);
+    var text = cutBytes("Round " + r.id + " is answered.\n" + summaryText(r, s), 3800);  // the limit of a comment is 4 KiB
     comments.canSendToClaude()
       .then(function (can) { if (can !== "available") throw new Error(can); return comments.anchorFor($("round-title") || document.body); })
       .then(function (anchor) { return comments.sendToClaude({ anchor: anchor, text: text }); })
-      .then(function () { s.notice = "notified"; paintBar(); }, manual);
+      .then(function () { s.notice = null; s.notifiedAt = new Date().toISOString(); save(r.id); }, manual);
   }
 
   function pick(r, q, key) {
@@ -313,7 +320,7 @@ pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px s
     if (s.loading) return s.loading;
     s.loading = db.doc("answers/" + id).get().then(function (snap) {
       var d = snap.exists ? snap.data() : null;
-      if (d) { s.answers = JSON.parse(JSON.stringify(d.answers || {})); s.submitted = !!d.submitted; s.submittedAt = d.submittedAt || null; }
+      if (d) { s.answers = JSON.parse(JSON.stringify(d.answers || {})); s.submitted = !!d.submitted; s.submittedAt = d.submittedAt || null; s.notifiedAt = d.notifiedAt || null; }
       s.loaded = true;
     }, function () { s.failed = true; });
     return s.loading;
@@ -339,7 +346,9 @@ pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px s
       rounds = snap.docs.map(function (d) { var x = d.data() || {}; return { id: d.id, title: String(x.title || d.id), ticket: x.ticket, date: x.date, example: x.example, background: x.background || [], questions: x.questions || [], order: x.order || 0 }; })
         .sort(function (a, b) { return b.order - a.order; });
       // The sent state of each round decides the round to show, so load all the answers first.
+      var mine = ++snapshots;
       Promise.all(rounds.map(function (r) { return loadAnswers(r.id); })).then(function () {
+        if (mine !== snapshots) return;  // a newer snapshot decides
         var id = choose();
         if (id !== currentId) { if (id) open(id); else { currentId = null; paint(); } }
         else if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") paint();

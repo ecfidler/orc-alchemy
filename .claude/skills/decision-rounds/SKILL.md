@@ -67,6 +67,8 @@ When I send the round, the page posts a comment that starts with "Round `<docume
 - The comment names a different round: it is for a different thread. End the turn with no reply and no change to the comment.
 - I say "answered" in the thread: the page could not send the comment. Go to step 4.
 
+Done when the watch is on and the message with the link to the round is posted.
+
 ## 4. Read the answers
 
 `get` the document with the same id in collection `answers`. The comment also holds a summary of the answers, but the document is the record:
@@ -75,6 +77,7 @@ When I send the round, the page posts a comment that starts with "Round `<docume
 {
   "submitted": true,
   "submittedAt": "2026-11-18T04:10:00.000Z",
+  "notifiedAt": "2026-11-18T04:10:01.000Z",
   "answers": {
     "q1": { "choice": "a", "note": "", "byDefault": true },
     "q2": { "choice": "other", "note": "Only for lists of more than 20 items." }
