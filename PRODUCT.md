@@ -15,13 +15,10 @@ web
 
 - Players of Dungeons & Dragons 5th edition who build a character and then
   use its sheet at the table during a session, on a laptop or a phone.
-- People who write homebrew content: races, subraces, classes, subclasses,
-  backgrounds, feats, spells, monsters and magic items.
+- People who write homebrew content, for example races, subraces, classes,
+  subclasses, backgrounds, feats, spells, monsters and magic items.
 - Many users come from Dungeon Master's Vault (orcpub) and bring their
   characters and `.orcbrew` files with them.
-
-Not decided: if Alchemy 5e is a public product or an app for Ethan and his
-group. Do not write copy that assumes one or the other.
 
 ## Product Purpose
 
@@ -64,6 +61,8 @@ the table from it, and can bring all their old content into it.
 - The stack is Vite, React 18, TypeScript and Tailwind. The theme and the
   controls come from `@orc-alchemy/ui` (`packages/ui`).
 - Use the terms of `GLOSSARY.md` in the interface copy and in the code.
+- It is not decided whether Alchemy 5e is a public product or an app for
+  Ethan and his group. Do not write copy that assumes one or the other.
 
 ## Brand Commitments
 

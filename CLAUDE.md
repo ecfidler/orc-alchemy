@@ -73,14 +73,17 @@ The skills in `.claude/skills/` other than `impeccable`,
 are a copy of the Claude Code build of
 [pbakaus/impeccable](https://github.com/pbakaus/impeccable) at tag
 `skill-v4.9.1` (ORC-260). Do not edit the copy. To update it, copy
-`.claude/skills/impeccable/` and `.claude/agents/` from a newer `skill-v*`
-tag. The skill is for design work on `packages/app` and `packages/ui`. On
-its first use on a machine, its launcher downloads an engine binary from the
-GitHub releases of that repository and checks the SHA-256 digest.
+`.claude/skills/impeccable/` and the `.claude/agents/impeccable-*.md` files
+from a newer `skill-v*` tag. Do not replace the other files in
+`.claude/agents/`. The skill is for design work on `packages/app` and
+`packages/ui`. On its first use on a machine, its launcher downloads the
+detector binary from the GitHub releases of that repository and checks the
+SHA-256 digest.
 
-`.claude/settings.json` is the hook file of the same tag. It runs the
-Impeccable design detector after each edit of a UI file and at the end of a
-session. `/impeccable hooks off` stops it for the project.
+The hooks in `.claude/settings.json` are from the same tag. They run the
+launcher at the start of a session, after each Edit or Write, and at the
+end of a session. The detector examines only the UI files.
+`/impeccable hooks off` stops it for the project.
 
 ### Issue tracker
 
