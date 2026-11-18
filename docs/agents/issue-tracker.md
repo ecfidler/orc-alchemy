@@ -19,6 +19,8 @@ Issues and specs for this repo live in Linear, team **Orc Alchemy**. Use the Lin
 - **Comment on an issue**: `save_comment`.
 - **Apply / remove labels**: `save_issue` with `id` and `addLabels` / `removeLabels` (not `labels`, which replaces the whole set).
 - **Close**: comment with the reason, then `save_issue` with `state: "Done"` (or `"Canceled"` for won't-do, `"Duplicate"` with `duplicateOf`).
+- **Make a sub-issue**: `save_issue` with `parentId: <parent>`.
+- **How work closes**: through PRs. Linear moves an issue to `Done` when a PR that names the issue merges. If Linear does not move it, set `state: "Done"`.
 
 Workflow states: Backlog → Todo → In Progress → In Review → Done (also Canceled, Duplicate).
 
