@@ -2,7 +2,7 @@
 name: "decision-rounds"
 description: "Put a round of questions to me on the round page or on thread cards, then read my answers back. Use when a grilling round, an interview, or a wayfinder ticket has questions for me to answer."
 disable-model-invocation: false
-version: "0.1.0"
+version: "0.2.0"
 ---
 
 A **round** is one batch of questions that I can answer now, each with your recommended answer. This skill owns how a round reaches me and how my answers come back. The skill that produced the questions (`grilling`, `wayfinder`, an interview) still owns which questions to ask.
@@ -57,11 +57,19 @@ Done when the `set` call returns and a `get` of the document shows every questio
 
 ## 3. Ask
 
-Post one message in the thread with the link to the page, the title of the round and the number of questions. Ask me to say "answered" after I send, because the page cannot wake you. Then end the turn.
+1. Watch the page: `ArtifactComments`, action `watch`, with the URL of the page. The watch is how my Send reaches you.
+2. Post one message in the thread with the title of the round, the number of questions, and the link to the round. The link is the URL of the page plus `#` and the document id, for example `https://claude.ai/artifact/Eq8BZASrg8dKSy3iLPoQ6H#orc-189-round-1`. The page opens that round.
+3. End the turn.
+
+When I send the round, the page posts a comment that starts with "Round `<document id>` is answered" and sends it to Claude. Each thread that watches the page gets a wake for it.
+
+- The comment names your round: go to step 4.
+- The comment names a different round: it is for a different thread. End the turn with no reply and no change to the comment.
+- I say "answered" in the thread: the page could not send the comment. Go to step 4.
 
 ## 4. Read the answers
 
-When I say that I answered, `get` the document with the same id in collection `answers`:
+`get` the document with the same id in collection `answers`. The comment also holds a summary of the answers, but the document is the record:
 
 ```json
 {
@@ -88,9 +96,12 @@ Done when each question has an answer that you can state in one sentence.
 1. For a round on the page, write your reading on the page. `update` the round document with the full `questions` list, and add an `outcome` sentence to each question. Pass the `version` from your last read as `if_version`.
 2. Record each decision where the calling skill puts it: a comment on the Linear issue, the map, or the spec.
 3. Post the decisions in the thread as one numbered list, with the answers that differ from your recommendation first.
+4. For a round on the page, close the loop on the page. Reply to the comment with one sentence that says the answers are recorded, and resolve it (`ArtifactComments`, actions `reply` and `resolve`). Then stop the watch (`watch` with `on: false`) if you have no other round open.
 
 Done when the tracker and the thread show the same decisions, and the page does too for a round on the page.
 
 ## The page
 
-`round-page.html` in this folder is the source of the page. To change the page, edit the file and publish it to the URL above with the capability `db`. The rounds and answers are in the database and stay through a publish. The page opens in light mode and changes to dark only with its own toggle.
+`round-page.html` in this folder is the source of the page. To change the page, edit the file and publish it to the URL above with the capabilities `db` and `comments`. The rounds and answers are in the database and stay through a publish. The page opens in light mode and changes to dark only with its own toggle.
+
+Without a round id in the link, the page opens the newest round that I have not sent. Rounds that I sent are in a closed "Earlier rounds" list.
