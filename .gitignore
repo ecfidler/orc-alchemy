@@ -58,3 +58,6 @@ playwright-report/
 
 # The owner's private .orcbrew export. Never commit it (fixtures/orcbrew/private/ tests skip without it).
 fixtures/orcbrew/private/*.orcbrew
+
+# Impeccable: the developer's own config (hook consent, private ignores)
+.impeccable/config.local.json

@@ -46,6 +46,7 @@ tsconfig.base.json       shared compiler options; each package extends it
 docs/                    OKF bundle: plan, reports, kb, conventions
 docs/plan/               the plan
 biome.json               formatter and linter config (ORC-213)
+PRODUCT.md               product record that the Impeccable skill reads (ORC-260)
 scripts/okf-check.ts     the docs bundle check
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
@@ -62,11 +63,27 @@ the staged files and stages its fixes.
 
 ## Agent skills
 
-The skills in `.claude/skills/` other than `linear-issue-workflow` and
-`milestone-workflow` are copies of
+The skills in `.claude/skills/` other than `impeccable`,
+`linear-issue-workflow` and `milestone-workflow` are copies of
 [mattpocock/skills](https://github.com/mattpocock/skills) at tag `v1.3.2`
 (ORC-259). Do not edit the copies. To update them, copy the folders under
 `skills/engineering/` and `skills/productivity/` from a newer tag.
+
+`.claude/skills/impeccable/` and the `.claude/agents/impeccable-*.md` files
+are a copy of the Claude Code build of
+[pbakaus/impeccable](https://github.com/pbakaus/impeccable) at tag
+`skill-v4.9.1` (ORC-260). Do not edit the copy. To update it, copy
+`.claude/skills/impeccable/` and the `.claude/agents/impeccable-*.md` files
+from a newer `skill-v*` tag. Do not replace the other files in
+`.claude/agents/`. The skill is for design work on `packages/app` and
+`packages/ui`. On its first use on a machine, its launcher downloads the
+detector binary from the GitHub releases of that repository and checks the
+SHA-256 digest.
+
+The hooks in `.claude/settings.json` are from the same tag. They run the
+launcher at the start of a session, after each Edit or Write, and at the
+end of a session. The detector examines only the UI files.
+`/impeccable hooks off` stops it for the project.
 
 ### Issue tracker
 
