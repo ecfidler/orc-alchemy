@@ -46,6 +46,7 @@ tsconfig.base.json       shared compiler options; each package extends it
 docs/                    OKF bundle: plan, reports, kb, conventions
 docs/plan/               the plan
 biome.json               formatter and linter config (ORC-213)
+PRODUCT.md               product record that the Impeccable skill reads (ORC-260)
 scripts/okf-check.ts     the docs bundle check
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
