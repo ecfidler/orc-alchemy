@@ -1,0 +1,297 @@
+<title>Decision Rounds</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..600&display=swap">
+<style>
+/* Layout: one reading column of question cards on paper, a sticky answer bar at the bottom.
+   Tokens are those of Alchemy 5e (docs/design/theme.md). Light is the default; dark only by the page's own toggle. */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --info: #1e5fb4; --danger: #c2271d; --success: #1f7a3a;
+  --note: #ffe45c; --note-ink: #222222;
+  --bubble: color-mix(in srgb, var(--info) 12%, var(--paper-raised));
+  --hover: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 10px;
+  color-scheme: light;
+}
+:root[data-proto-theme="dark"] {
+  --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --info: #5ea2ff; --danger: #ff5c52; --success: #4ed07a;
+  --note: #ffe45c; --note-ink: #000000;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 450 17px/1.5 var(--serif); font-variant-numeric: lining-nums tabular-nums; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 24px 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 20px; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.label { font: 600 11.5px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+button { font: 600 13px/1.4 var(--sans); color: var(--ink); background: transparent; border: 1px solid var(--rule-strong);
+  border-radius: var(--r-md); padding: 10px 18px; min-height: 44px; cursor: pointer; }
+button:hover:not(:disabled) { background: var(--hover); }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 85%, var(--paper)); }
+button.quiet { border-color: transparent; color: var(--ink-muted); }
+button:disabled { color: var(--ink-muted); background: var(--hover); border-color: var(--rule-strong); cursor: not-allowed; }
+.rounds { display: flex; gap: 8px; flex-wrap: wrap; }
+.rounds button { display: inline-flex; gap: 8px; align-items: center; }
+.rounds button[aria-pressed="true"] { border-color: var(--info); background: var(--bubble); }
+.pill { font: 600 11.5px/1.4 var(--sans); border-radius: 999px; padding: 1px 8px; white-space: nowrap; border: 1px solid var(--rule-strong); }
+.pill.open { background: var(--note); color: var(--note-ink); border-color: transparent; }
+h1 { font: 560 32px/1.1 var(--serif); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+.meta { font: 400 13px/1.4 var(--sans); color: var(--ink-muted); margin: 8px 0 0; }
+.note-example { background: var(--note); color: var(--note-ink); padding: 8px 12px; font: 500 13.5px/1.4 var(--sans); border-radius: var(--r-sm); }
+details.bg { border-block: 1px solid var(--rule); }
+details.bg summary { cursor: pointer; font: 600 13px/1.4 var(--sans); padding-block: 13px; }
+details.bg p { margin: 0 0 12px; color: var(--ink-muted); max-width: 65ch; }
+.bulk { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bulk span { font: 400 13px/1.4 var(--sans); color: var(--ink-muted); }
+.q { background: var(--paper-raised); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.q-head { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; }
+.q-state { color: var(--success); white-space: nowrap; }
+.q h2 { font: 560 22px/1.2 var(--serif); margin: 0; text-wrap: balance; min-width: 0; }
+::selection { background: var(--note); color: var(--note-ink); }
+textarea { caret-color: var(--info); }
+.q p { margin: 0; max-width: 65ch; }
+.opts { display: flex; flex-direction: column; gap: 8px; }
+.opt { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; border: 1px solid var(--rule-strong);
+  border-radius: var(--r-md); padding: 10px 12px; min-height: 44px; cursor: pointer; }
+.opt:hover { background: var(--hover); }
+.opt:has(input:checked) { border-color: var(--info); background: var(--bubble); box-shadow: inset 0 0 0 1px var(--info); }
+.opt:has(input:focus-visible) { outline: 2px solid var(--info); outline-offset: 2px; }
+.opt:has(input:disabled) { cursor: default; }
+.opt input { margin: 6px 0 0; width: 16px; height: 16px; accent-color: var(--info); outline: none; }
+.opt-label { font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opt-detail { grid-column: 2; color: var(--ink-muted); font-size: 16px; }
+.tag-rec { font: 600 11.5px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--note-ink); background: var(--note); border-radius: 2px; padding: 0 6px; }
+.why { font-size: 16px; color: var(--ink-muted); }
+.why b { color: var(--ink); font: 600 11.5px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+textarea { width: 100%; min-height: 48px; font: 450 17px/1.5 var(--serif); color: var(--ink); background: var(--paper-raised);
+  border: 1px solid var(--rule-strong); border-radius: 0; padding: 6px 8px; resize: vertical; }
+textarea::placeholder { color: var(--ink-muted); opacity: 1; }
+.outcome { border-top: 1px solid var(--rule); padding-top: 10px; font-size: 16px; }
+.bar { position: sticky; bottom: 0; background: var(--paper); border-top: 1px solid var(--rule-strong); margin-top: 4px;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.bar .status { font: 400 13.5px/1.4 var(--sans); color: var(--ink-muted); min-width: 0; }
+.bar .status strong { color: var(--ink); font-weight: 600; }
+.bar .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.empty { border: 1px dashed var(--rule-strong); border-radius: var(--r-lg); padding: 28px 18px; color: var(--ink-muted); }
+.err { color: var(--danger); }
+pre.copy { white-space: pre-wrap; background: var(--paper-raised); border: 1px solid var(--rule-strong); padding: 10px; font: 13px/1.5 var(--sans); margin: 0; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="label">Decision rounds</span>
+    <button id="theme" class="quiet" type="button" aria-pressed="false">Dark theme</button>
+  </header>
+  <nav class="rounds" id="rounds" aria-label="Rounds"></nav>
+  <main id="main">
+    <div class="empty" id="loading">Loading the rounds. Each round that Claude prepares shows here as a set of questions with a recommended answer.</div>
+  </main>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function h(tag, props) {
+    var el = document.createElement(tag);
+    if (props) Object.keys(props).forEach(function (k) {
+      if (k === "text") el.textContent = props[k];
+      else if (k.slice(0, 2) === "on") el.addEventListener(k.slice(2), props[k]);
+      else if (props[k] === true) el.setAttribute(k, "");
+      else if (props[k] !== false && props[k] != null) el.setAttribute(k, props[k]);
+    });
+    for (var i = 2; i < arguments.length; i++) { var c = arguments[i]; if (c) el.append(c); }
+    return el;
+  }
+
+  $("theme").addEventListener("click", function () {
+    var dark = document.documentElement.getAttribute("data-proto-theme") === "dark";
+    if (dark) document.documentElement.removeAttribute("data-proto-theme");
+    else document.documentElement.setAttribute("data-proto-theme", "dark");
+    $("theme").setAttribute("aria-pressed", String(!dark));
+  });
+
+  document.documentElement.lang = "en";
+  var db = null, rounds = [], currentId = null;
+  var state = {};      // roundId -> { answers: {qid: {choice, note, byDefault}}, submitted, submittedAt, loaded }
+  var saving = false, dirty = {}, saveNote = "";
+
+  function roundState(id) { return state[id] || (state[id] = { answers: {}, submitted: false, loaded: false }); }
+  function isAnswered(a) { return !!(a && (a.choice || (a.note || "").trim())); }
+  function hasRec(q) { return (q.options || []).some(function (o) { return o.key === q.recommended; }); }
+  function round() { return rounds.filter(function (r) { return r.id === currentId; })[0]; }
+
+  function save(id) {
+    dirty[id] = true;
+    if (saving || !db) return;
+    saving = true;
+    (function loop() {
+      var ids = Object.keys(dirty);
+      if (!ids.length) { saving = false; return; }
+      var rid = ids[0]; delete dirty[rid];
+      var s = roundState(rid);
+      db.doc("answers/" + rid).set({ answers: s.answers, submitted: !!s.submitted, submittedAt: s.submittedAt || null })
+        .then(function () { saveNote = ""; }, function () { saveNote = "Could not save. Your answers are still on this page; use Copy answers."; })
+        .then(function () { paintBar(); loop(); });
+    })();
+  }
+  var noteTimer = null;
+  function saveSoon(id) { clearTimeout(noteTimer); noteTimer = setTimeout(function () { save(id); }, 800); }
+
+  function counts(r, s) {
+    var n = 0;
+    var open = 0;
+    r.questions.forEach(function (q) { if (isAnswered(s.answers[q.id])) n++; else if (!hasRec(q)) open++; });
+    return { done: n, total: r.questions.length, open: open };
+  }
+
+  function summaryText(r, s) {
+    return r.title + "\n" + r.questions.map(function (q, i) {
+      var a = s.answers[q.id] || {};
+      var opt = (q.options || []).filter(function (o) { return o.key === a.choice; })[0];
+      var line = "Q" + (i + 1) + " " + q.title + ": " + (opt ? opt.label : a.choice === "other" ? "Something else" : "(no answer)");
+      if (a.choice && a.choice === q.recommended) line += a.byDefault ? " (recommendation, by default)" : " (recommendation)";
+      if ((a.note || "").trim()) line += "\n   Note: " + a.note.trim();
+      return line;
+    }).join("\n");
+  }
+
+  function paintRounds() {
+    var nav = $("rounds"); nav.replaceChildren();
+    if (rounds.length < 2) return;
+    rounds.forEach(function (r) {
+      var sent = roundState(r.id).submitted;
+      nav.append(h("button", { type: "button", "aria-pressed": String(r.id === currentId), onclick: function () { open(r.id); } },
+        h("span", { text: r.title + " " }), h("span", { class: "pill" + (sent ? "" : " open"), text: sent ? "Sent" : "Open" })));
+    });
+  }
+
+  function paintBar() {
+    var r = round(), bar = $("bar"); if (!r || !bar) return;
+    var s = roundState(r.id), c = counts(r, s), left = c.total - c.done;
+    var status = bar.querySelector(".status"), actions = bar.querySelector(".actions");
+    status.replaceChildren();
+    if (saveNote) status.append(h("span", { class: "err", text: saveNote }));
+    else if (s.submitted) status.append(h("strong", { text: "Sent to Claude. " }), "Say “answered” in the thread and Claude reads these.");
+    else status.append(h("strong", { text: c.done + " of " + c.total + " answered. " }), c.open ? c.open + " open " + (c.open === 1 ? "question needs" : "questions need") + " your note." : left ? left + " left take the recommendation when you send." : "Ready to send.");
+    actions.replaceChildren(
+      h("button", { type: "button", onclick: function () { copy(r, s); } , text: "Copy answers" }),
+      s.submitted
+        ? h("button", { type: "button", text: "Change answers", onclick: function () { s.submitted = false; s.submittedAt = null; save(r.id); paint(); } })
+        : h("button", { type: "button", class: "primary", text: "Send answers", disabled: c.open > 0, "aria-describedby": "bar-status", onclick: function () { send(r, s); } })
+    );
+  }
+
+  function copy(r, s) {
+    var text = summaryText(r, s);
+    var done = function () { saveNote = ""; var b = $("bar").querySelector(".actions button"); if (b) { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy answers"; }, 1500); } };
+    var fallback = function () {
+      var box = $("copybox"); box.hidden = false; box.textContent = text;
+      var sel = getSelection(), range = document.createRange(); range.selectNodeContents(box); sel.removeAllRanges(); sel.addRange(range);
+    };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  }
+
+  function send(r, s) {
+    r.questions.forEach(function (q) {
+      if (!isAnswered(s.answers[q.id]) && hasRec(q)) s.answers[q.id] = { choice: q.recommended, note: "", byDefault: true };
+    });
+    s.submitted = true; s.submittedAt = new Date().toISOString();
+    save(r.id); paint();
+  }
+
+  function pick(r, q, key) {
+    var s = roundState(r.id), a = s.answers[q.id] || (s.answers[q.id] = { note: "" });
+    a.choice = key; delete a.byDefault;
+    save(r.id); markCard(q, a); paintBar();
+  }
+  function markCard(q, a) {
+    var el = $("state-" + q.id); if (el) el.textContent = isAnswered(a) ? "Answered" : "";
+  }
+
+  function card(r, q, i) {
+    var s = roundState(r.id), a = s.answers[q.id] || {}, locked = s.submitted;
+    var el = h("section", { class: "q", id: "card-" + q.id, "aria-labelledby": "title-" + q.id });
+    el.append(h("div", { class: "q-head" }, h("h2", { id: "title-" + q.id, text: (i + 1) + ". " + q.title }), h("span", { class: "label q-state", id: "state-" + q.id, text: isAnswered(a) ? "Answered" : "" })));
+    if (q.body) el.append(h("p", { text: q.body }));
+    var opts = h("div", { class: "opts", role: "radiogroup", "aria-label": q.title });
+    (q.options || []).concat([{ key: "other", label: "Something else", detail: "Say what you want in the note." }]).forEach(function (o) {
+      var id = "opt-" + r.id + "-" + q.id + "-" + o.key;
+      var input = h("input", { type: "radio", name: "q-" + r.id + "-" + q.id, id: id, disabled: locked, onchange: function () { pick(r, q, o.key); } });
+      input.checked = a.choice === o.key;
+      var label = h("span", { class: "opt-label" }, h("span", { text: o.label }));
+      if (o.key === q.recommended) label.append(h("span", { class: "tag-rec", text: "Recommended" }));
+      opts.append(h("label", { class: "opt", for: id }, input, label, o.detail ? h("span", { class: "opt-detail", text: o.detail }) : null));
+    });
+    el.append(opts);
+    if (q.why) el.append(h("p", { class: "why" }, h("b", { text: "Why " }), q.why));
+    var ta = h("textarea", { id: "note-" + r.id + "-" + q.id, placeholder: "A condition, an exception, or a question back", disabled: locked,
+      oninput: function () { var x = s.answers[q.id] || (s.answers[q.id] = {}); x.note = ta.value; delete x.byDefault; markCard(q, x); saveSoon(r.id); paintBar(); } });
+    ta.value = a.note || "";
+    el.append(h("div", { class: "field" }, h("label", { class: "label", for: ta.id, text: hasRec(q) ? "Note for Claude (optional)" : "Your answer" }), ta));
+    if (q.outcome) el.append(h("div", { class: "outcome" }, h("span", { class: "label", text: "Claude recorded " }), q.outcome));
+    return el;
+  }
+
+  function paint() {
+    paintRounds();
+    var main = $("main"), r = round();
+    if (!r) { main.replaceChildren(h("div", { class: "empty", text: "No round is open. When Claude has questions for you, the round shows here." })); return; }
+    var s = roundState(r.id), kids = [];
+    if (!s.loaded) { main.replaceChildren(h("div", { class: "empty" + (s.failed ? " err" : ""), text: s.failed ? "Your saved answers for this round could not be loaded. Reload the page to try again." : "Loading your answers for this round." })); return; }
+    kids.push(h("div", null, h("h1", { text: r.title }), h("p", { class: "meta", text: [r.ticket, r.date, r.questions.length + " questions"].filter(Boolean).join(" · ") })));
+    if (r.example) kids.push(h("div", { class: "note-example", text: r.example }));
+    if (r.background && r.background.length) {
+      var d = h("details", { class: "bg" }, h("summary", { text: "Background" }));
+      r.background.forEach(function (p) { d.append(h("p", { text: p })); });
+      kids.push(d);
+    }
+    if (!s.submitted) kids.push(h("div", { class: "bulk" },
+      h("button", { type: "button", text: "Accept all recommendations", onclick: function () {
+        r.questions.forEach(function (q) { var a = s.answers[q.id] || (s.answers[q.id] = { note: "" }); if (!a.choice && hasRec(q)) a.choice = q.recommended; });
+        save(r.id); paint(); } }),
+      h("span", { text: "Fills each question you have not answered. You can still change one." })));
+    r.questions.forEach(function (q, i) { kids.push(card(r, q, i)); });
+    kids.push(h("pre", { class: "copy", id: "copybox", hidden: true }));
+    kids.push(h("div", { class: "bar", id: "bar" }, h("div", { class: "status", id: "bar-status", role: "status" }), h("div", { class: "actions" })));
+    var wrap = h("div", { style: "display:flex;flex-direction:column;gap:16px" });
+    kids.forEach(function (k) { wrap.append(k); });
+    main.replaceChildren(wrap);
+    paintBar();
+  }
+
+  function open(id) {
+    if (noteTimer && currentId) { clearTimeout(noteTimer); noteTimer = null; save(currentId); }
+    currentId = id;
+    var s = roundState(id);
+    paint();
+    if (s.loaded || !db) return;
+    db.doc("answers/" + id).get().then(function (snap) {
+      var d = snap.exists ? snap.data() : null;
+      if (d) { s.answers = JSON.parse(JSON.stringify(d.answers || {})); s.submitted = !!d.submitted; s.submittedAt = d.submittedAt || null; }
+      s.loaded = true; paint();
+    }, function () { s.failed = true; paint(); });
+  }
+
+  function fail(text) { $("main").replaceChildren(h("div", { class: "empty err", text: text })); }
+
+  var timer = setTimeout(function () { if (!rounds.length) fail("The rounds cannot be reached yet. Leave the page open; it fills in when the connection answers."); }, 10000);
+  window.claude.use("db").then(function (ns) {
+    db = ns;
+    if (!db) { clearTimeout(timer); fail("This view cannot load the rounds. Open the page signed in to claude.ai."); return; }
+    db.collection("rounds").onSnapshot(function (snap) {
+      clearTimeout(timer);
+      rounds = snap.docs.map(function (d) { var x = d.data() || {}; return { id: d.id, title: String(x.title || d.id), ticket: x.ticket, date: x.date, example: x.example, background: x.background || [], questions: x.questions || [], order: x.order || 0 }; })
+        .sort(function (a, b) { return b.order - a.order; });
+      if (!currentId || !round()) { if (rounds.length) open(rounds[0].id); else paint(); }
+      else if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") paint();
+    }, function () { clearTimeout(timer); fail("The rounds could not be loaded. Reload the page to try again."); });
+  });
+})();
+</script>
