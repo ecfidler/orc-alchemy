@@ -9,11 +9,11 @@ A **round** is one batch of questions that I can answer now, each with your reco
 
 ## 1. Pick the form
 
-- **Thread cards**: the round has one to three questions, each with two to four short options and no need for a note. Post one decision card for each question.
+- **Thread cards**: the round has one to three questions, each with two to four short options and no need for a note. Post one decision card for each question. Each answer comes back to you as its own message. Then go to step 5.
 - **Round page**: all other rounds. The page is the Artifact *Decision Rounds*: https://claude.ai/artifact/Eq8BZASrg8dKSy3iLPoQ6H
-- A question about how a control looks gets a prototype first (`prototype` skill). Put the question on the round after I see the prototype.
+- A question about how a control looks gets a prototype first (`prototype` skill). After I see the prototype, put the question on the round.
 
-The steps below are for the round page.
+Done when each question has a form. Steps 2 to 4 are for the round page.
 
 ## 2. Write the round
 
@@ -22,7 +22,7 @@ Write each question so that I can answer it without the other questions and with
 - `title` names the decision in my words. `body` gives the facts that I need, with counts and names.
 - `options` are the real choices, two to four, each with a `label` and a `detail` that says what happens. The page adds "Something else" itself.
 - `recommended` is the `key` of one option, and `why` is one or two sentences.
-- An open question with no fixed choices has an empty `options` list. I answer it in the note.
+- An open question with no fixed choices has an empty `options` list and no `recommended`. I answer it in the note, and the page does not let me send the round without that note.
 
 Put facts that more than one question needs in `background`, as short paragraphs.
 
@@ -51,7 +51,7 @@ Add the round to the page with `ArtifactData`, action `set`, collection `rounds`
 }
 ```
 
-`order` is the date as a number. The page shows the round with the largest `order` first. The page shows all text as plain text, so write no Markdown and no HTML in a round.
+`order` is the date as a number, and the page shows the round with the largest `order` first. For a second round on one day, add a digit: `202611092`. An optional `example` sentence shows as a notice at the top of a round that is not a real one. The page shows all text as plain text, so write plain sentences.
 
 Done when the `set` call returns and a `get` of the document shows every question.
 
@@ -74,7 +74,7 @@ When I say that I answered, `get` the document with the same id in collection `a
 }
 ```
 
-- `choice` is the `key` of an option, or `other`. With `other`, the note is the answer.
+- `choice` is the `key` of an option, or `other`. With `other` or with no `choice`, the note is the answer.
 - `byDefault: true` means that I sent the round without an answer to that question, so it took the recommendation. Record it as the recommendation.
 - A note beside a choice changes or limits that choice. Read each note.
 - `submitted: false` means that I have not sent the round. Tell me, and wait.
@@ -85,11 +85,11 @@ Done when each question has an answer that you can state in one sentence.
 
 ## 5. Record the decisions
 
-1. Write your reading on the page: `update` the round document with the full `questions` list, each question with an `outcome` sentence added. Pass the `version` from your last read as `if_version`.
+1. For a round on the page, write your reading on the page. `update` the round document with the full `questions` list, and add an `outcome` sentence to each question. Pass the `version` from your last read as `if_version`.
 2. Record each decision where the calling skill puts it: a comment on the Linear issue, the map, or the spec.
 3. Post the decisions in the thread as one numbered list, with the answers that differ from your recommendation first.
 
-Done when the page, the tracker and the thread show the same decisions.
+Done when the tracker and the thread show the same decisions, and the page does too for a round on the page.
 
 ## The page
 

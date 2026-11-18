@@ -94,10 +94,8 @@ files again. `/impeccable doctor` reports the number of commits to the UI
 code after the last change to `DESIGN.md`. It does not examine `theme.md`.
 `.impeccable/config.json` holds the detector ignores of the project.
 
-`.claude/skills/decision-rounds/` belongs to this project (ORC-261). It
-puts a round of questions from a grilling session or an interview on the
-round page or on thread cards, and reads the answers back. The folder also
-holds the source of the round page.
+`.claude/skills/decision-rounds/` belongs to this project (ORC-261). The
+folder also holds the source of the round page, an Artifact.
 
 ### Issue tracker
 

@@ -112,7 +112,9 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
   var state = {};      // roundId -> { answers: {qid: {choice, note, byDefault}}, submitted, submittedAt, loaded }
   var saving = false, dirty = {}, saveNote = "";
 
-  function st(id) { return state[id] || (state[id] = { answers: {}, submitted: false, loaded: false }); }
+  function roundState(id) { return state[id] || (state[id] = { answers: {}, submitted: false, loaded: false }); }
+  function isAnswered(a) { return !!(a && (a.choice || (a.note || "").trim())); }
+  function hasRec(q) { return (q.options || []).some(function (o) { return o.key === q.recommended; }); }
   function round() { return rounds.filter(function (r) { return r.id === currentId; })[0]; }
 
   function save(id) {
@@ -123,7 +125,7 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
       var ids = Object.keys(dirty);
       if (!ids.length) { saving = false; return; }
       var rid = ids[0]; delete dirty[rid];
-      var s = st(rid);
+      var s = roundState(rid);
       db.doc("answers/" + rid).set({ answers: s.answers, submitted: !!s.submitted, submittedAt: s.submittedAt || null })
         .then(function () { saveNote = ""; }, function () { saveNote = "Could not save. Your answers are still on this page; use Copy answers."; })
         .then(function () { paintBar(); loop(); });
@@ -134,8 +136,9 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
 
   function counts(r, s) {
     var n = 0;
-    r.questions.forEach(function (q) { var a = s.answers[q.id]; if (a && (a.choice || (a.note || "").trim())) n++; });
-    return { done: n, total: r.questions.length };
+    var open = 0;
+    r.questions.forEach(function (q) { if (isAnswered(s.answers[q.id])) n++; else if (!hasRec(q)) open++; });
+    return { done: n, total: r.questions.length, open: open };
   }
 
   function summaryText(r, s) {
@@ -153,7 +156,7 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
     var nav = $("rounds"); nav.replaceChildren();
     if (rounds.length < 2) return;
     rounds.forEach(function (r) {
-      var sent = st(r.id).submitted;
+      var sent = roundState(r.id).submitted;
       nav.append(h("button", { type: "button", "aria-pressed": String(r.id === currentId), onclick: function () { open(r.id); } },
         h("span", { text: r.title + " " }), h("span", { class: "pill " + (sent ? "sent" : "open"), text: sent ? "Sent" : "Open" })));
     });
@@ -161,17 +164,17 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
 
   function paintBar() {
     var r = round(), bar = $("bar"); if (!r || !bar) return;
-    var s = st(r.id), c = counts(r, s), left = c.total - c.done;
+    var s = roundState(r.id), c = counts(r, s), left = c.total - c.done;
     var status = bar.querySelector(".status"), actions = bar.querySelector(".actions");
     status.replaceChildren();
     if (saveNote) status.append(h("span", { class: "err", text: saveNote }));
     else if (s.submitted) status.append(h("strong", { text: "Sent to Claude. " }), "Say “answered” in the thread and Claude reads these.");
-    else status.append(h("strong", { text: c.done + " of " + c.total + " answered. " }), left ? left + " left take the recommendation when you send." : "Ready to send.");
+    else status.append(h("strong", { text: c.done + " of " + c.total + " answered. " }), c.open ? c.open + " open " + (c.open === 1 ? "question needs" : "questions need") + " your note." : left ? left + " left take the recommendation when you send." : "Ready to send.");
     actions.replaceChildren(
       h("button", { type: "button", onclick: function () { copy(r, s); } , text: "Copy answers" }),
       s.submitted
         ? h("button", { type: "button", text: "Change answers", onclick: function () { s.submitted = false; s.submittedAt = null; save(r.id); paint(); } })
-        : h("button", { type: "button", class: "primary", text: "Send answers", onclick: function () { send(r, s); } })
+        : h("button", { type: "button", class: "primary", text: "Send answers", disabled: c.open > 0, onclick: function () { send(r, s); } })
     );
   }
 
@@ -187,22 +190,21 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
 
   function send(r, s) {
     r.questions.forEach(function (q) {
-      var a = s.answers[q.id];
-      if (!a || (!a.choice && !(a.note || "").trim())) s.answers[q.id] = { choice: q.recommended, note: "", byDefault: true };
+      if (!isAnswered(s.answers[q.id]) && hasRec(q)) s.answers[q.id] = { choice: q.recommended, note: "", byDefault: true };
     });
     s.submitted = true; s.submittedAt = new Date().toISOString();
     save(r.id); paint();
   }
 
   function pick(r, q, key) {
-    var s = st(r.id), a = s.answers[q.id] || (s.answers[q.id] = { note: "" });
+    var s = roundState(r.id), a = s.answers[q.id] || (s.answers[q.id] = { note: "" });
     a.choice = key; delete a.byDefault;
     save(r.id); paintCard(r, q); paintBar();
   }
 
   function card(r, q, i) {
-    var s = st(r.id), a = s.answers[q.id] || {}, locked = s.submitted;
-    var el = h("section", { class: "q" + (a.choice || (a.note || "").trim() ? " done" : ""), id: "card-" + q.id });
+    var s = roundState(r.id), a = s.answers[q.id] || {}, locked = s.submitted;
+    var el = h("section", { class: "q" + (isAnswered(a) ? " done" : ""), id: "card-" + q.id });
     el.append(h("div", null, h("div", { class: "q-num", text: "Question " + (i + 1) + " of " + r.questions.length }), h("h2", { text: q.title })));
     if (q.body) el.append(h("p", { text: q.body }));
     var opts = h("div", { class: "opts", role: "radiogroup", "aria-label": q.title });
@@ -217,7 +219,7 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
     el.append(opts);
     if (q.why) el.append(h("p", { class: "why" }, h("b", { text: "Why: " }), q.why));
     var ta = h("textarea", { id: "note-" + r.id + "-" + q.id, placeholder: "Note for Claude (optional): a condition, an exception, or a question back", "aria-label": "Note for question " + (i + 1), disabled: locked,
-      oninput: function () { var x = s.answers[q.id] || (s.answers[q.id] = {}); x.note = ta.value; delete x.byDefault; el.classList.toggle("done", !!(x.choice || ta.value.trim())); saveSoon(r.id); paintBar(); } });
+      oninput: function () { var x = s.answers[q.id] || (s.answers[q.id] = {}); x.note = ta.value; delete x.byDefault; el.classList.toggle("done", isAnswered(x)); saveSoon(r.id); paintBar(); } });
     ta.value = a.note || "";
     el.append(ta);
     if (q.outcome) el.append(h("div", { class: "outcome" }, h("b", { text: "Claude recorded: " }), q.outcome));
@@ -231,7 +233,8 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
     paintRounds();
     var main = $("main"), r = round();
     if (!r) { main.replaceChildren(h("div", { class: "empty", text: "No round is open. When Claude has questions for you, the round shows here." })); return; }
-    var s = st(r.id), kids = [];
+    var s = roundState(r.id), kids = [];
+    if (!s.loaded) { main.replaceChildren(h("div", { class: "empty" + (s.failed ? " err" : ""), text: s.failed ? "Your saved answers for this round could not be loaded. Reload the page to try again." : "Loading your answers for this round." })); return; }
     kids.push(h("div", null, h("h1", { text: r.title }), h("p", { class: "meta", text: [r.ticket, r.date, r.questions.length + " questions"].filter(Boolean).join(" · ") })));
     if (r.example) kids.push(h("div", { class: "note-example", text: r.example }));
     if (r.background && r.background.length) {
@@ -241,7 +244,7 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
     }
     if (!s.submitted) kids.push(h("div", { class: "bulk" },
       h("button", { type: "button", text: "Accept all recommendations", onclick: function () {
-        r.questions.forEach(function (q) { var a = s.answers[q.id] || (s.answers[q.id] = { note: "" }); if (!a.choice) a.choice = q.recommended; });
+        r.questions.forEach(function (q) { var a = s.answers[q.id] || (s.answers[q.id] = { note: "" }); if (!a.choice && hasRec(q)) a.choice = q.recommended; });
         save(r.id); paint(); } }),
       h("span", { text: "Fills each question you have not answered. You can still change one." })));
     r.questions.forEach(function (q, i) { kids.push(card(r, q, i)); });
@@ -254,14 +257,16 @@ pre.copy { white-space: pre-wrap; background: var(--surface); border: 1px solid 
   }
 
   function open(id) {
+    if (noteTimer && currentId) { clearTimeout(noteTimer); noteTimer = null; save(currentId); }
     currentId = id;
-    var s = st(id);
-    if (s.loaded || !db) { paint(); return; }
+    var s = roundState(id);
+    paint();
+    if (s.loaded || !db) return;
     db.doc("answers/" + id).get().then(function (snap) {
       var d = snap.exists ? snap.data() : null;
       if (d) { s.answers = JSON.parse(JSON.stringify(d.answers || {})); s.submitted = !!d.submitted; s.submittedAt = d.submittedAt || null; }
       s.loaded = true; paint();
-    }, function () { s.loaded = true; paint(); });
+    }, function () { s.failed = true; paint(); });
   }
 
   function fail(text) { $("main").replaceChildren(h("div", { class: "empty err", text: text })); }
