@@ -62,11 +62,20 @@ the staged files and stages its fixes.
 
 ## Agent skills
 
-The skills in `.claude/skills/` other than `linear-issue-workflow` and
-`milestone-workflow` are copies of
+The skills in `.claude/skills/` other than `impeccable`,
+`linear-issue-workflow` and `milestone-workflow` are copies of
 [mattpocock/skills](https://github.com/mattpocock/skills) at tag `v1.3.2`
 (ORC-259). Do not edit the copies. To update them, copy the folders under
 `skills/engineering/` and `skills/productivity/` from a newer tag.
+
+`.claude/skills/impeccable/` and the `.claude/agents/impeccable-*.md` files
+are a copy of the Claude Code build of
+[pbakaus/impeccable](https://github.com/pbakaus/impeccable) at tag
+`skill-v4.9.1` (ORC-260). Do not edit the copy. To update it, copy
+`.claude/skills/impeccable/` and `.claude/agents/` from a newer `skill-v*`
+tag. The skill is for design work on `packages/app` and `packages/ui`. On
+its first use on a machine, its launcher downloads an engine binary from the
+GitHub releases of that repository and checks the SHA-256 digest.
 
 ### Issue tracker
 
