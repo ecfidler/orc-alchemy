@@ -58,7 +58,7 @@ Done when the `set` call returns and a `get` of the document shows every questio
 ## 3. Ask
 
 1. Watch the page: `ArtifactComments`, action `watch`, with the URL of the page. The watch is how my Send reaches you.
-2. Post one message in the thread with the title of the round, the number of questions, and the link to the round. The link is the URL of the page plus `#` and the document id, for example `https://claude.ai/artifact/Eq8BZASrg8dKSy3iLPoQ6H#orc-189-round-1`. The page opens that round.
+2. Post one message in the thread with the title of the round, the number of questions, and the link to the round. The link is the URL of the page plus `#` and the document id, for example `https://claude.ai/artifact/Eq8BZASrg8dKSy3iLPoQ6H#orc-189-round-1`. The page opens that round. Where the message tool can attach a link with a title, attach this link as a link, not as an Artifact, and give it the title of the round. The card then shows the name of the round and not the name of the page.
 3. End the turn.
 
 When I send the round, the page posts a comment that starts with "Round `<document id>` is answered" and sends it to Claude. Each thread that watches the page gets a wake for it.
