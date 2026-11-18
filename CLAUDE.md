@@ -77,6 +77,10 @@ tag. The skill is for design work on `packages/app` and `packages/ui`. On
 its first use on a machine, its launcher downloads an engine binary from the
 GitHub releases of that repository and checks the SHA-256 digest.
 
+`.claude/settings.json` is the hook file of the same tag. It runs the
+Impeccable design detector after each edit of a UI file and at the end of a
+session. `/impeccable hooks off` stops it for the project.
+
 ### Issue tracker
 
 Issues live in Linear, team "Orc Alchemy", accessed via the Linear MCP tools. See `docs/agents/issue-tracker.md`.
