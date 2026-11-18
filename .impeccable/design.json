@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-18T02:26:59Z",
+  "generatedAt": "2026-11-18T02:29:42Z",
   "title": "Design System: Alchemy 5e",
   "extensions": {
     "colorMeta": {
@@ -559,9 +559,39 @@
           "oklch(95% 0.000 0)"
         ]
       },
+      "margin-rule-dark": {
+        "role": "tertiary",
+        "displayName": "Margin Rule (Dark)",
+        "canonical": "#ff5c52",
+        "tonalRamp": [
+          "oklch(15% 0.113 27)",
+          "oklch(26% 0.138 27)",
+          "oklch(38% 0.163 27)",
+          "oklch(49% 0.188 27)",
+          "oklch(61% 0.188 27)",
+          "oklch(72% 0.163 27)",
+          "oklch(84% 0.138 27)",
+          "oklch(95% 0.113 27)"
+        ]
+      },
       "stain-dark": {
         "role": "tertiary",
         "displayName": "Stain (Dark)",
+        "canonical": "#c8915a",
+        "tonalRamp": [
+          "oklch(15% 0.055 65)",
+          "oklch(26% 0.067 65)",
+          "oklch(38% 0.080 65)",
+          "oklch(49% 0.092 65)",
+          "oklch(61% 0.092 65)",
+          "oklch(72% 0.080 65)",
+          "oklch(84% 0.067 65)",
+          "oklch(95% 0.055 65)"
+        ]
+      },
+      "stain-wash-dark": {
+        "role": "tertiary",
+        "displayName": "Stain Wash (Dark)",
         "canonical": "#c8915a",
         "tonalRamp": [
           "oklch(15% 0.055 65)",
@@ -676,7 +706,7 @@
       "refersTo": "flag-tab",
       "description": "A navigation tab of the shell. The current tab is solid.",
       "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab\" href=\"#\" aria-current=\"page\">Characters</a><a class=\"ds-tab ds-tab-blue\" href=\"#\">Import</a></nav>",
-      "css": ".ds-tabs { display: grid; gap: 6px; justify-items: start; } .ds-tab { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--flag-ink); background: color-mix(in srgb, var(--flag-yellow) 55%, #fff); padding: 5px 14px; } .ds-tab-blue { background: color-mix(in srgb, var(--flag-blue) 55%, #fff); } .ds-tab[aria-current=\"page\"] { background: var(--flag-yellow); box-shadow: 0 3px 6px -4px var(--note-shadow); } .ds-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }"
+      "css": ".ds-tabs { display: grid; gap: 6px; justify-items: start; } .ds-tab { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--flag-ink); background: color-mix(in srgb, var(--flag-yellow) 55%, #fff); padding: 11px 14px 11px 16px; } .ds-tab-blue { background: color-mix(in srgb, var(--flag-blue) 55%, #fff); } .ds-tab[aria-current=\"page\"] { background: var(--flag-yellow); box-shadow: 0 3px 6px -4px var(--note-shadow); } .ds-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }"
     },
     {
       "name": "Token",
@@ -692,7 +722,7 @@
       "refersTo": "",
       "description": "A value in a box with its label under it.",
       "html": "<div class=\"ds-box\"><div class=\"ds-box-value\">+3</div><div class=\"ds-box-label\">Proficiency bonus</div></div>",
-      "css": ".ds-box { display: inline-grid; gap: 6px; background: var(--paper-raised); border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 8px 10px 6px; } .ds-box-value { font-size: 30px; line-height: 1.1; text-align: center; color: var(--ink); } .ds-box-label { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); padding-top: 4px; text-align: center; border-top: 1px solid var(--rule); }"
+      "css": ".ds-box { display: inline-grid; gap: 6px; background: var(--paper-raised); border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 8px 10px 6px; } .ds-box-value { font-size: 30px; line-height: 1.1; text-align: center; color: var(--ink); } .ds-box-label { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 10.5px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); padding-top: 4px; text-align: center; border-top: 1px solid var(--rule); }"
     },
     {
       "name": "Alert note",
@@ -700,7 +730,7 @@
       "refersTo": "alert-note",
       "description": "A flat note above the page content. Yellow: the user must act.",
       "html": "<div class=\"ds-alert\">Not saving. <a href=\"#\">Export them now</a></div>",
-      "css": ".ds-alert { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13.5px; font-weight: 500; color: var(--note-ink); background: var(--note); padding: 8px 14px; box-shadow: 0 4px 8px -5px var(--note-shadow); } .ds-alert a { color: inherit; text-decoration: underline; text-underline-offset: 2px; } .ds-alert a:focus-visible { outline: 2px solid var(--note-ink); outline-offset: 2px; }"
+      "css": ".ds-alert { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13.5px; font-weight: 500; color: var(--note-ink); background: var(--note); padding: 11px 14px 12px; box-shadow: 0 4px 8px -5px var(--note-shadow); } .ds-alert a { color: inherit; text-decoration: underline; text-underline-offset: 2px; } .ds-alert a:focus-visible { outline: 2px solid var(--note-ink); outline-offset: 2px; }"
     },
     {
       "name": "Use bubble",
@@ -708,12 +738,12 @@
       "refersTo": "use-bubble",
       "description": "The frame around a feature with limited uses.",
       "html": "<div class=\"ds-bubble\"><div class=\"ds-bubble-head\">Channel Divinity <button class=\"ds-use\" aria-label=\"Use 1\"></button><button class=\"ds-use\" aria-label=\"Use 2\"></button></div><span class=\"ds-bubble-tag\">Short rest</span></div>",
-      "css": ".ds-bubble { display: flex; justify-content: space-between; gap: 14px; padding: 8px 14px 10px; color: var(--ink); background: var(--bubble); border: 1.5px solid var(--info); border-radius: 18px; } .ds-bubble-head { display: flex; gap: 5px; align-items: center; font-weight: 600; } .ds-use { width: 15px; height: 15px; padding: 0; background: var(--bubble); border: 1.5px solid var(--info); border-radius: 50%; cursor: pointer; } .ds-use:hover { background: var(--panel); } .ds-use:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; } .ds-bubble-tag { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); }"
+      "css": ".ds-bubble { display: flex; justify-content: space-between; gap: 14px; padding: 8px 14px 10px; color: var(--ink); background: var(--bubble); border: 1.5px solid var(--info); border-radius: 18px; } .ds-bubble-head { display: flex; gap: 5px; align-items: center; font-weight: 600; } .ds-use { width: 15px; height: 15px; padding: 0; background: var(--bubble); border: 1.5px solid var(--info); border-radius: 50%; cursor: pointer; } .ds-use:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; } .ds-bubble-tag { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); }"
     }
   ],
   "narrative": {
     "northStar": "Paper",
-    "overview": "The app must feel like a physical character sheet, but it does not copy paper literally. The page is a slightly yellow off-white with a subtle grain. The text is graphite-dark, in a serif face. Boxes have plain ink borders, with the label under the value, as on a printed sheet. Color is rare and each color has one meaning: a yellow note for something the user must act on, red for a failure, blue for a limited-use feature and for focus.\n\nThe app shell is a binder. A margin rail on the left holds the logo and the navigation, and a red double rule separates it from the page. Each page has a flat flag tab that is stuck to the rule.\n\nThe Dark theme is not dark paper. It is OLED black and white: a pure black page, white text, and accents that shift to suit black. The notes and the flag tabs stay bright in the Dark theme, with black text.\n\nThe authority for each value and rule in this file is `docs/design/theme.md`. The homebrew forms are in `docs/design/homebrew-forms.md`.",
+    "overview": "The app must feel like a physical character sheet, but it does not copy paper literally. The page is a slightly yellow off-white with a subtle grain. The text is graphite-dark, in a serif face. Boxes have plain borders, with the label under the value, as on a printed sheet. Color is rare and each color has one meaning: a yellow note for something the user must act on, red for a failure, blue for a limited-use feature and for focus.\n\nThe app shell is a binder. A margin rail on the left holds the logo and the navigation, and a red double rule separates it from the page. Each page of the navigation has a flat flag tab that is stuck to the rule.\n\nThe Dark theme is not dark paper. It is OLED black and white: a pure black page, white text, and accents that shift to suit black. The notes and the flag tabs stay bright in the Dark theme, with black text.\n\nThe authority for each value and rule in this file is `docs/design/theme.md`. When this file and `theme.md` disagree, `theme.md` wins. The homebrew forms are in `docs/design/homebrew-forms.md`.",
     "keyCharacteristics": [
       "Paper page, ink text, ink borders. No gradients and no decoration that a paper sheet could not have.",
       "Each color is a role token. The name says what the color does.",
@@ -734,7 +764,7 @@
       },
       {
         "name": "The Contrast Rule",
-        "body": "Text has 4.5 : 1 or more on its background and field borders and marks have 3 : 1 or more, in the two themes (WCAG 2.2 AA). A unit test in `packages/ui` computes each pair. When you add a text token, add its pair to the test.",
+        "body": "Text has a contrast of 4.5 : 1 or more on its background. Field borders and marks have 3 : 1 or more. The two themes obey this rule (WCAG 2.2 AA). A unit test in `packages/ui` computes each pair. When you add a text token, add its pair to the test.",
         "section": "colors"
       },
       {

@@ -87,11 +87,12 @@ end of a session. The detector examines only the UI files.
 `/impeccable hooks off` stops it for the project.
 
 `DESIGN.md` and `.impeccable/design.json` are derived files. The authority
-for the look of the app is `docs/design/theme.md`, and it wins when the two
-disagree. Do not edit `DESIGN.md` by hand. After a change to `theme.md` or
+for the look of the app is `docs/design/theme.md`, and `theme.md` wins over
+them. Do not edit `DESIGN.md` by hand. After a change to `theme.md` or
 to the tokens in `packages/ui`, run `/impeccable document` to write the two
-files again. `.impeccable/config.json` holds the detector ignores of the
-project.
+files again. `/impeccable doctor` reports the number of commits to the UI
+code after the last change to `DESIGN.md`. It does not examine `theme.md`.
+`.impeccable/config.json` holds the detector ignores of the project.
 
 ### Issue tracker
 

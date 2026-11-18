@@ -39,12 +39,16 @@ colors:
   note-red-dark: "#ff9c8f"
   note-blue-dark: "#9cc4ff"
   note-ink-dark: "#000000"
+  margin-rule-dark: "#ff5c52"
   stain-dark: "#c8915a"
+  stain-wash-dark: "#c8915a"
 typography:
   display:
     fontFamily: "Newsreader Variable, Georgia, Times New Roman, serif"
     fontSize: "clamp(52px, 10vw, 84px)"
-    fontWeight: 450
+    fontWeight: 560
+    lineHeight: 0.95
+    letterSpacing: "-0.02em"
   body:
     fontFamily: "Newsreader Variable, Georgia, Times New Roman, serif"
     fontSize: "17px"
@@ -54,7 +58,7 @@ typography:
   label:
     fontFamily: "Inter Variable, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: "10.5px"
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 1.2
     letterSpacing: "0.08em"
   section-label:
@@ -136,13 +140,13 @@ by hand: change theme.md and the code, then run `/impeccable document`.
 
 **Creative North Star: "Paper"**
 
-The app must feel like a physical character sheet, but it does not copy paper literally. The page is a slightly yellow off-white with a subtle grain. The text is graphite-dark, in a serif face. Boxes have plain ink borders, with the label under the value, as on a printed sheet. Color is rare and each color has one meaning: a yellow note for something the user must act on, red for a failure, blue for a limited-use feature and for focus.
+The app must feel like a physical character sheet, but it does not copy paper literally. The page is a slightly yellow off-white with a subtle grain. The text is graphite-dark, in a serif face. Boxes have plain borders, with the label under the value, as on a printed sheet. Color is rare and each color has one meaning: a yellow note for something the user must act on, red for a failure, blue for a limited-use feature and for focus.
 
-The app shell is a binder. A margin rail on the left holds the logo and the navigation, and a red double rule separates it from the page. Each page has a flat flag tab that is stuck to the rule.
+The app shell is a binder. A margin rail on the left holds the logo and the navigation, and a red double rule separates it from the page. Each page of the navigation has a flat flag tab that is stuck to the rule.
 
 The Dark theme is not dark paper. It is OLED black and white: a pure black page, white text, and accents that shift to suit black. The notes and the flag tabs stay bright in the Dark theme, with black text.
 
-The authority for each value and rule in this file is `docs/design/theme.md`. The homebrew forms are in `docs/design/homebrew-forms.md`.
+The authority for each value and rule in this file is `docs/design/theme.md`. When this file and `theme.md` disagree, `theme.md` wins. The homebrew forms are in `docs/design/homebrew-forms.md`.
 
 **Key Characteristics:**
 
@@ -158,7 +162,7 @@ The palette is paper and ink, with marker accents. The frontmatter has the Light
 
 ### Primary
 
-- **Ink** (#222222, Dark #ffffff): body text, values, box borders, the border of an active field, and the fill of a solid button.
+- **Ink** (#222222, Dark #ffffff): body text, values, the border of a button and of an active field, and the fill of a solid button.
 - **Paper** (#fffcf5, Dark #000000): the page.
 
 ### Secondary
@@ -168,7 +172,7 @@ The palette is paper and ink, with marker accents. The frontmatter has the Light
 
 ### Tertiary
 
-- **Danger Red** (#c2271d, Dark #ff5c52): errors and "failed". The margin rule of the shell has the same value.
+- **Danger Red** (#c2271d, Dark #ff5c52): errors and "failed". The margin rule of the shell has the same values.
 - **Success Green** (#1f7a3a, Dark #4ed07a): "Saved" and death-save successes.
 - **Warning Yellow** (#7f6200, Dark #ffd93d): warning text that needs no action.
 - **Caution Orange** (#b85a00, Dark #ff9a3d): a bad mark that is not an error, for example death-save failures.
@@ -191,7 +195,7 @@ The palette is paper and ink, with marker accents. The frontmatter has the Light
 
 **The Red Means Failed Rule.** Red is never a tab color and never decoration.
 
-**The Contrast Rule.** Text has 4.5 : 1 or more on its background and field borders and marks have 3 : 1 or more, in the two themes (WCAG 2.2 AA). A unit test in `packages/ui` computes each pair. When you add a text token, add its pair to the test.
+**The Contrast Rule.** Text has a contrast of 4.5 : 1 or more on its background. Field borders and marks have 3 : 1 or more. The two themes obey this rule (WCAG 2.2 AA). A unit test in `packages/ui` computes each pair. When you add a text token, add its pair to the test.
 
 **The Underlined Link Rule.** A link is Ink with an underline. It is not blue.
 
@@ -205,12 +209,12 @@ The palette is paper and ink, with marker accents. The frontmatter has the Light
 
 ### Hierarchy
 
-- **Display** (450, `clamp(52px, 10vw, 84px)`): the "Alchemy 5E" wordmark on Home only.
+- **Display** (560, `clamp(52px, 10vw, 84px)`, line height 0.95, -0.02em): the "Alchemy 5E" wordmark on Home only.
 - **Body** (450, 17px, line height 1.5): body text, headings and values. Numbers are tabular lining digits. Large values on the sheet use the same face at a larger size.
-- **Label** (Inter 500, 10.5px, 0.08em, uppercase, Muted Ink): the label of a box or a field. The six ability labels on the sheet are 13px.
+- **Label** (Inter 400, 10.5px, 0.08em, uppercase, Muted Ink): the label of a box or a field. The label above a field has weight 500. The six ability labels on the sheet are 13px.
 - **Section label** (Inter 600, 11.5px, 0.08em, uppercase): a section title on a rule.
 - **Button** (Inter 600, 13px, line height 1.4; 14px in a large button): button text.
-- **Note** (Inter 500, 13.5px): alert notes and note lines. Flag tab labels are Inter 600, 13.5px, uppercase.
+- **Note** (Inter 500, 13.5px): alert notes. A note line is Inter 13.5px at the normal weight. Flag tab labels are Inter 600, 13.5px, uppercase.
 
 The theme spec sets these sizes only. Each component sets the other sizes that it needs, for example the large value of a stat box (32px). Thus the detector rule `design-system-font-size` is off for the project (`.impeccable/config.json`).
 
@@ -231,7 +235,7 @@ The theme spec sets these sizes only. Each component sets the other sizes that i
 
 ## Elevation & Depth
 
-The system is flat. Depth comes from borders, from Raised Paper on Paper, and from the shaded Panel. Only things that are on top of the page cast a shadow: the notes, the current flag tab and a modal. The backdrop of a modal is a 40% Ink wash.
+The system is flat. Depth comes from borders, from Raised Paper on Paper, and from the shaded Panel. Only things that are on top of the page cast a shadow: the notes, the current flag tab and a modal. The backdrop of a Dialog and of a ListModal is a 40% Ink wash.
 
 ### Shadow Vocabulary
 
@@ -277,7 +281,7 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 ### Inputs / Fields
 
 - **Style:** each TextInput, TextArea, Select, Combobox and NumberField is boxed: a 1px Ink border on Raised Paper, radius 0, padding 3px 8px. The label is above the control, in Label type.
-- **Focus:** a 2px Info Blue outline with a 2px offset on `:focus-visible`. On a note or a flag tab, the outline is the ink of that note or tab.
+- **Focus:** a 2px Info Blue outline with a 2px offset on `:focus-visible`. On a note, the outline is Note Ink. On a flag tab, it is Ink.
 - **Error / Disabled:** error text is Danger Red. A disabled field has a Strong Rule border.
 
 ### Navigation
