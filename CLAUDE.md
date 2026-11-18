@@ -47,6 +47,7 @@ docs/                    OKF bundle: plan, reports, kb, conventions
 docs/plan/               the plan
 biome.json               formatter and linter config (ORC-213)
 PRODUCT.md               product record that the Impeccable skill reads (ORC-260)
+DESIGN.md                design tokens and rules for the Impeccable skill, derived from docs/design/theme.md (ORC-260)
 scripts/okf-check.ts     the docs bundle check
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
@@ -84,6 +85,14 @@ The hooks in `.claude/settings.json` are from the same tag. They run the
 launcher at the start of a session, after each Edit or Write, and at the
 end of a session. The detector examines only the UI files.
 `/impeccable hooks off` stops it for the project.
+
+`DESIGN.md` and `.impeccable/design.json` are derived files. The authority
+for the look of the app is `docs/design/theme.md`, and `theme.md` wins over
+them. Do not edit `DESIGN.md` by hand. After a change to `theme.md` or
+to the tokens in `packages/ui`, run `/impeccable document` to write the two
+files again. `/impeccable doctor` reports the number of commits to the UI
+code after the last change to `DESIGN.md`. It does not examine `theme.md`.
+`.impeccable/config.json` holds the detector ignores of the project.
 
 ### Issue tracker
 
