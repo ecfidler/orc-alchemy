@@ -1,0 +1,19 @@
+{
+  "detector": {
+    "ignoreRules": [
+      "design-system-font-size"
+    ],
+    "ignoreFiles": [
+      "**/*.test.ts",
+      "**/*.test.tsx"
+    ],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-18T02:26:59.390Z",
+        "reason": "Label font of the theme (docs/design/theme.md)"
+      }
+    ]
+  }
+}

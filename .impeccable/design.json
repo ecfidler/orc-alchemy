@@ -1,0 +1,779 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-18T02:26:59Z",
+  "title": "Design System: Alchemy 5e",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "primary",
+        "displayName": "Paper",
+        "canonical": "#fffcf5",
+        "tonalRamp": [
+          "oklch(15% 0.006 87)",
+          "oklch(26% 0.007 87)",
+          "oklch(38% 0.008 87)",
+          "oklch(49% 0.009 87)",
+          "oklch(61% 0.009 87)",
+          "oklch(72% 0.008 87)",
+          "oklch(84% 0.007 87)",
+          "oklch(95% 0.006 87)"
+        ]
+      },
+      "paper-raised": {
+        "role": "neutral",
+        "displayName": "Raised Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Ink",
+        "canonical": "#222222",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#595959",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#e3dece",
+        "tonalRamp": [
+          "oklch(15% 0.012 93)",
+          "oklch(26% 0.015 93)",
+          "oklch(38% 0.018 93)",
+          "oklch(49% 0.021 93)",
+          "oklch(61% 0.021 93)",
+          "oklch(72% 0.018 93)",
+          "oklch(84% 0.015 93)",
+          "oklch(95% 0.012 93)"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "#8a8578",
+        "tonalRamp": [
+          "oklch(15% 0.011 89)",
+          "oklch(26% 0.014 89)",
+          "oklch(38% 0.016 89)",
+          "oklch(49% 0.019 89)",
+          "oklch(61% 0.019 89)",
+          "oklch(72% 0.016 89)",
+          "oklch(84% 0.014 89)",
+          "oklch(95% 0.011 89)"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger Red",
+        "canonical": "#c2271d",
+        "tonalRamp": [
+          "oklch(15% 0.108 29)",
+          "oklch(26% 0.132 29)",
+          "oklch(38% 0.156 29)",
+          "oklch(49% 0.180 29)",
+          "oklch(61% 0.180 29)",
+          "oklch(72% 0.156 29)",
+          "oklch(84% 0.132 29)",
+          "oklch(95% 0.108 29)"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Success Green",
+        "canonical": "#1f7a3a",
+        "tonalRamp": [
+          "oklch(15% 0.073 149)",
+          "oklch(26% 0.089 149)",
+          "oklch(38% 0.105 149)",
+          "oklch(49% 0.121 149)",
+          "oklch(61% 0.121 149)",
+          "oklch(72% 0.105 149)",
+          "oklch(84% 0.089 149)",
+          "oklch(95% 0.073 149)"
+        ]
+      },
+      "info": {
+        "role": "secondary",
+        "displayName": "Info Blue",
+        "canonical": "#1e5fb4",
+        "tonalRamp": [
+          "oklch(15% 0.084 257)",
+          "oklch(26% 0.103 257)",
+          "oklch(38% 0.122 257)",
+          "oklch(49% 0.140 257)",
+          "oklch(61% 0.140 257)",
+          "oklch(72% 0.122 257)",
+          "oklch(84% 0.103 257)",
+          "oklch(95% 0.084 257)"
+        ]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Warning Yellow",
+        "canonical": "#7f6200",
+        "tonalRamp": [
+          "oklch(15% 0.059 88)",
+          "oklch(26% 0.072 88)",
+          "oklch(38% 0.085 88)",
+          "oklch(49% 0.098 88)",
+          "oklch(61% 0.098 88)",
+          "oklch(72% 0.085 88)",
+          "oklch(84% 0.072 88)",
+          "oklch(95% 0.059 88)"
+        ]
+      },
+      "caution": {
+        "role": "tertiary",
+        "displayName": "Caution Orange",
+        "canonical": "#b85a00",
+        "tonalRamp": [
+          "oklch(15% 0.082 53)",
+          "oklch(26% 0.100 53)",
+          "oklch(38% 0.118 53)",
+          "oklch(49% 0.137 53)",
+          "oklch(61% 0.137 53)",
+          "oklch(72% 0.118 53)",
+          "oklch(84% 0.100 53)",
+          "oklch(95% 0.082 53)"
+        ]
+      },
+      "note": {
+        "role": "secondary",
+        "displayName": "Note Yellow",
+        "canonical": "#ffe45c",
+        "tonalRamp": [
+          "oklch(15% 0.087 98)",
+          "oklch(26% 0.107 98)",
+          "oklch(38% 0.126 98)",
+          "oklch(49% 0.145 98)",
+          "oklch(61% 0.145 98)",
+          "oklch(72% 0.126 98)",
+          "oklch(84% 0.107 98)",
+          "oklch(95% 0.087 98)"
+        ]
+      },
+      "note-red": {
+        "role": "tertiary",
+        "displayName": "Red Note",
+        "canonical": "#ffb3a8",
+        "tonalRamp": [
+          "oklch(15% 0.051 28)",
+          "oklch(26% 0.063 28)",
+          "oklch(38% 0.074 28)",
+          "oklch(49% 0.085 28)",
+          "oklch(61% 0.085 28)",
+          "oklch(72% 0.074 28)",
+          "oklch(84% 0.063 28)",
+          "oklch(95% 0.051 28)"
+        ]
+      },
+      "note-blue": {
+        "role": "tertiary",
+        "displayName": "Blue Note",
+        "canonical": "#a9ccff",
+        "tonalRamp": [
+          "oklch(15% 0.046 258)",
+          "oklch(26% 0.056 258)",
+          "oklch(38% 0.066 258)",
+          "oklch(49% 0.076 258)",
+          "oklch(61% 0.076 258)",
+          "oklch(72% 0.066 258)",
+          "oklch(84% 0.056 258)",
+          "oklch(95% 0.046 258)"
+        ]
+      },
+      "note-ink": {
+        "role": "neutral",
+        "displayName": "Note Ink",
+        "canonical": "#222222",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "margin-rule": {
+        "role": "tertiary",
+        "displayName": "Margin Rule",
+        "canonical": "#c2271d",
+        "tonalRamp": [
+          "oklch(15% 0.108 29)",
+          "oklch(26% 0.132 29)",
+          "oklch(38% 0.156 29)",
+          "oklch(49% 0.180 29)",
+          "oklch(61% 0.180 29)",
+          "oklch(72% 0.156 29)",
+          "oklch(84% 0.132 29)",
+          "oklch(95% 0.108 29)"
+        ]
+      },
+      "flag-yellow": {
+        "role": "tertiary",
+        "displayName": "Flag Yellow",
+        "canonical": "#ffe45c",
+        "tonalRamp": [
+          "oklch(15% 0.087 98)",
+          "oklch(26% 0.107 98)",
+          "oklch(38% 0.126 98)",
+          "oklch(49% 0.145 98)",
+          "oklch(61% 0.145 98)",
+          "oklch(72% 0.126 98)",
+          "oklch(84% 0.107 98)",
+          "oklch(95% 0.087 98)"
+        ]
+      },
+      "flag-blue": {
+        "role": "tertiary",
+        "displayName": "Flag Blue",
+        "canonical": "#7fb6ff",
+        "tonalRamp": [
+          "oklch(15% 0.068 256)",
+          "oklch(26% 0.083 256)",
+          "oklch(38% 0.098 256)",
+          "oklch(49% 0.113 256)",
+          "oklch(61% 0.113 256)",
+          "oklch(72% 0.098 256)",
+          "oklch(84% 0.083 256)",
+          "oklch(95% 0.068 256)"
+        ]
+      },
+      "flag-green": {
+        "role": "tertiary",
+        "displayName": "Flag Green",
+        "canonical": "#7ee08f",
+        "tonalRamp": [
+          "oklch(15% 0.083 148)",
+          "oklch(26% 0.101 148)",
+          "oklch(38% 0.119 148)",
+          "oklch(49% 0.137 148)",
+          "oklch(61% 0.137 148)",
+          "oklch(72% 0.119 148)",
+          "oklch(84% 0.101 148)",
+          "oklch(95% 0.083 148)"
+        ]
+      },
+      "flag-orange": {
+        "role": "tertiary",
+        "displayName": "Flag Orange",
+        "canonical": "#ffae5c",
+        "tonalRamp": [
+          "oklch(15% 0.077 64)",
+          "oklch(26% 0.094 64)",
+          "oklch(38% 0.111 64)",
+          "oklch(49% 0.128 64)",
+          "oklch(61% 0.128 64)",
+          "oklch(72% 0.111 64)",
+          "oklch(84% 0.094 64)",
+          "oklch(95% 0.077 64)"
+        ]
+      },
+      "flag-ink": {
+        "role": "neutral",
+        "displayName": "Flag Ink",
+        "canonical": "#222222",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "stain": {
+        "role": "tertiary",
+        "displayName": "Stain",
+        "canonical": "#8c5a2b",
+        "tonalRamp": [
+          "oklch(15% 0.051 62)",
+          "oklch(26% 0.062 62)",
+          "oklch(38% 0.074 62)",
+          "oklch(49% 0.085 62)",
+          "oklch(61% 0.085 62)",
+          "oklch(72% 0.074 62)",
+          "oklch(84% 0.062 62)",
+          "oklch(95% 0.051 62)"
+        ]
+      },
+      "stain-wash": {
+        "role": "tertiary",
+        "displayName": "Stain Wash",
+        "canonical": "#a87442",
+        "tonalRamp": [
+          "oklch(15% 0.053 63)",
+          "oklch(26% 0.064 63)",
+          "oklch(38% 0.076 63)",
+          "oklch(49% 0.087 63)",
+          "oklch(61% 0.087 63)",
+          "oklch(72% 0.076 63)",
+          "oklch(84% 0.064 63)",
+          "oklch(95% 0.053 63)"
+        ]
+      },
+      "paper-dark": {
+        "role": "primary",
+        "displayName": "Paper (Dark)",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(26% 0.000 0)",
+          "oklch(38% 0.000 0)",
+          "oklch(49% 0.000 0)",
+          "oklch(61% 0.000 0)",
+          "oklch(72% 0.000 0)",
+          "oklch(84% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "paper-raised-dark": {
+        "role": "neutral",
+        "displayName": "Raised Paper (Dark)",
+        "canonical": "#0a0a0a",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "ink-dark": {
+        "role": "primary",
+        "displayName": "Ink (Dark)",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "ink-muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted Ink (Dark)",
+        "canonical": "#adadad",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Rule (Dark)",
+        "canonical": "#222222",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "rule-strong-dark": {
+        "role": "neutral",
+        "displayName": "Strong Rule (Dark)",
+        "canonical": "#6b6b6b",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "danger-dark": {
+        "role": "tertiary",
+        "displayName": "Danger Red (Dark)",
+        "canonical": "#ff5c52",
+        "tonalRamp": [
+          "oklch(15% 0.113 27)",
+          "oklch(26% 0.138 27)",
+          "oklch(38% 0.163 27)",
+          "oklch(49% 0.188 27)",
+          "oklch(61% 0.188 27)",
+          "oklch(72% 0.163 27)",
+          "oklch(84% 0.138 27)",
+          "oklch(95% 0.113 27)"
+        ]
+      },
+      "success-dark": {
+        "role": "tertiary",
+        "displayName": "Success Green (Dark)",
+        "canonical": "#4ed07a",
+        "tonalRamp": [
+          "oklch(15% 0.094 151)",
+          "oklch(26% 0.115 151)",
+          "oklch(38% 0.136 151)",
+          "oklch(49% 0.157 151)",
+          "oklch(61% 0.157 151)",
+          "oklch(72% 0.136 151)",
+          "oklch(84% 0.115 151)",
+          "oklch(95% 0.094 151)"
+        ]
+      },
+      "info-dark": {
+        "role": "secondary",
+        "displayName": "Info Blue (Dark)",
+        "canonical": "#5ea2ff",
+        "tonalRamp": [
+          "oklch(15% 0.086 257)",
+          "oklch(26% 0.106 257)",
+          "oklch(38% 0.125 257)",
+          "oklch(49% 0.144 257)",
+          "oklch(61% 0.144 257)",
+          "oklch(72% 0.125 257)",
+          "oklch(84% 0.106 257)",
+          "oklch(95% 0.086 257)"
+        ]
+      },
+      "warning-dark": {
+        "role": "tertiary",
+        "displayName": "Warning Yellow (Dark)",
+        "canonical": "#ffd93d",
+        "tonalRamp": [
+          "oklch(15% 0.094 95)",
+          "oklch(26% 0.115 95)",
+          "oklch(38% 0.136 95)",
+          "oklch(49% 0.156 95)",
+          "oklch(61% 0.156 95)",
+          "oklch(72% 0.136 95)",
+          "oklch(84% 0.115 95)",
+          "oklch(95% 0.094 95)"
+        ]
+      },
+      "caution-dark": {
+        "role": "tertiary",
+        "displayName": "Caution Orange (Dark)",
+        "canonical": "#ff9a3d",
+        "tonalRamp": [
+          "oklch(15% 0.089 59)",
+          "oklch(26% 0.109 59)",
+          "oklch(38% 0.129 59)",
+          "oklch(49% 0.149 59)",
+          "oklch(61% 0.149 59)",
+          "oklch(72% 0.129 59)",
+          "oklch(84% 0.109 59)",
+          "oklch(95% 0.089 59)"
+        ]
+      },
+      "note-red-dark": {
+        "role": "tertiary",
+        "displayName": "Red Note (Dark)",
+        "canonical": "#ff9c8f",
+        "tonalRamp": [
+          "oklch(15% 0.068 28)",
+          "oklch(26% 0.083 28)",
+          "oklch(38% 0.098 28)",
+          "oklch(49% 0.113 28)",
+          "oklch(61% 0.113 28)",
+          "oklch(72% 0.098 28)",
+          "oklch(84% 0.083 28)",
+          "oklch(95% 0.068 28)"
+        ]
+      },
+      "note-blue-dark": {
+        "role": "tertiary",
+        "displayName": "Blue Note (Dark)",
+        "canonical": "#9cc4ff",
+        "tonalRamp": [
+          "oklch(15% 0.053 258)",
+          "oklch(26% 0.065 258)",
+          "oklch(38% 0.077 258)",
+          "oklch(49% 0.088 258)",
+          "oklch(61% 0.088 258)",
+          "oklch(72% 0.077 258)",
+          "oklch(84% 0.065 258)",
+          "oklch(95% 0.053 258)"
+        ]
+      },
+      "note-ink-dark": {
+        "role": "neutral",
+        "displayName": "Note Ink (Dark)",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(26% 0.000 0)",
+          "oklch(38% 0.000 0)",
+          "oklch(49% 0.000 0)",
+          "oklch(61% 0.000 0)",
+          "oklch(72% 0.000 0)",
+          "oklch(84% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "stain-dark": {
+        "role": "tertiary",
+        "displayName": "Stain (Dark)",
+        "canonical": "#c8915a",
+        "tonalRamp": [
+          "oklch(15% 0.055 65)",
+          "oklch(26% 0.067 65)",
+          "oklch(38% 0.080 65)",
+          "oklch(49% 0.092 65)",
+          "oklch(61% 0.092 65)",
+          "oklch(72% 0.080 65)",
+          "oklch(84% 0.067 65)",
+          "oklch(95% 0.055 65)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The wordmark on Home only."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Body text, headings and values."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "The label of a box or a field, in uppercase."
+      },
+      "section-label": {
+        "displayName": "Section label",
+        "purpose": "A section title on a rule, in uppercase."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Button text."
+      },
+      "note": {
+        "displayName": "Note",
+        "purpose": "Alert notes and note lines."
+      }
+    },
+    "shadows": [
+      {
+        "name": "tab",
+        "value": "0 3px 6px -4px var(--note-shadow)",
+        "purpose": "The current flag tab."
+      },
+      {
+        "name": "note",
+        "value": "0 4px 8px -5px var(--note-shadow)",
+        "purpose": "Alert notes."
+      },
+      {
+        "name": "inline-note",
+        "value": "0 2px 3px -1px var(--note-shadow)",
+        "purpose": "Inline notes."
+      },
+      {
+        "name": "modal",
+        "value": "0 22px 50px -18px var(--note-shadow)",
+        "purpose": "The Dialog and the ListModal."
+      }
+    ],
+    "motion": [
+      {
+        "name": "potion-swirl",
+        "value": "2.4s steps, 12 frames",
+        "purpose": "The liquid of the logo. Off under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "modal-full",
+        "value": "600px"
+      },
+      {
+        "name": "shell-strip",
+        "value": "680px"
+      },
+      {
+        "name": "sheet-tabs",
+        "value": "720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "The default ghost button: an ink border, a transparent fill.",
+      "html": "<button class=\"ds-btn\">Random character</button>",
+      "css": ".ds-btn { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--ink); background: transparent; border: 1.5px solid var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; } .ds-btn:hover { background: var(--panel); } .ds-btn:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }"
+    },
+    {
+      "name": "Solid button",
+      "kind": "button",
+      "refersTo": "button-solid",
+      "description": "The main action of a page or a dialog. A pressed Toggle has the same look.",
+      "html": "<button class=\"ds-btn-solid\">New character</button>",
+      "css": ".ds-btn-solid { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--paper); background: var(--ink); border: 1.5px solid var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; } .ds-btn-solid:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A boxed field with its label above it, in Inter caps.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Name</span><input class=\"ds-input\" value=\"Lucky\"></label>",
+      "css": ".ds-field { display: grid; justify-items: start; gap: 3px; } .ds-field-label { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 10.5px; font-weight: 500; line-height: 1.2; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); } .ds-input { font: inherit; color: var(--ink); background: var(--paper-raised); border: 1px solid var(--ink); border-radius: 0; padding: 3px 8px; width: 100%; max-width: 26rem; } .ds-input:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }"
+    },
+    {
+      "name": "Flag tab",
+      "kind": "nav",
+      "refersTo": "flag-tab",
+      "description": "A navigation tab of the shell. The current tab is solid.",
+      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab\" href=\"#\" aria-current=\"page\">Characters</a><a class=\"ds-tab ds-tab-blue\" href=\"#\">Import</a></nav>",
+      "css": ".ds-tabs { display: grid; gap: 6px; justify-items: start; } .ds-tab { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--flag-ink); background: color-mix(in srgb, var(--flag-yellow) 55%, #fff); padding: 5px 14px; } .ds-tab-blue { background: color-mix(in srgb, var(--flag-blue) 55%, #fff); } .ds-tab[aria-current=\"page\"] { background: var(--flag-yellow); box-shadow: 0 3px 6px -4px var(--note-shadow); } .ds-tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }"
+    },
+    {
+      "name": "Token",
+      "kind": "chip",
+      "refersTo": "",
+      "description": "One pick on a form: its name and an X that removes it.",
+      "html": "<span class=\"ds-token\">Elvish <button class=\"ds-token-x\" aria-label=\"Remove Elvish\">×</button></span>",
+      "css": ".ds-token { display: inline-flex; align-items: center; gap: 2px; min-height: 28px; font-size: 15.5px; line-height: 1.4; color: var(--ink); background: var(--paper-raised); border: 1px solid var(--ink); padding: 1px 2px 1px 9px; } .ds-token-x { font: inherit; color: var(--ink-muted); background: transparent; border: 1px solid transparent; border-radius: 4px; cursor: pointer; } .ds-token-x:hover { color: var(--danger); border-color: currentColor; background: var(--panel); } .ds-token-x:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }"
+    },
+    {
+      "name": "Framed box",
+      "kind": "card",
+      "refersTo": "",
+      "description": "A value in a box with its label under it.",
+      "html": "<div class=\"ds-box\"><div class=\"ds-box-value\">+3</div><div class=\"ds-box-label\">Proficiency bonus</div></div>",
+      "css": ".ds-box { display: inline-grid; gap: 6px; background: var(--paper-raised); border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 8px 10px 6px; } .ds-box-value { font-size: 30px; line-height: 1.1; text-align: center; color: var(--ink); } .ds-box-label { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); padding-top: 4px; text-align: center; border-top: 1px solid var(--rule); }"
+    },
+    {
+      "name": "Alert note",
+      "kind": "custom",
+      "refersTo": "alert-note",
+      "description": "A flat note above the page content. Yellow: the user must act.",
+      "html": "<div class=\"ds-alert\">Not saving. <a href=\"#\">Export them now</a></div>",
+      "css": ".ds-alert { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13.5px; font-weight: 500; color: var(--note-ink); background: var(--note); padding: 8px 14px; box-shadow: 0 4px 8px -5px var(--note-shadow); } .ds-alert a { color: inherit; text-decoration: underline; text-underline-offset: 2px; } .ds-alert a:focus-visible { outline: 2px solid var(--note-ink); outline-offset: 2px; }"
+    },
+    {
+      "name": "Use bubble",
+      "kind": "custom",
+      "refersTo": "use-bubble",
+      "description": "The frame around a feature with limited uses.",
+      "html": "<div class=\"ds-bubble\"><div class=\"ds-bubble-head\">Channel Divinity <button class=\"ds-use\" aria-label=\"Use 1\"></button><button class=\"ds-use\" aria-label=\"Use 2\"></button></div><span class=\"ds-bubble-tag\">Short rest</span></div>",
+      "css": ".ds-bubble { display: flex; justify-content: space-between; gap: 14px; padding: 8px 14px 10px; color: var(--ink); background: var(--bubble); border: 1.5px solid var(--info); border-radius: 18px; } .ds-bubble-head { display: flex; gap: 5px; align-items: center; font-weight: 600; } .ds-use { width: 15px; height: 15px; padding: 0; background: var(--bubble); border: 1.5px solid var(--info); border-radius: 50%; cursor: pointer; } .ds-use:hover { background: var(--panel); } .ds-use:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; } .ds-bubble-tag { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Paper",
+    "overview": "The app must feel like a physical character sheet, but it does not copy paper literally. The page is a slightly yellow off-white with a subtle grain. The text is graphite-dark, in a serif face. Boxes have plain ink borders, with the label under the value, as on a printed sheet. Color is rare and each color has one meaning: a yellow note for something the user must act on, red for a failure, blue for a limited-use feature and for focus.\n\nThe app shell is a binder. A margin rail on the left holds the logo and the navigation, and a red double rule separates it from the page. Each page has a flat flag tab that is stuck to the rule.\n\nThe Dark theme is not dark paper. It is OLED black and white: a pure black page, white text, and accents that shift to suit black. The notes and the flag tabs stay bright in the Dark theme, with black text.\n\nThe authority for each value and rule in this file is `docs/design/theme.md`. The homebrew forms are in `docs/design/homebrew-forms.md`.",
+    "keyCharacteristics": [
+      "Paper page, ink text, ink borders. No gradients and no decoration that a paper sheet could not have.",
+      "Each color is a role token. The name says what the color does.",
+      "Serif for content, small sans caps for labels.",
+      "A sheet that a user reads in a few seconds at the table, on a laptop or a phone.",
+      "Text labels only. There is no icon set."
+    ],
+    "rules": [
+      {
+        "name": "The Role Token Rule",
+        "body": "Use only the role tokens of `packages/ui/theme.css`. The default Tailwind colors are removed from the app. Do not write a raw hex value in a component.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Means Failed Rule",
+        "body": "Red is never a tab color and never decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Contrast Rule",
+        "body": "Text has 4.5 : 1 or more on its background and field borders and marks have 3 : 1 or more, in the two themes (WCAG 2.2 AA). A unit test in `packages/ui` computes each pair. When you add a text token, add its pair to the test.",
+        "section": "colors"
+      },
+      {
+        "name": "The Underlined Link Rule",
+        "body": "A link is Ink with an underline. It is not blue.",
+        "section": "colors"
+      },
+      {
+        "name": "The Self-Hosted Fonts Rule",
+        "body": "The fonts come from `@fontsource-variable/newsreader` and `@fontsource-variable/inter`. The app makes no font request to a third party.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Faces Rule",
+        "body": "Newsreader is for content and Inter is for labels and controls. Do not add a third face.",
+        "section": "typography"
+      },
+      {
+        "name": "The Stuck Things Rule",
+        "body": "A box, a button and a field have no shadow. A shadow means that the thing is on top of the paper.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do read `docs/design/theme.md` before you change a token, a control or a layout rule. It wins over this file.",
+      "Do use the role tokens and the components of `@orc-alchemy/ui`.",
+      "Do use the terms of `GLOSSARY.md`: stuck note, alert note, use bubble, picker, token.",
+      "Do make each page work in the Light theme and the Dark theme, and at 390px wide.",
+      "Do show a current / max pair as the current value at full size, then `/ max` in Muted Ink.",
+      "Do obey `prefers-reduced-motion: reduce` for each motion."
+    ],
+    "donts": [
+      "Don't let a stuck note cover the content of the box that it marks.",
+      "Don't use a stuck note for information that needs no action. Use Warning Yellow text.",
+      "Don't use red for a thing that did not fail.",
+      "Don't import a control from `@base-ui/react` in the app. Import it from `@orc-alchemy/ui`.",
+      "Don't add icons. The app uses text labels.",
+      "Don't make the Dark theme a dark paper color. It is black and white.",
+      "Don't load a font from a third party."
+    ]
+  }
+}
