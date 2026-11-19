@@ -58,12 +58,11 @@ Done when the `set` call returns and a `get` of the document shows every questio
 ## 3. Ask
 
 1. Watch the page: `ArtifactComments`, action `watch`, with the URL of the page. The watch is how my Send reaches you.
-2. Post one message in the thread. I read messages fast, so the message must show at one look that a round is open:
-   - The first line is bold and says that a round is ready, with the number of questions: `**Decision round ready: 5 questions**`.
+2. Post one message in the thread. I read messages fast, so the message must show at one look that a round is open. The message has two lines and a link card:
+   - The first line is bold and says that a round is ready, with the number of questions: `**Decision round ready: 5 questions**`. For a round of one question, write "1 question".
    - The second line is the link to the round, with the title of the round as the link text. The link is the URL of the page plus `#` and the document id, for example `https://claude.ai/artifact/Eq8BZASrg8dKSy3iLPoQ6H#orc-189-round-1`. The page opens that round.
-   - Attach the same link to the message as a link with a title, so that the message shows a card. The title is "Decision round: ", the title of the round, and the number of questions: `Decision round: The control for each group of checkboxes (5 questions)`. In a project thread, this is an entry in `attached_outputs` of kind `link`, with `ref` and `title`.
-   - Do not attach the page as an Artifact (kind `frame`): that card shows the name of the page and not the name of the round.
-   - Add no other text above the link. If your reply tool cannot attach a link, post the two lines only.
+   - The link card is the same link, attached to the message as a link with a title. Do not attach the page as an Artifact (kind `frame`): that attachment shows the name of the page and not the name of the round. In a project thread, the link card is an entry in `attached_outputs` of kind `link`, with `ref` and `title`. The title is "Decision round: ", the title of the round, and the number of questions: `Decision round: The control for each group of checkboxes (5 questions)`.
+   - If your reply tool cannot attach a link, post the two lines with no link card.
 3. End the turn.
 
 When I send the round, the page posts a comment that starts with "Round `<document id>` is answered" and sends it to Claude. Each thread that watches the page gets a wake for it.
@@ -72,7 +71,7 @@ When I send the round, the page posts a comment that starts with "Round `<docume
 - The comment names a different round: it is for a different thread. End the turn with no reply and no change to the comment.
 - I say "answered" in the thread: the page could not send the comment. Go to step 4.
 
-Done when the watch is on and the message is posted with the lead line, the link, and the card.
+Done when the watch is on and the message is posted with the first line, the link, and the link card if your reply tool can attach one.
 
 ## 4. Read the answers
 
