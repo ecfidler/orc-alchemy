@@ -4,16 +4,17 @@ title: "06: Milestones, decisions, and risks"
 description: "The milestone sequence, the decision record, and the definition of done. Linear has the status and the risk register."
 tags: [plan, milestones, decisions]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-20T13:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-20T15:10:00Z }
 ---
 
 # 06: Milestones, decisions, and risks
 
 > Status and sequencing are in Linear, workspace *Orc Alchemy*. Milestones
 > M0, M1, and the engine half of M3 are on project PubDoor. M2 to M8 are on
-> project Alchemy 5e. From 2026-11-20, each milestone is a Linear project
-> of its own: see [Issue tracker](../agents/issue-tracker.md), section
-> "Projects and milestones". The M8 spec is [Theme spec](../design/theme.md).
+> project Alchemy 5e. From 2026-11-20, each milestone of this
+> document is a Linear project, and a product is an initiative: see
+> [Issue tracker](../agents/issue-tracker.md), section "Products, projects
+> and milestones". The M8 spec is [Theme spec](../design/theme.md).
 > Every milestone's issues carry their acceptance criteria. The *Risk register*, *Plan overview*, and *Compatibility
 > contract* are team documents there. This file keeps what an agent working
 > in this repository needs without opening Linear: the sequence on one

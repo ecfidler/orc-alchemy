@@ -4,7 +4,7 @@ title: "Issue tracker: Linear"
 description: "How agents create, read, and update issues in the Linear team Orc Alchemy."
 tags: [agents, linear]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-20T13:40:00Z }
+generated: { by: claude-code/agent, at: 2026-11-20T15:10:00Z }
 ---
 
 # Issue tracker: Linear
@@ -13,7 +13,7 @@ Issues and specs for this repo live in Linear, team **Orc Alchemy**. Use the Lin
 
 ## Conventions
 
-- **Create an issue**: `save_issue` with `team: "Orc Alchemy"`, `project`, `title`, `description` (Markdown, literal newlines), and `labels`. For the project, see "Projects and milestones".
+- **Create an issue**: `save_issue` with `team: "Orc Alchemy"`, `project`, `title`, `description` (Markdown, literal newlines), and `labels`. For the project, see "Put an issue in a project".
 - **Read an issue**: `get_issue` with the identifier (e.g. `ORC-42`), plus `list_comments` for the thread.
 - **List issues**: `list_issues` with `team: "Orc Alchemy"` and `label` / `state` filters as needed.
 - **Comment on an issue**: `save_comment`.
@@ -26,29 +26,46 @@ Workflow states: Backlog → Todo → In Progress → In Review → Done (also C
 
 Area labels also exist (Engine, Engine patch, App UI, Backend, Import/Export, Homebrew, Fixtures, Docs, CI, Decision) alongside type labels (Feature, Improvement, Bug). Apply the relevant ones when creating issues.
 
-## Projects and milestones
+## Products, projects and milestones
 
-Linear has no manual archive. It archives a closed issue (Done, Canceled or Duplicate) only after the project of the issue has the status Completed. The issue and the project must then stay unchanged for the auto-archive period of the team (1 month). The free plan has a limit on the number of issues that are not archived. Thus a closed issue in a project that does not end is counted for all time (ORC-278).
+The terms have the same meaning as in Linear (ORC-279).
 
-- **A product project** does not end: Alchemy 5e, PubDoor, 2024 engine, Demiplane. It holds the issues that are not part of a milestone.
-- **A milestone is a project of its own.** Create it with `save_project`. The `name` is the milestone name, for example "M10 — Spells panel". Set `addTeams: ["Orc Alchemy"]`, and name the product in the `summary`. Do not create a Linear milestone inside a product project.
-- **To find a milestone**, use `get_project` with the milestone name. An older milestone is a Linear milestone inside a product project (E1, E2, M6, M7): use `list_milestones` on the product project.
-- **An issue of a milestone** goes in the milestone project. If a follow-up is found after the milestone project is Completed, put it in the product project.
+- **A product** is a Linear initiative: Alchemy 5e, PubDoor, 2024 engine, Demiplane. A product does not end.
+- **A project** is one feature or deliverable, for example "Spells panel". It has a proof, and it ends with the status Completed. Before 2026-11-20, the docs named this a milestone (M9, E1).
+- **A milestone** is a stage inside one project. The standard milestones are "Decisions" and "Build". "Decisions" holds the map, research, prototype and decision issues. "Build" holds the issues that the spec makes. A small project has no milestones.
+- **An upkeep project** holds the bugs and follow-ups of one product that are not part of a feature. There is one for each product and each quarter, for example "Alchemy 5e upkeep 2026 Q4".
 
-### Close a milestone
+Linear has no manual archive. It archives a closed issue (Done, Canceled or Duplicate) only after the project of the issue has the status Completed. The issue and the project must then stay unchanged for the auto-archive period of the team (1 month). The free plan has a limit on the number of issues that are not archived. Thus each project must end, and no issue stays outside a project (ORC-278).
 
-Do these steps in this order, when all the work of the milestone is merged.
+### Create a project
 
-1. If the milestone is an older milestone, create a project with its name. Move each closed issue of the milestone into it: `save_issue` with `id` and `project`.
-2. Move each open issue of the milestone to the product project.
-3. Set the milestone project to Completed: `save_project` with `id` and `state: "completed"`. This is the last write.
-4. After step 3, do not change the project or its issues. A change starts the auto-archive period again.
+1. Use `save_project` with `name`, `addTeams: ["Orc Alchemy"]`, `addInitiatives: ["<product>"]` and a `summary` that starts with the product name. The `name` is the name of the feature, with no number.
+2. If the project has a decision stage, create the milestones with `save_milestone`: "Decisions", then "Build".
+3. Set the `state` to show where the project is: `backlog`, `planned` or `started`.
 
-To find an issue of a finished milestone, look in the project with the name of the milestone. After the auto-archive period, the issue is in the archive: use `list_issues` with `includeArchived: true`.
+The Linear tools cannot create an initiative. If `addInitiatives` fails, create the project without it and tell the owner.
+
+### Put an issue in a project
+
+- An issue of a feature goes in the project of the feature: `save_issue` with `project`, and `milestone` if the project has milestones.
+- Other issues go in the upkeep project of the product for the current quarter. If it does not exist, create it as a project with the status `started`.
+- A follow-up that is found after a project is Completed goes in the upkeep project.
+
+### Close a project
+
+Do these steps in this order, when all the work of the project is merged.
+
+1. Move each open issue of the project to the upkeep project of the product.
+2. Set the project to Completed: `save_project` with `id` and `state: "completed"`. This is the last write.
+3. After step 2, do not change the project or its issues. A change starts the auto-archive period again.
+
+Close an upkeep project the same way at the end of its quarter. Its open issues move to the upkeep project of the next quarter.
+
+To find an issue of a finished project, look in the project. After the auto-archive period, the issue is in the archive: use `list_issues` with `includeArchived: true`. The projects that were Completed before 2026-11-20 keep their old names, for example "M9 — Homebrew forms".
 
 ## When a skill says "publish to the issue tracker"
 
-Create a Linear issue in the Orc Alchemy team. If the issue is part of a milestone, use the milestone project. If not, use the product project (Alchemy 5e for the app).
+Create a Linear issue in the Orc Alchemy team, in the project that "Put an issue in a project" gives.
 
 ## When a skill says "fetch the relevant ticket"
 

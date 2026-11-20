@@ -11,8 +11,8 @@ version: "1.3.0"
 - You will be tracking its progress in Linear and delegating tasks for subagents.
 - The work goes on a branch cut from the up-to-date **base branch**, and its PR targets the base branch. Use the branch the session assigns (ex. `claude/project-thread-…`). After each merge, restart it from the base branch (`git checkout -B <branch> origin/<base>`) and push with `--force-with-lease`. When the session assigns none, name it `<ISSUE-ID>-<kebab-case-description>` (ex. `ORC-44-setup-alchemy-monorepo`).
     - Name the issue ID in the PR title, so that Linear links the PR on any branch name.
-    - The base branch is `main` unless I name another, such as a milestone branch (ex. `m2-local-first-viewer`).
-    - An issue is Done when its work merges into the base branch, a milestone branch included. Linear's GitHub integration sets Done when the PR merges; when it doesn't (ex. the work merged without its own PR), set Done yourself.
+    - The base branch is `main` unless I name another, such as a project branch (ex. `spells-panel`).
+    - An issue is Done when its work merges into the base branch, a project branch included. Linear's GitHub integration sets Done when the PR merges; when it doesn't (ex. the work merged without its own PR), set Done yourself.
 
 ### Subagents
 
