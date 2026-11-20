@@ -1,6 +1,6 @@
 ---
 name: "project-workflow"
-description: "Run a Linear project to done: order its issues, take each through linear-issue-workflow one merged PR at a time, then close the project. Use when asked to work on, finish, or pick up a project or one of its milestones (e.g. Spells panel)."
+description: "Run a Linear project to done: order its issues, take each through linear-issue-workflow one merged PR at a time, then close the project. Use when asked to work on, finish, or pick up a project or one of its milestones (e.g. Spells panel, or an older name such as M9 or E1)."
 disable-model-invocation: false
 version: "0.4.0"
 ---
@@ -9,7 +9,7 @@ Each issue goes through `linear-issue-workflow`. This skill owns what sits aroun
 
 ## 1. Orient
 
-A project is one feature, and a milestone is a stage inside it. `docs/agents/issue-tracker.md`, section "Products, projects and milestones", gives the terms. Find the project with `get_project` and its name.
+A project is one feature, and a milestone is a stage inside it. `docs/agents/issue-tracker.md`, section "Products, projects and milestones", gives the terms. Find the Linear project with `get_project` and its name. A project from before 2026-11-20 can have a number in its name or summary, for example "M9 — Homebrew forms": if the name is not found, use `list_projects` with `query`.
 
 Read the Linear project and every open issue in it with its comments and relations, the project's **proof**, and the record of an earlier run if one exists: the file of the Linear project in project memory, or its handoff in `docs/handoffs/`. That record wins on state and order. The proof is the project's row in `docs/plan/06-milestones-and-risks.md`, which names it a milestone; when it has no row, the proof is the spec in `docs/design/` that the issues name. When I name one milestone of the project, run only the issues of that milestone.
 
@@ -35,7 +35,7 @@ Done when every item is Done in Linear.
 
 ## 4. Close the Project
 
-1. If the base is a project branch, open the project PR into `main` and drive its CI green.
+1. If the base is a project branch, open the PR of the project branch into `main` and drive its CI green.
 2. Check the proof claim by claim, naming the test that covers each. Report any claim with no test.
 3. If the finish-line issue asks for an exit report, post it there.
 4. After the merge, update project memory with the decisions and open follow-ups.

@@ -2,7 +2,7 @@
 name: "linear-issue-workflow"
 description: "Take a Linear issue from Todo to a reviewed, PR-ready branch. Use when asked to work on, implement, or complete a Linear issue (e.g. ORC-44)."
 disable-model-invocation: false
-version: "1.3.0"
+version: "1.3.1"
 ---
 
 ## Orchestrator Introduction

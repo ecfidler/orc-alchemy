@@ -10,7 +10,7 @@ generated: { by: claude-code/agent, at: 2026-11-20T15:10:00Z }
 # 06: Milestones, decisions, and risks
 
 > Status and sequencing are in Linear, workspace *Orc Alchemy*. Milestones
-> M0, M1, and the engine half of M3 are on project PubDoor. M2 to M8 are on
+> M0, M1, and the engine half of M3 were on project PubDoor. M2 to M8 were on
 > project Alchemy 5e. From 2026-11-20, each milestone of this
 > document is a Linear project, and a product is an initiative: see
 > [Issue tracker](../agents/issue-tracker.md), section "Products, projects

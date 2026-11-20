@@ -47,7 +47,7 @@ The Linear tools cannot create an initiative. If `addInitiatives` fails, create 
 
 ### Put an issue in a project
 
-- An issue of a feature goes in the project of the feature: `save_issue` with `project`, and `milestone` if the project has milestones.
+- An issue of a feature goes in the project of the feature: `save_issue` with `project`. If the project has milestones, set `milestone` also.
 - Other issues go in the upkeep project of the product for the current quarter. If it does not exist, create it as a project with the status `started`.
 - A follow-up that is found after a project is Completed goes in the upkeep project.
 
@@ -62,6 +62,8 @@ Do these steps in this order, when all the work of the project is merged.
 Close an upkeep project the same way at the end of its quarter. Its open issues move to the upkeep project of the next quarter.
 
 To find an issue of a finished project, look in the project. After the auto-archive period, the issue is in the archive: use `list_issues` with `includeArchived: true`. The projects that were Completed before 2026-11-20 keep their old names, for example "M9 — Homebrew forms".
+
+Before 2026-11-20, each product was one project with a milestone for each feature. Those projects have new names: "Alchemy 5e upkeep 2026 Q4", "PubDoor upkeep 2026 Q4", "2024 engine build" (E1) and "Backend" (M6, product Demiplane). The old milestones that remain in them are empty. Do not put an issue in one.
 
 ## When a skill says "publish to the issue tracker"
 

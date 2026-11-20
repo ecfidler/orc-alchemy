@@ -4,7 +4,7 @@ title: 2024 engine spec
 description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
 tags: [rules-2024, engine, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-17T03:51:47Z }
+generated: { by: claude-code/agent, at: 2026-11-20T15:25:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
 sources:
   - id: orc-218
@@ -23,8 +23,10 @@ sources:
 
 # Purpose
 
-This document is the spec for milestone *E1 — 2024 engine* of the Linear
-project *2024 engine*. The E1 build tickets build what it describes. It
+This document is the spec for the Linear project *2024 engine build*, which
+was milestone *E1 — 2024 engine* before 2026-11-20. In this document, E1,
+E2 and "milestone" keep those older names: each one is a Linear project
+now. The E1 build tickets build what it describes. It
 collects the decisions of the map ORC-218.[^orc-218] Each decision is in
 full in the comment of its Linear ticket: ORC-220 for the engine model and
 the facade, and ORC-96 for the content format.

@@ -17,8 +17,8 @@ You are the owner and long-term maintainer of this codebase, and its design is u
   holds the rules facts it relies on.
 - **The 2024 engine is `packages/engine`.** Its spec is
   `docs/design/2024-engine.md`, and the spec of its content is
-  `docs/design/2024-content-format.md`. Linear project *2024 engine build* tracks
-  the work.
+  `docs/design/2024-content-format.md`. Linear project *2024 engine build*,
+  in the initiative *2024 engine*, tracks the work.
 - **The 2014 engine is `@pubdoor/dmv`**, built and published from the
   `ecfidler/orcpub` fork under `engine-js/`. The fork is also the test
   oracle: expected values come from it, via `fixtures/`.

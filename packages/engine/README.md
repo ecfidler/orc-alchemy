@@ -1,7 +1,7 @@
 # @orc-alchemy/engine
 
 The spike of the 2024 TypeScript engine (ORC-95). It is not the engine: the
-build starts in milestone E1 of the Linear project _2024 engine_, after the
+build starts in the Linear project _2024 engine build_ (E1), after the
 decisions ORC-220 and ORC-96. The report is
 [`docs/reports/2024-engine-spike.md`](../../docs/reports/2024-engine-spike.md).
 
