@@ -1,5 +1,10 @@
 # Bundle update log
 
+## 2026-11-20
+
+* **Creation**: Added the [Spells panel spec](design/spells-panel.md), with a copy of the controls prototype (ORC-270).
+* **Update**: Changed the Spellcasting section and the Dialog of the [Theme spec](design/theme.md) for the Spells panel (ORC-270).
+
 ## 2026-11-17
 
 * **Creation**: Added the [2024 content format](design/2024-content-format.md), the decisions of ORC-96 with example records.

@@ -1,6 +1,6 @@
 # Prototypes
 
-Copies of the throwaway HTML prototypes that the design decisions come from. Open a file in a browser. The [Theme spec](../theme.md) and the [Homebrew forms spec](../homebrew-forms.md) say which view of each prototype is the choice. A spec wins where a prototype disagrees with it.
+Copies of the throwaway HTML prototypes that the design decisions come from. Open a file in a browser. The [Theme spec](../theme.md), the [Homebrew forms spec](../homebrew-forms.md) and the [Spells panel spec](../spells-panel.md) say which view of each prototype is the choice. A spec wins where a prototype disagrees with it.
 
 * [Palette](orc-144-palette-prototype.html) - The palette in light and dark (ORC-144).
 * [Character sheet](orc-145-sheet-prototype.html) - The sheet layouts (ORC-145, ORC-153).
@@ -11,3 +11,4 @@ Copies of the throwaway HTML prototypes that the design decisions come from. Ope
 * [Uses](orc-186-uses-prototype.html) - The uses control and the sheet preview (ORC-186).
 * [Pickers](orc-190-picker-prototype.html) - The pickers, tokens and background sub-selections (ORC-190).
 * [Subclass spells](orc-191-spells-table-prototype.html) - The subclass spells section as a table (ORC-191).
+* [Spells panel controls](orc-269-spells-panel-controls-prototype.html) - The Spells panel with the prepare control, the slot circles and the Pact Magic slots (ORC-267, ORC-269).
