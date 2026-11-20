@@ -17,8 +17,8 @@ You are the owner and long-term maintainer of this codebase, and its design is u
   holds the rules facts it relies on.
 - **The 2024 engine is `packages/engine`.** Its spec is
   `docs/design/2024-engine.md`, and the spec of its content is
-  `docs/design/2024-content-format.md`. Linear project *2024 engine* tracks
-  the work.
+  `docs/design/2024-content-format.md`. Linear project *2024 engine build*,
+  in the initiative *2024 engine*, tracks the work.
 - **The 2014 engine is `@pubdoor/dmv`**, built and published from the
   `ecfidler/orcpub` fork under `engine-js/`. The fork is also the test
   oracle: expected values come from it, via `fixtures/`.
@@ -27,9 +27,9 @@ You are the owner and long-term maintainer of this codebase, and its design is u
 - **`fixtures/` is a snapshot** of the fork's `fixtures/`, with the source
   commit and engine version recorded in `fixtures/README.md`. Do not
   hand-edit it; regenerate in the fork and re-copy.
-- **Tracker:** Linear, workspace *Orc Alchemy*. The product project is
-  [Alchemy 5e](https://linear.app/orc-alchemy/project/alchemy-5e-9db66f3ef51e),
-  and each milestone is a project of its own.
+- **Tracker:** Linear, workspace *Orc Alchemy*. A product (Alchemy 5e,
+  PubDoor, 2024 engine, Demiplane) is an initiative, and each feature is a
+  project. `docs/agents/issue-tracker.md` gives the terms and the steps.
   Name the issue (`ORC-nn`) in each commit or PR.
 - **`docs/` is an Open Knowledge Format (OKF) v0.2 bundle.** Each document
   has YAML frontmatter, and each directory has an `index.md`. Before you
@@ -66,7 +66,7 @@ the staged files and stages its fixes.
 ## Agent skills
 
 The skills in `.claude/skills/` other than `decision-rounds`, `impeccable`,
-`linear-issue-workflow` and `milestone-workflow` are copies of
+`linear-issue-workflow` and `project-workflow` are copies of
 [mattpocock/skills](https://github.com/mattpocock/skills) at tag `v1.3.2`
 (ORC-259). Do not edit the copies. To update them, copy the folders under
 `skills/engineering/` and `skills/productivity/` from a newer tag.
