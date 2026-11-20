@@ -19,7 +19,7 @@ build tickets in Linear build what it describes. It collects the decisions
 of the map
 [Map: the Spells panel](https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel).[^orc-262]
 Each decision is in full in the resolution comment of its Linear ticket.
-This document gives the rules that a builder needs.
+This document gives the rules that the build tickets need.
 
 The Spells panel is a popup that opens from the character sheet. It shows
 the spells of the character with their text and the spellcasting numbers.
@@ -65,8 +65,9 @@ or the wizard, where the user chooses the prepared spells each day.
 
 # How a sheet change saves
 
-This rule is for each sheet change, not only for the Spells panel. The
-later projects (hit points, rests, equipment, feature uses) use the same
+This rule is for each sheet change, which is each change to the play
+state from the sheet. It is not only for the Spells panel. The later
+projects (hit points, rests, equipment, feature uses) use the same
 rule.[^orc-265]
 
 * A sheet change goes through `update` of the open character
@@ -171,8 +172,8 @@ spells by level is on the left. The text of one spell is on the right.
 The panel is a `Dialog` of `@orc-alchemy/ui` with the new wide size (see
 [Changes to the theme spec](#changes-to-the-theme-spec)).
 
-* It is up to 1100px wide and takes the height of the window, less a
-  margin. At 600px and less it fills the screen.
+* It is up to 1100px wide. The panel sets its height to the height of the
+  window, less a margin. At 600px and less it fills the screen.
 * It has a header, a prepare bar, and the two panes. It has no footer.
 * The X, Esc and a click outside close it. The focus then goes back to
   the control that opened it.
@@ -189,9 +190,8 @@ The panel is a `Dialog` of `@orc-alchemy/ui` with the new wide size (see
   and Ability. Each has more space above its value than the boxes of the
   sheet.
 * With two or more sources, the header has one line of numbers for each
-  source: the source name, then the save DC, the attack bonus and the
-  ability. A source that knows only cantrips and is not a class gets a
-  line also.
+  source. The line has the source name, the save DC, the attack bonus and
+  the ability. A race or feat that gives only cantrips gets a line also.
 * The class and level line shows on a phone too.
 * A screen reader reads each number with its full label, for example
   "Spell save DC 15", not one run of text.
@@ -201,8 +201,7 @@ attaches screenshots of it for review.
 
 ## The prepare bar
 
-The bar is under the header. It shows only when the character has a class
-that prepares.
+The bar is under the header. It always shows.
 
 * On the left is the prepare count of each class that prepares, then the
   button "Prepare spells". In prepare mode, the button is "Done". It is
@@ -221,9 +220,11 @@ group. A group has a heading and one row for each spell, A to Z by name.
 **Which spells show**
 
 * Outside prepare mode, the list shows the spells that the character can
-  cast now: the cantrips, the prepared spells of each class that prepares
-  (the always-prepared spells included), and all known spells of each
-  other source.
+  cast now:
+  * the cantrips;
+  * the prepared spells of each class that prepares, the always-prepared
+    spells included;
+  * all known spells of each other source.
 * In prepare mode, the list also shows the spells that a class that
   prepares can prepare and has not prepared.
 * A level with slots and no spells to show keeps its heading.
@@ -268,9 +269,9 @@ From top to bottom:
 2. An italic line with the level and the school: "1st-level enchantment",
    or "Enchantment cantrip". The Ritual tag is in this line. There is no
    "(ritual)" word.
-3. A small line for the origin, when there is one: "Domain spell" for an
-   always-prepared spell, and "From {pack name}" when the record is from
-   a pack.
+3. A small line "From {pack name}", when the record is from a pack. The
+   prototype shows "Domain spell" in this place. Do not build that line:
+   the prepare line says that the spell is always prepared.
 4. The cast note, as a line.
 5. The prepare line. See [Preparing spells](#preparing-spells).
 6. The facts in a grid of two columns: Casting time, Range, Duration and
@@ -289,9 +290,13 @@ material text in parentheses: "V, S, M (a sprinkling of holy water)".
 **Description.** The text is plain text with line breaks. Each line break
 starts a new paragraph. The app does not read Markdown in it. A line
 holds about 70 characters. The words "At Higher Levels" are in bold, and
-that paragraph is set apart with a rule above it. The text has three
-forms of those words: after a line break with a full stop, in the line
-of the text before, and after a line break with four spaces and a colon.
+that paragraph is set apart with a rule above it. The data has three
+forms of those words:
+
+* after a line break, with a full stop: "At Higher Levels. ";
+* in the same line as the text before it, with a full stop;
+* after a line break and four spaces, with a colon: "At Higher Levels: ".
+
 If no form matches, the text shows as it is.
 
 When no spell is selected, the pane says "Select a spell to read it." At
@@ -438,7 +443,8 @@ of the same level.
   class.
 * On the sheet, a "Pact" row is after the level rows of the Spellcasting
   table. Its Slots cell has the diamonds, and its spells cell says the
-  slot level, for example "2nd-level slots".
+  slot level, for example "2nd-level slots". When the sheet is narrower
+  than 720px, the diamonds are under the word "Pact".
 * In the Spell slots block, a "Pact" entry is after the levels, with the
   slot level beside the word ("Pact 2nd"). It works the same when the
   block shows columns.
@@ -482,7 +488,7 @@ The record does not change, and the engine does not change.
 
 **Read.** The number of spent slots of a group is the number of stored
 positions in the range of the group. The app shows that number of filled
-marks, together on the left. It does not show or count a position past
+circles or diamonds, together on the left. It does not show or count a position past
 the number of slots. A record from the old app can have gaps, or a
 vector in place of a set. The same rule reads it.
 
@@ -522,7 +528,7 @@ slots to `wizard-5` or `warlock-10-drow` with `setValue`.
 # Keyboard and screen reader
 
 These rules come from the review of variant D.[^orc-267] The tests check
-the results. The builder chooses the ARIA pattern that gives them.
+the results. Each build ticket chooses the ARIA pattern that gives them.
 
 **Focus**
 
@@ -532,7 +538,7 @@ the results. The builder chooses the ARIA pattern that gives them.
   the search field. Thus a phone does not open its keyboard.
 * At the close, the focus goes back to the control that opened the
   panel.
-* A click on a slot mark keeps the focus on its group.
+* A click on a slot circle or diamond keeps the focus on its group.
 * The focus ring on the selected row is a paper outline, because the row
   has the ink fill.
 
@@ -551,14 +557,15 @@ the results. The builder chooses the ARIA pattern that gives them.
 
 **Slots**
 
-* Each group of slot marks is one Tab stop, not one stop for each mark.
+* Each group of slot circles or diamonds is one Tab stop, not one stop
+  for each circle.
 * The Right and Up arrow keys spend one slot. The Left and Down arrow
   keys give one slot back.
 * A screen reader reads the group with its state, for example "1st-level
   slots, 2 of 4 spent" or "Pact slots, 2nd level, 1 of 2 spent". It
   reads the new state after a change.
 * The panel shows the slots of a level two times. While the Spell slots
-  block is open, only its groups are Tab stops, and the marks on the
+  block is open, only its groups are Tab stops, and the circles on the
   level headings are hidden from the screen reader. While the block is
   folded, the groups on the headings are the Tab stops.
 * The fold button says "Spell slots" with its open or closed state.
@@ -582,9 +589,10 @@ This project changes [theme.md](theme.md). The change is in the same
 pull request as this document.
 
 * **Dialog:** a `wide` size, up to 1100px, for the panel. The owner can
-  give its own header, and the footer is optional.
-* **Slot circles:** a group can change, with the rule "one more, one
-  less", and a diamond form for pact slots.
+  give its own header and can set the control that gets the focus at the
+  open. The footer is optional.
+* **Slot circles:** the paper pattern gets a group that can change, with
+  the rule "one more, one less", and a diamond form for pact slots.
 * **Spellcasting section:** the "Known limit" for Pact Magic goes. The
   section gets the "Pact" row, circles that change, the "All spells"
   button, spell names that open the panel, names from the record, and
@@ -617,8 +625,8 @@ Tickets 1 and 2 have no blockers and can run at the same time. The
 project can run beside the 2024 engine build.
 
 **Review:** each ticket that changes a page attaches Playwright
-screenshots to its PR, light first and then dark, with a phone width
-where the ticket changes the phone views.
+screenshots to its PR, light first and then dark. A ticket that changes
+the phone views adds screenshots at a phone width.
 
 # Out of scope
 

@@ -74,8 +74,8 @@ _Avoid_: Spellbook, spell list, spell sheet, spells modal
 
 **Spellbook**:
 The wizard's book of known spells, and nothing else. The Spells panel is
-not a spellbook.
-_Avoid_: Spellbook for the Spells panel or for the known spells of another class
+not a spellbook, and the known spells of another class are not one.
+_Avoid_: Grimoire, spell list
 
 **Play state**:
 The part of a character that changes during play: prepared spells, spent
@@ -89,7 +89,7 @@ _Avoid_: Edit (the builder edits), quick edit, sheet edit
 
 **Spent slot**:
 A spell slot that the character has used and that a rest gives back. A
-filled circle on the sheet shows it.
+filled circle shows it, or a filled diamond for a Pact Magic slot.
 _Avoid_: Used slot, expended slot, slots-used (the stored key only)
 
 **Prepare count**:

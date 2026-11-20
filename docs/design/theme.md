@@ -246,7 +246,8 @@ homebrew forms. They have no game words: the app gives the lists.
   back into the Dialog. With `size="wide"` it is up to 1100px wide, for
   the Spells panel (ORC-270). The owner can then give its own header in
   place of the title row, and the footer is optional. A wide Dialog with
-  no footer closes with an X in its header.
+  no footer closes with an X in its header. The owner can also set the
+  control that gets the focus when it opens.
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control.
@@ -298,6 +299,15 @@ These patterns are in the package. They have no game meaning.
 * **Slot circles:** a row of plain circles. A marked circle fills solid.
   The color is a prop (spell slots `--ink`, death-save successes
   `--success`, failures `--caution`).
+  With a change handler, the user can change the group (ORC-270). A click
+  on an empty circle fills the first empty circle from the left, and a
+  click on a filled circle clears the last filled one. Thus the filled
+  circles are always together on the left. Each circle keeps its 17px
+  drawing and has a tap area of 28px or more. The group is one Tab stop,
+  and the arrow keys change it. With the diamond form, each circle is a
+  diamond, for Pact Magic slots. The
+  [Spells panel spec](spells-panel.md#spent-spell-slots) has the full
+  rules.
 * **Current / max:** current at full size, then `/ max` at the same size in
   `--ink-muted`, with no label. Use it for every current / max pair: hit
   points and feature pools.
@@ -580,9 +590,8 @@ that name it are a summary.
   * **Slots:** the slot circles on one line, left-aligned. No circles for
     cantrips. When the sheet is narrower than 720px, there is no Slots
     column. The circles are under the ordinal, and the spells get the width.
-    A filled circle is a spent slot. A click on an empty circle spends one
-    slot, and a click on a filled circle gives one back. The spent circles
-    are always together on the left. The change saves at once. In the
+    A filled circle is a spent slot, and the user can change the circles
+    (see Slot circles in Paper patterns). The change saves at once. In the
     builder preview, the circles cannot change.
   * **Prepared spells:** comma-separated, A to Z.
 * **Pact Magic slots:** the engine puts Warlock Pact Magic slots in the
@@ -591,6 +600,8 @@ that name it are a summary.
   is in the serif font. A pact slot is a diamond, not a circle, and a
   filled diamond is a spent slot. The spells cell of the row says the slot
   level, for example "2nd-level slots". The row shows for each warlock.
+  When the sheet is narrower than 720px, the diamonds are under the word
+  "Pact".
 * **Spell names:** the name of a spell comes from its record. The name
   that the app makes from the key stays only for a spell with no record.
   A cast note, for example "at will", is in parentheses after the name:
