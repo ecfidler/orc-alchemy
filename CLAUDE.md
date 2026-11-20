@@ -27,10 +27,10 @@ You are the owner and long-term maintainer of this codebase, and its design is u
 - **`fixtures/` is a snapshot** of the fork's `fixtures/`, with the source
   commit and engine version recorded in `fixtures/README.md`. Do not
   hand-edit it; regenerate in the fork and re-copy.
-- **Tracker:** Linear, workspace *Orc Alchemy*, project
-  [Alchemy 5e](https://linear.app/orc-alchemy/project/alchemy-5e-9db66f3ef51e).
-  Name the issue (`ORC-nn`) in each commit or PR. Each milestone is a Linear
-  project of its own; see `docs/agents/issue-tracker.md`.
+- **Tracker:** Linear, workspace *Orc Alchemy*. The product project is
+  [Alchemy 5e](https://linear.app/orc-alchemy/project/alchemy-5e-9db66f3ef51e),
+  and each milestone is a project of its own.
+  Name the issue (`ORC-nn`) in each commit or PR.
 - **`docs/` is an Open Knowledge Format (OKF) v0.2 bundle.** Each document
   has YAML frontmatter, and each directory has an `index.md`. Before you
   add, move, or change a document, read `docs/conventions/okf-profile.md`.
