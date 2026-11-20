@@ -58,29 +58,35 @@ Done when the `set` call returns and a `get` of the document shows every questio
 ## 3. Ask
 
 1. Watch the page: `ArtifactComments`, action `watch`, with the URL of the page. The watch is how my Send reaches you.
-2. Post one message in the thread. I read messages fast, so the message must show at one look that a round is open. Do not attach the page or a link to the page to the message. The app shows such an attachment with the name of the page, "Decision Rounds", and an empty preview. A title that you give to the attachment has no effect.
-   - In a project thread, post a widget card (`post_widget`, widget `card`) with these blocks:
+2. Tell me in the thread that the round is open. I read messages fast, so the round must show at one look. Attach nothing to the message. The app shows an attachment of the page, or of a link to the page, with the name "Decision Rounds" and an empty preview. A title that you give to the attachment has no effect. The message has three parts:
+   - The header: "Decision round ready: 5 questions". For a round of one question, write "1 question".
+   - The link: the URL of the page plus `#` and the document id, for example `https://claude.ai/artifact/Eq8BZASrg8dKSy3iLPoQ6H#orc-189-round-1`. The page opens that round. The text of the link is the title of the round.
+   - The ticket of the round.
 
-     ```json
-     {
-       "blocks": [
-         { "type": "header", "text": "Decision round ready: 5 questions" },
-         {
-           "type": "section",
-           "label": "Open the round",
-           "text": {
-             "type": "link",
-             "text": "The control for each group of checkboxes",
-             "url": "https://claude.ai/artifact/Eq8BZASrg8dKSy3iLPoQ6H#orc-189-round-1"
-           }
-         },
-         { "type": "context", "text": "ORC-189" }
-       ]
-     }
-     ```
+   If your reply tool has `post_widget`, post one widget card (widget `card`) with these blocks:
 
-     The link is the URL of the page plus `#` and the document id. The page opens that round. The text of the link is the title of the round. If the title is longer than 80 characters, make it shorter. For a round of one question, write "1 question". The `text` argument of the call is one sentence with the same header, title, and link, because a notification shows only that sentence.
-   - If your reply tool has no widget card, post two lines of text. The first line is bold: `**Decision round ready: 5 questions**`. The second line is the link to the round, with the title of the round as the link text.
+   ```json
+   {
+     "blocks": [
+       { "type": "header", "text": "Decision round ready: 5 questions" },
+       {
+         "type": "section",
+         "label": "Open the round",
+         "text": {
+           "type": "link",
+           "text": "The control for each group of checkboxes",
+           "url": "https://claude.ai/artifact/Eq8BZASrg8dKSy3iLPoQ6H#orc-189-round-1"
+         }
+       },
+       { "type": "context", "text": "ORC-189" }
+     ]
+   }
+   ```
+
+   - If the title is longer than 80 characters, make the text of the link shorter.
+   - Set the `text` argument to one sentence with the header, the title, and the link. A notification shows only that sentence.
+
+   If your reply tool does not have `post_widget`, post one message of two lines. The first line is the header in bold. The second line is the link.
 3. End the turn.
 
 When I send the round, the page posts a comment that starts with "Round `<document id>` is answered" and sends it to Claude. Each thread that watches the page gets a wake for it.
@@ -89,7 +95,7 @@ When I send the round, the page posts a comment that starts with "Round `<docume
 - The comment names a different round: it is for a different thread. End the turn with no reply and no change to the comment.
 - I say "answered" in the thread: the page could not send the comment. Go to step 4.
 
-Done when the watch is on and the widget card is posted, or the two lines of text if your reply tool has no widget card.
+Done when the watch is on and the widget card is posted, or the message of two lines if your reply tool does not have `post_widget`.
 
 ## 4. Read the answers
 
