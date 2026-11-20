@@ -2,14 +2,16 @@
 name: "milestone-workflow"
 description: "Run a Linear milestone to done: order its issues, take each through linear-issue-workflow one merged PR at a time, then close the milestone. Use when asked to work on, finish, or pick up a milestone (e.g. M4)."
 disable-model-invocation: false
-version: "0.2.0"
+version: "0.3.0"
 ---
 
 Each issue goes through `linear-issue-workflow`. This skill owns what sits around it: the **run plan**, the **merge gate** between issues, and closing the milestone.
 
 ## 1. Orient
 
-Read the Linear milestone and every open issue in it with its comments and relations, the milestone's **proof**, and the record of an earlier run if one exists: the milestone's file in project memory, or its handoff in `docs/handoffs/`. That record wins on state and order. The proof is the milestone's row in `docs/plan/06-milestones-and-risks.md`; when it has no row, the proof is the spec in `docs/design/` that the issues name.
+A milestone is a Linear project of its own, named as the milestone (ex. "M10 — Spells panel"). An older milestone is a Linear milestone inside a product project. `docs/agents/issue-tracker.md`, section "Projects and milestones", has the rule and the reason.
+
+Read the milestone and every open issue in it with its comments and relations, the milestone's **proof**, and the record of an earlier run if one exists: the milestone's file in project memory, or its handoff in `docs/handoffs/`. That record wins on state and order. The proof is the milestone's row in `docs/plan/06-milestones-and-risks.md`; when it has no row, the proof is the spec in `docs/design/` that the issues name.
 
 PubDoor issues are worked in `ecfidler/orcpub`, and an engine build needs my machine. In a cloud session, ask at the start of the run for a separate Remote Control thread for each engine issue. That thread is outside the merge gate: while it works, run the app issues that do not wait on the engine, one at a time.
 
@@ -37,6 +39,7 @@ Done when every item is Done in Linear.
 2. Check the proof claim by claim, naming the test that covers each. Report any claim with no test.
 3. If the finish-line issue asks for an exit report, post it there.
 4. After the merge, update project memory with the decisions and open follow-ups.
+5. Last, set the milestone's Linear project to Completed, so Linear can archive its issues. For an older milestone inside a product project, first create a Completed project with the milestone's name and move its Done issues into it. An issue that is not Done moves to the product project. Change nothing in the project after this step: a change starts the archive period again.
 
 ## Run State
 

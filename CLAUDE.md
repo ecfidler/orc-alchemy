@@ -29,7 +29,8 @@ You are the owner and long-term maintainer of this codebase, and its design is u
   hand-edit it; regenerate in the fork and re-copy.
 - **Tracker:** Linear, workspace *Orc Alchemy*, project
   [Alchemy 5e](https://linear.app/orc-alchemy/project/alchemy-5e-9db66f3ef51e).
-  Name the issue (`ORC-nn`) in each commit or PR.
+  Name the issue (`ORC-nn`) in each commit or PR. Each milestone is a Linear
+  project of its own; see `docs/agents/issue-tracker.md`.
 - **`docs/` is an Open Knowledge Format (OKF) v0.2 bundle.** Each document
   has YAML frontmatter, and each directory has an `index.md`. Before you
   add, move, or change a document, read `docs/conventions/okf-profile.md`.
