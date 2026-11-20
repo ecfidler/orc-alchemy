@@ -608,18 +608,18 @@ tickets, their blocking relations and their status. When this list and
 Linear disagree, Linear wins.
 
 1. Spell records: the lookup, spell names from the record, and the cast
-   note on the sheet.
-2. A sheet change saves at once.
-3. Spent spell slots on the sheet.
-4. Pact Magic slots apart, as diamonds, on the sheet.
-5. The wide Dialog and the spell view.
+   note on the sheet (ORC-280).
+2. A sheet change saves at once (ORC-281).
+3. Spent spell slots on the sheet (ORC-282).
+4. Pact Magic slots apart, as diamonds, on the sheet (ORC-283).
+5. The wide Dialog and the spell view (ORC-284).
 6. The Spells panel: the ways in, the header, the list, the search and
-   the phone views.
-7. Spell slots in the panel.
-8. Prepared spells in the panel.
-9. The builder gets the same prepare rules.
-10. More than one source, and the cast note, in the panel.
-11. A failed save in the panel.
+   the phone views (ORC-285).
+7. Spell slots in the panel (ORC-286).
+8. Prepared spells in the panel (ORC-287).
+9. The builder gets the same prepare rules (ORC-288).
+10. More than one source, and the cast note, in the panel (ORC-289).
+11. A failed save in the panel (ORC-290).
 
 Tickets 1 and 2 have no blockers and can run at the same time. The
 project can run beside the 2024 engine build.
