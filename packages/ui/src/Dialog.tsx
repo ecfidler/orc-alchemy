@@ -117,6 +117,10 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
   // with no element (null, or an empty ref), the late focus works as by default.
   const ownFocused = useRef(false);
   const ownFocus = useCallback(() => ownFocused.current, []);
+  // At the close the mark goes, so the next open starts with the default.
+  useEffect(() => {
+    if (!open) ownFocused.current = false;
+  }, [open]);
   useLateControlFocus(open, body, ownFocus);
   const wide = size === "wide";
   const ownHeader = wide && header !== undefined;

@@ -8,7 +8,7 @@ import type { SpellRecordResult } from "../engine/spell-records.ts";
 import { castNoteLine, componentsLine, descriptionParts, durationParts, levelLine } from "../engine/spell-text.ts";
 
 export type SpellViewProps = {
-  /** The name to show when there is no record: the name that the app makes from the key. */
+  /** The name to show when there is no record, or the name of the record is empty: the name that the app makes from the key. */
   name: string;
   /** The record from the spell lookup; undefined when the spell has none. */
   spell: SpellRecordResult | undefined;
@@ -53,7 +53,6 @@ const smallLine = "mt-1.5 font-sans text-[12.5px] text-ink-muted";
  */
 export function SpellView({ name, spell, castNote, children }: SpellViewProps) {
   const headingId = useId();
-  // A pack record can have an empty name; the name from the key then shows.
   const record = spell?.record;
   const components = componentsLine(record?.components);
   const duration = record?.duration ? durationParts(record.duration) : null;
@@ -63,6 +62,7 @@ export function SpellView({ name, spell, castNote, children }: SpellViewProps) {
   return (
     <section aria-labelledby={headingId} className="min-w-0">
       <h3 id={headingId} className="text-[26px] leading-[1.15] font-semibold text-balance break-words">
+        {/* A pack record can have an empty name; the name from the owner then shows. */}
         {record?.name || name}
       </h3>
       {record && (
