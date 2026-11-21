@@ -15,6 +15,7 @@ import {
   readCharacter,
   refreshSummaries,
   removeCharacter,
+  SHEET_SAVE_DELAY_MS,
   useCharacter,
   useOpenCharacter,
 } from "./character.ts";
@@ -25,7 +26,7 @@ beforeAll(() => loadEngine());
 afterEach(async () => {
   await flushAutosave();
   vi.useRealTimers();
-  useCharacter.setState({ id: null, entity: null, custom: undefined, dirty: false });
+  useCharacter.setState({ id: null, entity: null, custom: undefined, dirty: false, unsaved: false });
   for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
   useHomebrew.setState({ lastImport: null });
 });
@@ -46,7 +47,7 @@ const rename = (name: string) => useCharacter.getState().update((entity) => engi
 
 test("built, sheet and selections follow the entity; a mutation marks it dirty", () => {
   const { result } = renderHook(() => useOpenCharacter());
-  expect(result.current).toEqual({ entity: null, built: null, sheet: null, selections: null, dirty: false, content: { homebrew: undefined } });
+  expect(result.current).toEqual({ entity: null, built: null, sheet: null, selections: null, dirty: false, unsaved: false, content: { homebrew: undefined } });
 
   act(() => useCharacter.getState().load("x", engine().emptyCharacter()));
   expect(result.current.built?.classes).toEqual(["barbarian"]);
@@ -196,6 +197,138 @@ test("a save that fails when another character is opened is retried by the next 
   expect(useStorage.getState().failed).toBe(false);
   await deleteCharacter(id);
   await deleteCharacter(other);
+});
+
+// Sheet changes (ORC-281, docs/design/spells-panel.md "How a sheet change saves").
+
+/** A sheet change. No control makes one yet, so the name stands in for the play state. */
+const sheetRename = (name: string) => useCharacter.getState().sheetChange((entity) => engine().setValue(entity, "character-name", name));
+const setPlayer = (name: string) => useCharacter.getState().update((entity) => engine().setValue(entity, "player-name", name));
+const SHEET_TIMERS: Parameters<typeof vi.useFakeTimers>[0] = { toFake: ["setTimeout", "clearTimeout", "Date"] };
+/** Waits for a draft without vi.waitFor, which moves the fake timers on. */
+async function draftWritten(id: string) {
+  for (let i = 0; i < 100 && (await getDraft(id)) === undefined; i++) await new Promise((resolve) => setImmediate(resolve));
+  return (await getDraft(id)) !== undefined;
+}
+/** Counts the writes of character records from here on. */
+function countRecordSaves() {
+  const put = IDBObjectStore.prototype.put;
+  let saves = 0;
+  vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(function (this: IDBObjectStore, ...args: Parameters<IDBObjectStore["put"]>) {
+    if (this.name === "characters") saves++;
+    return put.apply(this, args);
+  });
+  return () => saves;
+}
+
+test("a sheet change keeps a draft at once, saves the record after the short delay, and the status stays Saved", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  const { result } = renderHook(() => useOpenCharacter());
+  vi.useFakeTimers(SHEET_TIMERS);
+
+  act(() => sheetRename("Pike"));
+  expect(result.current.sheet?.name).toBe("Pike");
+  expect(result.current).toMatchObject({ dirty: true, unsaved: false });
+  expect(await draftWritten(id)).toBe(true);
+  await vi.advanceTimersByTimeAsync(SHEET_SAVE_DELAY_MS - 1);
+  expect((await getCharacter(id))?.name).toBeNull();
+
+  await vi.advanceTimersByTimeAsync(1);
+  await vi.waitFor(async () => expect((await getCharacter(id))?.name).toBe("Pike"));
+  await vi.waitFor(async () => expect(await getDraft(id)).toBeUndefined());
+  expect(result.current).toMatchObject({ dirty: false, unsaved: false });
+  await deleteCharacter(id);
+});
+
+test("three sheet changes in 300 ms make one save, after the last one", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers(SHEET_TIMERS);
+  const saves = countRecordSaves();
+
+  sheetRename("S");
+  await vi.advanceTimersByTimeAsync(150);
+  sheetRename("Sc");
+  await vi.advanceTimersByTimeAsync(150);
+  sheetRename("Scanlan");
+  await vi.advanceTimersByTimeAsync(SHEET_SAVE_DELAY_MS - 1);
+  expect(saves()).toBe(0);
+
+  await vi.advanceTimersByTimeAsync(1);
+  await vi.waitFor(async () => expect((await getCharacter(id))?.name).toBe("Scanlan"));
+  await flushAutosave();
+  expect(saves()).toBe(1);
+  vi.restoreAllMocks();
+  await deleteCharacter(id);
+});
+
+test("a sheet change with a pending builder change saves the two together, and the status stays Unsaved until then", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers(SHEET_TIMERS);
+  const saves = countRecordSaves();
+
+  setPlayer("Ashley");
+  await vi.advanceTimersByTimeAsync(1000);
+  sheetRename("Pike");
+  expect(useCharacter.getState()).toMatchObject({ dirty: true, unsaved: true });
+  await vi.advanceTimersByTimeAsync(SHEET_SAVE_DELAY_MS);
+  await vi.waitFor(async () => expect((await getCharacter(id))?.name).toBe("Pike"));
+  await flushAutosave();
+  expect(engine().evaluate((await getCharacter(id))!.entity, {}).built["player-name"]).toBe("Ashley");
+  expect(saves()).toBe(1);
+  expect(useCharacter.getState()).toMatchObject({ dirty: false, unsaved: false });
+  vi.restoreAllMocks();
+  await deleteCharacter(id);
+});
+
+test("a builder change after a sheet change does not move the save of the sheet change", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers(SHEET_TIMERS);
+
+  sheetRename("Pike");
+  await vi.advanceTimersByTimeAsync(200);
+  setPlayer("Ashley");
+  expect(useCharacter.getState().unsaved).toBe(true);
+  await vi.advanceTimersByTimeAsync(SHEET_SAVE_DELAY_MS - 200);
+  await vi.waitFor(async () => expect((await getCharacter(id))?.name).toBe("Pike"));
+  await flushAutosave();
+
+  // A builder change alone still waits the long delay.
+  setPlayer("Ashley J");
+  await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS - 1);
+  expect(useCharacter.getState().dirty).toBe(true);
+  await vi.advanceTimersByTimeAsync(1);
+  await vi.waitFor(() => expect(useCharacter.getState().dirty).toBe(false));
+  await deleteCharacter(id);
+});
+
+test("a sheet change that fails to save reports it, keeps its draft, shows as unsaved, and Save tries again", async () => {
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  await openCharacter(id);
+  vi.useFakeTimers(SHEET_TIMERS);
+
+  sheetRename("Grog");
+  await vi.waitFor(async () => expect(await getDraft(id)).toBeDefined());
+  vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
+    throw new DOMException("Read failed", "UnknownError");
+  });
+  await vi.advanceTimersByTimeAsync(SHEET_SAVE_DELAY_MS);
+  await vi.waitFor(() => expect(useStorage.getState().failed).toBe(true));
+  expect(useCharacter.getState()).toMatchObject({ dirty: true, unsaved: true });
+  expect(await getDraft(id)).toBeDefined();
+  expect((await getCharacter(id))?.name).toBeNull();
+
+  // The Save button calls flushAutosave.
+  vi.restoreAllMocks();
+  await flushAutosave();
+  expect((await getCharacter(id))?.name).toBe("Grog");
+  expect(useStorage.getState().failed).toBe(false);
+  expect(useCharacter.getState()).toMatchObject({ dirty: false, unsaved: false });
+  expect(await getDraft(id)).toBeUndefined();
+  await deleteCharacter(id);
 });
 
 test("removing the open character closes it, and its pending save does not store it again", async () => {

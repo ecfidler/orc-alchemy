@@ -70,22 +70,24 @@ state from the sheet. It is not only for the Spells panel. The later
 projects (hit points, rests, equipment, feature uses) use the same
 rule.[^orc-265]
 
-* A sheet change goes through `update` of the open character
-  (`useCharacter` in `packages/app/src/state/character.ts`). Thus it gets
-  the draft, the save and the save status with no new storage work.
+* A sheet change goes through `sheetChange` of the open character
+  (`useCharacter` in `packages/app/src/state/character.ts`). It uses the
+  draft, the save and the save status of `update`, with no new storage
+  work.
 * A sheet change saves at once. The record saves about 500 ms after the
   last sheet change, so that quick clicks go in one save. The builder
   keeps its delay of 7.5 seconds (`AUTOSAVE_DELAY_MS`).
 * If builder changes of the same character are pending, they go in the
-  same save.
+  same save. A builder change after a sheet change does not delay the
+  save of the sheet change.
 * The save status in the action row stays "Saved" during a sheet change.
   The Save button shows only after a failed save.
 * The app has no undo for a sheet change. A second click reverses a
   single change. A bulk action asks for confirmation before it runs. This
   project has no bulk action.
 * A failed save keeps the change on the screen and in the draft. The
-  alert note of today shows at the top of the app, the status is "Not
-  saved", and the Save button shows. See [A failed save](#a-failed-save)
+  alert note of today shows at the top of the app, the status is
+  "Unsaved changes", and the Save button shows. See [A failed save](#a-failed-save)
   for the panel.
 * Each save writes the full character. If the character is open in two
   tabs, the tab that saves last wins. This is a known limit. The sync of
@@ -522,8 +524,8 @@ slots to `wizard-5` or `warlock-10-drow` with `setValue`.
   may not be kept.") shows under the header of the panel, with a "Try
   again" button. The button saves again (`flushAutosave`).
 * The change stays on the screen and in the draft.
-* The sheet behind the panel shows the same note, the status "Not saved"
-  and the Save button.
+* The sheet behind the panel shows the same note, the status "Unsaved
+  changes" and the Save button.
 * A save that works shows nothing in the panel, and it removes the note.
 
 # Keyboard and screen reader

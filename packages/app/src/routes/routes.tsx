@@ -25,14 +25,15 @@ import { useStorage } from "../storage/characters.ts";
 /**
  * Opens the character at the route's :id, and renders children once it is
  * open and built, under one row of buttons: Back to List on the left; on the
- * right, the save status, Save while it has unsaved changes, then the page's
+ * right, the save status, Save while it has unsaved changes to show (a sheet
+ * change on its way to the record is not one), then the page's
  * `actions`. A note under the row says when unsaved changes were recovered
  * from a draft on open.
  */
 function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNode; children: (sheet: Sheet) => ReactNode }) {
   const { id } = useParams() as { id: string };
   const openId = useCharacter((state) => state.id);
-  const { sheet, dirty } = useOpenCharacter();
+  const { sheet, dirty, unsaved } = useOpenCharacter();
   const [problem, setProblem] = useState<string | null>(null);
   const [recovered, setRecovered] = useState(false);
 
@@ -94,7 +95,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
           </ButtonLink>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
             <span role="status" aria-label="Save status" className="text-sm text-ink-muted">
-              {dirty ? (
+              {unsaved ? (
                 <>
                   Unsaved<span className="@max-[719px]:sr-only"> changes</span>
                 </>
@@ -102,7 +103,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
                 "Saved"
               )}
             </span>
-            {dirty && <Button onClick={() => flushAutosave().catch(console.error)}>Save</Button>}
+            {unsaved && <Button onClick={() => flushAutosave().catch(console.error)}>Save</Button>}
             {actions(id)}
           </div>
         </div>

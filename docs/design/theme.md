@@ -487,6 +487,9 @@ same row.
 * On the right, from left to right: the save status in muted text ("Saved"
   or "Unsaved changes"), then a ghost Save button. Save is the same size as
   the other buttons, and shows only while there are unsaved changes.
+* A sheet change saves at once, so the status stays "Saved" and Save does
+  not show. If the save fails, the status is "Unsaved changes" and Save
+  shows. See [How a sheet change saves](spells-panel.md#how-a-sheet-change-saves).
 * The page actions come after Save. On the sheet, they are a solid Edit (to
   the builder) and a ghost Export. In the builder, there is a solid Done (to
   the sheet).
