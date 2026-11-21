@@ -22,6 +22,19 @@ test("a framed box is a group named by its label, and the label comes after the 
   expect(box.lastElementChild!.className).toBe("ui-label");
 });
 
+test("a framed box's action is at the end of the label row, and is not a part of the box's name", () => {
+  render(
+    <FramedBox label="Notes" action={<button type="button">All notes</button>}>
+      <p>Two rows</p>
+    </FramedBox>,
+  );
+  const box = screen.getByRole("group", { name: "Notes" });
+  const foot = box.lastElementChild!;
+  expect(foot.className).toBe("ui-framed-box-foot");
+  expect([...foot.children].map((child) => child.textContent)).toEqual(["Notes", "All notes"]);
+  expect(within(box).getByRole("button", { name: "All notes" }).parentElement!.className).toBe("ui-framed-box-action");
+});
+
 test("a framed box with labelId is not a group, and its label names what the caller points at it", () => {
   render(
     <FramedBox label="Total" labelId="total">

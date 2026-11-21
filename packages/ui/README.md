@@ -41,15 +41,26 @@ bun run test       # vitest
   the paper pattern, stuck note, note line and use bubble styles
   (`src/paper.css`), and the tabs styles (`src/tabs.css`).
 - `.`: the components and hooks.
-  - `Button`: Base UI Button with `variant` ("ghost", "solid" or "link"),
+  - `Button`: Base UI Button with `variant` ("ghost", "solid", "link" or
+    "plain"),
     `size` ("small", "normal" or "large") and `type` ("button" or
     "submit"). A ghost button with `aria-current` shows as solid. For a
-    button that is on or off, use `Toggle`. `className` is for layout and
-    spacing; colors and borders come from the variant. Styles:
-    `src/button.css`.
+    button that is on or off, use `Toggle`. A plain button has the look of
+    the text around it, with a line under a mouse, for example a name in a
+    list that opens more; like a link button it has no size. `className` is
+    for layout and spacing; colors and borders come from the variant.
+    Styles: `src/button.css`.
   - `ButtonLink`: a link with the look of a button. Like `FlagTab`, it
     takes the link element as `render`. It takes `className` as `Button`
-    does.
+    does. Its variant is "ghost" or "solid".
+  - `ListRow`: a row of a list as a button (Base UI Button), the full
+    width, flat, with a hairline under it. It is a grid of two columns:
+    the content, then an optional part at the end, for example a mark or
+    tags. Under a mouse or the focus it has the panel fill. With
+    `aria-current` it has the ink fill, paper text and a paper focus ring,
+    as a current ghost button is solid. The rows of `ListModal` are
+    ListRows. It gives a ref. `className` is for layout and spacing, for
+    example the padding. Styles: `src/picker.css`.
   - `Toggle`: Base UI Toggle, a button that is on or off. It has the
     ghost button look and is solid while it is pressed. On its own it
     takes `pressed` and `onPressedChange`. It takes `className` as
@@ -133,7 +144,11 @@ bun run test       # vitest
     the focus. At 600px and less the X is 44px. When `initialFocus` gives
     null or its ref is empty, the focus goes as by default, also to a
     control that the body shows later. The backdrop is the list modal's
-    ink wash. Styles: `src/dialog.css`.
+    ink wash. A wide dialog with `fill` is the height of the window less
+    its margin, and its body has no padding and no scroll of its own:
+    the body is a flex column, and the owner lays out its parts and sets
+    which of them scroll, for example two panes that scroll apart.
+    Styles: `src/dialog.css`.
   - `Select`: Base UI Select, a pick of one value from a list. Its role is
     combobox, and its text is the picked option. It is controlled by
     `value` (null while nothing is picked) and `onValueChange`. Each of
@@ -220,6 +235,9 @@ bun run test       # vitest
     - `FramedBox`: content in a box, with the label under it on a
       hairline. With `labelId`, the box is not a group, and the caller
       makes a value in it a group with `aria-labelledby={labelId}`.
+      `action` is a small control at the end of the label row, for
+      example a button that opens more. It is not a part of the box's
+      name, so give it its own name.
     - `SmallBox`: a small `value` in a cell, with the label beside it.
     - `StatBox`: a box with its label, a large `value` and an `oval` that
       hangs from the bottom edge. The label names the oval and the value

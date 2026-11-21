@@ -1,5 +1,5 @@
 // The page script of e2e/spell-view.spec.ts: the spell view in a wide Dialog, with SRD records.
-// No page shows them yet (ORC-285 puts them in the Spells panel), so this page renders them alone.
+// The Spells panel (ORC-285, e2e/spells-panel.spec.ts) shows them on the sheet; this page tests the view alone.
 // The spec bundles this file with Bun; Playwright does not load it.
 import { Dialog } from "@orc-alchemy/ui";
 import { createElement as h, useState } from "react";

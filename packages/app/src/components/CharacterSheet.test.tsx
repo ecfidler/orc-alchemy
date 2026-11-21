@@ -802,3 +802,31 @@ test("until the SRD spells load, the section shows its levels and slots and no s
   expect(await within(section).findByText("Alarm")).toBeTruthy();
   expect(spellNames("1st")).toEqual(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
 });
+
+// The ways into the Spells panel (ORC-285).
+test("with onOpenSpells, an All spells button ends the section rule, and each spell name, cantrips and a cantrip line included, opens the panel at it", () => {
+  const open = vi.fn();
+  render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strictOf("wizard-1"))} onOpenSpells={open} />);
+  const section = screen.getByRole("group", { name: "Spellcasting" });
+  const all = within(section).getByRole("button", { name: "All spells" });
+  // The button is in the label row, after the label, and is not a part of the section's name.
+  expect(all.closest(".ui-framed-box-foot")).toBe(section.lastElementChild);
+  fireEvent.click(all);
+  expect(open).toHaveBeenLastCalledWith();
+  fireEvent.click(within(spellsRow("1st")).getByRole("button", { name: "Charm Person" }));
+  expect(open).toHaveBeenLastCalledWith({ key: "charm-person", source: "Wizard" });
+  fireEvent.click(within(spellsRow("Cantrips")).getByRole("button", { name: "Acid Splash" }));
+  expect(open).toHaveBeenLastCalledWith({ key: "acid-splash", source: "Wizard" });
+  // The High Elf cantrip line.
+  fireEvent.click(within(section).getByRole("button", { name: "Minor Illusion" }));
+  expect(open).toHaveBeenLastCalledWith({ key: "minor-illusion", source: "High Elf" });
+  // The names keep their text and order.
+  expect(spellNames("1st")).toEqual(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
+});
+
+test("without onOpenSpells, as in the builder preview, there is no All spells button and the names are plain text", () => {
+  render(<CharacterSheet sheet={toSheet(expectedOf("wizard-1"), strictOf("wizard-1"))} preview />);
+  const section = screen.getByRole("group", { name: "Spellcasting" });
+  expect(within(section).queryAllByRole("button")).toEqual([]);
+  expect(spellNames("1st")).toEqual(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
+});

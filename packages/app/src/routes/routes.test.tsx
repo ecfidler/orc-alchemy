@@ -284,6 +284,51 @@ test("in the builder preview, the slot circles show the spent slots and cannot c
   expect(useCharacter.getState().dirty).toBe(false);
 });
 
+// The Spells panel (ORC-285).
+const lifeCleric = () => JSON.parse(readFileSync(join(import.meta.dirname, "../../e2e/life-cleric-9.strict.json"), "utf8"));
+
+test("All spells and a spell name open the Spells panel over the sheet, and the close gives the focus back", async () => {
+  const id = await addCharacter(lifeCleric(), "2014", null);
+  renderAt(`/sheet/${id}`);
+  const all = await screen.findByRole("button", { name: "All spells" }, { timeout: 5000 });
+  all.focus();
+  fireEvent.click(all);
+  let dialog = await screen.findByRole("dialog", { name: "Spells" });
+  await waitFor(() => expect(document.activeElement?.getAttribute("data-spell-row")).toBe("Cleric/guidance"));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(all));
+
+  const name = within(screen.getByRole("group", { name: "Spellcasting" })).getByRole("button", { name: "Spirit Guardians" });
+  name.focus();
+  fireEvent.click(name);
+  dialog = await screen.findByRole("dialog", { name: "Spells" });
+  await waitFor(() => expect(document.activeElement?.getAttribute("data-spell-row")).toBe("Cleric/spirit-guardians"));
+  expect(within(dialog).getByRole("region", { name: "Spirit Guardians" })).toBeTruthy();
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(name));
+  // Opening the panel changes nothing in the character.
+  expect(useCharacter.getState().dirty).toBe(false);
+});
+
+test("the builder link of the Spells panel opens the builder at its Spells step", async () => {
+  const id = await addCharacter(lifeCleric(), "2014", null);
+  renderAt(`/sheet/${id}`);
+  fireEvent.click(await screen.findByRole("button", { name: "All spells" }, { timeout: 5000 }));
+  const dialog = await screen.findByRole("dialog", { name: "Spells" });
+  fireEvent.click(within(dialog).getByRole("link", { name: "Change known spells in the builder" }));
+  const steps = await screen.findByRole("navigation", { name: "Steps" }, { timeout: 5000 });
+  expect(
+    within(steps)
+      .getByRole("button", { name: /^Spells/ })
+      .getAttribute("aria-current"),
+  ).toBe("step");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  // The builder preview has no way in.
+  expect(within(screen.getByRole("region", { name: "Preview" })).queryByRole("button", { name: "All spells" })).toBeNull();
+});
+
 test("unknown paths render the not-found page", () => {
   renderAt("/no-such-page");
   expect(screen.getByRole("heading", { name: "Page not found" })).toBeTruthy();

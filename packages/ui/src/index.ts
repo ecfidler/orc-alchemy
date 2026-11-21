@@ -8,6 +8,7 @@ export { Combobox, type ComboboxProps } from "./Combobox.tsx";
 export { Dialog, type DialogProps } from "./Dialog.tsx";
 export { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
 export { type ListItem, ListModal, type ListModalProps } from "./ListModal.tsx";
+export { ListRow, type ListRowProps } from "./ListRow.tsx";
 export { Menu, type MenuProps } from "./Menu.tsx";
 export { NoteLine } from "./NoteLine.tsx";
 export { NumberField, type NumberFieldProps } from "./NumberField.tsx";

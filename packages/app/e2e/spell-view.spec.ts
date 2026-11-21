@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
 // The spell view (docs/design/spells-panel.md, "The spell view") in a wide Dialog of @orc-alchemy/ui, in a real browser, with the app's CSS.
-// No page shows them yet (ORC-285 puts them in the Spells panel), so this page renders them alone, as e2e/picker.spec.ts does.
+// The Spells panel (ORC-285, e2e/spells-panel.spec.ts) shows them on the sheet; this page tests the view alone, as e2e/picker.spec.ts does.
 // Bun bundles the page's script, e2e/spell-view-demo.ts, once for all tests. See e2e/picker.spec.ts for the reasons.
 const script: string = execFileSync(
   "bun",

@@ -14,13 +14,21 @@ import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 
-export function Builder() {
+/** The name of the builder's Spells step, for example for a link to it (`/build/{id}?step=Spells`). */
+export const SPELLS_STEP = "Spells";
+
+/**
+ * `step`: the name of the step that shows first, for example `SPELLS_STEP`. The Race step by default. It is read only
+ * at the start: a later change of step does not change it, so the URL keeps its `?step=` and a reload goes back to
+ * that step. A name that is not a step gives the first step.
+ */
+export function Builder({ step: firstStep = "Race" }: { step?: string }) {
   const { selections, sheet, content } = useOpenCharacter();
   // The Description step has no selections, so builderSteps does not give
   // it. Before the character loads there are no steps at all.
   const engineSteps = useBuilderSteps(selections, content);
   const steps = engineSteps.length === 0 ? engineSteps : [...engineSteps, { name: "Description", selections: [] }];
-  const [stepName, setStepName] = useState("Race");
+  const [stepName, setStepName] = useState(firstStep);
   const step = steps.find((s) => s.name === stepName) ?? steps[0];
   const counts = remainingByStep(steps);
   // As the old validate-selections: starting equipment is not flagged.
@@ -84,10 +92,10 @@ export function Builder() {
               const key = JSON.stringify(selection.actualPath);
               if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
               if (isList(selection)) return <Inventory key={key} selection={selection} />;
-              if (step.name === "Spells") return <SpellSelection key={key} selection={selection} />;
+              if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
               return <Selection key={key} selection={selection} />;
             })}
-            {step.name === "Spells" && <PreparedSpells />}
+            {step.name === SPELLS_STEP && <PreparedSpells />}
             {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
             {step.name === "Description" && <Description />}
           </>

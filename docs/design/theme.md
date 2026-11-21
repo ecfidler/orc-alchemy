@@ -210,6 +210,14 @@ The homebrew forms (ORC-195) add these parts. The
 * **Button `wide`** and **Fieldset `look="section"`:** a full-width button
   with the text on the left, and a section title in Inter caps, with a rule
   after it.
+* **Button `plain`** (ORC-285): a button with the look of the text around
+  it: its font and color, no box. A mouse over it underlines its text. Use
+  it for a name in a list that opens more.
+* **ListRow** (ORC-285): a row of a list as a button, the full width,
+  flat, with a hairline under it, and an optional part at its end. It has
+  the panel fill under a mouse or the focus. While it is current
+  (`aria-current`) it has the ink fill and paper text, and its focus ring
+  is paper, inside the row. The rows of the ListModal are ListRows.
 * **Fieldset `action`:** a small control at the end of the section rule,
   for example the "Remove" link of an added modifier (ORC-197). It is not a
   part of the section's name.
@@ -250,7 +258,10 @@ homebrew forms. They have no game words: the app gives the lists.
   with an X in its header, 44px at 600px and less (ORC-284). When it
   opens, the focus goes to the first control of the body if there is
   one, else to the X. The owner can also set the control that gets the
-  focus when it opens.
+  focus when it opens. With `fill`, a wide Dialog is the height of the
+  window less its 16px margins, and its body has no padding and no
+  scroll: the owner lays it out, for example as two panes that scroll
+  apart (ORC-285).
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control.
@@ -292,6 +303,8 @@ inputs and links.
 These patterns are in the package. They have no game meaning.
 
 * **Framed box:** a value in a box with its label under it, in Inter caps.
+  A small control can be at the end of the label row, on its rule, for
+  example a button that opens more (ORC-285).
 * **Small box:** a small value and label box.
 * **Stat box:** a box with a large value and a hanging oval for a second
   value. The app's ability block uses it.
@@ -575,8 +588,9 @@ which opens from this section. It also gives the full rules for spent
 slots, Pact Magic slots, spell names and the cast note. The items below
 that name it are a summary.
 
-* **All spells:** an "All spells" button is at the end of the section
-  rule. It opens the Spells panel. Each spell name is a button with the
+* **All spells:** a small "All spells" button is at the end of the section
+  rule, the label row at the bottom of the section. It opens the Spells
+  panel. Each spell name is a button with the
   look of plain text, and opens the panel at that spell. The builder
   preview has neither.
 

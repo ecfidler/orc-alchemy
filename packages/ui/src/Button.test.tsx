@@ -103,3 +103,23 @@ test("a disabled X button takes no click", () => {
   fireEvent.click(button);
   expect([button.disabled, click.mock.calls.length]).toEqual([true, 0]);
 });
+
+test("a plain button has the look of the text around it: no size, never wide, and the type and click of a button", () => {
+  const onClick = vi.fn();
+  render(
+    <Button variant="plain" size="large" wide onClick={onClick}>
+      Light
+    </Button>,
+  );
+  const plain = screen.getByRole("button", { name: "Light" });
+  // src/button.css gives it the font and color of its parent, no box, and a line under a mouse.
+  expect([plain.className, plain.dataset.variant, plain.dataset.size, plain.dataset.wide, plain.getAttribute("type")]).toEqual([
+    "ui-button",
+    "plain",
+    undefined,
+    undefined,
+    "button",
+  ]);
+  fireEvent.click(plain);
+  expect(onClick).toHaveBeenCalledOnce();
+});

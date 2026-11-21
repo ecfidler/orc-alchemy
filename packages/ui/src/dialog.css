@@ -49,6 +49,10 @@
   .ui-modal:where([data-size="wide"]) {
     width: min(1100px, calc(100vw - 32px));
   }
+  /* A wide dialog with fill: the height of the window less the margin. Its body is laid out by the owner (below). */
+  .ui-modal:where([data-fill]) {
+    height: calc(100dvh - 32px);
+  }
   /* On a phone the dialog fills the screen. */
   @media (max-width: 600px) {
     .ui-modal {
@@ -89,6 +93,13 @@
     min-height: 0;
     overflow-y: auto;
     padding: 16px 20px;
+  }
+  /* With fill, the body has no padding and no scroll: it is a flex column, and the owner sets which parts scroll. */
+  .ui-modal:where([data-fill]) > .ui-modal-body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
   }
   .ui-modal-foot {
     display: flex;

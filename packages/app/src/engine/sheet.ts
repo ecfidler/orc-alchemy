@@ -108,6 +108,12 @@ export interface KnownSpell extends Named {
 /** Sets the spent slots of a group to `spent`: the other slots of a spell level (ORC-282), or the pact slots (ORC-283). */
 export type SpendSlots = (group: SlotGroup, spent: number) => void;
 
+/** A known spell by its source and key, for example the spell that the user opens the Spells panel at. */
+export type SpellRef = Pick<KnownSpell, "key" | "source">;
+
+/** Opens the Spells panel at a spell, or at the top of its list without one (ORC-285). */
+export type OpenSpells = (spell?: SpellRef) => void;
+
 export interface Spellcasting extends SpentSlotGroups {
   casters: Spellcaster[];
   /** Level 0 is cantrips. Spells sorted by key within a level; a component sorts them by the name it shows. */
