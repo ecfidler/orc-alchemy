@@ -149,7 +149,7 @@ A known spell can have a **cast note**: the `qualifier` of the spell in
   still prepare it.
 * The importer gives level 0 and the school "unknown" to a pack spell
   that has none. When the school is "unknown", the spell view shows only
-  the level.
+  the level: "2nd level", or "Cantrip".
 * The SRD data has 11 known errors. The PubDoor ticket
   [Correct 11 SRD spells in the engine data](https://linear.app/orc-alchemy/issue/ORC-277/correct-11-srd-spells-in-the-engine-data)
   corrects them. This project does not wait for it.
@@ -275,20 +275,26 @@ From top to bottom:
 3. A small line "From {pack name}", when the record is from a pack. The
    prototype shows "Domain spell" in this place. Do not build that line:
    the prepare line says that the spell is always prepared.
-4. The cast note, as a line.
+4. The cast note, as a line, with a capital first letter: "At will".
 5. The prepare line. See [Preparing spells](#preparing-spells).
 6. The facts in a grid of two columns: Casting time, Range, Duration and
-   Components. Each label is in Inter caps above its value.
+   Components. Each label is in Inter caps above its value. A material
+   text of more than 28 characters gives Components the full width.
 7. The description.
+
+The view is `packages/app/src/components/SpellView.tsx`, and its text
+rules are in `packages/app/src/engine/spell-text.ts` (ORC-284).
 
 **Duration.** The record has no concentration flag. If `duration` starts
 with the word "concentration", without regard to case, the spell needs
 concentration. The word then shows as a tag in a box, "CONCENTRATION",
-and the other words of the duration follow it. There is no other
-Concentration tag in the spell view.
+and the other words of the duration follow it, without the comma after
+the word, and with their case as the data has it: "up to 1 minute". There
+is no other Concentration tag in the spell view.
 
 **Components.** The line is the letters V, S and M of the spell, then the
 material text in parentheses: "V, S, M (a sprinkling of holy water)".
+The material text shows only with the M.
 
 **Description.** The text is plain text with line breaks. Each line break
 starts a new paragraph. The app does not read Markdown in it. A line
@@ -300,7 +306,9 @@ forms of those words:
 * in the same line as the text before it, with a full stop;
 * after a line break and four spaces, with a colon: "At Higher Levels: ".
 
-If no form matches, the text shows as it is.
+The view shows the words as "At Higher Levels." in the three forms. If no
+form matches, the text shows as it is. A paragraph that starts with "•"
+hangs the bullet in the margin.
 
 When no spell is selected, the pane says "Select a spell to read it." At
 the open, the panel selects the first spell of the list, or the spell

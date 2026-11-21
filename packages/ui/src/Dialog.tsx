@@ -1,20 +1,18 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
-import { type ReactNode, type RefObject, useEffect, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
-export type DialogProps = {
+type DialogBase = {
   open: boolean;
   /**
-   * Gets false from Cancel, Escape and a click outside. The dialog stays
-   * open until the owner sets `open` to false, so the owner can ask first,
-   * for example about changes that are not saved.
+   * Gets false from Cancel, the X, Escape and a click outside. The dialog
+   * stays open until the owner sets `open` to false, so the owner can ask
+   * first, for example about changes that are not saved.
    */
   onOpenChange: (open: boolean) => void;
-  /** The heading. It names the dialog. */
+  /** The heading. It names the dialog. When a wide dialog has its own `header`, the title does not show and only names the dialog. */
   title: string;
   /** The body. It scrolls when it is taller than the dialog. */
   children: ReactNode;
-  /** The buttons after Cancel, at the end of the footer, for example a solid Save button. */
-  actions?: ReactNode;
   /**
    * The element that gets the focus when the dialog closes. By default, the
    * element that had the focus before it opened. A function runs at the
@@ -22,7 +20,35 @@ export type DialogProps = {
    * open. Return null for the default.
    */
   finalFocus?: RefObject<HTMLElement | null> | (() => HTMLElement | null);
+  /**
+   * The element that gets the focus when the dialog opens, in place of the
+   * first control of the body. A function runs at the open. Return null for
+   * the default.
+   */
+  initialFocus?: RefObject<HTMLElement | null> | (() => HTMLElement | null);
 };
+
+export type DialogProps = DialogBase &
+  (
+    | {
+        /** Not set: up to 720px wide, with the title row and a footer. */
+        size?: "normal";
+        /** The buttons after Cancel, at the end of the footer, for example a solid Save button. */
+        actions?: ReactNode;
+        header?: never;
+        footer?: never;
+      }
+    | {
+        /** Up to 1100px wide, for content in two panes. */
+        size: "wide";
+        /** The buttons after Cancel, at the end of the footer. */
+        actions?: ReactNode;
+        /** The content of the header row, in place of the title. The owner puts its own heading in it. */
+        header?: ReactNode;
+        /** False: no footer, and an X named "Close" at the end of the header row closes the dialog. True by default. */
+        footer?: boolean;
+      }
+  );
 
 /** The controls that can take the focus. */
 const FOCUSABLE = [
@@ -61,35 +87,64 @@ function useLateControlFocus(open: boolean, body: HTMLElement | null) {
  * scrolls, and a footer with Cancel and the owner's `actions`. It is up to
  * 720px wide, and at 600px and less it fills the screen. The focus goes to
  * the first control of the body when it opens, or when that control shows,
- * if the body shows it later. Cancel, Escape and a click outside call
+ * if the body shows it later. `initialFocus` gives it to another element.
+ * Cancel, Escape and a click outside call `onOpenChange(false)`.
+ *
+ * With `size="wide"` it is up to 1100px wide. The owner can then give its
+ * own `header` in place of the title, and `footer={false}` removes the
+ * footer and puts an X in the header row. The X also calls
  * `onOpenChange(false)`.
  *
  * A ListModal, an AlertDialog or another Dialog that a part of the body
  * opens shows above this dialog. Escape and a click outside then close only
  * that one, and the focus comes back into this dialog.
  */
-export function Dialog({ open, onOpenChange, title, children, actions, finalFocus }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, children, actions, finalFocus, initialFocus, size, header, footer = true }: DialogProps) {
   // A state, not a ref: the portal mounts the body after this component, and the effect must run again then.
   const [body, setBody] = useState<HTMLDivElement | null>(null);
-  useLateControlFocus(open, body);
+  // An initial focus that the owner sets wins over the late focus of the body.
+  useLateControlFocus(open && initialFocus === undefined, body);
+  const popup = useRef<HTMLDivElement>(null);
+  const wide = size === "wide";
+  const ownHeader = wide && header !== undefined;
+  const withX = wide && !footer;
+  // Base UI gives the focus to the first control of the popup, and in a dialog with an X, that is the X. So this function gives it to the owner's
+  // element, else to the first control of the body. When neither is there, it does as Base UI does: the popup on a touch screen, else the first control.
+  const initial =
+    initialFocus === undefined && !withX
+      ? undefined
+      : (type: string) =>
+          (typeof initialFocus === "function" ? initialFocus() : initialFocus?.current) ??
+          popup.current?.querySelector(".ui-modal-body")?.querySelector<HTMLElement>(FOCUSABLE) ??
+          (type === "touch" ? popup.current : true);
   return (
     <BaseDialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
       <BaseDialog.Portal>
         <BaseDialog.Backdrop className="ui-list-backdrop" />
-        <BaseDialog.Popup className="ui-modal" finalFocus={typeof finalFocus === "function" ? () => finalFocus() : (finalFocus ?? true)}>
-          <div className="ui-modal-head">
-            <BaseDialog.Title className="ui-list-title">{title}</BaseDialog.Title>
+        <BaseDialog.Popup
+          ref={popup}
+          className="ui-modal"
+          data-size={wide ? "wide" : undefined}
+          aria-label={ownHeader ? title : undefined}
+          initialFocus={initial}
+          finalFocus={typeof finalFocus === "function" ? () => finalFocus() : (finalFocus ?? true)}
+        >
+          <div className="ui-modal-head" data-x={withX ? "" : undefined}>
+            {ownHeader ? <div className="ui-modal-own-head">{header}</div> : <BaseDialog.Title className="ui-list-title">{title}</BaseDialog.Title>}
+            {withX && <BaseDialog.Close aria-label="Close" title="Close" className="ui-x-button ui-modal-x" />}
           </div>
           <div ref={setBody} className="ui-modal-body">
             {children}
           </div>
-          <div className="ui-modal-foot">
-            {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
-            <BaseDialog.Close data-variant="ghost" data-size="normal" className="ui-button">
-              Cancel
-            </BaseDialog.Close>
-            {actions}
-          </div>
+          {(!wide || footer) && (
+            <div className="ui-modal-foot">
+              {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
+              <BaseDialog.Close data-variant="ghost" data-size="normal" className="ui-button">
+                Cancel
+              </BaseDialog.Close>
+              {actions}
+            </div>
+          )}
         </BaseDialog.Popup>
       </BaseDialog.Portal>
     </BaseDialog.Root>

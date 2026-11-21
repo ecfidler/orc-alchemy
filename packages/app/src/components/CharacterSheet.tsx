@@ -19,10 +19,10 @@ import {
   usesDisplay,
 } from "../engine/sheet.ts";
 import { spellName } from "../engine/spell-records.ts";
+import { ordinal } from "../engine/spell-text.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
-export const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 const paragraphs = (text: string) => text.split("\n").map((line, i) => <p key={i}>{line}</p>);
 
 /** Each coin's value in gold pieces: 10 cp = 1 sp, 10 sp = 1 gp, 2 ep = 1 gp, 1 pp = 10 gp. */

@@ -122,8 +122,15 @@ bun run test       # vitest
     it, Escape and a click outside close only that one, and the focus
     comes back into the dialog. When it closes, the focus goes to
     `finalFocus` (a ref, or a function that runs at the close), or else
-    back to where it was before it opened. The backdrop is the list
-    modal's ink wash. Styles: `src/dialog.css`.
+    back to where it was before it opened. `initialFocus` (a ref, or a
+    function that runs at the open) gives the focus to another element at
+    the open. With `size="wide"` it is up to 1100px wide. The owner can
+    then give a `header` in place of the title row: the `title` does not
+    show, and it still names the dialog. `footer={false}` removes the
+    footer, and an X named "Close" at the end of the header row closes the
+    dialog. In that dialog, the focus goes to the first control of the
+    body, not to the X. At 600px and less the X is 44px. The backdrop is
+    the list modal's ink wash. Styles: `src/dialog.css`.
   - `Select`: Base UI Select, a pick of one value from a list. Its role is
     combobox, and its text is the picked option. It is controlled by
     `value` (null while nothing is picked) and `onValueChange`. Each of

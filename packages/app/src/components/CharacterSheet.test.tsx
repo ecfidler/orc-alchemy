@@ -5,9 +5,10 @@ import type { ReactElement } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { bonusStr, type KnownSpell, type Sheet, toSheet } from "../engine/sheet.ts";
+import { ordinal } from "../engine/spell-text.ts";
 import { loadSpellContent } from "../engine/spells.ts";
 import { useHomebrew } from "../state/homebrew.ts";
-import { CharacterSheet, ordinal, sourceMarks } from "./CharacterSheet.tsx";
+import { CharacterSheet, sourceMarks } from "./CharacterSheet.tsx";
 
 // The Spellcasting section shows spell names only once the SRD spells are loaded.
 beforeAll(() => loadSpellContent());
