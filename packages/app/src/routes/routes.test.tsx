@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
@@ -140,6 +140,27 @@ test("Save stores the changes now, and the status says when they are saved", asy
   const id = useCharacter.getState().id!;
   expect(engine().evaluate((await getCharacter(id))!.entity).built.race).toBe("Halfling");
   expect(await getDraft(id)).toBeUndefined();
+});
+
+test("a sheet change leaves the status at Saved with no Save button, and a failed save shows them", async () => {
+  renderAt("/");
+  fireEvent.click(screen.getByRole("button", { name: "New character" }));
+  await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
+
+  act(() => useCharacter.getState().sheetChange((entity) => engine().setValue(entity, "character-name", "Pike")));
+  expect(useCharacter.getState().dirty).toBe(true);
+  expect(screen.getByRole("status").textContent).toBe("Saved");
+  expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+
+  vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
+    throw new DOMException("Read failed", "UnknownError");
+  });
+  await act(() => flushAutosave().catch(() => {}));
+  vi.restoreAllMocks();
+  expect(screen.getByRole("status").textContent).toBe("Unsaved changes");
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Saved"));
+  expect((await getCharacter(useCharacter.getState().id!))?.name).toBe("Pike");
 });
 
 test("leaving the character after a failed save asks first", async () => {
