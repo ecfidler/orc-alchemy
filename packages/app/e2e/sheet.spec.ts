@@ -269,7 +269,7 @@ async function importWarlock10(page: Page) {
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
 }
 
-test("warlock-10-drow: the Pact row has two diamonds with 28px tap areas, a click spends one, and it stays after a reload (ORC-283)", async ({ page }) => {
+test("warlock-10-drow: the 5th-level row has two diamonds with 28px tap areas, a click spends one, and it stays after a reload (ORC-283)", async ({ page }) => {
   await importWarlock10(page);
   const pact = page.getByRole("slider", { name: "Pact slots, 5th level" });
   await expect(pact).toHaveAttribute("aria-valuetext", "0 of 2 spent");
@@ -282,13 +282,10 @@ test("warlock-10-drow: the Pact row has two diamonds with 28px tap areas, a clic
   expect(box.height).toBeGreaterThanOrEqual(28);
   expect(await diamonds.nth(0).evaluate((d) => getComputedStyle(d).transform)).toBe("none");
   expect(await diamonds.nth(0).evaluate((d) => getComputedStyle(d, "::before").transform)).not.toBe("none");
-  // "Pact" is in the serif font, as the level names.
-  const font = (name: string) =>
-    page
-      .getByRole("rowheader", { name, exact: true })
-      .evaluate((cell) => getComputedStyle(cell).fontFamily)
-      .then((family) => family.split(",")[0]);
-  expect(await font("Pact")).toBe(await font("5th"));
+  // The diamonds are in the row of their slot level. There is no "Pact" row.
+  await expect(page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "5th", exact: true }) })).toContainText("Hold Monster");
+  await expect(page.getByRole("rowheader", { name: "5th", exact: true }).locator("xpath=..").getByRole("slider")).toHaveCount(1);
+  await expect(page.getByRole("rowheader", { name: "Pact", exact: true })).toHaveCount(0);
 
   await diamonds.nth(1).click();
   await expect(pact).toHaveAttribute("aria-valuetext", "1 of 2 spent");

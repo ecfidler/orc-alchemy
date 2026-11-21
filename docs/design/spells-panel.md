@@ -445,13 +445,17 @@ of the same level.
 
 * A pact slot is a diamond, not a circle. A filled diamond is a spent
   slot. The rule "one more, one less" is the same.
-* Each group of pact slots has the label "Pact", in the serif font. The
-  label shows for each warlock, also for a warlock with no other caster
-  class.
-* On the sheet, a "Pact" row is after the level rows of the Spellcasting
-  table. Its Slots cell has the diamonds, and its spells cell says the
-  slot level, for example "2nd-level slots". When the sheet is narrower
-  than 720px, the diamonds are under the word "Pact".
+* In the panel, each group of pact slots has the label "Pact", in the
+  serif font. The label shows for each warlock, also for a warlock with
+  no other caster class.
+* On the sheet, the diamonds are in the row of the pact slot level of the
+  Spellcasting table, after the circles of that level. There is no "Pact"
+  row and no "Pact" label: the diamond form shows the pact slots. A
+  warlock with no other caster class has only diamonds in that row. A
+  pact slot level with no spell has a row for its diamonds. When the
+  diamonds do not fit beside the circles, they go on the next line. When
+  the sheet is narrower than 720px, the diamonds are under the circles,
+  under the level name.
 * In the Spell slots block, a "Pact" entry is after the levels, with the
   slot level beside the word ("Pact 2nd"). It works the same when the
   block shows columns.
@@ -603,7 +607,7 @@ pull request as this document.
 * **Slot circles:** the paper pattern gets a group that can change, with
   the rule "one more, one less", and a diamond form for pact slots.
 * **Spellcasting section:** the "Known limit" for Pact Magic goes. The
-  section gets the "Pact" row, circles that change, the "All spells"
+  section gets the pact diamonds, circles that change, the "All spells"
   button, spell names that open the panel, names from the record, and
   the cast note.
 * **Out of scope for M8:** the line on prepared spells now points to
