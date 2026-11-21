@@ -4,8 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import type { ReactElement } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
-import { bonusStr, type KnownSpell, type Sheet, toSheet } from "../engine/sheet.ts";
-import { ordinal } from "../engine/spell-text.ts";
+import { bonusStr, type KnownSpell, ordinal, type Sheet, toSheet } from "../engine/sheet.ts";
 import { loadSpellContent } from "../engine/spells.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { CharacterSheet, sourceMarks } from "./CharacterSheet.tsx";

@@ -127,10 +127,13 @@ bun run test       # vitest
     the open. With `size="wide"` it is up to 1100px wide. The owner can
     then give a `header` in place of the title row: the `title` does not
     show, and it still names the dialog. `footer={false}` removes the
-    footer, and an X named "Close" at the end of the header row closes the
-    dialog. In that dialog, the focus goes to the first control of the
-    body, not to the X. At 600px and less the X is 44px. The backdrop is
-    the list modal's ink wash. Styles: `src/dialog.css`.
+    footer and does not take `actions`, and an X named "Close" at the end
+    of the header row closes the dialog. In that dialog, the focus goes to
+    the first control of the body when the body has one; else the X gets
+    the focus. At 600px and less the X is 44px. When `initialFocus` gives
+    null or its ref is empty, the focus goes as by default, also to a
+    control that the body shows later. The backdrop is the list modal's
+    ink wash. Styles: `src/dialog.css`.
   - `Select`: Base UI Select, a pick of one value from a list. Its role is
     combobox, and its text is the picked option. It is controlled by
     `value` (null while nothing is picked) and `onValueChange`. Each of

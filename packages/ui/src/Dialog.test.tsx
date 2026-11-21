@@ -257,3 +257,58 @@ test("a wide dialog with an X and no initial focus gives the focus to the first 
   expect(within(dialog).getByRole("heading", { name: "Plain" })).toBeTruthy();
   await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "First" })));
 });
+
+/** A wide dialog whose body shows its controls late, with an initial focus that gives `target`, or null. */
+function LateWide({ toHeader }: { toHeader: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [ready, setReady] = useState(false);
+  const back = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Open</button>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        size="wide"
+        title="Late wide"
+        header={<button ref={back}>Back</button>}
+        initialFocus={() => (toHeader ? back.current : null)}
+      >
+        {ready ? <button>First</button> : <p>Reading…</p>}
+      </Dialog>
+      {/* Outside the dialog, so the test can show the body's controls while the page is inert. */}
+      <output hidden onClick={() => setReady(true)} />
+    </>
+  );
+}
+
+test("an initial focus that gives null keeps the default: a control that the body shows later gets the focus", async () => {
+  render(<LateWide toHeader={false} />);
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  const dialog = await screen.findByRole("dialog", { name: "Late wide" });
+  await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  fireEvent.click(document.querySelector("output")!);
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "First" })));
+});
+
+test("an element that the initial focus gives keeps the focus when the body shows a control later", async () => {
+  render(<LateWide toHeader />);
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  const dialog = await screen.findByRole("dialog", { name: "Late wide" });
+  const back = within(dialog).getByRole("button", { name: "Back" });
+  await waitFor(() => expect(document.activeElement).toBe(back));
+  fireEvent.click(document.querySelector("output")!);
+  await within(dialog).findByRole("button", { name: "First" });
+  // Let the observer run.
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(document.activeElement).toBe(back);
+});
+
+test("the types: a wide dialog with no footer takes no actions, and a normal dialog takes no header", () => {
+  const close = () => {};
+  // @ts-expect-error: no footer, so no actions.
+  void (<Dialog open={false} onOpenChange={close} size="wide" title="T" footer={false} actions={<button>Save</button>} children={null} />);
+  // @ts-expect-error: a header only with the wide size.
+  void (<Dialog open={false} onOpenChange={close} title="T" header={<h2>T</h2>} children={null} />);
+  void (<Dialog open={false} onOpenChange={close} size="wide" title="T" actions={<button>Save</button>} children={null} />);
+});

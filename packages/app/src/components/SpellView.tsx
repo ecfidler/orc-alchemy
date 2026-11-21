@@ -5,7 +5,7 @@
 import { Label } from "@orc-alchemy/ui";
 import { type ReactNode, useId } from "react";
 import type { SpellRecordResult } from "../engine/spell-records.ts";
-import { componentsLine, descriptionParts, durationParts, levelLine } from "../engine/spell-text.ts";
+import { castNoteLine, componentsLine, descriptionParts, durationParts, levelLine } from "../engine/spell-text.ts";
 
 export type SpellViewProps = {
   /** The name to show when there is no record: the name that the app makes from the key. */
@@ -44,9 +44,6 @@ function Fact({ label, wide = false, children }: { label: string; wide?: boolean
 /** A small line of the name block. */
 const smallLine = "mt-1.5 font-sans text-[12.5px] text-ink-muted";
 
-/** A material text longer than this takes the full width of the grid. */
-const WIDE_COMPONENTS = 28;
-
 /**
  * One spell: the name, the level line with the Ritual tag, "From {pack}"
  * for a pack spell, the cast note, the owner's line, the facts and the
@@ -56,16 +53,17 @@ const WIDE_COMPONENTS = 28;
  */
 export function SpellView({ name, spell, castNote, children }: SpellViewProps) {
   const headingId = useId();
+  // A pack record can have an empty name; the name from the key then shows.
   const record = spell?.record;
   const components = componentsLine(record?.components);
   const duration = record?.duration ? durationParts(record.duration) : null;
   const text = record?.description ? descriptionParts(record.description) : null;
   const hasFacts = Boolean(record?.["casting-time"] || record?.range || duration || components);
-  const note = castNote?.trim();
+  const note = castNoteLine(castNote);
   return (
     <section aria-labelledby={headingId} className="min-w-0">
       <h3 id={headingId} className="text-[26px] leading-[1.15] font-semibold text-balance break-words">
-        {record?.name ?? name}
+        {record?.name || name}
       </h3>
       {record && (
         <p className="mt-0.5 italic">
@@ -74,7 +72,7 @@ export function SpellView({ name, spell, castNote, children }: SpellViewProps) {
         </p>
       )}
       {spell && spell.from !== "SRD" && <p className={smallLine}>From {spell.from.pack}</p>}
-      {note && <p className={smallLine}>{note.charAt(0).toUpperCase() + note.slice(1)}</p>}
+      {note && <p className={smallLine}>{note}</p>}
       {children && <div className="mt-2.5">{children}</div>}
       {record === undefined && <p className="mt-3">The app has no text for this spell.</p>}
       {hasFacts && (
@@ -89,8 +87,8 @@ export function SpellView({ name, spell, castNote, children }: SpellViewProps) {
             </Fact>
           )}
           {components && (
-            <Fact label="Components" wide={(record?.components?.["material-component"]?.length ?? 0) > WIDE_COMPONENTS}>
-              {components}
+            <Fact label="Components" wide={components.wide}>
+              {components.text}
             </Fact>
           )}
         </dl>

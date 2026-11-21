@@ -1,5 +1,5 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
-import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 
 type DialogBase = {
   open: boolean;
@@ -22,8 +22,9 @@ type DialogBase = {
   finalFocus?: RefObject<HTMLElement | null> | (() => HTMLElement | null);
   /**
    * The element that gets the focus when the dialog opens, in place of the
-   * first control of the body. A function runs at the open. Return null for
-   * the default.
+   * first control of the body. A function runs at the open. Return null, or
+   * leave the ref empty, for the default, which includes the focus on a
+   * control that the body shows later.
    */
   initialFocus?: RefObject<HTMLElement | null> | (() => HTMLElement | null);
 };
@@ -41,12 +42,20 @@ export type DialogProps = DialogBase &
     | {
         /** Up to 1100px wide, for content in two panes. */
         size: "wide";
-        /** The buttons after Cancel, at the end of the footer. */
-        actions?: ReactNode;
         /** The content of the header row, in place of the title. The owner puts its own heading in it. */
         header?: ReactNode;
-        /** False: no footer, and an X named "Close" at the end of the header row closes the dialog. True by default. */
-        footer?: boolean;
+        /** True or not set: the footer with Cancel and the `actions`. */
+        footer?: true;
+        /** The buttons after Cancel, at the end of the footer. */
+        actions?: ReactNode;
+      }
+    | {
+        size: "wide";
+        header?: ReactNode;
+        /** False: no footer, and an X named "Close" at the end of the header row closes the dialog. */
+        footer: false;
+        /** No footer, so no actions. */
+        actions?: never;
       }
   );
 
@@ -66,20 +75,21 @@ const FOCUSABLE = [
  * the body has a control at the open, Base UI focuses it, and also keeps
  * the element to give the focus back to at the close. The focus moves only
  * while it is not in the body yet, so a control that the user picked keeps
- * it.
+ * it, and only when `ownFocus()` is false: an element that the owner set
+ * as the initial focus keeps it.
  */
-function useLateControlFocus(open: boolean, body: HTMLElement | null) {
+function useLateControlFocus(open: boolean, body: HTMLElement | null, ownFocus: () => boolean) {
   useEffect(() => {
     if (!open || body === null || body.querySelector(FOCUSABLE) !== null) return;
     const observer = new MutationObserver(() => {
       const first = body.querySelector<HTMLElement>(FOCUSABLE);
       if (first === null) return;
       observer.disconnect();
-      if (!body.contains(document.activeElement)) first.focus();
+      if (!ownFocus() && !body.contains(document.activeElement)) first.focus();
     });
     observer.observe(body, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [open, body]);
+  }, [open, body, ownFocus]);
 }
 
 /**
@@ -102,9 +112,12 @@ function useLateControlFocus(open: boolean, body: HTMLElement | null) {
 export function Dialog({ open, onOpenChange, title, children, actions, finalFocus, initialFocus, size, header, footer = true }: DialogProps) {
   // A state, not a ref: the portal mounts the body after this component, and the effect must run again then.
   const [body, setBody] = useState<HTMLDivElement | null>(null);
-  // An initial focus that the owner sets wins over the late focus of the body.
-  useLateControlFocus(open && initialFocus === undefined, body);
   const popup = useRef<HTMLDivElement>(null);
+  // True when the owner's initial focus gave an element at the open. That element wins over the late focus of the body;
+  // with no element (null, or an empty ref), the late focus works as by default.
+  const ownFocused = useRef(false);
+  const ownFocus = useCallback(() => ownFocused.current, []);
+  useLateControlFocus(open, body, ownFocus);
   const wide = size === "wide";
   const ownHeader = wide && header !== undefined;
   const withX = wide && !footer;
@@ -113,10 +126,11 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
   const initial =
     initialFocus === undefined && !withX
       ? undefined
-      : (type: string) =>
-          (typeof initialFocus === "function" ? initialFocus() : initialFocus?.current) ??
-          popup.current?.querySelector(".ui-modal-body")?.querySelector<HTMLElement>(FOCUSABLE) ??
-          (type === "touch" ? popup.current : true);
+      : (type: string) => {
+          const own = (typeof initialFocus === "function" ? initialFocus() : initialFocus?.current) ?? null;
+          ownFocused.current = own !== null;
+          return own ?? popup.current?.querySelector(".ui-modal-body")?.querySelector<HTMLElement>(FOCUSABLE) ?? (type === "touch" ? popup.current : true);
+        };
   return (
     <BaseDialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
       <BaseDialog.Portal>

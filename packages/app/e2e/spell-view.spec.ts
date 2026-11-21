@@ -25,7 +25,7 @@ async function show(page: Page, key: string, name: string, theme: "light" | "dar
   const links = styles.map((href) => `<link rel="stylesheet" href="${href}">`).join("");
   await page.setContent(`<!doctype html><html data-theme="${theme}"><head>${links}</head><body><div id="root"></div></body></html>`);
   await page.addScriptTag({ content: script });
-  await page.evaluate(([key, name]) => window.mountSpell(key!, name!), [key, name]);
+  await page.evaluate(async ([key, name]) => await window.mountSpell(key!, name!), [key, name]);
   await page.evaluate(() => document.fonts.ready);
   const open = page.getByRole("button", { name: "Open the spell" });
   await open.click();

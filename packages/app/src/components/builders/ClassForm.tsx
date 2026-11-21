@@ -17,7 +17,7 @@ import { Chips, FieldErrors, Fieldset, XButton } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { intKey, intKeyValue, packType, setItems, tag, untag } from "../../engine/content.ts";
-import { ordinal } from "../../engine/spell-text.ts";
+import { ordinal } from "../../engine/sheet.ts";
 import {
   ABILITIES,
   ABILITY_OPTIONS,

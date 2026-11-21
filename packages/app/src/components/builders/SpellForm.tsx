@@ -7,7 +7,7 @@
 // map of class keyword to true or false.
 import { Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { packType, tag } from "../../engine/content.ts";
-import { ordinal } from "../../engine/spell-text.ts";
+import { ordinal } from "../../engine/sheet.ts";
 import {
   type BuilderType,
   editor,

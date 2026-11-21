@@ -157,3 +157,9 @@ test("with no record, the view shows the name, the owner's line and 'The app has
   expect(view.querySelector("dl")).toBeNull();
   expect(view.querySelector("p.italic")).toBeNull();
 });
+
+test("a pack record with an empty name shows the name that the owner gives", () => {
+  render(<SpellView name="Frost Step" spell={{ record: { key: "frost-step", name: "", level: 1, school: "evocation" }, from: { pack: "P" } }} />);
+  expect(screen.getByRole("region", { name: "Frost Step" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Frost Step" })).toBeTruthy();
+});

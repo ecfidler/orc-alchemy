@@ -1,11 +1,10 @@
 // The text rules of the spell view (ORC-284, docs/design/spells-panel.md
 // "The spell view"): the level line, the duration with its concentration
-// tag, the components line and the paragraphs of the description. Each
-// function takes the values of a spell record, so other pages can use them.
+// tag, the components line, the cast note line and the paragraphs of the
+// description. Each function takes the values of a spell record, so other
+// pages can use them.
+import { ordinal } from "./sheet.ts";
 import type { SpellRecord } from "./spell-records.ts";
-
-/** A number as an English ordinal for a level: 1st, 2nd, 3rd, 4th. */
-export const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 
 const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -14,7 +13,9 @@ const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(
  * cantrip". The importer gives the school "unknown" to a pack spell that
  * has none; the line then has only the level: "1st level", or "Cantrip".
  */
-export function levelLine({ level, school }: Pick<SpellRecord, "level" | "school">): string {
+export function levelLine({ level, school: data }: Pick<SpellRecord, "level" | "school">): string {
+  // A pack school can have capitals, for example "Evocation".
+  const school = data.trim().toLowerCase();
   const known = school !== "" && school !== "unknown";
   if (level === 0) return known ? `${capitalized(school)} cantrip` : "Cantrip";
   return known ? `${ordinal(level)}-level ${school}` : `${ordinal(level)} level`;
@@ -42,18 +43,34 @@ export function durationParts(duration: string): DurationParts {
   return { concentration: true, rest: duration.slice(match[0].length).trim() };
 }
 
+/** The components line, and whether it takes the full width of the facts grid. */
+export interface ComponentsLine {
+  text: string;
+  /** True when the material text that shows is longer than 28 characters. */
+  wide: boolean;
+}
+
+/** A material text longer than this takes the full width of the facts grid. */
+const WIDE_MATERIAL = 28;
+
 /**
  * The components line: the letters V, S and M of the spell, then the
  * material text in parentheses: "V, S, M (a sprinkling of holy water)".
- * The material text shows only with the M. Null when the spell has no
- * component.
+ * The material text shows only with the M. A material text of more than 28
+ * characters makes the line wide. Null when the spell has no component.
  */
-export function componentsLine(components: SpellRecord["components"]): string | null {
+export function componentsLine(components: SpellRecord["components"]): ComponentsLine | null {
   if (components === undefined) return null;
   const letters = [components.verbal && "V", components.somatic && "S", components.material && "M"].filter(Boolean).join(", ");
   if (letters === "") return null;
-  const material = components["material-component"]?.trim();
-  return components.material && material ? `${letters} (${material})` : letters;
+  const material = components.material ? (components["material-component"]?.trim() ?? "") : "";
+  return material ? { text: `${letters} (${material})`, wide: material.length > WIDE_MATERIAL } : { text: letters, wide: false };
+}
+
+/** The cast note as a line: trimmed, with a capital first letter, "At will". Null when there is no note. */
+export function castNoteLine(castNote: string | null | undefined): string | null {
+  const note = castNote?.trim();
+  return note ? capitalized(note) : null;
 }
 
 /** A description as paragraphs, with its "At Higher Levels" part apart. */

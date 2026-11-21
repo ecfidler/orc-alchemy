@@ -11,6 +11,7 @@ import {
   type FeatureSection,
   type KnownSpell,
   modStr,
+  ordinal,
   type Sheet,
   type SheetFeature,
   type SheetItem,
@@ -19,7 +20,6 @@ import {
   usesDisplay,
 } from "../engine/sheet.ts";
 import { spellName } from "../engine/spell-records.ts";
-import { ordinal } from "../engine/spell-text.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();

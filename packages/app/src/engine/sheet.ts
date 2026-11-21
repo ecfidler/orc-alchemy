@@ -271,6 +271,9 @@ const nameOf = (feature: { name?: string | null }) => feature.name || UNNAMED_FE
 
 /** The old app's bonus-str, for ability, save, skill and other bonuses: "+3", "-1", and "0" for zero. */
 export const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+
+/** A number as an English ordinal for a level: 1st, 2nd, 3rd, 4th. */
+export const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 /** The old app's mod-str, for initiative and attack and damage rolls: "+0" for zero. */
 export const modStr = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 

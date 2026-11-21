@@ -1,6 +1,7 @@
 import { beforeAll, expect, test } from "vitest";
+import { ordinal } from "./sheet.ts";
 import type { SpellRecord } from "./spell-records.ts";
-import { componentsLine, descriptionParts, durationParts, levelLine, ordinal } from "./spell-text.ts";
+import { castNoteLine, componentsLine, descriptionParts, durationParts, levelLine } from "./spell-text.ts";
 import { loadSpellContent, type SpellContent } from "./spells.ts";
 
 let srd: SpellContent;
@@ -24,6 +25,12 @@ test("the school 'unknown' of a pack spell does not show: the line has only the 
   expect(levelLine({ level: 0, school: "unknown" })).toBe("Cantrip");
 });
 
+test("a pack school with capitals is lower case in the line, and has a capital first letter for a cantrip", () => {
+  expect(levelLine({ level: 1, school: "Evocation" })).toBe("1st-level evocation");
+  expect(levelLine({ level: 0, school: "EVOCATION" })).toBe("Evocation cantrip");
+  expect(levelLine({ level: 3, school: "Unknown" })).toBe("3rd level");
+});
+
 test("a duration that starts with the word 'concentration' needs concentration; the other words follow, as the data has them", () => {
   expect(durationParts(spell("bless").duration!)).toEqual({ concentration: true, rest: "up to 1 minute" });
   // No comma after the word.
@@ -42,16 +49,34 @@ test("a duration with no concentration shows as it is", () => {
 });
 
 test("the components line has the letters, then the material text in parentheses", () => {
-  expect(componentsLine(spell("bless").components)).toBe("V, S, M (a sprinkling of holy water)");
-  expect(componentsLine(spell("sacred-flame").components)).toBe("V, S");
-  expect(componentsLine(spell("magic-missile").components)).toBe("V, S");
+  expect(componentsLine(spell("bless").components)).toEqual({ text: "V, S, M (a sprinkling of holy water)", wide: false });
+  expect(componentsLine(spell("sacred-flame").components)).toEqual({ text: "V, S", wide: false });
+  expect(componentsLine(spell("magic-missile").components)).toEqual({ text: "V, S", wide: false });
+});
+
+test("a material text of more than 28 characters, as it shows, makes the line wide", () => {
+  const material = spell("protection-from-evil-and-good").components!["material-component"]!;
+  expect(material.length).toBeGreaterThan(28);
+  expect(componentsLine(spell("protection-from-evil-and-good").components)?.wide).toBe(true);
+  // 28 characters after the trim is not wide.
+  expect(componentsLine({ material: true, "material-component": `  ${"x".repeat(28)}   ` })).toEqual({ text: `M (${"x".repeat(28)})`, wide: false });
+  // Material text that does not show, without the M, does not make the line wide.
+  expect(componentsLine({ verbal: true, material: false, "material-component": "x".repeat(40) })).toEqual({ text: "V", wide: false });
 });
 
 test("a pack spell's components: a false flag gives no letter, material text without the M does not show, and no letter gives no line", () => {
-  expect(componentsLine({ verbal: true, somatic: false, material: true, "material-component": "" })).toBe("V, M");
-  expect(componentsLine({ verbal: true, material: false, "material-component": "a feather" })).toBe("V");
+  expect(componentsLine({ verbal: true, somatic: false, material: true, "material-component": "" })?.text).toBe("V, M");
+  expect(componentsLine({ verbal: true, material: false, "material-component": "a feather" })?.text).toBe("V");
   expect(componentsLine({ verbal: false, somatic: false })).toBeNull();
   expect(componentsLine(undefined)).toBeNull();
+});
+
+test("the cast note line is trimmed and has a capital first letter", () => {
+  expect(castNoteLine("at will")).toBe("At will");
+  expect(castNoteLine("  ritual only ")).toBe("Ritual only");
+  expect(castNoteLine("  ")).toBeNull();
+  expect(castNoteLine(null)).toBeNull();
+  expect(castNoteLine(undefined)).toBeNull();
 });
 
 test("each line break starts a paragraph, and a description with no 'At Higher Levels' has no part apart", () => {
