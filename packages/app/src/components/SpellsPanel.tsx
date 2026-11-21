@@ -4,7 +4,7 @@
 // is on the right. At 600px and less the panel fills the screen, and the list
 // and the spell view are two views.
 import { Button, Dialog, FramedBox } from "@orc-alchemy/ui";
-import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, type RefObject, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { bonusStr, type Sheet, type Spellcasting, type SpellRef } from "../engine/sheet.ts";
 import { type ListedSpell, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "../engine/spell-list.ts";
@@ -193,22 +193,14 @@ function PanelBody({
   // (or the popup on a touch screen). When the spells show, the selected row gets the focus, but only while the user
   // has not moved it, for example to the X.
   const waitsForRows = useRef(!loaded);
-  const userMoved = useRef(false);
-  useEffect(() => {
-    if (!waitsForRows.current) return;
-    const moved = (event: FocusEvent) => {
-      const target = event.target as Element;
-      if (target !== builderLink.current && !target.matches(".ui-modal")) userMoved.current = true;
-    };
-    document.addEventListener("focusin", moved);
-    return () => document.removeEventListener("focusin", moved);
-  }, []);
   useLayoutEffect(() => {
     if (!loaded || !waitsForRows.current) return;
     waitsForRows.current = false;
     if (spellView && selected) say(selected.name);
-    if (userMoved.current) return;
-    (spellView ? back() : rowOf(tabStop))?.focus();
+    // The focus is still on the fallback only when it is on the builder link or on the popup itself.
+    const active = document.activeElement;
+    const onFallback = active === builderLink.current || active?.closest('[role="dialog"]') === active;
+    if (onFallback) (spellView ? back() : rowOf(tabStop))?.focus();
   }, [loaded]);
   // On a phone, the "Back to the list" button of a new spell view gets the focus, as its row is hidden, and the
   // live region says the spell name, which the focus on the button does not read. At the open in the spell view the
@@ -224,12 +216,15 @@ function PanelBody({
       // A live region that has just shown can miss a message, so at the open the message waits a moment. While the
       // spells load the name is not known yet; the effect above says it when they show.
       const name = selected?.name;
-      if (opened && loaded && name) setTimeout(() => say(name), OPEN_MESSAGE_DELAY_MS);
       if (!opened) {
         if (name) say(name);
         back()?.focus({ preventScroll: true });
+        return;
       }
-      return;
+      if (!loaded || !name) return;
+      // A close or a Back in the delay cancels the message.
+      const timer = setTimeout(() => say(name), OPEN_MESSAGE_DELAY_MS);
+      return () => clearTimeout(timer);
     }
     if (opened) return;
     const row = rowOf(selectedId);

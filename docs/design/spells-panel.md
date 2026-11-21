@@ -188,9 +188,10 @@ The panel is a `Dialog` of `@orc-alchemy/ui` with the new wide size (see
   off.
 * While the spell chunk loads, the list shows "Loading spells…". The
   spell view shows no spell, and on a phone it also says "Loading
-  spells…". The focus is on the first control of the panel. When the
-  spells show, the selected row gets the focus, if the user did not move
-  it.
+  spells…". The focus is on the first control of the body, the builder
+  link (on a touch screen, on the popup). When the spells show, the
+  selected row gets the focus, if the focus is still on the builder link
+  or the popup.
 
 ## The header
 
@@ -332,8 +333,8 @@ At 600px and less:
 * The panel fills the screen. The X is 44px or more.
 * The list and the spell view are two views. A tap on a row replaces the
   list with the spell view. The spell view has a "Back to the list"
-  button with the look of a link at its top. The list is then at the same scroll position, and the
-  focus goes to the row.
+  button with the look of a link at its top. After a tap on it, the list
+  is at the same scroll position, and the focus goes to the row.
 * A spell name on the sheet opens the spell view of that spell. The "All
   spells" button opens the list.
 * In the spell view, the "Back to the list" button has the focus, because
