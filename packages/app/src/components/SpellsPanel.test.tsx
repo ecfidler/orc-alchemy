@@ -34,7 +34,15 @@ function renderPanel(sheet: Sheet, at?: SpellRef) {
       {
         path: "/",
         element: (
-          <SpellsPanel open onOpenChange={() => {}} spellcasting={sheet.spellcasting!} classes={sheet.classes} at={at} builderHref="/build/abc?step=Spells" />
+          <SpellsPanel
+            open
+            onOpenChange={() => {}}
+            spellcasting={sheet.spellcasting!}
+            classes={sheet.classes}
+            at={at}
+            builderHref="/build/abc?step=Spells"
+            onSpendSlots={() => {}}
+          />
         ),
       },
     ],
@@ -197,7 +205,22 @@ async function renderLoading(at?: SpellRef) {
   const { loadSpellContent: freshLoad } = await import("../engine/spells.ts");
   const sheet = cleric();
   const router = createMemoryRouter(
-    [{ path: "/", element: <FreshPanel open onOpenChange={() => {}} spellcasting={sheet.spellcasting!} classes={sheet.classes} at={at} builderHref="/b" /> }],
+    [
+      {
+        path: "/",
+        element: (
+          <FreshPanel
+            open
+            onOpenChange={() => {}}
+            spellcasting={sheet.spellcasting!}
+            classes={sheet.classes}
+            at={at}
+            builderHref="/b"
+            onSpendSlots={() => {}}
+          />
+        ),
+      },
+    ],
     { initialEntries: ["/"] },
   );
   render(<RouterProvider router={router} />);
@@ -320,7 +343,7 @@ test("a reopen starts again: the search is empty and the first spell is selected
     return (
       <>
         <Button onClick={() => setOpen(true)}>Open spells</Button>
-        <SpellsPanel open={open} onOpenChange={setOpen} spellcasting={sheet.spellcasting!} classes={sheet.classes} builderHref="/b" />
+        <SpellsPanel open={open} onOpenChange={setOpen} spellcasting={sheet.spellcasting!} classes={sheet.classes} builderHref="/b" onSpendSlots={() => {}} />
       </>
     );
   }

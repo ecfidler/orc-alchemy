@@ -152,6 +152,7 @@ function SheetPage() {
         <>
           <ExportMessageLine message={exportMessage} className="mb-4" />
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
+          {/* The sheet and the Spells panel change the spent slots with the same handler, so they show the same state (ORC-286). */}
           <CharacterSheet sheet={sheet} onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)} onOpenSpells={(at) => setSpells({ open: true, at })} />
           {sheet.spellcasting && (
             <SpellsPanel
@@ -161,6 +162,7 @@ function SheetPage() {
               classes={sheet.classes}
               at={spells.at}
               builderHref={`/build/${openId}?step=${SPELLS_STEP}`}
+              onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
             />
           )}
         </>

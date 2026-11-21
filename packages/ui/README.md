@@ -262,7 +262,11 @@ bun run test       # vitest
       reader reads "{label}, {valueText}" and the new value after a change.
       `valueText(marked, count)` gives the state, "{marked} of {count}" by
       default; the app passes "2 of 4 spent". A click keeps the focus on the
-      group.
+      group. `orientation="vertical"` puts the circles in a column, the
+      first at the top, with the same keys. With `onChange`,
+      `focusable={false}` makes a copy of a group that is a Tab stop in
+      another place: it takes clicks, but it is not a Tab stop, a click
+      does not move the focus, and a screen reader does not see it.
     - `CurrentMax`: `current`, then "/ `max`" in the muted ink.
   - `StuckNote`: a tilted yellow note above its box (`children`), for
     something the user must act on. A button or link in `note` is its

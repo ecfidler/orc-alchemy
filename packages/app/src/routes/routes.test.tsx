@@ -271,6 +271,25 @@ test("a spent pact slot and a spent other slot of the same level save apart, and
   expect(screen.getByRole("slider", { name: "5th-level slots" }).getAttribute("aria-valuetext")).toBe("0 of 1 spent");
 });
 
+test("the Spells panel and the sheet change the same slots: a slot spent in the panel saves and shows on the sheet, and the reverse (ORC-286)", async () => {
+  const id = await addCharacter(wizard5(), "2014", null);
+  renderAt(`/sheet/${id}`);
+  const onSheet = await screen.findByRole("slider", { name: "2nd-level slots" }, { timeout: 5000 });
+  fireEvent.click(onSheet.children[0]!);
+  fireEvent.click(screen.getByRole("button", { name: "All spells" }));
+  const dialog = await screen.findByRole("dialog", { name: "Spells" });
+  const block = dialog.querySelector<HTMLElement>("[data-slots-block]")!;
+  const second = within(block).getByRole("slider", { name: "2nd-level slots" });
+  expect(second.getAttribute("aria-valuetext")).toBe("1 of 3 spent");
+  fireEvent.keyDown(second, { key: "ArrowRight" });
+  expect(second.getAttribute("aria-valuetext")).toBe("2 of 3 spent");
+  expect(onSheet.getAttribute("aria-valuetext")).toBe("2 of 3 spent");
+  // The level heading of the list shows it too.
+  const heading = within(dialog).getByRole("heading", { level: 3, name: "2nd level" }).parentElement!;
+  expect(heading.querySelectorAll("[data-marked]")).toHaveLength(2);
+  await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } }), { timeout: 3000 });
+});
+
 test("in the builder preview, the slot circles show the spent slots and cannot change", async () => {
   const entity = engine().setValue(wizard5(), "orcpub.dnd.e5.spells/slots-used", { "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } });
   const id = await addCharacter(entity, "2014", null);

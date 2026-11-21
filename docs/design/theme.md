@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-20T22:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-21T23:18:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -322,7 +322,10 @@ These patterns are in the package. They have no game meaning.
   has a 17px drawing and a tap area of 28px or more. A circle that cannot
   change has a 15px drawing. The group is one Tab stop,
   and the arrow keys change it. With the diamond form, each circle is a
-  diamond, for Pact Magic slots. The
+  diamond, for Pact Magic slots. A group can be a column, with the first
+  circle at the top, for the columns of the Spell slots block. A copy of
+  a group takes clicks only: it is not a Tab stop, and a screen reader
+  does not see it (the level headings of the Spells panel). The
   [Spells panel spec](spells-panel.md#spent-spell-slots) has the full
   rules.
 * **Current / max:** current at full size, then `/ max` at the same size in

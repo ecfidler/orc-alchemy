@@ -4,7 +4,7 @@ title: Spells panel spec
 description: The settled design of the Spells panel on the character sheet - the popup with the spell list and the spell text, prepared spells, spent spell slots in the panel and on the sheet, Pact Magic slots, how a sheet change saves, the spell records, and the run order of the build tickets.
 tags: [design, sheet, spells]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-20T22:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-21T23:18:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel
 sources:
   - id: orc-262
@@ -457,16 +457,29 @@ same state.
   "Spell slots", fixed above the list. It does not scroll with the list.
   * With 5th-level slots or higher, the block has one column for each
     level, with the 1st level on the left and the circles going down.
-    Without them, it has one row for each level.
+    Without them, it has one row for each level. Pact slots count: a
+    warlock with 5th-level pact slots gets columns.
   * The block has no total.
+  * At 320px, nine columns fit in the block. If they do not fit, the
+    block scrolls them sideways, and the panel does not scroll.
   * A level name in the block is a link that scrolls the list to that
-    level.
+    level, so that its heading is at the top of the list. The focus
+    stays on the link.
+  * When a search hides the group of a level, the link of that level is
+    disabled. The entry and its circles stay in the block.
+  * In the spell view of a phone, the list does not show. There the
+    level names are plain text, and the circles still change.
   * The block folds closed with a button in its top-left corner. It
     starts open. If the user folds it, it stays folded on that device.
-    The fold is a value in the local storage of the browser. It is not a
-    Preference and not a part of the character.
+    The fold is a value in the local storage of the browser
+    (`spell-slots-folded`). It is not a Preference and not a part of the
+    character. If the browser blocks the local storage, the fold stays
+    until the page reloads.
+  * The block shows only for a character with slots.
 * **In the panel, the level headings:** each heading of the list has the
-  circles of its level.
+  circles of its level. While the block is open, the circles on the
+  headings are copies: a mouse click changes them, and the focus does
+  not move. See [Keyboard and screen reader](#keyboard-and-screen-reader).
 
 ## Pact Magic slots
 
@@ -488,7 +501,11 @@ of the same level.
   under the level name.
 * In the Spell slots block, a "Pact" entry is after the levels, with the
   slot level beside the word ("Pact 2nd"). It works the same when the
-  block shows columns.
+  block shows columns: the slot level is then under the word. The entry
+  of a level has only the other slots, so a warlock with no other caster
+  class has only the "Pact" entry. The name of the entry is a link to
+  the pact slot level, as a level name is. Its name for a screen reader
+  starts with the words that show: "Pact 2nd, go to 2nd level".
 * On the level heading of the pact slot level, the diamonds are at the
   right end of the heading, with the "Pact" label.
 
@@ -616,11 +633,15 @@ row can be a button with the checkbox role, and Space changes it.
   reads the new state after a change.
 * The panel shows the slots of a level two times. While the Spell slots
   block is open, only its groups are Tab stops, and the circles on the
-  level headings are hidden from the screen reader. While the block is
+  level headings are hidden from the screen reader. A mouse click on
+  them still works, and the focus stays where it was. While the block is
   folded, the groups on the headings are the Tab stops.
+* The arrow keys on a group of a heading change the group. They do not
+  move the focus in the list.
 * The fold button says "Spell slots" with its open or closed state.
 * The level links in the block have the names "Go to 1st level" and so
-  on.
+  on. They are buttons with the look of plain text, because they do not
+  change the URL.
 
 **Announcements**
 
@@ -634,7 +655,8 @@ row can be a button with the checkbox role, and Space changes it.
 * The failed-save note in the panel has the alert role.
 
 **Motion.** Under `prefers-reduced-motion: reduce`, a jump to a level
-does not scroll smoothly.
+does not scroll smoothly. Without it, the list scrolls smoothly. In the
+two cases the focus stays on the link.
 
 # Changes to the theme spec
 

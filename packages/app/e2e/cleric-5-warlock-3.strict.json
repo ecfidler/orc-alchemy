@@ -1,0 +1,142 @@
+{
+  "~:orcpub.entity.strict/selections": [
+    {
+      "~:orcpub.entity.strict/key": "~:ability-scores",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:standard-scores",
+        "~:orcpub.entity.strict/map-value": {
+          "~:orcpub.dnd.e5.character/str": 8,
+          "~:orcpub.dnd.e5.character/dex": 14,
+          "~:orcpub.dnd.e5.character/con": 13,
+          "~:orcpub.dnd.e5.character/int": 13,
+          "~:orcpub.dnd.e5.character/wis": 13,
+          "~:orcpub.dnd.e5.character/cha": 15
+        }
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:class",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:cleric",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:divine-domain",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:life-domain"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-3"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-4"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-5"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:cleric-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:guidance"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:sacred-flame"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:spare-the-dying"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:warlock",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-3"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:warlock-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:eldritch-blast"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:mage-hand"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:warlock-spells-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:hellish-rebuke"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:charm-person"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:invisibility"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:armor",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:shield",
+          "~:orcpub.entity.strict/map-value": {
+            "~:orcpub.dnd.e5.character.equipment/quantity": 1,
+            "~:orcpub.dnd.e5.character.equipment/equipped?": true,
+            "~:orcpub.dnd.e5.character.equipment/class-starting-equipment?": true
+          }
+        }
+      ]
+    }
+  ],
+  "~:orcpub.entity.strict/values": {
+    "~:orcpub.dnd.e5.character/prepared-spells-by-class": [
+      {
+        "~:orcpub.dnd.e5.character/class-name": "Cleric",
+        "~:orcpub.dnd.e5.character/prepared-spells": {
+          "~#set": [
+            "~:healing-word",
+            "~:aid",
+            "~:spirit-guardians"
+          ]
+        }
+      }
+    ],
+    "~:orcpub.dnd.e5.character/character-name": "Maren Ashgrove"
+  }
+}

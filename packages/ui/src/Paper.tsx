@@ -1,4 +1,4 @@
-import { type ReactNode, useId } from "react";
+import { type MouseEvent, type ReactNode, useId } from "react";
 
 /** A label in the label style: Inter caps, small, muted. */
 export function Label({ children, id }: { children: ReactNode; id?: string }) {
@@ -114,6 +114,14 @@ export interface SlotCirclesProps {
   onChange?: (marked: number) => void;
   /** With `onChange`: the state that a screen reader reads after the label. "{marked} of {count}" by default. */
   valueText?: (marked: number, count: number) => string;
+  /** "vertical" puts the circles in a column, the first at the top. The arrow keys stay the same. */
+  orientation?: "horizontal" | "vertical";
+  /**
+   * With `onChange`: false makes a copy of a group that is a Tab stop in
+   * another place. The copy takes clicks, but it is not a Tab stop, a click
+   * does not move the focus, and a screen reader does not see it.
+   */
+  focusable?: boolean;
 }
 
 /**
@@ -129,7 +137,8 @@ export interface SlotCirclesProps {
  * click changes shows a light fill. The group is a slider and one Tab
  * stop: Right and Up mark one more, Left and Down one less. A screen
  * reader reads "{label}, {valueText}", and the new value after a change.
- * A click leaves the focus on the group.
+ * A click leaves the focus on the group. With `focusable={false}` it is a
+ * copy that takes clicks only.
  */
 export function SlotCircles({
   label,
@@ -140,6 +149,8 @@ export function SlotCircles({
   shape = "circle",
   onChange,
   valueText = defaultValueText,
+  orientation = "horizontal",
+  focusable = true,
 }: SlotCirclesProps) {
   const marked = Math.max(0, Math.min(markedProp, count));
   const circles = Array.from({ length: count }, (_, i) => (
@@ -157,6 +168,7 @@ export function SlotCircles({
     "data-color": color,
     "data-size": size === "small" ? size : undefined,
     "data-shape": shape === "diamond" ? shape : undefined,
+    "data-orientation": orientation === "vertical" ? orientation : undefined,
   };
   if (!onChange) {
     return (
@@ -168,6 +180,21 @@ export function SlotCircles({
   const change = (next: number) => {
     if (next >= 0 && next <= count && next !== marked) onChange(next);
   };
+  const onClick = (event: MouseEvent<HTMLElement>) => {
+    const circle = (event.target as Element).closest(".ui-slot-circle");
+    if (!circle) return;
+    // Not every browser focuses the group on a click; the focus must stay on it.
+    if (focusable) event.currentTarget.focus();
+    change(circle.hasAttribute("data-marked") ? marked - 1 : marked + 1);
+  };
+  if (!focusable) {
+    return (
+      // A mouse down does not move the focus: it stays where it was, for example on a row.
+      <span aria-hidden data-changes="" {...common} onMouseDown={(event) => event.preventDefault()} onClick={onClick}>
+        {circles}
+      </span>
+    );
+  }
   return (
     <span
       role="slider"
@@ -177,7 +204,7 @@ export function SlotCircles({
       aria-valuemax={count}
       aria-valuenow={marked}
       aria-valuetext={valueText(marked, count)}
-      aria-orientation="horizontal"
+      aria-orientation={orientation}
       data-changes=""
       {...common}
       onKeyDown={(event) => {
@@ -186,13 +213,7 @@ export function SlotCircles({
         event.preventDefault();
         change(marked + step);
       }}
-      onClick={(event) => {
-        const circle = (event.target as Element).closest(".ui-slot-circle");
-        if (!circle) return;
-        // Not every browser focuses the group on a click; the focus must stay on it.
-        event.currentTarget.focus();
-        change(circle.hasAttribute("data-marked") ? marked - 1 : marked + 1);
-      }}
+      onClick={onClick}
     >
       {circles}
     </span>

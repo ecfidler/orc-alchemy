@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { type KnownSpell, type Spellcasting, toSheet } from "./sheet.ts";
-import { levelHeading, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "./spell-list.ts";
+import { levelHeading, searchSpellGroups, slotColumns, slotGroupsOf, spellClassLine, spellGroups, spellId, spellSources, spentText } from "./spell-list.ts";
 import { spellLookup } from "./spell-records.ts";
 import { loadSpellContent, setPrepared } from "./spells.ts";
 
@@ -123,4 +123,26 @@ test("the search keeps the spells whose shown name has the text, in any case, an
 
 test("a level heading is Cantrips, or the ordinal and level", () => {
   expect([0, 1, 2, 3, 9].map(levelHeading)).toEqual(["Cantrips", "1st level", "2nd level", "3rd level", "9th level"]);
+});
+
+test("the slot groups of a level: its other slots, then the pact slots; columns with slots of the 5th level or higher, the pact slots included", () => {
+  const spellcasting = {
+    slots: [
+      { level: 1, count: 4, spent: 1 },
+      { level: 5, count: 1, spent: 0 },
+    ],
+    pact: { slotLevel: 5, count: 2, spent: 2 },
+  };
+  expect(slotGroupsOf(spellcasting, 1)).toEqual([{ group: 1, level: 1, label: "1st-level slots", count: 4, spent: 1 }]);
+  expect(slotGroupsOf(spellcasting, 5)).toEqual([
+    { group: 5, level: 5, label: "5th-level slots", count: 1, spent: 0 },
+    { group: "pact", level: 5, label: "Pact slots, 5th level", count: 2, spent: 2 },
+  ]);
+  expect(slotGroupsOf(spellcasting, 2)).toEqual([]);
+  expect(spentText(1, 2)).toBe("1 of 2 spent");
+  expect(slotColumns(spellcasting)).toBe(true);
+  // A warlock with no other caster class: the pact slots of the 5th level give columns.
+  expect(slotColumns({ slots: [], pact: { slotLevel: 5, count: 2, spent: 0 } })).toBe(true);
+  expect(slotColumns({ slots: [], pact: { slotLevel: 4, count: 2, spent: 0 } })).toBe(false);
+  expect(slotColumns({ slots: [{ level: 3, count: 2, spent: 0 }], pact: null })).toBe(false);
 });

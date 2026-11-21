@@ -130,6 +130,11 @@
     gap: 5px;
     align-items: center;
   }
+  /* A column: higher in specificity than the wrap of a group that changes. */
+  .ui-slot-circles[data-orientation="vertical"] {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
   .ui-slot-circles:where([data-size="small"]) {
     --circle-size: 12px;
     gap: 3px;
