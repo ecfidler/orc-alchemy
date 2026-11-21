@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-16T16:57:43Z }
+generated: { by: claude-code/agent, at: 2026-11-20T22:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -243,7 +243,11 @@ homebrew forms. They have no game words: the app gives the lists.
   ask the owner to close it, so the owner can ask first. A ListModal, an
   AlertDialog or another Dialog that the body opens shows above it. Esc
   and a click outside then close only the top one, and the focus comes
-  back into the Dialog.
+  back into the Dialog. With `size="wide"` it is up to 1100px wide, for
+  the Spells panel (ORC-270). The owner can then give its own header in
+  place of the title row, and the footer is optional. A wide Dialog with
+  no footer closes with an X in its header. The owner can also set the
+  control that gets the focus when it opens.
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control.
@@ -295,6 +299,15 @@ These patterns are in the package. They have no game meaning.
 * **Slot circles:** a row of plain circles. A marked circle fills solid.
   The color is a prop (spell slots `--ink`, death-save successes
   `--success`, failures `--caution`).
+  With a change handler, the user can change the group (ORC-270). A click
+  on an empty circle fills the first empty circle from the left, and a
+  click on a filled circle clears the last filled one. Thus the filled
+  circles are always together on the left. Each circle keeps its 17px
+  drawing and has a tap area of 28px or more. The group is one Tab stop,
+  and the arrow keys change it. With the diamond form, each circle is a
+  diamond, for Pact Magic slots. The
+  [Spells panel spec](spells-panel.md#spent-spell-slots) has the full
+  rules.
 * **Current / max:** current at full size, then `/ max` at the same size in
   `--ink-muted`, with no label. Use it for every current / max pair: hit
   points and feature pools.
@@ -550,9 +563,15 @@ One **Spellcasting** section for every spell source: classes, races and
 feats together. 5e gives a multiclass caster one shared set of slots, so the
 sheet shows one set.
 
-**Known limit:** the engine puts Warlock Pact Magic slots in the same slot
-list (a Warlock 10 has two 5th-level slots there). The sheet shows the list
-as the engine reports it. It does not split Pact Magic slots out.
+The [Spells panel spec](spells-panel.md) (ORC-270) adds the Spells panel,
+which opens from this section. It also gives the full rules for spent
+slots, Pact Magic slots, spell names and the cast note. The items below
+that name it are a summary.
+
+* **All spells:** an "All spells" button is at the end of the section
+  rule. It opens the Spells panel. Each spell name is a button with the
+  look of plain text, and opens the panel at that spell. The builder
+  preview has neither.
 
 * **The boxes:** a shaded row of large boxes in the style of the AC row:
   spell save DC, spell attack and spellcasting ability. Sources with the
@@ -571,7 +590,22 @@ as the engine reports it. It does not split Pact Magic slots out.
   * **Slots:** the slot circles on one line, left-aligned. No circles for
     cantrips. When the sheet is narrower than 720px, there is no Slots
     column. The circles are under the ordinal, and the spells get the width.
+    A filled circle is a spent slot, and the user can change the circles
+    (see Slot circles in Paper patterns). The change saves at once. In the
+    builder preview, the circles cannot change.
   * **Prepared spells:** comma-separated, A to Z.
+* **Pact Magic slots:** the engine puts Warlock Pact Magic slots in the
+  same slot list (a Warlock 10 has two 5th-level slots there). The sheet
+  shows them apart. A "Pact" row is after the level rows. The word "Pact"
+  is in the serif font. A pact slot is a diamond, not a circle, and a
+  filled diamond is a spent slot. The spells cell of the row says the slot
+  level, for example "2nd-level slots". The row shows for each warlock.
+  When the sheet is narrower than 720px, the diamonds are under the word
+  "Pact".
+* **Spell names:** the name of a spell comes from its record. The name
+  that the app makes from the key stays only for a spell with no record.
+  A cast note, for example "at will", is in parentheses after the name:
+  "Detect Magic (at will)". The note "Domain" does not show.
 * **Which spells:** for a class that prepares, only prepared spells
   (always-prepared domain and oath spells included, with no tag). For a
   source that does not prepare (a sorcerer, a bard, a race), all known
@@ -676,7 +710,9 @@ tests, because font rendering differs between machines.
 # Out of scope for M8
 
 * Recording spent uses, and choosing prepared spells from the sheet. Both
-  change the character record, so they are features, not styling.
+  change the character record, so they are features, not styling. The
+  [Spells panel spec](spells-panel.md) now covers prepared spells and
+  spent spell slots.
 * A page-by-page layout redesign of the builder, homebrew forms, import and
   export pages. It needs its own prototypes. M8 gives these pages the
   tokens, fonts, controls and notes only.
