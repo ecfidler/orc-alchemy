@@ -16,7 +16,7 @@ export interface StoredValue<T> {
 }
 
 export interface StoredValueOptions<T> {
-  /** The value of a stored text; `null` when the key has no value. A value that is not well formed gives the default. */
+  /** The value of a stored text; `null` when the key has no value. A text that is not well formed gives the value of a key with no value. */
   parse: (stored: string | null) => T;
   /** The text to store; `null` removes the key. */
   serialize: (value: T) => string | null;

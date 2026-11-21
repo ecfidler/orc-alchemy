@@ -33,6 +33,8 @@ export interface SpellsPanelProps {
 
 /** The attribute that marks the "Back to the list" button of the spell view on a phone. */
 const BACK = "data-spells-back";
+// The least scroll padding of the list in px. It is the value of the class scroll-pt-12 on the list: keep the two the same.
+const MIN_SCROLL_PADDING_PX = 48;
 
 /** How long the message of the live region waits at an open in the spell view. */
 const OPEN_MESSAGE_DELAY_MS = 150;
@@ -178,7 +180,6 @@ function PanelBody({
   // While the Spell slots block is open, only its groups are Tab stops; while it is folded, the groups on the headings are.
   const [folded, setFolded] = useSpellSlotsFolded();
   const shownLevels = new Set(groups.map((group) => group.level));
-  // A level link scrolls the list so that the level's heading is at the top. The focus stays on the link.
   // The scroll padding of the list is the height of its tallest level heading, so that a row that gets the focus is
   // never under the heading that sticks at the top. A heading with slots can take two lines in a narrow list.
   const headingsKey = groups.map((group) => group.level).join();
@@ -190,14 +191,14 @@ function PanelBody({
         0,
         ...[...pane.querySelectorAll<HTMLElement>(`[${HEADING}]`)].map((heading) => Math.ceil(heading.getBoundingClientRect().height)),
       );
-      // The Tailwind scroll-pt-12 (48px) stays the least padding.
-      pane.style.scrollPaddingTop = tallest > 48 ? `${tallest}px` : "";
+      pane.style.scrollPaddingTop = tallest > MIN_SCROLL_PADDING_PX ? `${tallest}px` : "";
     };
     measure();
     const observer = new ResizeObserver(measure);
     for (const heading of pane.querySelectorAll(`[${HEADING}]`)) observer.observe(heading);
     return () => observer.disconnect();
   }, [headingsKey, loaded, spellView]);
+  // A level link scrolls the list so that the level's heading is at the top. The focus stays on the link.
   const goTo = (level: number) => {
     const pane = list.current;
     const group = pane?.querySelector<HTMLElement>(`[${LEVEL}="${level}"]`);

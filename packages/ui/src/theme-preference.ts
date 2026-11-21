@@ -37,7 +37,7 @@ function apply(preference: ThemePreference) {
   else root.dataset.theme = preference;
 }
 
-// A change in another tab sets data-theme here too.
+// Each write in this tab and each change in another tab sets data-theme, while a hook listens.
 const subscribe = (listener: () => void) =>
   store.subscribe(() => {
     apply(store.read());
@@ -56,6 +56,7 @@ export function useThemePreference(): [ThemePreference, (preference: ThemePrefer
   const setPreference = useCallback(
     (next: ThemePreference) => {
       write(next);
+      // Also here, so that data-theme does not depend on a listener.
       apply(next);
     },
     [write],
