@@ -17,17 +17,36 @@ export type SpellContent = ReadonlyMap<string, SpellRecord>;
 let loading: Promise<SpellContent> | undefined;
 let loaded: SpellContent | undefined;
 
-/** Loads the SRD spells once, as their own chunk, as spell key to record. */
+/**
+ * Loads the SRD spells once, as their own chunk, as spell key to record. A
+ * load that fails is not kept, so the next call tries again.
+ */
 export function loadSpellContent(): Promise<SpellContent> {
-  loading ??= import("@pubdoor/dmv/content/spells.json").then((mod) => (loaded = new Map((mod.default as SpellRecord[]).map((spell) => [spell.key, spell]))));
+  loading ??= import("@pubdoor/dmv/content/spells.json").then(
+    (mod) => (loaded = new Map((mod.default as SpellRecord[]).map((spell) => [spell.key, spell]))),
+    (error) => {
+      loading = undefined;
+      throw error;
+    },
+  );
   return loading;
 }
 
-/** The SRD spells; null until they load. */
+const NO_SPELLS: SpellContent = new Map();
+
+/**
+ * The SRD spells; null until they load. If the load fails, for example
+ * offline or after a new deploy, it gives no SRD spells: the caller then
+ * shows what it has without them, and the next mount tries the load again.
+ */
 export function useSpellContent(): SpellContent | null {
   const [content, setContent] = useState(loaded ?? null);
   useEffect(() => {
-    if (content === null) loadSpellContent().then(setContent, console.error);
+    if (content !== null) return;
+    loadSpellContent().then(setContent, (error) => {
+      console.error(error);
+      setContent(NO_SPELLS);
+    });
   }, [content]);
   return content;
 }

@@ -17,6 +17,7 @@ import {
   type Spellcasting,
   usesDisplay,
 } from "../engine/sheet.ts";
+import { spellName } from "../engine/spell-records.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -467,7 +468,7 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
   const classNames = new Set(classes.map((c) => c.name));
   const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
   const spells = byLevel.flatMap((row) =>
-    row.spells.map((spell): ShownSpell => ({ ...spell, level: row.level, name: lookup?.(spell.key)?.record.name ?? spell.name })),
+    row.spells.map((spell): ShownSpell => ({ ...spell, level: row.level, name: lookup ? spellName(lookup, spell.key, spell.name) : spell.name })),
   );
   // A spell's source can have no boxes, so the sources come from the spells too.
   const allSources = new Set([...casters.map((caster) => caster.name), ...spells.map((spell) => spell.source)]);
@@ -582,7 +583,7 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
   );
 }
 
-/** A known spell with its level, and with the name the sheet shows: from its record, or else from its key. */
+/** A known spell with its level. SpellcastingBox puts the name to show in `name` (see `spellName`). */
 type ShownSpell = KnownSpell & { level: number };
 
 /** A spell's cast note, in parentheses after the name and its mark: "Detect Magic (at will)". */

@@ -45,6 +45,9 @@ export interface SpellRecordResult {
 /** The record for a spell key, or undefined when no record has the key, as for `tsunami`. */
 export type SpellLookup = (key: string) => SpellRecordResult | undefined;
 
+/** The name to show for a spell: the name of its record, or else the name that the caller made from its key. */
+export const spellName = (lookup: SpellLookup, key: string, nameFromKey: string) => lookup(key)?.record.name ?? nameFromKey;
+
 const SPELLS = tag("orcpub.dnd.e5/spells");
 
 /**
