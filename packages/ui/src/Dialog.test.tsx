@@ -170,3 +170,145 @@ test("a body that shows its controls after the dialog opens gives the focus to i
   fireEvent.click(document.querySelector("output")!);
   await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "First" })));
 });
+
+/** A button that opens a wide dialog with its own header, no footer, and the focus on a list button at the open. */
+function Wide({ footer = false }: { footer?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const pick = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Open atlas</button>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        size="wide"
+        title="Atlas"
+        header={
+          <>
+            <h2>Atlas</h2>
+            <p>Two maps</p>
+          </>
+        }
+        footer={footer}
+        initialFocus={pick}
+      >
+        <input aria-label="Search maps" />
+        <button ref={pick}>North map</button>
+      </Dialog>
+    </>
+  );
+}
+
+test("a wide dialog has the wide size, the owner's header and an X, no footer, and the focus on the owner's element", async () => {
+  render(<Wide />);
+  fireEvent.click(screen.getByRole("button", { name: "Open atlas" }));
+  // The title names the dialog, and the owner's header shows in place of the title row.
+  const dialog = await screen.findByRole("dialog", { name: "Atlas" });
+  expect(dialog.dataset.size).toBe("wide");
+  const head = dialog.querySelector<HTMLElement>(".ui-modal-head")!;
+  expect(within(head).getByRole("heading", { name: "Atlas" })).toBeTruthy();
+  expect(within(head).getByText("Two maps")).toBeTruthy();
+  expect(head.lastElementChild).toBe(within(head).getByRole("button", { name: "Close" }));
+  expect(dialog.querySelector(".ui-modal-foot")).toBeNull();
+  expect(within(dialog).queryByRole("button", { name: "Cancel" })).toBeNull();
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "North map" })));
+});
+
+test("a wide dialog closes with the X and with Escape, and the focus goes back to the button that opened it", async () => {
+  render(<Wide />);
+  const button = screen.getByRole("button", { name: "Open atlas" });
+  button.focus();
+  fireEvent.click(button);
+  const dialog = await screen.findByRole("dialog", { name: "Atlas" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(button));
+
+  fireEvent.click(button);
+  fireEvent.keyDown(await screen.findByRole("dialog", { name: "Atlas" }), { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(button));
+});
+
+test("a wide dialog with a footer has Cancel and no X", async () => {
+  render(<Wide footer />);
+  fireEvent.click(screen.getByRole("button", { name: "Open atlas" }));
+  const dialog = await screen.findByRole("dialog", { name: "Atlas" });
+  expect(within(dialog).queryByRole("button", { name: "Close" })).toBeNull();
+  expect(within(dialog.querySelector<HTMLElement>(".ui-modal-foot")!).getByRole("button", { name: "Cancel" })).toBeTruthy();
+});
+
+test("a wide dialog with an X and no initial focus gives the focus to the first control of the body, not to the X", async () => {
+  function Plain() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button onClick={() => setOpen(true)}>Open</button>
+        <Dialog open={open} onOpenChange={setOpen} size="wide" title="Plain" footer={false}>
+          <p>Some text</p>
+          <button>First</button>
+        </Dialog>
+      </>
+    );
+  }
+  render(<Plain />);
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  const dialog = await screen.findByRole("dialog", { name: "Plain" });
+  expect(within(dialog).getByRole("heading", { name: "Plain" })).toBeTruthy();
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "First" })));
+});
+
+/** A wide dialog whose body shows its controls late, with an initial focus that gives `target`, or null. */
+function LateWide({ toHeader }: { toHeader: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [ready, setReady] = useState(false);
+  const back = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Open</button>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        size="wide"
+        title="Late wide"
+        header={<button ref={back}>Back</button>}
+        initialFocus={() => (toHeader ? back.current : null)}
+      >
+        {ready ? <button>First</button> : <p>Reading…</p>}
+      </Dialog>
+      {/* Outside the dialog, so the test can show the body's controls while the page is inert. */}
+      <output hidden onClick={() => setReady(true)} />
+    </>
+  );
+}
+
+test("an initial focus that gives null keeps the default: a control that the body shows later gets the focus", async () => {
+  render(<LateWide toHeader={false} />);
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  const dialog = await screen.findByRole("dialog", { name: "Late wide" });
+  await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  fireEvent.click(document.querySelector("output")!);
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "First" })));
+});
+
+test("an element that the initial focus gives keeps the focus when the body shows a control later", async () => {
+  render(<LateWide toHeader />);
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  const dialog = await screen.findByRole("dialog", { name: "Late wide" });
+  const back = within(dialog).getByRole("button", { name: "Back" });
+  await waitFor(() => expect(document.activeElement).toBe(back));
+  fireEvent.click(document.querySelector("output")!);
+  await within(dialog).findByRole("button", { name: "First" });
+  // Let the observer run.
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(document.activeElement).toBe(back);
+});
+
+test("the types: a wide dialog with no footer takes no actions, and a normal dialog takes no header", () => {
+  const close = () => {};
+  // @ts-expect-error: no footer, so no actions.
+  void (<Dialog open={false} onOpenChange={close} size="wide" title="T" footer={false} actions={<button>Save</button>} children={null} />);
+  // @ts-expect-error: a header only with the wide size.
+  void (<Dialog open={false} onOpenChange={close} title="T" header={<h2>T</h2>} children={null} />);
+  void (<Dialog open={false} onOpenChange={close} size="wide" title="T" actions={<button>Save</button>} children={null} />);
+});

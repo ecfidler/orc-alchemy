@@ -4,11 +4,10 @@
 import { Checkbox, Select } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
-import type { Spellcaster } from "../engine/sheet.ts";
+import { ordinal, type Spellcaster } from "../engine/sheet.ts";
 import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { OptionCards, Selection } from "./Builder.tsx";
-import { ordinal } from "./CharacterSheet.tsx";
 import { Heading, useMutation } from "./Classes.tsx";
 
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);

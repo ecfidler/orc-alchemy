@@ -22,9 +22,8 @@ import { type ComponentType, type ReactNode, useId } from "react";
 import { type BuilderChoices, type Choice, useBuilderChoices } from "../../engine/builder-choices.ts";
 import { asSet, nameToKw, setItems, tag, untag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
-import { ABILITY_NAMES, ABILITIES as SHEET_ABILITIES } from "../../engine/sheet.ts";
+import { ABILITY_NAMES, ordinal, ABILITIES as SHEET_ABILITIES } from "../../engine/sheet.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { ordinal } from "../CharacterSheet.tsx";
 import { SuggestionLines } from "./SuggestionLines.tsx";
 import { UsesControl } from "./UsesControl.tsx";
 

@@ -245,9 +245,12 @@ homebrew forms. They have no game words: the app gives the lists.
   and a click outside then close only the top one, and the focus comes
   back into the Dialog. With `size="wide"` it is up to 1100px wide, for
   the Spells panel (ORC-270). The owner can then give its own header in
-  place of the title row, and the footer is optional. A wide Dialog with
-  no footer closes with an X in its header. The owner can also set the
-  control that gets the focus when it opens.
+  place of the title row; the title still names the dialog for a screen
+  reader. The footer is optional. A wide Dialog with no footer closes
+  with an X in its header, 44px at 600px and less (ORC-284). When it
+  opens, the focus goes to the first control of the body if there is
+  one, else to the X. The owner can also set the control that gets the
+  focus when it opens.
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control.

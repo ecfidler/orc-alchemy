@@ -45,6 +45,10 @@
     box-shadow: 0 22px 50px -18px var(--note-shadow);
     outline: 0;
   }
+  /* The wide dialog, for content in two panes. */
+  .ui-modal:where([data-size="wide"]) {
+    width: min(1100px, calc(100vw - 32px));
+  }
   /* On a phone the dialog fills the screen. */
   @media (max-width: 600px) {
     .ui-modal {
@@ -60,6 +64,25 @@
     flex: none;
     padding: 12px 20px 10px;
     border-bottom: 1.5px solid var(--ink);
+  }
+  /* A head row with an X: the title or the owner's header, then the X at the end, as in the list modal. */
+  .ui-modal-head:where([data-x]) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-right: 12px;
+  }
+  .ui-modal-own-head {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* On a phone the X is a 44px target. */
+  @media (max-width: 600px) {
+    .ui-modal-x {
+      width: 44px;
+      height: 44px;
+    }
   }
   .ui-modal-body {
     flex: 1 1 auto;
