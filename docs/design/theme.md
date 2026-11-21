@@ -302,8 +302,9 @@ These patterns are in the package. They have no game meaning.
   With a change handler, the user can change the group (ORC-270). A click
   on an empty circle fills the first empty circle from the left, and a
   click on a filled circle clears the last filled one. Thus the filled
-  circles are always together on the left. Each circle keeps its 17px
-  drawing and has a tap area of 28px or more. The group is one Tab stop,
+  circles are always together on the left. A circle that can change
+  has a 17px drawing and a tap area of 28px or more. A circle that cannot
+  change has a 15px drawing. The group is one Tab stop,
   and the arrow keys change it. With the diamond form, each circle is a
   diamond, for Pact Magic slots. The
   [Spells panel spec](spells-panel.md#spent-spell-slots) has the full

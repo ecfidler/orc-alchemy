@@ -5,7 +5,7 @@
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
 import { untag } from "./content.ts";
-import { preparedSpells, slotPositions, spentSlots } from "./spells.ts";
+import { preparedSpells, type SlotTotal, slotPositions, spentSlots } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
 
@@ -103,12 +103,6 @@ export interface KnownSpell extends Named {
    * a domain spell, whose qualifier "Domain" says only what alwaysPrepared says.
    */
   castNote: string | null;
-}
-
-/** The slot total of a spell level, from built. */
-export interface SlotTotal {
-  level: number;
-  count: number;
 }
 
 /** Sets the spent slots of a spell level to `spent` (ORC-282). */

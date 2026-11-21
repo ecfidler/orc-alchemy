@@ -410,7 +410,9 @@ same state.
   circle that the user clicks does not matter.
 * With a mouse, the circle that will change shows a light fill before
   the click.
-* A circle keeps its 17px drawing. Its tap area is 28px or more.
+* A circle that can change has a 17px drawing. Its tap area is 28px or
+  more. A circle that cannot change, as in the builder preview, has a
+  15px drawing.
 * There is no "Clear all" button, in the panel or on the sheet. The
   later rests project adds a "Long rest" button.
 * A change saves as a sheet change.

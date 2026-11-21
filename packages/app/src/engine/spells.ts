@@ -5,7 +5,6 @@
 import { useEffect, useState } from "react";
 import { asSet, setItems, tag, untag } from "./content.ts";
 import type { Engine, StrictEntity } from "./engine.ts";
-import type { SlotTotal } from "./sheet.ts";
 import type { SpellRecord } from "./spell-records.ts";
 
 const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
@@ -103,6 +102,12 @@ export function setPrepared(e: Engine, entity: StrictEntity, className: string, 
 // The strict entity holds them as a map of a level key to a set of slot
 // positions from 0: { "~:…/slots-1": { "~#set": [0, 2] } }. built has only
 // the slot totals.
+
+/** The slot total of a spell level, from built. */
+export interface SlotTotal {
+  level: number;
+  count: number;
+}
 
 const SLOTS_USED = "orcpub.dnd.e5.spells/slots-used";
 const slotLevelKey = (level: number) => tag(`orcpub.dnd.e5.spells/slots-${level}`);

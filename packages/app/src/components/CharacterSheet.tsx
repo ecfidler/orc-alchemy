@@ -545,7 +545,7 @@ function SpellcastingBox({
           <colgroup>
             {/* Circles that change have 28px tap areas: the Slots column takes four on a line, and the narrow
                 level column three. */}
-            <col className={narrow && !onSpendSlots ? "w-[76px]" : "w-20"} />
+            <col className={narrow && !onSpendSlots ? "w-[76px]" : "w-[80px]"} />
             {!narrow && <col className={onSpendSlots ? "w-[114px]" : "w-[98px]"} />}
             <col />
           </colgroup>
