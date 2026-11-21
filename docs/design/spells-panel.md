@@ -186,7 +186,11 @@ The panel is a `Dialog` of `@orc-alchemy/ui` with the new wide size (see
   the control that opened it.
 * A close always ends prepare mode. The panel opens with prepare mode
   off.
-* While the spell chunk loads, the list shows "Loading spells…".
+* While the spell chunk loads, the list shows "Loading spells…". The
+  spell view shows no spell, and on a phone it also says "Loading
+  spells…". The focus is on the first control of the panel. When the
+  spells show, the selected row gets the focus, if the user did not move
+  it.
 
 ## The header
 
@@ -214,8 +218,8 @@ The bar is under the header. It always shows.
   button "Prepare spells". In prepare mode, the button is "Done". It is
   one button that changes its label. It has no pressed state.
 * On the right is the link "Change known spells in the builder". It goes
-  to the Spells step of the builder, `/build/{id}?step=Spells`. It has the
-  pencil icon of ORC-272 before its text.
+  to the Spells step of the builder, `/build/{id}?step=Spells`. When
+  ORC-272 is merged, it gets the pencil icon of ORC-272 before its text.
 * A character with no class that prepares has no count and no button. The
   bar then has only the link.
 
@@ -327,13 +331,17 @@ At 600px and less:
 
 * The panel fills the screen. The X is 44px or more.
 * The list and the spell view are two views. A tap on a row replaces the
-  list with the spell view. The spell view has a "Back to the list" link
-  at its top. The list is then at the same scroll position, and the
+  list with the spell view. The spell view has a "Back to the list"
+  button with the look of a link at its top. The list is then at the same scroll position, and the
   focus goes to the row.
 * A spell name on the sheet opens the spell view of that spell. The "All
   spells" button opens the list.
-* In the spell view, the "Back to the list" link has the focus, because
+* In the spell view, the "Back to the list" button has the focus, because
   the row is hidden. This is also the focus at the open.
+* When the spell view opens, also at the open, a polite live region says
+  the spell name. The focus on the button does not read it.
+* After an open in the spell view, "Back to the list" scrolls the row into
+  view, because the list has no earlier position.
 * In the list, the arrow keys move the focus and do not change the
   selected spell.
 * The Spell slots block is at the top of the two views, because a user
@@ -617,7 +625,9 @@ row can be a button with the checkbox role, and Space changes it.
 
 * The spell view is a region with the name of the spell. When the
   selected spell changes, a polite live region says the spell name. It
-  says nothing at the open, because the focus on the row reads the name.
+  says nothing at the open in the list, because the focus on the row reads
+  the name. On a phone, it says the name when the spell view opens (see
+  [On a phone](#on-a-phone)).
 * A change of a prepare count is in a polite live region: "Cleric: 9 of
   8 prepared. Remove 1 spell."
 * The failed-save note in the panel has the alert role.

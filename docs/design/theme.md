@@ -210,6 +210,14 @@ The homebrew forms (ORC-195) add these parts. The
 * **Button `wide`** and **Fieldset `look="section"`:** a full-width button
   with the text on the left, and a section title in Inter caps, with a rule
   after it.
+* **Button `plain`** (ORC-285): a button with the look of the text around
+  it: its font and color, no box. A mouse over it underlines its text. Use
+  it for a name in a list that opens more.
+* **ListRow** (ORC-285): a row of a list as a button, the full width,
+  flat, with a hairline under it, and an optional part at its end. It has
+  the panel fill under a mouse or the focus. While it is current
+  (`aria-current`) it has the ink fill and paper text, and its focus ring
+  is paper, inside the row. The rows of the ListModal are ListRows.
 * **Fieldset `action`:** a small control at the end of the section rule,
   for example the "Remove" link of an added modifier (ORC-197). It is not a
   part of the section's name.
@@ -296,7 +304,7 @@ These patterns are in the package. They have no game meaning.
 
 * **Framed box:** a value in a box with its label under it, in Inter caps.
   A small control can be at the end of the label row, on its rule, for
-  example the "All spells" button of the Spellcasting section (ORC-285).
+  example a button that opens more (ORC-285).
 * **Small box:** a small value and label box.
 * **Stat box:** a box with a large value and a hanging oval for a second
   value. The app's ability block uses it.

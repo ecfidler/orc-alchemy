@@ -1,11 +1,14 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import { type ComponentProps, cloneElement, type ReactElement, type ReactNode } from "react";
 
-export type ButtonVariant = "solid" | "ghost" | "link";
+export type ButtonVariant = "solid" | "ghost" | "link" | "plain";
 export type ButtonSize = "small" | "normal" | "large";
 
 export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "className" | "render" | "type" | "nativeButton" | "focusableWhenDisabled"> & {
-  /** "ghost" (the default) is an outlined button, "solid" is filled with ink, "link" looks like a link. */
+  /**
+   * "ghost" (the default) is an outlined button, "solid" is filled with ink, "link" looks like a link. "plain" looks
+   * like the text around it, and its text is underlined under a mouse, for example a name in a list that opens more.
+   */
   variant?: ButtonVariant;
   /** "small" fits in a row of fields, "large" is for the main actions of a page. */
   size?: ButtonSize;
@@ -28,8 +31,8 @@ export function Button({ variant = "ghost", size = "normal", type = "button", cl
       {...props}
       type={type}
       data-variant={variant}
-      data-size={variant === "link" ? undefined : size}
-      data-wide={wide && variant !== "link" ? "" : undefined}
+      data-size={variant === "link" || variant === "plain" ? undefined : size}
+      data-wide={wide && variant !== "link" && variant !== "plain" ? "" : undefined}
       className={className ? `ui-button ${className}` : "ui-button"}
     />
   );
@@ -82,7 +85,7 @@ export function ButtonLink({
   render,
   children,
 }: {
-  variant?: Exclude<ButtonVariant, "link">;
+  variant?: Exclude<ButtonVariant, "link" | "plain">;
   size?: ButtonSize;
   className?: string;
   render: ReactElement<ButtonLinkProps>;

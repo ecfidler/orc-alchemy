@@ -10,6 +10,7 @@ import {
   bonusStr,
   type FeatureSection,
   modStr,
+  type OpenSpells,
   ordinal,
   type Sheet,
   type SheetFeature,
@@ -18,7 +19,7 @@ import {
   type SpendSlots,
   usesDisplay,
 } from "../engine/sheet.ts";
-import { type ListedSpell, type SpellRef, spellGroups } from "../engine/spell-list.ts";
+import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -47,7 +48,7 @@ export function CharacterSheet({
   sheet: Sheet;
   preview?: boolean;
   onSpendSlots?: SpendSlots;
-  onOpenSpells?: (spell?: SpellRef) => void;
+  onOpenSpells?: OpenSpells;
 }) {
   const { spellcasting, features, equipment, details } = sheet;
   const article = useRef<HTMLElement>(null);
@@ -497,7 +498,7 @@ function SpellcastingBox({
   classes: Sheet["classes"];
   narrow: boolean;
   onSpendSlots?: SpendSlots;
-  onOpenSpells?: (spell?: SpellRef) => void;
+  onOpenSpells?: OpenSpells;
 }) {
   const { casters, pact } = spellcasting;
   const lookup = useSpellLookup();
@@ -557,7 +558,7 @@ function SpellcastingBox({
             <CantripLine
               key={source}
               source={source}
-              cantrips={spells.filter((spell) => spell.source === source).sort((a, b) => a.name.localeCompare(b.name))}
+              cantrips={spells.filter((spell) => spell.source === source)}
               caster={casters.find((caster) => caster.name === source)}
               onOpen={onOpenSpells}
             />
@@ -698,11 +699,10 @@ const spentText = (spent: number, count: number) => `${spent} of ${count} spent`
  * A spell name. With `onOpen`, it is a button with the look of plain text that opens the Spells panel at the
  * spell; else it is plain text.
  */
-function SpellName({ spell, onOpen }: { spell: ListedSpell; onOpen: ((spell: SpellRef) => void) | undefined }) {
+function SpellName({ spell, onOpen }: { spell: ListedSpell; onOpen: OpenSpells | undefined }) {
   if (!onOpen) return spell.name;
   return (
-    // The link variant keeps the font of the list; without its line it has the look of plain text.
-    <Button variant="link" onClick={() => onOpen({ key: spell.key, source: spell.source })} className="text-left no-underline hover:underline">
+    <Button variant="plain" onClick={() => onOpen({ key: spell.key, source: spell.source })}>
       {spell.name}
     </Button>
   );
@@ -803,7 +803,7 @@ function CantripLine({
   source: string;
   cantrips: ListedSpell[];
   caster: Caster | undefined;
-  onOpen: ((spell: SpellRef) => void) | undefined;
+  onOpen: OpenSpells | undefined;
 }) {
   const numbers = caster ? [abbr(caster.ability), `DC ${caster.saveDc}`, bonusStr(caster.attackBonus)] : [];
   return (

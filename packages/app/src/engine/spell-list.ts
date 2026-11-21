@@ -91,6 +91,3 @@ export function spellClassLine(classes: Sheet["classes"], spellcasting: Pick<Spe
     .map((c) => `${c.name} ${c.level}`)
     .join(" / ");
 }
-
-/** A known spell by its source and key, for example the spell that the user opens the Spells panel at. */
-export type SpellRef = Pick<KnownSpell, "key" | "source">;

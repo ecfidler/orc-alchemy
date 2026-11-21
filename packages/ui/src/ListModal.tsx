@@ -1,6 +1,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Input } from "@base-ui/react/input";
 import { type KeyboardEvent, type RefObject, useId, useRef, useState } from "react";
+import { ListRow } from "./ListRow.tsx";
 import { useRefocus } from "./refocus.ts";
 
 /** One row of a ListModal or one option of a Picker. */
@@ -186,9 +187,7 @@ function ListBody<T>({
                   const exampleId = `${id}-e${row++}`;
                   return (
                     <li key={nth(`row:${item.group ?? ""}:${item.label}`)}>
-                      <button
-                        type="button"
-                        className="ui-list-row"
+                      <ListRow
                         data-example={item.example ? "" : undefined}
                         aria-label={item.label}
                         aria-describedby={item.example ? exampleId : undefined}
@@ -203,7 +202,7 @@ function ListBody<T>({
                         <span className="ui-list-add" aria-hidden="true">
                           {mark}
                         </span>
-                      </button>
+                      </ListRow>
                     </li>
                   );
                 })}

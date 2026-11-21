@@ -4,10 +4,10 @@
 // is on the right. At 600px and less the panel fills the screen, and the list
 // and the spell view are two views.
 import { Button, Dialog, FramedBox } from "@orc-alchemy/ui";
-import { type ReactNode, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
-import { bonusStr, type Sheet, type Spellcasting } from "../engine/sheet.ts";
-import { type ListedSpell, type SpellRef, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "../engine/spell-list.ts";
+import { bonusStr, type Sheet, type Spellcasting, type SpellRef } from "../engine/sheet.ts";
+import { type ListedSpell, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "../engine/spell-list.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { INITIAL_FOCUS, ROW, SpellList } from "./SpellList.tsx";
 import { SpellView } from "./SpellView.tsx";
@@ -24,8 +24,11 @@ export interface SpellsPanelProps {
   builderHref: string;
 }
 
-/** The attribute that marks the "Back to the list" link of the spell view on a phone. */
+/** The attribute that marks the "Back to the list" button of the spell view on a phone. */
 const BACK = "data-spells-back";
+
+/** How long the message of the live region waits at an open in the spell view. */
+const OPEN_MESSAGE_DELAY_MS = 150;
 
 /** The width at and under which the panel fills the screen and shows one view at a time, as the Dialog does. */
 const PHONE = "(max-width: 600px)";
@@ -43,9 +46,11 @@ const usePhone = () => useSyncExternalStore(subscribePhone, () => window.matchMe
  * focus then goes back to the control that opened it. At the open, the
  * selected row has the focus: the spell of `at`, or else the first spell. On
  * a phone, a panel opened at a spell shows its spell view, and the "Back to
- * the list" link has the focus. The panel is not in the URL.
+ * the list" button has the focus. The panel is not in the URL.
  */
 export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, builderHref }: SpellsPanelProps) {
+  // The two panes, so the initial focus is found in this panel only.
+  const panes = useRef<HTMLDivElement>(null);
   return (
     <Dialog
       open={open}
@@ -55,9 +60,9 @@ export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, bui
       footer={false}
       title="Spells"
       header={<PanelHeader spellcasting={spellcasting} classes={classes} />}
-      initialFocus={() => document.querySelector<HTMLElement>(`[${INITIAL_FOCUS}]`)}
+      initialFocus={() => panes.current?.querySelector<HTMLElement>(`[${INITIAL_FOCUS}]`) ?? null}
     >
-      <PanelBody spellcasting={spellcasting} at={at} builderHref={builderHref} />
+      <PanelBody spellcasting={spellcasting} at={at} builderHref={builderHref} panes={panes} />
     </Dialog>
   );
 }
@@ -120,7 +125,17 @@ function HeaderBox({ label, name, children }: { label: string; name: string; chi
  * The bar and the two panes. The state is new at each open, because the
  * Dialog mounts its body at the open.
  */
-function PanelBody({ spellcasting, at, builderHref }: { spellcasting: Spellcasting; at: SpellRef | undefined; builderHref: string }) {
+function PanelBody({
+  spellcasting,
+  at,
+  builderHref,
+  panes,
+}: {
+  spellcasting: Spellcasting;
+  at: SpellRef | undefined;
+  builderHref: string;
+  panes: RefObject<HTMLDivElement>;
+}) {
   const lookup = useSpellLookup();
   const phone = usePhone();
   const all = spellGroups(spellcasting, lookup);
@@ -139,15 +154,20 @@ function PanelBody({ spellcasting, at, builderHref }: { spellcasting: Spellcasti
   // On a phone the list and the spell view are two views. A panel opened at a spell shows its spell view.
   const [view, setView] = useState<"list" | "spell">(phone && atId !== null ? "spell" : "list");
   const spellView = phone && view === "spell";
-  const [announce, setAnnounce] = useState("");
+  // The live region. `count` changes with each new message, so the same name is said again.
+  const [announce, setAnnounce] = useState({ text: "", count: 0 });
+  const say = (text: string) => setAnnounce((last) => ({ text, count: last.count + 1 }));
   const list = useRef<HTMLDivElement>(null);
-  const listTop = useRef(0);
-  const back = () => document.querySelector<HTMLElement>(`[${BACK}]`);
+  // The scroll position of the list when a tap opened the spell view; null when the panel opened in the spell view.
+  const listTop = useRef<number | null>(null);
+  const back = () => panes.current?.querySelector<HTMLElement>(`[${BACK}]`) ?? null;
+  const builderLink = useRef<HTMLAnchorElement>(null);
 
   const select = (spell: ListedSpell) => {
     if (spellId(spell) === selectedId) return;
     setPicked(spellId(spell));
-    setAnnounce(spell.name);
+    // On a phone the spell view says the name when it opens (below).
+    if (!phone) say(spell.name);
   };
   const onPick = (spell: ListedSpell) => {
     select(spell);
@@ -169,39 +189,67 @@ function PanelBody({ spellcasting, at, builderHref }: { spellcasting: Spellcasti
     if (!spellView) rowOf(selectedId)?.scrollIntoView?.({ block: "nearest" });
     // Only these changes scroll: an arrow key or a click scrolls by itself.
   }, [loaded, query]);
-  // While the spells load, the dialog gives the focus to the first control. When they show, the selected row gets it.
+  // While the spells load, the dialog gives the focus to its fallback: the builder link, the first control of the body
+  // (or the popup on a touch screen). When the spells show, the selected row gets the focus, but only while the user
+  // has not moved it, for example to the X.
   const waitsForRows = useRef(!loaded);
+  const userMoved = useRef(false);
+  useEffect(() => {
+    if (!waitsForRows.current) return;
+    const moved = (event: FocusEvent) => {
+      const target = event.target as Element;
+      if (target !== builderLink.current && !target.matches(".ui-modal")) userMoved.current = true;
+    };
+    document.addEventListener("focusin", moved);
+    return () => document.removeEventListener("focusin", moved);
+  }, []);
   useLayoutEffect(() => {
     if (!loaded || !waitsForRows.current) return;
     waitsForRows.current = false;
-    const active = document.activeElement;
-    if (active instanceof HTMLInputElement) return;
+    if (spellView && selected) say(selected.name);
+    if (userMoved.current) return;
     (spellView ? back() : rowOf(tabStop))?.focus();
   }, [loaded]);
-  // On a phone, the "Back to the list" link of a new spell view gets the focus, as its row is hidden. Back to the
-  // list: the list is at the same scroll position, and the row has the focus. This runs before the paint, so the
-  // focus does not go to the dialog when the focused link goes.
-  const wasSpellView = useRef(spellView);
+  // On a phone, the "Back to the list" button of a new spell view gets the focus, as its row is hidden, and the
+  // live region says the spell name, which the focus on the button does not read. At the open in the spell view the
+  // dialog gives the button the focus. Back to the list: the list is at the same scroll position, and the row has
+  // the focus. After an open in the spell view there is no position, so the row scrolls into view. This runs before
+  // the paint, so the focus does not go to the dialog when the focused button goes.
+  const wasSpellView = useRef<boolean | null>(null);
   useLayoutEffect(() => {
+    const opened = wasSpellView.current === null;
     if (spellView === wasSpellView.current) return;
     wasSpellView.current = spellView;
     if (spellView) {
-      back()?.focus({ preventScroll: true });
+      // A live region that has just shown can miss a message, so at the open the message waits a moment. While the
+      // spells load the name is not known yet; the effect above says it when they show.
+      const name = selected?.name;
+      if (opened && loaded && name) setTimeout(() => say(name), OPEN_MESSAGE_DELAY_MS);
+      if (!opened) {
+        if (name) say(name);
+        back()?.focus({ preventScroll: true });
+      }
       return;
     }
-    if (list.current) list.current.scrollTop = listTop.current;
-    rowOf(selectedId)?.focus({ preventScroll: true });
+    if (opened) return;
+    const row = rowOf(selectedId);
+    if (listTop.current === null) row?.scrollIntoView?.({ block: "nearest" });
+    else if (list.current) list.current.scrollTop = listTop.current;
+    row?.focus({ preventScroll: true });
   }, [spellView]);
 
   return (
     <>
       {/* The prepare count and the "Prepare spells" button go on the left of the bar later (ORC-287). */}
       <div className="flex flex-none flex-wrap items-center gap-x-4 gap-y-1 bg-panel px-[18px] py-2 font-sans text-[13px] max-[600px]:px-4">
-        <Link to={builderHref} className="ml-auto underline underline-offset-2">
+        <Link ref={builderLink} to={builderHref} className="ml-auto underline underline-offset-2">
           Change known spells in the builder
         </Link>
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(240px,340px)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] max-[600px]:grid-cols-[minmax(0,1fr)]">
+      <div
+        ref={panes}
+        className="grid min-h-0 flex-1 grid-cols-[minmax(240px,340px)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] max-[600px]:grid-cols-[minmax(0,1fr)]"
+      >
         <div
           ref={list}
           data-pane="list"
@@ -227,16 +275,21 @@ function PanelBody({ spellcasting, at, builderHref }: { spellcasting: Spellcasti
               Back to the list
             </Button>
           )}
-          {selected ? (
-            <SpellView name={selected.name} spell={lookup?.(selected.key)} castNote={selected.castNote} />
+          {/* While the spell chunk loads there is no record yet, so the view waits: it would say "no text". */}
+          {!loaded ? (
+            spellView && <p className="text-ink-muted">Loading spells…</p>
+          ) : selected ? (
+            <SpellView name={selected.name} spell={lookup(selected.key)} castNote={selected.castNote} />
           ) : (
-            loaded && <p className="text-ink-muted">Select a spell to read it.</p>
+            <p className="text-ink-muted">Select a spell to read it.</p>
           )}
         </div>
       </div>
       {/* The name of a new selected spell, for a screen reader. */}
       <p aria-live="polite" className="sr-only">
-        {announce}
+        {/* A no-break space on every second message makes the same name a new message. */}
+        {announce.text}
+        {announce.count > 0 && announce.count % 2 === 0 && "\u00a0"}
       </p>
     </>
   );

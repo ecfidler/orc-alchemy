@@ -214,15 +214,20 @@ test("on a phone, a row opens the spell view, and Back to the list goes back to 
   await expect(row(page, "Spirit Guardians")).toHaveAttribute("aria-current", "true");
 });
 
-test("on a phone, a spell name opens the spell view of that spell", async ({ page }) => {
+test("on a phone, a spell name opens the spell view of that spell, says its name, and Back shows its row", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await importFile(page, "life-cleric-9.strict.json");
   await page.getByRole("tab", { name: "Spells" }).click();
-  await page.getByRole("group", { name: "Spellcasting", exact: true }).getByRole("button", { name: "Aid" }).click();
-  await expect(viewHeading(page)).toHaveText("Aid");
+  // The last spell: its row is far down the list.
+  await page.getByRole("group", { name: "Spellcasting", exact: true }).getByRole("button", { name: "Raise Dead" }).click();
+  await expect(viewHeading(page)).toHaveText("Raise Dead");
   await expect(panel(page).getByRole("button", { name: "Back to the list" })).toBeFocused();
+  // The focus on the button does not read the spell, so the live region says it.
+  await expect(panel(page).locator("[aria-live=polite]")).toHaveText("Raise Dead");
   await panel(page).getByRole("button", { name: "Back to the list" }).click();
-  await expect(row(page, "Aid")).toBeFocused();
+  await expect(row(page, "Raise Dead")).toBeFocused();
+  // The list had no position yet, so the row scrolls into view.
+  await expect(row(page, "Raise Dead")).toBeInViewport();
 });
 
 test("at 320px the panel does not scroll sideways, in the list and in the spell view", async ({ page }) => {

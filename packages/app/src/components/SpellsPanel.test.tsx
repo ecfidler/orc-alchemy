@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { Button } from "@orc-alchemy/ui";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
+import type { SpellRef } from "../engine/sheet.ts";
 import { type KnownSpell, type Sheet, type Spellcasting, toSheet } from "../engine/sheet.ts";
-import type { SpellRef } from "../engine/spell-list.ts";
 import { loadSpellContent } from "../engine/spells.ts";
 import { SpellsPanel } from "./SpellsPanel.tsx";
 
@@ -101,7 +103,7 @@ test("the arrow keys, Home and End move the focus and the selection, and a live 
   expect(document.activeElement).toBe(row(dialog, "Light"));
   expect(row(dialog, "Light").getAttribute("aria-current")).toBe("true");
   expect(viewName(dialog)).toBe("Light");
-  expect(live.textContent).toBe("Light");
+  expect(liveText(dialog)).toBe("Light");
   fireEvent.keyDown(document.activeElement!, { key: "End" });
   expect(document.activeElement).toBe(row(dialog, "Raise Dead"));
   fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
@@ -170,26 +172,79 @@ test("with no spell to show, the spell view says to select a spell, and a level 
   expect(within(dialog).queryByText("No spells match.")).toBeNull();
 });
 
-test("while the spell chunk loads, the list says so, and the selected row gets the focus when the spells show", async () => {
+/** Makes the window a phone: 600px and less. */
+const asPhone = () =>
+  vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(max-width: 600px)", addEventListener() {}, removeEventListener() {} }));
+
+/** The text of the live region, without the no-break space that marks a repeated message. */
+const liveText = (dialog: HTMLElement) => dialog.querySelector("[aria-live=polite]")!.textContent!.replace(/\u00a0/g, "");
+
+/**
+ * The panel of a new page load, whose spell chunk loads only when `release` is called. `phone` makes the window a
+ * phone first. Returns the dialog and `release`, which resolves when the spells are in.
+ */
+async function renderLoading(at?: SpellRef) {
   vi.resetModules();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  vi.doMock("@pubdoor/dmv/content/spells.json", async () => {
+    await gate;
+    return vi.importActual("@pubdoor/dmv/content/spells.json");
+  });
   const { SpellsPanel: FreshPanel } = await import("./SpellsPanel.tsx");
   const { loadSpellContent: freshLoad } = await import("../engine/spells.ts");
   const sheet = cleric();
   const router = createMemoryRouter(
-    [{ path: "/", element: <FreshPanel open onOpenChange={() => {}} spellcasting={sheet.spellcasting!} classes={sheet.classes} builderHref="/b" /> }],
+    [{ path: "/", element: <FreshPanel open onOpenChange={() => {}} spellcasting={sheet.spellcasting!} classes={sheet.classes} at={at} builderHref="/b" /> }],
     { initialEntries: ["/"] },
   );
   render(<RouterProvider router={router} />);
-  // The chunk is not loaded yet when the panel first renders.
-  expect(screen.getByRole("status").textContent).toBe("Loading spells…");
   const dialog = await screen.findByRole("dialog", { name: "Spells" });
-  await act(() => freshLoad());
+  return {
+    dialog,
+    load: async () => {
+      release();
+      await act(() => freshLoad());
+      vi.doUnmock("@pubdoor/dmv/content/spells.json");
+    },
+  };
+}
+
+test("while the spell chunk loads, the list says so, the spell view waits, and the selected row gets the focus when the spells show", async () => {
+  const { dialog, load } = await renderLoading();
+  expect(within(dialog).getByRole("status").textContent).toBe("Loading spells…");
+  // No record yet: the spell view does not say that the app has no text.
+  expect(within(dialog).queryByText("The app has no text for this spell.")).toBeNull();
+  expect(dialog.querySelector("[data-pane=spell]")!.textContent).toBe("");
+  // The dialog gives the focus to its first control meanwhile, the builder link.
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("link", { name: "Change known spells in the builder" })));
+  await load();
   await waitFor(() => expect(document.activeElement).toBe(row(dialog, "Guidance")));
+  expect(viewName(dialog)).toBe("Guidance");
 });
 
-/** Makes the window a phone: 600px and less. */
-const asPhone = () =>
-  vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(max-width: 600px)", addEventListener() {}, removeEventListener() {} }));
+test("a focus that the user moved while the spells load stays where the user put it", async () => {
+  const { dialog, load } = await renderLoading();
+  const close = within(dialog).getByRole("button", { name: "Close" });
+  await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  close.focus();
+  await load();
+  await within(dialog).findAllByRole("button", { name: /^Guidance/ });
+  expect(document.activeElement).toBe(close);
+});
+
+test("on a phone, opened at a spell while the spells load, the spell view says Loading spells…, then shows the spell and says its name", async () => {
+  asPhone();
+  const { dialog, load } = await renderLoading({ key: "aid", source: "Cleric" });
+  const pane = dialog.querySelector<HTMLElement>("[data-pane=spell]")!;
+  expect(within(pane).getByText("Loading spells…")).toBeTruthy();
+  expect(within(pane).queryByText("The app has no text for this spell.")).toBeNull();
+  await load();
+  await waitFor(() => expect(viewName(dialog)).toBe("Aid"));
+  expect(liveText(dialog)).toBe("Aid");
+});
 
 test("on a phone a row replaces the list with the spell view, and Back to the list gives the focus to the row", async () => {
   asPhone();
@@ -221,4 +276,66 @@ test("on a phone, opened at a spell, the panel shows its spell view with the foc
   const dialog = await renderPanel(cleric(), { key: "aid", source: "Cleric" });
   expect(viewName(dialog)).toBe("Aid");
   await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Back to the list" })));
+});
+
+test("on a phone, opened at a spell, the live region says its name, and Back to the list scrolls the row into view", async () => {
+  asPhone();
+  const scrolled: Element[] = [];
+  Element.prototype.scrollIntoView = function (this: Element) {
+    scrolled.push(this);
+  };
+  try {
+    const dialog = await renderPanel(cleric(), { key: "raise-dead", source: "Cleric" });
+    // The focus on the Back button does not read the spell, so the live region says it.
+    await waitFor(() => expect(liveText(dialog)).toBe("Raise Dead"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Back to the list" }));
+    // No position was kept, as the list did not show before: the row scrolls into view.
+    expect(scrolled).toContain(row(dialog, "Raise Dead"));
+    expect(document.activeElement).toBe(row(dialog, "Raise Dead"));
+  } finally {
+    // jsdom has no scrollIntoView.
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+  }
+});
+
+test("on a phone, a tap on the selected row opens its spell view, and the live region says its name again", async () => {
+  asPhone();
+  const dialog = await renderPanel(cleric());
+  const live = dialog.querySelector("[aria-live=polite]")!;
+  fireEvent.click(row(dialog, "Guidance"));
+  expect(viewName(dialog)).toBe("Guidance");
+  expect(liveText(dialog)).toBe("Guidance");
+  const first = live.textContent;
+  fireEvent.click(within(dialog).getByRole("button", { name: "Back to the list" }));
+  fireEvent.click(row(dialog, "Guidance"));
+  // The same name, as a new message: the text of the region changed.
+  expect(liveText(dialog)).toBe("Guidance");
+  expect(live.textContent).not.toBe(first);
+});
+
+test("a reopen starts again: the search is empty and the first spell is selected", async () => {
+  function Reopen() {
+    const [open, setOpen] = useState(false);
+    const sheet = cleric();
+    return (
+      <>
+        <Button onClick={() => setOpen(true)}>Open spells</Button>
+        <SpellsPanel open={open} onOpenChange={setOpen} spellcasting={sheet.spellcasting!} classes={sheet.classes} builderHref="/b" />
+      </>
+    );
+  }
+  render(<RouterProvider router={createMemoryRouter([{ path: "/", element: <Reopen /> }], { initialEntries: ["/"] })} />);
+  fireEvent.click(screen.getByRole("button", { name: "Open spells" }));
+  let dialog = await screen.findByRole("dialog", { name: "Spells" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: "Search spells" }), { target: { value: "heal" } });
+  fireEvent.click(row(dialog, "Prayer of Healing"));
+  expect(rowNames(dialog)).toEqual(["Healing Word", "Prayer of Healing"]);
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Open spells" }));
+  dialog = await screen.findByRole("dialog", { name: "Spells" });
+  expect((within(dialog).getByRole("textbox", { name: "Search spells" }) as HTMLInputElement).value).toBe("");
+  expect(rowNames(dialog)).toHaveLength(22);
+  expect(row(dialog, "Guidance").getAttribute("aria-current")).toBe("true");
+  expect(viewName(dialog)).toBe("Guidance");
 });

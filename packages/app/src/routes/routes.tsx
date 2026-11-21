@@ -3,7 +3,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useBlocker, useParams, useSearchParams } from "react-router";
 import { AppShell } from "../components/AppShell.tsx";
-import { Builder } from "../components/Builder.tsx";
+import { Builder, SPELLS_STEP } from "../components/Builder.tsx";
 import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
 import { CharacterSheet } from "../components/CharacterSheet.tsx";
 import { DmvExporter } from "../components/DmvExporter.tsx";
@@ -19,8 +19,7 @@ import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
-import type { Sheet } from "../engine/sheet.ts";
-import type { SpellRef } from "../engine/spell-list.ts";
+import type { Sheet, SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
@@ -161,7 +160,7 @@ function SheetPage() {
               spellcasting={sheet.spellcasting}
               classes={sheet.classes}
               at={spells.at}
-              builderHref={`/build/${openId}?step=Spells`}
+              builderHref={`/build/${openId}?step=${SPELLS_STEP}`}
             />
           )}
         </>

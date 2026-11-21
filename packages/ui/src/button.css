@@ -46,6 +46,20 @@
     text-decoration: underline;
     text-underline-offset: 2px;
   }
+  /* Plain: the look of the text around it, with a line under a mouse. */
+  .ui-button:where([data-variant="plain"]) {
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    text-underline-offset: 2px;
+  }
+  .ui-button:where([data-variant="plain"]:not([data-disabled]):hover) {
+    text-decoration: underline;
+  }
   .ui-button:where([data-variant="link"][data-disabled]) {
     color: var(--ink-muted);
   }

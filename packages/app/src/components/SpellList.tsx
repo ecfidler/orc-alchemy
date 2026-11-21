@@ -6,7 +6,7 @@
 // headings. A listbox does not fit: the level headings get slot controls
 // later (ORC-286), and a listbox can hold only options. In prepare mode
 // (ORC-287) a row can be a checkbox button with Space, in the same pattern.
-import { Button, Label, TextInput } from "@orc-alchemy/ui";
+import { Label, ListRow, TextInput } from "@orc-alchemy/ui";
 import { type KeyboardEvent, useId } from "react";
 import { type ListedSpell, levelHeading, type SpellGroup, spellId } from "../engine/spell-list.ts";
 import type { SpellLookup } from "../engine/spell-records.ts";
@@ -155,21 +155,18 @@ function Row({
   const record = lookup(spell.key)?.record;
   const concentration = record?.duration ? durationParts(record.duration).concentration : false;
   return (
-    // The link variant has no box and keeps the font of the list. It also has no fill, so the row sets its own.
-    <Button
-      variant="link"
+    // The package row: the panel fill under a mouse, and the ink fill and a paper focus ring while it is current.
+    <ListRow
       {...{ [ROW]: spellId(spell), [INITIAL_FOCUS]: initial ? "" : undefined }}
       tabIndex={tabStop ? 0 : -1}
       aria-current={selected ? "true" : undefined}
       onClick={() => onPick(spell)}
       onFocus={() => onFocusRow(spell)}
-      className={`flex w-full items-center gap-2 border-b border-rule py-[5px] pr-1.5 pl-1.5 text-left no-underline ${
-        selected ? "bg-ink text-paper [--focus-ring:var(--paper)] focus-visible:outline-offset-[-4px]" : "hover:bg-panel focus-visible:outline-offset-[-2px]"
-      }`}
+      className="gap-x-2 px-1.5 py-[5px]"
     >
       <span className="min-w-0 [overflow-wrap:anywhere]">{spell.name}</span>
       {(record?.ritual || concentration) && (
-        <span className="ml-auto flex flex-none gap-1">
+        <span className="flex gap-1">
           {record?.ritual && <BoxTag onInk={selected}>Ritual</BoxTag>}
           {concentration && (
             <BoxTag onInk={selected} label="Concentration">
@@ -178,6 +175,6 @@ function Row({
           )}
         </span>
       )}
-    </Button>
+    </ListRow>
   );
 }

@@ -135,6 +135,12 @@
     /* Inside the row: the list scrolls and clips an outline outside the row. */
     outline-offset: -3px;
   }
+  /* The current row: the ink fill, paper text and a paper focus ring, as a current ghost button is solid. After the hover, so it wins. */
+  .ui-list-row:where([aria-current]:not([aria-current="false"])) {
+    --focus-ring: var(--paper);
+    color: var(--paper);
+    background: var(--ink);
+  }
   .ui-list-none {
     margin: 0;
     padding: 12px 20px;
