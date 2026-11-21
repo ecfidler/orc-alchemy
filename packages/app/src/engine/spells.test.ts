@@ -5,7 +5,18 @@ import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { setQuantity } from "./equipment.ts";
 import { characterFile, readCharacterFile } from "./import.ts";
 import { toSheet } from "./sheet.ts";
-import { loadSpellContent, preparedSpells, setPrepared, setSpentSlots, slotPositions, spellLevelOf, spentSlots } from "./spells.ts";
+import {
+  loadSpellContent,
+  pactSlots,
+  pactSlotsAt,
+  preparedSpells,
+  setPrepared,
+  setSpentSlots,
+  slotLayout,
+  slotPositions,
+  spellLevelOf,
+  spentSlots,
+} from "./spells.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 const readJson = (file: string) => JSON.parse(readFileSync(join(charactersDir, file), "utf8"));
@@ -166,12 +177,13 @@ test("spellLevelOf reads the SRD level, else the name's prefix", async () => {
 const SLOTS_USED = "orcpub.dnd.e5.spells/slots-used";
 const slotKey = (level: number) => `~:orcpub.dnd.e5.spells/slots-${level}`;
 const valuesOf = (entity: StrictEntity) => JSON.parse(JSON.stringify(entity))["~:orcpub.entity.strict/values"] as Record<string, unknown>;
-const storedSlots = (entity: StrictEntity) => valuesOf(entity)[`~:${SLOTS_USED}`];
+const storedSlots = (entity: StrictEntity) => (valuesOf(entity) ?? {})[`~:${SLOTS_USED}`];
 const legacyDir = join(import.meta.dirname, "../../../../fixtures/legacy");
 /** The spent slots of each level, as the sheet gives them. */
 const spentOf = (entity: StrictEntity) =>
   toSheet(engine().evaluate(entity).built, entity).spellcasting!.slots.map(({ level, count, spent }) => [level, spent, count]);
-const totalsOf = (entity: StrictEntity) => toSheet(engine().evaluate(entity).built, entity).spellcasting!.slots;
+/** The slot groups of the sheet, which setSpentSlots takes. */
+const layoutOf = (entity: StrictEntity) => toSheet(engine().evaluate(entity).built, entity).spellcasting!;
 /** The whole stored entity, with these spent slots in its values and nothing else changed; no slots-used key without them. */
 const withSlots = (entity: StrictEntity, slotsUsed?: object) => {
   const copy = JSON.parse(JSON.stringify(entity));
@@ -190,10 +202,10 @@ test("wizard-5: a spent slot is written as a clean set for each level, read back
     [2, 0, 3],
     [3, 0, 2],
   ]);
-  const totals = totalsOf(wizard);
+  const layout = layoutOf(wizard);
 
-  let entity = setSpentSlots(e, wizard, totals, 1, 2);
-  entity = setSpentSlots(e, entity, totals, 3, 1);
+  let entity = setSpentSlots(e, wizard, layout, 1, 2);
+  entity = setSpentSlots(e, entity, layout, 3, 1);
   // The whole record: the write changes only the spent slots.
   expect(entity).toEqual(withSlots(wizard, { [slotKey(1)]: { "~#set": [0, 1] }, [slotKey(3)]: { "~#set": [0] } }));
   expect(spentOf(entity)).toEqual([
@@ -202,16 +214,16 @@ test("wizard-5: a spent slot is written as a clean set for each level, read back
     [3, 1, 2],
   ]);
   // One less: the last position goes. A level with none is not written.
-  entity = setSpentSlots(e, entity, totals, 1, 1);
-  entity = setSpentSlots(e, entity, totals, 3, 0);
+  entity = setSpentSlots(e, entity, layout, 1, 1);
+  entity = setSpentSlots(e, entity, layout, 3, 0);
   expect(storedSlots(entity)).toEqual({ [slotKey(1)]: { "~#set": [0] } });
   // No spent slot at all: the value {} removes the key.
-  entity = setSpentSlots(e, entity, totals, 1, 0);
+  entity = setSpentSlots(e, entity, layout, 1, 0);
   expect(entity).toEqual(withSlots(wizard));
   expect(Object.hasOwn(valuesOf(entity), `~:${SLOTS_USED}`)).toBe(false);
   // The number stays between 0 and the total.
-  expect(storedSlots(setSpentSlots(e, wizard, totals, 2, 7))).toEqual({ [slotKey(2)]: { "~#set": [0, 1, 2] } });
-  expect(storedSlots(setSpentSlots(e, wizard, totals, 2, -1))).toBeUndefined();
+  expect(storedSlots(setSpentSlots(e, wizard, layout, 2, 7))).toEqual({ [slotKey(2)]: { "~#set": [0, 1, 2] } });
+  expect(storedSlots(setSpentSlots(e, wizard, layout, 2, -1))).toBeUndefined();
 });
 
 test("a stored position past the slot total does not show and is not counted, and a gap counts", () => {
@@ -230,7 +242,7 @@ test("a stored position past the slot total does not show and is not counted, an
   ]);
   expect(spentSlots(slotPositions(entity), 3, 2)).toBe(1);
   // The next change writes clean sets, and leaves out what is past the totals.
-  expect(storedSlots(setSpentSlots(e, entity, totalsOf(entity), 2, 1))).toEqual({
+  expect(storedSlots(setSpentSlots(e, entity, layoutOf(entity), 2, 1))).toEqual({
     [slotKey(1)]: { "~#set": [0, 1] },
     [slotKey(2)]: { "~#set": [0] },
     [slotKey(3)]: { "~#set": [0] },
@@ -252,7 +264,7 @@ test("r3-slots-used-vectors: the vectors read as spent slots, and the next chang
   expect(storedSlots(imported)).toEqual({ "~i1": { "~#set": [1, 3] }, "~i2": { "~#set": [2] } });
   expect(spentOf(imported)).toEqual(spentOf(r3));
 
-  const changed = setSpentSlots(e, r3, totalsOf(r3), 1, 3);
+  const changed = setSpentSlots(e, r3, layoutOf(r3), 1, 3);
   expect(storedSlots(changed)).toEqual({ [slotKey(1)]: { "~#set": [0, 1, 2] }, [slotKey(2)]: { "~#set": [0] } });
   expect(spentOf(changed)).toEqual([
     [1, 3, 4],
@@ -264,8 +276,8 @@ test("r3-slots-used-vectors: the vectors read as spent slots, and the next chang
 test("an export and an import keep the spent slots", () => {
   const e = engine();
   const wizard: StrictEntity = readJson("wizard-5.strict.json");
-  const totals = totalsOf(wizard);
-  const entity = setSpentSlots(e, setSpentSlots(e, wizard, totals, 1, 3), totals, 2, 1);
+  const layout = layoutOf(wizard);
+  const entity = setSpentSlots(e, setSpentSlots(e, wizard, layout, 1, 3), layout, 2, 1);
   const text = JSON.stringify(characterFile({ name: "Wizard", entity }));
   const [character] = readCharacterFile(text).characters;
   // The whole strict values of the imported entity are those of the exported one.
@@ -276,4 +288,163 @@ test("an export and an import keep the spent slots", () => {
     [2, 1, 3],
     [3, 0, 2],
   ]);
+});
+
+// Pact Magic slots (ORC-283, docs/design/spells-panel.md "Pact Magic slots").
+
+/** The spec's table of pact slots: warlock levels, pact slots, slot level. */
+const PACT_TABLE: [levels: number[], count: number, slotLevel: number][] = [
+  [[1], 1, 1],
+  [[2], 2, 1],
+  [[3, 4], 2, 2],
+  [[5, 6], 2, 3],
+  [[7, 8], 2, 4],
+  [[9, 10], 2, 5],
+  [[11, 12, 13, 14, 15, 16], 3, 5],
+  [[17, 18, 19, 20], 4, 5],
+];
+
+/** A character of these classes and levels, with Charisma 15 for the multiclass rule, built by the builder's calls. */
+function buildClasses(classes: [key: string, level: number][], picks: [path: string[], keys: string[]][] = []): StrictEntity {
+  const e = engine();
+  let entity = e.setField(
+    e.emptyCharacter(),
+    ["ability-scores", "standard-scores"],
+    Object.fromEntries(Object.entries({ str: 8, dex: 14, con: 13, int: 13, wis: 13, cha: 15 }).map(([a, n]) => [q(a), n])),
+  );
+  classes.forEach(([key, level], i) => {
+    entity = i === 0 ? e.setClass(entity, 0, key) : e.addClass(entity, key);
+    for (let n = 2; n <= level; n++) entity = e.addLevel(entity, key);
+  });
+  for (const [path, keys] of picks) for (const key of keys) entity = e.select(entity, path, key);
+  return entity;
+}
+
+test.each(PACT_TABLE)(
+  "warlock levels %j have %i pact slots of level %i, as the engine adds them",
+  (levels, count, slotLevel) => {
+    for (const level of levels) {
+      expect(pactSlotsAt(level)).toEqual({ count, slotLevel });
+      // The engine's slot total of a warlock with no other caster class is the pact slots.
+      const built = engine().evaluate(buildClasses([["warlock", level]])).built;
+      expect(built["spell-slots"]).toEqual({ [slotLevel]: count });
+      expect(pactSlots(built)).toEqual({ count, slotLevel });
+      expect(slotLayout(built)).toEqual({ slots: [], pact: { count, slotLevel } });
+    }
+  },
+  30_000,
+);
+
+test("no Pact Magic gives no pact slots", () => {
+  expect(pactSlotsAt(0)).toBeNull();
+  expect(pactSlotsAt(21)).toBeNull();
+  const wizard = readJson("wizard-5.expected.json");
+  expect(wizard["pact-magic?"]).toBeNull();
+  expect(pactSlots(wizard)).toBeNull();
+  expect(slotLayout(wizard).pact).toBeNull();
+  // Pact Magic with no warlock level, which the engine does not make: no pact slots.
+  expect(pactSlots({ "pact-magic?": true, levels: {} })).toBeNull();
+});
+
+/** A warlock 10 with sorcerer 9, with spells of each class, so that the sheet has a Spellcasting section. */
+const warlockSorcerer = () =>
+  buildClasses(
+    [
+      ["warlock", 10],
+      ["sorcerer", 9],
+    ],
+    [
+      [
+        ["class", "warlock", "warlock-cantrips-known"],
+        ["eldritch-blast", "minor-illusion"],
+      ],
+      [
+        ["class", "warlock", "warlock-spells-known"],
+        ["hellish-rebuke", "misty-step", "hold-monster"],
+      ],
+      [["class", "sorcerer", "sorcerer-cantrips-known"], ["fire-bolt"]],
+      [
+        ["class", "sorcerer", "sorcerer-spells-known"],
+        ["shield", "fireball", "cone-of-cold"],
+      ],
+    ],
+  );
+
+test("e2e/warlock-10-sorcerer-9.strict.json is this character, by the builder's calls, with a name", () => {
+  const file = JSON.parse(readFileSync(join(import.meta.dirname, "../../e2e/warlock-10-sorcerer-9.strict.json"), "utf8"));
+  expect(file).toEqual(JSON.parse(JSON.stringify(engine().setValue(warlockSorcerer(), "character-name", "Vex Arden"))));
+}, 20_000);
+
+test("a warlock 10 with sorcerer 9 has one other 5th-level slot and two pact slots", () => {
+  const entity = warlockSorcerer();
+  const built = engine().evaluate(entity).built;
+  expect(built["pact-magic?"]).toBe(true);
+  expect(built.levels.warlock!["class-level"]).toBe(10);
+  expect(built["spell-slots"]).toEqual({ "1": 4, "2": 3, "3": 3, "4": 3, "5": 3 });
+  const { slots, pact } = toSheet(built, entity).spellcasting!;
+  expect(slots).toEqual([
+    { level: 1, count: 4, spent: 0 },
+    { level: 2, count: 3, spent: 0 },
+    { level: 3, count: 3, spent: 0 },
+    { level: 4, count: 3, spent: 0 },
+    { level: 5, count: 1, spent: 0 },
+  ]);
+  expect(pact).toEqual({ slotLevel: 5, count: 2, spent: 0 });
+}, 20_000);
+
+test("a spent pact slot and a spent other slot of the same level are written apart, and read back apart", () => {
+  const e = engine();
+  const entity = warlockSorcerer();
+  const layout = layoutOf(entity);
+  // One other 5th-level slot (position 0) and two pact slots (positions 1 and 2).
+  let changed = setSpentSlots(e, entity, layout, "pact", 1);
+  expect(storedSlots(changed)).toEqual({ [slotKey(5)]: { "~#set": [1] } });
+  changed = setSpentSlots(e, changed, layout, 5, 1);
+  changed = setSpentSlots(e, changed, layout, 2, 2);
+  // The whole record: the writes change only the spent slots.
+  const expected = JSON.parse(JSON.stringify(entity));
+  expected["~:orcpub.entity.strict/values"] = {
+    ...expected["~:orcpub.entity.strict/values"],
+    [`~:${SLOTS_USED}`]: { [slotKey(2)]: { "~#set": [0, 1] }, [slotKey(5)]: { "~#set": [0, 1] } },
+  };
+  expect(JSON.parse(JSON.stringify(changed))).toEqual(expected);
+  const { slots, pact } = layoutOf(changed);
+  expect(slots.find((slot) => slot.level === 5)).toEqual({ level: 5, count: 1, spent: 1 });
+  expect(pact).toEqual({ slotLevel: 5, count: 2, spent: 1 });
+
+  // The pact slots and the other slot change apart: positions 0 to k - 1 and n to n + j - 1.
+  expect(storedSlots(setSpentSlots(e, changed, layout, 5, 0))).toEqual({ [slotKey(2)]: { "~#set": [0, 1] }, [slotKey(5)]: { "~#set": [1] } });
+  expect(storedSlots(setSpentSlots(e, changed, layout, "pact", 2))).toEqual({ [slotKey(2)]: { "~#set": [0, 1] }, [slotKey(5)]: { "~#set": [0, 1, 2] } });
+  expect(storedSlots(setSpentSlots(e, changed, layout, "pact", 9))).toEqual({ [slotKey(2)]: { "~#set": [0, 1] }, [slotKey(5)]: { "~#set": [0, 1, 2] } });
+  const none = setSpentSlots(e, setSpentSlots(e, setSpentSlots(e, changed, layout, "pact", 0), layout, 5, 0), layout, 2, 0);
+  expect(storedSlots(none)).toBeUndefined();
+}, 20_000);
+
+test("the pact slots are read from their range only: a gap counts, and a position past the range does not", () => {
+  const e = engine();
+  const entity = warlockSorcerer();
+  const fifth = (positions: number[]) => {
+    const { slots, pact } = layoutOf(e.setValue(entity, SLOTS_USED, { [slotKey(5)]: { "~#set": positions } }));
+    return [slots.find((slot) => slot.level === 5)!.spent, pact!.spent];
+  };
+  // One other 5th-level slot (position 0) and two pact slots (positions 1 and 2).
+  expect(fifth([2, 5])).toEqual([0, 1]);
+  // A record from before the pact slots were apart has positions 0 to k - 1: the other slot first, then the pact slots.
+  expect(fifth([0])).toEqual([1, 0]);
+  expect(fifth([0, 1, 2])).toEqual([1, 2]);
+}, 20_000);
+
+test("warlock-10-drow: its pact slots are positions 0 and 1 of the 5th level, as it has no other 5th-level slot", () => {
+  const e = engine();
+  const warlock: StrictEntity = readJson("warlock-10-drow.strict.json");
+  const layout = layoutOf(warlock);
+  expect(layout.slots).toEqual([]);
+  expect(layout.pact).toEqual({ slotLevel: 5, count: 2, spent: 0 });
+  const changed = setSpentSlots(e, warlock, layout, "pact", 1);
+  const expected = JSON.parse(JSON.stringify(warlock));
+  expected["~:orcpub.entity.strict/values"] = { ...expected["~:orcpub.entity.strict/values"], [`~:${SLOTS_USED}`]: { [slotKey(5)]: { "~#set": [0] } } };
+  expect(JSON.parse(JSON.stringify(changed))).toEqual(expected);
+  expect(layoutOf(changed).pact).toEqual({ slotLevel: 5, count: 2, spent: 1 });
+  // A write of another group has none here: the pact slots stay.
+  expect(storedSlots(setSpentSlots(e, changed, layout, 5, 1))).toEqual({ [slotKey(5)]: { "~#set": [0] } });
 });

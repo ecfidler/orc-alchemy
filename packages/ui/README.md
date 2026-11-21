@@ -220,6 +220,8 @@ bun run test       # vitest
     - `SlotCircles`: `count` plain circles; the first `marked` fill solid
       in `color` ("ink", "success" or "caution"). A `marked` above `count`
       marks them all. `size="small"` draws 12px circles closer together.
+      `shape="diamond"` draws each circle as a diamond of the same size,
+      with the same rules, to set one group apart from others.
       Without `onChange` it takes no clicks, and it is an image named
       "{label}: {marked} of {count}". With `onChange(marked)`, the user
       changes it by the rule "one more, one less": a click on an empty

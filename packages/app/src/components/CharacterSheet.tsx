@@ -33,8 +33,8 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
 
 /**
  * `preview`: the builder's preview leaves out what only matters in play (temporary hit points, death saves).
- * `onSpendSlots`: the user changes the spent slots of a level to `spent` (ORC-282). Without it, the slot
- * circles show the spent slots and cannot change, as in the builder preview.
+ * `onSpendSlots`: the user changes the spent slots of a level, or the pact slots, to `spent` (ORC-282, ORC-283).
+ * Without it, the slot circles and diamonds show the spent slots and cannot change, as in the builder preview.
  */
 export function CharacterSheet({ sheet, preview = false, onSpendSlots }: { sheet: Sheet; preview?: boolean; onSpendSlots?: SpendSlots }) {
   const { spellcasting, features, equipment, details } = sheet;
@@ -468,6 +468,8 @@ function RowBox({ label, shortLabel, shield = false, children }: { label: string
  * Each spell shows the name from its record, or the name from its key when it
  * has no record (ORC-280). Until the SRD spells load, the section shows its
  * levels and slots, and no spell names, so a wrong name never shows.
+ * The Pact Magic slots are apart, as diamonds after the circles in the row
+ * of their slot level (ORC-283).
  */
 function SpellcastingBox({
   spellcasting,
@@ -480,7 +482,7 @@ function SpellcastingBox({
   narrow: boolean;
   onSpendSlots?: SpendSlots;
 }) {
-  const { casters, slots, byLevel } = spellcasting;
+  const { casters, slots, pact, byLevel } = spellcasting;
   const lookup = useSpellLookup();
   const classNames = new Set(classes.map((c) => c.name));
   const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
@@ -496,7 +498,7 @@ function SpellcastingBox({
   const several = sources.length > 1;
   const title = several ? "Spells" : prepares.get(sources[0]!) ? "Prepared spells" : "Known spells";
   const groups = casterGroups(casters.filter((caster) => !lines.has(caster.name)));
-  const rows = [...new Set([...slots.map((slot) => slot.level), ...byLevel.map((row) => row.level)])]
+  const rows = [...new Set([...slots.map((slot) => slot.level), ...(pact ? [pact.slotLevel] : []), ...byLevel.map((row) => row.level)])]
     .sort((a, b) => a - b)
     .map((level) => {
       const slot = slots.find((s) => s.level === level);
@@ -504,6 +506,7 @@ function SpellcastingBox({
         level,
         slots: slot?.count ?? 0,
         spent: slot?.spent ?? 0,
+        pact: pact?.slotLevel === level ? pact : null,
         spells: spells
           .filter((spell) => spell.level === level)
           .filter((spell) => !lines.has(spell.source))
@@ -511,7 +514,7 @@ function SpellcastingBox({
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     })
-    .filter((row) => row.slots > 0 || row.spells.length > 0);
+    .filter((row) => row.slots > 0 || row.pact || row.spells.length > 0);
   const marks = sourceMarks(
     rows.flatMap((row) => row.spells.map((spell) => spell.source)),
     classes,
@@ -565,56 +568,104 @@ function SpellcastingBox({
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ level, slots, spent, spells }) => {
-              const circles = slots > 0 && (
-                <SlotCircles
-                  label={`${ordinal(level)}-level slots`}
-                  count={slots}
-                  marked={spent}
-                  size={narrow && !onSpendSlots ? "small" : "normal"}
-                  onChange={onSpendSlots && ((next) => onSpendSlots(level, next))}
-                  valueText={spentText}
-                />
-              );
-              return (
-                <tr key={level} className="border-b border-rule last:border-0">
-                  <th
-                    scope="row"
-                    // The row is named by its level only, so a screen reader does not read the slots with each spell.
-                    aria-label={narrow && circles ? (level === 0 ? "Cantrips" : ordinal(level)) : undefined}
-                    className={`border-r border-rule py-1.5 text-center leading-[1.1] font-medium ${
-                      narrow ? "pr-1.5 align-top" : "pr-2.5"
-                    } ${level === 0 ? (narrow ? "text-[13px]" : "text-base") : narrow ? "text-lg" : "text-2xl"}`}
-                  >
-                    {level === 0 ? "Cantrips" : ordinal(level)}
-                    {/* Four small circles fit on one line in the narrow column. Circles that change take three on
-                        a line, and four go two and two. */}
-                    {narrow && circles && (
-                      <span className={`mt-1 flex justify-center ${onSpendSlots && slots === 4 ? "mx-auto max-w-[56px]" : ""}`}>{circles}</span>
-                    )}
-                  </th>
-                  {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{circles}</td>}
-                  <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>
-                    {/* role="list": without bullets, Safari does not name a ul as a list. */}
-                    {lookup !== null && (
-                      <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
-                        {spells.map((spell) => (
-                          <li key={`${spell.source}/${spell.key}`}>
-                            {spell.name}
-                            <SourceMark source={spell.source} mark={marks.get(spell.source)} />
-                            <CastNote note={spell.castNote} />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {rows.map(({ level, slots, spent, pact, spells }) => (
+              <SlotRow
+                key={level}
+                name={level === 0 ? "Cantrips" : ordinal(level)}
+                small={level === 0}
+                narrow={narrow}
+                groups={[
+                  ...(slots > 0
+                    ? [{ label: `${ordinal(level)}-level slots`, count: slots, spent, onChange: onSpendSlots && ((next: number) => onSpendSlots(level, next)) }]
+                    : []),
+                  ...(pact
+                    ? [
+                        {
+                          label: `Pact slots, ${ordinal(level)} level`,
+                          count: pact.count,
+                          spent: pact.spent,
+                          shape: "diamond" as const,
+                          onChange: onSpendSlots && ((next: number) => onSpendSlots("pact", next)),
+                        },
+                      ]
+                    : []),
+                ]}
+              >
+                {/* role="list": without bullets, Safari does not name a ul as a list. */}
+                {lookup !== null && (
+                  <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
+                    {spells.map((spell) => (
+                      <li key={`${spell.source}/${spell.key}`}>
+                        {spell.name}
+                        <SourceMark source={spell.source} mark={marks.get(spell.source)} />
+                        <CastNote note={spell.castNote} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </SlotRow>
+            ))}
           </tbody>
         </table>
       )}
     </FramedBox>
+  );
+}
+
+/** A group of slots in a row of the Spellcasting table: the circles of a level, or the diamonds of the pact slots. */
+interface RowSlots {
+  /** The name a screen reader gives the group. */
+  label: string;
+  count: number;
+  spent: number;
+  shape?: "diamond";
+  /** Sets the spent slots. With it the slots can change: they are drawn larger, with tap areas. */
+  onChange: ((spent: number) => void) | undefined;
+}
+
+/**
+ * A row of the Spellcasting table: the level cell, the Slots cell and the
+ * spells cell. `name` is the level cell's text: an ordinal, or the word
+ * "Cantrips" in the smaller size. The pact slots of the level are after its
+ * other slots. On a narrow sheet the slots go under the name, and the row is
+ * named by the name only, so a screen reader does not read the slots with
+ * each spell.
+ */
+function SlotRow({ name, small, narrow, groups, children }: { name: string; small: boolean; narrow: boolean; groups: RowSlots[]; children: ReactNode }) {
+  const circles = groups.map(({ label, count, spent, shape, onChange }) => (
+    // Four small circles fit on one line in the narrow column. Circles that change take three on a line, and
+    // four go two and two.
+    <span key={label} className={narrow && onChange && count === 4 ? "max-w-[56px]" : undefined}>
+      <SlotCircles
+        shape={shape}
+        label={label}
+        count={count}
+        marked={spent}
+        size={narrow && !onChange ? "small" : "normal"}
+        onChange={onChange}
+        valueText={spentText}
+      />
+    </span>
+  ));
+  const has = groups.length > 0;
+  return (
+    <tr className="border-b border-rule last:border-0">
+      <th
+        scope="row"
+        aria-label={narrow && has ? name : undefined}
+        className={`border-r border-rule py-1.5 text-center font-serif leading-[1.1] font-medium ${narrow ? "pr-1.5 align-top" : "pr-2.5"} ${
+          small ? (narrow ? "text-[13px]" : "text-base") : narrow ? "text-lg" : "text-2xl"
+        }`}
+      >
+        {name}
+        {/* A group that does not fit beside the group before it goes on the next line. */}
+        {narrow && has && <span className="mt-1 flex flex-col items-center gap-0.5">{circles}</span>}
+      </th>
+      {!narrow && (
+        <td className="border-r border-rule py-1.5 pl-2.5">{has && <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">{circles}</span>}</td>
+      )}
+      <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>{children}</td>
+    </tr>
   );
 }
 

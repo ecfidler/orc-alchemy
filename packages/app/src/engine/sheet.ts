@@ -5,7 +5,7 @@
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
 import { untag } from "./content.ts";
-import { preparedSpells, type SlotTotal, slotPositions, spentSlots } from "./spells.ts";
+import { preparedSpells, type SlotGroup, type SpentSlotGroups, slotLayout, spentSlotGroups } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
 
@@ -105,12 +105,10 @@ export interface KnownSpell extends Named {
   castNote: string | null;
 }
 
-/** Sets the spent slots of a spell level to `spent` (ORC-282). */
-export type SpendSlots = (level: number, spent: number) => void;
+/** Sets the spent slots of a group to `spent`: the other slots of a spell level (ORC-282), or the pact slots (ORC-283). */
+export type SpendSlots = (group: SlotGroup, spent: number) => void;
 
-export interface Spellcasting {
-  /** The slot total of each level, and its spent slots (never more than the total), from the strict entity. */
-  slots: (SlotTotal & { spent: number })[];
+export interface Spellcasting extends SpentSlotGroups {
   casters: Spellcaster[];
   /** Level 0 is cantrips. Spells sorted by key within a level; a component sorts them by the name it shows. */
   byLevel: { level: number; spells: KnownSpell[] }[];
@@ -529,11 +527,10 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
   if (known.length === 0) return null;
   const prepares = built["prepares-spells"] ?? {};
   const prepared = preparedSpells(entity);
-  const used = slotPositions(entity);
+  const { slots, pact } = spentSlotGroups(entity, slotLayout(built));
   return {
-    slots: Object.entries(built["spell-slots"] ?? {})
-      .map(([level, count]) => ({ level: Number(level), count, spent: spentSlots(used, Number(level), count) }))
-      .sort((a, b) => a.level - b.level),
+    slots,
+    pact,
     casters: Object.values(built["spell-modifiers"] ?? {}).map((caster) => ({
       name: caster.class,
       ability: unqualify(caster.ability) as Ability,

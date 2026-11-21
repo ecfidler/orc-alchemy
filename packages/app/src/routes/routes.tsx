@@ -19,7 +19,7 @@ import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
 import type { Sheet } from "../engine/sheet.ts";
-import { setSpentSlots } from "../engine/spells.ts";
+import { type SlotGroup, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
 import { useStorage } from "../storage/characters.ts";
@@ -122,10 +122,10 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
   );
 }
 
-/** Sets the spent slots of a level, as a sheet change: it saves at once (ORC-282). */
-function spendSlots(sheet: Sheet, level: number, spent: number) {
-  const totals = sheet.spellcasting?.slots ?? [];
-  useCharacter.getState().sheetChange((entity) => setSpentSlots(engine(), entity, totals, level, spent));
+/** Sets the spent slots of a group (a level's other slots, or the pact slots), as a sheet change: it saves at once (ORC-282). */
+function spendSlots(sheet: Sheet, group: SlotGroup, spent: number) {
+  const layout = sheet.spellcasting ?? { slots: [], pact: null };
+  useCharacter.getState().sheetChange((entity) => setSpentSlots(engine(), entity, layout, group, spent));
 }
 
 function SheetPage() {
@@ -148,7 +148,7 @@ function SheetPage() {
         <>
           <ExportMessageLine message={exportMessage} className="mb-4" />
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
-          <CharacterSheet sheet={sheet} onSpendSlots={(level, spent) => spendSlots(sheet, level, spent)} />
+          <CharacterSheet sheet={sheet} onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)} />
         </>
       )}
     </OpenCharacter>

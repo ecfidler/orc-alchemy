@@ -600,12 +600,12 @@ that name it are a summary.
   * **Prepared spells:** comma-separated, A to Z.
 * **Pact Magic slots:** the engine puts Warlock Pact Magic slots in the
   same slot list (a Warlock 10 has two 5th-level slots there). The sheet
-  shows them apart. A "Pact" row is after the level rows. The word "Pact"
-  is in the serif font. A pact slot is a diamond, not a circle, and a
-  filled diamond is a spent slot. The spells cell of the row says the slot
-  level, for example "2nd-level slots". The row shows for each warlock.
-  When the sheet is narrower than 720px, the diamonds are under the word
-  "Pact".
+  shows them apart. A pact slot is a diamond, not a circle, and a filled
+  diamond is a spent slot. The diamonds are in the row of their slot
+  level, after the circles of that level. There is no "Pact" row and no
+  "Pact" label. A warlock with no other caster class has only diamonds in
+  that row. When the sheet is narrower than 720px, the diamonds are under
+  the circles, under the ordinal.
 * **Spell names:** the name of a spell comes from its record. The name
   that the app makes from the key stays only for a spell with no record.
   A cast note, for example "at will", is in parentheses after the name:

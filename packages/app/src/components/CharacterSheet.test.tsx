@@ -78,6 +78,7 @@ const sheet: Sheet = {
   armorProficiencies: [],
   spellcasting: {
     slots: [],
+    pact: null,
     casters: [{ name: "Hill Dwarf", ability: "wis", saveDc: 11, attackBonus: 3, prepares: false, canPrepare: null }],
     byLevel: [
       {
@@ -291,6 +292,7 @@ test("an always-prepared spell shows with the prepared spells, with no tag", () 
   });
   const spellcasting = {
     slots: [{ level: 1, count: 2, spent: 0 }],
+    pact: null,
     casters: [cleric],
     byLevel: [
       { level: 1, spells: [spell("bless", "Bless", true, true), spell("sanctuary", "Sanctuary", false, true), spell("command", "Command", false, false)] },
@@ -302,12 +304,97 @@ test("an always-prepared spell shows with the prepared spells, with no tag", () 
   expect(spellNames("1st")).toEqual(["Bless", "Sanctuary"]);
 });
 
-test("warlock-10-drow: Pact Magic slots in the shared list, and rows with spells but no slots", () => {
-  render(<CharacterSheet sheet={toSheet(expectedOf("warlock-10-drow"), strictOf("warlock-10-drow"))} />);
+/** warlock-10-drow with these stored spent slot positions of its 5th level. */
+const warlockWithSpent = (...positions: number[]) => {
+  const entity = strictOf("warlock-10-drow");
+  entity["~:orcpub.entity.strict/values"] ??= {};
+  if (positions.length > 0)
+    entity["~:orcpub.entity.strict/values"]["~:orcpub.dnd.e5.spells/slots-used"] = { "~:orcpub.dnd.e5.spells/slots-5": { "~#set": positions } };
+  return toSheet(expectedOf("warlock-10-drow"), entity);
+};
+
+test("warlock-10-drow: two diamonds in the 5th-level row, with no circles and no Pact row (ORC-283)", () => {
+  const warlock = warlockWithSpent(1);
+  expect(warlock.spellcasting!.slots).toEqual([]);
+  expect(warlock.spellcasting!.pact).toEqual({ slotLevel: 5, count: 2, spent: 1 });
+  render(<CharacterSheet sheet={warlock} preview />);
   expect(screen.getByRole("columnheader", { name: "Known spells" })).toBeTruthy();
-  expect(within(spellsRow("5th")).getByRole("img", { name: "5th-level slots: 0 of 2" })).toBeTruthy();
   expect(within(spellsRow("1st")).queryByRole("img")).toBeNull();
-  expect(spellNames("1st").length).toBeGreaterThan(0);
+  const section = screen.getByRole("group", { name: "Spellcasting" });
+  expect(
+    within(section)
+      .getAllByRole("rowheader")
+      .map((cell) => cell.textContent),
+  ).toEqual(["Cantrips", "1st", "2nd", "3rd", "5th"]);
+  // The 5th level has its spells, and the diamonds are its only slots.
+  const fifth = spellsRow("5th");
+  expect(spellNames("5th").length).toBeGreaterThan(0);
+  expect(within(fifth).getAllByRole("img")).toHaveLength(1);
+  const diamonds = within(fifth).getByRole("img", { name: "Pact slots, 5th level: 1 of 2" });
+  expect(diamonds.getAttribute("data-shape")).toBe("diamond");
+  expect(diamonds.querySelectorAll("[data-marked]")).toHaveLength(1);
+  // The builder preview: the diamonds cannot change.
+  expect(screen.queryByRole("slider")).toBeNull();
+  fireEvent.click(diamonds.children[1]!);
+  expect(within(fifth).getByRole("img", { name: "Pact slots, 5th level: 1 of 2" })).toBeTruthy();
+});
+
+test("a level with other slots and pact slots shows the circles, then the diamonds, in its row (ORC-283)", () => {
+  const warlock = warlockWithSpent();
+  const spellcasting = { ...warlock.spellcasting!, slots: [{ level: 5, count: 1, spent: 1 }] };
+  const onSpendSlots = vi.fn();
+  render(<CharacterSheet sheet={{ ...warlock, spellcasting }} onSpendSlots={onSpendSlots} />);
+  const sliders = within(spellsRow("5th")).getAllByRole("slider");
+  expect(sliders.map((slider) => [slider.getAttribute("aria-label"), slider.getAttribute("aria-valuetext"), slider.getAttribute("data-shape")])).toEqual([
+    ["5th-level slots", "1 of 1 spent", null],
+    ["Pact slots, 5th level", "0 of 2 spent", "diamond"],
+  ]);
+  fireEvent.click(sliders[1]!.children[0]!);
+  fireEvent.click(sliders[0]!.children[0]!);
+  expect(onSpendSlots.mock.calls).toEqual([
+    ["pact", 1],
+    [5, 0],
+  ]);
+});
+
+test("a pact slot level with no spell has a row for its diamonds (ORC-283)", () => {
+  const warlock = warlockWithSpent();
+  const spellcasting = { ...warlock.spellcasting!, pact: { slotLevel: 4, count: 2, spent: 0 } };
+  render(<CharacterSheet sheet={{ ...warlock, spellcasting }} onSpendSlots={() => {}} />);
+  expect(within(spellsRow("4th")).getByRole("slider", { name: "Pact slots, 4th level" })).toBeTruthy();
+});
+
+test("with onSpendSlots the pact diamonds change, and a screen reader reads the pact slots and the state (ORC-283)", () => {
+  const onSpendSlots = vi.fn();
+  render(<CharacterSheet sheet={warlockWithSpent(1)} onSpendSlots={onSpendSlots} />);
+  const diamonds = within(spellsRow("5th")).getByRole("slider", { name: "Pact slots, 5th level" });
+  expect(diamonds.getAttribute("aria-valuetext")).toBe("1 of 2 spent");
+  expect(screen.getAllByRole("slider")).toHaveLength(1);
+  fireEvent.click(diamonds.children[1]!);
+  fireEvent.click(diamonds.children[0]!);
+  fireEvent.keyDown(diamonds, { key: "ArrowLeft" });
+  expect(onSpendSlots.mock.calls).toEqual([
+    ["pact", 2],
+    ["pact", 0],
+    ["pact", 0],
+  ]);
+});
+
+test("under 720px the diamonds are under the level name, and the row is named by the level (ORC-283)", () => {
+  renderAtWidth(390, <CharacterSheet sheet={warlockWithSpent()} onSpendSlots={() => {}} />);
+  fireEvent.click(screen.getByRole("tab", { name: "Spells" }));
+  const cell = screen.getByRole("rowheader", { name: "5th" });
+  expect(within(cell).getByRole("slider", { name: "Pact slots, 5th level" }).getAttribute("aria-valuetext")).toBe("0 of 2 spent");
+  // No Slots column: the level cell and the spells cell.
+  expect(cell.closest("tr")!.children).toHaveLength(2);
+});
+
+test("a character with no warlock level has no diamonds", () => {
+  const wizard = toSheet(expectedOf("wizard-5"), strictOf("wizard-5"));
+  expect(wizard.spellcasting!.pact).toBeNull();
+  render(<CharacterSheet sheet={wizard} onSpendSlots={() => {}} />);
+  expect(screen.queryByRole("slider", { name: /^Pact/ })).toBeNull();
+  expect(document.querySelector('[data-shape="diamond"]')).toBeNull();
 });
 
 test("a High Elf wizard: the High Elf cantrip is one line, and the wizard's spells have no tags (ORC-176)", () => {
@@ -347,6 +434,7 @@ const tieflingWarlock = (tieflingDc = 15): Sheet => {
     classes: [{ key: "warlock", name: "Warlock", level: 3, hitDie: 8, subclass: "The Fiend" }],
     spellcasting: {
       slots: [{ level: 1, count: 2, spent: 0 }],
+      pact: null,
       casters: [caster("Tiefling", tieflingDc), caster("Warlock", 15)],
       byLevel: [
         { level: 0, spells: [spell("thaumaturgy", "Thaumaturgy", "Tiefling"), spell("eldritch-blast", "Eldritch Blast", "Warlock")] },
@@ -580,6 +668,7 @@ test("three sources and a cantrip-only race: ‡ in the table and on its row, an
   const caster = (name: string, saveDc: number) => ({ name, ability: "int" as const, saveDc, attackBonus: saveDc - 8, prepares: false, canPrepare: null });
   const spellcasting = {
     slots: [{ level: 1, count: 4, spent: 0 }],
+    pact: null,
     casters: [caster("Wizard", 15), caster("Cleric", 13), caster("Tiefling", 12), caster("High Elf", 14)],
     byLevel: [
       { level: 0, spells: [spell("Mending", "High Elf")] },

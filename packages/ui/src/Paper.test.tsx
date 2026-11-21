@@ -192,6 +192,59 @@ test("small slot circles are marked for the small drawing", () => {
   expect(screen.getByRole("img", { name: "Charges: 0 of 2" }).getAttribute("data-size")).toBe("small");
 });
 
+test("slot diamonds show the count and the marked diamonds; without shape the circles are not marked as diamonds", () => {
+  render(
+    <>
+      <SlotCircles label="Charges" count={3} marked={1} shape="diamond" />
+      <SlotCircles label="Passes" count={2} />
+    </>,
+  );
+  const charges = screen.getByRole("img", { name: "Charges: 1 of 3" });
+  expect(charges.getAttribute("data-shape")).toBe("diamond");
+  expect(markedOf(charges)).toEqual([true, false, false]);
+  expect(screen.getByRole("img", { name: "Passes: 0 of 2" }).hasAttribute("data-shape")).toBe(false);
+});
+
+test("slot diamonds with a change handler work as the circles: one slider, one more, one less, the arrow keys, and the light fill", () => {
+  const onChange = vi.fn();
+  function Diamonds() {
+    const [marked, setMarked] = useState(1);
+    return (
+      <SlotCircles
+        label="Charges"
+        count={3}
+        marked={marked}
+        shape="diamond"
+        valueText={(m, count) => `${m} of ${count} used`}
+        onChange={(next) => {
+          onChange(next);
+          setMarked(next);
+        }}
+      />
+    );
+  }
+  render(<Diamonds />);
+  const group = screen.getByRole("slider", { name: "Charges" });
+  expect(group.getAttribute("data-shape")).toBe("diamond");
+  expect(group.tabIndex).toBe(0);
+  expect(group.getAttribute("aria-valuetext")).toBe("1 of 3 used");
+  expect([...group.children].map((d) => [d.hasAttribute("data-next"), d.hasAttribute("data-last")])).toEqual([
+    [false, true],
+    [true, false],
+    [false, false],
+  ]);
+  fireEvent.click(group.children[2]!);
+  expect(markedOf(group)).toEqual([true, true, false]);
+  expect(document.activeElement).toBe(group);
+  fireEvent.click(group.children[0]!);
+  fireEvent.keyDown(group, { key: "ArrowUp" });
+  fireEvent.keyDown(group, { key: "ArrowRight" });
+  fireEvent.keyDown(group, { key: "ArrowRight" });
+  expect(group.getAttribute("aria-valuetext")).toBe("3 of 3 used");
+  fireEvent.keyDown(group, { key: "ArrowDown" });
+  expect(onChange.mock.calls).toEqual([[2], [1], [2], [3], [2]]);
+});
+
 test("current / max shows the max in the muted part", () => {
   render(<CurrentMax current={7} max={12} />);
   const pair = screen.getByText("7", { exact: false });

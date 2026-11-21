@@ -1,0 +1,176 @@
+{
+  "~:orcpub.entity.strict/selections": [
+    {
+      "~:orcpub.entity.strict/key": "~:ability-scores",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:standard-scores",
+        "~:orcpub.entity.strict/map-value": {
+          "~:orcpub.dnd.e5.character/str": 8,
+          "~:orcpub.dnd.e5.character/dex": 14,
+          "~:orcpub.dnd.e5.character/con": 13,
+          "~:orcpub.dnd.e5.character/int": 13,
+          "~:orcpub.dnd.e5.character/wis": 13,
+          "~:orcpub.dnd.e5.character/cha": 15
+        }
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:class",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:warlock",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-3"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-4"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-5"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-6"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-7"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-8"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-9"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-10"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:warlock-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:eldritch-blast"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:minor-illusion"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:warlock-spells-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:hellish-rebuke"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:misty-step"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:hold-monster"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:sorcerer",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-3"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-4"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-5"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-6"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-7"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-8"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-9"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:sorcerer-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:fire-bolt"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:sorcerer-spells-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:shield"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:fireball"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:cone-of-cold"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:weapons",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:dagger",
+          "~:orcpub.entity.strict/map-value": {
+            "~:orcpub.dnd.e5.character.equipment/quantity": 2,
+            "~:orcpub.dnd.e5.character.equipment/equipped?": true,
+            "~:orcpub.dnd.e5.character.equipment/class-starting-equipment?": true
+          }
+        }
+      ]
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:armor",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:leather",
+          "~:orcpub.entity.strict/map-value": {
+            "~:orcpub.dnd.e5.character.equipment/quantity": 1,
+            "~:orcpub.dnd.e5.character.equipment/equipped?": true,
+            "~:orcpub.dnd.e5.character.equipment/class-starting-equipment?": true
+          }
+        }
+      ]
+    }
+  ],
+  "~:orcpub.entity.strict/values": {
+    "~:orcpub.dnd.e5.character/character-name": "Vex Arden"
+  }
+}

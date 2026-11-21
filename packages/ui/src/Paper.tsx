@@ -85,6 +85,8 @@ export interface SlotCirclesProps {
   color?: CircleColor;
   /** "small" draws 12px circles closer together, for a narrow column. */
   size?: "normal" | "small";
+  /** "diamond" draws each circle as a diamond of the same size, to set one group apart from others. */
+  shape?: "circle" | "diamond";
   /**
    * Makes the group one that the user changes. It gets the new number of
    * marked circles, always one more or one less than `marked`.
@@ -95,9 +97,9 @@ export interface SlotCirclesProps {
 }
 
 /**
- * A row of `count` plain circles. The first `marked` circles fill solid in
- * `color`. Without `onChange` it shows a count and takes no clicks; its name
- * is "{label}: {marked} of {count}".
+ * A row of `count` plain circles, or diamonds with `shape="diamond"`. The
+ * first `marked` circles fill solid in `color`. Without `onChange` it shows
+ * a count and takes no clicks; its name is "{label}: {marked} of {count}".
  *
  * With `onChange` the user changes it, by the rule "one more, one less": a
  * click on an empty circle marks one more, and a click on a marked circle
@@ -115,6 +117,7 @@ export function SlotCircles({
   marked: markedProp = 0,
   color = "ink",
   size = "normal",
+  shape = "circle",
   onChange,
   valueText = defaultValueText,
 }: SlotCirclesProps) {
@@ -129,7 +132,12 @@ export function SlotCircles({
       data-last={onChange && i === marked - 1 ? "" : undefined}
     />
   ));
-  const common = { className: "ui-slot-circles", "data-color": color, "data-size": size === "small" ? size : undefined };
+  const common = {
+    className: "ui-slot-circles",
+    "data-color": color,
+    "data-size": size === "small" ? size : undefined,
+    "data-shape": shape === "diamond" ? shape : undefined,
+  };
   if (!onChange) {
     return (
       <span role="img" aria-label={`${label}: ${marked} of ${count}`} {...common}>
