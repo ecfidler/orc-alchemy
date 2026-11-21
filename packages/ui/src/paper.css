@@ -171,6 +171,31 @@
   .ui-slot-circles:where([data-changes]) > .ui-slot-circle:where([data-marked])::before {
     background: var(--circle);
   }
+  /*
+   * The diamond form. Each circle is a box of the circle's size with the
+   * diamond drawn in its middle: a square turned 45deg, whose corners are
+   * about one tenth past the box. The tap area of a group that changes does
+   * not turn.
+   */
+  .ui-slot-circles:where([data-shape="diamond"]) > .ui-slot-circle {
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .ui-slot-circles:where([data-shape="diamond"]) > .ui-slot-circle::before {
+    content: "";
+    box-sizing: border-box;
+    width: calc(var(--circle-size) * 13 / 17);
+    height: calc(var(--circle-size) * 13 / 17);
+    border: 1.5px solid var(--circle);
+    border-radius: 0;
+    transform: rotate(45deg);
+  }
+  .ui-slot-circles:where([data-shape="diamond"]) > .ui-slot-circle:where([data-marked])::before {
+    background: var(--circle);
+  }
   /* The focus ring goes round the drawings, 1.5px clear of them, inside the tap areas, so a table cell does not cut it. */
   .ui-slot-circles:where([data-changes]):focus-visible {
     outline-offset: -2px;

@@ -256,6 +256,48 @@ test("wizard-5: a click spends a slot and gives it back, the tap area is 28px, a
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
+/**
+ * Loads the homebrew of warlock-10-drow, then imports it and opens its sheet. The Archfey patron and some spells
+ * stay unresolved (its meta.json), so the import page lists the character.
+ */
+async function importWarlock10(page: Page) {
+  await page.goto("/import");
+  await page.getByLabel("Load homebrew file").setInputFiles(join(orcbrewDir, "warlock-test-content.orcbrew"));
+  await expect(page.getByRole("region", { name: "Import log" })).toBeVisible();
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "warlock-10-drow.strict.json"));
+  await page.getByRole("button", { name: "Unnamed character", exact: true }).click();
+  await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
+}
+
+test("warlock-10-drow: the Pact row has two diamonds with 28px tap areas, a click spends one, and it stays after a reload (ORC-283)", async ({ page }) => {
+  await importWarlock10(page);
+  const pact = page.getByRole("slider", { name: "Pact slots, 5th level" });
+  await expect(pact).toHaveAttribute("aria-valuetext", "0 of 2 spent");
+  await expect(page.getByRole("slider", { name: "5th-level slots" })).toHaveCount(0);
+  const diamonds = pact.locator(".ui-slot-circle");
+  await expect(diamonds).toHaveCount(2);
+  // The tap area does not turn; the drawing does.
+  const box = (await diamonds.nth(0).boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(28);
+  expect(box.height).toBeGreaterThanOrEqual(28);
+  expect(await diamonds.nth(0).evaluate((d) => getComputedStyle(d).transform)).toBe("none");
+  expect(await diamonds.nth(0).evaluate((d) => getComputedStyle(d, "::before").transform)).not.toBe("none");
+  // "Pact" is in the serif font, as the level names.
+  const font = (name: string) =>
+    page
+      .getByRole("rowheader", { name, exact: true })
+      .evaluate((cell) => getComputedStyle(cell).fontFamily)
+      .then((family) => family.split(",")[0]);
+  expect(await font("Pact")).toBe(await font("5th"));
+
+  await diamonds.nth(1).click();
+  await expect(pact).toHaveAttribute("aria-valuetext", "1 of 2 spent");
+  await expect(pact).toBeFocused();
+  await expect.poll(() => storedSlotsUsed(page)).toEqual({ "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [0] } });
+  await page.reload();
+  await expect(page.getByRole("slider", { name: "Pact slots, 5th level" })).toHaveAttribute("aria-valuetext", "1 of 2 spent");
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- sheet.spec.ts -g orc-203
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -276,6 +318,49 @@ test.describe("screenshots", () => {
       await page.getByRole("tab", { name: "Features" }).click();
       await page.getByRole("tabpanel").getByRole("heading", { level: 3, name: "Actions", exact: true }).waitFor();
       await page.screenshot({ path: shot("phone-features"), fullPage: true });
+    });
+
+    // PR_SCREENSHOTS=1 bun run e2e -- sheet.spec.ts -g orc-283
+    test(`orc-283 Pact slots, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-283-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      const section = () => page.getByRole("group", { name: "Spellcasting", exact: true });
+      /** Spends slots with the keys, then takes the focus off, so the picture has no focus ring and no light fill. */
+      const spend = async (name: string, times = 1) => {
+        const group = page.getByRole("slider", { name });
+        await group.focus();
+        for (let i = 0; i < times; i++) await page.keyboard.press("ArrowRight");
+        await group.blur();
+      };
+      const phone = async (what: string) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.getByRole("tab", { name: "Spells" }).click();
+        await section().screenshot({ path: shot(what) });
+      };
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await importWarlock10(page);
+      await page.evaluate(() => document.fonts.ready);
+      await spend("Pact slots, 5th level");
+      await section().screenshot({ path: shot("warlock") });
+      await phone("warlock-phone");
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto("/import");
+      await page.getByLabel("Import character file").setInputFiles(join(import.meta.dirname, "warlock-10-sorcerer-9.strict.json"));
+      await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
+      await page.evaluate(() => document.fonts.ready);
+      await spend("Pact slots, 5th level");
+      await spend("5th-level slots");
+      await section().screenshot({ path: shot("multiclass") });
+      // The keyboard focus on the diamonds: Tab from the 5th-level circles.
+      await page.getByRole("slider", { name: "5th-level slots" }).focus();
+      await page.keyboard.press("Tab");
+      await expect(page.getByRole("slider", { name: "Pact slots, 5th level" })).toBeFocused();
+      await section().screenshot({ path: shot("focus") });
+      await page.keyboard.press("Tab");
+      await phone("multiclass-phone");
     });
   }
 });

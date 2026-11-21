@@ -236,6 +236,41 @@ test("on the sheet, a click or an arrow key spends a slot and gives it back; it 
   expect(screen.getByRole("slider", { name: "3rd-level slots" }).getAttribute("aria-valuetext")).toBe("1 of 2 spent");
 });
 
+const warlockSorcerer = () => JSON.parse(readFileSync(join(import.meta.dirname, "../../e2e/warlock-10-sorcerer-9.strict.json"), "utf8"));
+
+test("a spent pact slot and a spent other slot of the same level save apart, and stay apart after a reload (ORC-283)", async () => {
+  const entity = warlockSorcerer();
+  const id = await addCharacter(entity, "2014", null);
+  renderAt(`/sheet/${id}`);
+  const pact = await screen.findByRole("slider", { name: "Pact slots, 5th level" }, { timeout: 5000 });
+  const fifth = screen.getByRole("slider", { name: "5th-level slots" });
+  expect(fifth.getAttribute("aria-valuetext")).toBe("0 of 1 spent");
+  expect(pact.getAttribute("aria-valuetext")).toBe("0 of 2 spent");
+  fireEvent.click(pact.children[1]!);
+  expect(pact.getAttribute("aria-valuetext")).toBe("1 of 2 spent");
+  expect(document.activeElement).toBe(pact);
+  fireEvent.keyDown(fifth, { key: "ArrowRight" });
+  expect(fifth.getAttribute("aria-valuetext")).toBe("1 of 1 spent");
+  // The other slot is position 0 of the 5th level, and the pact slots are 1 and 2. The whole stored record: only
+  // the spent slots are new.
+  const expected = { ...entity, "~:orcpub.entity.strict/values": { ...entity["~:orcpub.entity.strict/values"] } };
+  expected["~:orcpub.entity.strict/values"]["~:orcpub.dnd.e5.spells/slots-used"] = { "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [0, 1] } };
+  await waitFor(async () => expect(JSON.parse(JSON.stringify((await getCharacter(id))!.entity))).toEqual(expected), { timeout: 3000 });
+  await waitFor(async () => expect(await getDraft(id)).toBeUndefined());
+
+  // Give the other slot back: the spent pact slot stays at position 1.
+  fireEvent.keyDown(fifth, { key: "ArrowLeft" });
+  await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [1] } }), { timeout: 3000 });
+  await waitFor(async () => expect(await getDraft(id)).toBeUndefined());
+
+  // A reload: the character opens again from the store.
+  cleanup();
+  useCharacter.setState({ id: null, entity: null, dirty: false, unsaved: false });
+  renderAt(`/sheet/${id}`);
+  expect((await screen.findByRole("slider", { name: "Pact slots, 5th level" }, { timeout: 5000 })).getAttribute("aria-valuetext")).toBe("1 of 2 spent");
+  expect(screen.getByRole("slider", { name: "5th-level slots" }).getAttribute("aria-valuetext")).toBe("0 of 1 spent");
+});
+
 test("in the builder preview, the slot circles show the spent slots and cannot change", async () => {
   const entity = engine().setValue(wizard5(), "orcpub.dnd.e5.spells/slots-used", { "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } });
   const id = await addCharacter(entity, "2014", null);
