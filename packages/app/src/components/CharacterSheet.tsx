@@ -30,8 +30,20 @@ const COIN_GP: Record<string, number> = { cp: 0.01, sp: 0.1, ep: 0.5, gp: 1, pp:
 /** All coins as gold pieces, to two decimals. */
 const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) => gp + (COIN_GP[item.key] ?? 0) * item.quantity, 0) * 100) / 100;
 
-/** `preview`: the builder's preview leaves out what only matters in play (temporary hit points, death saves). */
-export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; preview?: boolean }) {
+/**
+ * `preview`: the builder's preview leaves out what only matters in play (temporary hit points, death saves).
+ * `onSpendSlots`: the user changes the spent slots of a level to `spent` (ORC-282). Without it, the slot
+ * circles show the spent slots and cannot change, as in the builder preview.
+ */
+export function CharacterSheet({
+  sheet,
+  preview = false,
+  onSpendSlots,
+}: {
+  sheet: Sheet;
+  preview?: boolean;
+  onSpendSlots?: (level: number, spent: number) => void;
+}) {
   const { spellcasting, features, equipment, details } = sheet;
   const article = useRef<HTMLElement>(null);
   const [narrow, setNarrow] = useState(false);
@@ -257,7 +269,9 @@ export function CharacterSheet({ sheet, preview = false }: { sheet: Sheet; previ
     </FramedBox>
   );
   const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
-  const spellcastingSection = spellcasting && <SpellcastingBox spellcasting={spellcasting} classes={sheet.classes} narrow={narrow} />;
+  const spellcastingSection = spellcasting && (
+    <SpellcastingBox spellcasting={spellcasting} classes={sheet.classes} narrow={narrow} onSpendSlots={onSpendSlots} />
+  );
 
   // The phone layout (ORC-173): under 720px the sections go in tabs, without the empty ones.
   const tabs: Tab[] = [
@@ -462,7 +476,17 @@ function RowBox({ label, shortLabel, shield = false, children }: { label: string
  * has no record (ORC-280). Until the SRD spells load, the section shows its
  * levels and slots, and no spell names, so a wrong name never shows.
  */
-function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spellcasting; classes: Sheet["classes"]; narrow: boolean }) {
+function SpellcastingBox({
+  spellcasting,
+  classes,
+  narrow,
+  onSpendSlots,
+}: {
+  spellcasting: Spellcasting;
+  classes: Sheet["classes"];
+  narrow: boolean;
+  onSpendSlots?: (level: number, spent: number) => void;
+}) {
   const { casters, slots, byLevel } = spellcasting;
   const lookup = useSpellLookup();
   const classNames = new Set(classes.map((c) => c.name));
@@ -484,6 +508,7 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
     .map((level) => ({
       level,
       slots: slots.find((slot) => slot.level === level)?.count ?? 0,
+      spent: slots.find((slot) => slot.level === level)?.spent ?? 0,
       spells: spells
         .filter((spell) => spell.level === level)
         .filter((spell) => !lines.has(spell.source))
@@ -522,8 +547,10 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
         <table className="w-full table-fixed border-collapse text-left text-[14.5px]">
           <caption className="sr-only">Spells by level</caption>
           <colgroup>
-            <col className={narrow ? "w-[76px]" : "w-20"} />
-            {!narrow && <col className="w-[98px]" />}
+            {/* Circles that change have 28px tap areas: the Slots column takes four on a line, and the narrow
+                level column three. */}
+            <col className={narrow ? (onSpendSlots ? "w-20" : "w-[76px]") : "w-20"} />
+            {!narrow && <col className={onSpendSlots ? "w-[114px]" : "w-[98px]"} />}
             <col />
           </colgroup>
           <thead>
@@ -542,8 +569,16 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ level, slots, spells }) => {
-              const circles = slots > 0 && <SlotCircles label={`${ordinal(level)}-level slots`} count={slots} />;
+            {rows.map(({ level, slots, spent, spells }) => {
+              const circles = slots > 0 && (
+                <SlotCircles
+                  label={`${ordinal(level)}-level slots`}
+                  count={slots}
+                  marked={spent}
+                  size={narrow && !onSpendSlots ? "small" : "normal"}
+                  onChange={onSpendSlots && ((next) => onSpendSlots(level, next))}
+                />
+              );
               return (
                 <tr key={level} className="border-b border-rule last:border-0">
                   <th
@@ -555,8 +590,11 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
                     } ${level === 0 ? (narrow ? "text-[13px]" : "text-base") : narrow ? "text-lg" : "text-2xl"}`}
                   >
                     {level === 0 ? "Cantrips" : ordinal(level)}
-                    {/* Four circles fit on one line in the narrow column. */}
-                    {narrow && circles && <span className="mt-1 flex justify-center [&_.ui-slot-circles]:gap-[3px] [&_.ui-slot-circle]:size-3">{circles}</span>}
+                    {/* Four small circles fit on one line in the narrow column. Circles that change take three on
+                        a line, and four go two and two. */}
+                    {narrow && circles && (
+                      <span className={`mt-1 flex justify-center ${onSpendSlots && slots === 4 ? "mx-auto max-w-[56px]" : ""}`}>{circles}</span>
+                    )}
                   </th>
                   {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{circles}</td>}
                   <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>

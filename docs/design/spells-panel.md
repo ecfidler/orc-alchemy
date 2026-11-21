@@ -410,7 +410,7 @@ same state.
   circle that the user clicks does not matter.
 * With a mouse, the circle that will change shows a light fill before
   the click.
-* A circle keeps its 17px drawing. Its tap area is 28px or more.
+* A circle keeps its 15px drawing. Its tap area is 28px or more.
 * There is no "Clear all" button, in the panel or on the sheet. The
   later rests project adds a "Long rest" button.
 * A change saves as a sheet change.

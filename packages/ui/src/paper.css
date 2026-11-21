@@ -108,9 +108,14 @@
 
   .ui-slot-circles {
     --circle: var(--ink);
+    --circle-size: 15px;
     display: inline-flex;
     gap: 5px;
     align-items: center;
+  }
+  .ui-slot-circles:where([data-size="small"]) {
+    --circle-size: 12px;
+    gap: 3px;
   }
   .ui-slot-circles:where([data-color="success"]) {
     --circle: var(--success);
@@ -120,13 +125,64 @@
   }
   .ui-slot-circle {
     box-sizing: border-box;
-    width: 15px;
-    height: 15px;
+    width: var(--circle-size);
+    height: var(--circle-size);
     border: 1.5px solid var(--circle);
     border-radius: 50%;
   }
   .ui-slot-circle:where([data-marked]) {
     background: var(--circle);
+  }
+
+  /*
+   * A group that the user changes (ORC-282). Each circle is a 28px tap area
+   * with the same drawing in its middle, and the tap areas touch: they do
+   * not overlap. The negative margin puts the drawings where a group that
+   * does not change has them, so the line height does not change. A long
+   * group wraps.
+   */
+  .ui-slot-circles:where([data-changes]) {
+    --circle-tap: 28px;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: calc((var(--circle-size) - var(--circle-tap)) / 2);
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .ui-slot-circles:where([data-changes]) > .ui-slot-circle {
+    display: grid;
+    place-items: center;
+    width: var(--circle-tap);
+    height: var(--circle-tap);
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .ui-slot-circles:where([data-changes]) > .ui-slot-circle::before {
+    content: "";
+    box-sizing: border-box;
+    width: var(--circle-size);
+    height: var(--circle-size);
+    border: 1.5px solid var(--circle);
+    border-radius: 50%;
+  }
+  .ui-slot-circles:where([data-changes]) > .ui-slot-circle:where([data-marked])::before {
+    background: var(--circle);
+  }
+  /* The focus ring goes round the drawings, inside the tap areas, so a table cell does not cut it. */
+  .ui-slot-circles:where([data-changes]):focus-visible {
+    outline-offset: -4px;
+  }
+  /* Under a mouse, the circle that a click changes: the next empty one fills lightly, or the last marked one goes light. */
+  @media (hover: hover) {
+    .ui-slot-circles:where([data-changes]):has(> .ui-slot-circle:not([data-marked]):hover) > .ui-slot-circle:where([data-next])::before {
+      background: color-mix(in srgb, var(--circle) 30%, transparent);
+    }
+    .ui-slot-circles:where([data-changes]):has(> .ui-slot-circle[data-marked]:hover) > .ui-slot-circle:where([data-last])::before {
+      background: color-mix(in srgb, var(--circle) 45%, transparent);
+    }
   }
 
   .ui-current-max-of {

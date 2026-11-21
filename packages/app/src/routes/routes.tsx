@@ -17,7 +17,9 @@ import { Preferences } from "../components/Preferences.tsx";
 import { ReviewUses } from "../components/ReviewUses.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
+import { engine } from "../engine/engine.ts";
 import type { Sheet } from "../engine/sheet.ts";
+import { setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
 import { useStorage } from "../storage/characters.ts";
@@ -120,6 +122,12 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
   );
 }
 
+/** Sets the spent slots of a level, as a sheet change: it saves at once (ORC-282). */
+function spendSlots(sheet: Sheet, level: number, spent: number) {
+  const totals = sheet.spellcasting?.slots ?? [];
+  useCharacter.getState().sheetChange((entity) => setSpentSlots(engine(), entity, totals, level, spent));
+}
+
 function SheetPage() {
   // Why an export failed shows under the action row, so the row keeps its one line. It belongs to the character it came from.
   const { id: openId } = useParams();
@@ -140,7 +148,7 @@ function SheetPage() {
         <>
           <ExportMessageLine message={exportMessage} className="mb-4" />
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
-          <CharacterSheet sheet={sheet} />
+          <CharacterSheet sheet={sheet} onSpendSlots={(level, spent) => spendSlots(sheet, level, spent)} />
         </>
       )}
     </OpenCharacter>

@@ -5,7 +5,7 @@
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
 import { untag } from "./content.ts";
-import { preparedSpells } from "./spells.ts";
+import { preparedSpells, slotPositions, spentSlots } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
 
@@ -106,7 +106,8 @@ export interface KnownSpell extends Named {
 }
 
 export interface Spellcasting {
-  slots: { level: number; count: number }[];
+  /** The slot total of each level, and its spent slots (never more than the total), from the strict entity. */
+  slots: { level: number; count: number; spent: number }[];
   casters: Spellcaster[];
   /** Level 0 is cantrips. Spells sorted by key within a level; a component sorts them by the name it shows. */
   byLevel: { level: number; spells: KnownSpell[] }[];
@@ -525,9 +526,10 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
   if (known.length === 0) return null;
   const prepares = built["prepares-spells"] ?? {};
   const prepared = preparedSpells(entity);
+  const used = slotPositions(entity);
   return {
     slots: Object.entries(built["spell-slots"] ?? {})
-      .map(([level, count]) => ({ level: Number(level), count }))
+      .map(([level, count]) => ({ level: Number(level), count, spent: spentSlots(used, Number(level), count) }))
       .sort((a, b) => a.level - b.level),
     casters: Object.values(built["spell-modifiers"] ?? {}).map((caster) => ({
       name: caster.class,

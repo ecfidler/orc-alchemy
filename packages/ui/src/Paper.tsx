@@ -74,18 +74,86 @@ export function SectionRule({ children, level = 2 }: { children: ReactNode; leve
 
 export type CircleColor = "ink" | "success" | "caution";
 
+export interface SlotCirclesProps {
+  /** What the circles count, for example "1st-level slots". */
+  label: string;
+  count: number;
+  /** The circles that fill solid, from the left; a value above `count` marks them all. */
+  marked?: number;
+  color?: CircleColor;
+  /** "small" draws 12px circles closer together, for a narrow column. */
+  size?: "normal" | "small";
+  /**
+   * Makes the group one that the user changes. It gets the new number of
+   * marked circles, always one more or one less than `marked`.
+   */
+  onChange?: (marked: number) => void;
+}
+
 /**
  * A row of `count` plain circles. The first `marked` circles fill solid in
- * `color`; a `marked` above `count` marks them all. It shows a count and
- * takes no clicks; its name is "{label}: {marked} of {count}".
+ * `color`. Without `onChange` it shows a count and takes no clicks; its name
+ * is "{label}: {marked} of {count}".
+ *
+ * With `onChange` the user changes it, by the rule "one more, one less": a
+ * click on an empty circle marks one more, and a click on a marked circle
+ * marks one less, so the marked circles stay together on the left. Each
+ * circle keeps its drawing and has a 28px tap area. Under a mouse, the
+ * circle that a click changes shows a light fill. The group is a slider
+ * and one Tab stop: Right and Up mark one more, Left and Down one less. A
+ * screen reader reads "{label}, {marked} of {count} spent", and the new
+ * value after a change. A click leaves the focus on the group.
  */
-export function SlotCircles({ label, count, marked: markedProp = 0, color = "ink" }: { label: string; count: number; marked?: number; color?: CircleColor }) {
-  const marked = Math.min(markedProp, count);
+export function SlotCircles({ label, count, marked: markedProp = 0, color = "ink", size = "normal", onChange }: SlotCirclesProps) {
+  const marked = Math.max(0, Math.min(markedProp, count));
+  const circles = Array.from({ length: count }, (_, i) => (
+    <span
+      key={i}
+      className="ui-slot-circle"
+      data-marked={i < marked ? "" : undefined}
+      // The circle that a click on an empty circle fills, and the one that a click on a marked circle clears.
+      data-next={onChange && i === marked ? "" : undefined}
+      data-last={onChange && i === marked - 1 ? "" : undefined}
+    />
+  ));
+  const common = { className: "ui-slot-circles", "data-color": color, "data-size": size === "small" ? size : undefined };
+  if (!onChange) {
+    return (
+      <span role="img" aria-label={`${label}: ${marked} of ${count}`} {...common}>
+        {circles}
+      </span>
+    );
+  }
+  const change = (next: number) => {
+    if (next >= 0 && next <= count && next !== marked) onChange(next);
+  };
   return (
-    <span role="img" aria-label={`${label}: ${marked} of ${count}`} className="ui-slot-circles" data-color={color}>
-      {Array.from({ length: count }, (_, i) => (
-        <span key={i} className="ui-slot-circle" data-marked={i < marked ? "" : undefined} />
-      ))}
+    <span
+      role="slider"
+      tabIndex={0}
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={count}
+      aria-valuenow={marked}
+      aria-valuetext={`${marked} of ${count} spent`}
+      aria-orientation="horizontal"
+      data-changes=""
+      {...common}
+      onKeyDown={(event) => {
+        const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[event.key];
+        if (step === undefined) return;
+        event.preventDefault();
+        change(marked + step);
+      }}
+      onClick={(event) => {
+        const circle = (event.target as Element).closest(".ui-slot-circle");
+        if (!circle) return;
+        // Not every browser focuses the group on a click; the focus must stay on it.
+        event.currentTarget.focus();
+        change(circle.hasAttribute("data-marked") ? marked - 1 : marked + 1);
+      }}
+    >
+      {circles}
     </span>
   );
 }
