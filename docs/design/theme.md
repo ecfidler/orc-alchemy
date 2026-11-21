@@ -589,8 +589,8 @@ that name it are a summary.
   is one line under the boxes: "Mending (High Elf, INT, DC 14, +6)". When
   the character has no other spells, the section is only that line.
 * **The table** has three columns:
-  * **Level:** a large ordinal. The word "Cantrips" is smaller. Cantrips are
-    the first row.
+  * **Level:** a large ordinal. The words "Cantrips" and "Pact" are smaller.
+    Cantrips are the first row.
   * **Slots:** the slot circles on one line, left-aligned. No circles for
     cantrips. When the sheet is narrower than 720px, there is no Slots
     column. The circles are under the ordinal, and the spells get the width.
@@ -603,7 +603,7 @@ that name it are a summary.
   shows them apart. A "Pact" row is after the level rows. The word "Pact"
   is in the serif font. A pact slot is a diamond, not a circle, and a
   filled diamond is a spent slot. The spells cell of the row says the slot
-  level, for example "2nd-level slots". The row shows for each warlock.
+  level in the muted ink, for example "2nd-level slots". The row shows for each warlock.
   When the sheet is narrower than 720px, the diamonds are under the word
   "Pact".
 * **Spell names:** the name of a spell comes from its record. The name

@@ -513,7 +513,9 @@ its full namespace.
 **When the number of slots changes.** Spent slots stay spent, and new
 slots are free. The builder changes nothing in the spent slots. After a
 level-up changes `n`, one spent slot can change its type between pact
-and other. This is a known small error.
+and other. This is a known small error. When a level-up moves Pact
+Magic to a higher slot level, the spent pact slots of the old level are
+past the slots: they do not show, and the next change removes them.
 
 **Export and import.** Spent slots stay in an export and show after an
 import. This needs no new work.

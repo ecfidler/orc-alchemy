@@ -5,7 +5,7 @@
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
 import { untag } from "./content.ts";
-import { type PactSlots, preparedSpells, type SlotGroup, type SlotTotal, slotGroups, slotLayout } from "./spells.ts";
+import { preparedSpells, type SlotGroup, type SpentSlotGroups, slotLayout, spentSlotGroups } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
 
@@ -108,14 +108,7 @@ export interface KnownSpell extends Named {
 /** Sets the spent slots of a group to `spent`: the other slots of a spell level (ORC-282), or the pact slots (ORC-283). */
 export type SpendSlots = (group: SlotGroup, spent: number) => void;
 
-export interface Spellcasting {
-  /**
-   * The slots of each level that are not pact slots, and their spent slots (never more than the slots), from the
-   * strict entity. A level whose slots are all pact slots is not here.
-   */
-  slots: (SlotTotal & { spent: number })[];
-  /** The Pact Magic slots, apart from the other slots of their level, and their spent slots; null without Pact Magic. */
-  pact: (PactSlots & { spent: number }) | null;
+export interface Spellcasting extends SpentSlotGroups {
   casters: Spellcaster[];
   /** Level 0 is cantrips. Spells sorted by key within a level; a component sorts them by the name it shows. */
   byLevel: { level: number; spells: KnownSpell[] }[];
@@ -534,7 +527,7 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
   if (known.length === 0) return null;
   const prepares = built["prepares-spells"] ?? {};
   const prepared = preparedSpells(entity);
-  const { slots, pact } = slotGroups(entity, slotLayout(built));
+  const { slots, pact } = spentSlotGroups(entity, slotLayout(built));
   return {
     slots,
     pact,

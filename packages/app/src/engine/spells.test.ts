@@ -420,6 +420,20 @@ test("a spent pact slot and a spent other slot of the same level are written apa
   expect(storedSlots(none)).toBeUndefined();
 }, 20_000);
 
+test("the pact slots are read from their range only: a gap counts, and a position past the range does not", () => {
+  const e = engine();
+  const entity = warlockSorcerer();
+  const fifth = (positions: number[]) => {
+    const { slots, pact } = layoutOf(e.setValue(entity, SLOTS_USED, { [slotKey(5)]: { "~#set": positions } }));
+    return [slots.find((slot) => slot.level === 5)!.spent, pact!.spent];
+  };
+  // One other 5th-level slot (position 0) and two pact slots (positions 1 and 2).
+  expect(fifth([2, 5])).toEqual([0, 1]);
+  // A record from before the pact slots were apart has positions 0 to k - 1: the other slot first, then the pact slots.
+  expect(fifth([0])).toEqual([1, 0]);
+  expect(fifth([0, 1, 2])).toEqual([1, 2]);
+}, 20_000);
+
 test("warlock-10-drow: its pact slots are positions 0 and 1 of the 5th level, as it has no other 5th-level slot", () => {
   const e = engine();
   const warlock: StrictEntity = readJson("warlock-10-drow.strict.json");

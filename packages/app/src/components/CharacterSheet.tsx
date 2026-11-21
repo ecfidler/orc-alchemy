@@ -573,20 +573,8 @@ function SpellcastingBox({
                 name={level === 0 ? "Cantrips" : ordinal(level)}
                 small={level === 0}
                 narrow={narrow}
-                count={slots}
-                slots={
-                  slots > 0 && (
-                    <SlotCircles
-                      label={`${ordinal(level)}-level slots`}
-                      count={slots}
-                      marked={spent}
-                      size={narrow && !onSpendSlots ? "small" : "normal"}
-                      onChange={onSpendSlots && ((next) => onSpendSlots(level, next))}
-                      valueText={spentText}
-                    />
-                  )
-                }
-                changes={onSpendSlots !== undefined}
+                slots={slots > 0 ? { label: `${ordinal(level)}-level slots`, count: slots, spent } : null}
+                onChange={onSpendSlots && ((next) => onSpendSlots(level, next))}
               >
                 {/* role="list": without bullets, Safari does not name a ul as a list. */}
                 {lookup !== null && (
@@ -607,19 +595,8 @@ function SpellcastingBox({
                 name="Pact"
                 small
                 narrow={narrow}
-                count={pact.count}
-                slots={
-                  <SlotCircles
-                    shape="diamond"
-                    label={`Pact slots, ${ordinal(pact.slotLevel)} level`}
-                    count={pact.count}
-                    marked={pact.spent}
-                    size={narrow && !onSpendSlots ? "small" : "normal"}
-                    onChange={onSpendSlots && ((next) => onSpendSlots("pact", next))}
-                    valueText={spentText}
-                  />
-                }
-                changes={onSpendSlots !== undefined}
+                slots={{ label: `Pact slots, ${ordinal(pact.slotLevel)} level`, count: pact.count, spent: pact.spent, shape: "diamond" }}
+                onChange={onSpendSlots && ((next) => onSpendSlots("pact", next))}
               >
                 <span className="text-ink-muted">{ordinal(pact.slotLevel)}-level slots</span>
               </SlotRow>
@@ -643,20 +620,29 @@ function SlotRow({
   small,
   narrow,
   slots,
-  count,
-  changes,
+  onChange,
   children,
 }: {
   name: string;
   small: boolean;
   narrow: boolean;
-  slots: ReactNode;
-  /** The number of slots, which sets how they wrap under the name. */
-  count: number;
-  /** True when the slots can change: they are drawn larger, with tap areas. */
-  changes: boolean;
+  /** The slots of the row, with the name a screen reader gives them; null for a row with no slots. */
+  slots: { label: string; count: number; spent: number; shape?: "diamond" } | null;
+  /** Sets the spent slots. With it the slots can change: they are drawn larger, with tap areas. */
+  onChange: ((spent: number) => void) | undefined;
   children: ReactNode;
 }) {
+  const circles = slots && (
+    <SlotCircles
+      shape={slots.shape}
+      label={slots.label}
+      count={slots.count}
+      marked={slots.spent}
+      size={narrow && !onChange ? "small" : "normal"}
+      onChange={onChange}
+      valueText={spentText}
+    />
+  );
   return (
     <tr className="border-b border-rule last:border-0">
       <th
@@ -669,9 +655,9 @@ function SlotRow({
         {name}
         {/* Four small circles fit on one line in the narrow column. Circles that change take three on
             a line, and four go two and two. */}
-        {narrow && slots && <span className={`mt-1 flex justify-center ${changes && count === 4 ? "mx-auto max-w-[56px]" : ""}`}>{slots}</span>}
+        {narrow && slots && <span className={`mt-1 flex justify-center ${onChange && slots.count === 4 ? "mx-auto max-w-[56px]" : ""}`}>{circles}</span>}
       </th>
-      {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{slots}</td>}
+      {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{circles}</td>}
       <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>{children}</td>
     </tr>
   );

@@ -244,7 +244,7 @@ export function slotPositions(entity: StrictEntity): Map<number, Set<number>> {
  * The number of spent slots in the positions `from` to `to - 1` of a level:
  * the number of stored positions in that range. A position past it does
  * not count. For the slots of a level with no pact slots, `from` is 0 and
- * `to` is the slot total; slotGroups reads each group.
+ * `to` is the slot total; spentSlotGroups reads each group.
  */
 export function spentSlots(positions: Map<number, Set<number>>, level: number, to: number, from = 0): number {
   let spent = 0;
@@ -254,12 +254,17 @@ export function spentSlots(positions: Map<number, Set<number>>, level: number, t
 
 /** The slot groups with their spent slots: never more than the slots of the group. */
 export interface SpentSlotGroups {
+  /**
+   * The slots of each level that are not pact slots, and their spent slots, from the strict entity. A level
+   * whose slots are all pact slots is not here.
+   */
   slots: (SlotTotal & { spent: number })[];
+  /** The Pact Magic slots, apart from the other slots of their level, and their spent slots; null without Pact Magic. */
   pact: (PactSlots & { spent: number }) | null;
 }
 
 /** The slot groups with their spent slots, read from the strict entity. */
-export function slotGroups(entity: StrictEntity, layout: SlotLayout): SpentSlotGroups {
+export function spentSlotGroups(entity: StrictEntity, layout: SlotLayout): SpentSlotGroups {
   const positions = slotPositions(entity);
   const spent = new Map(slotRanges(layout).map(({ group, level, from, count }) => [group, spentSlots(positions, level, from + count, from)]));
   return {
