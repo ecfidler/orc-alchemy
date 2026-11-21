@@ -85,6 +85,11 @@ export interface Spellcaster {
   canPrepare: number | null;
 }
 
+/**
+ * A known spell. name is the name that the app makes from the key: a
+ * component shows the name from the spell record (see spell-records.ts), and
+ * this name only for a spell with no record.
+ */
 export interface KnownSpell extends Named {
   /** The class or race name it is known through. */
   source: string;
@@ -93,12 +98,17 @@ export interface KnownSpell extends Named {
   alwaysPrepared: boolean;
   /** Always prepared, or in the entity's prepared spells, for a class that prepares; never for a cantrip. */
   prepared: boolean;
+  /**
+   * How the spell can be cast, such as "at will" or "ritual only": built's qualifier. null without one, and for
+   * a domain spell, whose qualifier "Domain" says only what alwaysPrepared says.
+   */
+  castNote: string | null;
 }
 
 export interface Spellcasting {
   slots: { level: number; count: number }[];
   casters: Spellcaster[];
-  /** Level 0 is cantrips. Spells sorted by key within a level. */
+  /** Level 0 is cantrips. Spells sorted by key within a level; a component sorts them by the name it shows. */
   byLevel: { level: number; spells: KnownSpell[] }[];
   /** Class name to how it gets known spells; "all" when it knows its whole spell list, as a cleric. */
   knownModes: Record<string, string>;
@@ -543,6 +553,7 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
               ability: unqualify(spell.ability) as Ability,
               alwaysPrepared: always,
               prepared: always || (preparer && (prepared[caster]?.has(key) ?? false)),
+              castNote: castNoteOf(spell.qualifier),
             };
           })
           .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
@@ -551,6 +562,15 @@ function toSpellcasting(built: Built2014, entity: StrictEntity): Spellcasting | 
     knownModes: built["spells-known-modes"] ?? {},
   };
 }
+
+/** The qualifier of a cleric's domain spell (options.cljc cleric-spell). */
+const DOMAIN_QUALIFIER = "Domain";
+
+/** A known spell's qualifier as its cast note: null for none, for blank text and for the domain qualifier. */
+const castNoteOf = (qualifier: string | null | undefined) => {
+  const note = qualifier?.trim();
+  return note && note !== DOMAIN_QUALIFIER ? note : null;
+};
 
 /** The built character as a Sheet; the entity it was built from gives the prepared spells, which built lacks. */
 export function toSheet(built: Built2014, entity: StrictEntity): Sheet {

@@ -3,12 +3,13 @@
 // the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
 import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
-import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   ABILITY_NAMES,
   type Ability,
   bonusStr,
   type FeatureSection,
+  type KnownSpell,
   modStr,
   type Sheet,
   type SheetFeature,
@@ -16,6 +17,7 @@ import {
   type Spellcasting,
   usesDisplay,
 } from "../engine/sheet.ts";
+import { useSpellLookup } from "../state/spell-records.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
 export const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
@@ -455,12 +457,18 @@ function RowBox({ label, shortLabel, shield = false, children }: { label: string
  * (ORC-176). With more than one source in the table, the smaller sources
  * get marks (ORC-179, see `sourceMarks`). On a narrow sheet the slots go
  * under the level, and the spells get the width of the Slots column.
+ * Each spell shows the name from its record, or the name from its key when it
+ * has no record (ORC-280). Until the SRD spells load, the section shows its
+ * levels and slots, and no spell names, so a wrong name never shows.
  */
 function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spellcasting; classes: Sheet["classes"]; narrow: boolean }) {
   const { casters, slots, byLevel } = spellcasting;
+  const lookup = useSpellLookup();
   const classNames = new Set(classes.map((c) => c.name));
   const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
-  const spells = byLevel.flatMap((row) => row.spells.map((spell) => ({ ...spell, level: row.level })));
+  const spells = byLevel.flatMap((row) =>
+    row.spells.map((spell): ShownSpell => ({ ...spell, level: row.level, name: lookup?.(spell.key)?.record.name ?? spell.name })),
+  );
   // A spell's source can have no boxes, so the sources come from the spells too.
   const allSources = new Set([...casters.map((caster) => caster.name), ...spells.map((spell) => spell.source)]);
   const cantripOnly = (source: string) =>
@@ -475,7 +483,8 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
     .map((level) => ({
       level,
       slots: slots.find((slot) => slot.level === level)?.count ?? 0,
-      spells: (byLevel.find((row) => row.level === level)?.spells ?? [])
+      spells: spells
+        .filter((spell) => spell.level === level)
         .filter((spell) => !lines.has(spell.source))
         .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
         .sort((a, b) => a.name.localeCompare(b.name)),
@@ -495,17 +504,14 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
           ))}
         </ShadedPanel>
       )}
-      {lines.size > 0 && (
+      {lines.size > 0 && lookup !== null && (
         // role="list": without bullets, Safari does not name a ul as a list.
         <ul role="list" className="grid gap-0.5 text-[14.5px]">
           {[...lines].map((source) => (
             <CantripLine
               key={source}
               source={source}
-              cantrips={spells
-                .filter((spell) => spell.source === source)
-                .map((spell) => spell.name)
-                .sort((a, b) => a.localeCompare(b))}
+              cantrips={spells.filter((spell) => spell.source === source).sort((a, b) => a.name.localeCompare(b.name))}
               caster={casters.find((caster) => caster.name === source)}
             />
           ))}
@@ -554,14 +560,17 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
                   {!narrow && <td className="border-r border-rule py-1.5 pl-2.5">{circles}</td>}
                   <td className={`py-1.5 align-top ${narrow ? "pl-2" : "pl-3"}`}>
                     {/* role="list": without bullets, Safari does not name a ul as a list. */}
-                    <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
-                      {spells.map((spell) => (
-                        <li key={`${spell.source}/${spell.key}`}>
-                          {spell.name}
-                          <SourceMark source={spell.source} mark={marks.get(spell.source)} />
-                        </li>
-                      ))}
-                    </ul>
+                    {lookup !== null && (
+                      <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
+                        {spells.map((spell) => (
+                          <li key={`${spell.source}/${spell.key}`}>
+                            {spell.name}
+                            <SourceMark source={spell.source} mark={marks.get(spell.source)} />
+                            <CastNote note={spell.castNote} />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </td>
                 </tr>
               );
@@ -571,6 +580,14 @@ function SpellcastingBox({ spellcasting, classes, narrow }: { spellcasting: Spel
       )}
     </FramedBox>
   );
+}
+
+/** A known spell with its level, and with the name the sheet shows: from its record, or else from its key. */
+type ShownSpell = KnownSpell & { level: number };
+
+/** A spell's cast note, in parentheses after the name and its mark: "Detect Magic (at will)". */
+function CastNote({ note }: { note: string | null }) {
+  return note === null ? null : <> ({note})</>;
 }
 
 type Caster = Spellcasting["casters"][number];
@@ -654,11 +671,18 @@ function SourceMark({ source, mark }: { source: string; mark: Mark | undefined }
 }
 
 /** A source with only cantrips, on one line: "Mending (High Elf, INT, DC 14, +6)". */
-function CantripLine({ source, cantrips, caster }: { source: string; cantrips: string[]; caster: Caster | undefined }) {
+function CantripLine({ source, cantrips, caster }: { source: string; cantrips: ShownSpell[]; caster: Caster | undefined }) {
   const numbers = caster ? [abbr(caster.ability), `DC ${caster.saveDc}`, bonusStr(caster.attackBonus)] : [];
   return (
     <li>
-      {cantrips.join(", ")} <span className="text-ink-muted">({[source, ...numbers].join(", ")})</span>
+      {cantrips.map((spell, i) => (
+        <Fragment key={spell.key}>
+          {i > 0 && ", "}
+          {spell.name}
+          <CastNote note={spell.castNote} />
+        </Fragment>
+      ))}{" "}
+      <span className="text-ink-muted">({[source, ...numbers].join(", ")})</span>
     </li>
   );
 }

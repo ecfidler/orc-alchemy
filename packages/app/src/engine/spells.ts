@@ -1,22 +1,25 @@
-// The Spells step (ORC-60): the SRD spell levels for the level filter, and
-// the prepared spells, read from and written to the strict entity. Only this
+// The Spells step (ORC-60): the SRD spell records, which give the level
+// filter its levels and the spell lookup its SRD records (ORC-280), and the
+// prepared spells, read from and written to the strict entity. Only this
 // file knows their Transit keys.
 import { useEffect, useState } from "react";
 import { asSet, setItems, tag, untag } from "./content.ts";
 import type { Engine, StrictEntity } from "./engine.ts";
+import type { SpellRecord } from "./spell-records.ts";
 
 const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
 const CLASS_NAME = "~:orcpub.dnd.e5.character/class-name";
 const PREPARED = "~:orcpub.dnd.e5.character/prepared-spells";
 
-export type SpellContent = Map<string, number>;
+/** The SRD spells, as spell key to record. */
+export type SpellContent = ReadonlyMap<string, SpellRecord>;
 
 let loading: Promise<SpellContent> | undefined;
 let loaded: SpellContent | undefined;
 
-/** Loads the SRD spells once, as their own chunk, as spell key to level. */
+/** Loads the SRD spells once, as their own chunk, as spell key to record. */
 export function loadSpellContent(): Promise<SpellContent> {
-  loading ??= import("@pubdoor/dmv/content/spells.json").then((mod) => (loaded = new Map(mod.default.map((spell) => [spell.key, spell.level]))));
+  loading ??= import("@pubdoor/dmv/content/spells.json").then((mod) => (loaded = new Map((mod.default as SpellRecord[]).map((spell) => [spell.key, spell]))));
   return loading;
 }
 
@@ -35,7 +38,7 @@ export function useSpellContent(): SpellContent | null {
  * its level is then null.
  */
 export function spellLevelOf(key: string, name: string, content: SpellContent | null): number | null {
-  const level = content?.get(key);
+  const level = content?.get(key)?.level;
   if (level !== undefined) return level;
   const prefix = /^(\d) - /.exec(name);
   return prefix ? Number(prefix[1]) : null;
