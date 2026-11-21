@@ -288,13 +288,24 @@ test("a builder change after a sheet change does not move the save of the sheet 
   await openCharacter(id);
   vi.useFakeTimers(SHEET_TIMERS);
 
+  const saves = countRecordSaves();
+  /** True if the page asks before it unloads. */
+  const asksBeforeUnload = () => !window.dispatchEvent(new Event("beforeunload", { cancelable: true }));
+
+  expect(asksBeforeUnload()).toBe(false);
   sheetRename("Pike");
+  expect(asksBeforeUnload()).toBe(true);
   await vi.advanceTimersByTimeAsync(200);
   setPlayer("Ashley");
   expect(useCharacter.getState().unsaved).toBe(true);
-  await vi.advanceTimersByTimeAsync(SHEET_SAVE_DELAY_MS - 200);
-  await vi.waitFor(async () => expect((await getCharacter(id))?.name).toBe("Pike"));
-  await flushAutosave();
+  await vi.advanceTimersByTimeAsync(SHEET_SAVE_DELAY_MS - 200 - 1);
+  expect(saves()).toBe(0);
+  await vi.advanceTimersByTimeAsync(1);
+  await flushAutosave(); // waits for the save that the timer started; nothing more is pending
+  expect(saves()).toBe(1);
+  expect((await getCharacter(id))?.name).toBe("Pike");
+  expect(asksBeforeUnload()).toBe(false);
+  vi.restoreAllMocks();
 
   // A builder change alone still waits the long delay.
   setPlayer("Ashley J");
@@ -311,7 +322,7 @@ test("a sheet change that fails to save reports it, keeps its draft, shows as un
   vi.useFakeTimers(SHEET_TIMERS);
 
   sheetRename("Grog");
-  await vi.waitFor(async () => expect(await getDraft(id)).toBeDefined());
+  expect(await draftWritten(id)).toBe(true);
   vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
     throw new DOMException("Read failed", "UnknownError");
   });

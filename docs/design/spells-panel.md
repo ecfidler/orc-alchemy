@@ -87,8 +87,8 @@ rule.[^orc-265]
   project has no bulk action.
 * A failed save keeps the change on the screen and in the draft. The
   alert note of today shows at the top of the app, the status is
-  "Unsaved changes", and the Save button shows. See [A failed save](#a-failed-save)
-  for the panel.
+  "Unsaved changes", and the Save button shows. See
+  [A failed save](#a-failed-save) for the panel.
 * Each save writes the full character. If the character is open in two
   tabs, the tab that saves last wins. This is a known limit. The sync of
   the Backend project covers it later.
