@@ -1,7 +1,7 @@
 import { AlertNote, AlertNotes, Button, ButtonLink, useConfirm } from "@orc-alchemy/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import type { RouteObject } from "react-router";
-import { Link, useBlocker, useParams } from "react-router";
+import { Link, useBlocker, useParams, useSearchParams } from "react-router";
 import { AppShell } from "../components/AppShell.tsx";
 import { Builder } from "../components/Builder.tsx";
 import { CharacterList, NewCharacter } from "../components/CharacterList.tsx";
@@ -15,10 +15,12 @@ import { useAskOnBlock } from "../components/leave-guard.tsx";
 import { MyContent } from "../components/MyContent.tsx";
 import { Preferences } from "../components/Preferences.tsx";
 import { ReviewUses } from "../components/ReviewUses.tsx";
+import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
 import type { Sheet } from "../engine/sheet.ts";
+import type { SpellRef } from "../engine/spell-list.ts";
 import { type SlotGroup, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
@@ -133,6 +135,9 @@ function SheetPage() {
   const { id: openId } = useParams();
   const [exported, setExported] = useState<{ id: string; message: string | null } | null>(null);
   const exportMessage = exported !== null && exported.id === openId ? exported.message : null;
+  // The Spells panel (ORC-285): open or not, and the spell it opened at. It is not in the URL, so a reload shows the sheet.
+  // The spell stays while the panel closes, so the panel does not change during its close.
+  const [spells, setSpells] = useState<{ open: boolean; at?: SpellRef }>({ open: false });
   return (
     <OpenCharacter
       actions={(id) => (
@@ -148,14 +153,26 @@ function SheetPage() {
         <>
           <ExportMessageLine message={exportMessage} className="mb-4" />
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
-          <CharacterSheet sheet={sheet} onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)} />
+          <CharacterSheet sheet={sheet} onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)} onOpenSpells={(at) => setSpells({ open: true, at })} />
+          {sheet.spellcasting && (
+            <SpellsPanel
+              open={spells.open}
+              onOpenChange={(open) => setSpells((current) => ({ ...current, open }))}
+              spellcasting={sheet.spellcasting}
+              classes={sheet.classes}
+              at={spells.at}
+              builderHref={`/build/${openId}?step=Spells`}
+            />
+          )}
         </>
       )}
     </OpenCharacter>
   );
 }
 
+/** The builder. `?step=Spells` opens it at that step, for example from the Spells panel (ORC-285). */
 function BuildPage() {
+  const [params] = useSearchParams();
   return (
     <OpenCharacter
       actions={(id) => (
@@ -164,7 +181,7 @@ function BuildPage() {
         </ButtonLink>
       )}
     >
-      {() => <Builder />}
+      {() => <Builder step={params.get("step") ?? undefined} />}
     </OpenCharacter>
   );
 }

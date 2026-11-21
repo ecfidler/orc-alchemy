@@ -29,6 +29,19 @@ type DialogBase = {
   initialFocus?: RefObject<HTMLElement | null> | (() => HTMLElement | null);
 };
 
+/** The props of a wide dialog only. */
+type WideBase = {
+  /** Up to 1100px wide, for content in two panes. */
+  size: "wide";
+  /**
+   * True: the dialog is the height of the window less its margin, and the
+   * body has no padding and no scroll of its own. The body is a flex column,
+   * so the owner lays out its parts and sets which of them scroll, for
+   * example two panes that scroll apart.
+   */
+  fill?: boolean;
+};
+
 export type DialogProps = DialogBase &
   (
     | {
@@ -38,25 +51,23 @@ export type DialogProps = DialogBase &
         actions?: ReactNode;
         header?: never;
         footer?: never;
+        fill?: never;
       }
-    | {
-        /** Up to 1100px wide, for content in two panes. */
-        size: "wide";
+    | (WideBase & {
         /** The content of the header row, in place of the title. The owner puts its own heading in it. */
         header?: ReactNode;
         /** True or not set: the footer with Cancel and the `actions`. */
         footer?: true;
         /** The buttons after Cancel, at the end of the footer. */
         actions?: ReactNode;
-      }
-    | {
-        size: "wide";
+      })
+    | (WideBase & {
         header?: ReactNode;
         /** False: no footer, and an X named "Close" at the end of the header row closes the dialog. */
         footer: false;
         /** No footer, so no actions. */
         actions?: never;
-      }
+      })
   );
 
 /** The controls that can take the focus. */
@@ -103,13 +114,14 @@ function useLateControlFocus(open: boolean, body: HTMLElement | null, ownFocus: 
  * With `size="wide"` it is up to 1100px wide. The owner can then give its
  * own `header` in place of the title, and `footer={false}` removes the
  * footer and puts an X in the header row. The X also calls
- * `onOpenChange(false)`.
+ * `onOpenChange(false)`. `fill` gives it the height of the window less its
+ * margin, and a body with no padding and no scroll, which the owner lays out.
  *
  * A ListModal, an AlertDialog or another Dialog that a part of the body
  * opens shows above this dialog. Escape and a click outside then close only
  * that one, and the focus comes back into this dialog.
  */
-export function Dialog({ open, onOpenChange, title, children, actions, finalFocus, initialFocus, size, header, footer = true }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, children, actions, finalFocus, initialFocus, size, header, footer = true, fill = false }: DialogProps) {
   // A state, not a ref: the portal mounts the body after this component, and the effect must run again then.
   const [body, setBody] = useState<HTMLDivElement | null>(null);
   const popup = useRef<HTMLDivElement>(null);
@@ -143,6 +155,7 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
           ref={popup}
           className="ui-modal"
           data-size={wide ? "wide" : undefined}
+          data-fill={wide && fill ? "" : undefined}
           aria-label={ownHeader ? title : undefined}
           initialFocus={initial}
           finalFocus={typeof finalFocus === "function" ? () => finalFocus() : (finalFocus ?? true)}

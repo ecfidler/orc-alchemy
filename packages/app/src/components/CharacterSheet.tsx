@@ -2,14 +2,13 @@
 // "Character sheet"), two columns that become one in a narrow container. Under 720px
 // the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
-import { CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
+import { Button, CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   ABILITY_NAMES,
   type Ability,
   bonusStr,
   type FeatureSection,
-  type KnownSpell,
   modStr,
   ordinal,
   type Sheet,
@@ -19,7 +18,7 @@ import {
   type SpendSlots,
   usesDisplay,
 } from "../engine/sheet.ts";
-import { spellName } from "../engine/spell-records.ts";
+import { type ListedSpell, type SpellRef, spellGroups } from "../engine/spell-list.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -35,8 +34,21 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * `preview`: the builder's preview leaves out what only matters in play (temporary hit points, death saves).
  * `onSpendSlots`: the user changes the spent slots of a level, or the pact slots, to `spent` (ORC-282, ORC-283).
  * Without it, the slot circles and diamonds show the spent slots and cannot change, as in the builder preview.
+ * `onOpenSpells`: the user opens the Spells panel, at the top of its list, or at a spell (ORC-285). With it, the
+ * Spellcasting section has an "All spells" button and each spell name is a button. Without it, as in the builder
+ * preview, there is no button and the names are plain text.
  */
-export function CharacterSheet({ sheet, preview = false, onSpendSlots }: { sheet: Sheet; preview?: boolean; onSpendSlots?: SpendSlots }) {
+export function CharacterSheet({
+  sheet,
+  preview = false,
+  onSpendSlots,
+  onOpenSpells,
+}: {
+  sheet: Sheet;
+  preview?: boolean;
+  onSpendSlots?: SpendSlots;
+  onOpenSpells?: (spell?: SpellRef) => void;
+}) {
   const { spellcasting, features, equipment, details } = sheet;
   const article = useRef<HTMLElement>(null);
   const [narrow, setNarrow] = useState(false);
@@ -263,7 +275,7 @@ export function CharacterSheet({ sheet, preview = false, onSpendSlots }: { sheet
   );
   const equipmentSection = <Equipment gold={goldOf(equipment.treasure)} gear={gear} />;
   const spellcastingSection = spellcasting && (
-    <SpellcastingBox spellcasting={spellcasting} classes={sheet.classes} narrow={narrow} onSpendSlots={onSpendSlots} />
+    <SpellcastingBox spellcasting={spellcasting} classes={sheet.classes} narrow={narrow} onSpendSlots={onSpendSlots} onOpenSpells={onOpenSpells} />
   );
 
   // The phone layout (ORC-173): under 720px the sections go in tabs, without the empty ones.
@@ -469,26 +481,30 @@ function RowBox({ label, shortLabel, shield = false, children }: { label: string
  * has no record (ORC-280). Until the SRD spells load, the section shows its
  * levels and slots, and no spell names, so a wrong name never shows.
  * The Pact Magic slots are apart, as diamonds after the circles in the row
- * of their slot level (ORC-283).
+ * of their slot level (ORC-283). `spellGroups` gives the spells that show,
+ * the Spells panel uses the same rule. With `onOpenSpells`, an "All spells"
+ * button at the end of the section rule opens the panel, and each spell name
+ * is a button that opens it at that spell (ORC-285).
  */
 function SpellcastingBox({
   spellcasting,
   classes,
   narrow,
   onSpendSlots,
+  onOpenSpells,
 }: {
   spellcasting: Spellcasting;
   classes: Sheet["classes"];
   narrow: boolean;
   onSpendSlots?: SpendSlots;
+  onOpenSpells?: (spell?: SpellRef) => void;
 }) {
-  const { casters, slots, pact, byLevel } = spellcasting;
+  const { casters, pact } = spellcasting;
   const lookup = useSpellLookup();
   const classNames = new Set(classes.map((c) => c.name));
   const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
-  const spells = byLevel.flatMap((row) =>
-    row.spells.map((spell): ShownSpell => ({ ...spell, level: row.level, name: lookup ? spellName(lookup, spell.key, spell.name) : spell.name })),
-  );
+  const levelGroups = spellGroups(spellcasting, lookup);
+  const spells = levelGroups.flatMap((group) => group.spells);
   // A spell's source can have no boxes, so the sources come from the spells too.
   const allSources = new Set([...casters.map((caster) => caster.name), ...spells.map((spell) => spell.source)]);
   const cantripOnly = (source: string) =>
@@ -498,20 +514,15 @@ function SpellcastingBox({
   const several = sources.length > 1;
   const title = several ? "Spells" : prepares.get(sources[0]!) ? "Prepared spells" : "Known spells";
   const groups = casterGroups(casters.filter((caster) => !lines.has(caster.name)));
-  const rows = [...new Set([...slots.map((slot) => slot.level), ...(pact ? [pact.slotLevel] : []), ...byLevel.map((row) => row.level)])]
-    .sort((a, b) => a - b)
-    .map((level) => {
-      const slot = slots.find((s) => s.level === level);
+  const rows = levelGroups
+    .map(({ level, spells }) => {
+      const slot = spellcasting.slots.find((s) => s.level === level);
       return {
         level,
         slots: slot?.count ?? 0,
         spent: slot?.spent ?? 0,
         pact: pact?.slotLevel === level ? pact : null,
-        spells: spells
-          .filter((spell) => spell.level === level)
-          .filter((spell) => !lines.has(spell.source))
-          .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
-          .sort((a, b) => a.name.localeCompare(b.name)),
+        spells: spells.filter((spell) => !lines.has(spell.source)),
       };
     })
     .filter((row) => row.slots > 0 || row.pact || row.spells.length > 0);
@@ -521,7 +532,17 @@ function SpellcastingBox({
     new Set(groups.filter((group) => isNamed(group, groups)).flatMap((group) => group.names)),
   );
   return (
-    <FramedBox label="Spellcasting" className="gap-2.5">
+    <FramedBox
+      label="Spellcasting"
+      className="gap-2.5"
+      action={
+        onOpenSpells && (
+          <Button size="small" onClick={() => onOpenSpells()}>
+            All spells
+          </Button>
+        )
+      }
+    >
       {groups.length > 0 && (
         <ShadedPanel>
           {groups.map((group) => (
@@ -538,6 +559,7 @@ function SpellcastingBox({
               source={source}
               cantrips={spells.filter((spell) => spell.source === source).sort((a, b) => a.name.localeCompare(b.name))}
               caster={casters.find((caster) => caster.name === source)}
+              onOpen={onOpenSpells}
             />
           ))}
         </ul>
@@ -596,7 +618,7 @@ function SpellcastingBox({
                   <ul role="list" className="[&>li]:inline [&>li:not(:last-child)]:after:content-[',_']">
                     {spells.map((spell) => (
                       <li key={`${spell.source}/${spell.key}`}>
-                        {spell.name}
+                        <SpellName spell={spell} onOpen={onOpenSpells} />
                         <SourceMark source={spell.source} mark={marks.get(spell.source)} />
                         <CastNote note={spell.castNote} />
                       </li>
@@ -672,8 +694,19 @@ function SlotRow({ name, small, narrow, groups, children }: { name: string; smal
 /** The state of a level's slot circles for a screen reader: "2 of 4 spent". */
 const spentText = (spent: number, count: number) => `${spent} of ${count} spent`;
 
-/** A known spell with its level. SpellcastingBox puts the name to show in `name` (see `spellName`). */
-type ShownSpell = KnownSpell & { level: number };
+/**
+ * A spell name. With `onOpen`, it is a button with the look of plain text that opens the Spells panel at the
+ * spell; else it is plain text.
+ */
+function SpellName({ spell, onOpen }: { spell: ListedSpell; onOpen: ((spell: SpellRef) => void) | undefined }) {
+  if (!onOpen) return spell.name;
+  return (
+    // The link variant keeps the font of the list; without its line it has the look of plain text.
+    <Button variant="link" onClick={() => onOpen({ key: spell.key, source: spell.source })} className="text-left no-underline hover:underline">
+      {spell.name}
+    </Button>
+  );
+}
 
 /** A spell's cast note, in parentheses after the name and its mark: "Detect Magic (at will)". */
 function CastNote({ note }: { note: string | null }) {
@@ -761,14 +794,24 @@ function SourceMark({ source, mark }: { source: string; mark: Mark | undefined }
 }
 
 /** A source with only cantrips, on one line: "Mending (High Elf, INT, DC 14, +6)". */
-function CantripLine({ source, cantrips, caster }: { source: string; cantrips: ShownSpell[]; caster: Caster | undefined }) {
+function CantripLine({
+  source,
+  cantrips,
+  caster,
+  onOpen,
+}: {
+  source: string;
+  cantrips: ListedSpell[];
+  caster: Caster | undefined;
+  onOpen: ((spell: SpellRef) => void) | undefined;
+}) {
   const numbers = caster ? [abbr(caster.ability), `DC ${caster.saveDc}`, bonusStr(caster.attackBonus)] : [];
   return (
     <li>
       {cantrips.map((spell, i) => (
         <Fragment key={spell.key}>
           {i > 0 && ", "}
-          {spell.name}
+          <SpellName spell={spell} onOpen={onOpen} />
           <CastNote note={spell.castNote} />
         </Fragment>
       ))}{" "}

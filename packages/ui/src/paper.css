@@ -25,6 +25,23 @@
     text-align: center;
     border-top: 1px solid var(--rule);
   }
+  /* A label row with an action: the label in the middle, the action at the end of the rule. */
+  .ui-framed-box-foot {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding-top: 4px;
+    border-top: 1px solid var(--rule);
+  }
+  .ui-framed-box-foot > .ui-label {
+    grid-column: 2;
+    text-align: center;
+  }
+  .ui-framed-box-action {
+    grid-column: 3;
+    justify-self: end;
+  }
 
   .ui-small-box {
     display: grid;

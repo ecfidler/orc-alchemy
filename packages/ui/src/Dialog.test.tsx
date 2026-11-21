@@ -304,6 +304,24 @@ test("an element that the initial focus gives keeps the focus when the body show
   expect(document.activeElement).toBe(back);
 });
 
+test("a wide dialog with fill is marked for the full height, and a wide dialog without it is not", async () => {
+  function Filled({ fill }: { fill: boolean }) {
+    return (
+      <Dialog open onOpenChange={() => {}} size="wide" title={fill ? "Filled" : "Plain"} footer={false} fill={fill}>
+        <div>Two panes</div>
+      </Dialog>
+    );
+  }
+  render(<Filled fill />);
+  const dialog = await screen.findByRole("dialog", { name: "Filled" });
+  // The CSS gives a dialog with data-fill the window height, and a body with no padding and no scroll of its own.
+  expect(dialog.hasAttribute("data-fill")).toBe(true);
+  expect(within(dialog).getByText("Two panes").parentElement!.className).toBe("ui-modal-body");
+  cleanup();
+  render(<Filled fill={false} />);
+  expect((await screen.findByRole("dialog", { name: "Plain" })).hasAttribute("data-fill")).toBe(false);
+});
+
 test("the types: a wide dialog with no footer takes no actions, and a normal dialog takes no header", () => {
   const close = () => {};
   // @ts-expect-error: no footer, so no actions.
@@ -311,4 +329,6 @@ test("the types: a wide dialog with no footer takes no actions, and a normal dia
   // @ts-expect-error: a header only with the wide size.
   void (<Dialog open={false} onOpenChange={close} title="T" header={<h2>T</h2>} children={null} />);
   void (<Dialog open={false} onOpenChange={close} size="wide" title="T" actions={<button>Save</button>} children={null} />);
+  // @ts-expect-error: fill only with the wide size.
+  void (<Dialog open={false} onOpenChange={close} title="T" fill children={null} />);
 });

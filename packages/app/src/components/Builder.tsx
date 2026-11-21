@@ -14,13 +14,14 @@ import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 
-export function Builder() {
+/** `step`: the name of the step that shows first, for example "Spells". The Race step by default. */
+export function Builder({ step: firstStep = "Race" }: { step?: string }) {
   const { selections, sheet, content } = useOpenCharacter();
   // The Description step has no selections, so builderSteps does not give
   // it. Before the character loads there are no steps at all.
   const engineSteps = useBuilderSteps(selections, content);
   const steps = engineSteps.length === 0 ? engineSteps : [...engineSteps, { name: "Description", selections: [] }];
-  const [stepName, setStepName] = useState("Race");
+  const [stepName, setStepName] = useState(firstStep);
   const step = steps.find((s) => s.name === stepName) ?? steps[0];
   const counts = remainingByStep(steps);
   // As the old validate-selections: starting equipment is not flagged.

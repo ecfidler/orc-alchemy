@@ -16,14 +16,34 @@ export function Label({ children, id }: { children: ReactNode; id?: string }) {
  * `role="group" aria-labelledby={labelId}`. `className` is for layout and
  * spacing.
  */
-export function FramedBox({ label, children, className, labelId }: { label: ReactNode; children: ReactNode; className?: string; labelId?: string }) {
+export function FramedBox({
+  label,
+  children,
+  className,
+  labelId,
+  action,
+}: {
+  label: ReactNode;
+  children: ReactNode;
+  className?: string;
+  labelId?: string;
+  /** A small control at the end of the label row, for example a button that opens more. It is not a part of the box's name, so give it its own name. */
+  action?: ReactNode;
+}) {
   const ownId = useId();
   const grouped = labelId === undefined;
   const id = labelId ?? ownId;
   return (
     <div role={grouped ? "group" : undefined} aria-labelledby={grouped ? id : undefined} className={className ? `ui-framed-box ${className}` : "ui-framed-box"}>
       {children}
-      <Label id={id}>{label}</Label>
+      {action === undefined ? (
+        <Label id={id}>{label}</Label>
+      ) : (
+        <div className="ui-framed-box-foot">
+          <Label id={id}>{label}</Label>
+          <span className="ui-framed-box-action">{action}</span>
+        </div>
+      )}
     </div>
   );
 }

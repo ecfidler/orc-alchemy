@@ -133,7 +133,11 @@ bun run test       # vitest
     the focus. At 600px and less the X is 44px. When `initialFocus` gives
     null or its ref is empty, the focus goes as by default, also to a
     control that the body shows later. The backdrop is the list modal's
-    ink wash. Styles: `src/dialog.css`.
+    ink wash. A wide dialog with `fill` is the height of the window less
+    its margin, and its body has no padding and no scroll of its own:
+    the body is a flex column, and the owner lays out its parts and sets
+    which of them scroll, for example two panes that scroll apart.
+    Styles: `src/dialog.css`.
   - `Select`: Base UI Select, a pick of one value from a list. Its role is
     combobox, and its text is the picked option. It is controlled by
     `value` (null while nothing is picked) and `onValueChange`. Each of
@@ -220,6 +224,9 @@ bun run test       # vitest
     - `FramedBox`: content in a box, with the label under it on a
       hairline. With `labelId`, the box is not a group, and the caller
       makes a value in it a group with `aria-labelledby={labelId}`.
+      `action` is a small control at the end of the label row, for
+      example a button that opens more. It is not a part of the box's
+      name, so give it its own name.
     - `SmallBox`: a small `value` in a cell, with the label beside it.
     - `StatBox`: a box with its label, a large `value` and an `oval` that
       hangs from the bottom edge. The label names the oval and the value

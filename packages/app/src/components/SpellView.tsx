@@ -6,6 +6,7 @@ import { Label } from "@orc-alchemy/ui";
 import { type ReactNode, useId } from "react";
 import type { SpellRecordResult } from "../engine/spell-records.ts";
 import { castNoteLine, componentsLine, descriptionParts, durationParts, levelLine } from "../engine/spell-text.ts";
+import { BoxTag } from "./BoxTag.tsx";
 
 export type SpellViewProps = {
   /** The name to show when there is no record, or the name of the record is empty: the name that the app makes from the key. */
@@ -17,17 +18,6 @@ export type SpellViewProps = {
   /** The owner's line, under the name block and above the facts. */
   children?: ReactNode;
 };
-
-/** A word in a small box, in Inter caps, for example "Ritual" or "Concentration". */
-export function BoxTag({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <span
-      className={`inline-block border border-rule-strong px-[5px] align-[2px] font-sans text-[10px] leading-[1.6] font-semibold tracking-[0.06em] whitespace-nowrap text-ink-muted not-italic uppercase ${className}`}
-    >
-      {children}
-    </span>
-  );
-}
 
 /** A fact of the grid: its label in Inter caps above its value. */
 function Fact({ label, wide = false, children }: { label: string; wide?: boolean; children: ReactNode }) {

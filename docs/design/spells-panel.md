@@ -162,7 +162,8 @@ spells by level is on the left. The text of one spell is on the right.
 ## Ways in
 
 * The Spellcasting section of the sheet has an "All spells" button at the
-  end of its section rule. It opens the panel at the top of the list.
+  end of its section rule, the label row at the bottom of the section. It
+  opens the panel at the top of the list.
 * Each spell name on the sheet is a button with the look of plain text.
   It opens the panel at that spell. This includes the cantrips and the
   line of a cantrip-only source.
@@ -176,7 +177,10 @@ The panel is a `Dialog` of `@orc-alchemy/ui` with the new wide size (see
 [Changes to the theme spec](#changes-to-the-theme-spec)).
 
 * It is up to 1100px wide. The panel sets its height to the height of the
-  window, less a margin. At 600px and less it fills the screen.
+  window, less a margin of 16px at the top and at the bottom (the `fill`
+  Dialog). At 600px and less it fills the screen.
+* The bar does not scroll. The list and the spell view are two panes that
+  scroll apart. The list pane is 240px to 340px wide.
 * It has a header, a prepare bar, and the two panes. It has no footer.
 * The X, Esc and a click outside close it. The focus then goes back to
   the control that opened it.
@@ -210,8 +214,8 @@ The bar is under the header. It always shows.
   button "Prepare spells". In prepare mode, the button is "Done". It is
   one button that changes its label. It has no pressed state.
 * On the right is the link "Change known spells in the builder". It goes
-  to the Spells step of the builder. It has the pencil icon of ORC-272
-  before its text.
+  to the Spells step of the builder, `/build/{id}?step=Spells`. It has the
+  pencil icon of ORC-272 before its text.
 * A character with no class that prepares has no count and no button. The
   bar then has only the link.
 
@@ -241,7 +245,8 @@ group. A group has a heading and one row for each spell, A to Z by name.
 * When the character has two or more sources, each row has a small
   source tag in words, for example "CLERIC", in Inter caps.
 * "Ritual" is a word in a box. Concentration is a "C" in a box. The "C"
-  has the accessible name "Concentration".
+  has the accessible name "Concentration". The boxes are at the right end
+  of the row. On the selected row they are paper.
 * A long name wraps inside its row.
 
 **A level heading**
@@ -258,6 +263,8 @@ group. A group has a heading and one row for each spell, A to Z by name.
 * It filters the rows by name as the user types, in the two modes. A
   group with no rows that match does not show.
 * If no row matches, the list says "No spells match."
+* The search does not change the selected spell. The spell view keeps it
+  when its row does not match.
 * There are no other filters.
 
 ## The spell view
@@ -323,6 +330,12 @@ At 600px and less:
   list with the spell view. The spell view has a "Back to the list" link
   at its top. The list is then at the same scroll position, and the
   focus goes to the row.
+* A spell name on the sheet opens the spell view of that spell. The "All
+  spells" button opens the list.
+* In the spell view, the "Back to the list" link has the focus, because
+  the row is hidden. This is also the focus at the open.
+* In the list, the arrow keys move the focus and do not change the
+  selected spell.
 * The Spell slots block is at the top of the two views, because a user
   can cast a spell with a slot of a higher level.
 * The panel does not scroll sideways at a width of 320px.
@@ -551,6 +564,13 @@ slots to `wizard-5` or `warlock-10-drow` with `setValue`.
 These rules come from the review of variant D.[^orc-267] The tests check
 the results. Each build ticket chooses the ARIA pattern that gives them.
 
+**The ARIA pattern of the list (ORC-285).** The list is a list of buttons
+with a roving tabindex, under real level headings. Each level is a group
+named by its heading. The selected row has `aria-current="true"`. A
+listbox does not fit, because a listbox can hold only options, and the
+level headings get slot controls (ORC-286). In prepare mode (ORC-287) a
+row can be a button with the checkbox role, and Space changes it.
+
 **Focus**
 
 * The Dialog holds the focus in the panel. Tab does not go to the sheet
@@ -596,7 +616,8 @@ the results. Each build ticket chooses the ARIA pattern that gives them.
 **Announcements**
 
 * The spell view is a region with the name of the spell. When the
-  selected spell changes, a polite live region says the spell name.
+  selected spell changes, a polite live region says the spell name. It
+  says nothing at the open, because the focus on the row reads the name.
 * A change of a prepare count is in a polite live region: "Cleric: 9 of
   8 prepared. Remove 1 spell."
 * The failed-save note in the panel has the alert role.

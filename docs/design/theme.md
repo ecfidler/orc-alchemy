@@ -250,7 +250,10 @@ homebrew forms. They have no game words: the app gives the lists.
   with an X in its header, 44px at 600px and less (ORC-284). When it
   opens, the focus goes to the first control of the body if there is
   one, else to the X. The owner can also set the control that gets the
-  focus when it opens.
+  focus when it opens. With `fill`, a wide Dialog is the height of the
+  window less its 16px margins, and its body has no padding and no
+  scroll: the owner lays it out, for example as two panes that scroll
+  apart (ORC-285).
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control.
@@ -292,6 +295,8 @@ inputs and links.
 These patterns are in the package. They have no game meaning.
 
 * **Framed box:** a value in a box with its label under it, in Inter caps.
+  A small control can be at the end of the label row, on its rule, for
+  example the "All spells" button of the Spellcasting section (ORC-285).
 * **Small box:** a small value and label box.
 * **Stat box:** a box with a large value and a hanging oval for a second
   value. The app's ability block uses it.
@@ -575,8 +580,9 @@ which opens from this section. It also gives the full rules for spent
 slots, Pact Magic slots, spell names and the cast note. The items below
 that name it are a summary.
 
-* **All spells:** an "All spells" button is at the end of the section
-  rule. It opens the Spells panel. Each spell name is a button with the
+* **All spells:** a small "All spells" button is at the end of the section
+  rule, the label row at the bottom of the section. It opens the Spells
+  panel. Each spell name is a button with the
   look of plain text, and opens the panel at that spell. The builder
   preview has neither.
 
