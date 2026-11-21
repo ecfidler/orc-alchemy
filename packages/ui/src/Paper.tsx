@@ -117,11 +117,11 @@ export interface SlotCirclesProps {
   /** "vertical" puts the circles in a column, the first at the top. The arrow keys stay the same. */
   orientation?: "horizontal" | "vertical";
   /**
-   * With `onChange`: false makes a copy of a group that is a Tab stop in
-   * another place. The copy takes clicks, but it is not a Tab stop, a click
-   * does not move the focus, and a screen reader does not see it.
+   * With `onChange`: true makes a copy of a group that is a Tab stop in
+   * another place. The copy is hidden from a screen reader and is not a Tab
+   * stop. A click changes it and does not move the focus.
    */
-  focusable?: boolean;
+  copy?: boolean;
 }
 
 /**
@@ -137,8 +137,8 @@ export interface SlotCirclesProps {
  * click changes shows a light fill. The group is a slider and one Tab
  * stop: Right and Up mark one more, Left and Down one less. A screen
  * reader reads "{label}, {valueText}", and the new value after a change.
- * A click leaves the focus on the group. With `focusable={false}` it is a
- * copy that takes clicks only.
+ * A click leaves the focus on the group. With `copy` it is a copy that
+ * takes clicks only.
  */
 export function SlotCircles({
   label,
@@ -150,7 +150,7 @@ export function SlotCircles({
   onChange,
   valueText = defaultValueText,
   orientation = "horizontal",
-  focusable = true,
+  copy = false,
 }: SlotCirclesProps) {
   const marked = Math.max(0, Math.min(markedProp, count));
   const circles = Array.from({ length: count }, (_, i) => (
@@ -184,10 +184,10 @@ export function SlotCircles({
     const circle = (event.target as Element).closest(".ui-slot-circle");
     if (!circle) return;
     // Not every browser focuses the group on a click; the focus must stay on it.
-    if (focusable) event.currentTarget.focus();
+    if (!copy) event.currentTarget.focus();
     change(circle.hasAttribute("data-marked") ? marked - 1 : marked + 1);
   };
-  if (!focusable) {
+  if (copy) {
     return (
       // A mouse down does not move the focus: it stays where it was, for example on a row.
       <span aria-hidden data-changes="" {...common} onMouseDown={(event) => event.preventDefault()} onClick={onClick}>

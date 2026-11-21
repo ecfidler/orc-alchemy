@@ -1,8 +1,8 @@
 // The spell slots of the Spells panel (ORC-286, docs/design/spells-panel.md
 // "Spent spell slots"): the Spell slots block above the list, and the slots
 // on each level heading. They use the groups, names and state of the sheet
-// (`slotGroupsOf` and the helpers beside it in engine/spell-list.ts), and the
-// same change handler, so the panel and the sheet show the same state.
+// (engine/spell-slots.ts), and the same change handler, so the panel and the
+// sheet show the same state.
 //
 // The Pact Magic slots are apart in the panel: in the block a "Pact" entry
 // is after the levels, and on the heading of the pact slot level the diamonds
@@ -10,29 +10,29 @@
 // hold that presentation.
 import { Button, Label, SlotCircles } from "@orc-alchemy/ui";
 import { type ReactNode, useId } from "react";
-import { ordinal, type Spellcasting, type SpendSlots } from "../engine/sheet.ts";
-import { levelHeading, levelSlots, pactSlotGroup, type ShownSlots, slotColumns, spentText } from "../engine/spell-list.ts";
-
-type Slots = Pick<Spellcasting, "slots" | "pact">;
+import { ordinal, type SpendSlots } from "../engine/sheet.ts";
+import { levelHeading } from "../engine/spell-list.ts";
+import { levelSlots, pactSlotGroup, type ShownSlots, slotColumns, slotEntries, spentText } from "../engine/spell-slots.ts";
+import type { SpentSlotGroups } from "../engine/spells.ts";
 
 /** The attribute that marks the Spell slots block. */
 export const SLOTS_BLOCK = "data-slots-block";
 
 /**
  * One group of slots that the user changes: circles, or diamonds for the
- * pact slots. With `focusable={false}` it is a copy that takes clicks only
- * (see SlotCircles).
+ * pact slots. With `copy` it is a copy that takes clicks only (see
+ * SlotCircles).
  */
 function SlotGroupControl({
   slots,
   onSpendSlots,
   vertical = false,
-  focusable = true,
+  copy = false,
 }: {
   slots: ShownSlots;
   onSpendSlots: SpendSlots;
   vertical?: boolean;
-  focusable?: boolean;
+  copy?: boolean;
 }) {
   return (
     <SlotCircles
@@ -43,7 +43,7 @@ function SlotGroupControl({
       onChange={(spent) => onSpendSlots(slots.group, spent)}
       valueText={spentText}
       orientation={vertical ? "vertical" : "horizontal"}
-      focusable={focusable}
+      copy={copy}
     />
   );
 }
@@ -65,7 +65,7 @@ function PactEntryName({ level, column }: { level: number; column: boolean }) {
 }
 
 export interface SpellSlotsBlockProps {
-  spellcasting: Slots;
+  spellcasting: SpentSlotGroups;
   onSpendSlots: SpendSlots;
   folded: boolean;
   onFoldedChange: (folded: boolean) => void;
@@ -78,16 +78,16 @@ export interface SpellSlotsBlockProps {
 /**
  * The Spell slots block: a shaded block with a fold button in its top-left
  * corner, then one entry for each level with other slots, 1st level first,
- * then the "Pact" entry. With slots of the 5th level or higher the entries
- * are columns, with the circles going down; else they are rows. Each group
+ * then the "Pact" entry. With two or more entries and slots of the 5th level
+ * or higher the entries are columns, with the circles going down; else they
+ * are rows. Each group
  * is one Tab stop. A level name is a link that scrolls the list to that
  * level. The block has no total. Nothing shows for a character with no slots.
  */
 export function SpellSlotsBlock({ spellcasting, onSpendSlots, folded, onFoldedChange, onGoTo, shownLevels }: SpellSlotsBlockProps) {
   const buttonId = useId();
   const gridId = useId();
-  const pact = pactSlotGroup(spellcasting);
-  const entries = [...spellcasting.slots.map((slot) => levelSlots(spellcasting, slot.level)).filter((slots) => slots !== null), ...(pact ? [pact] : [])];
+  const entries = slotEntries(spellcasting);
   if (entries.length === 0) return null;
   const columns = slotColumns(spellcasting);
   return (
@@ -166,7 +166,8 @@ function Entry({
     );
   }
   return (
-    <div className="flex min-w-7 max-w-14 flex-1 flex-col items-center gap-2">
+    // The Pact column is wide enough for its word, so the word never reaches the next column.
+    <div className={`flex max-w-14 flex-1 flex-col items-center gap-2 ${isPact ? "min-w-10" : "min-w-7"}`}>
       {link}
       <SlotGroupControl slots={slots} onSpendSlots={onSpendSlots} vertical />
     </div>
@@ -185,32 +186,37 @@ function Chevron({ open }: { open: boolean }) {
 /**
  * The slots of a level heading: the other slots of the level, then, on the
  * pact slot level, the "Pact" label and the diamonds at the right end. With
- * `focusable={false}` (while the block is open) they are copies: they take
- * clicks, but they are not Tab stops and a screen reader does not see them.
- * Null for a level with no slots.
+ * `copy` (while the block is open) they are copies: they take clicks, but
+ * they are not Tab stops and a screen reader does not see them. Null for a
+ * level with no slots. The pact part does not wrap inside: when the heading
+ * is too narrow, it goes on the next line as one piece.
  */
 export function HeadingSlots({
   spellcasting,
   level,
   onSpendSlots,
-  focusable,
+  copy,
 }: {
-  spellcasting: Slots;
+  spellcasting: SpentSlotGroups;
   level: number;
   onSpendSlots: SpendSlots;
-  focusable: boolean;
+  copy: boolean;
 }) {
   const others = levelSlots(spellcasting, level);
   const pact = pactSlotGroup(spellcasting);
   const levelPact = pact?.level === level ? pact : null;
   if (!others && !levelPact) return null;
   return (
-    <span aria-hidden={focusable ? undefined : true} className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 self-center">
-      {others && <SlotGroupControl slots={others} onSpendSlots={onSpendSlots} focusable={focusable} />}
+    <span aria-hidden={copy ? true : undefined} className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 self-center">
+      {others && (
+        <span className="flex flex-none">
+          <SlotGroupControl slots={others} onSpendSlots={onSpendSlots} copy={copy} />
+        </span>
+      )}
       {levelPact && (
-        <span className="ml-auto flex items-center gap-[7px] text-[15px]">
+        <span className="ml-auto flex flex-none items-center gap-[7px] text-[15px]">
           <PactWord />
-          <SlotGroupControl slots={levelPact} onSpendSlots={onSpendSlots} focusable={focusable} />
+          <SlotGroupControl slots={levelPact} onSpendSlots={onSpendSlots} copy={copy} />
         </span>
       )}
     </span>

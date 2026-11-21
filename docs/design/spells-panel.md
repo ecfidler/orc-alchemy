@@ -4,7 +4,7 @@ title: Spells panel spec
 description: The settled design of the Spells panel on the character sheet - the popup with the spell list and the spell text, prepared spells, spent spell slots in the panel and on the sheet, Pact Magic slots, how a sheet change saves, the spell records, and the run order of the build tickets.
 tags: [design, sheet, spells]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-21T23:18:00Z }
+generated: { by: claude-code/agent, at: 2026-11-21T23:50:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel
 sources:
   - id: orc-262
@@ -260,6 +260,11 @@ group. A group has a heading and one row for each spell, A to Z by name.
   circles of the level. The pact slots of the level are at the right end
   of the heading. See [Spent spell slots](#spent-spell-slots).
 * The headings stick at the top of the list while their group scrolls.
+* The heading stays on one line where it can. The circles and the pact
+  part ("Pact" and the diamonds) do not wrap inside. When the heading is
+  too narrow, the pact part goes on the next line as one piece. The
+  scroll padding of the list is the height of its tallest heading, so a
+  row that gets the focus is never under the heading.
 
 **Search**
 
@@ -455,13 +460,15 @@ same state.
   areas. A level with four slots then shows them in two lines of two.
 * **In the panel, the Spell slots block:** a shaded block with the label
   "Spell slots", fixed above the list. It does not scroll with the list.
-  * With 5th-level slots or higher, the block has one column for each
-    level, with the 1st level on the left and the circles going down.
-    Without them, it has one row for each level. Pact slots count: a
-    warlock with 5th-level pact slots gets columns.
+  * With two or more entries and 5th-level slots or higher, the block has
+    one column for each entry, with the 1st level on the left and the
+    circles going down. Else it has one row for each entry. Pact slots
+    count for the 5th level, and the "Pact" entry counts as an entry. A
+    warlock with no other caster class has one entry, so a row.
   * The block has no total.
-  * At 320px, nine columns fit in the block. If they do not fit, the
-    block scrolls them sideways, and the panel does not scroll.
+  * At 320px, nine columns fit in the block. The "Pact" column is wide
+    enough for its word. If the columns do not fit, the block scrolls
+    them sideways, and the panel does not scroll.
   * A level name in the block is a link that scrolls the list to that
     level, so that its heading is at the top of the list. The focus
     stays on the link.

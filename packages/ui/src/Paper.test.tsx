@@ -265,12 +265,12 @@ test("vertical slot circles are a column, with the vertical orientation", () => 
   expect(group.getAttribute("aria-orientation")).toBe("vertical");
 });
 
-test("a copy that is not focusable takes clicks, is not a Tab stop, keeps the focus where it was, and is hidden from a screen reader", () => {
+test("a copy takes clicks, is not a Tab stop, keeps the focus where it was, and is hidden from a screen reader", () => {
   const onChange = vi.fn();
   render(
     <>
       <button type="button">Before</button>
-      <SlotCircles label="Charges" count={3} marked={1} onChange={onChange} focusable={false} />
+      <SlotCircles label="Charges" count={3} marked={1} onChange={onChange} copy />
     </>,
   );
   expect(screen.queryByRole("slider")).toBeNull();

@@ -4,7 +4,7 @@
 // sheet and the list of the panel use this one rule.
 import { type KnownSpell, ordinal, type Sheet, type Spellcasting } from "./sheet.ts";
 import { type SpellLookup, spellName } from "./spell-records.ts";
-import type { SlotGroup } from "./spells.ts";
+import { slotEntries } from "./spell-slots.ts";
 
 /** A known spell as the sheet and the panel show it: `name` is the name to show, and `level` is its spell level. */
 export interface ListedSpell extends KnownSpell {
@@ -45,7 +45,8 @@ export function spellGroups(spellcasting: Pick<Spellcasting, "casters" | "byLeve
         .sort((a, b) => a.name.localeCompare(b.name)),
     ]),
   );
-  const levels = new Set([...slots.filter((slot) => slot.count > 0).map((slot) => slot.level), ...(pact ? [pact.slotLevel] : [])]);
+  // A level with slots: the same rule as the slot groups that show.
+  const levels = new Set(slotEntries({ slots, pact }).map((entry) => entry.level));
   for (const [level, spells] of shown) if (spells.length > 0) levels.add(level);
   return [...levels].sort((a, b) => a - b).map((level) => ({ level, spells: shown.get(level) ?? [] }));
 }
@@ -91,54 +92,4 @@ export function spellClassLine(classes: Sheet["classes"], spellcasting: Pick<Spe
     .filter((c) => sources.has(c.name))
     .map((c) => `${c.name} ${c.level}`)
     .join(" / ");
-}
-
-// The slot groups that the sheet and the Spells panel show (ORC-282, ORC-283,
-// ORC-286; docs/design/spells-panel.md "Spent spell slots"). The sheet, the
-// Spell slots block and the level headings of the panel take the groups, their
-// names and their state from here.
-
-/** A group of slots as the sheet and the panel show it: the other slots of a level, or the pact slots. */
-export interface ShownSlots {
-  /** The group that a change sets (see `setSpentSlots`). */
-  group: SlotGroup;
-  /** The spell level of the slots. */
-  level: number;
-  /** The name that a screen reader gives the group: "1st-level slots", or "Pact slots, 5th level". */
-  label: string;
-  count: number;
-  spent: number;
-}
-
-/** The other slots of a level, as a shown group; null when the level has none. */
-export function levelSlots(spellcasting: Pick<Spellcasting, "slots">, level: number): ShownSlots | null {
-  const slot = spellcasting.slots.find((s) => s.level === level);
-  return slot && slot.count > 0 ? { group: level, level, label: `${ordinal(level)}-level slots`, count: slot.count, spent: slot.spent } : null;
-}
-
-/** The pact slots, as a shown group; null without Pact Magic. */
-export function pactSlotGroup(spellcasting: Pick<Spellcasting, "pact">): ShownSlots | null {
-  const { pact } = spellcasting;
-  return pact && pact.count > 0
-    ? { group: "pact", level: pact.slotLevel, label: `Pact slots, ${ordinal(pact.slotLevel)} level`, count: pact.count, spent: pact.spent }
-    : null;
-}
-
-/** The slot groups of a level: its other slots, then the pact slots when it is the pact slot level. */
-export function slotGroupsOf(spellcasting: Pick<Spellcasting, "slots" | "pact">, level: number): ShownSlots[] {
-  const pact = pactSlotGroup(spellcasting);
-  return [levelSlots(spellcasting, level), pact?.level === level ? pact : null].filter((group) => group !== null);
-}
-
-/** The state of a slot group for a screen reader: "2 of 4 spent". */
-export const spentText = (spent: number, count: number) => `${spent} of ${count} spent`;
-
-/**
- * True when the Spell slots block of the panel shows one column for each
- * level: the character has slots of the 5th level or higher, the pact slots
- * included. Else it shows one row for each level.
- */
-export function slotColumns(spellcasting: Pick<Spellcasting, "slots" | "pact">): boolean {
-  const pact = pactSlotGroup(spellcasting);
-  return spellcasting.slots.some((slot) => slot.count > 0 && slot.level >= 5) || (pact !== null && pact.level >= 5);
 }

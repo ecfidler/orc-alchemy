@@ -15,6 +15,8 @@ import { BoxTag } from "./BoxTag.tsx";
 
 /** The attribute that marks a row button, with the row's id (see `spellId`). */
 export const ROW = "data-spell-row";
+/** The attribute that marks the sticky heading row of a level. */
+export const HEADING = "data-level-heading";
 /** The attribute that marks the group of a level, with the level. */
 export const LEVEL = "data-spell-level";
 /** The attribute that marks the element that gets the focus when the panel opens. */
@@ -106,7 +108,10 @@ function LevelGroup({
   return (
     <div role="group" aria-labelledby={headingId} {...{ [LEVEL]: group.level }}>
       {/* The heading row holds the slots of the level. The slot controls handle their own arrow keys: the list moves the focus only from a row. */}
-      <div className="sticky top-0 z-[1] flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b-[1.5px] border-ink bg-paper pt-3.5 pb-[5px]">
+      <div
+        {...{ [HEADING]: "" }}
+        className="sticky top-0 z-[1] flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b-[1.5px] border-ink bg-paper pt-3.5 pb-[5px]"
+      >
         <h3 id={headingId} className="text-xl leading-[1.2] font-semibold">
           {levelHeading(group.level)}
         </h3>

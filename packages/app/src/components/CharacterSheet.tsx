@@ -19,7 +19,8 @@ import {
   type SpendSlots,
   usesDisplay,
 } from "../engine/sheet.ts";
-import { type ListedSpell, slotGroupsOf, spellGroups, spentText } from "../engine/spell-list.ts";
+import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
+import { slotGroupsOf, spentText } from "../engine/spell-slots.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();

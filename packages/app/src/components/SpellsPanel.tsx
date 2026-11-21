@@ -1,8 +1,11 @@
 // The Spells panel (ORC-285, docs/design/spells-panel.md "The panel"): a
 // wide Dialog over the sheet, with a header, a bar and two panes. The list of
 // spells by level is on the left, and the spell view of the selected spell
-// is on the right. At 600px and less the panel fills the screen, and the list
-// and the spell view are two views.
+// is on the right. The Spell slots block (ORC-286, "Spent spell slots") is
+// above the list and does not scroll with it; the level headings of the list
+// have the slots of their level too. At 600px and less the panel fills the
+// screen, and the list and the spell view are two views, with the block at
+// the top of each.
 import { Button, Dialog, FramedBox } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
@@ -10,7 +13,7 @@ import { bonusStr, type Sheet, type Spellcasting, type SpellRef, type SpendSlots
 import { type ListedSpell, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "../engine/spell-list.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { useSpellSlotsFolded } from "../state/spell-slots-fold.ts";
-import { INITIAL_FOCUS, LEVEL, ROW, SpellList } from "./SpellList.tsx";
+import { HEADING, INITIAL_FOCUS, LEVEL, ROW, SpellList } from "./SpellList.tsx";
 import { HeadingSlots, SpellSlotsBlock } from "./SpellSlots.tsx";
 import { SpellView } from "./SpellView.tsx";
 
@@ -146,6 +149,7 @@ function PanelBody({
   onSpendSlots: SpendSlots;
 }) {
   const lookup = useSpellLookup();
+  const loaded = lookup !== null;
   const phone = usePhone();
   const all = spellGroups(spellcasting, lookup);
   const spells = all.flatMap((group) => group.spells);
@@ -175,6 +179,25 @@ function PanelBody({
   const [folded, setFolded] = useSpellSlotsFolded();
   const shownLevels = new Set(groups.map((group) => group.level));
   // A level link scrolls the list so that the level's heading is at the top. The focus stays on the link.
+  // The scroll padding of the list is the height of its tallest level heading, so that a row that gets the focus is
+  // never under the heading that sticks at the top. A heading with slots can take two lines in a narrow list.
+  const headingsKey = groups.map((group) => group.level).join();
+  useLayoutEffect(() => {
+    const pane = list.current;
+    if (!pane || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const tallest = Math.max(
+        0,
+        ...[...pane.querySelectorAll<HTMLElement>(`[${HEADING}]`)].map((heading) => Math.ceil(heading.getBoundingClientRect().height)),
+      );
+      // The Tailwind scroll-pt-12 (48px) stays the least padding.
+      pane.style.scrollPaddingTop = tallest > 48 ? `${tallest}px` : "";
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    for (const heading of pane.querySelectorAll(`[${HEADING}]`)) observer.observe(heading);
+    return () => observer.disconnect();
+  }, [headingsKey, loaded, spellView]);
   const goTo = (level: number) => {
     const pane = list.current;
     const group = pane?.querySelector<HTMLElement>(`[${LEVEL}="${level}"]`);
@@ -206,7 +229,6 @@ function PanelBody({
   // The selected row scrolls into view at the open, when the spells load, and after a search, if it is in the list.
   // jsdom has no scrollIntoView.
   const rowOf = (id: string | null) => (id === null ? null : (list.current?.querySelector<HTMLElement>(`[${ROW}="${CSS.escape(id)}"]`) ?? null));
-  const loaded = lookup !== null;
   useLayoutEffect(() => {
     if (!spellView) rowOf(selectedId)?.scrollIntoView?.({ block: "nearest" });
     // Only these changes scroll: an arrow key or a click scrolls by itself.
@@ -294,7 +316,7 @@ function PanelBody({
             onPick={onPick}
             onFocusRow={onFocusRow}
             markTabStop={!spellView}
-            headingSlots={(level) => <HeadingSlots spellcasting={spellcasting} level={level} onSpendSlots={onSpendSlots} focusable={folded} />}
+            headingSlots={(level) => <HeadingSlots spellcasting={spellcasting} level={level} onSpendSlots={onSpendSlots} copy={!folded} />}
           />
         </div>
         <div

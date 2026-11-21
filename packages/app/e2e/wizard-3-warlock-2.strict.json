@@ -1,0 +1,167 @@
+{
+  "~:orcpub.entity.strict/selections": [
+    {
+      "~:orcpub.entity.strict/key": "~:ability-scores",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:standard-scores",
+        "~:orcpub.entity.strict/map-value": {
+          "~:orcpub.dnd.e5.character/str": 8,
+          "~:orcpub.dnd.e5.character/dex": 14,
+          "~:orcpub.dnd.e5.character/con": 13,
+          "~:orcpub.dnd.e5.character/int": 13,
+          "~:orcpub.dnd.e5.character/wis": 13,
+          "~:orcpub.dnd.e5.character/cha": 15
+        }
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:class",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:wizard",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-3"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:wizard-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:fire-bolt"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:light"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:mage-hand"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:wizard-spells-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:burning-hands"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:charm-person"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:detect-magic"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:mage-armor"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:magic-missile"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:shield"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:sleep"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:thunderwave"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:misty-step"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:web"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:warlock",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:warlock-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:eldritch-blast"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:minor-illusion"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:warlock-spells-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:hellish-rebuke"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:expeditious-retreat"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:unseen-servant"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:equipment",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:spellbook",
+          "~:orcpub.entity.strict/map-value": {
+            "~:orcpub.dnd.e5.character.equipment/quantity": 1,
+            "~:orcpub.dnd.e5.character.equipment/equipped?": true,
+            "~:orcpub.dnd.e5.character.equipment/class-starting-equipment?": true
+          }
+        }
+      ]
+    }
+  ],
+  "~:orcpub.entity.strict/values": {
+    "~:orcpub.dnd.e5.character/prepared-spells-by-class": [
+      {
+        "~:orcpub.dnd.e5.character/class-name": "Wizard",
+        "~:orcpub.dnd.e5.character/prepared-spells": {
+          "~#set": [
+            "~:thunderwave",
+            "~:detect-magic",
+            "~:shield",
+            "~:magic-missile",
+            "~:charm-person",
+            "~:mage-armor",
+            "~:burning-hands",
+            "~:sleep",
+            "~:web",
+            "~:misty-step"
+          ]
+        }
+      }
+    ],
+    "~:orcpub.dnd.e5.character/character-name": "Corin Vale"
+  }
+}

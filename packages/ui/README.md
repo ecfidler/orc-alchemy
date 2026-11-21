@@ -264,9 +264,9 @@ bun run test       # vitest
       default; the app passes "2 of 4 spent". A click keeps the focus on the
       group. `orientation="vertical"` puts the circles in a column, the
       first at the top, with the same keys. With `onChange`,
-      `focusable={false}` makes a copy of a group that is a Tab stop in
-      another place: it takes clicks, but it is not a Tab stop, a click
-      does not move the focus, and a screen reader does not see it.
+      `copy` makes a copy of a group that is a Tab stop in another place:
+      it is hidden from a screen reader and is not a Tab stop, and a click
+      changes it and does not move the focus.
     - `CurrentMax`: `current`, then "/ `max`" in the muted ink.
   - `StuckNote`: a tilted yellow note above its box (`children`), for
     something the user must act on. A button or link in `note` is its
@@ -306,6 +306,19 @@ bun run test       # vitest
     `src/tabs.css`.
   - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
   - `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
+    The preference is a stored value (below).
+  - `storedValue(key, { parse, serialize, fallback })`: a value of this
+    browser in one `localStorage` key, for example the theme or a fold
+    that stays on the device. Make one at the top level of a module. It
+    has `read()`, `write(value)` and `subscribe(listener)`. `parse` gets
+    the stored text, or `null`, and gives the value; `serialize` gives the
+    text, or `null` to remove the key. Use a string, a number or a boolean
+    as the value. When the storage cannot be read, `read()` gives
+    `fallback`. When a write fails, the value stays in memory, and
+    `read()` gives it until a write works or another tab changes the key.
+    A change of the key in another tab tells the listeners.
+  - `useStoredValue(store, serverValue)`: `[value, setValue]` of a stored
+    value for a component.
 - `./testing`: test helpers for Vitest with Testing Library. An app that
   uses them installs `@testing-library/react` (an optional peer).
   - `answerConfirmDialog(answer)`: waits for the confirm dialog, clicks

@@ -85,6 +85,28 @@ function cleric5Warlock3(): StrictEntity {
   return engine().setValue(entity, "character-name", "Maren Ashgrove");
 }
 
+/**
+ * A wizard 3 / warlock 2 with many prepared spells, by the builder's calls: its 1st-level heading has four circles
+ * and the two pact diamonds, the widest heading of a narrow list.
+ */
+function wizard3Warlock2(): StrictEntity {
+  const wizardSpells = ["burning-hands", "charm-person", "detect-magic", "mage-armor", "magic-missile", "shield", "sleep", "thunderwave", "misty-step", "web"];
+  let entity = buildClasses(
+    [
+      ["wizard", 3],
+      ["warlock", 2],
+    ],
+    [
+      ...["fire-bolt", "light", "mage-hand"].map((key): [string[], string] => [["class", "wizard", "wizard-cantrips-known"], key]),
+      ...wizardSpells.map((key): [string[], string] => [["class", "wizard", "wizard-spells-known"], key]),
+      ...["eldritch-blast", "minor-illusion"].map((key): [string[], string] => [["class", "warlock", "warlock-cantrips-known"], key]),
+      ...["hellish-rebuke", "expeditious-retreat", "unseen-servant"].map((key): [string[], string] => [["class", "warlock", "warlock-spells-known"], key]),
+    ],
+  );
+  for (const key of wizardSpells) entity = setPrepared(engine(), entity, "Wizard", key, true);
+  return engine().setValue(entity, "character-name", "Corin Vale");
+}
+
 const block = (dialog: HTMLElement) => dialog.querySelector<HTMLElement>("[data-slots-block]")!;
 const grid = (dialog: HTMLElement) => block(dialog).querySelector<HTMLElement>("[data-layout]");
 const fold = (dialog: HTMLElement) => within(block(dialog)).getByRole("button", { name: "Spell slots" });
@@ -134,9 +156,9 @@ test("a cleric 5 shows one row for each level", async () => {
 
 test("a warlock shows the Pact entry with the diamonds, and no entry of circles; the heading has the Pact label and the diamonds", async () => {
   const dialog = await renderLive(fixture("warlock-10-drow"));
-  // Pact slots of the 5th level count for the columns.
-  expect(grid(dialog)!.getAttribute("data-layout")).toBe("columns");
-  expect(entryNames(dialog)).toEqual(["Pact5th"]);
+  // One entry: rows, though its slots are of the 5th level.
+  expect(grid(dialog)!.getAttribute("data-layout")).toBe("rows");
+  expect(entryNames(dialog)).toEqual(["Pact 5th"]);
   const [pact] = within(block(dialog)).getAllByRole("slider");
   expect([pact!.getAttribute("aria-label"), pact!.getAttribute("aria-valuetext"), pact!.getAttribute("data-shape")]).toEqual([
     "Pact slots, 5th level",
@@ -151,6 +173,17 @@ test("a warlock shows the Pact entry with the diamonds, and no entry of circles;
 
 test("e2e/cleric-5-warlock-3.strict.json is the cleric 5 / warlock 3, by the builder's calls", () => {
   expect(e2eFile("cleric-5-warlock-3")).toEqual(JSON.parse(JSON.stringify(cleric5Warlock3())));
+}, 20_000);
+
+test("e2e/wizard-3-warlock-2.strict.json is the wizard 3 / warlock 2, by the builder's calls", () => {
+  expect(e2eFile("wizard-3-warlock-2")).toEqual(JSON.parse(JSON.stringify(wizard3Warlock2())));
+}, 20_000);
+
+test("a wizard 3 / warlock 2: the 1st-level heading has the circles, then the Pact label and the diamonds", async () => {
+  const dialog = await renderLive(e2eFile("wizard-3-warlock-2"));
+  expect(grid(dialog)!.getAttribute("data-layout")).toBe("rows");
+  expect(entryNames(dialog)).toEqual(["1st", "2nd", "Pact 1st"]);
+  expect(headingGroups(dialog, "1st level").map((group) => group.shape)).toEqual([null, "diamond"]);
 }, 20_000);
 
 test("a cleric 5 / warlock 3 shows rows, with the Pact entry after the levels: Pact 2nd", async () => {
