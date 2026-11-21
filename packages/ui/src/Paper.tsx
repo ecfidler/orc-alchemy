@@ -74,6 +74,8 @@ export function SectionRule({ children, level = 2 }: { children: ReactNode; leve
 
 export type CircleColor = "ink" | "success" | "caution";
 
+const defaultValueText = (marked: number, count: number) => `${marked} of ${count}`;
+
 export interface SlotCirclesProps {
   /** What the circles count, for example "1st-level slots". */
   label: string;
@@ -88,6 +90,8 @@ export interface SlotCirclesProps {
    * marked circles, always one more or one less than `marked`.
    */
   onChange?: (marked: number) => void;
+  /** With `onChange`: the state that a screen reader reads after the label. "{marked} of {count}" by default. */
+  valueText?: (marked: number, count: number) => string;
 }
 
 /**
@@ -98,13 +102,22 @@ export interface SlotCirclesProps {
  * With `onChange` the user changes it, by the rule "one more, one less": a
  * click on an empty circle marks one more, and a click on a marked circle
  * marks one less, so the marked circles stay together on the left. Each
- * circle keeps its drawing and has a 28px tap area. Under a mouse, the
- * circle that a click changes shows a light fill. The group is a slider
- * and one Tab stop: Right and Up mark one more, Left and Down one less. A
- * screen reader reads "{label}, {marked} of {count} spent", and the new
- * value after a change. A click leaves the focus on the group.
+ * circle is drawn at 17px (a group that does not change draws 15px, or
+ * 12px small) and has a 28px tap area. Under a mouse, the circle that a
+ * click changes shows a light fill. The group is a slider and one Tab
+ * stop: Right and Up mark one more, Left and Down one less. A screen
+ * reader reads "{label}, {valueText}", and the new value after a change.
+ * A click leaves the focus on the group.
  */
-export function SlotCircles({ label, count, marked: markedProp = 0, color = "ink", size = "normal", onChange }: SlotCirclesProps) {
+export function SlotCircles({
+  label,
+  count,
+  marked: markedProp = 0,
+  color = "ink",
+  size = "normal",
+  onChange,
+  valueText = defaultValueText,
+}: SlotCirclesProps) {
   const marked = Math.max(0, Math.min(markedProp, count));
   const circles = Array.from({ length: count }, (_, i) => (
     <span
@@ -135,7 +148,7 @@ export function SlotCircles({ label, count, marked: markedProp = 0, color = "ink
       aria-valuemin={0}
       aria-valuemax={count}
       aria-valuenow={marked}
-      aria-valuetext={`${marked} of ${count} spent`}
+      aria-valuetext={valueText(marked, count)}
       aria-orientation="horizontal"
       data-changes=""
       {...common}

@@ -15,6 +15,7 @@ import {
   type SheetFeature,
   type SheetItem,
   type Spellcasting,
+  type SpendSlots,
   usesDisplay,
 } from "../engine/sheet.ts";
 import { spellName } from "../engine/spell-records.ts";
@@ -35,15 +36,7 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * `onSpendSlots`: the user changes the spent slots of a level to `spent` (ORC-282). Without it, the slot
  * circles show the spent slots and cannot change, as in the builder preview.
  */
-export function CharacterSheet({
-  sheet,
-  preview = false,
-  onSpendSlots,
-}: {
-  sheet: Sheet;
-  preview?: boolean;
-  onSpendSlots?: (level: number, spent: number) => void;
-}) {
+export function CharacterSheet({ sheet, preview = false, onSpendSlots }: { sheet: Sheet; preview?: boolean; onSpendSlots?: SpendSlots }) {
   const { spellcasting, features, equipment, details } = sheet;
   const article = useRef<HTMLElement>(null);
   const [narrow, setNarrow] = useState(false);
@@ -485,7 +478,7 @@ function SpellcastingBox({
   spellcasting: Spellcasting;
   classes: Sheet["classes"];
   narrow: boolean;
-  onSpendSlots?: (level: number, spent: number) => void;
+  onSpendSlots?: SpendSlots;
 }) {
   const { casters, slots, byLevel } = spellcasting;
   const lookup = useSpellLookup();
@@ -505,16 +498,19 @@ function SpellcastingBox({
   const groups = casterGroups(casters.filter((caster) => !lines.has(caster.name)));
   const rows = [...new Set([...slots.map((slot) => slot.level), ...byLevel.map((row) => row.level)])]
     .sort((a, b) => a - b)
-    .map((level) => ({
-      level,
-      slots: slots.find((slot) => slot.level === level)?.count ?? 0,
-      spent: slots.find((slot) => slot.level === level)?.spent ?? 0,
-      spells: spells
-        .filter((spell) => spell.level === level)
-        .filter((spell) => !lines.has(spell.source))
-        .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    }))
+    .map((level) => {
+      const slot = slots.find((s) => s.level === level);
+      return {
+        level,
+        slots: slot?.count ?? 0,
+        spent: slot?.spent ?? 0,
+        spells: spells
+          .filter((spell) => spell.level === level)
+          .filter((spell) => !lines.has(spell.source))
+          .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    })
     .filter((row) => row.slots > 0 || row.spells.length > 0);
   const marks = sourceMarks(
     rows.flatMap((row) => row.spells.map((spell) => spell.source)),
@@ -549,7 +545,7 @@ function SpellcastingBox({
           <colgroup>
             {/* Circles that change have 28px tap areas: the Slots column takes four on a line, and the narrow
                 level column three. */}
-            <col className={narrow ? (onSpendSlots ? "w-20" : "w-[76px]") : "w-20"} />
+            <col className={narrow && !onSpendSlots ? "w-[76px]" : "w-20"} />
             {!narrow && <col className={onSpendSlots ? "w-[114px]" : "w-[98px]"} />}
             <col />
           </colgroup>
@@ -577,6 +573,7 @@ function SpellcastingBox({
                   marked={spent}
                   size={narrow && !onSpendSlots ? "small" : "normal"}
                   onChange={onSpendSlots && ((next) => onSpendSlots(level, next))}
+                  valueText={spentText}
                 />
               );
               return (
@@ -620,6 +617,9 @@ function SpellcastingBox({
     </FramedBox>
   );
 }
+
+/** The state of a level's slot circles for a screen reader: "2 of 4 spent". */
+const spentText = (spent: number, count: number) => `${spent} of ${count} spent`;
 
 /** A known spell with its level. SpellcastingBox puts the name to show in `name` (see `spellName`). */
 type ShownSpell = KnownSpell & { level: number };

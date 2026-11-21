@@ -116,7 +116,7 @@ const markedOf = (group: HTMLElement) => [...group.children].map((circle) => cir
 test("slot circles with a change handler are one slider, named by the label, with the state as its value", () => {
   render(<Spendable count={4} start={2} />);
   const group = screen.getByRole("slider", { name: "1st-level slots" });
-  expect(group.getAttribute("aria-valuetext")).toBe("2 of 4 spent");
+  expect(group.getAttribute("aria-valuetext")).toBe("2 of 4");
   expect(group.getAttribute("aria-valuenow")).toBe("2");
   expect(group.getAttribute("aria-valuemin")).toBe("0");
   expect(group.getAttribute("aria-valuemax")).toBe("4");
@@ -132,12 +132,12 @@ test("one more, one less: a click on any empty circle fills the first empty one,
   const group = screen.getByRole("slider", { name: "1st-level slots" });
   fireEvent.click(group.children[3]!);
   expect(markedOf(group)).toEqual([true, true, false, false]);
-  expect(group.getAttribute("aria-valuetext")).toBe("2 of 4 spent");
+  expect(group.getAttribute("aria-valuetext")).toBe("2 of 4");
   fireEvent.click(group.children[2]!);
   expect(markedOf(group)).toEqual([true, true, true, false]);
   fireEvent.click(group.children[0]!);
   expect(markedOf(group)).toEqual([true, true, false, false]);
-  expect(group.getAttribute("aria-valuetext")).toBe("2 of 4 spent");
+  expect(group.getAttribute("aria-valuetext")).toBe("2 of 4");
   expect(onChange.mock.calls).toEqual([[2], [3], [2]]);
   // The focus stays on the group after a click.
   expect(document.activeElement).toBe(group);
@@ -152,19 +152,24 @@ test("the arrow keys change the slot circles by one, and stop at none and at all
   fireEvent.keyDown(group, { key: "ArrowDown" });
   expect(onChange).not.toHaveBeenCalled();
   fireEvent.keyDown(group, { key: "ArrowRight" });
-  expect(group.getAttribute("aria-valuetext")).toBe("1 of 2 spent");
+  expect(group.getAttribute("aria-valuetext")).toBe("1 of 2");
   fireEvent.keyDown(group, { key: "ArrowUp" });
-  expect(group.getAttribute("aria-valuetext")).toBe("2 of 2 spent");
+  expect(group.getAttribute("aria-valuetext")).toBe("2 of 2");
   fireEvent.keyDown(group, { key: "ArrowRight" });
   fireEvent.keyDown(group, { key: "ArrowUp" });
   expect(onChange.mock.calls).toEqual([[1], [2]]);
   fireEvent.keyDown(group, { key: "ArrowLeft" });
   fireEvent.keyDown(group, { key: "ArrowDown" });
-  expect(group.getAttribute("aria-valuetext")).toBe("0 of 2 spent");
+  expect(group.getAttribute("aria-valuetext")).toBe("0 of 2");
   expect(markedOf(group)).toEqual([false, false]);
   // Other keys do nothing, and are not taken.
   expect(fireEvent.keyDown(group, { key: "Tab" })).toBe(true);
   expect(fireEvent.keyDown(group, { key: "ArrowRight" })).toBe(false);
+});
+
+test("the owner gives the value text of slot circles that change", () => {
+  render(<SlotCircles label="Charges" count={3} marked={1} onChange={() => {}} valueText={(marked, count) => `${marked} of ${count} used`} />);
+  expect(screen.getByRole("slider", { name: "Charges" }).getAttribute("aria-valuetext")).toBe("1 of 3 used");
 });
 
 test("the circle that a click changes is marked for the light fill under a mouse", () => {

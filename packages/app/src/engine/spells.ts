@@ -5,11 +5,18 @@
 import { useEffect, useState } from "react";
 import { asSet, setItems, tag, untag } from "./content.ts";
 import type { Engine, StrictEntity } from "./engine.ts";
+import type { SlotTotal } from "./sheet.ts";
 import type { SpellRecord } from "./spell-records.ts";
 
 const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
 const CLASS_NAME = "~:orcpub.dnd.e5.character/class-name";
 const PREPARED = "~:orcpub.dnd.e5.character/prepared-spells";
+
+/** The values map of a strict entity, from its object or its JSON text; {} without one. */
+function strictValues(entity: StrictEntity): Record<string, unknown> {
+  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as { "~:orcpub.entity.strict/values"?: Record<string, unknown> };
+  return strict["~:orcpub.entity.strict/values"] ?? {};
+}
 
 /** The SRD spells, as spell key to record. */
 export type SpellContent = ReadonlyMap<string, SpellRecord>;
@@ -69,10 +76,7 @@ export function spellLevelOf(key: string, name: string, content: SpellContent | 
  * [{ "~:…/class-name": "Wizard", "~:…/prepared-spells": { "~#set": ["~:alarm", …] } }].
  */
 export function preparedSpells(entity: StrictEntity): Record<string, Set<string>> {
-  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as {
-    "~:orcpub.entity.strict/values"?: Record<string, unknown>;
-  };
-  const byClass = (strict["~:orcpub.entity.strict/values"]?.[BY_CLASS] ?? []) as Record<string, unknown>[];
+  const byClass = (strictValues(entity)[BY_CLASS] ?? []) as Record<string, unknown>[];
   return Object.fromEntries(
     byClass.map((entry) => {
       return [entry[CLASS_NAME] as string, new Set(setItems(entry[PREPARED]).map(untag))];
@@ -114,10 +118,7 @@ const INT_LEVEL_KEY = /^~i(\d)$/;
  * the slot total.
  */
 export function slotPositions(entity: StrictEntity): Map<number, Set<number>> {
-  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as {
-    "~:orcpub.entity.strict/values"?: Record<string, unknown>;
-  };
-  const used = strict["~:orcpub.entity.strict/values"]?.[tag(SLOTS_USED)];
+  const used = strictValues(entity)[tag(SLOTS_USED)];
   const positions = new Map<number, Set<number>>();
   if (used === null || typeof used !== "object") return positions;
   for (const [key, value] of Object.entries(used)) {
@@ -167,7 +168,7 @@ const range = (from: number, count: number) => Array.from({ length: count }, (_,
  * past the total, a gap, a vector or an integer key goes. `spent` is kept
  * between 0 and the total of its level.
  */
-export function setSpentSlots(e: Engine, entity: StrictEntity, totals: { level: number; count: number }[], level: number, spent: number) {
+export function setSpentSlots(e: Engine, entity: StrictEntity, totals: SlotTotal[], level: number, spent: number) {
   const positions = slotPositions(entity);
   const written = new Map(
     totals.map(({ level: l, count }) => [l, range(0, l === level ? Math.max(0, Math.min(spent, count)) : spentSlots(positions, l, count))]),

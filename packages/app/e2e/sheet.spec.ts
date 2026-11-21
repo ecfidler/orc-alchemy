@@ -231,6 +231,15 @@ test("wizard-5: a click spends a slot and gives it back, the tap area is 28px, a
   // The tap areas touch and do not overlap.
   expect((await circles.nth(1).boundingBox())!.x).toBeGreaterThanOrEqual(box.x + box.width);
 
+  // The light fill: the mouse on any empty circle fills the first empty one at 30%, and no other circle.
+  const fill = (i: number) => circles.nth(i).evaluate((circle) => getComputedStyle(circle, "::before").backgroundColor);
+  const none = "rgba(0, 0, 0, 0)";
+  await circles.nth(3).hover();
+  expect(await fill(0)).toMatch(/ \/ 0\.3\)$/);
+  for (const i of [1, 2, 3]) expect(await fill(i)).toBe(none);
+  await page.mouse.move(0, 0);
+  expect(await fill(0)).toBe(none);
+
   await circles.nth(3).click();
   await circles.nth(2).click();
   await circles.nth(0).click();

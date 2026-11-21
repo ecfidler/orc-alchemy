@@ -172,6 +172,14 @@ const legacyDir = join(import.meta.dirname, "../../../../fixtures/legacy");
 const spentOf = (entity: StrictEntity) =>
   toSheet(engine().evaluate(entity).built, entity).spellcasting!.slots.map(({ level, count, spent }) => [level, spent, count]);
 const totalsOf = (entity: StrictEntity) => toSheet(engine().evaluate(entity).built, entity).spellcasting!.slots;
+/** The whole stored entity, with these spent slots in its values and nothing else changed; no slots-used key without them. */
+const withSlots = (entity: StrictEntity, slotsUsed?: object) => {
+  const copy = JSON.parse(JSON.stringify(entity));
+  const values = copy["~:orcpub.entity.strict/values"];
+  delete values[`~:${SLOTS_USED}`];
+  if (slotsUsed) values[`~:${SLOTS_USED}`] = slotsUsed;
+  return copy;
+};
 
 test("wizard-5: a spent slot is written as a clean set for each level, read back, and {} removes the key", () => {
   const e = engine();
@@ -186,7 +194,8 @@ test("wizard-5: a spent slot is written as a clean set for each level, read back
 
   let entity = setSpentSlots(e, wizard, totals, 1, 2);
   entity = setSpentSlots(e, entity, totals, 3, 1);
-  expect(storedSlots(entity)).toEqual({ [slotKey(1)]: { "~#set": [0, 1] }, [slotKey(3)]: { "~#set": [0] } });
+  // The whole record: the write changes only the spent slots.
+  expect(entity).toEqual(withSlots(wizard, { [slotKey(1)]: { "~#set": [0, 1] }, [slotKey(3)]: { "~#set": [0] } }));
   expect(spentOf(entity)).toEqual([
     [1, 2, 4],
     [2, 0, 3],
@@ -198,7 +207,7 @@ test("wizard-5: a spent slot is written as a clean set for each level, read back
   expect(storedSlots(entity)).toEqual({ [slotKey(1)]: { "~#set": [0] } });
   // No spent slot at all: the value {} removes the key.
   entity = setSpentSlots(e, entity, totals, 1, 0);
-  expect(storedSlots(entity)).toBeUndefined();
+  expect(entity).toEqual(withSlots(wizard));
   expect(Object.hasOwn(valuesOf(entity), `~:${SLOTS_USED}`)).toBe(false);
   // The number stays between 0 and the total.
   expect(storedSlots(setSpentSlots(e, wizard, totals, 2, 7))).toEqual({ [slotKey(2)]: { "~#set": [0, 1, 2] } });
@@ -259,6 +268,8 @@ test("an export and an import keep the spent slots", () => {
   const entity = setSpentSlots(e, setSpentSlots(e, wizard, totals, 1, 3), totals, 2, 1);
   const text = JSON.stringify(characterFile({ name: "Wizard", entity }));
   const [character] = readCharacterFile(text).characters;
+  // The whole strict values of the imported entity are those of the exported one.
+  expect(valuesOf(character!.entity)).toEqual(valuesOf(entity));
   expect(storedSlots(character!.entity)).toEqual({ [slotKey(1)]: { "~#set": [0, 1, 2] }, [slotKey(2)]: { "~#set": [0] } });
   expect(spentOf(character!.entity)).toEqual([
     [1, 3, 4],

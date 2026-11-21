@@ -105,9 +105,18 @@ export interface KnownSpell extends Named {
   castNote: string | null;
 }
 
+/** The slot total of a spell level, from built. */
+export interface SlotTotal {
+  level: number;
+  count: number;
+}
+
+/** Sets the spent slots of a spell level to `spent` (ORC-282). */
+export type SpendSlots = (level: number, spent: number) => void;
+
 export interface Spellcasting {
   /** The slot total of each level, and its spent slots (never more than the total), from the strict entity. */
-  slots: { level: number; count: number; spent: number }[];
+  slots: (SlotTotal & { spent: number })[];
   casters: Spellcaster[];
   /** Level 0 is cantrips. Spells sorted by key within a level; a component sorts them by the name it shows. */
   byLevel: { level: number; spells: KnownSpell[] }[];

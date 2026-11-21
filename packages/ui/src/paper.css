@@ -136,12 +136,12 @@
 
   /*
    * A group that the user changes (ORC-282). Each circle is a 28px tap area
-   * with the same drawing in its middle, and the tap areas touch: they do
-   * not overlap. The negative margin puts the drawings where a group that
-   * does not change has them, so the line height does not change. A long
-   * group wraps.
+   * with a 17px drawing in its middle, and the tap areas touch: they do not
+   * overlap. The negative margin keeps the tap areas out of the line
+   * height. A long group wraps.
    */
   .ui-slot-circles:where([data-changes]) {
+    --circle-size: 17px;
     --circle-tap: 28px;
     flex-wrap: wrap;
     gap: 0;
@@ -171,9 +171,9 @@
   .ui-slot-circles:where([data-changes]) > .ui-slot-circle:where([data-marked])::before {
     background: var(--circle);
   }
-  /* The focus ring goes round the drawings, inside the tap areas, so a table cell does not cut it. */
+  /* The focus ring goes round the drawings, 1.5px clear of them, inside the tap areas, so a table cell does not cut it. */
   .ui-slot-circles:where([data-changes]):focus-visible {
-    outline-offset: -4px;
+    outline-offset: -2px;
   }
   /* Under a mouse, the circle that a click changes: the next empty one fills lightly, or the last marked one goes light. */
   @media (hover: hover) {

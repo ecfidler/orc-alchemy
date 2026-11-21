@@ -224,13 +224,15 @@ bun run test       # vitest
       "{label}: {marked} of {count}". With `onChange(marked)`, the user
       changes it by the rule "one more, one less": a click on an empty
       circle gives `marked + 1`, and a click on a marked circle gives
-      `marked - 1`. The owner sets the new `marked`. Each circle has a 28px
-      tap area around its drawing, and under a mouse the circle that a click
-      changes shows a light fill. The group is a slider and one Tab stop:
-      Right and Up give one more, Left and Down one less, and nothing goes
-      past 0 or `count`. A screen reader reads "{label}, {marked} of
-      {count} spent", for example "1st-level slots, 2 of 4 spent", and the
-      new value after a change. A click keeps the focus on the group.
+      `marked - 1`. The owner sets the new `marked`. Its circles are drawn
+      at 17px (15px without `onChange`), each with a 28px tap area, and
+      under a mouse the circle that a click changes shows a light fill. The
+      group is a slider and one Tab stop: Right and Up give one more, Left
+      and Down one less, and nothing goes past 0 or `count`. A screen
+      reader reads "{label}, {valueText}" and the new value after a change.
+      `valueText(marked, count)` gives the state, "{marked} of {count}" by
+      default; the app passes "2 of 4 spent". A click keeps the focus on the
+      group.
     - `CurrentMax`: `current`, then "/ `max`" in the muted ink.
   - `StuckNote`: a tilted yellow note above its box (`children`), for
     something the user must act on. A button or link in `note` is its

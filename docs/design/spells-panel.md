@@ -410,7 +410,7 @@ same state.
   circle that the user clicks does not matter.
 * With a mouse, the circle that will change shows a light fill before
   the click.
-* A circle keeps its 15px drawing. Its tap area is 28px or more.
+* A circle keeps its 17px drawing. Its tap area is 28px or more.
 * There is no "Clear all" button, in the panel or on the sheet. The
   later rests project adds a "Long rest" button.
 * A change saves as a sheet change.
@@ -418,7 +418,9 @@ same state.
 ## Where the circles are
 
 * **On the sheet:** in the Slots column of the Spellcasting section, as
-  today. The circles can now change.
+  today. The circles can now change. When the sheet is narrower than
+  720px, the circles that can change keep their size and their tap
+  areas. A level with four slots then shows them in two lines of two.
 * **In the panel, the Spell slots block:** a shaded block with the label
   "Spell slots", fixed above the list. It does not scroll with the list.
   * With 5th-level slots or higher, the block has one column for each
