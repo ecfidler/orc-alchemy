@@ -533,17 +533,7 @@ function SpellcastingBox({
     new Set(groups.filter((group) => isNamed(group, groups)).flatMap((group) => group.names)),
   );
   return (
-    <FramedBox
-      label="Spellcasting"
-      className="gap-2.5"
-      action={
-        onOpenSpells && (
-          <Button size="small" onClick={() => onOpenSpells()}>
-            All spells
-          </Button>
-        )
-      }
-    >
+    <FramedBox label="Spellcasting" className="gap-2.5" action={onOpenSpells && <Button onClick={() => onOpenSpells()}>All spells</Button>}>
       {groups.length > 0 && (
         <ShadedPanel>
           {groups.map((group) => (
@@ -569,10 +559,10 @@ function SpellcastingBox({
         <table className="w-full table-fixed border-collapse text-left text-[14.5px]">
           <caption className="sr-only">Spells by level</caption>
           <colgroup>
-            {/* Circles that change have 28px tap areas: the Slots column takes four on a line, and the narrow
+            {/* Circles that change have 28px tap areas: the Slots column takes four on a line with space at each side, and the narrow
                 level column three. */}
             <col className={narrow && !onSpendSlots ? "w-[76px]" : "w-[80px]"} />
-            {!narrow && <col className={onSpendSlots ? "w-[114px]" : "w-[98px]"} />}
+            {!narrow && <col className={onSpendSlots ? "w-[132px]" : "w-[98px]"} />}
             <col />
           </colgroup>
           <thead>
