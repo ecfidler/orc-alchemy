@@ -2,13 +2,20 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { afterEach, expect, test, vi } from "vitest";
-import { bonusStr, type Sheet, toSheet } from "../engine/sheet.ts";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { engine, loadEngine } from "../engine/engine.ts";
+import { bonusStr, type KnownSpell, type Sheet, toSheet } from "../engine/sheet.ts";
+import { loadSpellContent } from "../engine/spells.ts";
+import { useHomebrew } from "../state/homebrew.ts";
 import { CharacterSheet, ordinal, sourceMarks } from "./CharacterSheet.tsx";
+
+// The Spellcasting section shows spell names only once the SRD spells are loaded.
+beforeAll(() => loadSpellContent());
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  useHomebrew.setState({ homebrew: undefined });
 });
 
 const abilities = (["str", "dex", "con", "int", "wis", "cha"] as const).map((ability, i) => ({
@@ -72,7 +79,12 @@ const sheet: Sheet = {
   spellcasting: {
     slots: [],
     casters: [{ name: "Hill Dwarf", ability: "wis", saveDc: 11, attackBonus: 3, prepares: false, canPrepare: null }],
-    byLevel: [{ level: 0, spells: [{ key: "guidance", name: "Guidance", source: "Hill Dwarf", ability: "wis", alwaysPrepared: false, prepared: false }] }],
+    byLevel: [
+      {
+        level: 0,
+        spells: [{ key: "guidance", name: "Guidance", source: "Hill Dwarf", ability: "wis", alwaysPrepared: false, prepared: false, castNote: null }],
+      },
+    ],
     knownModes: {},
   },
   features: {
@@ -209,7 +221,15 @@ test("one source that prepares: one row of boxes, slots once for each level, and
 });
 
 test("one source that does not prepare: the column is Known spells, and it lists every known spell", () => {
-  const spell = (key: string, name: string) => ({ key, name, source: "Hill Dwarf", ability: "wis" as const, alwaysPrepared: false, prepared: false });
+  const spell = (key: string, name: string) => ({
+    key,
+    name,
+    source: "Hill Dwarf",
+    ability: "wis" as const,
+    alwaysPrepared: false,
+    prepared: false,
+    castNote: null,
+  });
   const spellcasting = {
     ...sheet.spellcasting!,
     byLevel: [...sheet.spellcasting!.byLevel, { level: 1, spells: [spell("sleep", "Sleep"), spell("bless", "Bless")] }],
@@ -232,6 +252,7 @@ test("an always-prepared spell shows with the prepared spells, with no tag", () 
     ability: "wis" as const,
     alwaysPrepared,
     prepared,
+    castNote: null,
   });
   const spellcasting = {
     slots: [{ level: 1, count: 2 }],
@@ -276,7 +297,15 @@ test("a High Elf wizard: the High Elf cantrip is one line, and the wizard's spel
 
 /** A Tiefling warlock: two sources with the same numbers, and race spells past cantrips. Warlock has more spells. */
 const tieflingWarlock = (tieflingDc = 15): Sheet => {
-  const spell = (key: string, name: string, source: string) => ({ key, name, source, ability: "cha" as const, alwaysPrepared: false, prepared: false });
+  const spell = (key: string, name: string, source: string) => ({
+    key,
+    name,
+    source,
+    ability: "cha" as const,
+    alwaysPrepared: false,
+    prepared: false,
+    castNote: null,
+  });
   const caster = (name: string, saveDc: number) => ({ name, ability: "cha" as const, saveDc, attackBonus: saveDc - 8, prepares: false, canPrepare: null });
   return {
     ...sheet,
@@ -512,7 +541,7 @@ test("a source with no caster row label to hold the key has a tag in place of a 
 });
 
 test("three sources and a cantrip-only race: ‡ in the table and on its row, and the race line does not count", () => {
-  const spell = (key: string, source: string) => ({ key, name: key, source, ability: "int" as const, alwaysPrepared: false, prepared: false });
+  const spell = (key: string, source: string) => ({ key, name: key, source, ability: "int" as const, alwaysPrepared: false, prepared: false, castNote: null });
   const caster = (name: string, saveDc: number) => ({ name, ability: "int" as const, saveDc, attackBonus: saveDc - 8, prepares: false, canPrepare: null });
   const spellcasting = {
     slots: [{ level: 1, count: 4 }],
@@ -542,7 +571,7 @@ test("three sources and a cantrip-only race: ‡ in the table and on its row, an
 
 test("a tag is kept on one line, and the list item itself can wrap", () => {
   const four = tieflingWarlock();
-  const spell = (key: string, source: string) => ({ key, name: key, source, ability: "cha" as const, alwaysPrepared: false, prepared: false });
+  const spell = (key: string, source: string) => ({ key, name: key, source, ability: "cha" as const, alwaysPrepared: false, prepared: false, castNote: null });
   four.spellcasting!.byLevel[1]!.spells.push(spell("Bless", "Cleric"), spell("Sleep", "Magic Initiate"));
   render(<CharacterSheet sheet={four} />);
   expect(spellNames("1st")).toEqual(["Armor of Agathys", "Bless Cleric", "Hellish Rebuke Tiefling", "Hex", "Sleep Magic Initiate"]);
@@ -551,4 +580,101 @@ test("a tag is kept on one line, and the list item itself can wrap", () => {
   expect(within(item).getByText("Tiefling").parentElement!.className).toBe("whitespace-nowrap");
   // With tags, the row label has no symbol.
   expect(screen.getByText("Tiefling · Warlock")).toBeTruthy();
+});
+
+// Spell records (ORC-280): the name of a spell comes from its record, and its cast note follows it.
+/** A known spell of the Hill Dwarf, which does not prepare, with the name the app makes from its key. */
+const known = (key: string, name: string, castNote: string | null = null): KnownSpell => ({
+  key,
+  name,
+  source: "Hill Dwarf",
+  ability: "wis",
+  alwaysPrepared: false,
+  prepared: false,
+  castNote,
+});
+/** The Hill Dwarf sheet with these 1st-level spells. */
+const withFirstLevel = (...spells: KnownSpell[]): Sheet => ({
+  ...sheet,
+  spellcasting: { ...sheet.spellcasting!, byLevel: [...sheet.spellcasting!.byLevel, { level: 1, spells }] },
+});
+
+test("an SRD spell shows its record name, and a spell with no record shows the name from its key, A to Z by the shown name", () => {
+  render(
+    <CharacterSheet
+      sheet={withFirstLevel(
+        known("tsunami", "Tsunami"),
+        known("arcanists-magic-aura", "Arcanists Magic Aura"),
+        known("antipathy-sympathy", "Antipathy Sympathy"),
+        known("cone-of-cold", "Cone Of Cold"),
+      )}
+    />,
+  );
+  expect(spellNames("1st")).toEqual(["Antipathy/Sympathy", "Arcanist's Magic Aura", "Cone of Cold", "Tsunami"]);
+});
+
+test("a pack spell shows its pack name, and a pack spell with an SRD key shows the pack record", () => {
+  const spell = (key: string, name: string) => ({ "~:key": `~:${key}`, "~:name": name, "~:level": 1, "~:school": "evocation" });
+  useHomebrew.setState({
+    homebrew: { Reef: { "~:orcpub.dnd.e5/spells": { "~:zapc": spell("zapc", "Zap Cantrip of Doom's Day"), "~:alarm": spell("alarm", "Reef Alarm") } } },
+  });
+  render(<CharacterSheet sheet={withFirstLevel(known("zapc", "Zapc"), known("alarm", "Alarm"), known("bless", "Bless"))} />);
+  expect(spellNames("1st")).toEqual(["Bless", "Reef Alarm", "Zap Cantrip of Doom's Day"]);
+});
+
+test("a cast note is in parentheses after the name and its mark, in the table and on a cantrip line", () => {
+  const warlock = tieflingWarlock();
+  warlock.spellcasting!.byLevel[1]!.spells[0] = { ...warlock.spellcasting!.byLevel[1]!.spells[0]!, castNote: "once per long rest" };
+  warlock.spellcasting!.byLevel[1]!.spells[1] = { ...warlock.spellcasting!.byLevel[1]!.spells[1]!, castNote: "at will" };
+  render(<CharacterSheet sheet={warlock} />);
+  expect(spellNames("1st")).toEqual(["Armor of Agathys", "Hellish Rebuke† (Tiefling) (once per long rest)", "Hex (at will)"]);
+  cleanup();
+  const line = { ...sheet.spellcasting!, byLevel: [{ level: 0, spells: [known("guidance", "Guidance", "at will"), known("light", "Light")] }] };
+  render(<CharacterSheet sheet={{ ...sheet, spellcasting: line }} />);
+  expect(within(screen.getByRole("group", { name: "Spellcasting" })).getByRole("listitem").textContent).toBe(
+    "Guidance (at will), Light (Hill Dwarf, WIS, DC 11, +3)",
+  );
+});
+
+test("warlock-10-drow shows the cast notes from built, and record names", () => {
+  render(<CharacterSheet sheet={toSheet(expectedOf("warlock-10-drow"), strictOf("warlock-10-drow"))} />);
+  expect(spellNames("1st")).toEqual(
+    expect.arrayContaining([
+      "Detect Poison and Disease (Book of Ancient Secrets Ritual)",
+      "Illusory Script (Book of Ancient Secrets Ritual)",
+      "Speak with Animals (at will)",
+    ]),
+  );
+  expect(spellNames("3rd")).toContain("Slow (at will)");
+  expect(spellNames("Cantrips")).toContain("Spare the Dying (uses Book of Shadows)");
+});
+
+test("a Life cleric's domain spells show with no note", async () => {
+  const e = (await loadEngine(), engine());
+  const entity = e.select(e.setClass(e.emptyCharacter(), 0, "cleric"), ["class", "cleric", "levels", "level-1", "divine-domain"], "life-domain");
+  const built = e.evaluate(entity).built;
+  // built has the qualifier "Domain" on each domain spell.
+  const domain = built["spells-known"][1]!.__entries.filter(([, spell]) => spell.qualifier === "Domain").map(([[, key]]) => key);
+  expect(domain.sort()).toEqual(["bless", "cure-wounds"]);
+  render(<CharacterSheet sheet={toSheet(built, entity)} />);
+  expect(spellNames("1st")).toEqual(["Bless", "Cure Wounds"]);
+});
+
+test("until the SRD spells load, the section shows its levels and slots and no spell names", async () => {
+  // A new page load: the spell chunk is not loaded yet.
+  vi.resetModules();
+  const { CharacterSheet: FreshSheet } = await import("./CharacterSheet.tsx");
+  render(<FreshSheet sheet={toSheet(expectedOf("wizard-1"), strictOf("wizard-1"))} />);
+  const section = screen.getByRole("group", { name: "Spellcasting" });
+  expect(
+    within(section)
+      .getAllByRole("rowheader")
+      .map((cell) => cell.textContent),
+  ).toEqual(["Cantrips", "1st"]);
+  expect(within(spellsRow("1st")).getByRole("img", { name: "1st-level slots: 0 of 2" })).toBeTruthy();
+  expect(within(section).queryAllByRole("listitem")).toEqual([]);
+  expect(within(section).queryByText(/Minor Illusion|Alarm/)).toBeNull();
+  // Then the names show.
+  expect(await within(section).findByText("Alarm")).toBeTruthy();
+  expect(spellNames("1st")).toEqual(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
 });

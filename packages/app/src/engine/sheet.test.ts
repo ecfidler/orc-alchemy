@@ -109,6 +109,7 @@ test("wizard-20 spellcasting", () => {
     ability: "int",
     alwaysPrepared: false,
     prepared: false,
+    castNote: null,
   });
   for (const { spells } of spellcasting.byLevel) {
     expect(spells.map((s) => s.key)).toEqual(spells.map((s) => s.key).sort());
@@ -350,4 +351,27 @@ test("scaled-uses: each typed homebrew feature is in the section of its type, on
   expect(uses("Deep Lungs")).toEqual({ amount: 15, recharge: "Each day" });
   expect(uses("Tide Step")).toEqual({ amount: 2, recharge: "Short rest" });
   expect(uses("Sea Legs")).toBeUndefined();
+});
+
+test("a known spell's qualifier is its cast note; the domain qualifier and no qualifier give none (ORC-280)", () => {
+  const built = builtOf("warlock-10-drow");
+  const notes = Object.fromEntries(
+    toSheet(built, {})
+      .spellcasting!.byLevel.flatMap(({ spells }) => spells)
+      .filter((s) => s.castNote !== null)
+      .map((s) => [s.key, s.castNote]),
+  );
+  expect(notes).toEqual({
+    "spare-the-dying": "uses Book of Shadows",
+    "detect-poison-and-disease": "Book of Ancient Secrets Ritual",
+    "illusory-script": "Book of Ancient Secrets Ritual",
+    "speak-with-animals": "at will",
+    slow: "at will",
+  });
+  // A Life cleric's domain spell has the qualifier "Domain" (options.cljc cleric-spell). CharacterSheet.test.tsx checks it on a real one.
+  const [[pair, spell]] = built["spells-known"][1]!.__entries;
+  const domain = { ...built, "spells-known": { 1: { __entries: [[pair, { ...spell, qualifier: "Domain" }]] } } } as unknown as Built2014;
+  expect(toSheet(domain, {}).spellcasting!.byLevel[0]!.spells[0]).toMatchObject({ castNote: null });
+  const blank = { ...built, "spells-known": { 1: { __entries: [[pair, { ...spell, qualifier: " " }]] } } } as unknown as Built2014;
+  expect(toSheet(blank, {}).spellcasting!.byLevel[0]!.spells[0]!.castNote).toBeNull();
 });

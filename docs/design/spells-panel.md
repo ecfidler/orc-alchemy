@@ -103,7 +103,7 @@ panel, so the Browse pages (ORC-87) can use it later.
 
 * The SRD records are in `@pubdoor/dmv/content/spells.json`. The app loads
   that file as its own chunk. `packages/app/src/engine/spells.ts` loads it
-  today and keeps only the level. The lookup keeps the full record.
+  and keeps the full record of each spell.
 * The homebrew records are in the packs (`packages/app/src/state/homebrew.ts`).
 * If a key has more than one record, the lookup uses the engine rule. A
   pack wins over the SRD. If two enabled packs have the key, the last
@@ -120,15 +120,16 @@ no spell names. Thus a wrong name never shows.
 
 ## Spell names
 
-The sheet and the panel take the name of a spell from its record. Today
-`sheet.ts` makes the name from the key, which is wrong for 48 SRD spells.
-The name from the key stays only for a spell with no record.
+The sheet and the panel take the name of a spell from its record. The
+name that `sheet.ts` makes from the key is wrong for 48 SRD spells. It
+shows only for a spell with no record. If the spell chunk does not load,
+the sheet shows the names from the keys.
 
 ## The cast note
 
 A known spell can have a **cast note**: the `qualifier` of the spell in
 `built["spells-known"]`, for example "at will", "once per long rest" or
-"ritual only". The sheet model drops it today. Add it to `KnownSpell`.
+"ritual only". `KnownSpell` in the sheet model has it as `castNote`.
 
 * The note "Domain" does not show, in the panel or on the sheet. The
   "Always prepared" label says the same.
