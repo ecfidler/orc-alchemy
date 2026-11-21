@@ -97,7 +97,7 @@ test("wizard-20 spellcasting", () => {
   const sheet = toSheet(built, {});
   const spellcasting = sheet.spellcasting!;
 
-  expect(spellcasting.slots).toEqual(Object.entries(built["spell-slots"]).map(([level, count]) => ({ level: Number(level), count })));
+  expect(spellcasting.slots).toEqual(Object.entries(built["spell-slots"]).map(([level, count]) => ({ level: Number(level), count, spent: 0 })));
   expect(spellcasting.slots.map((s) => s.count)).toEqual([4, 3, 3, 3, 3, 2, 2, 1, 1]);
   expect(spellcasting.byLevel.map((l) => [l.level, l.spells.length])).toEqual(
     Object.entries(built["spells-known"]).map(([level, spells]) => [Number(level), spells.__entries.length]),

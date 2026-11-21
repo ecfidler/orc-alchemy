@@ -200,6 +200,62 @@ test("scaled-uses shows its typed pack features in the Actions, Bonus Actions an
   await expect(page.getByRole("group", { name: "Undertow" })).toHaveCount(0);
 });
 
+/** The spent slots of the one stored character, read from IndexedDB. */
+const storedSlotsUsed = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<unknown>((resolve, reject) => {
+        const open = indexedDB.open("alchemy-5e");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const all = open.result.transaction("characters").objectStore("characters").getAll();
+          all.onerror = () => reject(all.error);
+          all.onsuccess = () => {
+            open.result.close();
+            const entity = all.result[0]?.entity;
+            resolve(entity?.["~:orcpub.entity.strict/values"]?.["~:orcpub.dnd.e5.spells/slots-used"] ?? null);
+          };
+        };
+      }),
+  );
+
+test("wizard-5: a click spends a slot and gives it back, the tap area is 28px, and the spent slots stay after a reload (ORC-282)", async ({ page }) => {
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, "wizard-5.strict.json"));
+  const first = page.getByRole("slider", { name: "1st-level slots" });
+  await expect(first).toHaveAttribute("aria-valuetext", "0 of 4 spent");
+  const circles = first.locator(".ui-slot-circle");
+  const box = (await circles.nth(0).boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(28);
+  expect(box.height).toBeGreaterThanOrEqual(28);
+  // The tap areas touch and do not overlap.
+  expect((await circles.nth(1).boundingBox())!.x).toBeGreaterThanOrEqual(box.x + box.width);
+
+  // The light fill: the mouse on any empty circle fills the first empty one at 30%, and no other circle.
+  const fill = (i: number) => circles.nth(i).evaluate((circle) => getComputedStyle(circle, "::before").backgroundColor);
+  const none = "rgba(0, 0, 0, 0)";
+  await circles.nth(3).hover();
+  expect(await fill(0)).toMatch(/ \/ 0\.3\)$/);
+  for (const i of [1, 2, 3]) expect(await fill(i)).toBe(none);
+  await page.mouse.move(0, 0);
+  expect(await fill(0)).toBe(none);
+
+  await circles.nth(3).click();
+  await circles.nth(2).click();
+  await circles.nth(0).click();
+  await expect(first).toHaveAttribute("aria-valuetext", "1 of 4 spent");
+  await expect(first).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(first).toHaveAttribute("aria-valuetext", "2 of 4 spent");
+  await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Saved");
+
+  // The sheet change saves at once; the reload then opens the stored record.
+  await expect.poll(() => storedSlotsUsed(page)).toEqual({ "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0, 1] } });
+  await page.reload();
+  await expect(page.getByRole("slider", { name: "1st-level slots" })).toHaveAttribute("aria-valuetext", "2 of 4 spent");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- sheet.spec.ts -g orc-203
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");

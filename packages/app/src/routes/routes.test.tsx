@@ -1,4 +1,6 @@
 import "fake-indexeddb/auto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -186,6 +188,65 @@ test("opening a character with a draft recovers it and says so", async () => {
   expect(await screen.findByText("Unsaved changes from your last visit were recovered.", {}, { timeout: 5000 })).toBeTruthy();
   expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Unsaved changes");
   expect(screen.getByLabelText("Race").textContent).toBe("Gnome");
+});
+
+const wizard5 = () => JSON.parse(readFileSync(join(import.meta.dirname, "../../../../fixtures/characters/wizard-5.strict.json"), "utf8"));
+const storedSlotsUsed = async (id: string) =>
+  JSON.parse(JSON.stringify((await getCharacter(id))!.entity))["~:orcpub.entity.strict/values"]["~:orcpub.dnd.e5.spells/slots-used"];
+
+test("on the sheet, a click or an arrow key spends a slot and gives it back; it saves, and shows after a reload (ORC-282)", async () => {
+  const id = await addCharacter(wizard5(), "2014", null);
+  renderAt(`/sheet/${id}`);
+  const first = await screen.findByRole("slider", { name: "1st-level slots" }, { timeout: 5000 });
+  expect(first.getAttribute("aria-valuetext")).toBe("0 of 4 spent");
+  expect(screen.getByRole("slider", { name: "3rd-level slots" }).getAttribute("aria-valuetext")).toBe("0 of 2 spent");
+  // The death saves do not change.
+  expect(screen.getByRole("img", { name: "Successes: 0 of 3" })).toBeTruthy();
+
+  fireEvent.click(first.children[2]!);
+  fireEvent.click(first.children[3]!);
+  expect(first.getAttribute("aria-valuetext")).toBe("2 of 4 spent");
+  fireEvent.click(first.children[0]!);
+  expect(first.getAttribute("aria-valuetext")).toBe("1 of 4 spent");
+  expect(document.activeElement).toBe(first);
+  const third = screen.getByRole("slider", { name: "3rd-level slots" });
+  fireEvent.keyDown(third, { key: "ArrowRight" });
+  fireEvent.keyDown(third, { key: "ArrowUp" });
+  fireEvent.keyDown(third, { key: "ArrowUp" });
+  fireEvent.keyDown(third, { key: "ArrowDown" });
+  expect(third.getAttribute("aria-valuetext")).toBe("1 of 2 spent");
+  // A sheet change: the status stays Saved, and the record saves at once.
+  expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved");
+  await waitFor(
+    async () =>
+      expect(await storedSlotsUsed(id)).toEqual({
+        "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0] },
+        "~:orcpub.dnd.e5.spells/slots-3": { "~#set": [0] },
+      }),
+    { timeout: 3000 },
+  );
+  await waitFor(async () => expect(await getDraft(id)).toBeUndefined());
+
+  // A reload: the character opens again from the store.
+  cleanup();
+  useCharacter.setState({ id: null, entity: null, dirty: false, unsaved: false });
+  renderAt(`/sheet/${id}`);
+  expect((await screen.findByRole("slider", { name: "1st-level slots" }, { timeout: 5000 })).getAttribute("aria-valuetext")).toBe("1 of 4 spent");
+  expect(screen.getByRole("slider", { name: "2nd-level slots" }).getAttribute("aria-valuetext")).toBe("0 of 3 spent");
+  expect(screen.getByRole("slider", { name: "3rd-level slots" }).getAttribute("aria-valuetext")).toBe("1 of 2 spent");
+});
+
+test("in the builder preview, the slot circles show the spent slots and cannot change", async () => {
+  const entity = engine().setValue(wizard5(), "orcpub.dnd.e5.spells/slots-used", { "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } });
+  const id = await addCharacter(entity, "2014", null);
+  renderAt(`/build/${id}`);
+  const preview = await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
+  const second = within(preview).getByRole("img", { name: "2nd-level slots: 2 of 3" });
+  expect(second.querySelectorAll("[data-marked]")).toHaveLength(2);
+  expect(within(preview).queryByRole("slider")).toBeNull();
+  fireEvent.click(second.children[2]!);
+  expect(within(preview).getByRole("img", { name: "2nd-level slots: 2 of 3" })).toBeTruthy();
+  expect(useCharacter.getState().dirty).toBe(false);
 });
 
 test("unknown paths render the not-found page", () => {

@@ -220,6 +220,41 @@ test("one source that prepares: one row of boxes, slots once for each level, and
   expect(spellNames("Cantrips")).toEqual(["Acid Splash", "Chill Touch", "Dancing Lights", "Fire Bolt"]);
 });
 
+test("the Slots cells show the spent slots; with onSpendSlots they change, and without it they do not (ORC-282)", () => {
+  const entity = strictOf("wizard-5");
+  entity["~:orcpub.entity.strict/values"]["~:orcpub.dnd.e5.spells/slots-used"] = {
+    "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0, 1] },
+    "~:orcpub.dnd.e5.spells/slots-3": { "~#set": [0] },
+  };
+  const wizard = toSheet(expectedOf("wizard-5"), entity);
+  expect(wizard.spellcasting!.slots).toEqual([
+    { level: 1, count: 4, spent: 2 },
+    { level: 2, count: 3, spent: 0 },
+    { level: 3, count: 2, spent: 1 },
+  ]);
+  render(<CharacterSheet sheet={wizard} preview />);
+  expect(within(spellsRow("1st")).getByRole("img", { name: "1st-level slots: 2 of 4" }).querySelectorAll("[data-marked]")).toHaveLength(2);
+  expect(within(spellsRow("3rd")).getByRole("img", { name: "3rd-level slots: 1 of 2" })).toBeTruthy();
+  expect(screen.queryByRole("slider")).toBeNull();
+  cleanup();
+
+  const onSpendSlots = vi.fn();
+  render(<CharacterSheet sheet={wizard} onSpendSlots={onSpendSlots} />);
+  const first = within(spellsRow("1st")).getByRole("slider", { name: "1st-level slots" });
+  expect(first.getAttribute("aria-valuetext")).toBe("2 of 4 spent");
+  fireEvent.click(first.children[3]!);
+  fireEvent.click(within(spellsRow("3rd")).getByRole("slider", { name: "3rd-level slots" }).children[0]!);
+  fireEvent.keyDown(within(spellsRow("2nd")).getByRole("slider", { name: "2nd-level slots" }), { key: "ArrowRight" });
+  expect(onSpendSlots.mock.calls).toEqual([
+    [1, 3],
+    [3, 0],
+    [2, 1],
+  ]);
+  // The death saves do not change.
+  expect(screen.getByRole("img", { name: "Successes: 0 of 3" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Failures: 0 of 3" })).toBeTruthy();
+});
+
 test("one source that does not prepare: the column is Known spells, and it lists every known spell", () => {
   const spell = (key: string, name: string) => ({
     key,
@@ -255,7 +290,7 @@ test("an always-prepared spell shows with the prepared spells, with no tag", () 
     castNote: null,
   });
   const spellcasting = {
-    slots: [{ level: 1, count: 2 }],
+    slots: [{ level: 1, count: 2, spent: 0 }],
     casters: [cleric],
     byLevel: [
       { level: 1, spells: [spell("bless", "Bless", true, true), spell("sanctuary", "Sanctuary", false, true), spell("command", "Command", false, false)] },
@@ -311,7 +346,7 @@ const tieflingWarlock = (tieflingDc = 15): Sheet => {
     ...sheet,
     classes: [{ key: "warlock", name: "Warlock", level: 3, hitDie: 8, subclass: "The Fiend" }],
     spellcasting: {
-      slots: [{ level: 1, count: 2 }],
+      slots: [{ level: 1, count: 2, spent: 0 }],
       casters: [caster("Tiefling", tieflingDc), caster("Warlock", 15)],
       byLevel: [
         { level: 0, spells: [spell("thaumaturgy", "Thaumaturgy", "Tiefling"), spell("eldritch-blast", "Eldritch Blast", "Warlock")] },
@@ -544,7 +579,7 @@ test("three sources and a cantrip-only race: ‡ in the table and on its row, an
   const spell = (key: string, source: string) => ({ key, name: key, source, ability: "int" as const, alwaysPrepared: false, prepared: false, castNote: null });
   const caster = (name: string, saveDc: number) => ({ name, ability: "int" as const, saveDc, attackBonus: saveDc - 8, prepares: false, canPrepare: null });
   const spellcasting = {
-    slots: [{ level: 1, count: 4 }],
+    slots: [{ level: 1, count: 4, spent: 0 }],
     casters: [caster("Wizard", 15), caster("Cleric", 13), caster("Tiefling", 12), caster("High Elf", 14)],
     byLevel: [
       { level: 0, spells: [spell("Mending", "High Elf")] },

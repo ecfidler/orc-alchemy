@@ -219,8 +219,20 @@ bun run test       # vitest
       (or 3 or 4).
     - `SlotCircles`: `count` plain circles; the first `marked` fill solid
       in `color` ("ink", "success" or "caution"). A `marked` above `count`
-      marks them all. It takes no clicks. Its name is
-      "{label}: {marked} of {count}".
+      marks them all. `size="small"` draws 12px circles closer together.
+      Without `onChange` it takes no clicks, and it is an image named
+      "{label}: {marked} of {count}". With `onChange(marked)`, the user
+      changes it by the rule "one more, one less": a click on an empty
+      circle gives `marked + 1`, and a click on a marked circle gives
+      `marked - 1`. The owner sets the new `marked`. Its circles are drawn
+      at 17px (15px without `onChange`), each with a 28px tap area, and
+      under a mouse the circle that a click changes shows a light fill. The
+      group is a slider and one Tab stop: Right and Up give one more, Left
+      and Down one less, and nothing goes past 0 or `count`. A screen
+      reader reads "{label}, {valueText}" and the new value after a change.
+      `valueText(marked, count)` gives the state, "{marked} of {count}" by
+      default; the app passes "2 of 4 spent". A click keeps the focus on the
+      group.
     - `CurrentMax`: `current`, then "/ `max`" in the muted ink.
   - `StuckNote`: a tilted yellow note above its box (`children`), for
     something the user must act on. A button or link in `note` is its
