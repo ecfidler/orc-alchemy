@@ -11,11 +11,24 @@
 // class that prepares and the "Prepare spells" button. In prepare mode the
 // list also shows the spells that a class can prepare and has not prepared,
 // and the rows have their boxes. The spell view gets the prepare line.
-import { Button, Checkbox, Dialog, FramedBox, LockIcon } from "@orc-alchemy/ui";
+//
+// With two or more sources (ORC-289, "The header" and "The list"), the header
+// has a line of numbers for each source, and each row has a source tag. A
+// spell that two sources give is two rows, and each row prepares apart.
+import { Button, Checkbox, Dialog, FramedBox, Label, LockIcon } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { bonusStr, type PrepareSpell, type Sheet, type Spellcasting, type SpellRef, type SpendSlots } from "../engine/sheet.ts";
-import { type ListedSpell, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "../engine/spell-list.ts";
+import {
+  type ListedSpell,
+  type SourceNumbers,
+  searchSpellGroups,
+  sourceNumbers,
+  spellClassLine,
+  spellGroups,
+  spellId,
+  spellSources,
+} from "../engine/spell-list.ts";
 import { hasPrepareBox, type PrepareCount, prepareCounts, prepareCountText, prepareKind } from "../engine/spell-prepare.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { useSpellSlotsFolded } from "../state/spell-slots-fold.ts";
@@ -99,8 +112,8 @@ export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, bui
 /**
  * The header: "Spells", the class and level of each class that gives
  * spells, and with one source the Save DC, Attack and Ability boxes. With
- * two or more sources it has only the class line here (ORC-289 adds a line
- * of numbers for each source).
+ * two or more sources it has one line of numbers for each source in place of
+ * the boxes (ORC-289), a cantrip-only race or feat included.
  */
 function PanelHeader({ spellcasting, classes }: { spellcasting: Spellcasting; classes: Sheet["classes"] }) {
   const classLine = spellClassLine(classes, spellcasting);
@@ -126,7 +139,49 @@ function PanelHeader({ spellcasting, classes }: { spellcasting: Spellcasting; cl
           </HeaderBox>
         </div>
       )}
+      {sources.length > 1 && <SourceLines lines={sourceNumbers(classes, spellcasting)} />}
     </div>
+  );
+}
+
+/**
+ * The lines of numbers of the header, one for each source, in a grid with
+ * the short labels above the columns: the source name, then the save DC,
+ * the attack bonus and the ability. Each line is a group named by its
+ * source, and each number a group with its full name, so a screen reader
+ * reads "Cleric", then "Spell save DC 12". The column labels are hidden from
+ * it. A source with no caster shows only its ability.
+ */
+function SourceLines({ lines }: { lines: SourceNumbers[] }) {
+  return (
+    <div className="grid grid-cols-[auto_repeat(3,auto)] items-baseline gap-x-4 gap-y-0.5 font-sans max-[600px]:gap-x-3">
+      <div aria-hidden className="col-span-4 grid grid-cols-subgrid border-b border-rule-strong pb-0.5 [&>span]:text-right">
+        <span />
+        <Label>Save DC</Label>
+        <Label>Attack</Label>
+        <Label>Ability</Label>
+      </div>
+      {lines.map((line) => (
+        <div key={line.name} role="group" aria-label={line.name} className="col-span-4 grid grid-cols-subgrid items-baseline">
+          <span aria-hidden className="text-[13px] text-ink-muted">
+            {line.name}
+          </span>
+          <LineNumber name="Spell save DC">{line.saveDc}</LineNumber>
+          <LineNumber name="Spell attack">{line.attackBonus === null ? null : bonusStr(line.attackBonus)}</LineNumber>
+          <LineNumber name="Spellcasting ability">{line.ability.toUpperCase()}</LineNumber>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A number of a source line, as a group with its full name; an empty cell when the source has no such number. */
+function LineNumber({ name, children }: { name: string; children: ReactNode }) {
+  if (children === null) return <span />;
+  return (
+    <span role="group" aria-label={name} className="text-right text-[15px] leading-[1.3] font-medium tabular-nums">
+      {children}
+    </span>
   );
 }
 
@@ -430,6 +485,7 @@ function PanelBody({
             prepareMode={prepareMode}
             kindOf={(spell) => prepareKind(spell, spellcasting.casters)}
             onPrepare={prepare}
+            sourceTags={spellSources(spellcasting).length > 1}
           />
         </div>
         <div

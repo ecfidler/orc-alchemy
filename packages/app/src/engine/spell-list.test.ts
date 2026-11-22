@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { type KnownSpell, type Spellcasting, toSheet } from "./sheet.ts";
-import { levelHeading, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "./spell-list.ts";
+import { levelHeading, searchSpellGroups, sourceNumbers, spellClassLine, spellGroups, spellId, spellSources } from "./spell-list.ts";
 import { spellLookup } from "./spell-records.ts";
 import { loadSpellContent, setPrepared } from "./spells.ts";
 
@@ -107,6 +107,24 @@ test("the class line has each class that gives spells, in the order taken, and n
   const elf = { ...sheet.spellcasting!, casters: [caster("High Elf", false)], byLevel: [{ level: 0, spells: [known("light", "Light", "High Elf")] }] };
   expect(spellClassLine([{ key: "fighter", name: "Fighter", level: 3, hitDie: 10, subclass: null }], elf)).toBe("");
 }, 20_000);
+
+test("the numbers of each source: the classes in the order taken, then the other sources; a source with no caster has only its ability", () => {
+  const spellcasting: Pick<Spellcasting, "casters" | "byLevel"> = {
+    // The casters come in another order than the classes, as for a druid and a cleric.
+    casters: [caster("High Elf", false), { ...caster("Druid", true), ability: "wis", saveDc: 12 }, { ...caster("Cleric", true), attackBonus: 6 }],
+    byLevel: [{ level: 0, spells: [known("light", "Light", "High Elf"), { ...known("thorn-whip", "Thorn Whip", "Feat"), ability: "wis" }] }],
+  };
+  const classes = [
+    { key: "cleric", name: "Cleric", level: 3, hitDie: 8, subclass: null },
+    { key: "druid", name: "Druid", level: 1, hitDie: 8, subclass: null },
+  ];
+  expect(sourceNumbers(classes, spellcasting)).toEqual([
+    { name: "Cleric", saveDc: 13, attackBonus: 6, ability: "int" },
+    { name: "Druid", saveDc: 12, attackBonus: 5, ability: "wis" },
+    { name: "High Elf", saveDc: 13, attackBonus: 5, ability: "int" },
+    { name: "Feat", saveDc: null, attackBonus: null, ability: "wis" },
+  ]);
+});
 
 test("the search keeps the spells whose shown name has the text, in any case, and leaves out a group with no match", async () => {
   const sheet = toSheet(readJson("wizard-5.expected.json"), readJson("wizard-5.strict.json"));

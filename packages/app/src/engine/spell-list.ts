@@ -2,7 +2,7 @@
 // docs/design/spells-panel.md "The list"): which known spells show, the name
 // to show, and the order A to Z in each level. The Spellcasting section of the
 // sheet and the list of the panel use this one rule.
-import { type KnownSpell, ordinal, type Sheet, type Spellcasting } from "./sheet.ts";
+import { type Ability, type KnownSpell, ordinal, type Sheet, type Spellcasting } from "./sheet.ts";
 import { prepareKind } from "./spell-prepare.ts";
 import { type SpellLookup, spellName } from "./spell-records.ts";
 import { slotEntries } from "./spell-slots.ts";
@@ -86,6 +86,39 @@ export function searchSpellGroups(groups: SpellGroup[], text: string): SpellGrou
 export function spellSources(spellcasting: Pick<Spellcasting, "casters" | "byLevel">): string[] {
   const { casters, byLevel } = spellcasting;
   return [...new Set([...casters.map((caster) => caster.name), ...byLevel.flatMap((row) => row.spells.map((spell) => spell.source))])];
+}
+
+/** The numbers of one source for the header of the Spells panel. A source with no caster has no save DC and no attack bonus. */
+export interface SourceNumbers {
+  /** The source name, for example "Cleric" or "High Elf": the `source` of its spells. */
+  name: string;
+  saveDc: number | null;
+  attackBonus: number | null;
+  ability: Ability;
+}
+
+/**
+ * The numbers of each source (ORC-289): the classes in the order the
+ * character took them, as in the class line, then each other source, for
+ * example a race or a feat, in the order of `spellSources`. The numbers come
+ * from the caster of the source. A source with no caster takes the ability
+ * of its first spell, and has no save DC and no attack bonus.
+ */
+export function sourceNumbers(classes: Sheet["classes"], spellcasting: Pick<Spellcasting, "casters" | "byLevel">): SourceNumbers[] {
+  const sources = spellSources(spellcasting);
+  const classIndex = (source: string) => {
+    const i = classes.findIndex((c) => c.name === source);
+    return i < 0 ? classes.length : i;
+  };
+  // Array.prototype.sort is stable: the sources that are not classes keep their order.
+  return [...sources]
+    .sort((a, b) => classIndex(a) - classIndex(b))
+    .map((name) => {
+      const caster = spellcasting.casters.find((c) => c.name === name);
+      if (caster) return { name, saveDc: caster.saveDc, attackBonus: caster.attackBonus, ability: caster.ability };
+      const spell = spellcasting.byLevel.flatMap((row) => row.spells).find((s) => s.source === name);
+      return { name, saveDc: null, attackBonus: null, ability: spell!.ability };
+    });
 }
 
 /**

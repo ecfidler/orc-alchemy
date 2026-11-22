@@ -55,6 +55,8 @@ export interface SpellListProps {
   kindOf?: (spell: ListedSpell) => PrepareKind;
   /** The user prepares a spell, or stops preparing it. */
   onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
+  /** True when the character has two or more sources (ORC-289): each row has a source tag, and its name has the source. */
+  sourceTags?: boolean;
 }
 
 /** The words that end the name of a row in prepare mode, for a screen reader. A cantrip has none. */
@@ -92,6 +94,7 @@ export function SpellList({
   prepareMode = false,
   kindOf,
   onPrepare,
+  sourceTags = false,
 }: SpellListProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const move = MOVES[event.key];
@@ -125,6 +128,7 @@ export function SpellList({
             prepareMode={prepareMode}
             kindOf={kindOf}
             onPrepare={onPrepare}
+            sourceTags={sourceTags}
           />
         ))}
       </div>
@@ -145,6 +149,7 @@ function LevelGroup({
   prepareMode,
   kindOf,
   onPrepare,
+  sourceTags = false,
 }: Omit<SpellListProps, "groups" | "query" | "onQueryChange" | "lookup"> & { group: SpellGroup; lookup: SpellLookup }) {
   const headingId = useId();
   return (
@@ -167,7 +172,7 @@ function LevelGroup({
             const kind = prepareMode && kindOf ? kindOf(spell) : null;
             return (
               <li key={id} className={kind ? "relative" : undefined}>
-                {kind && hasPrepareBox(kind) && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} />}
+                {kind && hasPrepareBox(kind) && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} sourceTag={sourceTags} />}
                 <Row
                   spell={spell}
                   lookup={lookup}
@@ -178,6 +183,7 @@ function LevelGroup({
                   initial={markTabStop && id === tabStop}
                   kind={kind}
                   onPrepare={onPrepare}
+                  sourceTag={sourceTags}
                 />
               </li>
             );
@@ -199,17 +205,20 @@ function PrepareBox({
   kind,
   onInk,
   onPrepare,
+  sourceTag,
 }: {
   spell: ListedSpell;
   kind: "can-change" | "always";
   onInk: boolean;
   onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
+  /** With the source tags, the box name has the source, as two rows can have the same spell name. */
+  sourceTag: boolean;
 }) {
   return (
     // The mouse down does not move the focus, so the focus stays on the list or where it was.
     <span className="absolute top-[11px] left-1.5 z-[1] flex" onMouseDown={(event) => event.preventDefault()}>
       <Checkbox
-        aria-label={`Prepared: ${spell.name}`}
+        aria-label={`Prepared: ${spell.name}${sourceTag ? `, ${spell.source}` : ""}`}
         checked={spell.prepared}
         disabled={kind === "always"}
         tabIndex={-1}
@@ -236,9 +245,28 @@ function RowLabel({ onInk, children }: { onInk: boolean; children: ReactNode }) 
 }
 
 /**
- * A row: a button with the spell name, then the Ritual tag and the boxed "C"
- * of concentration. The selected row has the ink fill, and its focus ring is
- * a paper outline. A long name wraps inside the row. In prepare mode (`kind`
+ * A small source tag in words after the name of a row, in Inter caps with no
+ * box: "CLERIC" (ORC-289). A no-break space keeps it on the line of the last
+ * word of the name.
+ */
+function SourceTag({ onInk, children }: { onInk: boolean; children: ReactNode }) {
+  return (
+    <>
+      {"\u00a0"}
+      <span
+        className={`ml-1 font-sans text-[10px] leading-[1.6] font-medium tracking-[0.06em] whitespace-nowrap uppercase ${onInk ? "text-paper" : "text-ink-muted"}`}
+      >
+        {children}
+      </span>
+    </>
+  );
+}
+
+/**
+ * A row: a button with the spell name, its cast note in muted text and, with
+ * `sourceTag`, the source tag; then the Ritual tag and the boxed "C" of
+ * concentration. The selected row has the ink fill, and its focus ring is a
+ * paper outline. A long name wraps inside the row. In prepare mode (`kind`
  * is set) the row leaves space for the box, has the label "Known" or "Always
  * prepared", and its name ends with the state. Space on a row whose box can
  * change changes the box; Enter and a click still select the spell.
@@ -253,6 +281,7 @@ function Row({
   initial,
   kind,
   onPrepare,
+  sourceTag,
 }: {
   spell: ListedSpell;
   lookup: SpellLookup;
@@ -263,11 +292,13 @@ function Row({
   initial: boolean;
   kind: PrepareKind | null;
   onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
+  sourceTag: boolean;
 }) {
   const record = lookup(spell.key)?.record;
   const concentration = record?.duration ? durationParts(record.duration).concentration : false;
   const state = kind ? STATE_WORDS[kind]?.(spell.prepared) : undefined;
   const label = kind === "always" || kind === "known";
+  const name = [spell.name, spell.castNote, sourceTag && spell.source, state].filter(Boolean).join(", ");
   // Space changes the box, and does not click the row: the key down and the key up are both stopped.
   const onSpace = (event: KeyboardEvent<HTMLButtonElement>, down: boolean) => {
     if (kind !== "can-change" || event.key !== " ") return;
@@ -284,12 +315,17 @@ function Row({
       onFocus={() => onFocusRow(spell)}
       onKeyDown={(event) => onSpace(event, true)}
       onKeyUp={(event) => onSpace(event, false)}
-      // In prepare mode the name has the state after the spell name. A hidden text in the row would get a space
-      // before its comma in some browsers, so the name is given whole: "Bless, always prepared Concentration".
-      aria-label={state ? [`${spell.name}, ${state}`, record?.ritual && "Ritual", concentration && "Concentration"].filter(Boolean).join(" ") : undefined}
+      // The name has the cast note, the source when the tag shows, and in prepare mode the state, after the spell name.
+      // A hidden text in the row would get a space before its comma in some browsers, so the name is given whole:
+      // "Bless, Cleric, always prepared Concentration".
+      aria-label={name === spell.name ? undefined : [name, record?.ritual && "Ritual", concentration && "Concentration"].filter(Boolean).join(" ")}
       className={`gap-x-2 py-[5px] pr-1.5 ${kind ? "pl-[30px]" : "pl-1.5"}`}
     >
-      <span className="min-w-0 [overflow-wrap:anywhere]">{spell.name}</span>
+      <span className="min-w-0 [overflow-wrap:anywhere]">
+        {spell.name}
+        {spell.castNote && <span className={selected ? "text-paper" : "text-ink-muted"}> {spell.castNote}</span>}
+        {sourceTag && <SourceTag onInk={selected}>{spell.source}</SourceTag>}
+      </span>
       {(record?.ritual || concentration || label) && (
         <span className="flex items-center gap-1">
           {kind === "known" && <RowLabel onInk={selected}>Known</RowLabel>}
