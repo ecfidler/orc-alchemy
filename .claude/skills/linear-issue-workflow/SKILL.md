@@ -2,7 +2,7 @@
 name: "linear-issue-workflow"
 description: "Take a Linear issue from Todo to a reviewed, PR-ready branch. Use when asked to work on, implement, or complete a Linear issue (e.g. ORC-44)."
 disable-model-invocation: false
-version: "1.3.1"
+version: "1.4.0"
 ---
 
 ## Orchestrator Introduction
@@ -41,6 +41,15 @@ When I ask for several issues together, run this workflow for each issue.
 - Give each issue's worker its own git worktree (`isolation: "worktree"`), with its branch cut from the base branch. When the session assigns one branch, run the issues one after the other on it.
 - Review each issue separately.
 - Before asking me to merge, trial-merge the issue branches together and run the full checks on the result. This is done when the combined tree is green.
+
+### Inside a Slice
+
+When `project-workflow` runs the issue as part of a slice, the slice owns the branch, the PR, the full checks and the Standards review. For the issue, these replace the steps below:
+
+- **Commit.** Work on the slice branch. The issue is one commit, and its message starts with the issue ID.
+- **Checks** (step 4 of Plan and Initial Development). Run lint, typecheck, and the test files that the issue changes.
+- **Review.** Spawn only the `spec-reviewer`, on the commit of the issue. The rounds are the same.
+- **Completion.** Move the issue to In Review when the PR of its slice opens. File the follow-ups, and report them to the slice.
 
 ## Sequential Workflow
 
