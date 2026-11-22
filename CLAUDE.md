@@ -50,6 +50,7 @@ biome.json               formatter and linter config (ORC-213)
 PRODUCT.md               product record that the Impeccable skill reads (ORC-260)
 DESIGN.md                design tokens and rules for the Impeccable skill, derived from docs/design/theme.md (ORC-260)
 scripts/okf-check.ts     the docs bundle check
+scripts/linear-archive.ts  archives closed Linear issues (ORC-292)
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
 packages/ui/             @orc-alchemy/ui: theme and controls (ORC-155)
@@ -66,7 +67,7 @@ the staged files and stages its fixes.
 ## Agent skills
 
 The skills in `.claude/skills/` other than `decision-rounds`, `impeccable`,
-`linear-issue-workflow` and `project-workflow` are copies of
+`linear-cleanup`, `linear-issue-workflow` and `project-workflow` are copies of
 [mattpocock/skills](https://github.com/mattpocock/skills) at tag `v1.3.2`
 (ORC-259). Do not edit the copies. To update them, copy the folders under
 `skills/engineering/` and `skills/productivity/` from a newer tag.
@@ -97,6 +98,10 @@ code after the last change to `DESIGN.md`. It does not examine `theme.md`.
 
 `.claude/skills/decision-rounds/` belongs to this project (ORC-261). The
 folder also holds the source of the round page, an Artifact.
+
+`.claude/skills/linear-cleanup/` belongs to this project (ORC-292). It
+archives the closed Linear issues with `scripts/linear-archive.ts`, to keep
+the workspace under the issue limit of the free plan.
 
 ### Issue tracker
 

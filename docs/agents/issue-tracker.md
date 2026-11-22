@@ -4,7 +4,7 @@ title: "Issue tracker: Linear"
 description: "How agents create, read, and update issues in the Linear team Orc Alchemy."
 tags: [agents, linear]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-20T15:10:00Z }
+generated: { by: claude-code/agent, at: 2026-11-22T16:20:00Z }
 ---
 
 # Issue tracker: Linear
@@ -35,7 +35,9 @@ The terms have the same meaning as in Linear (ORC-279).
 - **A milestone** is a stage inside one project. The standard milestones are "Decisions" and "Build". "Decisions" holds the map, research, prototype and decision issues. "Build" holds the issues that the spec makes. A small project has no milestones.
 - **An upkeep project** holds the bugs and follow-ups of one product that are not part of a feature. There is one for each product and each quarter, for example "Alchemy 5e upkeep 2026 Q4".
 
-Linear has no manual archive. It archives a closed issue (Done, Canceled or Duplicate) only after the project of the issue has the status Completed. The issue and the project must then stay unchanged for the auto-archive period of the team (1 month). The free plan has a limit on the number of issues that are not archived. Thus each project must end, and no issue stays outside a project (ORC-278).
+The free plan has a limit of 250 issues that are not archived. Linear archives a closed issue (Done, Canceled or Duplicate) by itself only after the project of the issue has the status Completed. The issue and the project must then stay unchanged for the auto-archive period of the team (1 month). Thus each project must end, and no issue stays outside a project (ORC-278).
+
+The Linear app and the Linear MCP tools have no archive command, but the Linear API has one. `scripts/linear-archive.ts` archives closed issues at once (ORC-292). The `linear-cleanup` skill gives the steps. Use it when the count comes near the limit, or when Linear refuses a new issue.
 
 ### Create a project
 
@@ -61,7 +63,7 @@ Do these steps in this order, when all the work of the project is merged.
 
 Close an upkeep project the same way at the end of its quarter. Its open issues move to the upkeep project of the next quarter.
 
-To find an issue of a finished project, look in the project. After the auto-archive period, the issue is in the archive: use `list_issues` with `includeArchived: true`. The projects that were Completed before 2026-11-20 keep their old names, for example "M9 — Homebrew forms".
+To find an issue of a finished project, look in the project. After a cleanup or the auto-archive period, the issue is in the archive: use `list_issues` with `includeArchived: true`. The projects that were Completed before 2026-11-20 keep their old names, for example "M9 — Homebrew forms".
 
 Before 2026-11-20, each product was one project with a milestone for each feature. Those projects have new names: "Alchemy 5e upkeep 2026 Q4", "PubDoor upkeep 2026 Q4", "2024 engine build" (E1) and "Backend" (M6, product Demiplane). The old milestones that remain in them are empty. Do not put an issue in one.
 
