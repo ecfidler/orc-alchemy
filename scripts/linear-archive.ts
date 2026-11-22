@@ -249,6 +249,7 @@ async function main(): Promise<void> {
     console.log("\nDry run: no change was made. Add --apply to archive the list.");
     return;
   }
+  if (!plan.archive.length) throw new Error("The list is empty: no issue was archived.");
 
   const send = async (issue: Issue) => {
     const data = await request<{ issueArchive: { success: boolean } }>(key, ARCHIVE_MUTATION, { id: issue.uuid });
