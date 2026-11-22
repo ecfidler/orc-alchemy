@@ -2,6 +2,7 @@ import { AlertNote, AlertNotes, Button, type FlagColor, FlagTab, FlagTabs, Shell
 import { Link, Outlet, useLocation } from "react-router";
 import { useStorage } from "../storage/characters.ts";
 import { Potion } from "./Potion.tsx";
+import { SaveFailedNote, useSaveFailed } from "./SaveFailedNote.tsx";
 
 /** The flag tabs. A tab is current on its sections: each section is a path and the paths under it. Home has no tab. */
 const TABS: { label: string; to: string; color: FlagColor; sections: string[] }[] = [
@@ -14,7 +15,8 @@ const TABS: { label: string; to: string; color: FlagColor; sections: string[] }[
 const inSection = (path: string, section: string) => path === section || path.startsWith(`${section}/`);
 
 export function AppShell() {
-  const { inMemory, failed, outdated } = useStorage();
+  const { inMemory, outdated } = useStorage();
+  const saveFailed = useSaveFailed();
   const { pathname } = useLocation();
   return (
     <Shell
@@ -51,11 +53,7 @@ export function AppShell() {
             </Button>
           </AlertNote>
         )}
-        {!inMemory && !outdated && failed && (
-          <AlertNote tone="failed">
-            <b>Saving to this browser failed.</b> Recent changes may not be kept.
-          </AlertNote>
-        )}
+        {saveFailed && <SaveFailedNote />}
       </AlertNotes>
       <Outlet />
     </Shell>

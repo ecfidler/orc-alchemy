@@ -15,6 +15,10 @@
 // With two or more sources (ORC-289, "The header" and "The list"), the header
 // has a line of numbers for each source, and each row has a source tag. A
 // spell that two sources give is two rows, and each row prepares apart.
+//
+// A failed save (ORC-290, "A failed save") shows the alert note of the shell
+// under the header, with a "Try again" button. The sheet behind the panel
+// shows the same note.
 import { Button, Checkbox, Dialog, FramedBox, Label, LockIcon } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
@@ -30,9 +34,11 @@ import {
   spellSources,
 } from "../engine/spell-list.ts";
 import { hasPrepareBox, type PrepareCount, prepareCounts, prepareCountText, prepareKind } from "../engine/spell-prepare.ts";
+import { flushAutosave } from "../state/character.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { useSpellSlotsFolded } from "../state/spell-slots-fold.ts";
 import { PrepareCountText } from "./PrepareCount.tsx";
+import { SaveFailedNote, useSaveFailed } from "./SaveFailedNote.tsx";
 import { HEADING, INITIAL_FOCUS, LEVEL, ROW, SpellList } from "./SpellList.tsx";
 import { HeadingSlots, SpellSlotsBlock } from "./SpellSlots.tsx";
 import { SpellView } from "./SpellView.tsx";
@@ -436,8 +442,41 @@ function PanelBody({
     row?.focus({ preventScroll: true });
   }, [spellView]);
 
+  // The note of a failed save. "Try again" saves again; a save that works removes the note.
+  const saveFailed = useSaveFailed();
+  const note = useRef<HTMLDivElement>(null);
+  // The last element of the panel with the focus outside the note: the control that made the change, as a rule.
+  const lastFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const dialog = bar.current?.closest('[role="dialog"]');
+    const onFocusIn = (event: Event) => {
+      if (event.target instanceof HTMLElement && !note.current?.contains(event.target)) lastFocus.current = event.target;
+    };
+    dialog?.addEventListener("focusin", onFocusIn);
+    return () => dialog?.removeEventListener("focusin", onFocusIn);
+  }, []);
+  // When the note goes with the focus on its button, the focus goes back to that element, or else to the selected row
+  // (on a phone in the spell view, to "Back to the list"), or else to the first control of the bar. This runs before
+  // the paint, so the focus does not go to the document.
+  const wasSaveFailed = useRef(saveFailed);
+  useLayoutEffect(() => {
+    const removed = wasSaveFailed.current && !saveFailed;
+    wasSaveFailed.current = saveFailed;
+    const active = document.activeElement;
+    if (!removed || (active !== null && active !== document.body)) return;
+    const last = lastFocus.current;
+    const target =
+      last?.isConnected && !last.closest("[hidden]") ? last : ((spellView ? back() : rowOf(tabStop)) ?? bar.current?.querySelector<HTMLElement>("a, button"));
+    target?.focus({ preventScroll: true });
+  }, [saveFailed]);
+
   return (
     <>
+      {saveFailed && (
+        <div ref={note} className="flex-none bg-panel px-[18px] pt-2.5 max-[600px]:px-4">
+          <SaveFailedNote onRetry={() => flushAutosave().catch(console.error)} />
+        </div>
+      )}
       {/* The prepare bar: the count of each class that prepares and the button on the left, the builder link on the right. */}
       <div ref={bar} className="flex flex-none flex-wrap items-center gap-x-4 gap-y-1 bg-panel px-[18px] py-2 font-sans text-[13px] max-[600px]:px-4">
         {counts.length > 0 && (
