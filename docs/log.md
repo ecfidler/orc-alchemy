@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-11-22
+
+* **Creation**: Added the `operations/` directory and [Beta deploy](operations/beta-deploy.md) (ORC-293).
+
 ## 2026-11-20
 
 * **Creation**: Added the [Spells panel spec](design/spells-panel.md), with a copy of the controls prototype (ORC-270).

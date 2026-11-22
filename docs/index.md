@@ -18,6 +18,7 @@ before you add or change a document.
 * [Design](design/index.md) - The settled designs of the app, the draft 2024 content format, and the prototypes that the app designs come from.
 * [Knowledge base](kb/index.md) - External facts that the plan and the reports rely on.
 * [Conventions](conventions/index.md) - The documentation format and the writing standard.
+* [Operations](operations/index.md) - How the project deploys and runs Alchemy 5e.
 * [Agent guides](agents/index.md) - Files that skills and agents read.
 * [Handoffs](handoffs/index.md) - Start points for an agent or a person who takes over a milestone.
 
