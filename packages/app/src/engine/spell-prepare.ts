@@ -1,0 +1,82 @@
+// The prepare rule (ORC-287, docs/design/spells-panel.md "Preparing
+// spells"): for a known spell, can the user change it, and for a class that
+// prepares, what is its prepare count and the state of that count. The
+// Spells panel uses it, and the Spells step of the builder uses it too
+// (ORC-288). It has no knowledge of React or of the panel.
+import type { KnownSpell, Spellcaster, Spellcasting } from "./sheet.ts";
+
+/**
+ * How a known spell takes part in preparing:
+ *
+ * - `can-change`: a leveled spell of a class that prepares, not always
+ *   prepared. The user prepares it, or stops preparing it.
+ * - `always`: always prepared, for example a domain spell. It cannot
+ *   change, and it is not in the count.
+ * - `known`: a leveled spell of a source that does not prepare, for example
+ *   a sorcerer or a race. It is always ready.
+ * - `cantrip`: a spell of level 0. It is always ready.
+ */
+export type PrepareKind = "can-change" | "always" | "known" | "cantrip";
+
+/** The classes that prepare, by name. */
+type Casters = Pick<Spellcaster, "name" | "prepares">[];
+
+/** The prepare kind of a known spell of spell level `level`. */
+export function prepareKind(spell: Pick<KnownSpell, "source" | "alwaysPrepared"> & { level: number }, casters: Casters): PrepareKind {
+  if (spell.level === 0) return "cantrip";
+  const prepares = casters.some((caster) => caster.name === spell.source && caster.prepares);
+  if (!prepares) return "known";
+  return spell.alwaysPrepared ? "always" : "can-change";
+}
+
+/**
+ * The state of a prepare count: under the limit, at it, over it, or
+ * "no-limit" for a class with no known limit (`prepare-spell-count` has no
+ * value, as for some homebrew classes).
+ */
+export type PrepareState = "under" | "at" | "over" | "no-limit";
+
+/** The prepare count of one class that prepares. */
+export interface PrepareCount {
+  /** The class name, for example "Cleric": the `source` of its spells. */
+  className: string;
+  /** The prepared spells of the class that count: not the always-prepared spells, and not the cantrips. */
+  prepared: number;
+  /** The spells that the class can prepare; null when the limit is not known. */
+  limit: number | null;
+  state: PrepareState;
+  /** The number of spells to remove to come back to the limit: 0 unless the state is "over". */
+  remove: number;
+}
+
+/**
+ * The prepare count of each class that prepares, in the order of the
+ * casters. A spell counts when the user can change it and it is prepared.
+ */
+export function prepareCounts(spellcasting: Pick<Spellcasting, "casters" | "byLevel">): PrepareCount[] {
+  const { casters, byLevel } = spellcasting;
+  return casters
+    .filter((caster) => caster.prepares)
+    .map((caster) => {
+      const prepared = byLevel
+        .flatMap(({ level, spells }) => spells.map((spell) => ({ ...spell, level })))
+        .filter((spell) => spell.source === caster.name && spell.prepared && prepareKind(spell, casters) === "can-change").length;
+      const limit = caster.canPrepare;
+      const state: PrepareState = limit === null ? "no-limit" : prepared < limit ? "under" : prepared === limit ? "at" : "over";
+      return { className: caster.name, prepared, limit, state, remove: limit === null ? 0 : Math.max(0, prepared - limit) };
+    });
+}
+
+/**
+ * The text of a prepare count: "5 of 8 prepared", "9 of 8 prepared. Remove 1
+ * spell.", or "3 prepared" with no known limit. With `withClass`, the class
+ * name is first: "Cleric: 8 of 8 prepared". A character with two classes
+ * that prepare shows the class name.
+ */
+export function prepareCountText(count: PrepareCount, withClass: boolean): string {
+  const name = withClass ? `${count.className}: ` : "";
+  if (count.limit === null) return `${name}${count.prepared} prepared`;
+  const text = `${name}${count.prepared} of ${count.limit} prepared`;
+  if (count.remove === 0) return text;
+  return `${text}. Remove ${count.remove} ${count.remove === 1 ? "spell" : "spells"}.`;
+}

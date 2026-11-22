@@ -77,7 +77,14 @@ bun run test       # vitest
     Without a label, give it an `aria-label`. With `label`, `name` names
     the box when the label is not the right name (it is not a form field
     name). A test finds a box by its role and name, and reads it with
-    `toBeChecked()`. Styles: `src/check.css`.
+    `toBeChecked()`. `tabIndex={-1}` takes the box out of the Tab order,
+    for a box that a key on another control also changes, for example
+    Space on a row of a list that is one Tab stop; a mouse and a screen
+    reader still reach it. Styles: `src/check.css`.
+  - `LockIcon`: a closed lock, 13px, drawn as an SVG in the text color
+    (`currentColor`), for a value that cannot change. It has `aria-hidden`
+    and does not shrink in a flex row, so put a text beside it.
+    `className` is for layout.
   - `NumberField`: Base UI NumberField, for a whole number. Its role is
     textbox. It is controlled by `value` (a number, or null when it is
     empty) and `onValueChange`, which gets the number after each change.
