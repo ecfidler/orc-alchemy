@@ -4,6 +4,7 @@
 // Spells panel and the Spells step of the builder (ORC-288) use it. It has
 // no knowledge of React or of the panel.
 import type { KnownSpell, SheetClass, Spellcaster, Spellcasting } from "./sheet.ts";
+import { type SpellLookup, spellName } from "./spell-records.ts";
 
 /**
  * How a known spell takes part in preparing:
@@ -31,6 +32,26 @@ export function prepareKind(spell: Pick<KnownSpell, "source" | "alwaysPrepared">
 
 /** True for a spell that has a box in prepare mode: a spell that the user can change, or an always-prepared spell. */
 export const hasPrepareBox = (kind: PrepareKind): kind is "can-change" | "always" => kind === "can-change" || kind === "always";
+
+/** A spell with a prepare box: its spell level, its prepare kind, and its display name. */
+export type PrepareSpellRow = KnownSpell & { level: number; kind: "can-change" | "always" };
+
+/**
+ * The spells of the class `className` that have a prepare box, in the order
+ * of `byLevel`: the leveled spells that the user can change, and the
+ * always-prepared spells. With a lookup, the name is the name of the spell
+ * record (spellName); with none, the name from the key.
+ */
+export function prepareSpells(spellcasting: Pick<Spellcasting, "casters" | "byLevel">, className: string, lookup?: SpellLookup | null): PrepareSpellRow[] {
+  return spellcasting.byLevel.flatMap(({ level, spells }) =>
+    spells.flatMap((spell): PrepareSpellRow[] => {
+      if (spell.source !== className) return [];
+      const kind = prepareKind({ ...spell, level }, spellcasting.casters);
+      if (!hasPrepareBox(kind)) return [];
+      return [{ ...spell, level, kind, name: lookup ? spellName(lookup, spell.key, spell.name) : spell.name }];
+    }),
+  );
+}
 
 /**
  * The state of a prepare count: under the limit, at it, over it, or
@@ -68,9 +89,7 @@ export function prepareCounts(spellcasting: Pick<Spellcasting, "casters" | "byLe
     .filter((caster) => caster.prepares)
     .sort((a, b) => order(a.name) - order(b.name))
     .map((caster) => {
-      const prepared = byLevel
-        .flatMap(({ level, spells }) => spells.map((spell) => ({ ...spell, level })))
-        .filter((spell) => spell.source === caster.name && spell.prepared && prepareKind(spell, casters) === "can-change").length;
+      const prepared = prepareSpells({ casters, byLevel }, caster.name).filter((spell) => spell.kind === "can-change" && spell.prepared).length;
       const limit = caster.canPrepare;
       const state: PrepareState = limit === null ? "no-limit" : prepared < limit ? "under" : prepared === limit ? "at" : "over";
       return { className: caster.name, prepared, limit, state, remove: limit === null ? 0 : Math.max(0, prepared - limit) };

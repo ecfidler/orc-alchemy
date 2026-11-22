@@ -11,6 +11,8 @@ import { Builder } from "./Builder.tsx";
 import { SpellsPanel } from "./SpellsPanel.tsx";
 
 // The prepare section of the builder's Spells step has the rules of the Spells panel (ORC-288, docs/design/spells-panel.md "The builder").
+// These tests are in their own file because a vi.mock applies to the whole file: the mocks of toSheet and of the
+// spell lookup below would otherwise touch the tests in Spells.test.tsx.
 
 /** When true, the sheet of the open character has no known prepare limit, as a homebrew class with no prepare count. */
 const noLimit = vi.hoisted(() => ({ on: false }));
@@ -26,6 +28,13 @@ vi.mock("../engine/sheet.ts", async (importOriginal) => {
   };
 });
 
+/** When true, the spell lookup is null, as while the SRD spells load. */
+const noLookup = vi.hoisted(() => ({ on: false }));
+vi.mock("../state/spell-records.ts", async (importOriginal) => {
+  const records = await importOriginal<typeof import("../state/spell-records.ts")>();
+  return { ...records, useSpellLookup: () => (noLookup.on ? null : records.useSpellLookup()) };
+});
+
 beforeAll(async () => {
   await loadEngine();
   await loadSpellContent();
@@ -34,6 +43,7 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   noLimit.on = false;
+  noLookup.on = false;
 });
 
 const e2eFile = (name: string): StrictEntity => JSON.parse(readFileSync(join(import.meta.dirname, `../../e2e/${name}.strict.json`), "utf8"));
@@ -80,6 +90,19 @@ async function openPanel(entity: StrictEntity) {
   fireEvent.click(within(dialog).getByRole("button", { name: "Prepare spells" }));
   return dialog;
 }
+
+test("while the spell records load, the section shows its count and no boxes, so no box shows a name from a key", async () => {
+  noLookup.on = true;
+  const section = await openBuilder("prepared-no-lookup", e2eFile("life-cleric-9"));
+  expect(counts(section)).toEqual([["under", "8 of 12 prepared"]]);
+  expect(within(section).queryAllByRole("checkbox")).toEqual([]);
+  expect(within(section).queryByRole("list")).toBeNull();
+  // With the records, the boxes show, with the names of the records.
+  noLookup.on = false;
+  cleanup();
+  const loaded = await openBuilder("prepared-lookup", e2eFile("life-cleric-9"));
+  expect(within(loaded).getByRole("checkbox", { name: "Prepared: Command" })).toBeTruthy();
+});
 
 test("a class that prepares with no known limit gets a prepare section with no limit: '8 prepared', and each box is on", async () => {
   noLimit.on = true;

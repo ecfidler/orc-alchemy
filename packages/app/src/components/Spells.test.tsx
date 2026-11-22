@@ -2,11 +2,15 @@ import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
-import { preparedSpells } from "../engine/spells.ts";
+import { loadSpellContent, preparedSpells } from "../engine/spells.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
 
-beforeAll(() => loadEngine());
+// The prepare boxes wait for the spell records (ORC-288), so the records load first.
+beforeAll(async () => {
+  await loadEngine();
+  await loadSpellContent();
+});
 afterEach(cleanup);
 
 const q = (ability: string) => `~:orcpub.dnd.e5.character/${ability}`;

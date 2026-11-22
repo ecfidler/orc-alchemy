@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { type Spellcaster, toSheet } from "./sheet.ts";
-import { type PrepareCount, prepareCounts, prepareCountText, prepareKind } from "./spell-prepare.ts";
+import { type PrepareCount, prepareCounts, prepareCountText, prepareKind, prepareSpells } from "./spell-prepare.ts";
+import type { SpellLookup, SpellRecordResult } from "./spell-records.ts";
 import { setPrepared } from "./spells.ts";
 
 // The prepare rule (ORC-287, docs/design/spells-panel.md "Preparing spells").
@@ -85,6 +86,28 @@ test("the Life cleric 9 of the e2e tests has 8 of 12 prepared: the domain spells
   ]);
 }, 20_000);
 
+test("the spells with a prepare box: no cantrip, each with its kind, and the names of the records when a lookup is there", () => {
+  const spellcasting = spellcastingOf(e2eFile("life-cleric-9"));
+  const rows = prepareSpells(spellcasting, "Cleric");
+  expect(rows.some((spell) => spell.level === 0)).toBe(false);
+  expect(rows.filter((spell) => spell.kind === "can-change" && spell.prepared)).toHaveLength(prepareCounts(spellcasting)[0]!.prepared);
+  const byKey = new Map(rows.map((spell) => [spell.key, spell]));
+  expect([byKey.get("bless"), byKey.get("command")]).toMatchObject([
+    { level: 1, kind: "always", prepared: true, name: "Bless" },
+    { level: 1, kind: "can-change", prepared: false, name: "Command" },
+  ]);
+  // The order is the order of byLevel.
+  expect(rows.map((spell) => spell.key)).toEqual(
+    spellcasting.byLevel.filter((row) => row.level > 0).flatMap((row) => row.spells.filter((spell) => spell.source === "Cleric").map((spell) => spell.key)),
+  );
+  // A lookup gives the name of the record; a key with no record keeps the name from its key.
+  const lookup: SpellLookup = (key) => (key === "command" ? ({ record: { name: "Command (record)" }, from: "SRD" } as SpellRecordResult) : undefined);
+  const named = new Map(prepareSpells(spellcasting, "Cleric", lookup).map((spell) => [spell.key, spell.name]));
+  expect([named.get("command"), named.get("bless")]).toEqual(["Command (record)", "Bless"]);
+  // A class that is not a caster of the character has no rows.
+  expect(prepareSpells(spellcasting, "Wizard")).toEqual([]);
+}, 20_000);
+
 test("a cleric with a limit of 8: under, at the limit, and a ninth spell is over, with one spell to remove", () => {
   let entity = lifeCleric5();
   expect(prepareCounts(spellcastingOf(entity))).toEqual([{ className: "Cleric", prepared: 0, limit: 8, state: "under", remove: 0 }]);
@@ -110,6 +133,7 @@ test("a sorcerer and a warlock have no class that prepares: no count, and each s
   expect(prepareCounts(spellcasting)).toEqual([]);
   const kinds = new Set(spellcasting.byLevel.flatMap(({ level, spells }) => spells.map((spell) => prepareKind({ ...spell, level }, spellcasting.casters))));
   expect([...kinds].sort()).toEqual(["cantrip", "known"]);
+  expect([prepareSpells(spellcasting, "Sorcerer"), prepareSpells(spellcasting, "Warlock")]).toEqual([[], []]);
 }, 20_000);
 
 test("a cleric 3 / wizard 2 has a count for each class, in the order of the classes of the character, not of the engine casters", () => {

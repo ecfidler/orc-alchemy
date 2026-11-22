@@ -6,8 +6,7 @@ import { Checkbox, Select } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { ordinal } from "../engine/sheet.ts";
-import { hasPrepareBox, prepareCounts, prepareKind } from "../engine/spell-prepare.ts";
-import { spellName } from "../engine/spell-records.ts";
+import { prepareCounts, prepareSpells } from "../engine/spell-prepare.ts";
 import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
@@ -109,32 +108,29 @@ export function PreparedSpells() {
       {error && <p role="alert">{error}</p>}
       {prepareCounts(spellcasting, sheet.classes).map((count) => {
         const name = count.className;
-        const spells = spellcasting.byLevel
-          .flatMap(({ level, spells }) => spells.map((spell) => ({ ...spell, level })))
-          .filter((spell) => spell.source === name && hasPrepareBox(prepareKind(spell, spellcasting.casters)));
         return (
           <section key={name} aria-label={`Prepared spells: ${name}`} className="space-y-2">
             <h3 className="font-bold">Prepared spells: {name}</h3>
             <p>
               <PrepareCountText count={count} withClass={false} />
             </p>
-            <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
-              {spells.map((spell) => {
-                const label = lookup ? spellName(lookup, spell.key, spell.name) : spell.name;
-                return (
+            {/* The boxes wait for the spell records, so that they show the names of the records at once, as the panel does. */}
+            {lookup && (
+              <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
+                {prepareSpells(spellcasting, name, lookup).map((spell) => (
                   <li key={spell.key}>
                     <Checkbox
-                      label={label}
-                      name={`Prepared: ${label}`}
+                      label={spell.name}
+                      name={`Prepared: ${spell.name}`}
                       checked={spell.prepared}
-                      disabled={prepareKind(spell, spellcasting.casters) === "always"}
+                      disabled={spell.kind === "always"}
                       onCheckedChange={(on) => run((e, entity) => setPrepared(e, entity, name, spell.key, on))}
                       className="gap-2"
                     />
                   </li>
-                );
-              })}
-            </ul>
+                ))}
+              </ul>
+            )}
           </section>
         );
       })}

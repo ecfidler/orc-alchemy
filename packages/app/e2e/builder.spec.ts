@@ -468,14 +468,18 @@ test.describe("screenshots", () => {
       mkdirSync(dir, { recursive: true });
       const shot = (what: string) => join(dir, `orc-288-${what}-${theme}.png`);
       await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1280, height: 900 });
+      // The section is about 1000px high: a window that holds all of it, so the screenshot is not stitched from scrolled parts.
+      await page.setViewportSize({ width: 1280, height: 1400 });
       const prepared = await openClericSpells(page);
       await page.evaluate(() => document.fonts.ready);
       await prepared.scrollIntoViewIfNeeded();
       await page.mouse.move(0, 0);
       await prepared.screenshot({ path: shot("under") });
-      for (const name of ["Command", "Bane", "Sanctuary", "Guiding Bolt", "Detect Magic"])
-        await prepared.getByRole("checkbox", { name: `Prepared: ${name}` }).click();
+      for (const name of ["Command", "Bane", "Sanctuary", "Guiding Bolt"]) await prepared.getByRole("checkbox", { name: `Prepared: ${name}` }).click();
+      await expect(prepared.locator("[data-prepare-count]")).toHaveText("12 of 12 prepared");
+      await page.mouse.move(0, 0);
+      await prepared.screenshot({ path: shot("at") });
+      await prepared.getByRole("checkbox", { name: "Prepared: Detect Magic" }).click();
       await expect(prepared.locator("[data-prepare-count]")).toHaveText("13 of 12 prepared. Remove 1 spell.");
       await page.mouse.move(0, 0);
       await prepared.screenshot({ path: shot("over") });

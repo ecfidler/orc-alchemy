@@ -4,7 +4,7 @@ title: Spells panel spec
 description: The settled design of the Spells panel on the character sheet - the popup with the spell list and the spell text, prepared spells, spent spell slots in the panel and on the sheet, Pact Magic slots, how a sheet change saves, the spell records, and the run order of the build tickets.
 tags: [design, sheet, spells]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-22T04:28:00Z }
+generated: { by: claude-code/agent, at: 2026-11-22T04:46:33Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel
 sources:
   - id: orc-262
@@ -384,8 +384,7 @@ The color of the count gives its state:
 The user can prepare more spells than the limit. The app does not stop
 the user, and it removes nothing by itself. The count is then red and
 says how many spells to remove, for example "9 of 8 prepared. Remove 1
-spell." This replaces the rule of the builder today, which disables the
-other boxes at the limit.
+spell.
 
 ## The prepare control
 
@@ -426,8 +425,9 @@ sheet change.
 
 ## The builder
 
-The Spells step of the builder keeps its prepare section. It gets the
-same rules:
+The Spells step of the builder keeps its prepare section. Since ORC-288,
+it has the same rules, and it uses the same shared function and the same
+count as the panel:
 
 * The boxes are not disabled at the limit.
 * The count has the same colors and the "Remove n spells." text.
