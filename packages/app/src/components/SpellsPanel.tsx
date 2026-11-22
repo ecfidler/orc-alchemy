@@ -19,6 +19,7 @@ import { type ListedSpell, searchSpellGroups, spellClassLine, spellGroups, spell
 import { hasPrepareBox, type PrepareCount, prepareCounts, prepareCountText, prepareKind } from "../engine/spell-prepare.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { useSpellSlotsFolded } from "../state/spell-slots-fold.ts";
+import { PrepareCountText } from "./PrepareCount.tsx";
 import { HEADING, INITIAL_FOCUS, LEVEL, ROW, SpellList } from "./SpellList.tsx";
 import { HeadingSlots, SpellSlotsBlock } from "./SpellSlots.tsx";
 import { SpellView } from "./SpellView.tsx";
@@ -149,29 +150,13 @@ function HeaderBox({ label, name, children }: { label: string; name: string; chi
   );
 }
 
-/** The look of a prepare count in each state: a yellow note under the limit, green text at it, a red note over it. */
-const COUNT_LOOK: Record<PrepareCount["state"], string> = {
-  under: "bg-note px-2 text-note-ink",
-  at: "text-success",
-  over: "bg-note-red px-2 text-note-ink",
-  "no-limit": "",
-};
-
 /**
- * A prepare count: "5 of 8 prepared", with the class name first when
- * `withClass`. At the limit it shows only in prepare mode. Over the limit it
- * says how many spells to remove.
+ * A prepare count of the panel (PrepareCountText). At the limit it shows only
+ * in prepare mode.
  */
 function CountText({ count, withClass, prepareMode }: { count: PrepareCount; withClass: boolean; prepareMode: boolean }) {
   if (count.state === "at" && !prepareMode) return null;
-  return (
-    <span
-      data-prepare-count={count.state}
-      className={`font-sans text-[13.5px] leading-5 font-semibold whitespace-nowrap max-[600px]:whitespace-normal ${COUNT_LOOK[count.state]}`}
-    >
-      {prepareCountText(count, withClass)}
-    </span>
-  );
+  return <PrepareCountText count={count} withClass={withClass} />;
 }
 
 /**

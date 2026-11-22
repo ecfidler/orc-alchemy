@@ -1,14 +1,19 @@
 // The Spells step (ORC-60): each spell selection's cards, with a level
 // filter and a name search, and the prepared spells of each class that
-// prepares. Each pick is an engine mutation, as in Options in Builder.tsx.
+// prepares, with the prepare rules of the Spells panel (ORC-288). Each pick
+// is an engine mutation, as in Options in Builder.tsx.
 import { Checkbox, Select } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
-import { ordinal, type Spellcaster } from "../engine/sheet.ts";
+import { ordinal } from "../engine/sheet.ts";
+import { hasPrepareBox, prepareCounts, prepareKind } from "../engine/spell-prepare.ts";
+import { spellName } from "../engine/spell-records.ts";
 import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
 import { useOpenCharacter } from "../state/character.ts";
+import { useSpellLookup } from "../state/spell-records.ts";
 import { OptionCards, Selection } from "./Builder.tsx";
 import { Heading, useMutation } from "./Classes.tsx";
+import { PrepareCountText } from "./PrepareCount.tsx";
 
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
 
@@ -75,9 +80,18 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   );
 }
 
-/** The leveled spells each class that prepares has prepared, up to its count, as the old sheet's prepare checkboxes. A domain spell is always prepared and takes no place. */
+/**
+ * The leveled spells of each class that prepares, with a box each, and the
+ * prepare count of the class (ORC-288, docs/design/spells-panel.md
+ * "Preparing spells"): the rules of the Spells panel. Nothing stops the user
+ * at the limit; over it, the count says how many spells to remove. An
+ * always-prepared spell, for example a domain spell, has a filled box that
+ * cannot change, and it is not in the count. A class with no known limit
+ * prepares with no limit.
+ */
 export function PreparedSpells() {
   const { sheet } = useOpenCharacter();
+  const lookup = useSpellLookup();
   const [error, run] = useMutation();
   const spellcasting = sheet?.spellcasting;
   if (!spellcasting) return null;
@@ -93,34 +107,37 @@ export function PreparedSpells() {
         </p>
       )}
       {error && <p role="alert">{error}</p>}
-      {spellcasting.casters
-        .filter((caster): caster is Spellcaster & { canPrepare: number } => caster.canPrepare !== null)
-        .map(({ name, canPrepare }) => {
-          const spells = spellcasting.byLevel.filter((l) => l.level > 0).flatMap((l) => l.spells.filter((spell) => spell.source === name));
-          const count = spells.filter((spell) => spell.prepared && !spell.alwaysPrepared).length;
-          return (
-            <section key={name} aria-label={`Prepared spells: ${name}`} className="space-y-2">
-              <h3 className="font-bold">Prepared spells: {name}</h3>
-              <p>
-                {count} of {canPrepare} prepared
-              </p>
-              <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
-                {spells.map((spell) => (
+      {prepareCounts(spellcasting, sheet.classes).map((count) => {
+        const name = count.className;
+        const spells = spellcasting.byLevel
+          .flatMap(({ level, spells }) => spells.map((spell) => ({ ...spell, level })))
+          .filter((spell) => spell.source === name && hasPrepareBox(prepareKind(spell, spellcasting.casters)));
+        return (
+          <section key={name} aria-label={`Prepared spells: ${name}`} className="space-y-2">
+            <h3 className="font-bold">Prepared spells: {name}</h3>
+            <p>
+              <PrepareCountText count={count} withClass={false} />
+            </p>
+            <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
+              {spells.map((spell) => {
+                const label = lookup ? spellName(lookup, spell.key, spell.name) : spell.name;
+                return (
                   <li key={spell.key}>
                     <Checkbox
-                      label={spell.name}
-                      name={`Prepared: ${spell.name}`}
+                      label={label}
+                      name={`Prepared: ${label}`}
                       checked={spell.prepared}
-                      disabled={spell.alwaysPrepared || (!spell.prepared && count >= canPrepare)}
+                      disabled={prepareKind(spell, spellcasting.casters) === "always"}
                       onCheckedChange={(on) => run((e, entity) => setPrepared(e, entity, name, spell.key, on))}
                       className="gap-2"
                     />
                   </li>
-                ))}
-              </ul>
-            </section>
-          );
-        })}
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
     </>
   );
 }

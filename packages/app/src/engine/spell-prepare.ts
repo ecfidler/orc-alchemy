@@ -1,8 +1,8 @@
 // The prepare rule (ORC-287, docs/design/spells-panel.md "Preparing
 // spells"): for a known spell, can the user change it, and for a class that
 // prepares, what is its prepare count and the state of that count. The
-// Spells panel uses it, and the Spells step of the builder will use it
-// (ORC-288). It has no knowledge of React or of the panel.
+// Spells panel and the Spells step of the builder (ORC-288) use it. It has
+// no knowledge of React or of the panel.
 import type { KnownSpell, SheetClass, Spellcaster, Spellcasting } from "./sheet.ts";
 
 /**

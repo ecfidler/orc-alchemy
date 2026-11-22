@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
@@ -184,6 +184,37 @@ test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepare
   await expect(prepared).toContainText("1 of 2 prepared");
   await expect(firstLevel.getByRole("listitem")).toHaveText(["Magic Missile"]);
   await expect(preview.getByRole("table", { name: "Spells by level" }).getByRole("row", { name: /^Cantrips / })).toContainText("Fire Bolt");
+});
+
+/** Imports the Life cleric 9 of e2e/life-cleric-9.strict.json (8 of 12 prepared) and opens the prepare section of its Spells step. */
+async function openClericSpells(page: Page) {
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles(join(import.meta.dirname, "life-cleric-9.strict.json"));
+  await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
+  await page.getByRole("link", { name: "Edit" }).click();
+  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  await stepButton(page, "Spells").click();
+  return page.getByRole("region", { name: "Builder" }).getByRole("region", { name: "Prepared spells: Cleric" });
+}
+
+test("the Spells step has the prepare rules of the panel: no limit on the boxes, and a red count over the limit (ORC-288)", async ({ page }) => {
+  const prepared = await openClericSpells(page);
+  const count = prepared.locator("[data-prepare-count]");
+  const box = (name: string) => prepared.getByRole("checkbox", { name: `Prepared: ${name}` });
+  await expect(count).toHaveText("8 of 12 prepared");
+  await expect(count).toHaveAttribute("data-prepare-count", "under");
+  // A domain spell is checked and cannot change.
+  await expect(box("Bless")).toBeChecked();
+  await expect(box("Bless")).toHaveAttribute("aria-disabled", "true");
+  for (const name of ["Command", "Bane", "Sanctuary", "Guiding Bolt"]) await box(name).click();
+  await expect(count).toHaveText("12 of 12 prepared");
+  await expect(count).toHaveAttribute("data-prepare-count", "at");
+  // At the limit the other boxes stay on, and a 13th spell makes the count red.
+  await expect(box("Detect Magic")).not.toHaveAttribute("aria-disabled", "true");
+  await box("Detect Magic").click();
+  await expect(count).toHaveText("13 of 12 prepared. Remove 1 spell.");
+  await expect(count).toHaveAttribute("data-prepare-count", "over");
+  await expect(box("Detect Magic")).toBeChecked();
 });
 
 test("Random character opens a complete character in the builder", async ({ page }) => {
@@ -425,4 +456,29 @@ test("fighter-1 built from New character through the steps matches its expected 
   const row = preview.getByRole("table", { name: "Weapon attacks" }).getByRole("row", { name: /^Longsword / });
   // The preview is narrower than 720px, so it has no Proficient? column (ORC-176).
   await expect(row.getByRole("cell")).toHaveText(["Longsword", `+${longsword["best-attack"]} to hit`, `+${longsword["best-damage"]}`]);
+});
+
+// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- builder.spec.ts -g orc-288
+test.describe("screenshots", () => {
+  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
+  test.use({ deviceScaleFactor: 2 });
+  const dir = join(import.meta.dirname, "../../../pr-screenshots");
+  for (const theme of ["light", "dark"] as const) {
+    test(`orc-288 Prepare section of the Spells step, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-288-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      await page.setViewportSize({ width: 1280, height: 900 });
+      const prepared = await openClericSpells(page);
+      await page.evaluate(() => document.fonts.ready);
+      await prepared.scrollIntoViewIfNeeded();
+      await page.mouse.move(0, 0);
+      await prepared.screenshot({ path: shot("under") });
+      for (const name of ["Command", "Bane", "Sanctuary", "Guiding Bolt", "Detect Magic"])
+        await prepared.getByRole("checkbox", { name: `Prepared: ${name}` }).click();
+      await expect(prepared.locator("[data-prepare-count]")).toHaveText("13 of 12 prepared. Remove 1 spell.");
+      await page.mouse.move(0, 0);
+      await prepared.screenshot({ path: shot("over") });
+    });
+  }
 });
