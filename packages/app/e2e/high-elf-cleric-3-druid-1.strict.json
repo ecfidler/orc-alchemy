@@ -1,0 +1,148 @@
+{
+  "~:orcpub.entity.strict/selections": [
+    {
+      "~:orcpub.entity.strict/key": "~:ability-scores",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:standard-scores",
+        "~:orcpub.entity.strict/map-value": {
+          "~:orcpub.dnd.e5.character/str": 8,
+          "~:orcpub.dnd.e5.character/dex": 12,
+          "~:orcpub.dnd.e5.character/con": 13,
+          "~:orcpub.dnd.e5.character/int": 10,
+          "~:orcpub.dnd.e5.character/wis": 15,
+          "~:orcpub.dnd.e5.character/cha": 14
+        }
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:class",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:cleric",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:divine-domain",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:life-domain"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-3"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:cleric-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:guidance"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:sacred-flame"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:spare-the-dying"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:druid",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:druid-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:druidcraft"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:produce-flame"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:race",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:elf",
+        "~:orcpub.entity.strict/selections": [
+          {
+            "~:orcpub.entity.strict/key": "~:subrace",
+            "~:orcpub.entity.strict/option": {
+              "~:orcpub.entity.strict/key": "~:high-elf",
+              "~:orcpub.entity.strict/selections": [
+                {
+                  "~:orcpub.entity.strict/key": "~:high-elf-cantrips-known",
+                  "~:orcpub.entity.strict/options": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:fire-bolt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:armor",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:shield",
+          "~:orcpub.entity.strict/map-value": {
+            "~:orcpub.dnd.e5.character.equipment/quantity": 1,
+            "~:orcpub.dnd.e5.character.equipment/equipped?": true,
+            "~:orcpub.dnd.e5.character.equipment/class-starting-equipment?": true
+          }
+        }
+      ]
+    }
+  ],
+  "~:orcpub.entity.strict/values": {
+    "~:orcpub.dnd.e5.character/prepared-spells-by-class": [
+      {
+        "~:orcpub.dnd.e5.character/class-name": "Cleric",
+        "~:orcpub.dnd.e5.character/prepared-spells": {
+          "~#set": [
+            "~:healing-word",
+            "~:guiding-bolt",
+            "~:sanctuary"
+          ]
+        }
+      },
+      {
+        "~:orcpub.dnd.e5.character/class-name": "Druid",
+        "~:orcpub.dnd.e5.character/prepared-spells": {
+          "~#set": [
+            "~:cure-wounds"
+          ]
+        }
+      }
+    ],
+    "~:orcpub.dnd.e5.character/character-name": "Sefa Linden"
+  }
+}

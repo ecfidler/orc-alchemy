@@ -70,11 +70,12 @@ test("the header has the title, the class line and, with one source, the three b
   expect(within(dialog).getByRole("link", { name: "Change known spells in the builder" }).getAttribute("href")).toBe("/build/abc?step=Spells");
 });
 
-test("with two sources the header has the class line of each class and no boxes", async () => {
+test("with two sources the header has the class line of each class, and a line of numbers for each source in place of the boxes", async () => {
   const entity = JSON.parse(readFileSync(join(import.meta.dirname, "../../e2e/warlock-10-sorcerer-9.strict.json"), "utf8"));
   const dialog = await renderPanel(toSheet(engine().evaluate(entity).built, entity));
   expect(within(dialog).getByText("Warlock 10 / Sorcerer 9")).toBeTruthy();
-  expect(within(dialog).queryByRole("group", { name: "Spell save DC" })).toBeNull();
+  expect(dialog.querySelector(".ui-framed-box")).toBeNull();
+  expect(within(within(dialog).getByRole("group", { name: "Sorcerer" })).getByRole("group", { name: "Spell save DC" }).textContent).toBe("16");
 });
 
 test("the list shows the cantrips and the prepared and domain spells, by level; the first spell is selected and has the focus", async () => {

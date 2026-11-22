@@ -275,7 +275,10 @@ test("a known spell of a source that does not prepare has the label Known in pre
   const { dialog } = await renderLive(e2eFile("cleric-5-warlock-3"));
   fireEvent.click(modeButton(dialog));
   const invisibility = row(dialog, "Invisibility");
-  expect([invisibility.textContent, invisibility.getAttribute("aria-label")]).toEqual(["InvisibilityKnownC", "Invisibility, known Concentration"]);
+  expect([invisibility.textContent, invisibility.getAttribute("aria-label")]).toEqual([
+    "Invisibility\u00a0WarlockKnownC",
+    "Invisibility, Warlock, known Concentration",
+  ]);
   expect(within(invisibility.closest("li")!).queryByRole("checkbox")).toBeNull();
   fireEvent.click(invisibility);
   expect(within(view(dialog)).queryByRole("checkbox")).toBeNull();

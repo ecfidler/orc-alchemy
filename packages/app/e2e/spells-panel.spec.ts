@@ -15,8 +15,9 @@ async function importFile(page: Page, file: string) {
 const panel = (page: Page) => page.getByRole("dialog", { name: "Spells" });
 /** The row buttons of the list, in order. */
 const rows = (page: Page) => panel(page).locator("[data-spell-row]");
-/** The row of a spell, by its name, which starts the row's accessible name. */
-const row = (page: Page, name: string) => panel(page).getByRole("button", { name: new RegExp(`^${name} ?(Ritual|Concentration)*$`) });
+/** The row of a spell, by its name, which starts the row's accessible name. With two or more sources the source follows it. */
+const row = (page: Page, name: string) =>
+  panel(page).getByRole("button", { name: new RegExp(`^${name}(, [A-Z][a-z]+( [A-Z][a-z]+)?)? ?(Ritual|Concentration)*$`) });
 /** The heading of the spell view. */
 /** The pane of the list, and the pane of the spell view. */
 const listPane = (page: Page) => panel(page).locator("[data-pane=list]");
@@ -258,12 +259,13 @@ test("at 320px the panel does not scroll sideways, in the list and in the spell 
   expect(await width()).toBeLessThanOrEqual(320);
 });
 
-test("two sources: the header has the class line of each class, and no boxes", async ({ page }) => {
+test("two sources: the header has the class line of each class, and a line of numbers for each source in place of the boxes", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await importFile(page, "warlock-10-sorcerer-9.strict.json");
   await page.getByRole("button", { name: "All spells" }).click();
   await expect(panel(page).getByText("Warlock 10 / Sorcerer 9", { exact: true })).toBeVisible();
-  await expect(panel(page).getByRole("group", { name: "Spell save DC" })).toHaveCount(0);
+  await expect(panel(page).locator(".ui-framed-box")).toHaveCount(0);
+  await expect(panel(page).getByRole("group", { name: "Spell save DC" })).toHaveText(["16", "16"]);
 });
 
 test("the builder link goes to the Spells step of the builder", async ({ page }) => {
@@ -678,6 +680,107 @@ test("on a phone, a tap on a box changes it and does not open the spell view; th
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
+// More than one source, and the cast note, in the panel (ORC-289, docs/design/spells-panel.md "The header", "The list",
+// "The spell view" and "The cast note"). e2e/high-elf-cleric-3-druid-1.strict.json is a High Elf cleric 3 / druid 1 by
+// the builder's calls (src/components/SpellsPanelSources.test.tsx).
+
+/** The numbers of the header line of a source, each by its full name: [save DC, attack, ability]. */
+const sourceLine = (page: Page, source: string) =>
+  panel(page)
+    .getByRole("group", { name: source, exact: true })
+    .getByRole("group", { name: /^Spell(casting)? (save DC|attack|ability)$/ });
+/** The source tag of a row: the last span of the name part, after a no-break space. */
+const sourceTag = (rowButton: Locator) => rowButton.locator("> span:first-child > span:last-child");
+
+test("a cleric 5 / warlock 3: a source tag in Inter caps on each row, and a line of numbers for each source in the header", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "cleric-5-warlock-3.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  await expect(sourceLine(page, "Cleric")).toHaveText(["12", "+4", "WIS"]);
+  await expect(sourceLine(page, "Warlock")).toHaveText(["13", "+5", "CHA"]);
+  await expect(panel(page).locator(".ui-framed-box")).toHaveCount(0);
+  // Each row has its tag, and the row name has the source.
+  const all = await rows(page).all();
+  expect(all.length).toBeGreaterThan(10);
+  for (const rowButton of all) await expect(sourceTag(rowButton)).toHaveText(/^(Cleric|Warlock)$/);
+  await expect(panel(page).getByRole("button", { name: "Hellish Rebuke, Warlock", exact: true })).toBeVisible();
+  const tag = await sourceTag(row(page, "Hellish Rebuke")).evaluate((element) => {
+    const style = getComputedStyle(element);
+    return [style.textTransform, style.fontFamily.split(",")[0]];
+  });
+  expect(tag).toEqual(["uppercase", '"Inter Variable"']);
+  await expect(sourceTag(row(page, "Hellish Rebuke"))).toBeVisible();
+});
+
+test("a single-class character shows no source tags and the three boxes", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  await expect(panel(page).locator(".ui-modal-head .ui-framed-box")).toHaveCount(3);
+  await expect(panel(page).getByRole("group", { name: "Cleric", exact: true })).toHaveCount(0);
+  await expect(listPane(page)).not.toContainText("Cleric");
+  await expect(row(page, "Guidance")).toHaveAccessibleName("Guidance Concentration");
+});
+
+test("a cleric / druid: a spell of the two lists is two rows, and each row prepares apart, for its class, after a reload too", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "high-elf-cleric-3-druid-1.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  // The High Elf has only a cantrip, and has a line too.
+  await expect(sourceLine(page, "High Elf")).toHaveText(["10", "+2", "INT"]);
+  await expect(sourceLine(page, "Druid")).toHaveText(["12", "+4", "WIS"]);
+  await expect(panel(page).getByRole("button", { name: "Fire Bolt, High Elf", exact: true })).toBeVisible();
+  await prepareButton(page).click();
+  await expect(stateRow(page, "Healing Word, Cleric", "prepared")).toBeVisible();
+  await expect(stateRow(page, "Healing Word, Druid", "not prepared")).toBeVisible();
+  await box(page, "Healing Word, Druid").click();
+  await expect(box(page, "Healing Word, Druid")).toBeChecked();
+  await expect(box(page, "Healing Word, Cleric")).toBeChecked();
+  await expect(barCounts(page)).toHaveText(["Cleric: 3 of 5 prepared", "Druid: 2 of 3 prepared"]);
+  // Space on the cleric row changes the cleric box only.
+  await stateRow(page, "Healing Word, Cleric", "prepared").focus();
+  await page.keyboard.press("Space");
+  await expect(box(page, "Healing Word, Cleric")).not.toBeChecked();
+  await expect(box(page, "Healing Word, Druid")).toBeChecked();
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(panel(page).getByRole("button", { name: "Healing Word, Druid", exact: true })).toBeVisible();
+  await expect(panel(page).getByRole("button", { name: "Healing Word, Cleric", exact: true })).toHaveCount(0);
+});
+
+test("a spell with at will shows the note in muted text on its row, and as a line in its spell view", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "warlock-20.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  const disguise = panel(page).getByRole("button", { name: "Disguise Self, at will, Warlock", exact: true });
+  await expect(disguise).toContainText("Disguise Self at will");
+  const note = disguise.getByText("at will", { exact: true });
+  expect(await note.evaluate((element) => getComputedStyle(element).color)).toBe(await tokenColor(page, "--ink-muted"));
+  await disguise.click();
+  await expect(viewHeading(page)).toHaveText("Disguise Self");
+  await expect(spellPane(page).getByText("At will", { exact: true })).toBeVisible();
+});
+
+test("on a phone the source lines and the tags fit: no sideways scroll at 390px and at 320px", async ({ page }) => {
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await importFile(page, "high-elf-cleric-3-druid-1.strict.json");
+    await page.getByRole("tab", { name: "Spells" }).click();
+    await page.getByRole("button", { name: "All spells" }).click();
+    await expect(rows(page).first()).toBeFocused();
+    await expect(sourceLine(page, "High Elf")).toHaveText(["10", "+2", "INT"]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    for (const part of await panel(page).locator(".ui-modal-head *").all()) {
+      const bounds = await part.boundingBox();
+      if (bounds) expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    }
+  }
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- spells-panel.spec.ts -g orc-285
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -817,6 +920,42 @@ test.describe("screenshots", () => {
       await stateRow(page, "Detect Magic", "not prepared").click();
       await expect(viewHeading(page)).toHaveText("Detect Magic");
       await page.screenshot({ path: shot("phone-spell") });
+    });
+
+    // PR_SCREENSHOTS=1 bun run e2e -- spells-panel.spec.ts -g orc-289
+    test(`orc-289 More than one source and the cast note, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-289-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      const open = async (file: string, phone = false) => {
+        await importFile(page, file);
+        await page.evaluate(() => document.fonts.ready);
+        if (phone) await page.getByRole("tab", { name: "Spells" }).click();
+        await page.getByRole("button", { name: "All spells" }).click();
+        await expect(rows(page).first()).toBeFocused();
+      };
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await open("cleric-5-warlock-3.strict.json");
+      await row(page, "Hellish Rebuke").click();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("two-sources") });
+      await open("high-elf-cleric-3-druid-1.strict.json");
+      await page.screenshot({ path: shot("three-sources") });
+      await prepareButton(page).click();
+      await stateRow(page, "Healing Word, Druid", "not prepared").click();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("two-rows-prepare") });
+      await open("warlock-20.strict.json");
+      await panel(page).getByRole("button", { name: "Disguise Self, at will, Warlock", exact: true }).click();
+      await expect(spellPane(page).getByText("At will", { exact: true })).toBeVisible();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("at-will") });
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await open("cleric-5-warlock-3.strict.json", true);
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("phone-two-sources") });
     });
   }
 });
