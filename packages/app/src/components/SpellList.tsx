@@ -172,7 +172,7 @@ function LevelGroup({
             const kind = prepareMode && kindOf ? kindOf(spell) : null;
             return (
               <li key={id} className={kind ? "relative" : undefined}>
-                {kind && hasPrepareBox(kind) && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} sourceTag={sourceTags} />}
+                {kind && hasPrepareBox(kind) && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} withSource={sourceTags} />}
                 <Row
                   spell={spell}
                   lookup={lookup}
@@ -183,7 +183,7 @@ function LevelGroup({
                   initial={markTabStop && id === tabStop}
                   kind={kind}
                   onPrepare={onPrepare}
-                  sourceTag={sourceTags}
+                  withSource={sourceTags}
                 />
               </li>
             );
@@ -205,20 +205,20 @@ function PrepareBox({
   kind,
   onInk,
   onPrepare,
-  sourceTag,
+  withSource,
 }: {
   spell: ListedSpell;
   kind: "can-change" | "always";
   onInk: boolean;
   onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
   /** With the source tags, the box name has the source, as two rows can have the same spell name. */
-  sourceTag: boolean;
+  withSource: boolean;
 }) {
   return (
     // The mouse down does not move the focus, so the focus stays on the list or where it was.
     <span className="absolute top-[11px] left-1.5 z-[1] flex" onMouseDown={(event) => event.preventDefault()}>
       <Checkbox
-        aria-label={`Prepared: ${spell.name}${sourceTag ? `, ${spell.source}` : ""}`}
+        aria-label={`Prepared: ${spell.name}${withSource ? `, ${spell.source}` : ""}`}
         checked={spell.prepared}
         disabled={kind === "always"}
         tabIndex={-1}
@@ -230,15 +230,17 @@ function PrepareBox({
   );
 }
 
+/**
+ * The small Inter caps of the words on a row with no box: the prepare labels and the source tag. Each adds its
+ * weight: a prepare label is semibold, as the box tags are, and the source tag is medium, so it reads as part of
+ * the name and not as a state.
+ */
+const ROW_CAPS = "font-sans text-[10px] leading-[1.6] tracking-[0.06em] whitespace-nowrap uppercase";
+
 /** A label of a row in prepare mode, in Inter caps with no box: "Known", or the lock and "Always prepared". */
 function RowLabel({ onInk, children }: { onInk: boolean; children: ReactNode }) {
   return (
-    <span
-      aria-hidden="true"
-      className={`inline-flex items-center gap-[5px] font-sans text-[10px] leading-[1.6] font-semibold tracking-[0.06em] whitespace-nowrap uppercase ${
-        onInk ? "text-paper" : "text-ink-muted"
-      }`}
-    >
+    <span aria-hidden="true" className={`inline-flex items-center gap-[5px] font-semibold ${ROW_CAPS} ${onInk ? "text-paper" : "text-ink-muted"}`}>
       {children}
     </span>
   );
@@ -253,18 +255,14 @@ function SourceTag({ onInk, children }: { onInk: boolean; children: ReactNode })
   return (
     <>
       {"\u00a0"}
-      <span
-        className={`ml-1 font-sans text-[10px] leading-[1.6] font-medium tracking-[0.06em] whitespace-nowrap uppercase ${onInk ? "text-paper" : "text-ink-muted"}`}
-      >
-        {children}
-      </span>
+      <span className={`ml-1 font-medium ${ROW_CAPS} ${onInk ? "text-paper" : "text-ink-muted"}`}>{children}</span>
     </>
   );
 }
 
 /**
  * A row: a button with the spell name, its cast note in muted text and, with
- * `sourceTag`, the source tag; then the Ritual tag and the boxed "C" of
+ * `withSource`, the source tag; then the Ritual tag and the boxed "C" of
  * concentration. The selected row has the ink fill, and its focus ring is a
  * paper outline. A long name wraps inside the row. In prepare mode (`kind`
  * is set) the row leaves space for the box, has the label "Known" or "Always
@@ -281,7 +279,7 @@ function Row({
   initial,
   kind,
   onPrepare,
-  sourceTag,
+  withSource,
 }: {
   spell: ListedSpell;
   lookup: SpellLookup;
@@ -292,13 +290,13 @@ function Row({
   initial: boolean;
   kind: PrepareKind | null;
   onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
-  sourceTag: boolean;
+  withSource: boolean;
 }) {
   const record = lookup(spell.key)?.record;
   const concentration = record?.duration ? durationParts(record.duration).concentration : false;
   const state = kind ? STATE_WORDS[kind]?.(spell.prepared) : undefined;
   const label = kind === "always" || kind === "known";
-  const name = [spell.name, spell.castNote, sourceTag && spell.source, state].filter(Boolean).join(", ");
+  const name = [spell.name, spell.castNote, withSource && spell.source, state].filter(Boolean).join(", ");
   // Space changes the box, and does not click the row: the key down and the key up are both stopped.
   const onSpace = (event: KeyboardEvent<HTMLButtonElement>, down: boolean) => {
     if (kind !== "can-change" || event.key !== " ") return;
@@ -324,7 +322,7 @@ function Row({
       <span className="min-w-0 [overflow-wrap:anywhere]">
         {spell.name}
         {spell.castNote && <span className={selected ? "text-paper" : "text-ink-muted"}> {spell.castNote}</span>}
-        {sourceTag && <SourceTag onInk={selected}>{spell.source}</SourceTag>}
+        {withSource && <SourceTag onInk={selected}>{spell.source}</SourceTag>}
       </span>
       {(record?.ritual || concentration || label) && (
         <span className="flex items-center gap-1">

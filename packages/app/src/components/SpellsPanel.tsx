@@ -85,6 +85,8 @@ const usePhone = () => useSyncExternalStore(subscribePhone, () => window.matchMe
 export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, builderHref, onSpendSlots, onPrepare }: SpellsPanelProps) {
   // The two panes, so the initial focus is found in this panel only.
   const panes = useRef<HTMLDivElement>(null);
+  // With two or more sources the header has a line of numbers for each, and each row has a source tag.
+  const sources = spellSources(spellcasting);
   return (
     <Dialog
       open={open}
@@ -93,12 +95,13 @@ export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, bui
       fill
       footer={false}
       title="Spells"
-      header={<PanelHeader spellcasting={spellcasting} classes={classes} />}
+      header={<PanelHeader spellcasting={spellcasting} classes={classes} sources={sources} />}
       initialFocus={() => panes.current?.querySelector<HTMLElement>(`[${INITIAL_FOCUS}]`) ?? null}
     >
       <PanelBody
         spellcasting={spellcasting}
         classes={classes}
+        severalSources={sources.length > 1}
         at={at}
         builderHref={builderHref}
         panes={panes}
@@ -115,9 +118,8 @@ export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, bui
  * two or more sources it has one line of numbers for each source in place of
  * the boxes (ORC-289), a cantrip-only race or feat included.
  */
-function PanelHeader({ spellcasting, classes }: { spellcasting: Spellcasting; classes: Sheet["classes"] }) {
+function PanelHeader({ spellcasting, classes, sources }: { spellcasting: Spellcasting; classes: Sheet["classes"]; sources: string[] }) {
   const classLine = spellClassLine(classes, spellcasting);
-  const sources = spellSources(spellcasting);
   const caster = sources.length === 1 ? spellcasting.casters.find((c) => c.name === sources[0]) : undefined;
   return (
     <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
@@ -264,6 +266,7 @@ function PrepareLine({
 function PanelBody({
   spellcasting,
   classes,
+  severalSources,
   at,
   builderHref,
   panes,
@@ -272,6 +275,8 @@ function PanelBody({
 }: {
   spellcasting: Spellcasting;
   classes: Sheet["classes"];
+  /** True with two or more sources: each row has a source tag. */
+  severalSources: boolean;
   at: SpellRef | undefined;
   builderHref: string;
   panes: RefObject<HTMLDivElement>;
@@ -485,7 +490,7 @@ function PanelBody({
             prepareMode={prepareMode}
             kindOf={(spell) => prepareKind(spell, spellcasting.casters)}
             onPrepare={prepare}
-            sourceTags={spellSources(spellcasting).length > 1}
+            sourceTags={severalSources}
           />
         </div>
         <div

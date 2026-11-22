@@ -4,7 +4,7 @@ title: Spells panel spec
 description: The settled design of the Spells panel on the character sheet - the popup with the spell list and the spell text, prepared spells, spent spell slots in the panel and on the sheet, Pact Magic slots, how a sheet change saves, the spell records, and the run order of the build tickets.
 tags: [design, sheet, spells]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-22T04:46:33Z }
+generated: { by: claude-code/agent, at: 2026-11-22T05:15:41Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel
 sources:
   - id: orc-262
@@ -202,8 +202,16 @@ The panel is a `Dialog` of `@orc-alchemy/ui` with the new wide size (see
   and Ability. Each has more space above its value than the boxes of the
   sheet.
 * With two or more sources, the header has one line of numbers for each
-  source. The line has the source name, the save DC, the attack bonus and
-  the ability. A race or feat that gives only cantrips gets a line also.
+  source, in place of the boxes. The line has the source name, the save
+  DC, the attack bonus and the ability. A race or feat that gives only
+  cantrips gets a line also. Two sources with the same numbers get a line
+  each.
+* The lines are in this order: the classes, in the order the character
+  took them, then the races and the feats.
+* The column labels "Save DC", "Attack" and "Ability" are above the lines.
+  A screen reader does not read them.
+* A source with no caster shows only its ability. It has no save DC and no
+  attack bonus.
 * The class and level line shows on a phone too.
 * A screen reader reads each number with its full label, for example
   "Spell save DC 15", not one run of text.
@@ -248,7 +256,10 @@ group. A group has a heading and one row for each spell, A to Z by name.
   modes. The selected row has the ink fill.
 * The spell name is first. A cast note follows it as muted text.
 * When the character has two or more sources, each row has a small
-  source tag in words, for example "CLERIC", in Inter caps.
+  source tag in words, for example "CLERIC", in Inter caps. The tag
+  follows the name and the cast note.
+* On the selected row, the cast note and the source tag are paper, as the
+  boxes are.
 * "Ritual" is a word in a box. Concentration is a "C" in a box. The "C"
   has the accessible name "Concentration". The boxes are at the right end
   of the row. On the selected row they are paper.
@@ -631,11 +642,14 @@ not move the focus. Space on the row changes the box.
   not stops.
 * At more than 600px, the row with the focus is the selected row, so the
   spell view follows the arrow keys.
-* In prepare mode, Space on a row changes its box. The name of the row
-  for a screen reader has the spell name, the source when it shows, and
-  "prepared", "not prepared", "always prepared" or "known". The name is
-  one `aria-label` on the row, for example "Bless, always prepared
-  Concentration", so ORC-289 adds the source to that label.
+* In prepare mode, Space on a row changes its box.
+* The name of the row for a screen reader has the spell name, the cast
+  note, the source when the tag shows, and in prepare mode "prepared",
+  "not prepared", "always prepared" or "known". The Ritual and
+  Concentration tags follow. The name is one `aria-label` on the row, for
+  example "Bless, Cleric, always prepared Concentration".
+* The name of the prepare box is "Prepared: Bless". When the tag shows, it
+  has the source: "Prepared: Bless, Cleric".
 * After "Prepare spells", "Done" or a search, the selected row scrolls
   into view if it is in the list.
 
