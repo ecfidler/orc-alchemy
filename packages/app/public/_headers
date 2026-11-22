@@ -1,0 +1,4 @@
+# Response headers for Cloudflare Pages (ORC-293). Pages reads this file and does not serve it.
+# The beta is not for search engines.
+/*
+  X-Robots-Tag: noindex

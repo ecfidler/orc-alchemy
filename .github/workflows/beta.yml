@@ -1,0 +1,115 @@
+# Deploys Alchemy 5e to the beta on Cloudflare Pages (ORC-293).
+#
+# - A push to main updates the beta. main is the production branch of the
+#   Pages project.
+# - A pull request from a branch of this repository gets a preview. The pull
+#   request shows its URL under "Deployments" (environment "beta preview").
+#
+# docs/operations/beta-deploy.md explains the choices (why GitHub Actions
+# builds, how deep links work) and gives the owner's setup steps. Until the
+# Cloudflare secrets exist, the deploy job is skipped and the run passes.
+
+name: Beta deploy
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: beta-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+env:
+    PAGES_PROJECT: alchemy-5e-beta
+    WRANGLER_VERSION: 4.158.0
+
+jobs:
+    check:
+        # Pull requests from forks get no secrets, so they get no preview.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        runs-on: ubuntu-latest
+        outputs:
+            ready: ${{ steps.secrets.outputs.ready }}
+        steps:
+            - id: secrets
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+              run: |
+                  if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+                    echo "ready=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "::notice::No beta deploy: set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (docs/operations/beta-deploy.md)."
+                    echo "ready=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+    deploy:
+        needs: check
+        if: needs.check.outputs.ready == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        environment:
+            name: ${{ github.ref == 'refs/heads/main' && 'beta' || 'beta preview' }}
+            url: ${{ steps.deploy.outputs.url }}
+        env:
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+            # A pull request builds its own head commit, not the merge with main.
+            COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+            BRANCH: ${{ github.head_ref || github.ref_name }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ env.COMMIT }}
+                  persist-credentials: false
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version-file: package.json
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - run: bun install --frozen-lockfile
+
+            - name: Build the app
+              working-directory: packages/app
+              env:
+                  VITE_BUILD_COMMIT: ${{ env.COMMIT }}
+                  VITE_FEEDBACK_URL: ${{ vars.BETA_FEEDBACK_URL }}
+              run: bun run build
+
+            - name: Create the Pages project if it does not exist
+              run: |
+                  # wrangler can print warnings before the JSON; read from the first "[".
+                  if npx --yes "wrangler@$WRANGLER_VERSION" pages project list --json 2>/dev/null \
+                    | sed -n '/^\[/,$p' \
+                    | jq -e --arg name "$PAGES_PROJECT" 'any(.[]; .["Project Name"] == $name)' > /dev/null; then
+                    echo "The Pages project $PAGES_PROJECT exists."
+                  else
+                    npx --yes "wrangler@$WRANGLER_VERSION" pages project create "$PAGES_PROJECT" --production-branch=main
+                  fi
+
+            - name: Deploy
+              id: deploy
+              env:
+                  WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.json
+              run: |
+                  npx --yes "wrangler@$WRANGLER_VERSION" pages deploy packages/app/dist \
+                    --project-name="$PAGES_PROJECT" \
+                    --branch="$BRANCH" \
+                    --commit-hash="$COMMIT" \
+                    --commit-dirty=false
+                  # Report the stable URL, not the URL of this commit (https://<hash>.<project>.pages.dev):
+                  # for main, the project URL; for a branch, its alias.
+                  url=$(jq -r 'select(.type == "pages-deploy-detailed")
+                    | if .environment == "production" then (.url | sub("^https://[^.]+\\."; "https://")) else (.alias // .url) end' \
+                    "$WRANGLER_OUTPUT_FILE_PATH" | tail -n 1)
+                  echo "url=$url" >> "$GITHUB_OUTPUT"
+                  echo "Deployed to $url" >> "$GITHUB_STEP_SUMMARY"

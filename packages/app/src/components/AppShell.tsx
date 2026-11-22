@@ -1,6 +1,7 @@
 import { AlertNote, AlertNotes, Button, type FlagColor, FlagTab, FlagTabs, Shell } from "@orc-alchemy/ui";
 import { Link, Outlet, useLocation } from "react-router";
 import { useStorage } from "../storage/characters.ts";
+import { FeedbackLink } from "./FeedbackLink.tsx";
 import { Potion } from "./Potion.tsx";
 import { SaveFailedNote, useSaveFailed } from "./SaveFailedNote.tsx";
 
@@ -21,13 +22,17 @@ export function AppShell() {
   return (
     <Shell
       logo={
-        <Link to="/" aria-label="Alchemy 5e" className="inline-flex items-center gap-2.5 text-ink no-underline">
-          <Potion size={32} />
-          <span className="text-xl leading-none font-[560] tracking-[-0.01em] whitespace-nowrap">
-            Alchemy
-            <small className="ml-1 align-[3px] font-sans text-[10px] font-semibold tracking-[0.1em] text-ink-muted">5E</small>
-          </span>
-        </Link>
+        // The feedback link of a beta build sits under the logo in the rail, and beside it in the phone strip.
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <Link to="/" aria-label="Alchemy 5e" className="inline-flex items-center gap-2.5 text-ink no-underline">
+            <Potion size={32} />
+            <span className="text-xl leading-none font-[560] tracking-[-0.01em] whitespace-nowrap">
+              Alchemy
+              <small className="ml-1 align-[3px] font-sans text-[10px] font-semibold tracking-[0.1em] text-ink-muted">5E</small>
+            </span>
+          </Link>
+          <FeedbackLink />
+        </div>
       }
       nav={
         <FlagTabs label="Main">

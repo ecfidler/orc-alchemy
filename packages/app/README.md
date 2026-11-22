@@ -20,3 +20,6 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
 
 `src/` layout: `engine/` (the `@pubdoor/dmv` wrapper), `state/`, `routes/`,
 `components/`, `storage/`.
+
+The beta on Cloudflare Pages deploys from `main`, and each pull request gets
+a preview: see `docs/operations/beta-deploy.md` (ORC-293).
