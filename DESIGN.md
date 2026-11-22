@@ -99,6 +99,10 @@ components:
     typography: "{typography.button}"
     rounded: "{rounded.md}"
     padding: "5px 12px"
+  button-plain:
+    backgroundColor: "transparent"
+    rounded: "{rounded.none}"
+    padding: "0"
   button-small:
     rounded: "{rounded.sm}"
     padding: "0 5px"
@@ -111,6 +115,14 @@ components:
     typography: "{typography.body}"
     rounded: "{rounded.none}"
     padding: "3px 8px"
+  list-row:
+    backgroundColor: "transparent"
+    padding: "6px 20px"
+  list-row-hover:
+    backgroundColor: "color-mix(in srgb, #222222 6%, #fffcf5)"
+  list-row-current:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.paper}"
   stuck-note:
     backgroundColor: "{colors.note}"
     textColor: "{colors.note-ink}"
@@ -146,7 +158,7 @@ The app shell is a binder. A margin rail on the left holds the logo and the navi
 
 The Dark theme is not dark paper. It is OLED black and white: a pure black page, white text, and accents that shift to suit black. The notes and the flag tabs stay bright in the Dark theme, with black text.
 
-The authority for each value and rule in this file is `docs/design/theme.md`. When this file and `theme.md` disagree, `theme.md` wins. The homebrew forms are in `docs/design/homebrew-forms.md`.
+The authority for each value and rule in this file is `docs/design/theme.md`. When this file and `theme.md` disagree, `theme.md` wins. The homebrew forms are in `docs/design/homebrew-forms.md`, and the Spells panel is in `docs/design/spells-panel.md`.
 
 **Key Characteristics:**
 
@@ -154,7 +166,7 @@ The authority for each value and rule in this file is `docs/design/theme.md`. Wh
 - Each color is a role token. The name says what the color does.
 - Serif for content, small sans caps for labels.
 - A sheet that a user reads in a few seconds at the table, on a laptop or a phone.
-- Text labels only. There is no icon set.
+- Text labels first. A drawn icon only goes with a text, and there is no icon set.
 
 ## Colors
 
@@ -229,7 +241,7 @@ The theme spec sets these sizes only. Each component sets the other sizes that i
 - **Shell:** a 200px left rail holds the logo and the flag tabs. A double margin rule (1.5px, then 1px at 45%) separates the rail from the page. At 680px and less, the rail is a strip at the top, with the rule along its bottom and the tabs in a row on the rule.
 - **Character sheet:** two columns at about 1 : 2, with a maximum width of 960px. The left column is 320px wide or more. Under 720px, the sections go in four tabs (Stats, Spells, Features, More) and the tab row sticks to the top.
 - **Home:** one column: the title row, the tagline, the buttons, three facts, then Recent characters.
-- **Dialogs:** a Dialog is 720px wide at most. At 600px and less, a Dialog and a ListModal fill the screen.
+- **Dialogs:** a Dialog is 720px wide at most. A wide Dialog (`size="wide"`, for the Spells panel) is 1100px wide at most. With `fill`, a wide Dialog is the height of the window less its 16px margins, and the owner lays out its body, for example as two panes that scroll apart. At 600px and less, a Dialog and a ListModal fill the screen.
 - **Density:** the sheet is dense, as a paper sheet is. Boxes are sized to their content. Forms are one column of labelled fields, with the label above the control.
 - The page never scrolls sideways. Long values truncate with an ellipsis or wrap.
 
@@ -250,7 +262,7 @@ The system is flat. Depth comes from borders, from Raised Paper on Paper, and fr
 
 ## Shapes
 
-Borders do the work. A framed box has a 1.5px Strong Rule border and a 6px radius. Fields and tokens are square (radius 0), with a 1px Ink border. Buttons have a 6px radius, and small buttons and the X button have 4px. A checkbox mark has 2px. Slot circles and radio marks are circles. The use bubble has an 18px radius. Proficiency marks are filled squares. A note has a folded bottom-right corner. A stuck note has a tilt of about 2 degrees, and an alert note has no tilt. A flag tab is a flat flag shape.
+Borders do the work. A framed box has a 1.5px Strong Rule border and a 6px radius. Fields and tokens are square (radius 0), with a 1px Ink border. Buttons have a 6px radius, and small buttons and the X button have 4px. A checkbox mark has 2px. Slot circles and radio marks are circles. A Pact Magic slot is a diamond: a square turned 45 degrees. The use bubble has an 18px radius. Proficiency marks are filled squares. A note has a folded bottom-right corner. A stuck note has a tilt of about 2 degrees, and an alert note has no tilt. A flag tab is a flat flag shape.
 
 ## Components
 
@@ -262,9 +274,10 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 - **Ghost (default):** a transparent fill and Ink text. Hover fills with Panel.
 - **Solid:** an Ink fill and Paper text. A pressed Toggle and a current ghost button have the same look.
 - **Link:** the text of its line, with an underline.
+- **Plain:** the look of the text around it: its font and color, no box. Hover underlines the text. Use it for a name in a list that opens more, for example a spell name on the sheet.
 - **Disabled:** Muted Ink text and a Strong Rule border.
 - **Wide:** the full width of its column, with the text on the left. The AddButton is a wide button with a count on the right.
-- **X button:** a 30px square with an X of two lines and no text. Hover makes it Danger Red with a border.
+- **X button:** a 30px square with an X of two lines and no text. Hover makes it Danger Red with a border. A wide Dialog with no footer closes with an X in its header, 44px at 600px and less.
 
 ### Chips
 
@@ -273,7 +286,7 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 
 ### Cards / Containers
 
-- **Framed box:** a value in a box with its label under it, in Label type.
+- **Framed box:** a value in a box with its label under it, in Label type. A small control can be at the end of the label row, on its rule, for example a button that opens more.
 - **Stat box:** a large value with a hanging oval for a second value, on Raised Paper.
 - **Shaded panel:** a Panel area that groups related boxes.
 - **Shadow Strategy:** none. See Elevation & Depth.
@@ -283,11 +296,16 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 - **Style:** each TextInput, TextArea, Select, Combobox and NumberField is boxed: a 1px Ink border on Raised Paper, radius 0, padding 3px 8px. The label is above the control, in Label type.
 - **Focus:** a 2px Info Blue outline with a 2px offset on `:focus-visible`. On a note, the outline is Note Ink. On a flag tab, it is Ink.
 - **Error / Disabled:** error text is Danger Red. A disabled field has a Strong Rule border.
+- **Checkbox out of the Tab order:** a Checkbox can take `tabIndex={-1}` when a key on another control changes it, for example Space on a row of a list that is one Tab stop. A mouse and a screen reader still reach it.
 
 ### Navigation
 
 - **Flag tabs:** Inter 600, 13.5px, uppercase, in Flag Ink. A tab has a pale body (55% of its color on white) and a solid end at the rule. The current tab sticks out further, is solid and has a small shadow. Hover moves a tab out a little, but not under `prefers-reduced-motion: reduce`.
 - **Home** has no tab. The logo in the rail links to it.
+
+### List rows
+
+A ListRow is a row of a list as a button: the full width, flat, with a Rule hairline under it, and an optional part at its end. Hover and focus give it the Panel fill. The current row (`aria-current`) has an Ink fill and Paper text, and its focus ring is Paper, inside the row, as a current ghost button turns solid. The rows of the ListModal are ListRows.
 
 ### Stuck note, alert note and note line
 
@@ -302,6 +320,16 @@ The frame around a feature with limited uses: an Info Blue outline, a Bubble fil
 ### Slot circles and square marks
 
 A row of plain circles, and a marked circle fills solid. The color is a prop: Ink for spell slots, Success Green for death-save successes, Caution Orange for failures. A filled square means "has it", for example a proficiency.
+
+- **A group that changes:** with a change handler, a click on an empty circle fills the first empty circle from the left, and a click on a filled circle clears the last filled one. The filled circles are always together on the left. A circle that can change has a 17px drawing and a tap area of 28px or more. A circle that cannot change has a 15px drawing, and the small size has 12px circles for a narrow column. The group is one Tab stop, and the arrow keys change it. Under a mouse, the circle that a click changes shows a light fill.
+- **Diamond form:** each circle is a diamond, for Pact Magic slots. The diamonds are in the row of their slot level, after the circles, with no "Pact" label.
+- **Column:** a group can be a column, with the first circle at the top.
+- **Copy:** a copy of a group takes clicks only. It is not a Tab stop, and a screen reader does not see it.
+- A filled spell slot is a spent slot, and the change saves at once. The [Spells panel spec](docs/design/spells-panel.md) has the full rules.
+
+### Icons
+
+The app uses text labels. A drawn icon is only an addition to a text: an SVG in `@orc-alchemy/ui`, in the text color (`currentColor`), with `aria-hidden`, so the text names the control or the label. It is not an emoji. The first icon is `LockIcon`, a closed lock at 13px, for a value that cannot change, for example an always-prepared spell in the Spells panel.
 
 ### Logo
 
@@ -324,6 +352,6 @@ The potion bottle, 16 × 16 pixel art. Show it only at a whole power-of-two scal
 - **Don't** use a stuck note for information that needs no action. Use Warning Yellow text.
 - **Don't** use red for a thing that did not fail.
 - **Don't** import a control from `@base-ui/react` in the app. Import it from `@orc-alchemy/ui`.
-- **Don't** add icons. The app uses text labels.
+- **Don't** use an icon in place of a text label, or use an emoji or an icon set. A drawn icon from `@orc-alchemy/ui` goes beside a text.
 - **Don't** make the Dark theme a dark paper color. It is black and white.
 - **Don't** load a font from a third party.
