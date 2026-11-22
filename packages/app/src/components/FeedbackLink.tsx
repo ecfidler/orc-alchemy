@@ -22,14 +22,14 @@ export function feedbackUrl(template: string, fields: FeedbackFields): string {
 
 /**
  * The "Send feedback" link of a beta build. It shows only when the build has
- * a feedback form (`VITE_FEEDBACK_URL`), and it opens the form in a new tab,
- * so that the tester keeps the page.
+ * a feedback form (`VITE_FEEDBACK_URL`) and a commit (`VITE_BUILD_COMMIT`),
+ * and it opens the form in a new tab, so that the tester keeps the page.
  */
 export function FeedbackLink() {
   const { pathname, search } = useLocation();
   const template = import.meta.env.VITE_FEEDBACK_URL;
-  if (!template) return null;
-  const build = import.meta.env.VITE_BETA_BUILD || "local";
+  const build = import.meta.env.VITE_BUILD_COMMIT;
+  if (!template || !build) return null;
   const href = feedbackUrl(template, { page: pathname + search, build, browser: navigator.userAgent });
   return (
     <a

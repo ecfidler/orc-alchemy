@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-22T04:20:00Z }
+generated: { by: claude-code/agent, at: 2026-11-22T23:20:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -425,6 +425,11 @@ for the logo, the navigation and the content. The app fills the slots.
   Content `--flag-green`, Preferences `--flag-orange`.
 * **Home** has no tab. The rail logo links to `/`. On Home no tab is current.
 * **Storage alerts** become alert notes at the top of the page column.
+* **Feedback link (beta only):** a build with a feedback form shows "Send
+  feedback" after the logo (ORC-293). It is an Inter link, 12px, weight 600,
+  in `--ink-muted` with an underline. It opens the form in a new tab. In the
+  rail it sits under the logo. In the top strip it sits at the right end of
+  the logo row. A build without a form has no link.
 
 ## Logo
 

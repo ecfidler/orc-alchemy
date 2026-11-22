@@ -26,6 +26,11 @@ The workflow `.github/workflows/beta.yml` builds the app and uploads
 
 - The pull request shows the preview URL under "Deployments". The run
   summary also shows it.
+- Pages makes the branch part of a preview URL from the branch name. It
+  changes the name to lowercase, changes `/` and other characters to `-`,
+  and cuts a long name. For example, `claude/orc-293-x` becomes
+  `claude-orc-293-x`. The "View deployment" link of the pull request has the
+  real URL.
 - If the name `alchemy-5e-beta` is taken on `pages.dev`, Cloudflare adds a
   suffix to the URL. The run summary shows the real URL.
 - The build uses the Bun version of the root `package.json`, the same as CI.
@@ -40,7 +45,8 @@ The workflow `.github/workflows/beta.yml` builds the app and uploads
 
 ## The feedback link
 
-A build with `VITE_FEEDBACK_URL` shows "Send feedback" next to the logo. The
+A build with `VITE_FEEDBACK_URL` and `VITE_BUILD_COMMIT` shows "Send
+feedback" next to the logo. The
 link opens the feedback form in a new tab. The workflow sets
 `VITE_FEEDBACK_URL` from the repository variable `BETA_FEEDBACK_URL`. A
 local build has no feedback link.
@@ -103,7 +109,8 @@ select **Link to Sheets**.
 3. When the run is done, open the URL in its summary.
 
 The first run makes the Pages project. After that, each merge to `main`
-deploys.
+deploys. If two first runs start at the same time, one of them can fail
+because the other made the project. Run the failed one again.
 
 ## 5. Put the login in front of the beta
 
@@ -114,14 +121,17 @@ that Access sends to their email.
 2. Under **General > Access policy**, select **Enable access policy**. This
    protects the previews, `*.alchemy-5e-beta.pages.dev`.
 3. If Cloudflare asks you to set up Zero Trust, choose a team name and the
-   **Free** plan.
+   **Free** plan. Cloudflare can ask for a payment method also for the Free
+   plan.
 4. In **Zero Trust**, open **Access > Applications**. Edit the application
    for `alchemy-5e-beta`.
 5. Add a second public hostname, `alchemy-5e-beta.pages.dev`. This protects
    the beta itself. Save the application.
 6. Edit the policy of the application. Under **Include**, select **Emails**
    and add your email and the email of each tester. Save the policy.
-7. Open the beta URL in a private window. Make sure that Access asks for an
+7. Open **Settings > Authentication** in Zero Trust. Make sure that
+   **One-time PIN** is in the login methods.
+8. Open the beta URL in a private window. Make sure that Access asks for an
    email before it shows the app.
 
 To add a tester later, add their email to the policy.

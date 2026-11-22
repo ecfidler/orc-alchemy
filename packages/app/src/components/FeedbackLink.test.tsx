@@ -27,8 +27,11 @@ test("feedbackUrl leaves a link without fields as it is", () => {
   expect(feedbackUrl(FORM, { page: "/", build: "b", browser: "c" })).toBe(FORM);
 });
 
-test("a build without a feedback form has no feedback link", () => {
-  vi.stubEnv("VITE_FEEDBACK_URL", "");
+test.each([
+  ["a feedback form", { VITE_FEEDBACK_URL: "", VITE_BUILD_COMMIT: "0123456789abcdef" }],
+  ["a commit", { VITE_FEEDBACK_URL: FORM, VITE_BUILD_COMMIT: "" }],
+])("a build without %s has no feedback link", (_, env) => {
+  for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
   render(
     <MemoryRouter>
       <FeedbackLink />
@@ -39,7 +42,7 @@ test("a build without a feedback form has no feedback link", () => {
 
 test("on a beta build, the feedback link opens the form in a new tab with the page and the build", () => {
   vi.stubEnv("VITE_FEEDBACK_URL", `${FORM}&entry.1=%7Bpage%7D&entry.2=%7Bbuild%7D`);
-  vi.stubEnv("VITE_BETA_BUILD", "0123456789abcdef");
+  vi.stubEnv("VITE_BUILD_COMMIT", "0123456789abcdef");
   render(
     <MemoryRouter initialEntries={["/sheet/c7?tab=spells"]}>
       <FeedbackLink />

@@ -5,16 +5,9 @@
 # - A pull request from a branch of this repository gets a preview. The pull
 #   request shows its URL under "Deployments" (environment "beta preview").
 #
-# The owner's setup steps are in docs/operations/beta-deploy.md. Until the
+# docs/operations/beta-deploy.md explains the choices (why GitHub Actions
+# builds, how deep links work) and gives the owner's setup steps. Until the
 # Cloudflare secrets exist, the deploy job is skipped and the run passes.
-#
-# The build uses the Bun version of the root package.json, as CI does.
-# Cloudflare's own Git builds use a newer Bun, which refuses bun.lockb with
-# --frozen-lockfile.
-#
-# Deep links (/sheet/<id>) work because the build has no top-level 404.html:
-# Pages then serves index.html for each path that is not a file. Do not add
-# "/* /index.html 200" to a _redirects file. Pages ignores it as a loop.
 
 name: Beta deploy
 
@@ -88,7 +81,7 @@ jobs:
             - name: Build the app
               working-directory: packages/app
               env:
-                  VITE_BETA_BUILD: ${{ env.COMMIT }}
+                  VITE_BUILD_COMMIT: ${{ env.COMMIT }}
                   VITE_FEEDBACK_URL: ${{ vars.BETA_FEEDBACK_URL }}
               run: bun run build
 
@@ -113,7 +106,10 @@ jobs:
                     --branch="$BRANCH" \
                     --commit-hash="$COMMIT" \
                     --commit-dirty=false
-                  # The alias is the stable URL of the branch; the deployment URL is for this commit only.
-                  url=$(jq -r 'select(.type == "pages-deploy-detailed") | .alias // .url' "$WRANGLER_OUTPUT_FILE_PATH" | tail -n 1)
+                  # Report the stable URL, not the URL of this commit (https://<hash>.<project>.pages.dev):
+                  # for main, the project URL; for a branch, its alias.
+                  url=$(jq -r 'select(.type == "pages-deploy-detailed")
+                    | if .environment == "production" then (.url | sub("^https://[^.]+\\."; "https://")) else (.alias // .url) end' \
+                    "$WRANGLER_OUTPUT_FILE_PATH" | tail -n 1)
                   echo "url=$url" >> "$GITHUB_OUTPUT"
                   echo "Deployed to $url" >> "$GITHUB_STEP_SUMMARY"
