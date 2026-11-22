@@ -20,6 +20,7 @@ import {
   usesDisplay,
 } from "../engine/sheet.ts";
 import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
+import { slotGroupsOf, spentText } from "../engine/spell-slots.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -500,7 +501,7 @@ function SpellcastingBox({
   onSpendSlots?: SpendSlots;
   onOpenSpells?: OpenSpells;
 }) {
-  const { casters, pact } = spellcasting;
+  const { casters } = spellcasting;
   const lookup = useSpellLookup();
   const classNames = new Set(classes.map((c) => c.name));
   const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
@@ -516,17 +517,8 @@ function SpellcastingBox({
   const title = several ? "Spells" : prepares.get(sources[0]!) ? "Prepared spells" : "Known spells";
   const groups = casterGroups(casters.filter((caster) => !lines.has(caster.name)));
   const rows = levelGroups
-    .map(({ level, spells }) => {
-      const slot = spellcasting.slots.find((s) => s.level === level);
-      return {
-        level,
-        slots: slot?.count ?? 0,
-        spent: slot?.spent ?? 0,
-        pact: pact?.slotLevel === level ? pact : null,
-        spells: spells.filter((spell) => !lines.has(spell.source)),
-      };
-    })
-    .filter((row) => row.slots > 0 || row.pact || row.spells.length > 0);
+    .map(({ level, spells }) => ({ level, slots: slotGroupsOf(spellcasting, level), spells: spells.filter((spell) => !lines.has(spell.source)) }))
+    .filter((row) => row.slots.length > 0 || row.spells.length > 0);
   const marks = sourceMarks(
     rows.flatMap((row) => row.spells.map((spell) => spell.source)),
     classes,
@@ -581,28 +573,19 @@ function SpellcastingBox({
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ level, slots, spent, pact, spells }) => (
+            {rows.map(({ level, slots, spells }) => (
               <SlotRow
                 key={level}
                 name={level === 0 ? "Cantrips" : ordinal(level)}
                 small={level === 0}
                 narrow={narrow}
-                groups={[
-                  ...(slots > 0
-                    ? [{ label: `${ordinal(level)}-level slots`, count: slots, spent, onChange: onSpendSlots && ((next: number) => onSpendSlots(level, next)) }]
-                    : []),
-                  ...(pact
-                    ? [
-                        {
-                          label: `Pact slots, ${ordinal(level)} level`,
-                          count: pact.count,
-                          spent: pact.spent,
-                          shape: "diamond" as const,
-                          onChange: onSpendSlots && ((next: number) => onSpendSlots("pact", next)),
-                        },
-                      ]
-                    : []),
-                ]}
+                groups={slots.map(({ group, label, count, spent }) => ({
+                  label,
+                  count,
+                  spent,
+                  shape: group === "pact" ? ("diamond" as const) : undefined,
+                  onChange: onSpendSlots && ((next: number) => onSpendSlots(group, next)),
+                }))}
               >
                 {/* role="list": without bullets, Safari does not name a ul as a list. */}
                 {lookup !== null && (
@@ -681,9 +664,6 @@ function SlotRow({ name, small, narrow, groups, children }: { name: string; smal
     </tr>
   );
 }
-
-/** The state of a level's slot circles for a screen reader: "2 of 4 spent". */
-const spentText = (spent: number, count: number) => `${spent} of ${count} spent`;
 
 /**
  * A spell name. With `onOpen`, it is a button with the look of plain text that opens the Spells panel at the

@@ -1,5 +1,5 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { THEME_STORAGE_KEY, themeHeadScript, useThemePreference } from "./theme-preference.ts";
 
 afterEach(() => {
@@ -26,6 +26,19 @@ test("a choice writes the key and sets data-theme; Match System removes both", (
   expect(result.current[0]).toBe("system");
   expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
   expect(document.documentElement.dataset.theme).toBeUndefined();
+});
+
+test("when the storage refuses the write, the choice still applies until the page reloads", () => {
+  const { result } = renderHook(() => useThemePreference());
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new Error("quota");
+  });
+  act(() => result.current[1]("dark"));
+  vi.restoreAllMocks();
+  expect(result.current[0]).toBe("dark");
+  expect(document.documentElement.dataset.theme).toBe("dark");
+  expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
+  act(() => result.current[1]("system"));
 });
 
 test("two hooks in one tab agree", () => {

@@ -4,6 +4,7 @@
 // sheet and the list of the panel use this one rule.
 import { type KnownSpell, ordinal, type Sheet, type Spellcasting } from "./sheet.ts";
 import { type SpellLookup, spellName } from "./spell-records.ts";
+import { slotEntries } from "./spell-slots.ts";
 
 /** A known spell as the sheet and the panel show it: `name` is the name to show, and `level` is its spell level. */
 export interface ListedSpell extends KnownSpell {
@@ -44,7 +45,8 @@ export function spellGroups(spellcasting: Pick<Spellcasting, "casters" | "byLeve
         .sort((a, b) => a.name.localeCompare(b.name)),
     ]),
   );
-  const levels = new Set([...slots.filter((slot) => slot.count > 0).map((slot) => slot.level), ...(pact ? [pact.slotLevel] : [])]);
+  // A level with slots: the same rule as the slot groups that show.
+  const levels = new Set(slotEntries({ slots, pact }).map((entry) => entry.level));
   for (const [level, spells] of shown) if (spells.length > 0) levels.add(level);
   return [...levels].sort((a, b) => a - b).map((level) => ({ level, spells: shown.get(level) ?? [] }));
 }

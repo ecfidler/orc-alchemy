@@ -1,15 +1,20 @@
 // The Spells panel (ORC-285, docs/design/spells-panel.md "The panel"): a
 // wide Dialog over the sheet, with a header, a bar and two panes. The list of
 // spells by level is on the left, and the spell view of the selected spell
-// is on the right. At 600px and less the panel fills the screen, and the list
-// and the spell view are two views.
+// is on the right. The Spell slots block (ORC-286, "Spent spell slots") is
+// above the list and does not scroll with it; the level headings of the list
+// have the slots of their level too. At 600px and less the panel fills the
+// screen, and the list and the spell view are two views, with the block at
+// the top of each.
 import { Button, Dialog, FramedBox } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
-import { bonusStr, type Sheet, type Spellcasting, type SpellRef } from "../engine/sheet.ts";
+import { bonusStr, type Sheet, type Spellcasting, type SpellRef, type SpendSlots } from "../engine/sheet.ts";
 import { type ListedSpell, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "../engine/spell-list.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
-import { INITIAL_FOCUS, ROW, SpellList } from "./SpellList.tsx";
+import { useSpellSlotsFolded } from "../state/spell-slots-fold.ts";
+import { HEADING, INITIAL_FOCUS, LEVEL, ROW, SpellList } from "./SpellList.tsx";
+import { HeadingSlots, SpellSlotsBlock } from "./SpellSlots.tsx";
 import { SpellView } from "./SpellView.tsx";
 
 export interface SpellsPanelProps {
@@ -22,13 +27,20 @@ export interface SpellsPanelProps {
   at?: SpellRef;
   /** The link to the Spells step of the builder. */
   builderHref: string;
+  /** The user changes the spent slots of a group. The sheet uses the same handler, so the two show the same state (ORC-286). */
+  onSpendSlots: SpendSlots;
 }
 
 /** The attribute that marks the "Back to the list" button of the spell view on a phone. */
 const BACK = "data-spells-back";
+// The least scroll padding of the list in px. It is the value of the class scroll-pt-12 on the list: keep the two the same.
+const MIN_SCROLL_PADDING_PX = 48;
 
 /** How long the message of the live region waits at an open in the spell view. */
 const OPEN_MESSAGE_DELAY_MS = 150;
+
+/** A jump to a level does not scroll smoothly under this query. */
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
 /** The width at and under which the panel fills the screen and shows one view at a time, as the Dialog does. */
 const PHONE = "(max-width: 600px)";
@@ -48,7 +60,7 @@ const usePhone = () => useSyncExternalStore(subscribePhone, () => window.matchMe
  * a phone, a panel opened at a spell shows its spell view, and the "Back to
  * the list" button has the focus. The panel is not in the URL.
  */
-export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, builderHref }: SpellsPanelProps) {
+export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, builderHref, onSpendSlots }: SpellsPanelProps) {
   // The two panes, so the initial focus is found in this panel only.
   const panes = useRef<HTMLDivElement>(null);
   return (
@@ -62,7 +74,7 @@ export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, bui
       header={<PanelHeader spellcasting={spellcasting} classes={classes} />}
       initialFocus={() => panes.current?.querySelector<HTMLElement>(`[${INITIAL_FOCUS}]`) ?? null}
     >
-      <PanelBody spellcasting={spellcasting} at={at} builderHref={builderHref} panes={panes} />
+      <PanelBody spellcasting={spellcasting} at={at} builderHref={builderHref} panes={panes} onSpendSlots={onSpendSlots} />
     </Dialog>
   );
 }
@@ -130,13 +142,16 @@ function PanelBody({
   at,
   builderHref,
   panes,
+  onSpendSlots,
 }: {
   spellcasting: Spellcasting;
   at: SpellRef | undefined;
   builderHref: string;
   panes: RefObject<HTMLDivElement>;
+  onSpendSlots: SpendSlots;
 }) {
   const lookup = useSpellLookup();
+  const loaded = lookup !== null;
   const phone = usePhone();
   const all = spellGroups(spellcasting, lookup);
   const spells = all.flatMap((group) => group.spells);
@@ -162,6 +177,37 @@ function PanelBody({
   const listTop = useRef<number | null>(null);
   const back = () => panes.current?.querySelector<HTMLElement>(`[${BACK}]`) ?? null;
   const builderLink = useRef<HTMLAnchorElement>(null);
+  // While the Spell slots block is open, only its groups are Tab stops; while it is folded, the groups on the headings are.
+  const [folded, setFolded] = useSpellSlotsFolded();
+  const shownLevels = new Set(groups.map((group) => group.level));
+  // The scroll padding of the list is the height of its tallest level heading, so that a row that gets the focus is
+  // never under the heading that sticks at the top. A heading with slots can take two lines in a narrow list.
+  const headingsKey = groups.map((group) => group.level).join();
+  useLayoutEffect(() => {
+    const pane = list.current;
+    if (!pane || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const tallest = Math.max(
+        0,
+        ...[...pane.querySelectorAll<HTMLElement>(`[${HEADING}]`)].map((heading) => Math.ceil(heading.getBoundingClientRect().height)),
+      );
+      pane.style.scrollPaddingTop = tallest > MIN_SCROLL_PADDING_PX ? `${tallest}px` : "";
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    for (const heading of pane.querySelectorAll(`[${HEADING}]`)) observer.observe(heading);
+    return () => observer.disconnect();
+  }, [headingsKey, loaded, spellView]);
+  // A level link scrolls the list so that the level's heading is at the top. The focus stays on the link.
+  const goTo = (level: number) => {
+    const pane = list.current;
+    const group = pane?.querySelector<HTMLElement>(`[${LEVEL}="${level}"]`);
+    if (!pane || !group) return;
+    const top = pane.scrollTop + group.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+    const reduce = window.matchMedia?.(REDUCED_MOTION).matches ?? false;
+    // jsdom has no scrollTo on an element.
+    pane.scrollTo?.({ top, behavior: reduce ? "instant" : "smooth" });
+  };
 
   const select = (spell: ListedSpell) => {
     if (spellId(spell) === selectedId) return;
@@ -184,7 +230,6 @@ function PanelBody({
   // The selected row scrolls into view at the open, when the spells load, and after a search, if it is in the list.
   // jsdom has no scrollIntoView.
   const rowOf = (id: string | null) => (id === null ? null : (list.current?.querySelector<HTMLElement>(`[${ROW}="${CSS.escape(id)}"]`) ?? null));
-  const loaded = lookup !== null;
   useLayoutEffect(() => {
     if (!spellView) rowOf(selectedId)?.scrollIntoView?.({ block: "nearest" });
     // Only these changes scroll: an arrow key or a click scrolls by itself.
@@ -241,15 +286,26 @@ function PanelBody({
           Change known spells in the builder
         </Link>
       </div>
+      {/* The Spell slots block is above the list and does not scroll with it. On a phone it is at the top of the two views. */}
       <div
         ref={panes}
-        className="grid min-h-0 flex-1 grid-cols-[minmax(240px,340px)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] max-[600px]:grid-cols-[minmax(0,1fr)]"
+        className="grid min-h-0 flex-1 grid-cols-[minmax(240px,340px)_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] max-[600px]:grid-cols-[minmax(0,1fr)]"
       >
+        <div className="col-start-1 row-start-1 min-w-0 border-r empty:hidden border-rule-strong pt-3 pr-4 pl-[18px] max-[600px]:border-r-0 max-[600px]:px-4 max-[600px]:pt-2.5">
+          <SpellSlotsBlock
+            spellcasting={spellcasting}
+            onSpendSlots={onSpendSlots}
+            folded={folded}
+            onFoldedChange={setFolded}
+            onGoTo={spellView ? null : goTo}
+            shownLevels={shownLevels}
+          />
+        </div>
         <div
           ref={list}
           data-pane="list"
           hidden={spellView}
-          className="min-h-0 scroll-pt-12 overflow-y-auto border-r border-rule-strong pr-4 pb-10 pl-[18px] max-[600px]:border-r-0 max-[600px]:px-4"
+          className="col-start-1 row-start-2 min-h-0 scroll-pt-12 overflow-y-auto border-r border-rule-strong pr-4 pb-10 pl-[18px] max-[600px]:border-r-0 max-[600px]:px-4"
         >
           <SpellList
             groups={groups}
@@ -261,9 +317,14 @@ function PanelBody({
             onPick={onPick}
             onFocusRow={onFocusRow}
             markTabStop={!spellView}
+            headingSlots={(level) => <HeadingSlots spellcasting={spellcasting} level={level} onSpendSlots={onSpendSlots} copy={!folded} />}
           />
         </div>
-        <div data-pane="spell" hidden={phone && !spellView} className="min-h-0 overflow-y-auto pt-[18px] pr-[22px] pb-10 pl-[26px] max-[600px]:px-4">
+        <div
+          data-pane="spell"
+          hidden={phone && !spellView}
+          className="col-start-2 row-span-2 row-start-1 min-h-0 overflow-y-auto pt-[18px] pr-[22px] pb-10 pl-[26px] max-[600px]:col-start-1 max-[600px]:row-span-1 max-[600px]:row-start-2 max-[600px]:px-4"
+        >
           {spellView && (
             // The initial focus at an open in the spell view.
             <Button variant="link" {...{ [BACK]: "", [INITIAL_FOCUS]: "" }} className="mb-3 font-sans text-[13px]" onClick={() => setView("list")}>

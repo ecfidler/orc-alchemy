@@ -20,6 +20,7 @@ export { SegmentedToggle, type SegmentedToggleProps } from "./SegmentedToggle.ts
 export { Select, SelectBox, type SelectBoxProps, type SelectOption, type SelectProps } from "./Select.tsx";
 export { type FlagColor, FlagTab, FlagTabs, Shell } from "./Shell.tsx";
 export { InlineNote, NoteCount, StuckNote } from "./StuckNote.tsx";
+export { type StoredValue, type StoredValueOptions, storedValue, useStoredValue } from "./stored-value.ts";
 export { type Tab, Tabs } from "./Tabs.tsx";
 export { TextArea, type TextAreaProps, TextInput, type TextInputProps } from "./TextInput.tsx";
 export { Toggle, ToggleGroup, type ToggleGroupProps, type ToggleProps } from "./Toggle.tsx";

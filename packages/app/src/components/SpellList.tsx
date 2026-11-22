@@ -3,11 +3,11 @@
 // for each level, with a heading that sticks and one row for each spell.
 //
 // The ARIA pattern is a list of buttons with a roving tabindex, under real
-// headings. A listbox does not fit: the level headings get slot controls
-// later (ORC-286), and a listbox can hold only options. In prepare mode
+// headings. A listbox does not fit: the level headings hold slot controls
+// (ORC-286), and a listbox can hold only options. In prepare mode
 // (ORC-287) a row can be a checkbox button with Space, in the same pattern.
 import { Label, ListRow, TextInput } from "@orc-alchemy/ui";
-import { type KeyboardEvent, useId } from "react";
+import { type KeyboardEvent, type ReactNode, useId } from "react";
 import { type ListedSpell, levelHeading, type SpellGroup, spellId } from "../engine/spell-list.ts";
 import type { SpellLookup } from "../engine/spell-records.ts";
 import { durationParts } from "../engine/spell-text.ts";
@@ -15,6 +15,10 @@ import { BoxTag } from "./BoxTag.tsx";
 
 /** The attribute that marks a row button, with the row's id (see `spellId`). */
 export const ROW = "data-spell-row";
+/** The attribute that marks the sticky heading row of a level. */
+export const HEADING = "data-level-heading";
+/** The attribute that marks the group of a level, with the level. */
+export const LEVEL = "data-spell-level";
 /** The attribute that marks the element that gets the focus when the panel opens. */
 export const INITIAL_FOCUS = "data-spells-focus";
 
@@ -35,6 +39,8 @@ export interface SpellListProps {
   onFocusRow: (spell: ListedSpell) => void;
   /** True: the Tab stop row has the INITIAL_FOCUS mark, so the dialog gives it the focus at the open. */
   markTabStop: boolean;
+  /** The slots on the heading of a level, after its name (ORC-286). */
+  headingSlots?: (level: number) => ReactNode;
 }
 
 /** The keys that move the focus in the list, and where each goes from row `at` of `count` rows. */
@@ -50,7 +56,7 @@ const MOVES: Record<string, (at: number, count: number) => number> = {
  * `tabStop`. Up and Down move the focus between the rows, and Home and End
  * go to the first and last row. The headings are not stops.
  */
-export function SpellList({ groups, lookup, query, onQueryChange, selected, tabStop, onPick, onFocusRow, markTabStop }: SpellListProps) {
+export function SpellList({ groups, lookup, query, onQueryChange, selected, tabStop, onPick, onFocusRow, markTabStop, headingSlots }: SpellListProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const move = MOVES[event.key];
     const row = (event.target as HTMLElement).closest(`[${ROW}]`);
@@ -79,6 +85,7 @@ export function SpellList({ groups, lookup, query, onQueryChange, selected, tabS
             onPick={onPick}
             onFocusRow={onFocusRow}
             markTabStop={markTabStop}
+            headingSlots={headingSlots}
           />
         ))}
       </div>
@@ -95,15 +102,20 @@ function LevelGroup({
   onPick,
   onFocusRow,
   markTabStop,
+  headingSlots,
 }: Omit<SpellListProps, "groups" | "query" | "onQueryChange" | "lookup"> & { group: SpellGroup; lookup: SpellLookup }) {
   const headingId = useId();
   return (
-    <div role="group" aria-labelledby={headingId}>
-      {/* The heading row holds the slot circles of the level later (ORC-286). */}
-      <div className="sticky top-0 z-[1] flex items-baseline gap-3 border-b-[1.5px] border-ink bg-paper pt-3.5 pb-[5px]">
+    <div role="group" aria-labelledby={headingId} {...{ [LEVEL]: group.level }}>
+      {/* The heading row holds the slots of the level. The slot controls handle their own arrow keys: the list moves the focus only from a row. */}
+      <div
+        {...{ [HEADING]: "" }}
+        className="sticky top-0 z-[1] flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b-[1.5px] border-ink bg-paper pt-3.5 pb-[5px]"
+      >
         <h3 id={headingId} className="text-xl leading-[1.2] font-semibold">
           {levelHeading(group.level)}
         </h3>
+        {group.level > 0 && headingSlots?.(group.level)}
       </div>
       {group.spells.length > 0 && (
         // role="list": without bullets, Safari does not name a ul as a list.

@@ -123,7 +123,8 @@ test("the list is one Tab stop: the arrow keys, Home and End move the selection,
   expect(ring).toEqual({ outline: ring.text, style: "solid", text: ring.text, fill: expect.not.stringMatching(ring.text) });
   // The rows are one stop: Tab goes on to the other controls of the panel, and never to the sheet or another row.
   const focusedRows = new Set<string>();
-  for (let i = 0; i < 6; i++) {
+  // Enough Tabs to go round the panel: the Spell slots block has 11 stops.
+  for (let i = 0; i < 30; i++) {
     await page.keyboard.press("Tab");
     // Base UI's focus guard at the end of the dialog has the focus for a moment, then sends it back in.
     await expect.poll(() => panel(page).evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true);
@@ -280,6 +281,227 @@ test("the builder link goes to the Spells step of the builder", async ({ page })
   await expect(preview.getByRole("button", { name: "Raise Dead" })).toHaveCount(0);
 });
 
+// Spell slots in the panel (ORC-286, docs/design/spells-panel.md "Spent spell slots").
+
+/** The fixtures of the fork, from this folder. */
+const fixture = (name: string) => `../../../fixtures/characters/${name}.strict.json`;
+const block = (page: Page) => panel(page).locator("[data-slots-block]");
+const foldButton = (page: Page) => block(page).getByRole("button", { name: "Spell slots" });
+const blockSlider = (page: Page, name: string) => block(page).getByRole("slider", { name });
+/** The heading row of a level in the list. */
+const headingRow = (page: Page, name: string) => listPane(page).getByRole("heading", { level: 3, name }).locator("..");
+const sheetSlider = (page: Page, name: string) => page.getByRole("group", { name: "Spellcasting", exact: true }).getByRole("slider", { name });
+
+test("a slot spent in the block shows on the level heading and on the sheet, and a slot spent on the sheet shows in the panel", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await sheetSlider(page, "3rd-level slots").locator(".ui-slot-circle").first().click();
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  await expect(blockSlider(page, "3rd-level slots")).toHaveAttribute("aria-valuetext", "1 of 3 spent");
+  await expect(headingRow(page, "3rd level").locator("[data-marked]")).toHaveCount(1);
+  // A click on a circle in the block: the focus stays on its group.
+  const first = blockSlider(page, "1st-level slots");
+  await first.locator(".ui-slot-circle").nth(3).click();
+  await expect(first).toBeFocused();
+  await expect(first).toHaveAttribute("aria-valuetext", "1 of 4 spent");
+  await expect(headingRow(page, "1st level").locator("[data-marked]")).toHaveCount(1);
+  // A click on the copy on the heading changes the same slots, and the focus stays on the group in the block.
+  await headingRow(page, "1st level").locator(".ui-slot-circle").nth(2).click();
+  await expect(first).toHaveAttribute("aria-valuetext", "2 of 4 spent");
+  await expect(first).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+  await expect(sheetSlider(page, "1st-level slots")).toHaveAttribute("aria-valuetext", "2 of 4 spent");
+  await expect(sheetSlider(page, "3rd-level slots")).toHaveAttribute("aria-valuetext", "1 of 3 spent");
+});
+
+test("a wizard 20 shows nine columns, and a wizard 5 shows rows; a warlock has the Pact entry, a multiclass warlock its circles, then the Pact entry", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, fixture("wizard-20"));
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(block(page).locator("[data-layout=columns]")).toBeVisible();
+  await expect(block(page).getByRole("slider")).toHaveCount(9);
+  await importFile(page, fixture("wizard-5"));
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(block(page).locator("[data-layout=rows]")).toBeVisible();
+  await expect(block(page).getByRole("slider")).toHaveCount(3);
+  await importFile(page, "warlock-20.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(block(page).getByRole("slider")).toHaveCount(1);
+  // One entry: a row, though its slots are of the 5th level.
+  await expect(block(page).locator("[data-layout=rows]")).toBeVisible();
+  await expect(blockSlider(page, "Pact slots, 5th level")).toHaveAttribute("data-shape", "diamond");
+  await expect(block(page).getByRole("button", { name: "Pact 5th, go to 5th level" })).toBeVisible();
+  await expect(headingRow(page, "5th level")).toContainText("Pact");
+  await importFile(page, "warlock-10-sorcerer-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(block(page).getByRole("slider")).toHaveCount(6);
+  const names = await block(page)
+    .getByRole("slider")
+    .evaluateAll((sliders) => sliders.map((slider) => slider.getAttribute("aria-label")));
+  expect(names.slice(-2)).toEqual(["5th-level slots", "Pact slots, 5th level"]);
+});
+
+test("the fold button folds the block, and the block is folded after a reload", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(foldButton(page)).toHaveAttribute("aria-expanded", "true");
+  await foldButton(page).click();
+  await expect(foldButton(page)).toHaveAttribute("aria-expanded", "false");
+  await expect(block(page).getByRole("slider")).toHaveCount(0);
+  await page.reload();
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(foldButton(page)).toHaveAttribute("aria-expanded", "false");
+  // Folded: the groups on the headings are the sliders.
+  await expect(headingRow(page, "1st level").getByRole("slider", { name: "1st-level slots" })).toBeVisible();
+});
+
+test("a level link scrolls the list to its level, and not smoothly under reduced motion", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  const headingOffset = async (name: string) => {
+    const list = (await listPane(page).boundingBox())!;
+    return (await listPane(page).getByRole("heading", { level: 3, name }).boundingBox())!.y - list.y;
+  };
+  const link = block(page).getByRole("button", { name: "Go to 4th level" });
+  await link.click();
+  await expect.poll(() => headingOffset("4th level")).toBeLessThan(16);
+  await expect(link).toBeFocused();
+  // Under reduced motion the jump is at once: the list is at its place in the same frame.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await block(page).getByRole("button", { name: "Go to 1st level" }).click();
+  expect(await headingOffset("1st level")).toBeLessThan(16);
+  // A search that hides a level disables its link.
+  await panel(page).getByRole("textbox", { name: "Search spells" }).fill("heal");
+  await expect(block(page).getByRole("button", { name: "Go to 3rd level" })).toBeDisabled();
+  await expect(block(page).getByRole("button", { name: "Go to 1st level" })).toBeEnabled();
+});
+
+test("each level is one Tab stop for its slots, two with circles and diamonds: in the block while it is open, on the headings while it is folded", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "warlock-10-sorcerer-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  /**
+   * The names of the sliders that Tab stops at, once round the panel: from the fold button, Tab until the fold
+   * button has the focus again. Base UI's focus guard at the end of the dialog has the focus for a moment and sends it
+   * back in one animation frame later, so each step waits until the focus is off the guard. Thus no queued focus of
+   * the guard can move the focus after the loop.
+   */
+  const sliderStops = async () => {
+    await foldButton(page).focus();
+    const names: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press("Tab");
+      await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute("data-base-ui-focus-guard") ?? false)).toBe(false);
+      if (await foldButton(page).evaluate((button) => button === document.activeElement)) return names;
+      const name = await page.evaluate(() =>
+        document.activeElement?.getAttribute("role") === "slider" ? document.activeElement.getAttribute("aria-label") : null,
+      );
+      if (name !== null) names.push(name);
+    }
+    throw new Error("Tab did not come back to the fold button");
+  };
+  const levels = ["1st-level slots", "2nd-level slots", "3rd-level slots", "4th-level slots", "5th-level slots"];
+  expect(await sliderStops()).toEqual([...levels, "Pact slots, 5th level"]);
+  // The copies on the headings are hidden from a screen reader.
+  await expect(listPane(page).getByRole("slider")).toHaveCount(0);
+  await foldButton(page).click();
+  expect(await sliderStops()).toEqual([...levels, "Pact slots, 5th level"]);
+  await expect(listPane(page).getByRole("slider")).toHaveCount(6);
+  // The arrow keys on a heading's group change it, and the list's roving focus does not take them.
+  const pact = headingRow(page, "5th level").getByRole("slider", { name: "Pact slots, 5th level" });
+  await pact.focus();
+  await expect(pact).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(pact).toBeFocused();
+  await expect(pact).toHaveAttribute("aria-valuetext", "1 of 2 spent");
+});
+
+test("on a phone the block is at the top of the list view and of the spell view; at 320px nine columns fit", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("tab", { name: "Spells" }).click();
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(block(page)).toBeVisible();
+  expect((await block(page).boundingBox())!.y).toBeLessThan((await listPane(page).boundingBox())!.y);
+  await row(page, "Aid").click();
+  await expect(viewHeading(page)).toHaveText("Aid");
+  await expect(block(page)).toBeVisible();
+  expect((await block(page).boundingBox())!.y).toBeLessThan((await spellPane(page).boundingBox())!.y);
+  // In the spell view the level names are plain text, and the slots still change.
+  await expect(block(page).getByRole("button", { name: "Go to 1st level" })).toHaveCount(0);
+  await blockSlider(page, "2nd-level slots").locator(".ui-slot-circle").first().click();
+  await expect(blockSlider(page, "2nd-level slots")).toHaveAttribute("aria-valuetext", "1 of 3 spent");
+
+  await page.setViewportSize({ width: 320, height: 640 });
+  await importFile(page, fixture("wizard-20"));
+  await page.getByRole("tab", { name: "Spells" }).click();
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(block(page).getByRole("slider")).toHaveCount(9);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  // The nine columns fit in the block: it does not scroll sideways either.
+  const columns = block(page).locator("[data-layout=columns]");
+  expect(await columns.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+  const right = (await block(page).boundingBox())!;
+  expect(right.x + right.width).toBeLessThanOrEqual(320);
+});
+
+test("at 320px the widest level heading is one line, and a row that gets the focus is never under the heading that sticks", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  // e2e/wizard-3-warlock-2.strict.json: the 1st-level heading has four circles and the two pact diamonds, by the
+  // builder's calls (src/components/SpellSlots.test.tsx).
+  await importFile(page, "wizard-3-warlock-2.strict.json");
+  await page.getByRole("tab", { name: "Spells" }).click();
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  // Fold the block, so the list has the height to scroll, and the heading slots are the controls.
+  await foldButton(page).click();
+  await rows(page).first().focus();
+  const first = headingRow(page, "1st level");
+  await expect(first.getByRole("slider", { name: "Pact slots, 1st level" })).toBeVisible();
+  // The widest heading stays on one line at 320px, and the pact part is in that line.
+  expect((await first.boundingBox())!.height).toBeLessThan(50);
+  const pactPart = first.getByText("Pact", { exact: true }).locator("..");
+  const diamonds = (await first.getByRole("slider", { name: "Pact slots, 1st level" }).boundingBox())!;
+  expect(Math.abs((await pactPart.boundingBox())!.y + (await pactPart.boundingBox())!.height / 2 - (diamonds.y + diamonds.height / 2))).toBeLessThan(2);
+  const count = await rows(page).count();
+  for (let i = 1; i < count; i++) {
+    await page.keyboard.press("ArrowDown");
+    const focused = rows(page).nth(i);
+    await expect(focused).toBeFocused();
+    // The heading of the row's group, which sticks at the top of the list while the group scrolls.
+    const heading = focused.locator("xpath=ancestor::*[@data-spell-level][1]/*[@data-level-heading]");
+    const headingBox = (await heading.boundingBox())!;
+    const rowBox = (await focused.boundingBox())!;
+    expect(rowBox.y).toBeGreaterThanOrEqual(headingBox.y + headingBox.height - 1);
+  }
+  // A narrower list (a larger text size gives the same) wraps the heading to two lines: the scroll padding of the list
+  // follows the height of the heading, so a row at the top of the group still shows under it.
+  await listPane(page).evaluate((pane) => {
+    pane.style.paddingRight = "80px";
+  });
+  await expect.poll(async () => (await first.boundingBox())!.height).toBeGreaterThan(60);
+  const height = (await first.boundingBox())!.height;
+  await expect.poll(() => listPane(page).evaluate((pane) => Number.parseFloat(pane.style.scrollPaddingTop))).toBe(Math.ceil(height));
+  for (let i = count - 2; i >= 0; i--) {
+    await page.keyboard.press("ArrowUp");
+    const focused = rows(page).nth(i);
+    await expect(focused).toBeFocused();
+    const heading = focused.locator("xpath=ancestor::*[@data-spell-level][1]/*[@data-level-heading]");
+    const headingBox = (await heading.boundingBox())!;
+    expect((await focused.boundingBox())!.y).toBeGreaterThanOrEqual(headingBox.y + headingBox.height - 1);
+  }
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- spells-panel.spec.ts -g orc-285
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -319,6 +541,65 @@ test.describe("screenshots", () => {
       await page.getByRole("button", { name: "All spells" }).click();
       await expect(rows(page).first()).toBeFocused();
       await page.screenshot({ path: shot("multiclass") });
+    });
+
+    // PR_SCREENSHOTS=1 bun run e2e -- spells-panel.spec.ts -g orc-286
+    test(`orc-286 Spell slots in the panel, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-286-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      /** Spends `n` slots of a group in the block. */
+      const spend = async (name: string, n: number) => {
+        // A click on an empty circle spends one; the mouse then goes away, so no circle has the light fill of the mouse.
+        for (let i = 0; i < n; i++) await blockSlider(page, name).locator(".ui-slot-circle:not([data-marked])").first().click();
+        await page.mouse.move(0, 0);
+      };
+      const open = async (file: string, phone = false) => {
+        await importFile(page, file);
+        await page.evaluate(() => document.fonts.ready);
+        if (phone) await page.getByRole("tab", { name: "Spells" }).click();
+        await page.getByRole("button", { name: "All spells" }).click();
+        await expect(rows(page).first()).toBeFocused();
+      };
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await open("life-cleric-9.strict.json");
+      await spend("1st-level slots", 2);
+      await spend("3rd-level slots", 1);
+      await rows(page).first().focus();
+      await page.screenshot({ path: shot("columns") });
+      await open("cleric-5-warlock-3.strict.json");
+      await spend("1st-level slots", 1);
+      await spend("Pact slots, 2nd level", 1);
+      await rows(page).first().focus();
+      await page.screenshot({ path: shot("rows") });
+      await open("warlock-10-sorcerer-9.strict.json");
+      await spend("2nd-level slots", 1);
+      await spend("Pact slots, 5th level", 1);
+      await rows(page).first().focus();
+      await page.screenshot({ path: shot("multiclass-warlock") });
+      await open("warlock-20.strict.json");
+      await spend("Pact slots, 5th level", 2);
+      await rows(page).first().focus();
+      await page.screenshot({ path: shot("warlock") });
+      // Folded: the groups on the level headings are the controls.
+      await open("life-cleric-9.strict.json");
+      await foldButton(page).click();
+      await page.mouse.move(0, 0);
+      await rows(page).first().focus();
+      await page.screenshot({ path: shot("folded") });
+      await foldButton(page).click();
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await open("life-cleric-9.strict.json", true);
+      await page.screenshot({ path: shot("phone-list") });
+      await row(page, "Spirit Guardians").click();
+      await expect(viewHeading(page)).toHaveText("Spirit Guardians");
+      await page.screenshot({ path: shot("phone-spell") });
+
+      await page.setViewportSize({ width: 320, height: 640 });
+      await open(fixture("wizard-20"), true);
+      await page.screenshot({ path: shot("phone-320-nine-columns") });
     });
   }
 });

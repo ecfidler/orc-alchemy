@@ -258,6 +258,37 @@ test("slot diamonds with a change handler work as the circles: one slider, one m
   expect(onChange.mock.calls).toEqual([[2], [1], [2], [3], [2]]);
 });
 
+test("vertical slot circles are a column, with the vertical orientation", () => {
+  render(<SlotCircles label="Charges" count={3} marked={1} onChange={() => {}} orientation="vertical" />);
+  const group = screen.getByRole("slider", { name: "Charges" });
+  expect(group.getAttribute("data-orientation")).toBe("vertical");
+  expect(group.getAttribute("aria-orientation")).toBe("vertical");
+});
+
+test("a copy takes clicks, is not a Tab stop, keeps the focus where it was, and is hidden from a screen reader", () => {
+  const onChange = vi.fn();
+  render(
+    <>
+      <button type="button">Before</button>
+      <SlotCircles label="Charges" count={3} marked={1} onChange={onChange} copy />
+    </>,
+  );
+  expect(screen.queryByRole("slider")).toBeNull();
+  const copy = document.querySelector<HTMLElement>(".ui-slot-circles")!;
+  expect(copy.getAttribute("aria-hidden")).toBe("true");
+  expect(copy.hasAttribute("tabindex")).toBe(false);
+  // It has the size and the tap areas of a group that changes.
+  expect(copy.hasAttribute("data-changes")).toBe(true);
+  const before = screen.getByRole("button", { name: "Before" });
+  before.focus();
+  // A mouse down does not take the focus.
+  expect(fireEvent.mouseDown(copy.children[2]!)).toBe(false);
+  fireEvent.click(copy.children[2]!);
+  fireEvent.click(copy.children[0]!);
+  expect(onChange.mock.calls).toEqual([[2], [0]]);
+  expect(document.activeElement).toBe(before);
+});
+
 test("current / max shows the max in the muted part", () => {
   render(<CurrentMax current={7} max={12} />);
   const pair = screen.getByText("7", { exact: false });

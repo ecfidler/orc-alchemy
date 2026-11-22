@@ -1,4 +1,5 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback } from "react";
+import { storedValue, useStoredValue } from "./stored-value.ts";
 
 /** The `localStorage` key for the theme override. This package owns it. */
 export const THEME_STORAGE_KEY = "theme";
@@ -24,17 +25,11 @@ export const themeHeadScript = `(function () {
   });
 })();`;
 
-// The choice when storage is blocked. It lasts until the page reloads.
-let unstored: ThemePreference = "system";
-
-function read(): ThemePreference {
-  try {
-    const value = localStorage.getItem(THEME_STORAGE_KEY);
-    return value === "light" || value === "dark" ? value : "system";
-  } catch {
-    return unstored;
-  }
-}
+const store = storedValue<ThemePreference>(THEME_STORAGE_KEY, {
+  parse: (stored) => (stored === "light" || stored === "dark" ? stored : "system"),
+  serialize: (preference) => (preference === "system" ? null : preference),
+  fallback: "system",
+});
 
 function apply(preference: ThemePreference) {
   const root = document.documentElement;
@@ -42,38 +37,29 @@ function apply(preference: ThemePreference) {
   else root.dataset.theme = preference;
 }
 
-const listeners = new Set<() => void>();
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  const onStorage = (event: StorageEvent) => {
-    if (event.key !== THEME_STORAGE_KEY && event.key !== null) return;
-    apply(read());
+// Each write in this tab and each change in another tab sets data-theme, while a hook listens.
+const subscribe = (listener: () => void) =>
+  store.subscribe(() => {
+    apply(store.read());
     listener();
-  };
-  addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    removeEventListener("storage", onStorage);
-  };
-}
+  });
+const themeStore = { ...store, subscribe };
 
 /**
  * The stored theme preference and a setter. The setter writes the key (or
  * removes it for "system") and sets `data-theme` on `<html>` at once. A
  * change in another tab sets `data-theme` here too, and re-renders the hook.
+ * When the storage is blocked, the choice lasts until the page reloads.
  */
 export function useThemePreference(): [ThemePreference, (preference: ThemePreference) => void] {
-  const preference = useSyncExternalStore(subscribe, read, () => "system" as const);
-  const setPreference = useCallback((next: ThemePreference) => {
-    try {
-      if (next === "system") localStorage.removeItem(THEME_STORAGE_KEY);
-      else localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      unstored = next;
-    }
-    apply(next);
-    for (const listener of listeners) listener();
-  }, []);
+  const [preference, write] = useStoredValue(themeStore, "system");
+  const setPreference = useCallback(
+    (next: ThemePreference) => {
+      write(next);
+      // Also here, so that data-theme does not depend on a listener.
+      apply(next);
+    },
+    [write],
+  );
   return [preference, setPreference];
 }
