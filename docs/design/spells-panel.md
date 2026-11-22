@@ -607,8 +607,8 @@ slots to `wizard-5` or `warlock-10-drow` with `setValue`.
   changes" and the Save button.
 * A save that works shows nothing in the panel, and it removes the note.
 * "Try again" has the action look of the alert note, a link button, as
-  "Reload this page" has. The theme rule "Alert note" wins over the small
-  bordered button of the prototype.
+  "Reload this page" has, as the other alert-note actions of the app
+  have. This wins over the small bordered button of the prototype.
 * The sheet has no "Try again". Its Save button saves again.
 * When a save that works removes the note while "Try again" has the focus,
   the focus goes back to the control that made the change. If that control
