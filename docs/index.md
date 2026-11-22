@@ -8,8 +8,6 @@ This directory is an Open Knowledge Format bundle. Read
 [How this project uses the Open Knowledge Format](conventions/okf-profile.md)
 before you add or change a document.
 
-* [Human notes](human-notes.md) - Notes, ideas, and to-do items that human developers write about the project.
-
 # Subdirectories
 
 * [Guides](guides/index.md) - Steps for people who use Alchemy 5e.
