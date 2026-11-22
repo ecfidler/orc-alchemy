@@ -112,7 +112,7 @@ test("a sorcerer and a warlock have no class that prepares: no count, and each s
   expect([...kinds].sort()).toEqual(["cantrip", "known"]);
 }, 20_000);
 
-test("a cleric 3 / wizard 2 has a count for each class, in the order of the casters (the engine gives the wizard first)", () => {
+test("a cleric 3 / wizard 2 has a count for each class, in the order of the classes of the character, not of the engine casters", () => {
   const entity = prepareAll(
     build(
       [
@@ -132,12 +132,19 @@ test("a cleric 3 / wizard 2 has a count for each class, in the order of the cast
     "Cleric",
     ["command", "aid"],
   );
-  const counts = prepareCounts(spellcastingOf(prepareAll(entity, "Wizard", ["shield"])));
+  const prepared = prepareAll(entity, "Wizard", ["shield"]);
+  const sheet = toSheet(engine().evaluate(prepared).built, prepared);
+  // The engine gives the wizard first; the character took the cleric first, as the class line of the header shows.
+  expect(sheet.spellcasting!.casters.map((caster) => caster.name)).toEqual(["Wizard", "Cleric"]);
+  const counts = prepareCounts(sheet.spellcasting!, sheet.classes);
   expect(counts.map((count) => [count.className, count.prepared, count.state])).toEqual([
-    ["Wizard", 1, "under"],
     ["Cleric", 2, "under"],
+    ["Wizard", 1, "under"],
   ]);
-  expect(counts.map((count) => count.limit)).toEqual(spellcastingOf(entity).casters.map((caster) => caster.canPrepare));
+  const limits = new Map(sheet.spellcasting!.casters.map((caster) => [caster.name, caster.canPrepare]));
+  expect(counts.map((count) => count.limit)).toEqual([limits.get("Cleric"), limits.get("Wizard")]);
+  // Without the classes, the order of the casters stays.
+  expect(prepareCounts(sheet.spellcasting!).map((count) => count.className)).toEqual(["Wizard", "Cleric"]);
 }, 20_000);
 
 test("a class that prepares with no known limit has the state no-limit and nothing to remove", () => {

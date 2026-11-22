@@ -205,6 +205,26 @@ test("two classes that prepare: each count has the class name first", async () =
   ]);
 });
 
+test("a cleric 3 / wizard 2: the counts follow the class line of the header, the cleric first", async () => {
+  const e = engine();
+  const q = (key: string) => `~:orcpub.dnd.e5.character/${key}`;
+  let entity = e.setField(
+    e.emptyCharacter(),
+    ["ability-scores", "standard-scores"],
+    Object.fromEntries(Object.entries({ str: 8, dex: 12, con: 13, int: 14, wis: 16, cha: 10 }).map(([a, n]) => [q(a), n])),
+  );
+  entity = e.setClass(entity, 0, "cleric");
+  for (let n = 2; n <= 3; n++) entity = e.addLevel(entity, "cleric");
+  entity = e.addClass(entity, "wizard");
+  entity = e.addLevel(entity, "wizard");
+  entity = e.select(entity, ["class", "cleric", "levels", "level-1", "divine-domain"], "life-domain");
+  for (const key of ["alarm", "shield"]) entity = e.select(entity, ["class", "wizard", "wizard-spells-known"], key);
+  const { dialog } = await renderLive(prepareAll(entity, "Cleric", ["command"]));
+  expect(within(dialog).getByText("Cleric 3 / Wizard 2")).toBeTruthy();
+  expect(counts(dialog).map(([, text]) => text!.split(":")[0])).toEqual(["Cleric", "Wizard"]);
+  expect(counts(dialog)[0]![1]).toMatch(/^Cleric: 1 of \d+ prepared$/);
+}, 20_000);
+
 test("the prepare line of the spell view: the box, Prepared or Not prepared and the count; it works outside prepare mode, and the view keeps the spell", async () => {
   const { dialog, entities } = await renderLive(e2eFile("life-cleric-9"));
   fireEvent.click(row(dialog, "Healing Word"));

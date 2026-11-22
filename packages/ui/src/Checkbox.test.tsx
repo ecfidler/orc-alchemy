@@ -62,11 +62,11 @@ test("tabIndex -1 takes the box out of the Tab order; a click still checks it, w
   const change = vi.fn();
   render(
     <>
-      <Checkbox aria-label="Prepared: Bless" checked={false} onCheckedChange={change} tabIndex={-1} />
+      <Checkbox aria-label="Selected: Notes" checked={false} onCheckedChange={change} tabIndex={-1} />
       <Checkbox label="Shown" name="Shown row" checked onCheckedChange={change} tabIndex={-1} />
     </>,
   );
-  const alone = screen.getByRole("checkbox", { name: "Prepared: Bless" });
+  const alone = screen.getByRole("checkbox", { name: "Selected: Notes" });
   const named = screen.getByRole("checkbox", { name: "Shown row" });
   expect([alone.tabIndex, named.tabIndex]).toEqual([-1, -1]);
   fireEvent.click(alone);

@@ -1,9 +1,9 @@
 // The prepare rule (ORC-287, docs/design/spells-panel.md "Preparing
 // spells"): for a known spell, can the user change it, and for a class that
 // prepares, what is its prepare count and the state of that count. The
-// Spells panel uses it, and the Spells step of the builder uses it too
+// Spells panel uses it, and the Spells step of the builder will use it
 // (ORC-288). It has no knowledge of React or of the panel.
-import type { KnownSpell, Spellcaster, Spellcasting } from "./sheet.ts";
+import type { KnownSpell, SheetClass, Spellcaster, Spellcasting } from "./sheet.ts";
 
 /**
  * How a known spell takes part in preparing:
@@ -18,7 +18,7 @@ import type { KnownSpell, Spellcaster, Spellcasting } from "./sheet.ts";
  */
 export type PrepareKind = "can-change" | "always" | "known" | "cantrip";
 
-/** The classes that prepare, by name. */
+/** The spellcasters, with whether each prepares. */
 type Casters = Pick<Spellcaster, "name" | "prepares">[];
 
 /** The prepare kind of a known spell of spell level `level`. */
@@ -28,6 +28,9 @@ export function prepareKind(spell: Pick<KnownSpell, "source" | "alwaysPrepared">
   if (!prepares) return "known";
   return spell.alwaysPrepared ? "always" : "can-change";
 }
+
+/** True for a spell that has a box in prepare mode: a spell that the user can change, or an always-prepared spell. */
+export const hasPrepareBox = (kind: PrepareKind): kind is "can-change" | "always" => kind === "can-change" || kind === "always";
 
 /**
  * The state of a prepare count: under the limit, at it, over it, or
@@ -50,13 +53,20 @@ export interface PrepareCount {
 }
 
 /**
- * The prepare count of each class that prepares, in the order of the
- * casters. A spell counts when the user can change it and it is prepared.
+ * The prepare count of each class that prepares, in the order of `classes`:
+ * the order in which the character took them, as in the class line of the
+ * panel header. A caster that is not in `classes` comes last. A spell counts
+ * when the user can change it and it is prepared.
  */
-export function prepareCounts(spellcasting: Pick<Spellcasting, "casters" | "byLevel">): PrepareCount[] {
+export function prepareCounts(spellcasting: Pick<Spellcasting, "casters" | "byLevel">, classes: Pick<SheetClass, "name">[] = []): PrepareCount[] {
   const { casters, byLevel } = spellcasting;
+  const order = (name: string) => {
+    const at = classes.findIndex((c) => c.name === name);
+    return at === -1 ? classes.length : at;
+  };
   return casters
     .filter((caster) => caster.prepares)
+    .sort((a, b) => order(a.name) - order(b.name))
     .map((caster) => {
       const prepared = byLevel
         .flatMap(({ level, spells }) => spells.map((spell) => ({ ...spell, level })))

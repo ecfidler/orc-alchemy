@@ -16,7 +16,7 @@ import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useR
 import { Link } from "react-router";
 import { bonusStr, type PrepareSpell, type Sheet, type Spellcasting, type SpellRef, type SpendSlots } from "../engine/sheet.ts";
 import { type ListedSpell, searchSpellGroups, spellClassLine, spellGroups, spellId, spellSources } from "../engine/spell-list.ts";
-import { type PrepareCount, prepareCounts, prepareCountText, prepareKind } from "../engine/spell-prepare.ts";
+import { hasPrepareBox, type PrepareCount, prepareCounts, prepareCountText, prepareKind } from "../engine/spell-prepare.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { useSpellSlotsFolded } from "../state/spell-slots-fold.ts";
 import { HEADING, INITIAL_FOCUS, LEVEL, ROW, SpellList } from "./SpellList.tsx";
@@ -82,7 +82,15 @@ export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, bui
       header={<PanelHeader spellcasting={spellcasting} classes={classes} />}
       initialFocus={() => panes.current?.querySelector<HTMLElement>(`[${INITIAL_FOCUS}]`) ?? null}
     >
-      <PanelBody spellcasting={spellcasting} at={at} builderHref={builderHref} panes={panes} onSpendSlots={onSpendSlots} onPrepare={onPrepare} />
+      <PanelBody
+        spellcasting={spellcasting}
+        classes={classes}
+        at={at}
+        builderHref={builderHref}
+        panes={panes}
+        onSpendSlots={onSpendSlots}
+        onPrepare={onPrepare}
+      />
     </Dialog>
   );
 }
@@ -175,18 +183,20 @@ function CountText({ count, withClass, prepareMode }: { count: PrepareCount; wit
  */
 function PrepareLine({
   spell,
+  kind,
   count,
   withClass,
   prepareMode,
   onPrepare,
 }: {
   spell: ListedSpell;
+  kind: "can-change" | "always";
   count: PrepareCount | undefined;
   withClass: boolean;
   prepareMode: boolean;
   onPrepare: PrepareSpell;
 }) {
-  if (spell.alwaysPrepared)
+  if (kind === "always")
     return (
       <p className="flex items-center gap-2.5 font-sans text-[13.5px] text-ink-muted">
         <LockIcon />
@@ -213,6 +223,7 @@ function PrepareLine({
  */
 function PanelBody({
   spellcasting,
+  classes,
   at,
   builderHref,
   panes,
@@ -220,6 +231,7 @@ function PanelBody({
   onPrepare,
 }: {
   spellcasting: Spellcasting;
+  classes: Sheet["classes"];
   at: SpellRef | undefined;
   builderHref: string;
   panes: RefObject<HTMLDivElement>;
@@ -230,7 +242,8 @@ function PanelBody({
   const loaded = lookup !== null;
   const phone = usePhone();
   const [prepareMode, setPrepareMode] = useState(false);
-  const counts = prepareCounts(spellcasting);
+  // In the order of the class line of the header.
+  const counts = prepareCounts(spellcasting, classes);
   // With two classes that prepare, each count has the class name first.
   const withClass = counts.length > 1;
   const all = spellGroups(spellcasting, lookup, { unprepared: prepareMode });
@@ -241,12 +254,13 @@ function PanelBody({
   // Until the user picks a spell, the selected spell is the one of `at`, or else the first. The spell view keeps a
   // picked spell that leaves the list, as it does after a search: for example a spell that the user stops preparing
   // outside prepare mode, or after "Done".
-  const known = prepareMode ? spells : spellGroups(spellcasting, lookup, { unprepared: true }).flatMap((group) => group.spells);
+  const selectable = prepareMode ? spells : spellGroups(spellcasting, lookup, { unprepared: true }).flatMap((group) => group.spells);
   const [picked, setPicked] = useState<string | null>(null);
   const atId = at && spells.some((spell) => spellId(spell) === spellId(at)) ? spellId(at) : null;
-  const pickedId = picked !== null && known.some((spell) => spellId(spell) === picked) ? picked : null;
+  const pickedId = picked !== null && selectable.some((spell) => spellId(spell) === picked) ? picked : null;
   const selectedId = pickedId ?? atId ?? (spells[0] ? spellId(spells[0]) : null);
-  const selected = known.find((spell) => spellId(spell) === selectedId) ?? null;
+  const selected = selectable.find((spell) => spellId(spell) === selectedId) ?? null;
+  const selectedKind = selected && prepareKind(selected, spellcasting.casters);
   const [focused, setFocused] = useState<string | null>(null);
   const isShown = (id: string | null) => id !== null && shown.some((spell) => spellId(spell) === id);
   const tabStop = isShown(focused) ? focused : isShown(selectedId) ? selectedId : shown[0] ? spellId(shown[0]) : null;
@@ -334,8 +348,8 @@ function PanelBody({
     // Only these changes scroll: an arrow key or a click scrolls by itself.
   }, [loaded, query, prepareMode]);
   // While the spells load, the dialog gives the focus to its fallback: the first control of the body, the "Prepare
-  // spells" button or else the builder link (or the popup on a touch screen). When the spells show, the selected row gets the focus, but only while the user
-  // has not moved it, for example to the X.
+  // spells" button or else the builder link (or the popup on a touch screen). When the spells show, the selected row
+  // gets the focus, but only while the user has not moved it, for example to the X.
   const waitsForRows = useRef(!loaded);
   useLayoutEffect(() => {
     if (!loaded || !waitsForRows.current) return;
@@ -449,9 +463,10 @@ function PanelBody({
             spellView && <p className="text-ink-muted">Loading spells…</p>
           ) : selected ? (
             <SpellView name={selected.name} spell={lookup(selected.key)} castNote={selected.castNote}>
-              {["can-change", "always"].includes(prepareKind(selected, spellcasting.casters)) && (
+              {selectedKind && hasPrepareBox(selectedKind) && (
                 <PrepareLine
                   spell={selected}
+                  kind={selectedKind}
                   count={counts.find((count) => count.className === selected.source)}
                   withClass={withClass}
                   prepareMode={prepareMode}

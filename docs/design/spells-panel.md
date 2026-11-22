@@ -4,7 +4,7 @@ title: Spells panel spec
 description: The settled design of the Spells panel on the character sheet - the popup with the spell list and the spell text, prepared spells, spent spell slots in the panel and on the sheet, Pact Magic slots, how a sheet change saves, the spell records, and the run order of the build tickets.
 tags: [design, sheet, spells]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-21T23:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-22T04:28:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel
 sources:
   - id: orc-262
@@ -188,10 +188,10 @@ The panel is a `Dialog` of `@orc-alchemy/ui` with the new wide size (see
   off.
 * While the spell chunk loads, the list shows "Loading spells…". The
   spell view shows no spell, and on a phone it also says "Loading
-  spells…". The focus is on the first control of the body, the builder
-  link (on a touch screen, on the popup). When the spells show, the
-  selected row gets the focus, if the focus is still on the builder link
-  or the popup.
+  spells…". The focus is on the first control of the body: the button
+  "Prepare spells" when the bar has it, else the builder link (on a touch
+  screen, on the popup). When the spells show, the selected row gets the
+  focus, if the focus is still on that control or the popup.
 
 ## The header
 
@@ -402,6 +402,10 @@ other boxes at the limit.
   prepares each apart.
 * The spells keep the order A to Z while the user prepares. A prepared
   spell does not move.
+* A selected spell that leaves the list stays in the spell view, as after
+  a search. For example, the user stops preparing it in prepare mode and
+  selects "Done", or stops preparing it with the prepare line outside
+  prepare mode.
 
 ## The prepare line of the spell view
 
@@ -601,8 +605,12 @@ the results. Each build ticket chooses the ARIA pattern that gives them.
 with a roving tabindex, under real level headings. Each level is a group
 named by its heading. The selected row has `aria-current="true"`. A
 listbox does not fit, because a listbox can hold only options, and the
-level headings get slot controls (ORC-286). In prepare mode (ORC-287) a
-row can be a button with the checkbox role, and Space changes it.
+level headings get slot controls (ORC-286). In prepare mode (ORC-287)
+the row stays a button that selects the spell. The box is a Checkbox
+beside the button, in the same list item, so no control is in another
+one. The box is not a Tab stop (`tabIndex` -1), because the list is one
+Tab stop. A mouse and a screen reader reach it, and a click on it does
+not move the focus. Space on the row changes the box.
 
 **Focus**
 
@@ -625,7 +633,9 @@ row can be a button with the checkbox role, and Space changes it.
   spell view follows the arrow keys.
 * In prepare mode, Space on a row changes its box. The name of the row
   for a screen reader has the spell name, the source when it shows, and
-  "prepared", "not prepared" or "always prepared".
+  "prepared", "not prepared", "always prepared" or "known". The name is
+  one `aria-label` on the row, for example "Bless, always prepared
+  Concentration", so ORC-289 adds the source to that label.
 * After "Prepare spells", "Done" or a search, the selected row scrolls
   into view if it is in the list.
 
@@ -658,7 +668,8 @@ row can be a button with the checkbox role, and Space changes it.
   the name. On a phone, it says the name when the spell view opens (see
   [On a phone](#on-a-phone)).
 * A change of a prepare count is in a polite live region: "Cleric: 9 of
-  8 prepared. Remove 1 spell."
+  8 prepared. Remove 1 spell." The message always has the class name,
+  also when the character has one class that prepares.
 * The failed-save note in the panel has the alert role.
 
 **Motion.** Under `prefers-reduced-motion: reduce`, a jump to a level

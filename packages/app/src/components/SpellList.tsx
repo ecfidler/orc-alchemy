@@ -16,7 +16,7 @@
 import { Checkbox, Label, ListRow, LockIcon, TextInput } from "@orc-alchemy/ui";
 import { type KeyboardEvent, type ReactNode, useId } from "react";
 import { type ListedSpell, levelHeading, type SpellGroup, spellId } from "../engine/spell-list.ts";
-import type { PrepareKind } from "../engine/spell-prepare.ts";
+import { hasPrepareBox, type PrepareKind } from "../engine/spell-prepare.ts";
 import type { SpellLookup } from "../engine/spell-records.ts";
 import { durationParts } from "../engine/spell-text.ts";
 import { BoxTag } from "./BoxTag.tsx";
@@ -167,7 +167,7 @@ function LevelGroup({
             const kind = prepareMode && kindOf ? kindOf(spell) : null;
             return (
               <li key={id} className={kind ? "relative" : undefined}>
-                {(kind === "can-change" || kind === "always") && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} />}
+                {kind && hasPrepareBox(kind) && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} />}
                 <Row
                   spell={spell}
                   lookup={lookup}

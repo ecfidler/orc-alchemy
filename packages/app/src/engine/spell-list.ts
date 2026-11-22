@@ -3,6 +3,7 @@
 // to show, and the order A to Z in each level. The Spellcasting section of the
 // sheet and the list of the panel use this one rule.
 import { type KnownSpell, ordinal, type Sheet, type Spellcasting } from "./sheet.ts";
+import { prepareKind } from "./spell-prepare.ts";
 import { type SpellLookup, spellName } from "./spell-records.ts";
 import { slotEntries } from "./spell-slots.ts";
 
@@ -43,12 +44,11 @@ export function spellGroups(
   { unprepared = false }: { unprepared?: boolean } = {},
 ): SpellGroup[] {
   const { casters, byLevel, slots, pact } = spellcasting;
-  const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
   const shown = new Map(
     byLevel.map(({ level, spells }) => [
       level,
       spells
-        .filter((spell) => unprepared || level === 0 || spell.prepared || !prepares.get(spell.source))
+        .filter((spell) => unprepared || prepareKind({ ...spell, level }, casters) !== "can-change" || spell.prepared)
         .map((spell): ListedSpell => ({ ...spell, level, name: lookup ? spellName(lookup, spell.key, spell.name) : spell.name }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     ]),
