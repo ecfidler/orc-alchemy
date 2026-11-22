@@ -318,6 +318,122 @@ test("a slot spent in the block shows on the level heading and on the sheet, and
   await expect(sheetSlider(page, "3rd-level slots")).toHaveAttribute("aria-valuetext", "1 of 3 spent");
 });
 
+// A failed save in the panel (ORC-290, docs/design/spells-panel.md "A failed save").
+
+/** While `on`, each read of the characters store fails, as a broken IndexedDB does. Autosave reads the record first. */
+async function failSaves(page: Page, on: boolean) {
+  await page.evaluate((on) => {
+    const flags = window as unknown as { failSaves?: boolean };
+    if (flags.failSaves === undefined) {
+      const get = IDBObjectStore.prototype.get;
+      IDBObjectStore.prototype.get = function (this: IDBObjectStore, query: IDBValidKey | IDBKeyRange) {
+        if (flags.failSaves && this.name === "characters") throw new DOMException("Read failed", "UnknownError");
+        return get.call(this, query);
+      };
+    }
+    flags.failSaves = on;
+  }, on);
+}
+
+const FAILED = "Saving to this browser failed. Recent changes may not be kept.";
+/** The note of a failed save in the panel, and the one on the sheet behind it (outside the dialog). */
+const panelNote = (page: Page) => panel(page).getByRole("alert");
+const sheetNote = (page: Page) => page.locator(".ui-alert-notes").getByRole("alert", { includeHidden: true });
+
+test("a slot change that fails to save shows the note with Try again under the header, and on the sheet; Try again saves and removes the two", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  await failSaves(page, true);
+  const first = blockSlider(page, "1st-level slots");
+  await first.locator(".ui-slot-circle").first().click();
+  await expect(panelNote(page)).toHaveText(`Failed${FAILED} Try again`);
+  // Under the header, above the prepare bar.
+  const head = await panel(page).locator(".ui-modal-own-head").boundingBox();
+  const note = await panelNote(page).boundingBox();
+  const bar = await panel(page).getByRole("button", { name: "Prepare spells" }).boundingBox();
+  expect(note!.y).toBeGreaterThanOrEqual(head!.y + head!.height);
+  expect(note!.y + note!.height).toBeLessThanOrEqual(bar!.y);
+  // The change stays on the screen and in the draft.
+  await expect(first).toHaveAttribute("aria-valuetext", "1 of 4 spent");
+  await expect(first.locator("[data-marked]")).toHaveCount(1);
+  await expect(first).toBeFocused();
+  // The sheet behind the panel: the same note, Unsaved changes and Save.
+  await expect(sheetNote(page)).toHaveText(`Failed${FAILED}`);
+  await expect(page.getByRole("status", { name: "Save status", includeHidden: true })).toHaveText("Unsaved changes");
+  await expect(page.getByRole("button", { name: "Save", exact: true, includeHidden: true })).toHaveCount(1);
+
+  // A Try again that fails keeps the note; one that works removes it, and the focus goes back to the slots.
+  const tryAgain = panelNote(page).getByRole("button", { name: "Try again" });
+  await tryAgain.click();
+  await expect(panelNote(page)).toBeVisible();
+  await failSaves(page, false);
+  await tryAgain.click();
+  await expect(panelNote(page)).toHaveCount(0);
+  await expect(sheetNote(page)).toHaveCount(0);
+  await expect(first).toBeFocused();
+  await expect(first).toHaveAttribute("aria-valuetext", "1 of 4 spent");
+  await expect(page.getByRole("status", { name: "Save status", includeHidden: true })).toHaveText("Saved");
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+  await expect(page.getByRole("button", { name: "Save", exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(sheetSlider(page, "1st-level slots")).toHaveAttribute("aria-valuetext", "1 of 4 spent");
+});
+
+/** The stored character records, as JSON text. */
+const storedRecords = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<string>((resolve, reject) => {
+        const open = indexedDB.open("alchemy-5e");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const all = open.result.transaction("characters").objectStore("characters").getAll();
+          all.onerror = () => reject(all.error);
+          all.onsuccess = () => {
+            open.result.close();
+            resolve(JSON.stringify(all.result));
+          };
+        };
+      }),
+  );
+
+test("a slot change that saves shows no note in the panel", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  expect(await storedRecords(page)).not.toContain("slots-1");
+  await blockSlider(page, "1st-level slots").locator(".ui-slot-circle").first().click();
+  await expect.poll(() => storedRecords(page)).toContain("slots-1");
+  await expect(panel(page).getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("alert", { includeHidden: true })).toHaveCount(0);
+  await expect(page.getByRole("status", { name: "Save status", includeHidden: true })).toHaveText("Saved");
+});
+
+test("on a phone at 320px the note with Try again fits: no sideways scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("tab", { name: "Spells" }).click();
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  await failSaves(page, true);
+  await blockSlider(page, "1st-level slots").locator(".ui-slot-circle").first().click();
+  await expect(panelNote(page)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  const bounds = await panelNote(page).boundingBox();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
+  await failSaves(page, false);
+  await panelNote(page).getByRole("button", { name: "Try again" }).click();
+  await expect(panelNote(page)).toHaveCount(0);
+  await expect(blockSlider(page, "1st-level slots")).toBeFocused();
+});
+
 test("a wizard 20 shows nine columns, and a wizard 5 shows rows; a warlock has the Pact entry, a multiclass warlock its circles, then the Pact entry", async ({
   page,
 }) => {
@@ -920,6 +1036,36 @@ test.describe("screenshots", () => {
       await stateRow(page, "Detect Magic", "not prepared").click();
       await expect(viewHeading(page)).toHaveText("Detect Magic");
       await page.screenshot({ path: shot("phone-spell") });
+    });
+
+    // PR_SCREENSHOTS=1 bun run e2e -- spells-panel.spec.ts -g orc-290
+    test(`orc-290 A failed save in the panel, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-290-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      const failedChange = async (phone = false) => {
+        await importFile(page, "life-cleric-9.strict.json");
+        await page.evaluate(() => document.fonts.ready);
+        if (phone) await page.getByRole("tab", { name: "Spells" }).click();
+        await page.getByRole("button", { name: "All spells" }).click();
+        await expect(rows(page).first()).toBeFocused();
+        await failSaves(page, true);
+        await blockSlider(page, "1st-level slots").locator(".ui-slot-circle").first().click();
+        await expect(panelNote(page)).toBeVisible();
+        await page.mouse.move(0, 0);
+      };
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await failedChange();
+      await page.screenshot({ path: shot("panel") });
+      await page.keyboard.press("Escape");
+      await expect(panel(page)).toBeHidden();
+      await page.screenshot({ path: shot("sheet") });
+
+      await failSaves(page, false);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await failedChange(true);
+      await page.screenshot({ path: shot("phone") });
     });
 
     // PR_SCREENSHOTS=1 bun run e2e -- spells-panel.spec.ts -g orc-289
