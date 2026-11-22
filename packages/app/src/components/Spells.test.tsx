@@ -2,11 +2,15 @@ import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
-import { preparedSpells } from "../engine/spells.ts";
+import { loadSpellContent, preparedSpells } from "../engine/spells.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
 
-beforeAll(() => loadEngine());
+// The prepare boxes wait for the spell records (ORC-288), so the records load first.
+beforeAll(async () => {
+  await loadEngine();
+  await loadSpellContent();
+});
 afterEach(cleanup);
 
 const q = (ability: string) => `~:orcpub.dnd.e5.character/${ability}`;
@@ -30,6 +34,8 @@ function open(id: string, entity: StrictEntity) {
 
 const entity = () => useCharacter.getState().entity!;
 const region = (name: string) => within(screen.getByRole("region", { name: new RegExp(`^${name}`) }));
+/** The prepare counts of the Spells step: [state, text]. */
+const counts = () => [...document.querySelectorAll("[data-prepare-count]")].map((count) => [count.getAttribute("data-prepare-count"), count.textContent]);
 const cards = (name: string) =>
   region(name)
     .getAllByRole("button")
@@ -64,7 +70,8 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   expect(region("Prepared spells: Wizard").getByText("1 of 1 prepared")).toBeTruthy();
   expect(preparedSpells(entity())).toEqual({ Wizard: new Set(["alarm"]) });
   expect(screen.getByRole("checkbox", { name: "Prepared: Alarm" })).toBeChecked();
-  expect(screen.getByRole("checkbox", { name: "Prepared: Burning Hands" })).toHaveAttribute("aria-disabled", "true");
+  // At the limit the other boxes stay on (ORC-288).
+  expect(screen.getByRole("checkbox", { name: "Prepared: Burning Hands" })).not.toHaveAttribute("aria-disabled", "true");
   fireEvent.click(screen.getByRole("checkbox", { name: "Prepared: Alarm" }));
   expect(preparedSpells(entity())).toEqual({ Wizard: new Set() });
   expect(screen.getByRole("checkbox", { name: "Prepared: Burning Hands" })).not.toHaveAttribute("aria-disabled", "true");
@@ -106,4 +113,27 @@ test("a Life cleric's domain spells are always prepared and take no place in its
   fireEvent.click(prepared.getByRole("checkbox", { name: "Prepared: Bane" }));
   expect(region("Prepared spells: Cleric").getByText("1 of 2 prepared")).toBeTruthy();
   expect(preparedSpells(entity())).toEqual({ Cleric: new Set(["bane"]) });
+  // A click on the always-prepared box changes nothing.
+  fireEvent.click(region("Prepared spells: Cleric").getByRole("checkbox", { name: "Prepared: Bless" }));
+  expect(region("Prepared spells: Cleric").getByRole("checkbox", { name: "Prepared: Bless" })).toBeChecked();
+  expect(counts()).toEqual([["under", "1 of 2 prepared"]]);
+  expect(preparedSpells(entity())).toEqual({ Cleric: new Set(["bane"]) });
+});
+
+test("a cleric at the limit can prepare one more spell: the count is red and says to remove 1 spell (ORC-288)", () => {
+  open("spells-cleric-over", caster("cleric"));
+  const box = (name: string) => region("Prepared spells: Cleric").getByRole("checkbox", { name: `Prepared: ${name}` });
+  // Under the limit: yellow.
+  expect(counts()).toEqual([["under", "0 of 2 prepared"]]);
+  fireEvent.click(box("Bane"));
+  fireEvent.click(box("Bless"));
+  // At the limit: green, and the count shows in the builder.
+  expect(counts()).toEqual([["at", "2 of 2 prepared"]]);
+  expect(box("Command")).not.toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(box("Command"));
+  // Over the limit: red, with the spells to remove. The app removes nothing.
+  expect(counts()).toEqual([["over", "3 of 2 prepared. Remove 1 spell."]]);
+  expect(preparedSpells(entity())).toEqual({ Cleric: new Set(["bane", "bless", "command"]) });
+  fireEvent.click(box("Bless"));
+  expect(counts()).toEqual([["at", "2 of 2 prepared"]]);
 });
