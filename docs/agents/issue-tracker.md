@@ -37,7 +37,7 @@ The terms have the same meaning as in Linear (ORC-279).
 
 The free plan has a limit of 250 issues that are not archived. Linear archives a closed issue (Done, Canceled or Duplicate) by itself only after the project of the issue has the status Completed. The issue and the project must then stay unchanged for the auto-archive period of the team (1 month). Thus each project must end, and no issue stays outside a project (ORC-278).
 
-The Linear app and the Linear MCP tools have no archive command, but the Linear API has one. `scripts/linear-archive.ts` archives closed issues at once (ORC-292). The `linear-cleanup` skill gives the steps. Use it when the count comes near the limit, or when Linear refuses a new issue.
+The Linear app and the Linear MCP tools have no archive command, but the Linear API has one. `scripts/linear-archive.ts` archives closed issues at once (ORC-292). The `linear-cleanup` skill gives the steps. When the count comes near the limit, or when Linear refuses a new issue, use the skill.
 
 ### Create a project
 

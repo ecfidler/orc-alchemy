@@ -99,9 +99,7 @@ code after the last change to `DESIGN.md`. It does not examine `theme.md`.
 `.claude/skills/decision-rounds/` belongs to this project (ORC-261). The
 folder also holds the source of the round page, an Artifact.
 
-`.claude/skills/linear-cleanup/` belongs to this project (ORC-292). It
-archives the closed Linear issues with `scripts/linear-archive.ts`, to keep
-the workspace under the issue limit of the free plan.
+`.claude/skills/linear-cleanup/` belongs to this project (ORC-292).
 
 ### Issue tracker
 

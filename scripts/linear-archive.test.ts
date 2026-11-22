@@ -38,6 +38,7 @@ test("the list has the closed issues of closed projects only", () => {
   );
   expect(ids(plan.archive)).toEqual(["ORC-1", "ORC-2", "ORC-3"]);
   expect(plan.skip).toEqual([]);
+  expect(ids(plan.outside)).toEqual(["ORC-4", "ORC-5"]);
 });
 
 test("--project adds the closed issues of an open project", () => {
@@ -90,10 +91,9 @@ test("an issue with more sub-issues than one page stays", () => {
 });
 
 test("parseArgs reads the flags", () => {
-  expect(parseArgs([])).toEqual({ selection: ALL, team: "ORC", apply: false });
-  expect(parseArgs(["--project", "A b", "--project", "C", "--only", "orc-1, ORC-2", "--team", "X", "--apply"])).toEqual({
+  expect(parseArgs([])).toEqual({ selection: ALL, apply: false });
+  expect(parseArgs(["--project", "A b", "--project", "C", "--only", "orc-1, ORC-2", "--apply"])).toEqual({
     selection: { projects: ["A b", "C"], only: ["ORC-1", "ORC-2"] },
-    team: "X",
     apply: true,
   });
   expect(() => parseArgs(["--aply"])).toThrow("unknown argument");

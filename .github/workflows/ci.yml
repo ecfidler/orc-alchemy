@@ -35,7 +35,7 @@ jobs:
               run: bun run lint
 
             - name: Script tests
-              run: bun test scripts/
+              run: bun run test:scripts
 
             - name: Typecheck
               working-directory: packages/app
