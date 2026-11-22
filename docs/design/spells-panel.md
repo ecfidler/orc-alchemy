@@ -4,7 +4,7 @@ title: Spells panel spec
 description: The settled design of the Spells panel on the character sheet - the popup with the spell list and the spell text, prepared spells, spent spell slots in the panel and on the sheet, Pact Magic slots, how a sheet change saves, the spell records, and the run order of the build tickets.
 tags: [design, sheet, spells]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-22T05:15:41Z }
+generated: { by: claude-code/agent, at: 2026-11-22T05:38:07Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel
 sources:
   - id: orc-262
@@ -606,6 +606,14 @@ slots to `wizard-5` or `warlock-10-drow` with `setValue`.
 * The sheet behind the panel shows the same note, the status "Unsaved
   changes" and the Save button.
 * A save that works shows nothing in the panel, and it removes the note.
+* "Try again" has the action look of the alert note, a link button, as
+  "Reload this page" has. The theme rule "Alert note" wins over the small
+  bordered button of the prototype.
+* The sheet has no "Try again". Its Save button saves again.
+* When a save that works removes the note while "Try again" has the focus,
+  the focus goes back to the control that made the change. If that control
+  is gone, the focus goes to the selected row (on a phone in the spell
+  view, to "Back to the list"), else to the first control of the bar.
 
 # Keyboard and screen reader
 
