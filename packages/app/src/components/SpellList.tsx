@@ -56,7 +56,7 @@ export interface SpellListProps {
   /** The user prepares a spell, or stops preparing it. */
   onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
   /** True when the character has two or more sources (ORC-289): each row has a source tag, and its name has the source. */
-  sourceTags?: boolean;
+  withSource?: boolean;
 }
 
 /** The words that end the name of a row in prepare mode, for a screen reader. A cantrip has none. */
@@ -94,7 +94,7 @@ export function SpellList({
   prepareMode = false,
   kindOf,
   onPrepare,
-  sourceTags = false,
+  withSource = false,
 }: SpellListProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const move = MOVES[event.key];
@@ -128,7 +128,7 @@ export function SpellList({
             prepareMode={prepareMode}
             kindOf={kindOf}
             onPrepare={onPrepare}
-            sourceTags={sourceTags}
+            withSource={withSource}
           />
         ))}
       </div>
@@ -149,7 +149,7 @@ function LevelGroup({
   prepareMode,
   kindOf,
   onPrepare,
-  sourceTags = false,
+  withSource = false,
 }: Omit<SpellListProps, "groups" | "query" | "onQueryChange" | "lookup"> & { group: SpellGroup; lookup: SpellLookup }) {
   const headingId = useId();
   return (
@@ -172,7 +172,7 @@ function LevelGroup({
             const kind = prepareMode && kindOf ? kindOf(spell) : null;
             return (
               <li key={id} className={kind ? "relative" : undefined}>
-                {kind && hasPrepareBox(kind) && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} withSource={sourceTags} />}
+                {kind && hasPrepareBox(kind) && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} withSource={withSource} />}
                 <Row
                   spell={spell}
                   lookup={lookup}
@@ -183,7 +183,7 @@ function LevelGroup({
                   initial={markTabStop && id === tabStop}
                   kind={kind}
                   onPrepare={onPrepare}
-                  withSource={sourceTags}
+                  withSource={withSource}
                 />
               </li>
             );

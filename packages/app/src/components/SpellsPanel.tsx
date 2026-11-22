@@ -101,7 +101,7 @@ export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, bui
       <PanelBody
         spellcasting={spellcasting}
         classes={classes}
-        severalSources={sources.length > 1}
+        withSource={sources.length > 1}
         at={at}
         builderHref={builderHref}
         panes={panes}
@@ -266,7 +266,7 @@ function PrepareLine({
 function PanelBody({
   spellcasting,
   classes,
-  severalSources,
+  withSource,
   at,
   builderHref,
   panes,
@@ -276,7 +276,7 @@ function PanelBody({
   spellcasting: Spellcasting;
   classes: Sheet["classes"];
   /** True with two or more sources: each row has a source tag. */
-  severalSources: boolean;
+  withSource: boolean;
   at: SpellRef | undefined;
   builderHref: string;
   panes: RefObject<HTMLDivElement>;
@@ -490,7 +490,7 @@ function PanelBody({
             prepareMode={prepareMode}
             kindOf={(spell) => prepareKind(spell, spellcasting.casters)}
             onPrepare={prepare}
-            sourceTags={severalSources}
+            withSource={withSource}
           />
         </div>
         <div
