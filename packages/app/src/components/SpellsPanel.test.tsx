@@ -42,6 +42,7 @@ function renderPanel(sheet: Sheet, at?: SpellRef) {
             at={at}
             builderHref="/build/abc?step=Spells"
             onSpendSlots={() => {}}
+            onPrepare={() => {}}
           />
         ),
       },
@@ -217,6 +218,7 @@ async function renderLoading(at?: SpellRef) {
             at={at}
             builderHref="/b"
             onSpendSlots={() => {}}
+            onPrepare={() => {}}
           />
         ),
       },
@@ -241,8 +243,8 @@ test("while the spell chunk loads, the list says so, the spell view waits, and t
   // No record yet: the spell view does not say that the app has no text.
   expect(within(dialog).queryByText("The app has no text for this spell.")).toBeNull();
   expect(dialog.querySelector("[data-pane=spell]")!.textContent).toBe("");
-  // The dialog gives the focus to its first control meanwhile, the builder link.
-  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("link", { name: "Change known spells in the builder" })));
+  // The dialog gives the focus to its first control meanwhile: for a cleric, the "Prepare spells" button.
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Prepare spells" })));
   await load();
   await waitFor(() => expect(document.activeElement).toBe(row(dialog, "Guidance")));
   expect(viewName(dialog)).toBe("Guidance");
@@ -343,7 +345,15 @@ test("a reopen starts again: the search is empty and the first spell is selected
     return (
       <>
         <Button onClick={() => setOpen(true)}>Open spells</Button>
-        <SpellsPanel open={open} onOpenChange={setOpen} spellcasting={sheet.spellcasting!} classes={sheet.classes} builderHref="/b" onSpendSlots={() => {}} />
+        <SpellsPanel
+          open={open}
+          onOpenChange={setOpen}
+          spellcasting={sheet.spellcasting!}
+          classes={sheet.classes}
+          builderHref="/b"
+          onSpendSlots={() => {}}
+          onPrepare={() => {}}
+        />
       </>
     );
   }

@@ -7,6 +7,11 @@ export type CheckboxProps = {
   disabled?: boolean;
   /** Layout classes for the label, or for the box when there is no label. */
   className?: string;
+  /**
+   * -1 takes the box out of the Tab order, for a box that a key on another control also changes, for example Space
+   * on a row of a list. A screen reader and a mouse still reach the box.
+   */
+  tabIndex?: -1;
 } & (
   | {
       /** The visible label, after the box. A click on it checks the box too. */
@@ -22,8 +27,10 @@ export type CheckboxProps = {
  * A checkbox with a square mark, with Base UI Checkbox inside. It is
  * controlled: `checked` is the state, and `onCheckedChange` gets the new one.
  */
-export function Checkbox({ checked, onCheckedChange, disabled, className, label, name, "aria-label": ariaLabel }: CheckboxProps) {
+export function Checkbox({ checked, onCheckedChange, disabled, className, tabIndex, label, name, "aria-label": ariaLabel }: CheckboxProps) {
   const id = useId();
+  // Root sets its own tabIndex after the props, so render sets it on the box.
+  const own = name !== undefined || tabIndex !== undefined;
   const box = (
     <BaseCheckbox.Root
       checked={checked}
@@ -33,7 +40,7 @@ export function Checkbox({ checked, onCheckedChange, disabled, className, label,
       // In a label, Base UI names the box by the label. A box labelled by itself takes its own aria-label instead.
       // Root's id prop goes to its hidden input, so render sets the id of the box itself.
       aria-labelledby={name === undefined ? undefined : id}
-      render={name === undefined ? undefined : (props) => <span {...props} id={id} />}
+      render={own ? (props) => <span {...props} id={name === undefined ? props.id : id} tabIndex={tabIndex ?? props.tabIndex} /> : undefined}
       className={label === undefined && className ? `ui-check ${className}` : "ui-check"}
     >
       <BaseCheckbox.Indicator className="ui-check-mark" />

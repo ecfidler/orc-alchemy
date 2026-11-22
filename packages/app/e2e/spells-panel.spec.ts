@@ -502,6 +502,182 @@ test("at 320px the widest level heading is one line, and a row that gets the foc
   }
 });
 
+// Prepared spells in the panel (ORC-287, docs/design/spells-panel.md "The prepare bar" and "Preparing spells").
+
+const prepareButton = (page: Page) => panel(page).getByRole("button", { name: /^(Prepare spells|Done)$/ });
+/** The box of a row, by the spell name. */
+const box = (page: Page, name: string) => listPane(page).getByRole("checkbox", { name: `Prepared: ${name}` });
+/** A row in prepare mode, by the spell name and its state. */
+const stateRow = (page: Page, name: string, state: string) =>
+  panel(page).getByRole("button", { name: new RegExp(`^${name}, ${state}( (Ritual|Concentration))*$`) });
+/** The counts of the bar. */
+const barCounts = (page: Page) => panel(page).locator("[data-prepare-count]:not([data-pane=spell] *)");
+const sheetSpells = (page: Page) => page.getByRole("group", { name: "Spellcasting", exact: true });
+/** A token of the theme as the browser resolves it, for example "rgb(255, 228, 92)". */
+const tokenColor = (page: Page, token: string) =>
+  page.evaluate((token) => {
+    const probe = document.createElement("span");
+    probe.style.color = `var(${token})`;
+    document.body.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, token);
+
+test("a cleric prepares a spell and stops preparing it, and the sheet shows the change after a reload", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await expect(sheetSpells(page).getByRole("button", { name: "Command" })).toHaveCount(0);
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(row(page, "Guidance")).toBeFocused();
+  await prepareButton(page).click();
+  await expect(prepareButton(page)).toHaveText("Done");
+  // A click on the box changes only the box: the selected spell and the focus stay.
+  await box(page, "Command").click();
+  await expect(box(page, "Command")).toBeChecked();
+  await expect(barCounts(page)).toHaveText(["9 of 12 prepared"]);
+  await expect(prepareButton(page)).toBeFocused();
+  await expect(viewHeading(page)).toHaveText("Guidance");
+  await expect(panel(page).locator("[aria-live=polite]")).toHaveText("Cleric: 9 of 12 prepared");
+  await page.keyboard.press("Escape");
+  await expect(sheetSpells(page).getByRole("button", { name: "Command" })).toBeVisible();
+  await page.reload();
+  await expect(sheetSpells(page).getByRole("button", { name: "Command" })).toBeVisible();
+
+  // Stop preparing it with Space on its row.
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(barCounts(page)).toHaveText(["9 of 12 prepared"]);
+  await prepareButton(page).click();
+  await stateRow(page, "Command", "prepared").focus();
+  await page.keyboard.press("Space");
+  await expect(stateRow(page, "Command", "not prepared")).toBeFocused();
+  await expect(box(page, "Command")).not.toBeChecked();
+  await page.keyboard.press("Escape");
+  await expect(sheetSpells(page).getByRole("button", { name: "Command" })).toHaveCount(0);
+  await page.reload();
+  await expect(sheetSpells(page).getByRole("button", { name: "Healing Word" })).toBeVisible();
+  await expect(sheetSpells(page).getByRole("button", { name: "Command" })).toHaveCount(0);
+});
+
+test("the count in each state: yellow under the limit, green at the limit only in prepare mode, red over the limit with the spells to remove", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  const count = barCounts(page);
+  await expect(count).toHaveText(["8 of 12 prepared"]);
+  const look = () => count.evaluate((element) => ({ fill: getComputedStyle(element).backgroundColor, text: getComputedStyle(element).color }));
+  expect(await look()).toEqual({ fill: await tokenColor(page, "--note"), text: await tokenColor(page, "--note-ink") });
+  const listTop = (await listPane(page).boundingBox())!.y;
+  await prepareButton(page).click();
+  for (const name of ["Command", "Bane", "Sanctuary", "Guiding Bolt"]) await box(page, name).click();
+  await expect(count).toHaveText(["12 of 12 prepared"]);
+  expect((await look()).text).toBe(await tokenColor(page, "--success"));
+  // The bar keeps its height in each state.
+  expect((await listPane(page).boundingBox())!.y).toBe(listTop);
+  // At the limit, the count does not show outside prepare mode.
+  await prepareButton(page).click();
+  await expect(count).toHaveCount(0);
+  expect((await listPane(page).boundingBox())!.y).toBe(listTop);
+  await prepareButton(page).click();
+  // Nothing stops a 13th spell, and nothing is removed.
+  await box(page, "Detect Magic").click();
+  await expect(count).toHaveText(["13 of 12 prepared. Remove 1 spell."]);
+  expect(await look()).toEqual({ fill: await tokenColor(page, "--note-red"), text: await tokenColor(page, "--note-ink") });
+  await expect(panel(page).locator("[aria-live=polite]")).toHaveText("Cleric: 13 of 12 prepared. Remove 1 spell.");
+  await prepareButton(page).click();
+  await expect(count).toHaveText(["13 of 12 prepared. Remove 1 spell."]);
+  await expect(listPane(page).getByRole("checkbox")).toHaveCount(0);
+});
+
+test("a domain spell has a filled box that cannot change, with the lock and Always prepared, and it is not in the count", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await prepareButton(page).click();
+  await expect(box(page, "Bless")).toBeChecked();
+  await expect(box(page, "Bless")).toBeDisabled();
+  await box(page, "Bless").click({ force: true });
+  await expect(box(page, "Bless")).toBeChecked();
+  await expect(barCounts(page)).toHaveText(["8 of 12 prepared"]);
+  await expect(stateRow(page, "Bless", "always prepared")).toContainText("Always prepared");
+  await expect(stateRow(page, "Bless", "always prepared").locator("svg")).toBeVisible();
+  // The prepare line of the spell view.
+  await stateRow(page, "Bless", "always prepared").click();
+  await expect(spellPane(page).getByText("Always prepared. It does not count.")).toBeVisible();
+  await expect(spellPane(page).getByRole("checkbox")).toHaveCount(0);
+});
+
+test("a sorcerer and a warlock: no count, no Prepare spells button and no boxes", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await importFile(page, "warlock-10-sorcerer-9.strict.json");
+  await page.getByRole("button", { name: "All spells" }).click();
+  await expect(rows(page).first()).toBeFocused();
+  await expect(barCounts(page)).toHaveCount(0);
+  await expect(panel(page).getByRole("button", { name: "Prepare spells" })).toHaveCount(0);
+  await expect(panel(page).getByRole("checkbox")).toHaveCount(0);
+});
+
+test("the box of a row: a 28px tap area, in line with the name, and paper on the selected row; after Prepare spells and Done the selected row is in view", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await sheetSpells(page).getByRole("button", { name: "Flame Strike" }).click();
+  await expect(row(page, "Flame Strike")).toBeInViewport();
+  await prepareButton(page).click();
+  // Prepare mode adds rows above the selected row, and the row scrolls into view.
+  await expect(stateRow(page, "Flame Strike", "prepared")).toBeInViewport();
+  await expect(stateRow(page, "Flame Strike", "prepared")).toHaveAttribute("aria-current", "true");
+  const flame = box(page, "Flame Strike");
+  const bounds = (await flame.boundingBox())!;
+  // The tap area: points 13px from the center of the box are still on the box.
+  const hits = await flame.evaluate((element) => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    const [cx, cy] = [x + width / 2, y + height / 2];
+    return [
+      [cx - 13, cy],
+      [cx + 13, cy],
+      [cx, cy - 13],
+      [cx, cy + 13],
+    ].map(([px, py]) => document.elementFromPoint(px!, py!) === element);
+  });
+  expect(hits).toEqual([true, true, true, true]);
+  // The box is in line with the first line of the name.
+  const name = (await stateRow(page, "Flame Strike", "prepared").locator("span").first().boundingBox())!;
+  expect(Math.abs(bounds.y + bounds.height / 2 - (name.y + Math.min(name.height, 26) / 2))).toBeLessThanOrEqual(2);
+  // On the ink fill of the selected row the box is paper.
+  const paper = await tokenColor(page, "--paper");
+  expect(await flame.evaluate((element) => getComputedStyle(element).borderTopColor)).toBe(paper);
+  // Done: the list loses the rows that are not prepared, and the selected row is in view again.
+  await listPane(page).evaluate((pane) => {
+    pane.scrollTop = 0;
+  });
+  await prepareButton(page).click();
+  await expect(row(page, "Flame Strike")).toBeInViewport();
+});
+
+test("on a phone, a tap on a box changes it and does not open the spell view; the prepare line works in the spell view", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await importFile(page, "life-cleric-9.strict.json");
+  await page.getByRole("tab", { name: "Spells" }).click();
+  await page.getByRole("button", { name: "All spells" }).click();
+  await prepareButton(page).click();
+  await box(page, "Command").click();
+  await expect(box(page, "Command")).toBeChecked();
+  await expect(spellPane(page)).toBeHidden();
+  await stateRow(page, "Command", "prepared").click();
+  await expect(viewHeading(page)).toHaveText("Command");
+  const prepared = spellPane(page).getByRole("checkbox", { name: "Prepared" });
+  await expect(prepared).toBeChecked();
+  await prepared.click();
+  await expect(prepared).not.toBeChecked();
+  await expect(spellPane(page).getByText("Not prepared")).toBeVisible();
+  await expect(barCounts(page)).toHaveText(["8 of 12 prepared"]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- spells-panel.spec.ts -g orc-285
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -600,6 +776,47 @@ test.describe("screenshots", () => {
       await page.setViewportSize({ width: 320, height: 640 });
       await open(fixture("wizard-20"), true);
       await page.screenshot({ path: shot("phone-320-nine-columns") });
+    });
+
+    // PR_SCREENSHOTS=1 bun run e2e -- spells-panel.spec.ts -g orc-287
+    test(`orc-287 Prepared spells in the panel, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-287-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      const open = async (phone = false) => {
+        await importFile(page, "life-cleric-9.strict.json");
+        await page.evaluate(() => document.fonts.ready);
+        if (phone) await page.getByRole("tab", { name: "Spells" }).click();
+        await page.getByRole("button", { name: "All spells" }).click();
+        await expect(rows(page).first()).toBeFocused();
+      };
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await open();
+      await row(page, "Healing Word").click();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("under") });
+      await prepareButton(page).click();
+      for (const name of ["Command", "Bane", "Sanctuary", "Guiding Bolt"]) await box(page, name).click();
+      await stateRow(page, "Bless", "always prepared").click();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("at-limit-always-prepared") });
+      await box(page, "Detect Magic").click();
+      await stateRow(page, "Detect Magic", "prepared").click();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("over") });
+      await prepareButton(page).click();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("over-done") });
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await open(true);
+      await prepareButton(page).click();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: shot("phone-list") });
+      await stateRow(page, "Detect Magic", "not prepared").click();
+      await expect(viewHeading(page)).toHaveText("Detect Magic");
+      await page.screenshot({ path: shot("phone-spell") });
     });
   }
 });

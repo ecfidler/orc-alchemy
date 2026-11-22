@@ -57,3 +57,20 @@ test("name names the box instead of the label, which stays visible and still che
   expect(box.closest("label")?.textContent).toBe("Wrap");
   expect(box.getAttribute("aria-label")).toBe("Wrap long lines");
 });
+
+test("tabIndex -1 takes the box out of the Tab order; a click still checks it, with a name or with a label", () => {
+  const change = vi.fn();
+  render(
+    <>
+      <Checkbox aria-label="Selected: Notes" checked={false} onCheckedChange={change} tabIndex={-1} />
+      <Checkbox label="Shown" name="Shown row" checked onCheckedChange={change} tabIndex={-1} />
+    </>,
+  );
+  const alone = screen.getByRole("checkbox", { name: "Selected: Notes" });
+  const named = screen.getByRole("checkbox", { name: "Shown row" });
+  expect([alone.tabIndex, named.tabIndex]).toEqual([-1, -1]);
+  fireEvent.click(alone);
+  expect(change).toHaveBeenCalledWith(true);
+  fireEvent.click(screen.getByText("Shown"));
+  expect(change).toHaveBeenLastCalledWith(false);
+});

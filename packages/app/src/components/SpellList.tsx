@@ -4,11 +4,19 @@
 //
 // The ARIA pattern is a list of buttons with a roving tabindex, under real
 // headings. A listbox does not fit: the level headings hold slot controls
-// (ORC-286), and a listbox can hold only options. In prepare mode
-// (ORC-287) a row can be a checkbox button with Space, in the same pattern.
-import { Label, ListRow, TextInput } from "@orc-alchemy/ui";
+// (ORC-286), and a listbox can hold only options.
+//
+// In prepare mode (ORC-287) a row stays a button that selects its spell, and
+// Space on it changes its box. Its name for a screen reader ends with the
+// state: "prepared", "not prepared", "always prepared" or "known". The box is
+// a Checkbox beside the button in the same list item, not in it, so no
+// control is in another one. The box is not a Tab stop, because the list is
+// one Tab stop; a mouse and a screen reader reach it. A click on the box
+// changes only the box, and the focus stays where it is.
+import { Checkbox, Label, ListRow, LockIcon, TextInput } from "@orc-alchemy/ui";
 import { type KeyboardEvent, type ReactNode, useId } from "react";
 import { type ListedSpell, levelHeading, type SpellGroup, spellId } from "../engine/spell-list.ts";
+import { hasPrepareBox, type PrepareKind } from "../engine/spell-prepare.ts";
 import type { SpellLookup } from "../engine/spell-records.ts";
 import { durationParts } from "../engine/spell-text.ts";
 import { BoxTag } from "./BoxTag.tsx";
@@ -41,7 +49,21 @@ export interface SpellListProps {
   markTabStop: boolean;
   /** The slots on the heading of a level, after its name (ORC-286). */
   headingSlots?: (level: number) => ReactNode;
+  /** True in prepare mode (ORC-287): the rows have their boxes and labels, and Space changes a box. */
+  prepareMode?: boolean;
+  /** The prepare kind of a spell (see `prepareKind`). */
+  kindOf?: (spell: ListedSpell) => PrepareKind;
+  /** The user prepares a spell, or stops preparing it. */
+  onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
 }
+
+/** The words that end the name of a row in prepare mode, for a screen reader. A cantrip has none. */
+const STATE_WORDS: Record<PrepareKind, ((prepared: boolean) => string) | null> = {
+  "can-change": (prepared) => (prepared ? "prepared" : "not prepared"),
+  always: () => "always prepared",
+  known: () => "known",
+  cantrip: null,
+};
 
 /** The keys that move the focus in the list, and where each goes from row `at` of `count` rows. */
 const MOVES: Record<string, (at: number, count: number) => number> = {
@@ -56,7 +78,21 @@ const MOVES: Record<string, (at: number, count: number) => number> = {
  * `tabStop`. Up and Down move the focus between the rows, and Home and End
  * go to the first and last row. The headings are not stops.
  */
-export function SpellList({ groups, lookup, query, onQueryChange, selected, tabStop, onPick, onFocusRow, markTabStop, headingSlots }: SpellListProps) {
+export function SpellList({
+  groups,
+  lookup,
+  query,
+  onQueryChange,
+  selected,
+  tabStop,
+  onPick,
+  onFocusRow,
+  markTabStop,
+  headingSlots,
+  prepareMode = false,
+  kindOf,
+  onPrepare,
+}: SpellListProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const move = MOVES[event.key];
     const row = (event.target as HTMLElement).closest(`[${ROW}]`);
@@ -86,6 +122,9 @@ export function SpellList({ groups, lookup, query, onQueryChange, selected, tabS
             onFocusRow={onFocusRow}
             markTabStop={markTabStop}
             headingSlots={headingSlots}
+            prepareMode={prepareMode}
+            kindOf={kindOf}
+            onPrepare={onPrepare}
           />
         ))}
       </div>
@@ -103,6 +142,9 @@ function LevelGroup({
   onFocusRow,
   markTabStop,
   headingSlots,
+  prepareMode,
+  kindOf,
+  onPrepare,
 }: Omit<SpellListProps, "groups" | "query" | "onQueryChange" | "lookup"> & { group: SpellGroup; lookup: SpellLookup }) {
   const headingId = useId();
   return (
@@ -122,8 +164,10 @@ function LevelGroup({
         <ul role="list">
           {group.spells.map((spell) => {
             const id = spellId(spell);
+            const kind = prepareMode && kindOf ? kindOf(spell) : null;
             return (
-              <li key={id}>
+              <li key={id} className={kind ? "relative" : undefined}>
+                {kind && hasPrepareBox(kind) && <PrepareBox spell={spell} kind={kind} onInk={id === selected} onPrepare={onPrepare} />}
                 <Row
                   spell={spell}
                   lookup={lookup}
@@ -132,6 +176,8 @@ function LevelGroup({
                   onPick={onPick}
                   onFocusRow={onFocusRow}
                   initial={markTabStop && id === tabStop}
+                  kind={kind}
+                  onPrepare={onPrepare}
                 />
               </li>
             );
@@ -143,9 +189,59 @@ function LevelGroup({
 }
 
 /**
+ * The box of a row in prepare mode, at the left of the row, over its
+ * padding. A filled box is a prepared spell. The box of an always-prepared
+ * spell is filled and cannot change. The tap area is 28px. On the ink fill of
+ * the selected row the box is paper.
+ */
+function PrepareBox({
+  spell,
+  kind,
+  onInk,
+  onPrepare,
+}: {
+  spell: ListedSpell;
+  kind: "can-change" | "always";
+  onInk: boolean;
+  onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
+}) {
+  return (
+    // The mouse down does not move the focus, so the focus stays on the list or where it was.
+    <span className="absolute top-[11px] left-1.5 z-[1] flex" onMouseDown={(event) => event.preventDefault()}>
+      <Checkbox
+        aria-label={`Prepared: ${spell.name}`}
+        checked={spell.prepared}
+        disabled={kind === "always"}
+        tabIndex={-1}
+        onCheckedChange={(on) => onPrepare?.(spell, on)}
+        // The tap area: 28px. The inset is from the inner edge of the 1.5px border of the 14px box.
+        className={`relative before:absolute before:-inset-[8.5px] before:content-[''] ${onInk ? "border-paper [&_.ui-check-mark]:bg-paper" : ""}`}
+      />
+    </span>
+  );
+}
+
+/** A label of a row in prepare mode, in Inter caps with no box: "Known", or the lock and "Always prepared". */
+function RowLabel({ onInk, children }: { onInk: boolean; children: ReactNode }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex items-center gap-[5px] font-sans text-[10px] leading-[1.6] font-semibold tracking-[0.06em] whitespace-nowrap uppercase ${
+        onInk ? "text-paper" : "text-ink-muted"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
  * A row: a button with the spell name, then the Ritual tag and the boxed "C"
  * of concentration. The selected row has the ink fill, and its focus ring is
- * a paper outline. A long name wraps inside the row.
+ * a paper outline. A long name wraps inside the row. In prepare mode (`kind`
+ * is set) the row leaves space for the box, has the label "Known" or "Always
+ * prepared", and its name ends with the state. Space on a row whose box can
+ * change changes the box; Enter and a click still select the spell.
  */
 function Row({
   spell,
@@ -155,6 +251,8 @@ function Row({
   onPick,
   onFocusRow,
   initial,
+  kind,
+  onPrepare,
 }: {
   spell: ListedSpell;
   lookup: SpellLookup;
@@ -163,9 +261,19 @@ function Row({
   onPick: (spell: ListedSpell) => void;
   onFocusRow: (spell: ListedSpell) => void;
   initial: boolean;
+  kind: PrepareKind | null;
+  onPrepare?: (spell: ListedSpell, prepared: boolean) => void;
 }) {
   const record = lookup(spell.key)?.record;
   const concentration = record?.duration ? durationParts(record.duration).concentration : false;
+  const state = kind ? STATE_WORDS[kind]?.(spell.prepared) : undefined;
+  const label = kind === "always" || kind === "known";
+  // Space changes the box, and does not click the row: the key down and the key up are both stopped.
+  const onSpace = (event: KeyboardEvent<HTMLButtonElement>, down: boolean) => {
+    if (kind !== "can-change" || event.key !== " ") return;
+    event.preventDefault();
+    if (down && !event.repeat) onPrepare?.(spell, !spell.prepared);
+  };
   return (
     // The package row: the panel fill under a mouse, and the ink fill and a paper focus ring while it is current.
     <ListRow
@@ -174,11 +282,23 @@ function Row({
       aria-current={selected ? "true" : undefined}
       onClick={() => onPick(spell)}
       onFocus={() => onFocusRow(spell)}
-      className="gap-x-2 px-1.5 py-[5px]"
+      onKeyDown={(event) => onSpace(event, true)}
+      onKeyUp={(event) => onSpace(event, false)}
+      // In prepare mode the name has the state after the spell name. A hidden text in the row would get a space
+      // before its comma in some browsers, so the name is given whole: "Bless, always prepared Concentration".
+      aria-label={state ? [`${spell.name}, ${state}`, record?.ritual && "Ritual", concentration && "Concentration"].filter(Boolean).join(" ") : undefined}
+      className={`gap-x-2 py-[5px] pr-1.5 ${kind ? "pl-[30px]" : "pl-1.5"}`}
     >
       <span className="min-w-0 [overflow-wrap:anywhere]">{spell.name}</span>
-      {(record?.ritual || concentration) && (
-        <span className="flex gap-1">
+      {(record?.ritual || concentration || label) && (
+        <span className="flex items-center gap-1">
+          {kind === "known" && <RowLabel onInk={selected}>Known</RowLabel>}
+          {kind === "always" && (
+            <RowLabel onInk={selected}>
+              <LockIcon />
+              Always prepared
+            </RowLabel>
+          )}
           {record?.ritual && <BoxTag onInk={selected}>Ritual</BoxTag>}
           {concentration && (
             <BoxTag onInk={selected} label="Concentration">

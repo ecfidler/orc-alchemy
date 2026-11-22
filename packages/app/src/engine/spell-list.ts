@@ -3,6 +3,7 @@
 // to show, and the order A to Z in each level. The Spellcasting section of the
 // sheet and the list of the panel use this one rule.
 import { type KnownSpell, ordinal, type Sheet, type Spellcasting } from "./sheet.ts";
+import { prepareKind } from "./spell-prepare.ts";
 import { type SpellLookup, spellName } from "./spell-records.ts";
 import { slotEntries } from "./spell-slots.ts";
 
@@ -26,6 +27,10 @@ export interface SpellGroup {
  *   spells included;
  * - all known spells of each other source.
  *
+ * With `unprepared` (prepare mode of the Spells panel, ORC-287), the groups
+ * also have the spells that a class that prepares can prepare and has not
+ * prepared. The order stays A to Z.
+ *
  * A spell that two sources give is two entries. Each spell has the name of
  * its record, or the name from its key when it has no record or the lookup
  * is null (the spell chunk is not loaded). In a group the spells are A to Z
@@ -33,14 +38,17 @@ export interface SpellGroup {
  * shows has a group with no spells. A level with no slots and no spell has
  * no group.
  */
-export function spellGroups(spellcasting: Pick<Spellcasting, "casters" | "byLevel" | "slots" | "pact">, lookup: SpellLookup | null): SpellGroup[] {
+export function spellGroups(
+  spellcasting: Pick<Spellcasting, "casters" | "byLevel" | "slots" | "pact">,
+  lookup: SpellLookup | null,
+  { unprepared = false }: { unprepared?: boolean } = {},
+): SpellGroup[] {
   const { casters, byLevel, slots, pact } = spellcasting;
-  const prepares = new Map(casters.map((caster) => [caster.name, caster.prepares]));
   const shown = new Map(
     byLevel.map(({ level, spells }) => [
       level,
       spells
-        .filter((spell) => level === 0 || spell.prepared || !prepares.get(spell.source))
+        .filter((spell) => unprepared || prepareKind({ ...spell, level }, casters) !== "can-change" || spell.prepared)
         .map((spell): ListedSpell => ({ ...spell, level, name: lookup ? spellName(lookup, spell.key, spell.name) : spell.name }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     ]),

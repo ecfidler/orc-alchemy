@@ -59,7 +59,15 @@ function renderLive(start: StrictEntity, { sheet: withSheet = false } = {}) {
     return (
       <>
         {withSheet && <CharacterSheet sheet={sheet} onSpendSlots={spend} />}
-        <SpellsPanel open onOpenChange={() => {}} spellcasting={sheet.spellcasting!} classes={sheet.classes} builderHref="/b" onSpendSlots={spend} />
+        <SpellsPanel
+          open
+          onOpenChange={() => {}}
+          spellcasting={sheet.spellcasting!}
+          classes={sheet.classes}
+          builderHref="/b"
+          onSpendSlots={spend}
+          onPrepare={() => {}}
+        />
       </>
     );
   }

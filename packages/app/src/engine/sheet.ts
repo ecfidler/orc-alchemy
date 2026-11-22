@@ -111,6 +111,9 @@ export type SpendSlots = (group: SlotGroup, spent: number) => void;
 /** A known spell by its source and key, for example the spell that the user opens the Spells panel at. */
 export type SpellRef = Pick<KnownSpell, "key" | "source">;
 
+/** Prepares a spell of a class that prepares, or stops preparing it (ORC-287). The source of the spell is the class. */
+export type PrepareSpell = (spell: SpellRef, prepared: boolean) => void;
+
 /** Opens the Spells panel at a spell, or at the top of its list without one (ORC-285). */
 export type OpenSpells = (spell?: SpellRef) => void;
 

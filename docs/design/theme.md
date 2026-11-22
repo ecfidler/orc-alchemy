@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-21T23:18:00Z }
+generated: { by: claude-code/agent, at: 2026-11-22T04:20:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -297,6 +297,18 @@ inputs and links.
 **Test helpers** at `@orc-alchemy/ui/testing`: "pick an option" for Vitest,
 "pick an option" for Playwright, and "answer the confirm dialog". The
 `.checked` reads become `toBeChecked()`.
+
+**Icons.** The app uses text labels. A drawn icon is only an addition to a
+text: it is an SVG in the package, in the text color (`currentColor`), with
+`aria-hidden`, so the text names the control or the label. It is not an
+emoji. The first icon is the lock, `LockIcon`, 13px, for a value that
+cannot change, for example an always-prepared spell in the
+[Spells panel](spells-panel.md#the-prepare-control) (ORC-287). The pencil
+icon of ORC-272 follows the same rule.
+
+**A box out of the Tab order.** A Checkbox can take `tabIndex={-1}` when a
+key on another control changes it, for example Space on a row of a list
+that is one Tab stop. A mouse and a screen reader still reach it.
 
 # Paper patterns
 
@@ -741,7 +753,8 @@ tests, because font rendering differs between machines.
   export pages. It needs its own prototypes. M8 gives these pages the
   tokens, fonts, controls and notes only.
 * The lead-to-gold animation. It needs art and a reduced-motion plan first.
-* An icon set. The app uses text labels, and no M8 decision needs icons.
+* An icon set. The app uses text labels. A few drawn icons go with a text,
+  as [Controls](#controls) says.
 * A print stylesheet. The sheet layout comes first, and printing is a
   separate feature.
 * Where personality and notes go. Ethan will decide later, perhaps on a

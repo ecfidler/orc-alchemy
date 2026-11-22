@@ -20,7 +20,7 @@ import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
 import type { Sheet, SpellRef } from "../engine/sheet.ts";
-import { type SlotGroup, setSpentSlots } from "../engine/spells.ts";
+import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
 import { useStorage } from "../storage/characters.ts";
@@ -129,6 +129,11 @@ function spendSlots(sheet: Sheet, group: SlotGroup, spent: number) {
   useCharacter.getState().sheetChange((entity) => setSpentSlots(engine(), entity, layout, group, spent));
 }
 
+/** Prepares a spell of a class, or stops preparing it, as a sheet change: it saves at once (ORC-287). */
+function prepareSpell(spell: SpellRef, prepared: boolean) {
+  useCharacter.getState().sheetChange((entity) => setPrepared(engine(), entity, spell.source, spell.key, prepared));
+}
+
 function SheetPage() {
   // Why an export failed shows under the action row, so the row keeps its one line. It belongs to the character it came from.
   const { id: openId } = useParams();
@@ -163,6 +168,7 @@ function SheetPage() {
               at={spells.at}
               builderHref={`/build/${openId}?step=${SPELLS_STEP}`}
               onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
+              onPrepare={prepareSpell}
             />
           )}
         </>
