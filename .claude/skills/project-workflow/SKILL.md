@@ -7,7 +7,7 @@ version: "0.5.0"
 
 Each issue goes through `linear-issue-workflow`. This skill owns what sits around it: the **run plan**, the **slices**, and closing the project.
 
-A **slice** is two to four issues that go in one PR. The PRs are stacked, and the work does not wait for a merge (ORC-291).
+A **slice** is one to four issues that go in one PR, most often two to four. The PRs are stacked, and the work does not wait for a merge (ORC-291).
 
 ## 1. Orient
 
@@ -15,7 +15,7 @@ A project is one feature, and a milestone is a stage inside it. `docs/agents/iss
 
 Read the Linear project and every open issue in it with its comments and relations, the project's **proof**, and the record of an earlier run if one exists: the file of the Linear project in project memory, or its handoff in `docs/handoffs/`. That record wins on state and order. The proof is the project's row in `docs/plan/06-milestones-and-risks.md`, which names it a milestone; when it has no row, the proof is the spec in `docs/design/` that the issues name. When I name one milestone of the project, run only the issues of that milestone.
 
-PubDoor issues are worked in `ecfidler/orcpub`, and an engine build needs my machine. In a cloud session, ask at the start of the run for a separate Remote Control thread for each engine issue. While that thread works, run the app issues that do not wait on the engine.
+PubDoor issues are worked in `ecfidler/orcpub`, and an engine build needs my machine. In a cloud session, ask at the start of the run for a separate Remote Control thread for each engine issue. While that thread works, run the app issues that do not wait on the engine. Engine issues are outside the slices.
 
 Done when you can name every open issue, its blockers, and its repo.
 
@@ -32,17 +32,38 @@ Done when the run plan (order, the slices with the state each ends at, proposed 
 The base branch is the project branch (`<kebab-name>`) when one exists, else the repo's default branch.
 
 1. **Branch.** The first slice uses the branch the session assigns, cut from the base branch. Each later slice gets `<session-branch>-<first issue id>` (ex. `claude/project-thread-k15ffd-orc-289`), cut from the branch of the slice before.
-2. **Build.** Run `linear-issue-workflow` on each issue in order, one at a time, in its "Inside a Slice" form: one commit for each issue, the spec review, and the checks of the files it changes.
+2. **Build.** Run `linear-issue-workflow` on each issue in order, one at a time, in its "Inside a Slice" form.
 3. **Check.** Run the full test, lint, and typecheck suite on the slice branch.
 4. **Review.** Open the draft PR against the branch of the slice before (the first slice: the base branch). Name every issue ID of the slice in the title. Run one `standards-reviewer` on the diff of the slice, with the rounds of `linear-issue-workflow`, section "Review".
-5. **Hand over.** Write the PR description, mark the PR ready, and send me one message: the PR, the screenshots of the slice, a short list of things to try in the app, and what to know before merging (plan numbers that proved wrong, scope that moved, follow-ups filed). Between PRs, progress goes on the checklist only.
-6. Start the next slice at once.
+5. **Hand over.** Write the PR description and mark the PR ready. Then send me one message with:
+    - the PR;
+    - what to know before merging: plan numbers that proved wrong, scope that moved, follow-ups filed, and each issue that waits on a question;
+    - when the slice changes the UI, its screenshots and a short list of things to try in the app.
+6. Start the next slice at once. Between PRs, progress goes only on the progress checklist of the thread, or on the to-do list of a session that has no thread.
 
-**After I merge.** I squash-merge the lowest PR. In this repo CI runs only on PRs into `main`, so only that PR has CI. Move the next slice onto the new base: `git rebase --onto origin/<base> <old tip of the merged branch>`, push with `--force-with-lease`, point its PR at the base branch, and drive its CI green. Then rebase each slice above it onto the slice below. A fix to a slice that has slices above it goes on its own branch first, and the slices above are rebased the same way.
+### After I merge
 
-**A question in the build.** Put the question to me with `decision-rounds` and keep building. Leave the issue and each issue that depends on it, move them to a later slice, and continue with the others. Say in the thread which issues wait. When no issue is free, stop.
+I squash-merge the lowest PR. Finish the commit of the current issue first, then move the stack:
 
-**Merge gate.** When I ask for a merge gate, each issue is a slice of one, and the next issue starts after I merge the current PR.
+1. Rebase the next slice onto the new base: `git rebase --onto origin/<base> <old tip of the merged branch>`.
+2. Push it with `--force-with-lease`, and point its PR at the base branch.
+3. Rebase each slice above it the same way: `git rebase --onto <slice below> <old tip of the slice below>`. Push each one.
+4. When the base is `main`, drive the CI of the lowest PR green. CI runs only on PRs into `main`, so no other PR has CI. On a project branch, the full local suite is the only gate.
+
+A fix to a slice that has slices above it goes on the branch of that slice. Then do step 3 for the slices above.
+
+### A question in the build
+
+1. Put the question to me with `decision-rounds`.
+2. Set the issue aside, with each issue that depends on it. Take its commit off the slice branch and keep it on `<slice branch>-<issue id>-wip`. Comment on the issue with the question; it stays In Progress.
+3. Move those issues to a later slice, and say in the thread which issues wait.
+4. Continue with the other issues. If the slice no longer ends at a state that I can try, say so in the hand-over.
+
+When no issue is free, stop.
+
+### Merge gate
+
+When I ask for a merge gate, each issue is a slice of one, and the next issue starts after I merge the current PR.
 
 Done when every issue is Done in Linear.
 
