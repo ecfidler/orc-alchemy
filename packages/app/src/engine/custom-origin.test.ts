@@ -433,7 +433,7 @@ test("a base race with one subrace gets its values, so its bonus is a slot; a ra
   const sylvar = (await baseRace({ homebrew: RACE_PACKS }, undefined, "sylvar", null))!;
   expect(heldSubrace(sylvar.held)).toBe("deep-sylvar");
   expect(sylvar.record["~:abilities"]).toEqual({ ...SYLVAR["~:abilities"], [ABILITY("int")]: 1 });
-});
+}, 60_000); // 12 probe characters, built one after the other: about 14 s alone, more than 20 s on a busy CI runner
 
 test("the base race of the character's own race has the values of its picks, and the save does not list them; Edit reads the base record from the copy", async () => {
   const e = engine();
