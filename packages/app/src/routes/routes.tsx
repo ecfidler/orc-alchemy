@@ -253,7 +253,7 @@ export const routes: RouteObject[] = [
           </EngineGate>
         ),
       },
-      // The developer view of a 2024 character (ORC-238). Its own chunk; the page checks the developer flag.
+      // The 2024 rules preview (ORC-238, ORC-308). Its own chunk; the page checks the flag of the preview.
       { path: "dev/2024", lazy: () => import("../components/Dev2024Sheet.tsx").then(({ Dev2024Sheet }) => ({ Component: Dev2024Sheet })) },
       {
         path: "*",

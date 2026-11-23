@@ -1,7 +1,7 @@
-// The developer view of 2024 characters (ORC-238): the golden characters of
+// The 2024 rules preview (ORC-238): the golden characters of
 // the engine that use only the built-in content, at their checked levels.
 // The component reads them through this module, so only src/engine imports
-// the engine package. Only the lazy developer page imports this module.
+// the engine package. Only the lazy preview page imports this module.
 
 import { GOLDEN_CHARACTERS } from "@orc-alchemy/engine/golden/characters";
 import { loadSheet } from "./edition.ts";
