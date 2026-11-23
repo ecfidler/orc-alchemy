@@ -229,7 +229,7 @@ describe("General feats", () => {
 });
 
 describe("Fighting Style feats", () => {
-  const fighter = (style: string, armor: string | null = "chain-mail") => {
+  const fighter = (style: string, armor: string | null = "srd52:chain-mail") => {
     const entity = fighterCharacter({ level: 1, fightingStyle: `srd52:${style}`, armor });
     const { built } = buildWithContributions(entity, template);
     return { built, problems: findProblems(entity, built, template) };
@@ -239,7 +239,7 @@ describe("Fighting Style feats", () => {
     const { built, problems } = fighter("archery");
     expect(problems).toEqual([]);
     // Longbow: Dex +1, PB +2, Archery +2.
-    expect(built.weaponAttacks.find((a) => a.weapon === "longbow")?.attackBonus).toBe(5);
+    expect(built.weaponAttacks.find((a) => a.weapon === "srd52:longbow")?.attackBonus).toBe(5);
     expect(built.rangedAttackBonus).toBe(2);
   });
 

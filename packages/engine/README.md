@@ -37,18 +37,21 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
     `autofill`.
   - `content.ts` finds the loaded records by type and reference.
     `records.ts` converts records of the content format to core options.
+    `equipment.ts` makes the armor, Shield, weapon, item, Weapon Mastery
+    and starting equipment choices from the equipment records.
     `class-frame.ts` has the class levels and their Hit Points.
   - `hooks/` is the hook registry, with one file for each hook.
   - `packs.ts` loads a pack for the engine. It checks the hooks, then
     converts each record and drops the rules that do not convert.
-  - `content/` holds the rules content of the spike that the records do
-    not replace yet.
+  - `content/` holds the Fighter of the spike, which the records do not
+    replace yet (ORC-230).
   - `fighter.test.ts` has the hand-checked values of the Fighter from the
     spike (ORC-95). `base-rules.test.ts` has the rules of every character
     on test classes (ORC-225). `species.test.ts` has the 9 species of the
     pack at levels 1, 5 and 11 (ORC-226). `feats.test.ts` and
     `backgrounds.test.ts` have the 17 feats and the 4 backgrounds
-    (ORC-227).
+    (ORC-227). `equipment.test.ts` has the attack lines, the armor and the
+    starting equipment of each class and background (ORC-228).
 - `srd52/srd52.test.ts` compares the built-in pack with the text of the SRD
   5.2.1 PDF, in `srd52/fixtures/`.
 

@@ -40,9 +40,9 @@ export function fighterCharacter(choices: Choices): Entity2024 {
     scores = { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 },
     backgroundAbilities = twoAndOne("str", "con"),
     fightingStyle = "srd52:defense",
-    masteries = level >= 4 ? ["greatsword", "longbow", "flail", "dagger"] : ["greatsword", "longbow", "flail"],
-    armor = "chain-mail",
-    weapons = ["greatsword", "longbow", "dagger"],
+    masteries = level >= 4 ? ["srd52:greatsword", "srd52:longbow", "srd52:flail", "srd52:dagger"] : ["srd52:greatsword", "srd52:longbow", "srd52:flail"],
+    armor = "srd52:chain-mail",
+    weapons = ["srd52:greatsword", "srd52:longbow", "srd52:dagger"],
     rolledHitPoints = {},
     level4Feat = strAndCon,
   } = choices;
@@ -72,6 +72,8 @@ export function fighterCharacter(choices: Choices): Entity2024 {
             key: "fighter",
             selections: [
               { key: "skill-proficiencies", options: [{ key: "perception" }, { key: "survival" }] },
+              // The 155 GP.
+              { key: "starting-equipment", option: { key: "c" } },
               { key: "levels", options: levels },
             ],
           },
@@ -85,6 +87,8 @@ export function fighterCharacter(choices: Choices): Entity2024 {
           selections: [
             { key: "ability-scores", option: backgroundAbilities },
             { key: "tool", option: { key: "srd52:dice" } },
+            // The 50 GP: option A gives other weapons than the ones of these tests.
+            { key: "starting-equipment", option: { key: "b" } },
           ],
         },
       },

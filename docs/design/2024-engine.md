@@ -4,7 +4,7 @@ title: 2024 engine spec
 description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
 tags: [rules-2024, engine, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T07:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T13:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
 sources:
   - id: orc-218
@@ -169,6 +169,12 @@ The 2024 engine has no `.orcbrew` function.
   training sets `armorWithoutTraining`.
 - The spells that a trait gives (`spells`) and the attacks that call
   for a saving throw (`savingThrowAttacks`).
+- The equipment from the equipment records: the row of the worn armor
+  (`wornArmorStats`, and `stealthDisadvantage`), the weapon rows
+  (`weapons`), the attack line of each weapon with its properties, range
+  and Versatile damage (`weaponAttacks`), the carried items
+  (`inventory`), the gold (`gold`), and the tools that the player chose
+  in a record (`chosenTools`).
 
 # The seam to the app
 

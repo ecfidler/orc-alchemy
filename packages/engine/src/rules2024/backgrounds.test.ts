@@ -99,6 +99,7 @@ describe("Acolyte", () => {
       "spellcasting-ability",
       "cantrips",
       "level-1-spell",
+      "starting-equipment",
     ]);
     // Fire Bolt is a Wizard spell.
     expect(build(background("acolyte", ...magicInitiate("wis", ["fire-bolt", "light"], "bless"))).problems).toContain(

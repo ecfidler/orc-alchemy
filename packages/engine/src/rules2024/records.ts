@@ -4,7 +4,8 @@
 // so a pack does not write them.
 //
 // This file converts classes, subclasses, species, backgrounds and feats.
-// The loaded records are in content.ts.
+// The loaded records are in content.ts, and the equipment options are in
+// equipment.ts.
 
 import type { Key, Modifier, OptionModifier, Reader } from "../core/modifiers.ts";
 import { type Option, type OptionParts, option, type Prereq, type Selection, selection } from "../core/template.ts";
@@ -26,6 +27,7 @@ import { backgroundAbilitySelection, notTakenAlready } from "./abilities.ts";
 import { type Built2024, type FeatCategory, type Feature, m, type Size, type Skill, traitKey } from "./built.ts";
 import { classLevelModifiers } from "./class-frame.ts";
 import { type Content, findRecord, recordsOf } from "./content.ts";
+import { equipmentInCategory, startingEquipmentSelection } from "./equipment.ts";
 import { HOOKS } from "./hooks/index.ts";
 import { isSheetValue, SHEET_VALUES, type SheetValueKind, type SheetValueName } from "./sheet-values.ts";
 
@@ -409,18 +411,23 @@ export function speciesOption(content: Content, reference: string, species: Spec
   });
 }
 
-/** The tool proficiencies of a typed field: a tool, the tools of a list, or a choice. */
-function toolParts(content: Content, selectionName: string, tool: ClassRecord["tools"] | BackgroundRecord["tool"]): Parts {
+/**
+ * The tool proficiencies of the typed tool field of a record: a tool, the
+ * tools of a list, or a choice. `chosenTools` keeps the tools by the
+ * reference of the record, for the `{ "chosen": ... }` items of its starting
+ * equipment.
+ */
+function toolParts(content: Content, reference: string, selectionName: string, tool: ClassRecord["tools"] | BackgroundRecord["tool"]): Parts {
   if (tool === undefined) return EMPTY;
-  if (typeof tool === "string" || Array.isArray(tool)) {
-    return { modifiers: [tool].flat().map((ref) => m.push("toolProficiencies", ref)), selections: [] };
-  }
+  const proficiency = (ref: string) => [
+    m.push("toolProficiencies", ref),
+    m.update("chosenTools", (chosen) => ({ ...chosen, [reference]: [...(chosen[reference] ?? []), ref] })),
+  ];
+  if (typeof tool === "string" || Array.isArray(tool)) return { modifiers: [tool].flat().flatMap(proficiency), selections: [] };
   const from = tool.from;
   const tools = Array.isArray(from)
     ? from.map((ref) => ({ reference: ref, name: findRecord(content, "equipment", ref)?.name ?? ref }))
-    : recordsOf(content, "equipment")
-        .filter(({ record }) => record.category === from.category)
-        .map(({ reference, record }) => ({ reference, name: record.name }));
+    : equipmentInCategory(content, from.category).map(({ reference: ref, record }) => ({ reference: ref, name: record.name }));
   return {
     modifiers: [],
     selections: [
@@ -428,16 +435,22 @@ function toolParts(content: Content, selectionName: string, tool: ClassRecord["t
         name: selectionName,
         min: tool.choose,
         max: tool.choose,
-        options: tools.map(({ reference, name }) => option<Built2024>({ key: reference, name, modifiers: [m.push("toolProficiencies", reference)] })),
+        options: tools.map(({ reference: ref, name }) => option<Built2024>({ key: ref, name, modifiers: proficiency(ref) })),
       }),
     ],
   };
 }
 
+/** The starting equipment choice of a record, when the record has one. */
+function startingEquipmentParts(content: Content, reference: string, record: ClassRecord | BackgroundRecord, firstClass = false): Parts {
+  if (!record.startingEquipment?.length) return EMPTY;
+  return { modifiers: [], selections: [startingEquipmentSelection(content, reference, record.startingEquipment, { firstClass })] };
+}
+
 /**
  * A background as an option of the background selection. The engine makes
  * its rules from the typed fields: the ability score choice, the Origin
- * feat, the skills and the tool.
+ * feat, the skills, the tool and the starting equipment.
  */
 export function backgroundOption(content: Content, reference: string, background: BackgroundRecord): Option<Built2024> {
   const feat = findRecord(content, "feats", background.feat);
@@ -450,8 +463,9 @@ export function backgroundOption(content: Content, reference: string, background
         modifiers: [m.set("background", reference), ...background.skills.map((skill) => m.push("skillProficiencies", skill as Skill))],
         selections: [backgroundAbilitySelection(background.abilityScores, reference)],
       },
-      toolParts(content, "Tool", background.tool),
+      toolParts(content, reference, "Tool", background.tool),
       featParts(content, background.feat, feat, { featSpellList: background.featSpellList }),
+      startingEquipmentParts(content, reference, background),
       recordParts(content, reference, background),
     ),
   });
@@ -496,13 +510,13 @@ const MAX_LEVEL = 20;
 /**
  * A class as an option of the class selection. The engine makes the class
  * frame from the typed fields. The frame has the Hit Point Die, the saving
- * throws, the skill choice, the training, and one sequential `levels`
- * selection. Each level option gives the class level, its Hit
- * Points, the features of that level, and the effects of `levels` at that
- * level. Level 3 opens the subclass choice (SRD 5.2.1 p19). The skill name
- * comes from the skill records. The saves and the full training are the
- * rules of a first class; ORC-234 adds the rules of a second class (SRD
- * 5.2.1 p24).
+ * throws, the skill choice, the training, the starting equipment, and one
+ * sequential `levels` selection. Each level option gives the class level,
+ * its Hit Points, the features of that level, and the effects of `levels`
+ * at that level. Level 3 opens the subclass choice (SRD 5.2.1 p19). The
+ * skill name comes from the skill records. The saves, the full training and
+ * the starting equipment are the rules of a first class; ORC-234 adds the
+ * rules of a second class (SRD 5.2.1 p24).
  */
 export function classOption(content: Content, reference: string, record: ClassRecord): Option<Built2024> {
   const context: Context = { record: reference, content, traits: record.features ?? [], uses: new Map(), via: [] };
@@ -560,7 +574,8 @@ export function classOption(content: Content, reference: string, record: ClassRe
           }),
         ],
       },
-      toolParts(content, "Tool Proficiencies", record.tools),
+      toolParts(content, reference, "Tool Proficiencies", record.tools),
+      startingEquipmentParts(content, reference, record, true),
       own,
       { modifiers: [], selections: [selection({ name: "Levels", min: 1, max: null, multiselect: true, sequential: true, options: levels })] },
     ),

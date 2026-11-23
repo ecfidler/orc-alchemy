@@ -88,7 +88,7 @@ describe("level 1", () => {
     // Without armor: 10 + Dex +1.
     expect(built.unarmoredArmorClass).toBe(11);
     // Chain Mail 16, no Dexterity. Defense: +1 while wearing armor.
-    expect(built.wornArmor).toBe("chain-mail");
+    expect(built.wornArmor).toBe("srd52:chain-mail");
     expect(built.armorClass).toBe(17);
     expect(built.initiative).toBe(1);
   });
@@ -103,20 +103,22 @@ describe("level 1", () => {
   it("attacks once, with the mastery of the chosen weapons only", () => {
     expect(built.attacksPerAction).toBe(1);
     expect(built.criticalHitMinimum).toBe(20);
-    expect(built.weaponMasteries).toEqual(["greatsword", "longbow", "flail"]);
+    expect(built.weaponMasteries).toEqual(["srd52:greatsword", "srd52:longbow", "srd52:flail"]);
     // Greatsword: Str +3 + PB 2 = +5, and 2d6 + 3.
-    expect(attack(built, "greatsword")).toEqual({
-      weapon: "greatsword",
+    expect(attack(built, "srd52:greatsword")).toEqual({
+      weapon: "srd52:greatsword",
       name: "Greatsword",
       attackBonus: 5,
       damage: "2d6+3",
-      damageType: "slashing",
+      damageType: "srd52:slashing",
+      properties: ["heavy", "two-handed"],
       mastery: "graze",
+      disadvantage: false,
     });
     // Longbow, a Ranged weapon: Dex +1 + PB 2 = +3, and 1d8 + 1.
-    expect(attack(built, "longbow")).toMatchObject({ attackBonus: 3, damage: "1d8+1", mastery: "slow" });
+    expect(attack(built, "srd52:longbow")).toMatchObject({ attackBonus: 3, damage: "1d8+1", mastery: "slow" });
     // Dagger, Finesse: the higher of Str +3 and Dex +1. Not a chosen mastery.
-    expect(attack(built, "dagger")).toMatchObject({ attackBonus: 5, damage: "1d4+3", mastery: null });
+    expect(attack(built, "srd52:dagger")).toMatchObject({ attackBonus: 5, damage: "1d4+3", mastery: null });
   });
 
   it("has the level 1 features with their uses", () => {
@@ -152,6 +154,7 @@ describe("level 1", () => {
       "ability-scores",
       "class",
       "class/fighter/skill-proficiencies",
+      "class/fighter/starting-equipment",
       "class/fighter/levels",
       "class/fighter/levels/level-1/fighting-style",
       "class/fighter/levels/level-1/weapon-mastery",
@@ -161,10 +164,12 @@ describe("level 1", () => {
       "background/srd52:soldier/ability-scores/two-and-one/plus-two",
       "background/srd52:soldier/ability-scores/two-and-one/plus-one",
       "background/srd52:soldier/tool",
+      "background/srd52:soldier/starting-equipment",
       "languages",
       "armor",
       "shield",
       "weapons",
+      "equipment",
     ]);
   });
 
@@ -179,7 +184,7 @@ describe("level 1", () => {
       max: 3,
       remaining: 0,
       optionCount: 38,
-      selected: ["greatsword", "longbow", "flail"],
+      selected: ["srd52:greatsword", "srd52:longbow", "srd52:flail"],
       multiselect: true,
     });
   });
@@ -218,7 +223,7 @@ describe("level 3", () => {
     expect(built.attacksPerAction).toBe(1);
     expect(built.armorClass).toBe(17);
     expect(built.abilities.str).toBe(17);
-    expect(attack(built, "greatsword")?.attackBonus).toBe(5);
+    expect(attack(built, "srd52:greatsword")?.attackBonus).toBe(5);
   });
 
   it("offers the subclass at level 3, and has no selection left to fill", () => {
@@ -255,11 +260,11 @@ describe("level 5", () => {
     expect(built.attacksPerAction).toBe(2);
     expect(built.criticalHitMinimum).toBe(19);
     // Greatsword: Str +4 + PB 3 = +7, and 2d6 + 4.
-    expect(attack(built, "greatsword")).toMatchObject({ attackBonus: 7, damage: "2d6+4", mastery: "graze" });
+    expect(attack(built, "srd52:greatsword")).toMatchObject({ attackBonus: 7, damage: "2d6+4", mastery: "graze" });
     // Longbow: Dex +1 + PB 3 = +4.
-    expect(attack(built, "longbow")).toMatchObject({ attackBonus: 4, damage: "1d8+1", mastery: "slow" });
+    expect(attack(built, "srd52:longbow")).toMatchObject({ attackBonus: 4, damage: "1d8+1", mastery: "slow" });
     // Dagger: Str +4 + PB 3 = +7. It is the fourth mastery, chosen at level 4.
-    expect(attack(built, "dagger")).toMatchObject({ attackBonus: 7, damage: "1d4+4", mastery: "nick" });
+    expect(attack(built, "srd52:dagger")).toMatchObject({ attackBonus: 7, damage: "1d4+4", mastery: "nick" });
   });
 
   it("has more uses of the features that follow the level", () => {
@@ -272,21 +277,21 @@ describe("level 5", () => {
 
   it("keeps Armor Class 17", () => {
     // Chain Mail 16 + Defense 1. Heavy armor does not add Dexterity.
-    expect(built.wornArmor).toBe("chain-mail");
+    expect(built.wornArmor).toBe("srd52:chain-mail");
     expect(built.armorClass).toBe(17);
   });
 
   it("pools the Weapon Mastery choices of levels 1 and 4 into 4", () => {
     const pools = selections.filter((s) => s.key === "weapon-mastery");
     expect(pools).toHaveLength(1);
-    expect(pools[0]).toMatchObject({ min: 4, max: 4, remaining: 0, selected: ["greatsword", "longbow", "flail", "dagger"] });
+    expect(pools[0]).toMatchObject({ min: 4, max: 4, remaining: 0, selected: ["srd52:greatsword", "srd52:longbow", "srd52:flail", "srd52:dagger"] });
     expect(selections.filter((s) => s.remaining !== 0)).toEqual([]);
   });
 
   it("reports one Weapon Mastery to choose when level 4 added none", () => {
-    const three = build({ level: 5, masteries: ["greatsword", "longbow", "flail"] });
+    const three = build({ level: 5, masteries: ["srd52:greatsword", "srd52:longbow", "srd52:flail"] });
     expect(three.selections.find((s) => s.key === "weapon-mastery")?.remaining).toBe(1);
-    expect(attack(three.built, "dagger")?.mastery).toBeNull();
+    expect(attack(three.built, "srd52:dagger")?.mastery).toBeNull();
   });
 });
 
@@ -314,8 +319,8 @@ describe("feats", () => {
   it("adds 2 to Ranged weapon attacks with Archery, and Defense is then absent", () => {
     const { built } = build({ level: 1, fightingStyle: "srd52:archery" });
     // Longbow: Dex +1 + PB 2 + Archery 2 = +5. The Greatsword does not change.
-    expect(attack(built, "longbow")?.attackBonus).toBe(5);
-    expect(attack(built, "greatsword")?.attackBonus).toBe(5);
+    expect(attack(built, "srd52:longbow")?.attackBonus).toBe(5);
+    expect(attack(built, "srd52:greatsword")?.attackBonus).toBe(5);
     // Chain Mail 16 without Defense.
     expect(built.armorClass).toBe(16);
   });
@@ -458,10 +463,10 @@ describe("mutations", () => {
   });
 
   it("chooses and removes armor", () => {
-    const plate = select(levelOne, ["armor"], "plate-armor");
+    const plate = select(levelOne, ["armor"], "srd52:plate-armor");
     // Plate Armor 18, then Defense +1.
     expect(evaluate(plate, { rules: "2024" }).built.armorClass).toBe(19);
-    expect(evaluate(deselect(plate, ["armor"], "plate-armor"), { rules: "2024" }).built.wornArmor).toBeNull();
+    expect(evaluate(deselect(plate, ["armor"], "srd52:plate-armor"), { rules: "2024" }).built.wornArmor).toBeNull();
   });
 
   it("sets the name", () => {

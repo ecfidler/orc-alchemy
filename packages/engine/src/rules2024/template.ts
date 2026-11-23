@@ -1,18 +1,17 @@
 // The 2024 template: the selections at the top of a character (ORC-225).
 // The classes, the species (ORC-226), the backgrounds and the feats
-// (ORC-227), and the languages come from the content. The equipment is
-// still the content of the spike: ORC-228 replaces it. The Fighter of the
-// spike stays until ORC-230 writes the rules of `srd52:fighter`.
+// (ORC-227), the languages, and the equipment (ORC-228) come from the
+// content. The Fighter of the spike stays until ORC-230 writes the rules of
+// `srd52:fighter`.
 
 import { shuffled } from "../core/autofill.ts";
 import { option, type Prereq, selection, type Template } from "../core/template.ts";
 import { referenceTo, SRD_PACK } from "../format/keys.ts";
 import { ABILITIES, type AbilityScores, type Built2024, base, forEachAbility, m, RULES } from "./built.ts";
 import { BUILT_IN } from "./built-in.ts";
-import { ARMOR } from "./content/armor.ts";
 import { fighterOption } from "./content/fighter.ts";
-import { WEAPONS } from "./content/weapons.ts";
 import { type Content, recordsOf } from "./content.ts";
+import { armorOptions, carriedItemOptions, shieldOptions, weaponOptions } from "./equipment.ts";
 import { backgroundOption, classOption, speciesOption } from "./records.ts";
 
 /** The Standard Array (SRD 5.2.1 p21). */
@@ -110,49 +109,10 @@ export function createTemplate(content: Content): Template<Built2024> {
         options: recordsOf(content, "backgrounds").map(({ reference, record }) => backgroundOption(content, reference, record)),
       }),
       selection({ name: "Languages", min: 2, max: 2, options: languages }),
-      selection({
-        name: "Armor",
-        min: 0,
-        options: ARMOR.map((armor) =>
-          option({
-            key: armor.key,
-            name: armor.name,
-            modifiers: [
-              m.set("wornArmor", armor.key),
-              // SRD 5.2.1 p92: the base of the armor, with the Dexterity modifier up to the limit of the armor.
-              // Heavy armor (limit 0) has no Dexterity term, so a penalty does not apply to it.
-              m.add(
-                "baseArmorClass",
-                (q) => armor.base + (armor.dexLimit === 0 ? 0 : Math.min(q("abilityModifiers").dex, armor.dexLimit ?? Number.POSITIVE_INFINITY)),
-                {
-                  deps: ["abilityModifiers"],
-                },
-              ),
-            ],
-          }),
-        ),
-      }),
-      selection({
-        name: "Shield",
-        min: 0,
-        options: [
-          option({
-            name: "Shield",
-            modifiers: [
-              m.set("shield", true),
-              // SRD 5.2.1 p92: a Shield adds 2, and only with training.
-              m.add("armorClass", 2, { deps: ["armorTraining"], when: (q) => q("armorTraining").includes("shield") }),
-            ],
-          }),
-        ],
-      }),
-      selection({
-        name: "Weapons",
-        min: 0,
-        max: null,
-        multiselect: true,
-        options: WEAPONS.map((weapon) => option({ key: weapon.key, name: weapon.name, modifiers: [m.push("weapons", weapon.key)] })),
-      }),
+      selection({ name: "Armor", min: 0, options: armorOptions(content) }),
+      selection({ name: "Shield", min: 0, options: shieldOptions(content) }),
+      selection({ name: "Weapons", min: 0, max: null, multiselect: true, options: weaponOptions(content) }),
+      selection({ name: "Equipment", min: 0, max: null, multiselect: true, options: carriedItemOptions(content) }),
     ],
   };
 }

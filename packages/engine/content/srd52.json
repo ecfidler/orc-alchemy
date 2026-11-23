@@ -498,6 +498,12 @@
               "quantity": 2
             },
             {
+              "item": {
+                "category": "musical-instrument"
+              },
+              "quantity": 1
+            },
+            {
               "item": "srd52:entertainers-pack",
               "quantity": 1
             }

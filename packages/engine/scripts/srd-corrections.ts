@@ -3,7 +3,7 @@
 // section 3, the three equipment errors that the ORC-95 spike found, and the
 // errors that the content test and the review found: spell materials, one
 // duration, costs, weights and a name in the weapon and armor tables, two
-// Dragonborn traits, and two tools of the Monk.
+// Dragonborn traits, two tools of the Monk, and the instrument of the Bard.
 //
 // Each correction checks that the upstream value is still the known error, and
 // stops the import if not: a phrase must be in the text, a field must have the
@@ -309,6 +309,16 @@ const CLASS_TOOLS: Record<string, { page: number; what: string; drop: string[] }
   },
 };
 
+/** Items that upstream leaves out of option A of a class's starting equipment. Each goes after the item `after`. */
+const CLASS_EQUIPMENT: Record<string, { page: number; what: string; after: string; item: { item: { category: string }; quantity: number } }> = {
+  bard: {
+    page: 28,
+    what: "Option A has a Musical Instrument of your choice, after the 2 Daggers.",
+    after: referenceTo(SRD_PACK, "dagger"),
+    item: { item: { category: "musical-instrument" }, quantity: 1 },
+  },
+};
+
 type Equipment = Record<string, unknown> & { key: string };
 type Weapon = Record<string, unknown> & { damage: Record<string, unknown> };
 const weaponOf = (item: Equipment) => item.weapon as Weapon;
@@ -436,6 +446,17 @@ export const CORRECTIONS = {
     if (!Array.isArray(from) || !correction.drop.every((tool) => from.includes(tool))) throw new Error(`The tool correction of ${key} does not apply`);
     return { ...tools, from: from.filter((tool) => !correction.drop.includes(tool)) };
   },
+  classEquipment<T extends { items?: { item: unknown; quantity: number }[]; gold?: number }>(key: string, options: T[] | undefined): T[] | undefined {
+    const correction = CLASS_EQUIPMENT[key];
+    if (!correction) return options;
+    const [first, ...rest] = options ?? [];
+    const items = first?.items ?? [];
+    const at = items.findIndex((i) => i.item === correction.after);
+    if (at < 0 || items.some((i) => JSON.stringify(i.item) === JSON.stringify(correction.item.item))) {
+      throw new Error(`The starting equipment correction of ${key} does not apply`);
+    }
+    return [{ ...first, items: [...items.slice(0, at + 1), correction.item, ...items.slice(at + 1)] }, ...rest];
+  },
   speciesTraits(key: string, traits: Trait[]): Trait[] {
     const correction = SPECIES_TRAITS[key];
     if (!correction) return traits;
@@ -482,6 +503,7 @@ export const CORRECTION_LIST: Correction[] = [
     what: "Size Medium or Small, chosen when you select the species.",
   })),
   ...Object.entries(CLASS_TOOLS).map(([record, c]) => ({ record: `class ${record}`, page: c.page, what: c.what })),
+  ...Object.entries(CLASS_EQUIPMENT).map(([record, c]) => ({ record: `class ${record}`, page: c.page, what: c.what })),
   ...Object.entries(RARE_LANGUAGES).map(([record, l]) => ({ record: `language ${record}`, page: l.page, what: "A rare language, not a Standard Language." })),
   ...Object.entries(SPECIES_TRAITS).map(([record, s]) => ({
     record: `species ${record}`,
