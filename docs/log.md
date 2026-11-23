@@ -2,6 +2,7 @@
 
 ## 2026-11-23
 
+* **Update**: Added the `multiclass` field of a class and the rule of a choice in the `levels` of a subclass to the [2024 content format](design/2024-content-format.md) (ORC-230).
 * **Update**: Added the place of the golden characters, `packages/engine/golden/`, to the test strategy of the [2024 engine spec](design/2024-engine.md) (ORC-237).
 * **Update**: Added the `weapon-mastery` hook, the rules of starting equipment and the damage type of a weapon to the [2024 content format](design/2024-content-format.md), and the equipment values to the [2024 engine spec](design/2024-engine.md) (ORC-228).
 * **Update**: Added the hooks `ability-score-increase`, `feat-choice` and `magic-initiate`, and the feature of a feat with no traits, to the [2024 content format](design/2024-content-format.md) (ORC-227).

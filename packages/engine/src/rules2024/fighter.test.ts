@@ -153,11 +153,11 @@ describe("level 1", () => {
     expect(selections.map((s) => s.path.join("/"))).toEqual([
       "ability-scores",
       "class",
-      "class/fighter/skill-proficiencies",
-      "class/fighter/starting-equipment",
-      "class/fighter/levels",
-      "class/fighter/levels/level-1/fighting-style",
-      "class/fighter/levels/level-1/weapon-mastery",
+      "class/srd52:fighter/skill-proficiencies",
+      "class/srd52:fighter/starting-equipment",
+      "class/srd52:fighter/levels",
+      "class/srd52:fighter/levels/level-1/fighting-style",
+      "class/srd52:fighter/levels/level-1/weapon-mastery",
       "species",
       "background",
       "background/srd52:soldier/ability-scores",
@@ -177,7 +177,7 @@ describe("level 1", () => {
     expect(selections.find((s) => s.key === "weapon-mastery")).toEqual({
       key: "weapon-mastery",
       name: "Weapon Mastery",
-      path: ["class", "fighter", "levels", "level-1", "weapon-mastery"],
+      path: ["class", "srd52:fighter", "levels", "level-1", "weapon-mastery"],
       actualPath: ["weapon-mastery"],
       ref: ["weapon-mastery"],
       min: 3,
@@ -207,13 +207,20 @@ describe("level 3", () => {
 
   it("is a Champion with Improved Critical", () => {
     expect(built.classLevels).toEqual({ "srd52:fighter": 3 });
-    expect(built.subclasses).toEqual({ "srd52:fighter": "champion" });
+    expect(built.subclasses).toEqual({ "srd52:fighter": "srd52:champion" });
     expect(built.criticalHitMinimum).toBe(19);
-    expect(built.features.filter((f) => f.level === 3).map((f) => f.name)).toEqual(["Improved Critical", "Remarkable Athlete"]);
+    expect(built.features.filter((f) => f.level === 3).map((f) => f.name)).toEqual(["Fighter Subclass", "Improved Critical", "Remarkable Athlete"]);
   });
 
   it("has Action Surge once and Second Wind twice", () => {
-    expect(feature(built, "Action Surge")?.uses).toEqual({ amount: 1, recover: [{ on: "short-rest", amount: "all" }] });
+    // Action Surge: "until you finish a Short or Long Rest" (p48).
+    expect(feature(built, "Action Surge")?.uses).toEqual({
+      amount: 1,
+      recover: [
+        { on: "short-rest", amount: "all" },
+        { on: "long-rest", amount: "all" },
+      ],
+    });
     expect(feature(built, "Second Wind")?.uses?.amount).toBe(2);
     expect(feature(built, "Tactical Mind")).toBeDefined();
   });
@@ -227,7 +234,10 @@ describe("level 3", () => {
   });
 
   it("offers the subclass at level 3, and has no selection left to fill", () => {
-    expect(selections.find((s) => s.key === "subclass")).toMatchObject({ path: ["class", "fighter", "levels", "level-3", "subclass"], selected: ["champion"] });
+    expect(selections.find((s) => s.key === "subclass")).toMatchObject({
+      path: ["class", "srd52:fighter", "levels", "level-3", "subclass"],
+      selected: ["srd52:champion"],
+    });
     expect(selections.filter((s) => s.remaining !== 0)).toEqual([]);
   });
 });
@@ -292,6 +302,142 @@ describe("level 5", () => {
     const three = build({ level: 5, masteries: ["srd52:greatsword", "srd52:longbow", "srd52:flail"] });
     expect(three.selections.find((s) => s.key === "weapon-mastery")?.remaining).toBe(1);
     expect(attack(three.built, "srd52:dagger")?.mastery).toBeNull();
+  });
+});
+
+describe("levels 1 to 20 (ORC-230)", () => {
+  // The Fighter Features table (SRD 5.2.1 p47) and the Champion (p49). The
+  // test fills the open choices of each level with autofill, so the
+  // numbers below do not read the ability scores.
+  //   Proficiency Bonus: +2 at 1, +3 at 5, +4 at 9, +5 at 13, +6 at 17 (p47).
+  //   Weapon Mastery: 3, 4 at 4, 5 at 10, 6 at 16 (table column).
+  //   Second Wind: 2, 3 at 4, 4 at 10 (table column).
+  //   Action Surge: 1 use from 2, 2 uses at 17 (p48).
+  //   Indomitable: 1 use from 9, 2 at 13, 3 at 17 (p48).
+  //   Extra Attack: 2 attacks at 5, 3 at 11, 4 at 20 (p48, p49).
+  //   Improved Critical 19 at 3, Superior Critical 18 at 15 (p49).
+  const at = (level: number) => {
+    const entity = autofill(character({ level }), { rules: "2024", seed: level });
+    return evaluate(entity, { rules: "2024" });
+  };
+  const steps = (level: number, table: [number, number][]) => table.filter(([from]) => level >= from).at(-1)?.[1];
+  const featureNames = (built: ReturnType<typeof build>["built"], level: number) =>
+    built.features.filter((f) => f.level === level && f.source.startsWith("srd52:")).map((f) => f.name);
+
+  for (let level = 1; level <= 20; level++) {
+    it(`builds level ${level} with no open selection and no problem`, () => {
+      const { built, selections, problems } = at(level);
+      expect(problems).toEqual([]);
+      expect(selections.filter((s) => s.remaining !== 0)).toEqual([]);
+      expect(built.classLevels).toEqual({ "srd52:fighter": level });
+      expect(built.subclasses).toEqual(level >= 3 ? { "srd52:fighter": "srd52:champion" } : {});
+      expect(built.proficiencyBonus).toBe(
+        steps(level, [
+          [1, 2],
+          [5, 3],
+          [9, 4],
+          [13, 5],
+          [17, 6],
+        ]),
+      );
+      expect(built.weaponMasteries).toHaveLength(
+        steps(level, [
+          [1, 3],
+          [4, 4],
+          [10, 5],
+          [16, 6],
+        ]) ?? 0,
+      );
+      expect(feature(built, "Second Wind")?.uses?.amount).toBe(
+        steps(level, [
+          [1, 2],
+          [4, 3],
+          [10, 4],
+        ]),
+      );
+      expect(feature(built, "Action Surge")?.uses?.amount).toBe(
+        steps(level, [
+          [2, 1],
+          [17, 2],
+        ]),
+      );
+      expect(feature(built, "Indomitable")?.uses?.amount).toBe(
+        steps(level, [
+          [9, 1],
+          [13, 2],
+          [17, 3],
+        ]),
+      );
+      expect(built.attacksPerAction).toBe(
+        steps(level, [
+          [1, 1],
+          [5, 2],
+          [11, 3],
+          [20, 4],
+        ]),
+      );
+      expect(built.criticalHitMinimum).toBe(
+        steps(level, [
+          [1, 20],
+          [3, 19],
+          [15, 18],
+        ]),
+      );
+    });
+  }
+
+  it("has the features of the table at each level", () => {
+    const built = at(20).built;
+    expect([...Array(20).keys()].map((i) => featureNames(built, i + 1))).toEqual([
+      ["Fighting Style", "Second Wind", "Weapon Mastery"],
+      ["Action Surge", "Tactical Mind"],
+      ["Fighter Subclass", "Improved Critical", "Remarkable Athlete"],
+      ["Ability Score Improvement"],
+      ["Extra Attack", "Tactical Shift"],
+      [],
+      ["Additional Fighting Style"],
+      [],
+      ["Indomitable", "Tactical Master"],
+      ["Heroic Warrior"],
+      ["Two Extra Attacks"],
+      [],
+      ["Studied Attacks"],
+      [],
+      ["Superior Critical"],
+      [],
+      [],
+      ["Survivor"],
+      ["Epic Boon"],
+      ["Three Extra Attacks"],
+    ]);
+  });
+
+  it("offers a feat at each Ability Score Improvement level and the Epic Boon at 19", () => {
+    const { selections } = at(20);
+    const names = (level: number) =>
+      selections.filter((s) => s.path.slice(0, 4).join("/") === `class/srd52:fighter/levels/level-${level}` && s.path.length === 5).map((s) => s.name);
+    for (const level of [4, 6, 8, 12, 14, 16]) expect(names(level)).toContain("Ability Score Improvement");
+    expect(names(19)).toEqual(["Epic Boon"]);
+  });
+
+  it("offers the Additional Fighting Style from level 7 only", () => {
+    const additional = (entity: Entity2024) => evaluate(entity, { rules: "2024" }).selections.find((s) => s.name === "Additional Fighting Style");
+    expect(additional(character({ level: 6 }))).toBeUndefined();
+    expect(additional(character({ level: 7 }))).toMatchObject({ min: 1, remaining: 1 });
+  });
+
+  it("reports the Additional Fighting Style and gives nothing from it when the class level goes below 7", () => {
+    const seven = character({ level: 7 });
+    const path = evaluate(seven, { rules: "2024" }).selections.find((s) => s.name === "Additional Fighting Style")?.actualPath ?? [];
+    const archery = select(seven, path, "srd52:archery");
+    const longbow = (entity: Entity2024) => attack(evaluate(entity, { rules: "2024" }).built, "srd52:longbow")?.attackBonus;
+    // Longbow at level 7: Dex +1, PB +3 = +4. Archery: +2 = +6 (p87).
+    expect(longbow(seven)).toBe(4);
+    expect(longbow(archery)).toBe(6);
+    const six = removeLevel(archery, "srd52:fighter");
+    // The choice stays in the entity under the level 3 subclass. At level 6 it gives no bonus, and it is a problem.
+    expect(longbow(six)).toBe(4);
+    expect(evaluate(six, { rules: "2024" }).problems.map((p) => p.path.join("/"))).toEqual([[...path, "srd52:archery"].join("/")]);
   });
 });
 
@@ -416,12 +562,12 @@ describe("problems", () => {
     expect(problems).toEqual([
       {
         kind: "prerequisite",
-        path: ["class", "fighter", "levels", "level-1", "fighting-style", "srd52:defense"],
+        path: ["class", "srd52:fighter", "levels", "level-1", "fighting-style", "srd52:defense"],
         reason: '"Defense" needs: Not taken already',
       },
       {
         kind: "prerequisite",
-        path: ["class", "fighter", "levels", "level-4", "ability-score-improvement", "srd52:defense"],
+        path: ["class", "srd52:fighter", "levels", "level-4", "ability-score-improvement", "srd52:defense"],
         reason: '"Defense" needs: Not taken already',
       },
     ]);
@@ -434,7 +580,7 @@ describe("contributions", () => {
   it("gives the Defense bonus to the Armor Class with its source", () => {
     // Chain Mail 16, then Defense +1.
     expect(contributions.armorClass).toEqual([
-      { name: "Defense", source: ["class", "fighter", "levels", "level-1", "fighting-style", "srd52:defense"], from: 16, to: 17 },
+      { name: "Defense", source: ["class", "srd52:fighter", "levels", "level-1", "fighting-style", "srd52:defense"], from: 16, to: 17 },
     ]);
   });
 
@@ -449,17 +595,17 @@ describe("mutations", () => {
   const hitPoints = (entity: Entity2024) => evaluate(entity, { rules: "2024" }).built.maxHitPoints;
 
   it("adds and removes a level", () => {
-    const two = addLevel(levelOne, "fighter");
+    const two = addLevel(levelOne, "srd52:fighter");
     expect(evaluate(two, { rules: "2024" }).built.classLevels).toEqual({ "srd52:fighter": 2 });
     // 13, then level 2: 6, Con +2, Dwarven Toughness +1.
     expect(hitPoints(two)).toBe(22);
-    expect(hitPoints(removeLevel(two, "fighter"))).toBe(13);
-    expect(() => removeLevel(levelOne, "fighter")).toThrow('"Levels" needs at least 1');
+    expect(hitPoints(removeLevel(two, "srd52:fighter"))).toBe(13);
+    expect(() => removeLevel(levelOne, "srd52:fighter")).toThrow('"Levels" needs at least 1');
   });
 
   it("sets a rolled Hit Point number on a level", () => {
     // Level 2 rolled 10: 13 + 10 + 2 + 1.
-    expect(hitPoints(setOptionValue(addLevel(levelOne, "fighter"), ["class", "fighter", "levels", "level-2"], 10))).toBe(26);
+    expect(hitPoints(setOptionValue(addLevel(levelOne, "srd52:fighter"), ["class", "srd52:fighter", "levels", "level-2"], 10))).toBe(26);
   });
 
   it("chooses and removes armor", () => {
@@ -475,10 +621,10 @@ describe("mutations", () => {
 
   it("refuses a feat that the character cannot choose", () => {
     const four = character({ level: 4 });
-    const slot = ["class", "fighter", "levels", "level-4", "ability-score-improvement"];
+    const slot = ["class", "srd52:fighter", "levels", "level-4", "ability-score-improvement"];
     // The Soldier gives Savage Attacker, and it is not repeatable.
     expect(() => select(four, slot, "srd52:savage-attacker")).toThrow('"Savage Attacker" needs: Not taken already');
-    expect(() => select(levelOne, ["class", "fighter", "levels", "level-1", "fighting-style"], "srd52:alert")).toThrow(
+    expect(() => select(levelOne, ["class", "srd52:fighter", "levels", "level-1", "fighting-style"], "srd52:alert")).toThrow(
       '"srd52:alert" is not an option of "Fighting Style"',
     );
     expect(evaluate(select(four, slot, "srd52:alert"), { rules: "2024" }).built.feats.map((f) => f.key)).toContain("srd52:alert");

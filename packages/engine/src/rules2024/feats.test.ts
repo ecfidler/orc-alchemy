@@ -1,7 +1,7 @@
 // The 17 feats of SRD 5.2.1 (ORC-227), p87 to p88. The character is a
 // Wizard of the pack with no background and no species, so each value below
 // comes from the feat. The Fighting Style feats need the Fighting Style
-// feature, so they are on the Fighter of the spike. Each expected number has
+// feature, so they are on the test Fighter. Each expected number has
 // its arithmetic in a comment.
 
 import { describe, expect, it } from "vitest";

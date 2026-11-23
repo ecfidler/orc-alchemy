@@ -474,7 +474,8 @@ export function backgroundOption(content: Content, reference: string, background
 /**
  * A subclass as an option of a subclass selection. Its features and the
  * effects of its levels apply from their class level, which the parts read
- * from `classLevels`.
+ * from `classLevels`. A choice at a level is offered from that class level,
+ * and its options give nothing below it.
  */
 export function subclassOption(content: Content, reference: string, subclass: SubclassRecord): Option<Built2024> {
   const classRef = subclass.class;
@@ -489,18 +490,39 @@ export function subclassOption(content: Content, reference: string, subclass: Su
       when: (q) => atLevel(level)(q) && (!own || own(q)),
     };
   };
+  // A choice at a subclass level: offered from that class level, and its options give nothing below it.
+  const gateOption = (level: number, chosen: Option<Built2024>): Option<Built2024> => ({
+    ...chosen,
+    modifiers: chosen.modifiers.map((modifier) => gate(level, modifier)),
+    selections: chosen.selections.map((inner) => gateSelection(level, inner)),
+  });
+  const gateSelection = (level: number, choice: Selection<Built2024>): Selection<Built2024> => {
+    const own = choice.prereq;
+    return {
+      ...choice,
+      prereq: (built) => (built.classLevels[classRef] ?? 0) >= level && (!own || own(built)),
+      options: choice.options.map((chosen) => gateOption(level, chosen)),
+    };
+  };
   const levelParts = (subclass.levels ?? []).map((entry, i) => {
     const parts = effectParts(context, entry.effects, ["levels", i, "effects"]);
-    if (parts.selections.length) throw new RecordError(reference, ["levels", i], "a choice at a level needs the class frame (ORC-230)");
-    return parts.modifiers.map((modifier) => gate(entry.level, modifier));
+    return {
+      modifiers: parts.modifiers.map((modifier) => gate(entry.level, modifier)),
+      selections: parts.selections.map((choice) => gateSelection(entry.level, choice)),
+    };
   });
   const own = effectParts(context, subclass.effects ?? [], ["effects"]);
   const features = traitFeatures(context, subclass.features ?? []).map((modifier, i) => gate(subclass.features?.[i].level ?? 1, modifier));
   return option({
     key: reference,
     name: subclass.name,
-    modifiers: [m.update("subclasses", (current) => ({ ...current, [classRef]: reference })), ...own.modifiers, ...levelParts.flat(), ...features],
-    selections: own.selections,
+    modifiers: [
+      m.update("subclasses", (current) => ({ ...current, [classRef]: reference })),
+      ...own.modifiers,
+      ...levelParts.flatMap((parts) => parts.modifiers),
+      ...features,
+    ],
+    selections: [...own.selections, ...levelParts.flatMap((parts) => parts.selections)],
   });
 }
 

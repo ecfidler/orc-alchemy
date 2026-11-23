@@ -1,6 +1,6 @@
 // The parts of a class that every class has, from its typed fields: the
 // levels and their Hit Points (SRD 5.2.1 p22 to p24). The class converter in
-// records.ts and the Fighter of the spike share them.
+// records.ts uses them.
 
 import type { OptionModifier, Reader } from "../core/modifiers.ts";
 import { type Built2024, m } from "./built.ts";

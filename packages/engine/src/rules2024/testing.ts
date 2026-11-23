@@ -1,7 +1,7 @@
 // Test characters that several test files share. Not part of the package
 // exports.
 //
-// The Fighter of the spike: a Dwarf Soldier. Scores before increases, from
+// The test Fighter: a Dwarf Soldier Fighter, Champion from level 3. Scores before increases, from
 // the Standard Array: Str 15, Dex 13, Con 14, Int 8, Wis 12, Cha 10. The
 // background gives Str +2 and Con +1.
 
@@ -49,7 +49,7 @@ export function fighterCharacter(choices: Choices): Entity2024 {
 
   const levelSelections: Record<number, StrictSelection[]> = {
     1: [{ key: "fighting-style", option: { key: fightingStyle } }],
-    3: [{ key: "subclass", option: { key: "champion" } }],
+    3: [{ key: "subclass", option: { key: "srd52:champion" } }],
     4: [{ key: "ability-score-improvement", option: level4Feat }],
   };
   const levels = Array.from({ length: level }, (_, i): StrictOption => {
@@ -69,7 +69,7 @@ export function fighterCharacter(choices: Choices): Entity2024 {
         key: "class",
         options: [
           {
-            key: "fighter",
+            key: "srd52:fighter",
             selections: [
               { key: "skill-proficiencies", options: [{ key: "perception" }, { key: "survival" }] },
               // The 155 GP.

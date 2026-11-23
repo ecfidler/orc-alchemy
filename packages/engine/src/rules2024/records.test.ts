@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { build, findProblems } from "../core/build.ts";
+import { availableSelections, build, findProblems } from "../core/build.ts";
 import type { StrictEntity } from "../core/entity.ts";
 import { option, selection, type Template } from "../core/template.ts";
 import examplePack from "../format/fixtures/example-pack.json" with { type: "json" };
@@ -217,7 +217,17 @@ describe("subclasses", () => {
           { key: "steady", name: "Steady", level: 3, text: "You stand firm." },
           { key: "swift", name: "Swift", level: 7, text: "You move fast." },
         ],
-        levels: [{ level: 7, effects: [{ add: "speed", value: 10, name: "Swift" }] }],
+        levels: [
+          { level: 7, effects: [{ add: "speed", value: 10, name: "Swift" }] },
+          {
+            level: 7,
+            effects: [
+              {
+                selection: { key: "boon", name: "Boon", choose: 1, from: [{ key: "fast", name: "Fast", effects: [{ add: "speed", value: 5, name: "Fast" }] }] },
+              },
+            ],
+          },
+        ],
       },
     ],
   });
@@ -233,11 +243,13 @@ describe("subclasses", () => {
       selection({ name: "Subclass", options: [subclassOption({ packs: [pack] }, "hb:thing", pack.subclasses[0])] }),
     ],
   };
-  const at = (level?: number) =>
-    build(
-      { selections: [...(level ? [{ key: "level", option: { key: `level-${level}` } }] : []), { key: "subclass", option: { key: "hb:thing" } }] },
-      template,
-    );
+  const entity = (level?: number, boon?: string): StrictEntity => ({
+    selections: [
+      ...(level ? [{ key: "level", option: { key: `level-${level}` } }] : []),
+      { key: "subclass", option: { key: "hb:thing", ...(boon ? { selections: [{ key: "boon", option: { key: boon } }] } : {}) } },
+    ],
+  });
+  const at = (level?: number) => build(entity(level), template);
 
   it("gives its features and effects from their class level", () => {
     expect(at().subclasses).toEqual({ "hb:knight": "hb:thing" });
@@ -249,5 +261,17 @@ describe("subclasses", () => {
       ["hb:thing/swift", 7],
     ]);
     expect(at(7).speed).toBe(40);
+  });
+
+  it("offers a choice of a level from that class level, and its options give nothing below it", () => {
+    const offered = (level: number) => availableSelections(entity(level), build(entity(level), template), template).map((s) => s.key);
+    expect(offered(3)).not.toContain("boon");
+    expect(offered(7)).toContain("boon");
+    // Below level 7 the chosen option gives nothing, and it is a problem.
+    const early = entity(3, "fast");
+    expect(build(early, template).speed).toBe(30);
+    expect(findProblems(early, build(early, template), template).map((p) => p.path.join("/"))).toEqual(["subclass/hb:thing/boon/fast"]);
+    // Level 7: 30 + Swift 10 + Fast 5.
+    expect(build(entity(7, "fast"), template).speed).toBe(45);
   });
 });

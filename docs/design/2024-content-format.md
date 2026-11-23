@@ -189,7 +189,7 @@ Every record has `key`, `name`, and the optional fields `source`
 
 | Type | Typed fields |
 |---|---|
-| `classes` | `hitDie` (6, 8, 10, or 12), `savingThrows` (two abilities), `skills` (a choice of skill keys), and the optional `primaryAbility` (a list of abilities, or a choice of them), `weaponProficiencies`, `armorTraining`, `tools`, `startingEquipment`, `features`, `table`, and `levels`. |
+| `classes` | `hitDie` (6, 8, 10, or 12), `savingThrows` (two abilities), `skills` (a choice of skill keys), and the optional `primaryAbility` (a list of abilities, or a choice of them), `weaponProficiencies`, `armorTraining`, `tools`, `startingEquipment`, `multiclass`, `features`, `table`, and `levels`. `multiclass` is the list "As a Multiclass Character": the optional `weaponProficiencies`, `armorTraining`, `skills` (a choice), and `tools` that a later class gives (ORC-234 reads it). |
 | `subclasses` | `class` (a reference), and the optional `summary`, `features`, and `levels`. |
 | `species` | `creatureType`, `size` (a size, or a choice of sizes), and `speed` in feet. |
 | `backgrounds` | `abilityScores` (three abilities), `feat` (a reference), `skills` (two skill keys), `tool` (a reference, or a choice), and the optional `featSpellList` (for Magic Initiate, the class whose spell list the feat uses) and `startingEquipment`. |
@@ -203,7 +203,9 @@ A feat with no traits shows its `description` as one feature.
 
 A feature of a class or a subclass is a trait with a `level`. The `levels`
 field is a list of `{ "level": 3, "effects": [...] }`: the effects that the
-class or the subclass gives from that class level. The `table` field of a
+class or the subclass gives from that class level. A `selection` in the
+`levels` of a subclass is offered from that class level only, and its
+options give nothing below it. The `table` field of a
 class is display data: one row for each class level, with
 `proficiencyBonus`, `features` (the feature keys of that level), the
 optional `columns` (for example `{ "rage-count": 2 }`), and the optional
