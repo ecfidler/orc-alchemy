@@ -2,6 +2,7 @@
 // species, one background. The content format (ORC-223) and the import
 // (ORC-224) replace that content.
 
+import { shuffled } from "../core/autofill.ts";
 import { option, selection, type Template } from "../core/template.ts";
 import { ABILITIES, type AbilityScores, type Built2024, base, forEachAbility, m } from "./built.ts";
 import { ARMOR } from "./content/armor.ts";
@@ -18,11 +19,7 @@ const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
 /** The Standard Array in a random order, for autofill. */
 function randomStandardArray(random: () => number): AbilityScores {
-  const scores = [...STANDARD_ARRAY];
-  for (let i = scores.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [scores[i], scores[j]] = [scores[j], scores[i]];
-  }
+  const scores = shuffled(STANDARD_ARRAY, random);
   return Object.fromEntries(ABILITIES.map((ability, i) => [ability, scores[i]])) as AbilityScores;
 }
 

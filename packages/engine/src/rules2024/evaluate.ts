@@ -4,7 +4,7 @@
 // is the engine's own `Built2024`.
 
 import { autofill as autofillCore } from "../core/autofill.ts";
-import { actualPath, availableSelections, buildWithContributions, countRemaining, findProblems, type Problem, selectedKeys } from "../core/build.ts";
+import { actualPath, availableSelections, build, buildWithContributions, countRemaining, findProblems, type Problem, selectedKeys } from "../core/build.ts";
 import type { OptionValue, Path, StrictEntity } from "../core/entity.ts";
 import type { Contributions } from "../core/modifiers.ts";
 import * as core from "../core/mutations.ts";
@@ -67,7 +67,7 @@ function templateFor(options: EvaluateOptions2024) {
 
 /** The built 2024 character of an entity, as prerequisites read it. */
 export function buildCharacter(entity: Entity2024): Built2024 {
-  return buildWithContributions<Built2024>(entity, template2024).built;
+  return build<Built2024>(entity, template2024);
 }
 
 /**

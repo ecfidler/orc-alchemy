@@ -26,7 +26,8 @@ export function seededRandom(seed: number): () => number {
   };
 }
 
-function shuffled<T>(items: readonly T[], random: () => number): T[] {
+/** A copy of `items` in a random order (Fisher-Yates). */
+export function shuffled<T>(items: readonly T[], random: () => number): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));

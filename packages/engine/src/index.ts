@@ -1,7 +1,7 @@
 // @orc-alchemy/engine: the 2024 rules engine. The spec is
 // docs/design/2024-engine.md.
 
-export * from "./core/autofill.ts";
+export { type AutofillOptions, seededRandom, shuffled } from "./core/autofill.ts";
 export * from "./core/build.ts";
 export * from "./core/entity.ts";
 export * from "./core/modifiers.ts";
