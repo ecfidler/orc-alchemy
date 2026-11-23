@@ -161,6 +161,9 @@ The 2024 engine has no `.orcbrew` function.
 - Features with uses that can recover on two rests.
 - The class columns of the class table at each class level
   (`classColumns`), for example the Rage Damage of the Barbarian.
+- The Martial Arts die (`martialArtsDie`). Without armor and a Shield,
+  the Monk weapons use it, and `weaponAttacks` has a line for the Unarmed
+  Strike.
 - The lineage, legacy or ancestry of the species (`lineage`).
 - The Hit Points of each level (`hitPointsPerLevel`) and the Hit Point
   Dice by die (`hitPointDice`).

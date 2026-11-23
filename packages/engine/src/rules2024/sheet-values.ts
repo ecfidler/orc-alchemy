@@ -64,6 +64,7 @@ export const SHEET_VALUES = {
   weapons: "list",
   rangedAttackBonus: "number",
   attacksPerAction: "number",
+  martialArtsDie: "number",
   criticalHitMinimum: "number",
   weaponAttacks: "list",
   savingThrowAttacks: "list",

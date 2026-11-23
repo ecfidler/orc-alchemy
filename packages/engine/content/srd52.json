@@ -3343,6 +3343,112 @@
       "source": {
         "index": "monk"
       },
+      "effects": [
+        {
+          "set": "martialArtsDie",
+          "value": {
+            "steps": [
+              [
+                1,
+                6
+              ],
+              [
+                5,
+                8
+              ],
+              [
+                11,
+                10
+              ],
+              [
+                17,
+                12
+              ]
+            ],
+            "by": {
+              "read": "classLevels",
+              "entry": "srd52:monk"
+            }
+          },
+          "name": "Martial Arts"
+        },
+        {
+          "uses": {
+            "trait": "monks-focus",
+            "amount": {
+              "steps": [
+                [
+                  2,
+                  {
+                    "read": "classLevels",
+                    "entry": "srd52:monk"
+                  }
+                ]
+              ],
+              "by": {
+                "read": "classLevels",
+                "entry": "srd52:monk"
+              }
+            },
+            "recover": [
+              {
+                "on": "short-rest",
+                "amount": "all"
+              },
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "add": "speed",
+          "value": {
+            "steps": [
+              [
+                2,
+                10
+              ],
+              [
+                6,
+                15
+              ],
+              [
+                10,
+                20
+              ],
+              [
+                14,
+                25
+              ],
+              [
+                18,
+                30
+              ]
+            ],
+            "by": {
+              "read": "classLevels",
+              "entry": "srd52:monk"
+            }
+          },
+          "name": "Unarmored Movement",
+          "when": {
+            "all": [
+              {
+                "not": {
+                  "has": "wornArmor"
+                }
+              },
+              {
+                "not": {
+                  "has": "shield"
+                }
+              }
+            ]
+          }
+        }
+      ],
       "hitDie": 8,
       "primaryAbility": [
         "dex",
@@ -3430,6 +3536,7 @@
           "gold": 50
         }
       ],
+      "multiclass": {},
       "features": [
         {
           "key": "martial-arts",
@@ -3562,6 +3669,150 @@
           "name": "Body and Mind",
           "text": "You have developed your body and mind to new heights. Your Dexterity and Wisdom scores increase by 4, to a maximum of 25.",
           "level": 20
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "effects": [
+            {
+              "hook": "armor-class",
+              "args": {
+                "name": "Unarmored Defense",
+                "base": 10,
+                "abilities": [
+                  "dex",
+                  "wis"
+                ],
+                "shield": false
+              }
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "effects": [
+            {
+              "uses": {
+                "trait": "uncanny-metabolism",
+                "amount": 1,
+                "recover": [
+                  {
+                    "on": "long-rest",
+                    "amount": "all"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "effects": [
+            {
+              "set": "attacksPerAction",
+              "value": 2,
+              "name": "Extra Attack"
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 12,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "effects": [
+            {
+              "push": "savingThrowProficiencies",
+              "value": "con",
+              "name": "Disciplined Survivor"
+            },
+            {
+              "push": "savingThrowProficiencies",
+              "value": "int",
+              "name": "Disciplined Survivor"
+            },
+            {
+              "push": "savingThrowProficiencies",
+              "value": "wis",
+              "name": "Disciplined Survivor"
+            },
+            {
+              "push": "savingThrowProficiencies",
+              "value": "cha",
+              "name": "Disciplined Survivor"
+            }
+          ]
+        },
+        {
+          "level": 16,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 19,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Epic Boon"
+              }
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "effects": [
+            {
+              "hook": "ability-score-increase",
+              "args": {
+                "abilities": [
+                  "dex",
+                  "wis"
+                ],
+                "amount": 4,
+                "choose": 2,
+                "max": 25
+              },
+              "name": "Body and Mind"
+            }
+          ]
         }
       ],
       "table": [
@@ -7676,6 +7927,33 @@
           "name": "Quivering Palm",
           "text": "You gain the ability to set up lethal vibrations in someone's body. When you hit a creature with an Unarmed Strike, you can expend 4 Focus Points to start these imperceptible vibrations, which last for a number of days equal to your Monk level. The vibrations are harmless unless you take an action to end them. Alternatively, when you take the Attack action on your turn, you can forgo one of the attacks to end the vibrations. To end them, you and the target must be on the same plane of existence. When you end them, the target must make a Constitution saving throw, taking 10d12 Force damage on a failed save or half as much damage on a successful one.\nYou can have only one creature under the effect of this feature at a time. You can end the vibrations harmlessly (no action required).",
           "level": 17
+        }
+      ],
+      "levels": [
+        {
+          "level": 6,
+          "effects": [
+            {
+              "uses": {
+                "trait": "wholeness-of-body",
+                "amount": {
+                  "sum": [
+                    {
+                      "read": "abilityModifiers",
+                      "entry": "wis"
+                    }
+                  ],
+                  "min": 1
+                },
+                "recover": [
+                  {
+                    "on": "long-rest",
+                    "amount": "all"
+                  }
+                ]
+              }
+            }
+          ]
         }
       ]
     },

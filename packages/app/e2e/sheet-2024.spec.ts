@@ -1,4 +1,4 @@
-// The 2024 golden Fighter on the sheet, behind the developer flag (ORC-238).
+// The 2024 golden characters on the sheet, behind the developer flag (ORC-238, ORC-250 to ORC-252).
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -8,6 +8,12 @@ async function openFighter(page: Page, level: number) {
   await page.addInitScript(() => localStorage.setItem("alchemy-dev-2024", "on"));
   await page.goto(`/dev/2024?level=${level}`);
   await expect(page.getByRole("heading", { name: "Brunhild" })).toBeVisible();
+}
+
+/** A golden character by its full name, at a level that it checks. */
+async function openGolden(page: Page, name: string, level: number) {
+  await page.addInitScript(() => localStorage.setItem("alchemy-dev-2024", "on"));
+  await page.goto(`/dev/2024?${new URLSearchParams({ character: name, level: String(level) })}`);
 }
 
 test("without the developer flag, the page is not found", async ({ page }) => {
@@ -49,6 +55,20 @@ test("changes the level", async ({ page }) => {
   await expect(page.getByRole("group", { name: "Second Wind" }).getByRole("group", { name: "2 uses, 2 left" })).toBeVisible();
 });
 
+test("shows the Monk's Martial Arts on the Shortsword and the Unarmed Strike", async ({ page }) => {
+  await openGolden(page, "Monk (Human Criminal, Open Hand)", 20);
+  await expect(page.getByRole("heading", { name: "Mei" })).toBeVisible();
+  const attacks = page.getByRole("table", { name: "Weapon attacks" });
+  // Dex 7 + PB 6, and the Martial Arts die 1d12 (golden/characters/monk.ts).
+  await expect(attacks.getByRole("row", { name: /^Shortsword / }).getByRole("cell")).toHaveText(["Shortsword", "Yes", "+13 to hit", "1d12+7 Piercing"]);
+  await expect(attacks.getByRole("row", { name: /^Unarmed Strike / }).getByRole("cell")).toHaveText([
+    "Unarmed Strike",
+    "Yes",
+    "+13 to hit",
+    "1d12+7 Bludgeoning",
+  ]);
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- sheet-2024.spec.ts
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -64,5 +84,30 @@ test.describe("screenshots", () => {
       await page.mouse.move(0, 0);
       await page.screenshot({ path: join(dir, `orc-238-fighter-20-${theme}.png`), fullPage: true });
     });
+  }
+});
+
+test.describe("screenshots of the classes", () => {
+  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
+  test.use({ deviceScaleFactor: 2 });
+  const dir = join(import.meta.dirname, "../../../pr-screenshots");
+  const characters = [
+    ["orc-250-barbarian", "Barbarian (Goliath Soldier, Berserker)", "Kavaki"],
+    ["orc-251-monk", "Monk (Human Criminal, Open Hand)", "Mei"],
+    ["orc-252-rogue", "Rogue (Halfling Criminal, Thief)", "Pip"],
+  ] as const;
+  for (const [file, name, heading] of characters) {
+    for (const theme of ["light", "dark"] as const) {
+      test(`${file} at level 20, ${theme}`, async ({ page }) => {
+        mkdirSync(dir, { recursive: true });
+        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await openGolden(page, name, 20);
+        await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+        await page.evaluate(() => document.fonts.ready);
+        await page.mouse.move(0, 0);
+        await page.screenshot({ path: join(dir, `${file}-20-${theme}.png`), fullPage: true });
+      });
+    }
   }
 });

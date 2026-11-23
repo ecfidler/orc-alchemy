@@ -332,7 +332,11 @@ not a measured list:
 
 - Spell slots: the multiclass slot table, and Pact Magic.
 - Wild Shape forms: a list from monster data by Challenge Rating and level.
-- Martial Arts: the larger of the weapon die and the Monk die.
+
+Martial Arts is not a hook (ORC-251). A class sets the sheet value
+`martialArtsDie`, and the engine applies the rule of the Monk weapons to
+the weapon attacks: Dexterity, and the larger of the weapon die and the
+Martial Arts die.
 
 The rules for hooks:
 
