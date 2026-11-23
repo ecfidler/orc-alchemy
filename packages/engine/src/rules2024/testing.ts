@@ -95,3 +95,20 @@ export function fighterCharacter(choices: Choices): Entity2024 {
     ],
   };
 }
+
+/** A pack file with the id `test` and the given records, for `loadContentPack`. */
+export function testPackFile(records: Record<string, unknown[]>): unknown {
+  return { format: "alchemy-content", version: 1, rules: "2024", pack: { id: "test", name: "Test" }, ...records };
+}
+
+/** A class record with no features: a d8, Dexterity and Intelligence saves, and two skills of three. `more` adds or replaces fields. */
+export function testClass(key: string, more: Record<string, unknown> = {}) {
+  return {
+    key,
+    name: key[0].toUpperCase() + key.slice(1),
+    hitDie: 8,
+    savingThrows: ["dex", "int"],
+    skills: { choose: 2, from: ["stealth", "perception", "arcana"] },
+    ...more,
+  };
+}

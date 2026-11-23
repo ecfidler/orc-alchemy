@@ -97,13 +97,22 @@ export interface ArmorClassFormula {
 }
 
 /** The base calculation of every character: 10 plus the Dexterity modifier (SRD 5.2.1 p177). */
-export const UNARMORED: ArmorClassFormula = { key: "unarmored", name: "Unarmored", base: 10, abilities: ["dex"], shield: true };
+export const UNARMORED: ArmorClassFormula = { key: "unarmored", name: "Unarmored: 10 + Dexterity modifier", base: 10, abilities: ["dex"], shield: true };
 
 /** The key of `armorClassFormula` when the character wears armor. */
 export const WORN_ARMOR = "armor";
 
 export function formulaValue(formula: ArmorClassFormula, modifiers: AbilityScores): number {
   return formula.abilities.reduce((sum, ability) => sum + modifiers[ability], formula.base);
+}
+
+/** The modifier that gives `baseArmorClass` when `formula` is the base calculation in use. */
+export function formulaModifier(formula: ArmorClassFormula): Modifier<Built2024> {
+  return m.add("baseArmorClass", (q) => formulaValue(formula, q("abilityModifiers")), {
+    deps: ["abilityModifiers", "armorClassFormula"],
+    when: (q) => q("armorClassFormula") === formula.key,
+    name: formula.name,
+  });
 }
 
 /**
@@ -254,9 +263,14 @@ export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2);
 }
 
-/** A feature with its key: the key of its source, then the key of its name. */
+/** The key of a feature, a formula or an attack of a source: the key of the source, then the key of the name. */
+export function traitKey(source: string, name: string): string {
+  return `${source}/${nameToKey(name)}`;
+}
+
+/** A feature with its key (`traitKey`). */
 export function feature(source: string, name: string, summary: string, more: Pick<Feature, "level" | "uses"> = {}): Feature {
-  return { key: `${source}/${nameToKey(name)}`, name, summary, source, ...more };
+  return { key: traitKey(source, name), name, summary, source, ...more };
 }
 
 /** A value for each ability. */
@@ -442,9 +456,5 @@ export const RULES: readonly Modifier<Built2024>[] = [
       name: "Expertise",
     },
   ),
-  m.add("baseArmorClass", (q) => formulaValue(UNARMORED, q("abilityModifiers")), {
-    deps: ["abilityModifiers", "armorClassFormula"],
-    when: (q) => q("armorClassFormula") === UNARMORED.key,
-    name: "Unarmored: 10 + Dexterity modifier",
-  }),
+  formulaModifier(UNARMORED),
 ];

@@ -12,7 +12,7 @@ import type { StrictOption, StrictSelection } from "../core/entity.ts";
 import { SRD52 } from "./built-in.ts";
 import type { Entity2024 } from "./evaluate.ts";
 import { loadContentPack } from "./packs.ts";
-import { template2024 } from "./template.ts";
+import { createTemplate, template2024 } from "./template.ts";
 
 // Standard Array: Str 8, Dex 14, Con 13, Int 15, Wis 12, Cha 10. Con +1.
 const SCORES = { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 };
@@ -43,10 +43,10 @@ function character(species: string, level: number, selections: StrictSelection[]
   };
 }
 
-function build(species: string, level: number, selections: StrictSelection[] = []) {
+function build(species: string, level: number, selections: StrictSelection[] = [], template = template2024) {
   const entity = character(species, level, selections);
-  const { built, contributions } = buildWithContributions(entity, template2024);
-  return { built, contributions, problems: findProblems(entity, built, template2024) };
+  const { built, contributions } = buildWithContributions(entity, template);
+  return { built, contributions, problems: findProblems(entity, built, template) };
 }
 
 const choose = (key: string, option: string, selections?: StrictSelection[]): StrictSelection => ({
@@ -77,9 +77,13 @@ describe("every species", () => {
     const bare = { ...pack, species: pack.species.map(({ effects: _effects, ...rest }) => rest) };
     const { pack: loaded, issues } = loadContentPack(bare);
     expect(issues).toEqual([]);
-    for (const record of loaded?.species ?? []) {
+    if (!loaded) throw new Error("the pack does not load");
+    const bareTemplate = createTemplate({ packs: [loaded] });
+    for (const record of loaded.species) {
       expect(record.effects).toBeUndefined();
-      expect(record.traits?.length).toBeGreaterThan(0);
+      const built = build(record.key, 1, [], bareTemplate).built;
+      expect(built.species).toBe(`srd52:${record.key}`);
+      expect(built.features.filter((f) => f.source === `srd52:${record.key}`).map((f) => f.name)).toEqual(record.traits?.map((t) => t.name));
     }
   });
 });

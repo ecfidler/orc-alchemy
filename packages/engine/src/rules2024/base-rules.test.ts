@@ -9,23 +9,10 @@ import { SRD52 } from "./built-in.ts";
 import type { Entity2024 } from "./evaluate.ts";
 import { loadContentPack } from "./packs.ts";
 import { createTemplate, pointCost } from "./template.ts";
-import { twoAndOne } from "./testing.ts";
-
-const testClass = (key: string, more: Record<string, unknown>) => ({
-  key,
-  name: key[0].toUpperCase() + key.slice(1),
-  hitDie: 8,
-  savingThrows: ["dex", "int"],
-  skills: { choose: 2, from: ["stealth", "perception", "arcana"] },
-  ...more,
-});
+import { testClass, testPackFile, twoAndOne } from "./testing.ts";
 
 const loaded = loadContentPack(
-  {
-    format: "alchemy-content",
-    version: 1,
-    rules: "2024",
-    pack: { id: "test", name: "Test classes" },
+  testPackFile({
     classes: [
       // A class with no features: light armor, simple weapons.
       testClass("tester", { weaponProficiencies: ["simple"], armorTraining: ["light"] }),
@@ -51,7 +38,7 @@ const loaded = loadContentPack(
         ],
       }),
     ],
-  },
+  }),
   { packs: [SRD52] },
 );
 if (!loaded.pack) throw new Error("the test pack does not load");

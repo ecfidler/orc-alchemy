@@ -5,9 +5,8 @@
 // gives `baseArmorClass`.
 
 import { z } from "zod";
-import { nameToKey } from "../../core/template.ts";
 import { Ability } from "../../format/schema.ts";
-import { type ArmorClassFormula, formulaValue, m } from "../built.ts";
+import { type ArmorClassFormula, formulaModifier, m, traitKey } from "../built.ts";
 import { defineHook } from "./hook.ts";
 
 export const armorClassHook = defineHook({
@@ -22,17 +21,7 @@ export const armorClassHook = defineHook({
     shield: z.boolean().default(true),
   }),
   apply: (args, call) => {
-    const formula: ArmorClassFormula = { key: `${call.record}/${nameToKey(args.name)}`, ...args };
-    return {
-      modifiers: [
-        m.push("armorClassFormulas", formula),
-        m.add("baseArmorClass", (q) => formulaValue(formula, q("abilityModifiers")), {
-          deps: ["abilityModifiers", "armorClassFormula"],
-          when: (q) => q("armorClassFormula") === formula.key,
-          name: args.name,
-        }),
-      ],
-      selections: [],
-    };
+    const formula: ArmorClassFormula = { key: traitKey(call.record, args.name), ...args };
+    return { modifiers: [m.push("armorClassFormulas", formula), formulaModifier(formula)], selections: [] };
   },
 });

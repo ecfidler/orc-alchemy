@@ -5,19 +5,13 @@ import { buildWithContributions } from "../../core/build.ts";
 import type { Entity2024 } from "../evaluate.ts";
 import { loadContentPack } from "../packs.ts";
 import { createTemplate } from "../template.ts";
+import { testClass, testPackFile } from "../testing.ts";
 import { HOOKS } from "./index.ts";
 
-const unarmoredClass = (key: string, args: Record<string, unknown>) => ({
-  key,
-  name: key,
-  hitDie: 8,
-  savingThrows: ["str", "con"],
-  skills: { choose: 1, from: ["athletics"] },
-  armorTraining: ["light", "shield"],
-  effects: [{ hook: "armor-class", args }],
-});
+const unarmoredClass = (key: string, args: Record<string, unknown>) =>
+  testClass(key, { armorTraining: ["light", "shield"], effects: [{ hook: "armor-class", args }] });
 
-const pack = (classes: unknown[]) => loadContentPack({ format: "alchemy-content", version: 1, rules: "2024", pack: { id: "test", name: "Test" }, classes });
+const pack = (classes: unknown[]) => loadContentPack(testPackFile({ classes }));
 
 describe("armor-class", () => {
   const loaded = pack([
@@ -96,14 +90,12 @@ describe("armor-class", () => {
 
 /** A species of a test pack with one effect, at a character level. */
 function speciesWith(effect: unknown) {
-  const loaded = loadContentPack({
-    format: "alchemy-content",
-    version: 1,
-    rules: "2024",
-    pack: { id: "test", name: "Test" },
-    classes: [unarmoredClass("plain", { name: "Plain", base: 10 })],
-    species: [{ key: "thing", name: "Thing", creatureType: "humanoid", size: "medium", speed: 30, effects: [effect] }],
-  });
+  const loaded = loadContentPack(
+    testPackFile({
+      classes: [testClass("plain")],
+      species: [{ key: "thing", name: "Thing", creatureType: "humanoid", size: "medium", speed: 30, effects: [effect] }],
+    }),
+  );
   const template = loaded.pack && createTemplate({ packs: [loaded.pack] });
   const build = (level: number, speciesSelections: Entity2024["selections"] = []) =>
     template &&

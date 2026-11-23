@@ -7,9 +7,8 @@
 // the sheet needs a hook.
 
 import { z } from "zod";
-import { nameToKey } from "../../core/template.ts";
 import { Ability, ContentReference } from "../../format/schema.ts";
-import { m } from "../built.ts";
+import { m, traitKey } from "../built.ts";
 import { defineHook } from "./hook.ts";
 
 export const savingThrowAttackHook = defineHook({
@@ -33,7 +32,7 @@ export const savingThrowAttackHook = defineHook({
         (q) => {
           const count = dice.filter(([level]) => level <= q("totalLevel")).at(-1)?.[1] ?? dice[0][1];
           return {
-            key: `${call.record}/${nameToKey(name)}`,
+            key: traitKey(call.record, name),
             name,
             source: call.record,
             save,

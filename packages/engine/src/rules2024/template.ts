@@ -53,6 +53,9 @@ function scoresTest(label: string, test: (scores: AbilityScores) => boolean): Pr
 
 const sameNumbers = (a: readonly number[], b: readonly number[]) => [...a].sort().join() === [...b].sort().join();
 
+/** Sets the scores before any increase from the value of the option. */
+const setScores = m.deferred((value) => m.set("baseAbilities", readScores(value)));
+
 /**
  * The three ways to get the scores (SRD 5.2.1 p21). The value of the option
  * is the six scores before any increase. Random Generation is manual entry
@@ -64,13 +67,13 @@ const abilityScoreMethods = selection<Built2024>({
   options: [
     option({
       name: "Standard Array",
-      modifiers: [m.deferred((value) => m.set("baseAbilities", readScores(value)))],
+      modifiers: [setScores],
       prereqs: [scoresTest("the scores 15, 14, 13, 12, 10 and 8", (scores) => sameNumbers(Object.values(scores), STANDARD_ARRAY))],
       autofillValue: randomStandardArray,
     }),
     option({
       name: "Point Cost",
-      modifiers: [m.deferred((value) => m.set("baseAbilities", readScores(value)))],
+      modifiers: [setScores],
       prereqs: [
         scoresTest(`scores from 8 to 15 that cost ${POINT_BUDGET} points or less`, (scores) => {
           const cost = pointCost(scores);
@@ -78,7 +81,7 @@ const abilityScoreMethods = selection<Built2024>({
         }),
       ],
     }),
-    option({ name: "Manual", modifiers: [m.deferred((value) => m.set("baseAbilities", readScores(value)))] }),
+    option({ name: "Manual", modifiers: [setScores] }),
   ],
 });
 

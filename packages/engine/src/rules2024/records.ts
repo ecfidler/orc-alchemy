@@ -380,7 +380,7 @@ export function speciesOption(content: Content, reference: string, species: Spec
 }
 
 /** The tool proficiencies of a typed field: a tool, the tools of a list, or a choice. */
-function toolParts(content: Content, name: string, tool: ClassRecord["tools"] | BackgroundRecord["tool"]): Parts {
+function toolParts(content: Content, selectionName: string, tool: ClassRecord["tools"] | BackgroundRecord["tool"]): Parts {
   if (tool === undefined) return EMPTY;
   if (typeof tool === "string" || Array.isArray(tool)) {
     return { modifiers: [tool].flat().map((ref) => m.push("toolProficiencies", ref)), selections: [] };
@@ -395,7 +395,7 @@ function toolParts(content: Content, name: string, tool: ClassRecord["tools"] | 
     modifiers: [],
     selections: [
       selection({
-        name,
+        name: selectionName,
         min: tool.choose,
         max: tool.choose,
         options: tools.map(({ reference, name }) => option<Built2024>({ key: reference, name, modifiers: [m.push("toolProficiencies", reference)] })),
