@@ -172,8 +172,8 @@ describe("the corrections of the upstream data", () => {
     const record = records[type]?.find((r) => r.key === key);
     expect(record, correction.record).toBeDefined();
     if (type === "spell") expect(correction.page).toBe(spellPage.get(record?.name ?? ""));
-    const weapon = content.equipment.find((e) => e.key === key);
-    if (weapon?.weapon) expect(correction.page).toBe(91);
-    if (weapon?.armor) expect(correction.page).toBe(92);
+    const item = content.equipment.find((e) => e.key === key);
+    if (item?.weapon) expect(correction.page).toBe(91);
+    if (item?.armor) expect(correction.page).toBe(92);
   });
 });

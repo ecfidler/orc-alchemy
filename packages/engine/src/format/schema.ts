@@ -272,6 +272,8 @@ export const BackgroundRecord = z.strictObject({
   ...recordFields,
   abilityScores: z.tuple([Ability, Ability, Ability]),
   feat: ContentReference,
+  /** For Magic Initiate: the class whose spell list the feat uses, for example `srd52:cleric`. */
+  featSpellList: ContentReference.optional(),
   skills: z.tuple([ContentKey, ContentKey]),
   tool: z.union([ContentReference, ReferenceChoice]),
   startingEquipment: z.array(EquipmentOption).optional(),

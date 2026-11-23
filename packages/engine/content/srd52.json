@@ -7332,6 +7332,16 @@
           "text": "Your lineage stems from a dragon progenitor. Choose the kind of dragon from the Draconic Ancestors table. Your choice affects your Breath Weapon and Damage Resistance traits as well as your appearance.\nDraconic Ancestors\nDragon / Damage Type\nBlack / Acid\nBlue / Lightning\nBrass / Fire\nBronze / Lightning\nCopper / Acid\nGreen / Poison\nGold / Fire\nRed / Fire\nSilver / Cold\nWhite / Cold"
         },
         {
+          "key": "breath-weapon",
+          "name": "Breath Weapon",
+          "text": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 damage of the type determined by your Draconic Ancestry trait. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).\nYou can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+        },
+        {
+          "key": "damage-resistance",
+          "name": "Damage Resistance",
+          "text": "You have Resistance to the damage type determined by your Draconic Ancestry trait."
+        },
+        {
           "key": "darkvision",
           "name": "Darkvision",
           "text": "You have Darkvision with a range of 60 feet."
@@ -7608,6 +7618,7 @@
         "cha"
       ],
       "feat": "srd52:magic-initiate",
+      "featSpellList": "srd52:cleric",
       "skills": [
         "insight",
         "religion"
@@ -7706,6 +7717,7 @@
         "wis"
       ],
       "feat": "srd52:magic-initiate",
+      "featSpellList": "srd52:wizard",
       "skills": [
         "arcana",
         "history"

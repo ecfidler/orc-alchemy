@@ -218,6 +218,7 @@ export function referencesOf(type: RecordType, record: AnyRecord, path: IssuePat
   if (type === "spells") found.push(...referenceList(r.classes, [...path, "classes"], "classes"));
   if (type === "backgrounds") {
     found.push({ path: [...path, "feat"], reference: String(r.feat), type: "feats" });
+    if (r.featSpellList) found.push({ path: [...path, "featSpellList"], reference: String(r.featSpellList), type: "classes" });
     found.push(...referenceList(r.tool, [...path, "tool"], "equipment"));
   }
   if (type === "classes") found.push(...referenceList(r.tools, [...path, "tools"], "equipment"));

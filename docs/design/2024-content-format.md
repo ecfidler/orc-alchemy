@@ -190,7 +190,7 @@ Every record has `key`, `name`, and the optional fields `source`
 | `classes` | `hitDie` (6, 8, 10, or 12), `savingThrows` (two abilities), `skills` (a choice of skill keys), and the optional `primaryAbility` (a list of abilities, or a choice of them), `weaponProficiencies`, `armorTraining`, `tools`, `startingEquipment`, `features`, `table`, and `levels`. |
 | `subclasses` | `class` (a reference), and the optional `summary`, `features`, and `levels`. |
 | `species` | `creatureType`, `size` (a size, or a choice of sizes), and `speed` in feet. |
-| `backgrounds` | `abilityScores` (three abilities), `feat` (a reference), `skills` (two skill keys), `tool` (a reference, or a choice), and the optional `startingEquipment`. |
+| `backgrounds` | `abilityScores` (three abilities), `feat` (a reference), `skills` (two skill keys), `tool` (a reference, or a choice), and the optional `featSpellList` (for Magic Initiate, the class whose spell list the feat uses) and `startingEquipment`. |
 | `feats` | `category` (`origin`, `general`, `fighting-style`, or `epic-boon`), `repeatable`, and the optional `prerequisites`. |
 | `spells` | `level` (0 to 9), `school`, `classes` (references), `castingTime`, `ritual`, `range`, `components`, `duration`, `concentration`, and the optional `higherLevels`. |
 | `equipment` | `category`, for example `weapon` or `gaming-set`, and the optional `cost` (gp), `weight` (lb), `weapon`, `armor`, and `contents` (the items in a pack, as in starting equipment). A `weapon` has `category`, `ranged`, `damage`, `properties`, `mastery`, and the optional `range` and `versatile` (the damage with two hands). |
@@ -202,7 +202,7 @@ field is a list of `{ "level": 3, "effects": [...] }`: the effects that the
 class or the subclass gives from that class level. The `table` field of a
 class is display data: one row for each class level, with
 `proficiencyBonus`, `features` (the feature keys of that level), the
-optional `columns` (for example `{ "rage-damage": 2 }`), and the optional
+optional `columns` (for example `{ "rage-count": 2 }`), and the optional
 `spellcasting` (`cantrips`, `preparedSpells`, and `slots`, nine numbers). A choice in a typed field
 is `{ "choose": 1, "from": [...] }`. For a tool, `from` can also be
 `{ "category": "gaming-set" }`: the equipment records of that category.
@@ -381,10 +381,13 @@ commit the upstream JSON or the PDF.
    tickets.
 2. `scripts/srd-corrections.ts` corrects the upstream errors. Each
    correction names its SRD page, and each one stops the import if the
-   upstream value is not the known error.
+   upstream value is not the known error: a phrase that is not in the text,
+   a field without the wrong value, or a whole text with a different
+   SHA-256.
 3. `src/srd52/srd52.test.ts` compares the pack with the PDF text: the
    record counts, the spell header fields, and the weapon and armor tables.
-   It also checks the page of each correction.
+   It also checks the page of each correction of a spell, a weapon, or an
+   armor.
 4. The import joins a line break inside a sentence, a copy error in the
    upstream text.
 5. A spell keeps `castingTime` and `duration` without the flags. The SRD
@@ -392,10 +395,15 @@ commit the upstream JSON or the PDF.
    record has `castingTime: "1 minute"` with `ritual: true`, and
    `duration: "up to 1 minute"` with `concentration: true`.
 
+A new upstream commit needs a change of the pin in `import-srd.ts`. Then
+`--check` names the files that change, and the content test shows each
+difference from the SRD.
+
 The import leaves out these upstream data:
 
 - Subspecies. The SRD gives each lineage table in the trait text, and the
-  choice is rules work (ORC-226).
+  choice is rules work (ORC-226). The two Dragonborn traits that upstream
+  has only on the subspecies are corrections.
 - The multiclass prerequisites (ORC-234) and the spellcasting ability
   (ORC-229).
 - The kind of ammunition of a weapon ("Bolt"), and "unless mounted" on the

@@ -16,8 +16,9 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { keyFromName } from "../src/format/keys.ts";
+import { keyFromName, parseReference, referenceTo, SRD_PACK } from "../src/format/keys.ts";
 import { loadPack } from "../src/format/load.ts";
+import { CURRENT_VERSION, FORMAT } from "../src/format/schema.ts";
 import { CORRECTIONS, type Corrections } from "./srd-corrections.ts";
 
 export const UPSTREAM = {
@@ -25,8 +26,6 @@ export const UPSTREAM = {
   commit: "3b6da29a45b3b328c2409cf97a14e2507e291bf8",
   data: "packages/5e-database/src/2024/en",
 };
-
-const PACK_ID = "srd52";
 
 /** The attribution statement of SRD 5.2.1. SRD 5.2.1 permits no other attribution to Wizards of the Coast. */
 export const ATTRIBUTION =
@@ -43,7 +42,7 @@ interface Ref {
 }
 type Up = Record<string, any>;
 
-const ref = (key: string) => `${PACK_ID}:${key}`;
+const ref = (key: string) => referenceTo(SRD_PACK, key);
 
 /** The text of an upstream description: one string, with no indent at the start of a line and no line break in a sentence. */
 function text(value: unknown): string {
@@ -91,6 +90,13 @@ function compact<T extends Record<string, unknown>>(record: T): T {
   return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined)) as T;
 }
 
+const unique = <T>(value: T, index: number, list: readonly T[]) => list.indexOf(value) === index;
+const fail = (message: string): never => {
+  throw new Error(message);
+};
+/** The level of a level index such as "barbarian-3". */
+const levelOf = (levelIndex: string) => Number(levelIndex.split("-").at(-1));
+
 // The reading of the upstream files.
 
 class Upstream {
@@ -132,15 +138,18 @@ export function categoryKey(upstream: string): string {
   return found[1];
 }
 
+/** The upstream category indexes of an item, for example "martial-weapons". */
+const categoriesOf = (item: Up) => new Set((item.equipment_categories as Ref[]).map((c) => c.index));
+
 function equipmentCategory(item: Up): string {
-  const indexes = new Set((item.equipment_categories as Ref[]).map((c) => c.index));
+  const indexes = categoriesOf(item);
   const found = CATEGORY_ORDER.find(([from]) => indexes.has(from));
   if (!found) throw new Error(`No category for ${item.index}`);
   return found[1];
 }
 
 function weapon(item: Up) {
-  const categories = new Set((item.equipment_categories as Ref[]).map((c) => c.index));
+  const categories = categoriesOf(item);
   const properties = (item.properties as Ref[]).map((p) => p.index);
   const range = properties.includes("thrown") ? item.throw_range : properties.includes("ammunition") ? item.range : undefined;
   return compact({
@@ -155,7 +164,7 @@ function weapon(item: Up) {
 }
 
 function armor(item: Up) {
-  const categories = new Set((item.equipment_categories as Ref[]).map((c) => c.index));
+  const categories = categoriesOf(item);
   const category = categories.has("shields") ? "shield" : categories.has("heavy-armor") ? "heavy" : categories.has("medium-armor") ? "medium" : "light";
   const ac = item.armor_class;
   return compact({
@@ -206,7 +215,10 @@ const TOOL_CATEGORIES = new Set(["artisans-tools", "gaming-sets", "musical-instr
 /** The equipment categories of a choice, through the choices nested in it. */
 function toolCategories(choice: Up): string[] {
   if (choice.from.option_set_type === "equipment_category") return [choice.from.equipment_category.index];
-  return (choice.from.options as Up[]).flatMap((o) => (o.option_type === "choice" ? toolCategories(o.choice) : ["(not a category)"]));
+  return (choice.from.options as Up[]).flatMap((o) => {
+    if (o.option_type !== "choice") throw new Error(`Unknown equipment choice: ${choice.desc}`);
+    return toolCategories(o.choice);
+  });
 }
 
 /** One upstream equipment option as items and gold. `chosen` is the key of the typed field whose choice an item takes. */
@@ -264,7 +276,7 @@ function toolChoice(choice: Up, proficiencies: Map<string, Up>, equipment: Map<s
   const options = choice.from.options as Up[];
   if (options.every((o) => o.option_type === "reference")) {
     const refs = options.map((o) => toolReference(o.item.index, proficiencies));
-    const categories = new Set(refs.map((r) => equipmentCategory(equipment.get(r.slice(PACK_ID.length + 1)) as Up)));
+    const categories = new Set(refs.map((r) => equipmentCategory(equipment.get(parseReference(r).key) as Up)));
     const [only] = categories;
     const all = only && [...equipment.values()].filter((e) => equipmentCategory(e) === only).length === refs.length;
     return { choose: choice.choose as number, from: categories.size === 1 && all ? { category: only } : refs };
@@ -362,13 +374,6 @@ function classRecords(up: Upstream, corrections: Corrections) {
   });
 }
 
-const unique = <T>(value: T, index: number, list: readonly T[]) => list.indexOf(value) === index;
-const fail = (message: string): never => {
-  throw new Error(message);
-};
-/** The level of a level index such as "barbarian-3". */
-const levelOf = (levelIndex: string) => Number(levelIndex.split("-").at(-1));
-
 function subclassRecords(up: Upstream, corrections: Corrections) {
   const features = up.read("Features");
   return up.read("Subclasses").map((s) => {
@@ -391,16 +396,19 @@ function speciesRecords(up: Upstream, corrections: Corrections) {
   const traits = up.byIndex("Traits");
   return up.read("Species").map((s) => {
     const sizes = s.size_options ? (s.size_options.from.options as Up[]).map((o) => String(o.size).toLowerCase()) : undefined;
-    const size = corrections.speciesSize(s.index) ?? (sizes ? { choose: 1, from: sizes } : String(s.size).toLowerCase());
+    const size = corrections.speciesSize(s.index, String(s.size)) ?? (sizes ? { choose: 1, from: sizes } : String(s.size).toLowerCase());
     return {
       key: s.index as string,
       name: s.name as string,
       source: { index: s.index as string },
-      traits: (s.traits as Ref[]).map((t) => {
-        const trait = traits.get(t.index) ?? fail(`No trait ${t.index}`);
-        const name = traitName(trait.name);
-        return { key: keyFromName(name), name, text: text(trait.description) };
-      }),
+      traits: corrections.speciesTraits(
+        s.index,
+        (s.traits as Ref[]).map((t) => {
+          const trait = traits.get(t.index) ?? fail(`No trait ${t.index}`);
+          const name = traitName(trait.name);
+          return { key: keyFromName(name), name, text: text(trait.description) };
+        }),
+      ),
       creatureType: String(s.type).toLowerCase(),
       size,
       speed: s.speed as number,
@@ -423,6 +431,8 @@ function backgroundRecords(up: Upstream) {
       source: { index: b.index as string },
       abilityScores: (b.ability_scores as Ref[]).map((a) => a.index) as [string, string, string],
       feat: ref(b.feat.index),
+      // "Magic Initiate (Cleric)": upstream gives the spell list as a note.
+      featSpellList: b.feat.note ? ref(keyFromName(b.feat.note)) : undefined,
       skills: skills as [string, string],
       tool: tools.length ? toolReference(tools[0], proficiencies) : toolChoice(choices[0], proficiencies, equipment),
       startingEquipment: startingEquipment(b.equipment_options, "tool"),
@@ -542,10 +552,10 @@ export function buildPack(dataDir: string, corrections: Corrections = CORRECTION
   const classes = classRecords(up, corrections);
   const equipment = corrections.equipment(equipmentRecords(up));
   return {
-    format: "alchemy-content",
-    version: 1,
+    format: FORMAT,
+    version: CURRENT_VERSION,
     rules: "2024",
-    pack: { id: PACK_ID, name: "SRD 5.2.1", license: "CC-BY-4.0", attribution: ATTRIBUTION, modified: true },
+    pack: { id: SRD_PACK, name: "SRD 5.2.1", license: "CC-BY-4.0", attribution: ATTRIBUTION, modified: true },
     classes,
     subclasses: subclassRecords(up, corrections),
     species: speciesRecords(up, corrections),
