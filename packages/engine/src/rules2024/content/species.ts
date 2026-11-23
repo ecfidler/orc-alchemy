@@ -31,7 +31,7 @@ export const SPECIES: readonly Option<Built2024>[] = [
             "Stonecunning",
             "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on or touching a stone surface.",
             {
-              uses: { amount: q("proficiencyBonus"), recharge: "long-rest" },
+              uses: { amount: q("proficiencyBonus"), recover: [{ on: "long-rest", amount: "all" }] },
             },
           ),
         { deps: ["proficiencyBonus"] },

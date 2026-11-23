@@ -8,6 +8,7 @@ import { actualPath, availableSelections, buildWithContributions, countRemaining
 import type { OptionValue, Path, StrictEntity } from "../core/entity.ts";
 import type { Contributions } from "../core/modifiers.ts";
 import * as core from "../core/mutations.ts";
+import type { Pack } from "../format/schema.ts";
 import type { Built2024 } from "./built.ts";
 import { template2024 } from "./template.ts";
 
@@ -38,11 +39,8 @@ export interface AvailableSelection {
   requireValue?: true;
 }
 
-/**
- * A content pack of the user. The content format (ORC-223) gives the type,
- * and homebrew in `evaluate` arrives with ORC-235.
- */
-export type ContentPack = unknown;
+/** A content pack of the user, from `loadContentPack`. Homebrew in `evaluate` arrives with ORC-235. */
+export type ContentPack = Pack;
 
 export interface EvaluateOptions2024 {
   rules: "2024";

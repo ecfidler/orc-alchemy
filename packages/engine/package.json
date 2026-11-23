@@ -10,7 +10,11 @@
     "typecheck": "tsc",
     "test": "vitest run"
   },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
   "devDependencies": {
+    "@types/node": "^24.19.1",
     "typescript": "^5.0.0",
     "vitest": "^5.0.3"
   }

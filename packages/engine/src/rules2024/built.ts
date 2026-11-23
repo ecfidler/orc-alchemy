@@ -10,6 +10,9 @@ import { WEAPONS, type WeaponMastery } from "./content/weapons.ts";
 
 export const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"] as const;
 export type Ability = (typeof ABILITIES)[number];
+/** The sizes of a creature (SRD 5.2.1 p176). */
+export type Size = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
+
 export type AbilityScores = Readonly<Record<Ability, number>>;
 
 /** Each skill and its ability (SRD 5.2.1 p9). */
@@ -51,12 +54,19 @@ export interface FeatTaken {
   category: FeatCategory;
 }
 
-/** The uses of a feature and the rest that restores all of them. */
+/** What a rest restores: a number of uses, or all of them (the `recover` of the content format). */
+export interface Recovery {
+  on: "short-rest" | "long-rest";
+  amount: number | "all";
+}
+
+/**
+ * The uses of a feature and how they come back. A 2024 feature can have two
+ * rules: Second Wind regains one use on a Short Rest and all on a Long Rest.
+ */
 export interface Uses {
   amount: number;
-  recharge: "short-rest" | "long-rest";
-  /** The uses that a Short Rest restores, when a Long Rest restores all. */
-  shortRestRegain?: number;
+  recover: readonly Recovery[];
 }
 
 export interface Feature {
@@ -86,7 +96,7 @@ export interface Built2024 {
   name: string;
   species: string | null;
   creatureType: string;
-  size: "small" | "medium";
+  size: Size;
   /** Feet. */
   speed: number;
   /** Feet, 0 without Darkvision. */

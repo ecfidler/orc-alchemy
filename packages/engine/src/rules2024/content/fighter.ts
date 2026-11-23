@@ -94,7 +94,13 @@ const LEVELS: Option<Built2024>[] = [
         1,
         "Second Wind",
         "As a Bonus Action, regain Hit Points equal to 1d10 plus your Fighter level. You regain one use when you finish a Short Rest and all uses when you finish a Long Rest.",
-        (fighterLevel) => ({ amount: fighterLevel >= 10 ? 4 : fighterLevel >= 4 ? 3 : 2, recharge: "long-rest", shortRestRegain: 1 }),
+        (fighterLevel) => ({
+          amount: fighterLevel >= 10 ? 4 : fighterLevel >= 4 ? 3 : 2,
+          recover: [
+            { on: "short-rest", amount: 1 },
+            { on: "long-rest", amount: "all" },
+          ],
+        }),
       ),
       classFeature(
         1,
@@ -108,7 +114,7 @@ const LEVELS: Option<Built2024>[] = [
     modifiers: [
       classFeature(2, "Action Surge", "On your turn, you can take one additional action, except the Magic action.", (fighterLevel) => ({
         amount: fighterLevel >= 17 ? 2 : 1,
-        recharge: "short-rest",
+        recover: [{ on: "short-rest", amount: "all" }],
       })),
       classFeature(
         2,

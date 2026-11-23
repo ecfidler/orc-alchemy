@@ -7,97 +7,22 @@
 
 import { describe, expect, it } from "vitest";
 import { canChoose } from "../core/build.ts";
-import type { StrictOption, StrictSelection } from "../core/entity.ts";
+import type { StrictOption } from "../core/entity.ts";
 import { FEATS, featSelection } from "./content/feats.ts";
-import { addLevel, autofill, buildCharacter, deselect, type Entity2024, evaluate, removeLevel, select, setOptionValue, setValue } from "./evaluate.ts";
-
-interface Choices {
-  level: number;
-  scores?: Record<string, number>;
-  backgroundAbilities?: StrictOption;
-  fightingStyle?: string;
-  masteries?: string[];
-  armor?: string | null;
-  weapons?: string[];
-  /** The value of each level option from level 2: a rolled Hit Point number. */
-  rolledHitPoints?: Record<number, number>;
-  level4Feat?: StrictOption;
-}
-
-const twoAndOne = (plusTwo: string, plusOne: string): StrictOption => ({
-  key: "two-and-one",
-  selections: [
-    { key: "plus-two", option: { key: plusTwo } },
-    { key: "plus-one", option: { key: plusOne } },
-  ],
-});
-
-const strAndCon: StrictOption = {
-  key: "ability-score-improvement",
-  selections: [{ key: "increase", option: { key: "one-and-one", selections: [{ key: "abilities", options: [{ key: "str" }, { key: "con" }] }] } }],
-};
-
-function character(choices: Choices): Entity2024 {
-  const {
-    level,
-    scores = { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 },
-    backgroundAbilities = twoAndOne("str", "con"),
-    fightingStyle = "defense",
-    masteries = level >= 4 ? ["greatsword", "longbow", "flail", "dagger"] : ["greatsword", "longbow", "flail"],
-    armor = "chain-mail",
-    weapons = ["greatsword", "longbow", "dagger"],
-    rolledHitPoints = {},
-    level4Feat = strAndCon,
-  } = choices;
-
-  const levelSelections: Record<number, StrictSelection[]> = {
-    1: [{ key: "fighting-style", option: { key: fightingStyle } }],
-    3: [{ key: "subclass", option: { key: "champion" } }],
-    4: [{ key: "ability-score-improvement", option: level4Feat }],
-  };
-  const levels = Array.from({ length: level }, (_, i): StrictOption => {
-    const n = i + 1;
-    return {
-      key: `level-${n}`,
-      ...(rolledHitPoints[n] === undefined ? {} : { value: rolledHitPoints[n] }),
-      ...(levelSelections[n] ? { selections: levelSelections[n] } : {}),
-    };
-  });
-
-  return {
-    values: { name: "Brunhild" },
-    selections: [
-      { key: "ability-scores", option: { key: "scores", value: scores } },
-      {
-        key: "class",
-        options: [
-          {
-            key: "fighter",
-            selections: [
-              { key: "skill-proficiencies", options: [{ key: "perception" }, { key: "survival" }] },
-              { key: "levels", options: levels },
-            ],
-          },
-        ],
-      },
-      { key: "species", option: { key: "dwarf" } },
-      {
-        key: "background",
-        option: {
-          key: "soldier",
-          selections: [
-            { key: "ability-scores", option: backgroundAbilities },
-            { key: "gaming-set", option: { key: "dice" } },
-          ],
-        },
-      },
-      { key: "languages", options: [{ key: "dwarvish" }, { key: "giant" }] },
-      { key: "weapon-mastery", options: masteries.map((key) => ({ key })) },
-      ...(armor ? [{ key: "armor", option: { key: armor } }] : []),
-      { key: "weapons", options: weapons.map((key) => ({ key })) },
-    ],
-  };
-}
+import {
+  addLevel,
+  autofill,
+  buildCharacter,
+  type ContentPack,
+  deselect,
+  type Entity2024,
+  evaluate,
+  removeLevel,
+  select,
+  setOptionValue,
+  setValue,
+} from "./evaluate.ts";
+import { type Choices, fighterCharacter as character } from "./testing.ts";
 
 const build = (choices: Choices) => evaluate(character(choices), { rules: "2024" });
 const attack = (built: ReturnType<typeof build>["built"], weapon: string) => built.weaponAttacks.find((a) => a.weapon === weapon);
@@ -203,9 +128,15 @@ describe("level 1", () => {
       "Savage Attacker",
     ]);
     // Second Wind: 2 uses at levels 1 to 3.
-    expect(feature(built, "Second Wind")?.uses).toEqual({ amount: 2, recharge: "long-rest", shortRestRegain: 1 });
+    expect(feature(built, "Second Wind")?.uses).toEqual({
+      amount: 2,
+      recover: [
+        { on: "short-rest", amount: 1 },
+        { on: "long-rest", amount: "all" },
+      ],
+    });
     // Stonecunning: uses equal to the Proficiency Bonus, +2.
-    expect(feature(built, "Stonecunning")?.uses).toEqual({ amount: 2, recharge: "long-rest" });
+    expect(feature(built, "Stonecunning")?.uses).toEqual({ amount: 2, recover: [{ on: "long-rest", amount: "all" }] });
     expect(feature(built, "Second Wind")).toMatchObject({ key: "fighter/second-wind", source: "fighter", level: 1 });
   });
 
@@ -271,7 +202,7 @@ describe("level 3", () => {
   });
 
   it("has Action Surge once and Second Wind twice", () => {
-    expect(feature(built, "Action Surge")?.uses).toEqual({ amount: 1, recharge: "short-rest" });
+    expect(feature(built, "Action Surge")?.uses).toEqual({ amount: 1, recover: [{ on: "short-rest", amount: "all" }] });
     expect(feature(built, "Second Wind")?.uses?.amount).toBe(2);
     expect(feature(built, "Tactical Mind")).toBeDefined();
   });
@@ -431,7 +362,7 @@ describe("the facade", () => {
   });
 
   it("takes no homebrew packs yet", () => {
-    expect(() => evaluate(character({ level: 1 }), { rules: "2024", packs: [{}] })).toThrow("ORC-235");
+    expect(() => evaluate(character({ level: 1 }), { rules: "2024", packs: [{} as ContentPack] })).toThrow("ORC-235");
     expect(evaluate(character({ level: 1 }), { rules: "2024", packs: [] }).built.name).toBe("Brunhild");
   });
 });

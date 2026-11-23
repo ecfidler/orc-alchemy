@@ -3,7 +3,8 @@
 // and Grappler, and the four Fighting Style feats.
 
 import { nameToKey, type Option, option, type Prereq, type Selection, selection } from "../../core/template.ts";
-import { ABILITIES, type Ability, type Built2024, type FeatCategory, feature, m } from "../built.ts";
+import { abilityIncreaseOptions } from "../abilities.ts";
+import { ABILITIES, type Built2024, type FeatCategory, feature, m } from "../built.ts";
 
 export interface Feat {
   key: string;
@@ -14,25 +15,6 @@ export interface Feat {
   prereqs: readonly Prereq<Built2024>[];
   modifiers: Option<Built2024>["modifiers"];
   selections: readonly Selection<Built2024>[];
-}
-
-const ABILITY_NAMES: Record<Ability, string> = { str: "Strength", dex: "Dexterity", con: "Constitution", int: "Intelligence", wis: "Wisdom", cha: "Charisma" };
-
-/** One option for each ability. Choosing it increases the score. */
-export function abilityIncreaseOptions(
-  abilities: readonly Ability[],
-  amount: number,
-  source: string,
-  prereq?: (ability: Ability) => Prereq<Built2024>,
-): Option<Built2024>[] {
-  return abilities.map((ability) =>
-    option({
-      key: ability,
-      name: ABILITY_NAMES[ability],
-      modifiers: [m.push("abilityIncreases", { ability, amount, max: 20, source })],
-      prereqs: prereq ? [prereq(ability)] : [],
-    }),
-  );
 }
 
 const level4: Prereq<Built2024> = { label: "Level 4+", canChoose: (built) => built.totalLevel >= 4 };

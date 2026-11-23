@@ -170,7 +170,7 @@ The 2024 engine has no `.orcbrew` function.
 # Content
 
 The [2024 content format](2024-content-format.md) is the spec of the
-format.[^format] Its status is `draft` until ORC-223 makes the schema. In
+format.[^format] ORC-223 made its schema and loader in `src/format/`. In
 short:
 
 - A pack is one JSON file. Built-in content and homebrew use one format.

@@ -1,10 +1,10 @@
 ---
 type: Reference
 title: 2024 content format
-description: The decisions for the 2024 content format - JSON packs, two layers in each record, rules as data with named hooks, the key scheme, the source data, attribution, and monsters - with an example species, background, feat, and spell.
+description: The 2024 content format - JSON packs, two layers in each record, rules as data with named hooks, the record types and their fields, the value forms and conditions, the loader, the key scheme, the source data, attribution, and monsters - with an example species, background, feat, and spell.
 tags: [rules-2024, engine, content-format, design]
-status: draft
-generated: { by: claude-code/agent, at: 2026-11-17T03:45:00Z }
+status: stable
+generated: { by: claude-code/agent, at: 2026-11-23T04:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-96
 sources:
   - id: orc-96
@@ -29,10 +29,12 @@ project thread "Settle the 2024 engine decisions". The engine decisions
 that it builds on are in ORC-220 and in
 [The 2024 engine spike](../reports/2024-engine-spike.md).[^spike]
 
-The status is `draft` because the document gives the decisions and a first
-shape. The [2024 engine spec](2024-engine.md) is the spec of the engine.
-ORC-223 builds the schema, the loader, and the validation. The field names in the examples can change in
-that work. The seven decisions do not change without the owner.
+ORC-223 built the schema, the loader, and the validation in
+`packages/engine/src/format/`, and set the final field names in this
+document. The schema in `schema.ts` is the authority for each field. A test
+loads each example record of this document, so the examples and the schema
+agree. The [2024 engine spec](2024-engine.md) is the spec of the engine.
+The seven decisions do not change without the owner.
 
 `.orcbrew` stays the format of 2014 content. This format is for 2024
 content only.
@@ -94,10 +96,11 @@ Eldritch Invocations and Metamagic options.
 
 ## The schema and the version
 
-One schema, written in TypeScript in `packages/engine`, validates a pack
-and gives the types of the records. The built-in content, the homebrew
-forms, and the import of a pack file all use that schema. ORC-223 selects
-the schema library.
+One schema, written in TypeScript in `packages/engine/src/format/schema.ts`,
+validates a pack and gives the types of the records. The built-in content,
+the homebrew forms, and the import of a pack file all use that schema. The
+library is Zod 4 (ORC-223): the types come from the schema, each issue has
+the path of the bad value, and Zod can write a JSON Schema for the forms.
 
 The loader reads the `version` of a pack before it reads the records.
 
@@ -107,9 +110,22 @@ The loader reads the `version` of a pack before it reads the records.
 - If the version is newer, the loader refuses the pack and says that the
   app is too old for it.
 
-A proposal for ORC-223, not a decision: a record that fails validation
-does not stop the pack. The loader keeps the other records and reports the
-bad record.
+A record that fails validation does not stop the pack (decided in
+ORC-223). The loader keeps the other records and reports the bad record. The
+loader returns the pack and a list of issues. Each issue has the path of the
+bad value in the file, for example `["feats", 2, "effects", 0, "add"]`, a
+message, and what the loader did:
+
+| `dropped` | When |
+|---|---|
+| `pack` | The file is not a pack, its envelope is not valid, or its version is newer. The loader returns no pack. |
+| `record` | A record is not valid, or a second record of the same type has the same key. The loader drops the record. |
+| `effects` | A record calls a hook that the engine does not have. The record keeps its display layer and loses its rules layer: `effects`, and `levels` for a class or a subclass. |
+| `none` | A field at the top of the pack that is not a record type. The loader skips it. |
+
+The loader checks the references of one pack against the packs that load
+with it (`checkReferences`). A homebrew pack loads with the built-in pack,
+so its references to `srd52` resolve.
 
 ## Names
 
@@ -142,6 +158,29 @@ choice with no rule of its own. A typed field can hold a choice, written
 `{ "choose": 1, "from": ... }`. The `selection` effect uses the same shape
 for its count and its options.
 
+## The record types and their typed fields
+
+Every record has `key`, `name`, and the optional fields `source`
+(`{ "index": "..." }`), `description`, `traits`, and `effects`. A trait is
+`{ "key", "name", "text" }`. The typed fields of each type:
+
+| Type | Typed fields |
+|---|---|
+| `classes` | `hitDie` (6, 8, 10, or 12), `savingThrows` (two abilities), `skills` (a choice of skill keys), and the optional `primaryAbility`, `weaponProficiencies`, `armorTraining`, `tools`, `startingEquipment`, `features`, and `levels`. |
+| `subclasses` | `class` (a reference), and the optional `features` and `levels`. |
+| `species` | `creatureType`, `size` (a size, or a choice of sizes), and `speed` in feet. |
+| `backgrounds` | `abilityScores` (three abilities), `feat` (a reference), `skills` (two skill keys), `tool` (a reference, or a choice), and the optional `startingEquipment`. |
+| `feats` | `category` (`origin`, `general`, `fighting-style`, or `epic-boon`), `repeatable`, and the optional `prerequisites`. |
+| `spells` | `level` (0 to 9), `school`, `classes` (references), `castingTime`, `ritual`, `range`, `components`, `duration`, `concentration`, and the optional `higherLevels`. |
+| `equipment` | `category`, for example `weapon` or `gaming-set`, and the optional `cost` (gp), `weight` (lb), `weapon`, and `armor`. |
+| `monsters` | `size`, `creatureType`, `challengeRating`, `armorClass`, `hitPoints`, `speed` (feet for each kind), and `abilities`. ORC-236 adds the rest. |
+
+A feature of a class or a subclass is a trait with a `level`. The `levels`
+field is a list of `{ "level": 3, "effects": [...] }`: the effects that the
+class or the subclass gives from that class level. A choice in a typed field
+is `{ "choose": 1, "from": [...] }`. For a tool, `from` can also be
+`{ "category": "gaming-set" }`: the equipment records of that category.
+
 # 3. Rules as data, with named hooks
 
 The `effects` field holds a list of effects. Each effect is data that maps
@@ -161,16 +200,54 @@ constructors that make feat and ability choices. It adds `uses` and
 | `selection` | Add a choice with a count and a list of options. Each option has its own effects. |
 | `hook` | Call a named rule of the engine with arguments. |
 
-A value in an effect is a constant, or a read of a sheet value, written
-`{ "read": "proficiencyBonus" }`. The engine gets the declared
-dependencies of an effect from its reads, so a pack does not write them.
-An effect can have a `name`. The name is the label of the effect in the
-contributions that `evaluate` returns (ORC-220). An effect can have a condition, for example "the character wears armor",
-and an option can have prerequisites. ORC-223 defines the full list of
-value forms and conditions.
+The fields of each effect:
+
+| Effect | Fields |
+|---|---|
+| `set`, `add`, `push` | The word holds the sheet value, for example `{ "add": "initiative", "value": ... }`. `when` is an optional condition. |
+| `uses` | `{ "uses": { "trait": "stonecunning", "amount": ..., "recover": [{ "on": "long-rest", "amount": "all" }] } }`. `on` is `short-rest` or `long-rest`, and `amount` is a number or `"all"`. |
+| `grantFeat` | `{ "grantFeat": "srd52:alert" }`. |
+| `selection` | `{ "selection": { "key": "boost", "name": "Boost", "choose": 1, "from": [options] } }`. An option has `key`, `name`, and optional `effects` and `prerequisites`. |
+| `hook` | `{ "hook": "spell-slots", "args": { ... } }`. |
+
+Each effect can have a `name`. The name is the label of the effect in the
+contributions that `evaluate` returns (ORC-220). Without a name, the label
+is the name of the record or the option. The engine checks each sheet value
+name against the values of the built character: `add` needs a number, and
+`push` needs a list.
+
+The engine gets the declared dependencies of an effect from its reads, so a
+pack does not write them.
+
+## Value forms
 
 Keep the value forms few. If the format gets loops or free arithmetic, it
-becomes a programming language. A rule that needs those is a hook.
+becomes a programming language. A rule that needs those is a hook. The
+format has four value forms:
+
+| Form | Example | Meaning |
+|---|---|---|
+| A constant | `120`, `"poison"`, `true` | The value. |
+| `read` | `{ "read": "proficiencyBonus" }`, `{ "read": "abilityModifiers", "entry": "con" }` | A sheet value. With `entry`, one entry of a sheet value that is a record. |
+| `sum` | `{ "sum": [{ "read": "abilityModifiers", "entry": "cha" }, 0], "min": 1 }` | The sum of numbers, and not less than `min`. |
+| `steps` | `{ "steps": [[1, 2], [4, 3], [10, 4]], "by": { "read": "classLevels", "entry": "srd52:fighter" } }` | The value of the highest step whose number is at most `by`. Below the first step, 0. |
+
+## Conditions
+
+A condition is the `when` of an effect, or the `test` of a prerequisite.
+A prerequisite is `{ "label": "Strength 13+", "test": condition }`. A feat
+has `prerequisites`, and so does an option of a `selection`.
+
+| Condition | Meaning |
+|---|---|
+| `{ "has": "wornArmor" }` | The sheet value is not empty. |
+| `{ "has": "features", "item": "srd52:fighter/fighting-style" }` | The list has the item, or an item with that `key`. |
+| `{ "atLeast": [a, b] }` | Value a is at least value b. |
+| `{ "equals": [a, b] }` | The two values are equal. |
+| `{ "not": c }`, `{ "any": [c, ...] }`, `{ "all": [c, ...] }` | Not, or, and. |
+
+The engine adds "not taken already" to a feat that is not repeatable. A
+pack does not write it.
 
 ## Hooks
 
@@ -182,8 +259,12 @@ by name:
 { "hook": "spell-slots", "args": { "progression": "half" } }
 ```
 
-These rules are probable hooks. The list is a judgment from the spike and
-from the 2014 code, not a measured list.
+The engine has no hook yet (ORC-223). The registry is in
+`packages/engine/src/rules2024/hooks/`. Each hook has a name, a schema for
+its arguments, and a test. The ticket that adds a hook moves it from this
+list of probable hooks to a list of real hooks here. The probable hooks are
+a judgment from the spike and from the 2014 code, not a measured list. The
+Armor Class hook comes with ORC-225.
 
 - Spell slots: the multiclass slot table, and Pact Magic.
 - Armor Class: the best of the formulas that apply, then the shield.
@@ -241,7 +322,10 @@ and loads only the content of that edition.
 
 Three kinds of record have no upstream `index`: Eldritch Invocations,
 Metamagic options, and the variants that upstream divides into trait
-records.[^5e-bits] ORC-223 gives them keys by the same rules.
+records.[^5e-bits] Their key comes from the name (`keyFromName` in
+`packages/engine/src/format/keys.ts`): lowercase, without apostrophes or
+accents, and one hyphen for each run of other characters. "Elven Lineage:
+Drow" gives `elven-lineage-drow`.
 
 # 5. The source data
 
