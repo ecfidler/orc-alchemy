@@ -77,7 +77,7 @@ export function fighterCharacter(choices: Choices): Entity2024 {
           },
         ],
       },
-      { key: "species", option: { key: "dwarf" } },
+      { key: "species", option: { key: "srd52:dwarf" } },
       {
         key: "background",
         option: {

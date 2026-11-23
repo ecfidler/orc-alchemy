@@ -106,6 +106,33 @@ export function formulaValue(formula: ArmorClassFormula, modifiers: AbilityScore
   return formula.abilities.reduce((sum, ability) => sum + modifiers[ability], formula.base);
 }
 
+/**
+ * A spell that a trait gives, always prepared, with the ability of its
+ * casts. ORC-229 adds the spells of the classes, the slots and the lists.
+ */
+export interface GrantedSpell {
+  /** The spell reference, for example `srd52:misty-step`. */
+  spell: string;
+  /** The reference of the record that gives it. */
+  source: string;
+  ability: Ability;
+  /** The casts without a spell slot, when the trait gives some. */
+  uses?: Uses;
+}
+
+/** An attack that forces a saving throw, such as Breath Weapon (SRD 5.2.1 p84). */
+export interface SavingThrowAttack {
+  key: string;
+  name: string;
+  source: string;
+  save: Ability;
+  dc: number;
+  /** For example "2d10". */
+  damage: string;
+  /** A damage type reference, for example `srd52:fire`. */
+  damageType: string;
+}
+
 export interface WeaponAttack {
   weapon: string;
   name: string;
@@ -121,6 +148,8 @@ export interface WeaponAttack {
 export interface Built2024 {
   name: string;
   species: string | null;
+  /** The key of the lineage, legacy or ancestry chosen in the species, for example "drow". */
+  lineage: string | null;
   creatureType: string;
   size: Size;
   /** Feet. */
@@ -178,6 +207,7 @@ export interface Built2024 {
 
   feats: readonly FeatTaken[];
   features: readonly Feature[];
+  spells: readonly GrantedSpell[];
 
   wornArmor: string | null;
   shield: boolean;
@@ -214,6 +244,7 @@ export interface Built2024 {
   /** The lowest d20 roll that is a Critical Hit. */
   criticalHitMinimum: number;
   weaponAttacks: readonly WeaponAttack[];
+  savingThrowAttacks: readonly SavingThrowAttack[];
 }
 
 /** The modifier constructors for the built 2024 character. */
@@ -258,6 +289,7 @@ function signed(bonus: number): string {
 export const base: Base<Built2024> = {
   name: "",
   species: null,
+  lineage: null,
   creatureType: "humanoid",
   size: "medium",
   speed: 30,
@@ -322,6 +354,7 @@ export const base: Base<Built2024> = {
 
   feats: [],
   features: [],
+  spells: [],
 
   wornArmor: null,
   shield: false,
@@ -368,6 +401,7 @@ export const base: Base<Built2024> = {
       ];
     }),
   ),
+  savingThrowAttacks: [],
 };
 
 /** Adds the Proficiency Bonus once to each entry of `keys` that `scores` has. */

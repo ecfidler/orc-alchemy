@@ -5,10 +5,12 @@
 // Each hook is in a file of its own here, with a test in hooks.test.ts. The
 // ticket that adds a hook puts it in the list of the format doc.
 
+import { alwaysPreparedSpellsHook } from "./always-prepared-spells.ts";
 import { armorClassHook } from "./armor-class.ts";
 import { type HookRegistry, registry } from "./hook.ts";
+import { savingThrowAttackHook } from "./saving-throw-attack.ts";
 
 export { defineHook, type Hook, type HookCall, type HookRegistry, registry } from "./hook.ts";
 
 /** The hooks of the engine. */
-export const HOOKS: HookRegistry = registry([armorClassHook]);
+export const HOOKS: HookRegistry = registry([armorClassHook, alwaysPreparedSpellsHook, savingThrowAttackHook]);

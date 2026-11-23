@@ -40,7 +40,8 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
   each record and drops the rules that do not convert. `fighter.test.ts`
   has the hand-checked values of the Fighter from the spike (ORC-95), and
   `base-rules.test.ts` has the rules of every character on test classes
-  (ORC-225).
+  (ORC-225). `species.test.ts` has the 9 species of the pack at levels 1,
+  5 and 11 (ORC-226).
 - `srd52/srd52.test.ts` compares the built-in pack with the text of the SRD
   5.2.1 PDF, in `srd52/fixtures/`.
 

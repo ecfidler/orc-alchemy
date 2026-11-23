@@ -1,7 +1,7 @@
 // The 2024 template: the selections at the top of a character (ORC-225).
-// The classes and the languages come from the content. The species, the
-// background and the equipment are still the content of the spike: ORC-226,
-// ORC-227 and ORC-228 replace them. The Fighter of the spike stays until
+// The classes, the species (ORC-226) and the languages come from the
+// content. The background and the equipment are still the content of the
+// spike: ORC-227 and ORC-228 replace them. The Fighter of the spike stays until
 // ORC-230 writes the rules of `srd52:fighter`.
 
 import { shuffled } from "../core/autofill.ts";
@@ -12,9 +12,8 @@ import { BUILT_IN } from "./built-in.ts";
 import { ARMOR } from "./content/armor.ts";
 import { BACKGROUNDS } from "./content/backgrounds.ts";
 import { FIGHTER } from "./content/fighter.ts";
-import { SPECIES } from "./content/species.ts";
 import { WEAPONS } from "./content/weapons.ts";
-import { type Content, classOption, recordsOf } from "./records.ts";
+import { type Content, classOption, recordsOf, speciesOption } from "./records.ts";
 
 /** The Standard Array (SRD 5.2.1 p21). */
 export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8] as const;
@@ -102,7 +101,7 @@ export function createTemplate(content: Content): Template<Built2024> {
     selections: [
       abilityScoreMethods,
       selection({ name: "Class", min: 1, max: null, multiselect: true, options: [FIGHTER, ...classes] }),
-      selection({ name: "Species", options: SPECIES }),
+      selection({ name: "Species", options: recordsOf(content, "species").map(({ reference, record }) => speciesOption(content, reference, record)) }),
       selection({ name: "Background", options: BACKGROUNDS }),
       selection({ name: "Languages", min: 2, max: 2, options: languages }),
       selection({

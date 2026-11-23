@@ -260,7 +260,7 @@ format has four value forms:
 
 | Form | Example | Meaning |
 |---|---|---|
-| A constant | `120`, `"poison"`, `true` | The value. |
+| A constant | `120`, `"srd52:poison"`, `true` | The value. |
 | `read` | `{ "read": "proficiencyBonus" }`, `{ "read": "abilityModifiers", "entry": "con" }` | A sheet value. With `entry`, one entry of a sheet value that is a record. |
 | `sum` | `{ "sum": [{ "read": "abilityModifiers", "entry": "cha" }, 0], "min": 1 }` | The sum of numbers, and not less than `min`. |
 | `steps` | `{ "steps": [[1, 2], [4, 3], [10, 4]], "by": { "read": "classLevels", "entry": "srd52:fighter" } }` | The value of the highest step whose number is at most `by`. Below the first step, 0. |
@@ -301,6 +301,8 @@ The real hooks:
 | Hook | Arguments | What it does |
 |---|---|---|
 | `armor-class` (ORC-225) | `name`, `base`, `abilities` (default none), `shield` (default `true`) | Adds a way to calculate the base Armor Class without armor: `base` plus the modifiers of `abilities`, for example Unarmored Defense. With `shield: false`, the formula does not apply with a Shield. A character uses one base calculation (SRD 5.2.1 p177): the worn armor, or else the best formula that applies. The Shield and the other bonuses add to it. |
+| `always-prepared-spells` (ORC-226) | `abilities` (one or more), `spells`: each `{ spell, level, uses }` | Gives the spells of a trait, always prepared, each from a character level (default 1). With more than one ability, it opens the choice "Spellcasting Ability". `uses` is the casts without a spell slot: `amount` is a number or `"proficiency-bonus"`, and `recover` is as in the `uses` effect. The spells go in the sheet value `spells`. |
+| `saving-throw-attack` (ORC-226) | `name`, `save`, `dcAbility`, `die`, `dice`, `damageType` | Gives an attack that forces a saving throw, for example Breath Weapon. The DC is 8 plus the modifier of `dcAbility` and the Proficiency Bonus. `dice` is a list of `[character level, number of dice]` from level 1. The attack goes in the sheet value `savingThrowAttacks`. |
 
 The probable hooks are a judgment from the spike and from the 2014 code,
 not a measured list:
@@ -480,7 +482,7 @@ SRD 5.2.1 PDF for this document, and the prose is shortened. The import
   ],
   "effects": [
     { "set": "darkvision", "value": 120 },
-    { "push": "resistances", "value": "poison" },
+    { "push": "resistances", "value": "srd52:poison" },
     { "add": "maxHitPoints", "value": { "read": "totalLevel" }, "name": "Dwarven Toughness" },
     {
       "uses": {

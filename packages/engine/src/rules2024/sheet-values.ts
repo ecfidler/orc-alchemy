@@ -10,6 +10,7 @@ export type SheetValueKind = "number" | "string" | "boolean" | "list" | "record"
 export const SHEET_VALUES = {
   name: "string",
   species: "nullable",
+  lineage: "nullable",
   creatureType: "string",
   size: "string",
   speed: "number",
@@ -44,6 +45,7 @@ export const SHEET_VALUES = {
   dragLiftPush: "number",
   feats: "list",
   features: "list",
+  spells: "list",
   wornArmor: "nullable",
   shield: "boolean",
   armorWithoutTraining: "boolean",
@@ -59,6 +61,7 @@ export const SHEET_VALUES = {
   attacksPerAction: "number",
   criticalHitMinimum: "number",
   weaponAttacks: "list",
+  savingThrowAttacks: "list",
 } as const satisfies Record<keyof Built2024, SheetValueKind>;
 
 export type SheetValueName = keyof typeof SHEET_VALUES;

@@ -93,3 +93,92 @@ describe("armor-class", () => {
     ]);
   });
 });
+
+/** A species of a test pack with one effect, at a character level. */
+function speciesWith(effect: unknown) {
+  const loaded = loadContentPack({
+    format: "alchemy-content",
+    version: 1,
+    rules: "2024",
+    pack: { id: "test", name: "Test" },
+    classes: [unarmoredClass("plain", { name: "Plain", base: 10 })],
+    species: [{ key: "thing", name: "Thing", creatureType: "humanoid", size: "medium", speed: 30, effects: [effect] }],
+  });
+  const template = loaded.pack && createTemplate({ packs: [loaded.pack] });
+  const build = (level: number, speciesSelections: Entity2024["selections"] = []) =>
+    template &&
+    buildWithContributions(
+      {
+        selections: [
+          { key: "ability-scores", option: { key: "manual", value: { str: 10, dex: 10, con: 14, int: 10, wis: 10, cha: 10 } } },
+          {
+            key: "class",
+            options: [{ key: "test:plain", selections: [{ key: "levels", options: Array.from({ length: level }, (_, i) => ({ key: `level-${i + 1}` })) }] }],
+          },
+          { key: "species", option: { key: "test:thing", selections: speciesSelections } },
+        ],
+      },
+      template,
+    ).built;
+  return { issues: loaded.issues, build };
+}
+
+describe("always-prepared-spells", () => {
+  const spells = [
+    { spell: "test:light" },
+    { spell: "test:shield", level: 3, uses: { amount: "proficiency-bonus", recover: [{ on: "long-rest", amount: "all" }] } },
+  ];
+
+  it("gives each spell from its character level, with one ability and no choice", () => {
+    const { issues, build } = speciesWith({ hook: "always-prepared-spells", args: { abilities: ["wis"], spells } });
+    expect(issues).toEqual([]);
+    expect(build(1)?.spells).toEqual([{ spell: "test:light", source: "test:thing", ability: "wis" }]);
+    // Level 3: the PB is +2, so two casts without a slot. Level 5: +3.
+    expect(build(3)?.spells[1]).toEqual({
+      spell: "test:shield",
+      source: "test:thing",
+      ability: "wis",
+      uses: { amount: 2, recover: [{ on: "long-rest", amount: "all" }] },
+    });
+    expect(build(5)?.spells[1].uses?.amount).toBe(3);
+  });
+
+  it("opens the ability choice for more than one ability", () => {
+    const { build } = speciesWith({ hook: "always-prepared-spells", args: { abilities: ["int", "cha"], spells } });
+    expect(build(1)?.spells).toEqual([]);
+    expect(build(1, [{ key: "spellcasting-ability", option: { key: "cha" } }])?.spells.map((s) => s.ability)).toEqual(["cha"]);
+  });
+
+  it("refuses an empty list", () => {
+    expect(speciesWith({ hook: "always-prepared-spells", args: { abilities: [], spells } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});
+
+describe("saving-throw-attack", () => {
+  const args = {
+    name: "Spit",
+    save: "con",
+    dcAbility: "con",
+    die: 6,
+    dice: [
+      [1, 1],
+      [5, 3],
+    ],
+    damageType: "test:acid",
+  };
+
+  it("gives the DC and the dice of the character level", () => {
+    const { issues, build } = speciesWith({ hook: "saving-throw-attack", args });
+    expect(issues).toEqual([]);
+    // DC 8 + Con +2 + PB +2 = 12, and 1d6.
+    expect(build(1)?.savingThrowAttacks).toEqual([
+      { key: "test:thing/spit", name: "Spit", source: "test:thing", save: "con", dc: 12, damage: "1d6", damageType: "test:acid" },
+    ]);
+    // Level 5: PB +3, so DC 13, and 3d6.
+    expect(build(5)?.savingThrowAttacks[0]).toMatchObject({ dc: 13, damage: "3d6" });
+  });
+
+  it("refuses dice that do not start at level 1", () => {
+    expect(speciesWith({ hook: "saving-throw-attack", args: { ...args, dice: [[5, 2]] } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});

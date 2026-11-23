@@ -7352,7 +7352,499 @@
       ],
       "creatureType": "humanoid",
       "size": "medium",
-      "speed": 30
+      "speed": 30,
+      "effects": [
+        {
+          "selection": {
+            "key": "draconic-ancestry",
+            "name": "Draconic Ancestry",
+            "choose": 1,
+            "from": [
+              {
+                "key": "black",
+                "name": "Black Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "black",
+                    "name": "Black Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:acid",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:acid"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "blue",
+                "name": "Blue Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "blue",
+                    "name": "Blue Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:lightning",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:lightning"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "brass",
+                "name": "Brass Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "brass",
+                    "name": "Brass Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:fire",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:fire"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "bronze",
+                "name": "Bronze Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "bronze",
+                    "name": "Bronze Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:lightning",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:lightning"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "copper",
+                "name": "Copper Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "copper",
+                    "name": "Copper Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:acid",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:acid"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "green",
+                "name": "Green Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "green",
+                    "name": "Green Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:poison",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:poison"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "gold",
+                "name": "Gold Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "gold",
+                    "name": "Gold Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:fire",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:fire"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "red",
+                "name": "Red Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "red",
+                    "name": "Red Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:fire",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:fire"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "silver",
+                "name": "Silver Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "silver",
+                    "name": "Silver Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:cold",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:cold"
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "white",
+                "name": "White Dragon",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "white",
+                    "name": "White Dragon"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:cold",
+                    "name": "Damage Resistance"
+                  },
+                  {
+                    "hook": "saving-throw-attack",
+                    "args": {
+                      "name": "Breath Weapon",
+                      "save": "dex",
+                      "dcAbility": "con",
+                      "die": 10,
+                      "dice": [
+                        [
+                          1,
+                          1
+                        ],
+                        [
+                          5,
+                          2
+                        ],
+                        [
+                          11,
+                          3
+                        ],
+                        [
+                          17,
+                          4
+                        ]
+                      ],
+                      "damageType": "srd52:cold"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "uses": {
+            "trait": "breath-weapon",
+            "amount": {
+              "read": "proficiencyBonus"
+            },
+            "recover": [
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "set": "darkvision",
+          "value": 60,
+          "name": "Darkvision"
+        },
+        {
+          "uses": {
+            "trait": "draconic-flight",
+            "amount": {
+              "steps": [
+                [
+                  5,
+                  1
+                ]
+              ],
+              "by": {
+                "read": "totalLevel"
+              }
+            },
+            "recover": [
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "dwarf",
@@ -7384,7 +7876,40 @@
       ],
       "creatureType": "humanoid",
       "size": "medium",
-      "speed": 30
+      "speed": 30,
+      "effects": [
+        {
+          "set": "darkvision",
+          "value": 120,
+          "name": "Darkvision"
+        },
+        {
+          "push": "resistances",
+          "value": "srd52:poison",
+          "name": "Dwarven Resilience"
+        },
+        {
+          "add": "maxHitPoints",
+          "value": {
+            "read": "totalLevel"
+          },
+          "name": "Dwarven Toughness"
+        },
+        {
+          "uses": {
+            "trait": "stonecunning",
+            "amount": {
+              "read": "proficiencyBonus"
+            },
+            "recover": [
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "elf",
@@ -7421,7 +7946,228 @@
       ],
       "creatureType": "humanoid",
       "size": "medium",
-      "speed": 30
+      "speed": 30,
+      "effects": [
+        {
+          "set": "darkvision",
+          "value": 60,
+          "name": "Darkvision"
+        },
+        {
+          "selection": {
+            "key": "elven-lineage",
+            "name": "Elven Lineage",
+            "choose": 1,
+            "from": [
+              {
+                "key": "drow",
+                "name": "Drow",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "drow",
+                    "name": "Drow"
+                  },
+                  {
+                    "set": "darkvision",
+                    "value": 120,
+                    "name": "Drow"
+                  },
+                  {
+                    "hook": "always-prepared-spells",
+                    "args": {
+                      "abilities": [
+                        "int",
+                        "wis",
+                        "cha"
+                      ],
+                      "spells": [
+                        {
+                          "spell": "srd52:dancing-lights"
+                        },
+                        {
+                          "spell": "srd52:faerie-fire",
+                          "level": 3,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "spell": "srd52:darkness",
+                          "level": 5,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "high-elf",
+                "name": "High Elf",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "high-elf",
+                    "name": "High Elf"
+                  },
+                  {
+                    "hook": "always-prepared-spells",
+                    "args": {
+                      "abilities": [
+                        "int",
+                        "wis",
+                        "cha"
+                      ],
+                      "spells": [
+                        {
+                          "spell": "srd52:prestidigitation"
+                        },
+                        {
+                          "spell": "srd52:detect-magic",
+                          "level": 3,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "spell": "srd52:misty-step",
+                          "level": 5,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "wood-elf",
+                "name": "Wood Elf",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "wood-elf",
+                    "name": "Wood Elf"
+                  },
+                  {
+                    "set": "speed",
+                    "value": 35,
+                    "name": "Wood Elf"
+                  },
+                  {
+                    "hook": "always-prepared-spells",
+                    "args": {
+                      "abilities": [
+                        "int",
+                        "wis",
+                        "cha"
+                      ],
+                      "spells": [
+                        {
+                          "spell": "srd52:druidcraft"
+                        },
+                        {
+                          "spell": "srd52:longstrider",
+                          "level": 3,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "spell": "srd52:pass-without-trace",
+                          "level": 5,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "selection": {
+            "key": "keen-senses",
+            "name": "Keen Senses",
+            "choose": 1,
+            "from": [
+              {
+                "key": "insight",
+                "name": "Insight",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "insight"
+                  }
+                ]
+              },
+              {
+                "key": "perception",
+                "name": "Perception",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "perception"
+                  }
+                ]
+              },
+              {
+                "key": "survival",
+                "name": "Survival",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "survival"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "gnome",
@@ -7448,7 +8194,90 @@
       ],
       "creatureType": "humanoid",
       "size": "small",
-      "speed": 30
+      "speed": 30,
+      "effects": [
+        {
+          "set": "darkvision",
+          "value": 60,
+          "name": "Darkvision"
+        },
+        {
+          "selection": {
+            "key": "gnomish-lineage",
+            "name": "Gnomish Lineage",
+            "choose": 1,
+            "from": [
+              {
+                "key": "forest-gnome",
+                "name": "Forest Gnome",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "forest-gnome",
+                    "name": "Forest Gnome"
+                  },
+                  {
+                    "hook": "always-prepared-spells",
+                    "args": {
+                      "abilities": [
+                        "int",
+                        "wis",
+                        "cha"
+                      ],
+                      "spells": [
+                        {
+                          "spell": "srd52:minor-illusion"
+                        },
+                        {
+                          "spell": "srd52:speak-with-animals",
+                          "uses": {
+                            "amount": "proficiency-bonus",
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "rock-gnome",
+                "name": "Rock Gnome",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "rock-gnome",
+                    "name": "Rock Gnome"
+                  },
+                  {
+                    "hook": "always-prepared-spells",
+                    "args": {
+                      "abilities": [
+                        "int",
+                        "wis",
+                        "cha"
+                      ],
+                      "spells": [
+                        {
+                          "spell": "srd52:mending"
+                        },
+                        {
+                          "spell": "srd52:prestidigitation"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "goliath",
@@ -7475,7 +8304,125 @@
       ],
       "creatureType": "humanoid",
       "size": "medium",
-      "speed": 35
+      "speed": 35,
+      "effects": [
+        {
+          "selection": {
+            "key": "giant-ancestry",
+            "name": "Giant Ancestry",
+            "choose": 1,
+            "from": [
+              {
+                "key": "cloud",
+                "name": "Cloud's Jaunt (Cloud Giant)",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "cloud",
+                    "name": "Cloud's Jaunt (Cloud Giant)"
+                  }
+                ]
+              },
+              {
+                "key": "fire",
+                "name": "Fire's Burn (Fire Giant)",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "fire",
+                    "name": "Fire's Burn (Fire Giant)"
+                  }
+                ]
+              },
+              {
+                "key": "frost",
+                "name": "Frost's Chill (Frost Giant)",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "frost",
+                    "name": "Frost's Chill (Frost Giant)"
+                  }
+                ]
+              },
+              {
+                "key": "hill",
+                "name": "Hill's Tumble (Hill Giant)",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "hill",
+                    "name": "Hill's Tumble (Hill Giant)"
+                  }
+                ]
+              },
+              {
+                "key": "stone",
+                "name": "Stone's Endurance (Stone Giant)",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "stone",
+                    "name": "Stone's Endurance (Stone Giant)"
+                  }
+                ]
+              },
+              {
+                "key": "storm",
+                "name": "Storm's Thunder (Storm Giant)",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "storm",
+                    "name": "Storm's Thunder (Storm Giant)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "uses": {
+            "trait": "giant-ancestry",
+            "amount": {
+              "read": "proficiencyBonus"
+            },
+            "recover": [
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "uses": {
+            "trait": "large-form",
+            "amount": {
+              "steps": [
+                [
+                  5,
+                  1
+                ]
+              ],
+              "by": {
+                "read": "totalLevel"
+              }
+            },
+            "recover": [
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "add": "carryingSizeBonus",
+          "value": 1,
+          "name": "Powerful Build"
+        }
+      ]
     },
     {
       "key": "halfling",
@@ -7540,7 +8487,243 @@
           "medium"
         ]
       },
-      "speed": 30
+      "speed": 30,
+      "effects": [
+        {
+          "selection": {
+            "key": "skillful",
+            "name": "Skillful",
+            "choose": 1,
+            "from": [
+              {
+                "key": "acrobatics",
+                "name": "Acrobatics",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "acrobatics"
+                  }
+                ]
+              },
+              {
+                "key": "animal-handling",
+                "name": "Animal Handling",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "animal-handling"
+                  }
+                ]
+              },
+              {
+                "key": "arcana",
+                "name": "Arcana",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "arcana"
+                  }
+                ]
+              },
+              {
+                "key": "athletics",
+                "name": "Athletics",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "athletics"
+                  }
+                ]
+              },
+              {
+                "key": "deception",
+                "name": "Deception",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "deception"
+                  }
+                ]
+              },
+              {
+                "key": "history",
+                "name": "History",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "history"
+                  }
+                ]
+              },
+              {
+                "key": "insight",
+                "name": "Insight",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "insight"
+                  }
+                ]
+              },
+              {
+                "key": "intimidation",
+                "name": "Intimidation",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "intimidation"
+                  }
+                ]
+              },
+              {
+                "key": "investigation",
+                "name": "Investigation",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "investigation"
+                  }
+                ]
+              },
+              {
+                "key": "medicine",
+                "name": "Medicine",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "medicine"
+                  }
+                ]
+              },
+              {
+                "key": "nature",
+                "name": "Nature",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "nature"
+                  }
+                ]
+              },
+              {
+                "key": "perception",
+                "name": "Perception",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "perception"
+                  }
+                ]
+              },
+              {
+                "key": "performance",
+                "name": "Performance",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "performance"
+                  }
+                ]
+              },
+              {
+                "key": "persuasion",
+                "name": "Persuasion",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "persuasion"
+                  }
+                ]
+              },
+              {
+                "key": "religion",
+                "name": "Religion",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "religion"
+                  }
+                ]
+              },
+              {
+                "key": "sleight-of-hand",
+                "name": "Sleight of Hand",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "sleight-of-hand"
+                  }
+                ]
+              },
+              {
+                "key": "stealth",
+                "name": "Stealth",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "stealth"
+                  }
+                ]
+              },
+              {
+                "key": "survival",
+                "name": "Survival",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "survival"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "selection": {
+            "key": "versatile",
+            "name": "Versatile",
+            "choose": 1,
+            "from": [
+              {
+                "key": "alert",
+                "name": "Alert",
+                "effects": [
+                  {
+                    "grantFeat": "srd52:alert"
+                  }
+                ]
+              },
+              {
+                "key": "magic-initiate",
+                "name": "Magic Initiate",
+                "effects": [
+                  {
+                    "grantFeat": "srd52:magic-initiate"
+                  }
+                ]
+              },
+              {
+                "key": "savage-attacker",
+                "name": "Savage Attacker",
+                "effects": [
+                  {
+                    "grantFeat": "srd52:savage-attacker"
+                  }
+                ]
+              },
+              {
+                "key": "skilled",
+                "name": "Skilled",
+                "effects": [
+                  {
+                    "grantFeat": "srd52:skilled"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "orc",
@@ -7567,7 +8750,44 @@
       ],
       "creatureType": "humanoid",
       "size": "medium",
-      "speed": 30
+      "speed": 30,
+      "effects": [
+        {
+          "uses": {
+            "trait": "adrenaline-rush",
+            "amount": {
+              "read": "proficiencyBonus"
+            },
+            "recover": [
+              {
+                "on": "short-rest",
+                "amount": "all"
+              },
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "set": "darkvision",
+          "value": 120,
+          "name": "Darkvision"
+        },
+        {
+          "uses": {
+            "trait": "relentless-endurance",
+            "amount": 1,
+            "recover": [
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "tiefling",
@@ -7600,7 +8820,203 @@
           "medium"
         ]
       },
-      "speed": 30
+      "speed": 30,
+      "effects": [
+        {
+          "set": "darkvision",
+          "value": 60,
+          "name": "Darkvision"
+        },
+        {
+          "selection": {
+            "key": "fiendish-legacy",
+            "name": "Fiendish Legacy",
+            "choose": 1,
+            "from": [
+              {
+                "key": "abyssal",
+                "name": "Abyssal",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "abyssal",
+                    "name": "Abyssal"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:poison",
+                    "name": "Abyssal"
+                  },
+                  {
+                    "hook": "always-prepared-spells",
+                    "args": {
+                      "abilities": [
+                        "int",
+                        "wis",
+                        "cha"
+                      ],
+                      "spells": [
+                        {
+                          "spell": "srd52:poison-spray"
+                        },
+                        {
+                          "spell": "srd52:thaumaturgy"
+                        },
+                        {
+                          "spell": "srd52:ray-of-sickness",
+                          "level": 3,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "spell": "srd52:hold-person",
+                          "level": 5,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "chthonic",
+                "name": "Chthonic",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "chthonic",
+                    "name": "Chthonic"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:necrotic",
+                    "name": "Chthonic"
+                  },
+                  {
+                    "hook": "always-prepared-spells",
+                    "args": {
+                      "abilities": [
+                        "int",
+                        "wis",
+                        "cha"
+                      ],
+                      "spells": [
+                        {
+                          "spell": "srd52:chill-touch"
+                        },
+                        {
+                          "spell": "srd52:thaumaturgy"
+                        },
+                        {
+                          "spell": "srd52:false-life",
+                          "level": 3,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "spell": "srd52:ray-of-enfeeblement",
+                          "level": 5,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "infernal",
+                "name": "Infernal",
+                "effects": [
+                  {
+                    "set": "lineage",
+                    "value": "infernal",
+                    "name": "Infernal"
+                  },
+                  {
+                    "push": "resistances",
+                    "value": "srd52:fire",
+                    "name": "Infernal"
+                  },
+                  {
+                    "hook": "always-prepared-spells",
+                    "args": {
+                      "abilities": [
+                        "int",
+                        "wis",
+                        "cha"
+                      ],
+                      "spells": [
+                        {
+                          "spell": "srd52:fire-bolt"
+                        },
+                        {
+                          "spell": "srd52:thaumaturgy"
+                        },
+                        {
+                          "spell": "srd52:hellish-rebuke",
+                          "level": 3,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "spell": "srd52:darkness",
+                          "level": 5,
+                          "uses": {
+                            "amount": 1,
+                            "recover": [
+                              {
+                                "on": "long-rest",
+                                "amount": "all"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "backgrounds": [

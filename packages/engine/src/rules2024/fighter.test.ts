@@ -33,7 +33,7 @@ describe("level 1", () => {
 
   it("has the identity of the choices", () => {
     expect(built.name).toBe("Brunhild");
-    expect(built.species).toBe("dwarf");
+    expect(built.species).toBe("srd52:dwarf");
     expect(built.background).toBe("soldier");
     expect(built.classes).toEqual(["fighter"]);
     expect(built.classLevels).toEqual({ fighter: 1 });
@@ -79,7 +79,7 @@ describe("level 1", () => {
     expect(built.armorTraining).toEqual(["light", "medium", "heavy", "shield"]);
     expect(built.toolProficiencies).toEqual(["dice"]);
     expect(built.languages).toEqual(["srd52:common", "srd52:dwarvish", "srd52:giant"]);
-    expect(built.resistances).toEqual(["poison"]);
+    expect(built.resistances).toEqual(["srd52:poison"]);
   });
 
   it("has Armor Class 17 in Chain Mail with the Defense feat", () => {
@@ -122,6 +122,7 @@ describe("level 1", () => {
       "Fighting Style",
       "Second Wind",
       "Weapon Mastery",
+      "Darkvision",
       "Dwarven Resilience",
       "Dwarven Toughness",
       "Stonecunning",
@@ -407,7 +408,7 @@ describe("contributions", () => {
 
   it("gives Dwarven Toughness to the Hit Points", () => {
     // Fighter level 1: 10, and Con +2: 12. Dwarven Toughness: +1.
-    expect(contributions.maxHitPoints).toEqual([{ name: "Dwarven Toughness", source: ["species", "dwarf"], from: 12, to: 13 }]);
+    expect(contributions.maxHitPoints).toEqual([{ name: "Dwarven Toughness", source: ["species", "srd52:dwarf"], from: 12, to: 13 }]);
   });
 });
 
