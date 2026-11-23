@@ -96,9 +96,14 @@ export function fighterCharacter(choices: Choices): Entity2024 {
   };
 }
 
+/** The envelope of a test pack file, without records. */
+export function testPackEnvelope(id = "test") {
+  return { format: "alchemy-content", version: 1, rules: "2024", pack: { id, name: "Test" } } as const;
+}
+
 /** A pack file with the id `test` and the given records, for `loadContentPack`. */
 export function testPackFile(records: Record<string, unknown[]>): unknown {
-  return { format: "alchemy-content", version: 1, rules: "2024", pack: { id: "test", name: "Test" }, ...records };
+  return { ...testPackEnvelope(), ...records };
 }
 
 /** A class record with no features: a d8, Dexterity and Intelligence saves, and two skills of three. `more` adds or replaces fields. */

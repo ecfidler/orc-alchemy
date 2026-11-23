@@ -15,7 +15,7 @@ import { featSelection } from "./content/feats.ts";
 import { defineHook, registry } from "./hooks/index.ts";
 import { backgroundOption, type Content, featOption, findRecord, RecordError, subclassOption } from "./records.ts";
 import { template2024 } from "./template.ts";
-import { fighterCharacter } from "./testing.ts";
+import { fighterCharacter, testPackEnvelope } from "./testing.ts";
 
 /** A pack that loads with no issue. Without `hooks`, the loader does not check the hook names, so the converter must. */
 function loaded(input: unknown, hooks?: ReadonlySet<string>): Pack {
@@ -132,7 +132,7 @@ function single(make: (content: Content) => ReturnType<typeof option<Built2024>>
 }
 
 /** The envelope of a homebrew test pack. */
-const homebrew = { format: "alchemy-content", version: 1, rules: "2024", pack: { id: "hb", name: "Test" } };
+const homebrew = testPackEnvelope("hb");
 
 function feat(effects: Effect[], more: Record<string, unknown> = {}) {
   const raw = { key: "thing", name: "Thing", category: "general", repeatable: true, effects, ...more };
@@ -285,10 +285,7 @@ describe("hooks", () => {
 
 describe("subclasses", () => {
   const pack = loaded({
-    format: "alchemy-content",
-    version: 1,
-    rules: "2024",
-    pack: { id: "hb", name: "Test" },
+    ...homebrew,
     classes: [{ key: "knight", name: "Knight", hitDie: 10, savingThrows: ["str", "con"], skills: { choose: 2, from: ["athletics", "history"] } }],
     subclasses: [
       {

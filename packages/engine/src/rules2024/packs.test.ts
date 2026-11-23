@@ -5,8 +5,9 @@
 import { describe, expect, it } from "vitest";
 import examplePack from "../format/fixtures/example-pack.json" with { type: "json" };
 import { loadContentPack } from "./packs.ts";
+import { testPackEnvelope } from "./testing.ts";
 
-const homebrew = { format: "alchemy-content", version: 1, rules: "2024", pack: { id: "hb", name: "Test" } };
+const homebrew = testPackEnvelope("hb");
 const feat = (key: string, effects: unknown[]) => ({
   key,
   name: key,

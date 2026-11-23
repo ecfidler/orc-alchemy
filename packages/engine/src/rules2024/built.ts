@@ -283,9 +283,9 @@ function unarmoredFormulas(formulas: readonly ArmorClassFormula[], shield: boole
   return [UNARMORED, ...formulas].filter((formula) => !shield || formula.shield);
 }
 
-/** The best formula of a list. On a tie, the first. */
-function bestFormula(formulas: readonly ArmorClassFormula[], modifiers: AbilityScores): ArmorClassFormula {
-  return formulas.reduce((best, formula) => (formulaValue(formula, modifiers) > formulaValue(best, modifiers) ? formula : best));
+/** The best unarmored formula that applies, with or without a Shield. On a tie, the first. */
+function bestUnarmored(formulas: readonly ArmorClassFormula[], shield: boolean, modifiers: AbilityScores): ArmorClassFormula {
+  return unarmoredFormulas(formulas, shield).reduce((best, formula) => (formulaValue(formula, modifiers) > formulaValue(best, modifiers) ? formula : best));
 }
 
 /** The Carry factor of each size; Drag/Lift/Push is two times it (SRD 5.2.1 p178). Small and Medium share a row. */
@@ -380,12 +380,12 @@ export const base: Base<Built2024> = {
   // A character uses one base calculation (SRD 5.2.1 p177). Worn armor gives its own. Without armor, the engine
   // takes the best formula that applies: a formula that does not allow a Shield does not apply with one.
   armorClassFormula: m.derived(["wornArmor", "shield", "armorClassFormulas", "abilityModifiers"], (q) =>
-    q("wornArmor") !== null ? WORN_ARMOR : bestFormula(unarmoredFormulas(q("armorClassFormulas"), q("shield")), q("abilityModifiers")).key,
+    q("wornArmor") !== null ? WORN_ARMOR : bestUnarmored(q("armorClassFormulas"), q("shield"), q("abilityModifiers")).key,
   ),
   // 0 until the modifier of the base calculation in use: the worn armor, UNARMORED in RULES, or the formula of a feature.
   baseArmorClass: 0,
   unarmoredArmorClass: m.derived(["armorClassFormulas", "abilityModifiers"], (q) =>
-    formulaValue(bestFormula(unarmoredFormulas(q("armorClassFormulas"), false), q("abilityModifiers")), q("abilityModifiers")),
+    formulaValue(bestUnarmored(q("armorClassFormulas"), false, q("abilityModifiers")), q("abilityModifiers")),
   ),
   armorClass: m.derived(["baseArmorClass"], (q) => q("baseArmorClass")),
   initiative: m.derived(["abilityModifiers"], (q) => q("abilityModifiers").dex),

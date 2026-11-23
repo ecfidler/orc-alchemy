@@ -4,7 +4,7 @@ title: 2024 engine spec
 description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
 tags: [rules-2024, engine, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-20T15:25:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T07:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
 sources:
   - id: orc-218
@@ -83,7 +83,8 @@ parts.[^spike]
 2. **The template.** The template is the tree of selections and options
    that the rules offer. An option carries modifiers and can open more
    selections. A `ref` selection pools its count and its options with the
-   other selections of the same `ref`.
+   other selections of the same `ref`. The template also carries the
+   rules that every character has, as modifiers with no option.
 3. **Modifiers.** A modifier changes one sheet value, which is a value of
    the built character. A modifier and a derived sheet value declare the
    sheet values that they read. The engine applies them in dependency
@@ -103,6 +104,10 @@ parts.[^spike]
    "is this choice still valid" are different tests.
 5. **One selection for each `ref` pool** in the result of `evaluate`.
 6. **Content is data.** See *Content*.
+7. **Rules as modifiers.** A rule that every character has, for example
+   the Proficiency Bonus on a proficient save, is a modifier of the
+   template. Its change is in `contributions` with an empty source, so the
+   app can show each part of a value.
 
 A build is repeatable. Ties between unrelated sheet values break by first
 use.
@@ -154,6 +159,16 @@ The 2024 engine has no `.orcbrew` function.
 - The Weapon Mastery choices, and the mastery property on each attack.
 - The Critical Hit range and the damage resistances.
 - Features with uses that can recover on two rests.
+- The lineage, legacy or ancestry of the species (`lineage`).
+- The Hit Points of each level (`hitPointsPerLevel`) and the Hit Point
+  Dice by die (`hitPointDice`).
+- Expertise and the carrying capacity.
+- The Armor Class in two parts: the base calculation
+  (`baseArmorClass`, with the formula in use in `armorClassFormula`),
+  then `armorClass` with the Shield and other bonuses. Worn armor without
+  training sets `armorWithoutTraining`.
+- The spells that a trait gives (`spells`) and the attacks that call
+  for a saving throw (`savingThrowAttacks`).
 
 # The seam to the app
 

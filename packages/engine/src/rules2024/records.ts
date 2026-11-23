@@ -465,9 +465,9 @@ const MAX_LEVEL = 20;
 
 /**
  * A class as an option of the class selection. The engine makes the class
- * frame from the typed fields: the Hit Point Die, the saving throws, the
- * skill choice, the weapon, armor and tool training, and one sequential
- * `levels` selection. Each level option gives the class level, its Hit
+ * frame from the typed fields. The frame has the Hit Point Die, the saving
+ * throws, the skill choice, the training, and one sequential `levels`
+ * selection. Each level option gives the class level, its Hit
  * Points, the features of that level, and the effects of `levels` at that
  * level. Level 3 opens the subclass choice (SRD 5.2.1 p19). The skill name
  * comes from the skill records. The saves and the full training are the

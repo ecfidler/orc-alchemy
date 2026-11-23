@@ -317,6 +317,21 @@ describe("Armor Class", () => {
     expect(guard("chain-mail", true).built.armorClass).toBe(18);
   });
 
+  it("takes a Dexterity penalty with Light and Medium armor, but not with Heavy armor", () => {
+    // Dex 8: -1.
+    const clumsy = (armor: string) =>
+      evaluate(
+        character({
+          method: "manual",
+          scores: { str: 15, dex: 8, con: 14, int: 10, wis: 10, cha: 10 },
+          classes: [{ key: "test:guard", level: 1, skills: ["athletics"] }],
+          armor,
+        }),
+      ).built.armorClass;
+    // Leather Armor: 11 - 1. Scale Mail: 14 - 1. Chain Mail: 16 and Plate Armor: 18, flat (SRD p92).
+    expect(["leather-armor", "scale-mail", "chain-mail", "plate-armor"].map(clumsy)).toEqual([10, 13, 16, 18]);
+  });
+
   it("gives the parts in the contributions", () => {
     const { contributions } = guard("chain-mail", true);
     expect(contributions.baseArmorClass).toEqual([{ name: "Chain Mail", source: ["armor", "chain-mail"], from: 0, to: 16 }]);

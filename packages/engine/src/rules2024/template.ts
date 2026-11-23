@@ -117,9 +117,14 @@ export function createTemplate(content: Content): Template<Built2024> {
             modifiers: [
               m.set("wornArmor", armor.key),
               // SRD 5.2.1 p92: the base of the armor, with the Dexterity modifier up to the limit of the armor.
-              m.add("baseArmorClass", (q) => armor.base + Math.min(q("abilityModifiers").dex, armor.dexLimit ?? Number.POSITIVE_INFINITY), {
-                deps: ["abilityModifiers"],
-              }),
+              // Heavy armor (limit 0) has no Dexterity term, so a penalty does not apply to it.
+              m.add(
+                "baseArmorClass",
+                (q) => armor.base + (armor.dexLimit === 0 ? 0 : Math.min(q("abilityModifiers").dex, armor.dexLimit ?? Number.POSITIVE_INFINITY)),
+                {
+                  deps: ["abilityModifiers"],
+                },
+              ),
             ],
           }),
         ),

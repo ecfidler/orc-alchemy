@@ -122,6 +122,7 @@ describe("level 1", () => {
       "Fighting Style",
       "Second Wind",
       "Weapon Mastery",
+      // The spike Dwarf had no Darkvision feature. srd52:dwarf lists each trait of the SRD as a feature.
       "Darkvision",
       "Dwarven Resilience",
       "Dwarven Toughness",
