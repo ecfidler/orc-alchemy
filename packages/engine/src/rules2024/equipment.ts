@@ -12,7 +12,7 @@ import type { ModifierOptions } from "../core/modifiers.ts";
 import { type Option, type OptionParts, option, type Selection, selection } from "../core/template.ts";
 import { parseReference, referenceTo, SRD_PACK } from "../format/keys.ts";
 import type { EquipmentItem, EquipmentOption, Records } from "../format/schema.ts";
-import { type ArmorStats, type Built2024, m, type WeaponStats } from "./built.ts";
+import { ADD_ORDER, type ArmorStats, type Built2024, m, type WeaponStats } from "./built.ts";
 import { type Content, findRecord, recordsOf } from "./content.ts";
 
 type EquipmentRecord = Records["equipment"];
@@ -40,7 +40,14 @@ export function armorOptions(content: Content): Option<Built2024>[] {
         }),
         // Without the Strength score of the armor, the Speed is 10 feet less.
         ...(strength
-          ? [m.add("speed", -10, { deps: ["abilities"], when: (q) => q("abilities").str < strength, name: `${record.name}: Strength ${strength}` })]
+          ? [
+              m.add("speed", -10, {
+                deps: ["abilities"],
+                when: (q) => q("abilities").str < strength,
+                name: `${record.name}: Strength ${strength}`,
+                order: ADD_ORDER,
+              }),
+            ]
           : []),
       ],
     });
@@ -107,9 +114,10 @@ export function carriedItemOptions(content: Content): Option<Built2024>[] {
  * The Weapon Mastery choice of a class: `count` kinds of weapons. Every
  * occurrence stores its choices at the same ref, so the counts of the class
  * levels add up to one pool. A player changes a choice on a Long Rest by
- * choosing the same selection again.
+ * choosing the same selection again. With `melee`, the options are the
+ * Melee weapons only, as for the Barbarian (SRD 5.2.1 p29).
  */
-export function weaponMasterySelection(content: Content, count: number): Selection<Built2024> {
+export function weaponMasterySelection(content: Content, count: number, { melee = false }: { melee?: boolean } = {}): Selection<Built2024> {
   return selection({
     name: "Weapon Mastery",
     ref: ["weapon-mastery"],
@@ -117,9 +125,9 @@ export function weaponMasterySelection(content: Content, count: number): Selecti
     max: count,
     multiselect: true,
     tags: ["weapon-mastery"],
-    options: weaponRecords(content).map(({ reference, record }) =>
-      option<Built2024>({ key: reference, name: record.name, modifiers: [m.push("weaponMasteries", reference)] }),
-    ),
+    options: weaponRecords(content)
+      .filter(({ record }) => !melee || record.weapon?.ranged === false)
+      .map(({ reference, record }) => option<Built2024>({ key: reference, name: record.name, modifiers: [m.push("weaponMasteries", reference)] })),
   });
 }
 

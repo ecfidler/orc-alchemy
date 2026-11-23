@@ -48,6 +48,10 @@ no Node.js import, so the app can load a character: the package exports
   `entity` (the choices at that level), and `expected`, a part of
   `Built2024`. The suite compares each value as a whole.
 
+`choices.ts` has the choices that several characters make: the Ability
+Score Improvement feat (`plusTwo`, `plusOneAndOne`) and the level options
+of a class (`classLevels`). It also has no Node.js import.
+
 ## Plan
 
 The 12 class characters and the 2 multiclass characters cover the 9

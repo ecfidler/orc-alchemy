@@ -4,7 +4,7 @@ title: 2024 content format
 description: The 2024 content format - JSON packs, two layers in each record, rules as data with named hooks, the record types and their fields, the value forms and conditions, the loader, the key scheme, the source data, attribution, and monsters - with an example species, background, feat, and spell.
 tags: [rules-2024, engine, content-format, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T15:10:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T16:10:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-96
 sources:
   - id: orc-96
@@ -212,6 +212,8 @@ class is display data: one row for each class level, with
 `proficiencyBonus`, `features` (the feature keys of that level), the
 optional `columns` (for example `{ "rage-count": 2 }`), and the optional
 `spellcasting` (`cantrips`, `preparedSpells`, and `slots`, nine numbers).
+The sheet value `classColumns` holds the `columns` of the row at the class
+level, for example the Rage Damage of the Barbarian.
 
 A choice in a typed field is `{ "choose": 1, "from": [...] }`. For a tool,
 `from` can also be `{ "category": "gaming-set" }`: the equipment records of
@@ -262,7 +264,9 @@ Each effect can have a `name`. The name is the label of the effect in the
 contributions that `evaluate` returns (ORC-220). Without a name, the label
 is the name of the record or the option. The engine checks each sheet value
 name against the values of the built character: `add` needs a number, and
-`push` needs a list.
+`push` needs a list. An `add` applies after the other changes of the same
+value. Thus the Fast Movement of a class adds to the Speed that the species,
+a later choice, sets.
 
 The engine gets the declared dependencies of an effect from its reads, so a
 pack does not write them.
@@ -320,7 +324,7 @@ The real hooks:
 | `saving-throw-attack` (ORC-226) | `name`, `save`, `dcAbility`, `die`, `dice`, `damageType` | Gives an attack that forces a saving throw, for example Breath Weapon. The DC is 8 plus the modifier of `dcAbility` and the Proficiency Bonus. `dice` is a list of `[character level, number of dice]` from level 1. The attack goes in the sheet value `savingThrowAttacks`. |
 | `ability-score-increase` (ORC-227) | `abilities` (default all six), `amount` (default 1), `choose` (default 1), `max` (default 20) | Increases `choose` different abilities of the list by `amount`, to at most `max`. When `choose` is the whole list, there is no choice. An Epic Boon has `max: 30`. The Ability Score Improvement feat is a `selection` of two options that call it. |
 | `feat-choice` (ORC-227) | `name`, `categories` (default every category) | Adds a choice of one feat from the feat records of the categories in the loaded content, for example the Origin feat of Human Versatile. A homebrew feat of the category is an option too. |
-| `weapon-mastery` (ORC-228) | `count` | Adds `count` kinds of weapons to the Weapon Mastery choice of the character. The options are the weapon records in the loaded content. Every call adds to one pool, so a class calls the hook at each level that gives more kinds. |
+| `weapon-mastery` (ORC-228) | `count`, `melee` (default `false`) | Adds `count` kinds of weapons to the Weapon Mastery choice of the character. The options are the weapon records in the loaded content, or with `melee: true` only the Melee weapons, as for the Barbarian. Every call adds to one pool, so a class calls the hook at each level that gives more kinds. The pool offers the options of all its calls. |
 | `magic-initiate` (ORC-227) | `lists` (class references), `abilities` (default `int`, `wis`, `cha`), `cantrips` (default 2), `spells` (default 1) | Adds a choice of a spell list, a spellcasting ability, the cantrips and the level 1 spells of that list: the spell records whose `classes` name the class. The level 1 spell has one cast without a slot each Long Rest. The `featSpellList` of a background fixes the list. The list choice does not offer a list that the feat gives already. |
 
 The probable hooks are a judgment from the spike and from the 2014 code,

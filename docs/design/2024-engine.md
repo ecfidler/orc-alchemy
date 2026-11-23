@@ -4,7 +4,7 @@ title: 2024 engine spec
 description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
 tags: [rules-2024, engine, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T15:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T16:10:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
 sources:
   - id: orc-218
@@ -159,6 +159,8 @@ The 2024 engine has no `.orcbrew` function.
 - The Weapon Mastery choices, and the mastery property on each attack.
 - The Critical Hit range and the damage resistances.
 - Features with uses that can recover on two rests.
+- The class columns of the class table at each class level
+  (`classColumns`), for example the Rage Damage of the Barbarian.
 - The lineage, legacy or ancestry of the species (`lineage`).
 - The Hit Points of each level (`hitPointsPerLevel`) and the Hit Point
   Dice by die (`hitPointDice`).
@@ -170,11 +172,11 @@ The 2024 engine has no `.orcbrew` function.
 - The spells that a trait gives (`spells`) and the attacks that call
   for a saving throw (`savingThrowAttacks`).
 - The equipment from the equipment records: the row of the worn armor
-  (`wornArmorStats`, and `stealthDisadvantage`), the weapon rows
-  (`weapons`), the attack line of each weapon with its properties, range
-  and Versatile damage (`weaponAttacks`), the carried items
-  (`inventory`), the gold (`gold`), and the tools that the player chose
-  in a record (`chosenTools`).
+  (`wornArmorStats`, `wornArmorCategory`, and `stealthDisadvantage`),
+  the weapon rows (`weapons`), the attack line of each weapon with its
+  properties, range and Versatile damage (`weaponAttacks`), the carried
+  items (`inventory`), the gold (`gold`), and the tools that the player
+  chose in a record (`chosenTools`).
 
 # The seam to the app
 

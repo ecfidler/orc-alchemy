@@ -218,6 +218,11 @@ export interface Built2024 {
   subclasses: Readonly<Record<string, string>>;
   /** Class key to the size of its Hit Point Die. */
   hitDice: Readonly<Record<string, number>>;
+  /**
+   * Class key to the class columns of the table row at its class level, for
+   * example `{ "rage-damage-bonus": 2 }` or `{ "sneak-attack": "1d6" }`.
+   */
+  classColumns: Readonly<Record<string, Readonly<Record<string, number | string>>>>;
   totalLevel: number;
   proficiencyBonus: number;
 
@@ -263,6 +268,8 @@ export interface Built2024 {
   wornArmor: string | null;
   /** The armor table row of the worn armor. */
   wornArmorStats: ArmorStats | null;
+  /** The category of the worn armor, for a rule such as "while you aren't wearing Heavy armor" (SRD 5.2.1 p29). */
+  wornArmorCategory: ArmorStats["category"] | null;
   /** True when the worn armor gives Disadvantage on Dexterity (Stealth) checks (SRD 5.2.1 p92). */
   stealthDisadvantage: boolean;
   shield: boolean;
@@ -311,6 +318,13 @@ export interface Built2024 {
 
 /** The modifier constructors for the built 2024 character. */
 export const m = modifiersFor<Built2024>();
+
+/**
+ * The `order` of an `add` to a value that a `set` can change, for example
+ * the Speed of a species: after the modifiers of the same value that have
+ * no order, so that the `set` does not hide the `add`.
+ */
+export const ADD_ORDER = 1;
 
 export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2);
@@ -424,6 +438,7 @@ export const base: Base<Built2024> = {
   classLevels: {},
   subclasses: {},
   hitDice: {},
+  classColumns: {},
   totalLevel: m.derived(["classLevels"], (q) => Object.values(q("classLevels")).reduce((sum, level) => sum + level, 0)),
   // SRD 5.2.1 p23.
   proficiencyBonus: m.derived(["totalLevel"], (q) => 2 + Math.floor((Math.max(q("totalLevel"), 1) - 1) / 4)),
@@ -471,6 +486,7 @@ export const base: Base<Built2024> = {
 
   wornArmor: null,
   wornArmorStats: null,
+  wornArmorCategory: m.derived(["wornArmorStats"], (q) => q("wornArmorStats")?.category ?? null),
   stealthDisadvantage: m.derived(["wornArmorStats"], (q) => q("wornArmorStats")?.stealthDisadvantage === true),
   shield: false,
   armorWithoutTraining: m.derived(["wornArmorStats", "armorTraining"], (q) => {

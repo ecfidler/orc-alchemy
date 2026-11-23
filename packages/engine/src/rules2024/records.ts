@@ -24,7 +24,7 @@ import type {
   Value,
 } from "../format/schema.ts";
 import { backgroundAbilitySelection, notTakenAlready } from "./abilities.ts";
-import { type Built2024, type FeatCategory, type Feature, m, type Size, type Skill, traitKey } from "./built.ts";
+import { ADD_ORDER, type Built2024, type FeatCategory, type Feature, m, type Size, type Skill, traitKey } from "./built.ts";
 import { classLevelModifiers } from "./class-frame.ts";
 import { type Content, findRecord, recordsOf } from "./content.ts";
 import { equipmentInCategory, startingEquipmentSelection } from "./equipment.ts";
@@ -218,7 +218,8 @@ function changeModifier(context: Context, effect: Extract<Effect, { set: string 
   const get = (q: Reader<Built2024>) => value.get(fromReader(q));
   const key = target as never;
   if (word === "set") return m.set(key, get as never, options);
-  if (word === "add") return m.add(key, get as (q: Reader<Built2024>) => number, options);
+  // An `add` applies after the other changes of its value, so a later `set`, such as the Speed of a species, does not hide it.
+  if (word === "add") return m.add(key, get as (q: Reader<Built2024>) => number, { ...options, order: ADD_ORDER });
   return m.push(key, get as never, options);
 }
 
@@ -531,6 +532,19 @@ export function subclassOption(content: Content, reference: string, subclass: Su
   });
 }
 
+/** The class columns of the table row at the class level, for example the Rage Damage of a Barbarian. */
+function classColumnsModifier(reference: string, record: ClassRecord): OptionModifier<Built2024> {
+  return m.update(
+    "classColumns",
+    (current, q) => {
+      const level = q("classLevels")[reference] ?? 0;
+      const columns = record.table?.find((row) => row.level === level)?.columns;
+      return columns ? { ...current, [reference]: columns } : current;
+    },
+    { deps: ["classLevels"] },
+  );
+}
+
 /** The highest class level. */
 const MAX_LEVEL = 20;
 
@@ -586,6 +600,7 @@ export function classOption(content: Content, reference: string, record: ClassRe
         modifiers: [
           m.push("classes", reference),
           m.put("hitDice", reference, record.hitDie),
+          classColumnsModifier(reference, record),
           ...record.savingThrows.map((ability) => m.push("savingThrowProficiencies", ability)),
           ...(record.weaponProficiencies ?? []).map((category) => m.push("weaponProficiencies", category)),
           ...(record.armorTraining ?? []).map((category) => m.push("armorTraining", category)),

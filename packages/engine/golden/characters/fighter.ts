@@ -20,14 +20,10 @@
 // + the Con modifier for each level, + 1 for each level from Dwarven
 // Toughness (p84). The Con modifier is the one at that level.
 
-import type { StrictOption, StrictSelection } from "../../src/core/entity.ts";
+import type { StrictSelection } from "../../src/core/entity.ts";
 import type { Entity2024 } from "../../src/rules2024/evaluate.ts";
+import { classLevels, plusOneAndOne, plusTwo } from "../choices.ts";
 import { defineGolden } from "../define.ts";
-
-const asi = (increase: StrictOption): StrictOption => ({ key: "srd52:ability-score-improvement", selections: [{ key: "increase", option: increase }] });
-const plusTwo = (ability: string) => asi({ key: "two", selections: [{ key: "ability", option: { key: ability } }] });
-const plusOneAndOne = (first: string, second: string) =>
-  asi({ key: "one-and-one", selections: [{ key: "abilities", options: [{ key: first }, { key: second }] }] });
 
 /** The choices at each Fighter level that has one. */
 const LEVEL_CHOICES: Record<number, StrictSelection[]> = {
@@ -52,14 +48,10 @@ const MASTERIES = ["srd52:greatsword", "srd52:longbow", "srd52:flail", "srd52:da
 const masteryCount = (level: number) => (level >= 16 ? 6 : level >= 10 ? 5 : level >= 4 ? 4 : 3);
 
 function fighterAt(level: number): Entity2024 {
-  const levels = Array.from({ length: level }, (_, i): StrictOption => {
-    const n = i + 1;
-    // The Additional Fighting Style of the subclass is a choice from level 7 only.
-    const choices = (LEVEL_CHOICES[n] ?? []).map((choice) =>
-      choice.key === "subclass" && level < 7 ? { ...choice, option: { key: "srd52:champion" } } : choice,
-    );
-    return { key: `level-${n}`, ...(choices.length ? { selections: choices } : {}) };
-  });
+  // The Additional Fighting Style of the subclass is a choice from level 7 only.
+  const levels = classLevels(level, (n) =>
+    (LEVEL_CHOICES[n] ?? []).map((choice) => (choice.key === "subclass" && level < 7 ? { ...choice, option: { key: "srd52:champion" } } : choice)),
+  );
   return {
     values: { name: "Brunhild" },
     selections: [

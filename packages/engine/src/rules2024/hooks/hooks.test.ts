@@ -320,4 +320,24 @@ describe("weapon-mastery", () => {
       },
     ]);
   });
+
+  it("offers the Melee weapons only with melee, as for the Barbarian", () => {
+    const brute = loadContentPack(
+      testPackFile({
+        classes: [testClass("brute", { levels: [{ level: 1, effects: [{ hook: "weapon-mastery", args: { count: 2, melee: true } }] }] })],
+        equipment: [boomerang],
+      }),
+    );
+    if (!brute.pack) throw new Error("the test pack does not load");
+    const entity: Entity2024 = {
+      selections: [{ key: "class", options: [{ key: "test:brute", selections: [{ key: "levels", options: [{ key: "level-1" }] }] }] }],
+    };
+    const bruteTemplate = createTemplate({ packs: [SRD52, brute.pack] });
+    const pool = availableSelections(entity, buildWithContributions(entity, bruteTemplate).built, bruteTemplate).find((s) => s.key === "weapon-mastery");
+    // The 38 SRD weapons less the 10 Ranged ones (p90, p91). The Boomerang is a Ranged weapon too.
+    expect(pool).toMatchObject({ min: 2, max: 2 });
+    expect(pool?.options).toHaveLength(28);
+    expect(pool?.options.map((o) => o.key)).toContain("srd52:handaxe");
+    expect(pool?.options.map((o) => o.key)).not.toContain("srd52:dart");
+  });
 });

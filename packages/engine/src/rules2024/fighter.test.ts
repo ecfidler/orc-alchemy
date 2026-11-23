@@ -24,7 +24,7 @@ import {
   setValue,
 } from "./evaluate.ts";
 import { featSelection } from "./records.ts";
-import { type Choices, fighterCharacter as character } from "./testing.ts";
+import { type Choices, fighterCharacter as character, stepAt } from "./testing.ts";
 
 const build = (choices: Choices) => evaluate(character(choices), { rules: "2024" });
 const attack = (built: ReturnType<typeof build>["built"], weapon: string) => built.weaponAttacks.find((a) => a.weapon === weapon);
@@ -320,7 +320,6 @@ describe("levels 1 to 20 (ORC-230)", () => {
     const entity = autofill(character({ level }), { rules: "2024", seed: level });
     return evaluate(entity, { rules: "2024" });
   };
-  const steps = (level: number, table: [number, number][]) => table.filter(([from]) => level >= from).at(-1)?.[1];
   const featureNames = (built: ReturnType<typeof build>["built"], level: number) =>
     built.features.filter((f) => f.level === level && f.source.startsWith("srd52:")).map((f) => f.name);
 
@@ -332,7 +331,7 @@ describe("levels 1 to 20 (ORC-230)", () => {
       expect(built.classLevels).toEqual({ "srd52:fighter": level });
       expect(built.subclasses).toEqual(level >= 3 ? { "srd52:fighter": "srd52:champion" } : {});
       expect(built.proficiencyBonus).toBe(
-        steps(level, [
+        stepAt(level, [
           [1, 2],
           [5, 3],
           [9, 4],
@@ -341,7 +340,7 @@ describe("levels 1 to 20 (ORC-230)", () => {
         ]),
       );
       expect(built.weaponMasteries).toHaveLength(
-        steps(level, [
+        stepAt(level, [
           [1, 3],
           [4, 4],
           [10, 5],
@@ -349,27 +348,27 @@ describe("levels 1 to 20 (ORC-230)", () => {
         ]) ?? 0,
       );
       expect(feature(built, "Second Wind")?.uses?.amount).toBe(
-        steps(level, [
+        stepAt(level, [
           [1, 2],
           [4, 3],
           [10, 4],
         ]),
       );
       expect(feature(built, "Action Surge")?.uses?.amount).toBe(
-        steps(level, [
+        stepAt(level, [
           [2, 1],
           [17, 2],
         ]),
       );
       expect(feature(built, "Indomitable")?.uses?.amount).toBe(
-        steps(level, [
+        stepAt(level, [
           [9, 1],
           [13, 2],
           [17, 3],
         ]),
       );
       expect(built.attacksPerAction).toBe(
-        steps(level, [
+        stepAt(level, [
           [1, 1],
           [5, 2],
           [11, 3],
@@ -377,7 +376,7 @@ describe("levels 1 to 20 (ORC-230)", () => {
         ]),
       );
       expect(built.criticalHitMinimum).toBe(
-        steps(level, [
+        stepAt(level, [
           [1, 20],
           [3, 19],
           [15, 18],

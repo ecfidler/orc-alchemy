@@ -80,6 +80,17 @@ describe("values and conditions", () => {
     expect(built.initiative).toBe(1);
   });
 
+  it("applies an add after a set of the same value that comes later", () => {
+    // As Fast Movement of a class and the Speed of a species, which is a later choice (ORC-250).
+    const built = single(
+      feat([
+        { add: "speed", value: 10 },
+        { set: "speed", value: 35 },
+      ]),
+    )();
+    expect(built.speed).toBe(45);
+  });
+
   it("takes the highest step at or below a number", () => {
     const steps = (level: number) =>
       single(
