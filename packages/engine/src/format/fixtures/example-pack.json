@@ -132,7 +132,7 @@
               "quantity": 1
             },
             {
-              "item": "srd52:arrow",
+              "item": "srd52:arrows",
               "quantity": 20
             },
             {
@@ -144,7 +144,7 @@
               "quantity": 1
             },
             {
-              "item": "srd52:travelers-clothes",
+              "item": "srd52:clothes-travelers",
               "quantity": 1
             }
           ],
@@ -241,8 +241,8 @@
       "category": "weapon"
     },
     {
-      "key": "arrow",
-      "name": "Arrow",
+      "key": "arrows",
+      "name": "Arrows",
       "category": "ammunition"
     },
     {
@@ -256,8 +256,8 @@
       "category": "adventuring-gear"
     },
     {
-      "key": "travelers-clothes",
-      "name": "Traveler's Clothes",
+      "key": "clothes-travelers",
+      "name": "Clothes, Traveler's",
       "category": "adventuring-gear"
     },
     {

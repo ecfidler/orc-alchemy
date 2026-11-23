@@ -5,11 +5,13 @@ import { describe, expect, it } from "vitest";
 import pack from "../../content/srd52.json" with { type: "json" };
 import provenance from "../../content/srd52.provenance.json" with { type: "json" };
 import { CORRECTION_LIST } from "../../scripts/srd-corrections.ts";
+import { referenceTo, SRD_PACK } from "../format/keys.ts";
 import { loadPack } from "../format/load.ts";
 import type { EquipmentRecord, SpellRecord } from "../format/schema.ts";
 import { loadContentPack } from "../rules2024/packs.ts";
 import srd from "./fixtures/srd-5.2.1-text.json" with { type: "json" };
 
+// The expected value, so the test keeps its own copy and does not import the one of the script.
 const ATTRIBUTION =
   "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.";
 
@@ -19,7 +21,7 @@ const content = loaded.pack;
 
 const capital = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
 const nameOf = (records: { key: string; name: string }[]) => {
-  const names = new Map(records.map((r) => [`srd52:${r.key}`, r.name]));
+  const names = new Map(records.map((r) => [referenceTo(SRD_PACK, r.key), r.name]));
   return (reference: string) => names.get(reference) ?? reference;
 };
 
@@ -68,14 +70,14 @@ const SRD_TYPING_ERRORS: Record<string, Partial<(typeof srd.spells)[number]>> = 
 };
 
 // Upstream writes straight quotes and hyphens where the SRD has curly quotes and dashes.
-const plain = <T extends Record<string, unknown>>(row: T): T =>
+const straightQuotes = <T extends Record<string, unknown>>(row: T): T =>
   Object.fromEntries(Object.entries(row).map(([k, v]) => [k, typeof v === "string" ? v.replace(/’/g, "'").replace(/—/g, "-") : v])) as T;
 
 describe("the spells against the SRD 5.2.1 text", () => {
   const className = nameOf(content.classes);
   const byName = new Map(content.spells.map((s) => [s.name, s]));
 
-  const spells = srd.spells.map(plain);
+  const spells = srd.spells.map(straightQuotes);
 
   it("has each spell of the SRD, and no other", () => {
     expect([...byName.keys()].sort()).toEqual(spells.map((s) => s.name).sort());
@@ -102,7 +104,7 @@ function weaponRow(item: EquipmentRecord, propertyName: (reference: string) => s
   if (!weapon) throw new Error(`${item.key} is not a weapon`);
   const dice = (d: { count: number; die: number }) => (d.die === 1 ? `${d.count}` : `${d.count}d${d.die}`);
   const properties = weapon.properties.map((key) => {
-    const name = propertyName(`srd52:${key}`);
+    const name = propertyName(referenceTo(SRD_PACK, key));
     if (key === "thrown" || key === "ammunition") return `${name} (Range ${weapon.range?.join("/")})`;
     if (key === "versatile" && weapon.versatile) return `${name} (${dice(weapon.versatile)})`;
     return name;
@@ -158,9 +160,10 @@ describe("the weapon and armor tables against SRD 5.2.1 p91 and p92", () => {
 });
 
 describe("the corrections of the upstream data", () => {
-  const spellPage = new Map(srd.spells.map((s) => [plain(s).name, s.page]));
+  const spellPage = new Map(srd.spells.map((s) => [straightQuotes(s).name, s.page]));
   const records: Record<string, { key: string; name: string }[]> = {
     spell: content.spells,
+    class: content.classes,
     condition: content.conditions,
     species: content.species,
     equipment: content.equipment,

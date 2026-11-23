@@ -92,7 +92,9 @@ A pack has an envelope and one list for each record type.
 | `pack.modified` | `true` when the content differs from its source. CC-BY-4.0 requires that we say so. |
 
 The record types are `classes`, `subclasses`, `species`, `backgrounds`,
-`feats`, `spells`, `equipment`, and `monsters`. A list that is empty can be
+`feats`, `spells`, `equipment`, and `monsters`, and the reference data
+`abilities`, `skills`, `languages`, `conditions`, `damageTypes`,
+`weaponMasteries`, and `weaponProperties` (ORC-224). A list that is empty can be
 left out. To make a complete pack, put each record in the list of its
 type. ORC-223 adds a type when the content needs one, for example for
 Eldritch Invocations and Metamagic options.
@@ -203,9 +205,14 @@ class or the subclass gives from that class level. The `table` field of a
 class is display data: one row for each class level, with
 `proficiencyBonus`, `features` (the feature keys of that level), the
 optional `columns` (for example `{ "rage-count": 2 }`), and the optional
-`spellcasting` (`cantrips`, `preparedSpells`, and `slots`, nine numbers). A choice in a typed field
-is `{ "choose": 1, "from": [...] }`. For a tool, `from` can also be
-`{ "category": "gaming-set" }`: the equipment records of that category.
+`spellcasting` (`cantrips`, `preparedSpells`, and `slots`, nine numbers).
+
+A choice in a typed field is `{ "choose": 1, "from": [...] }`. For a tool,
+`from` can also be `{ "category": "gaming-set" }`: the equipment records of
+that category. An item of starting equipment or of a pack is
+`{ "item": ..., "quantity": 1 }`. The item is a reference, or
+`{ "chosen": "tool" }` (the tool that the character chose in that typed
+field), or `{ "category": "holy-symbol" }` (one item of that category).
 
 # 3. Rules as data, with named hooks
 
@@ -361,43 +368,44 @@ Drow" gives `elven-lineage-drow`.
 
 # 5. The source data
 
-The built-in pack starts from the 5e-bits 2024 data.[^5e-bits] Two scripts
-in `packages/engine/scripts/` make it, and both write files that we commit.
+The built-in pack starts from the 5e-bits 2024 data.[^5e-bits] Two
+scripts in `packages/engine/scripts/` made it for ORC-224.[^orc-224]
 
 | Script | Reads | Writes |
 |---|---|---|
 | `import-srd.ts` | A checkout of `5e-bits/5e-srd-api` at the pinned commit. The data is in `packages/5e-database/src/2024/en/`. | `content/srd52.json`, `content/srd52.provenance.json` (the repository, the commit, and the commit date), and `content/NOTICE-5e-bits.md`. |
 | `extract-srd-text.ts` | The SRD 5.2.1 PDF, with `pdftotext`. | `src/srd52/fixtures/srd-5.2.1-text.json`: the header of each spell, and the weapon and armor tables of p91 and p92. |
 
-To make the pack again, clone `5e-bits/5e-srd-api`, check out the commit in
-the provenance file, and run `bun run import-srd <checkout>` in
-`packages/engine`. With `--check`, the script compares a new run with the
-committed files. The output has no run date, so the same commit gives the
-same files. The script refuses a checkout at a different commit. We do not
-commit the upstream JSON or the PDF.
-
-1. The import fills the display layer and the typed fields. The rules
-   layer, `effects` and `levels`, comes from the rules tickets and the class
-   tickets.
-2. `scripts/srd-corrections.ts` corrects the upstream errors. Each
-   correction names its SRD page, and each one stops the import if the
-   upstream value is not the known error: a phrase that is not in the text,
-   a field without the wrong value, or a whole text with a different
-   SHA-256.
-3. `src/srd52/srd52.test.ts` compares the pack with the PDF text: the
+1. The import runs one time. After that, our files are the source. The
+   rules tickets and the class tickets add the rules layer (`effects` and
+   `levels`) to `srd52.json` by hand, and they correct errors there.
+2. Until a ticket edits `srd52.json`, `--check` compares a new run with
+   the committed files. The output has no run date, so the same commit
+   gives the same files.
+3. The script refuses a checkout at a different commit. We do not commit
+   the upstream JSON or the PDF.
+4. `scripts/srd-corrections.ts` corrects the upstream errors. Each
+   correction names its SRD page. A correction stops the import if upstream
+   no longer has the known error. It checks a phrase in the text, the wrong
+   value of a field, or the SHA-256 of a whole text.
+5. `src/srd52/srd52.test.ts` compares the pack with the PDF text: the
    record counts, the spell header fields, and the weapon and armor tables.
-   It also checks the page of each correction of a spell, a weapon, or an
-   armor.
-4. The import joins a line break inside a sentence, a copy error in the
+   It also checks the page of each correction of a class, a spell, a weapon,
+   or an armor. The test stays valid after the rules tickets edit the pack.
+6. The import joins a line break inside a sentence, a copy error in the
    upstream text.
-5. A spell keeps `castingTime` and `duration` without the flags. The SRD
+7. A spell keeps `castingTime` and `duration` without the flags. The SRD
    prints "1 minute or Ritual" and "Concentration, up to 1 minute". The
    record has `castingTime: "1 minute"` with `ritual: true`, and
    `duration: "up to 1 minute"` with `concentration: true`.
 
-A new upstream commit needs a change of the pin in `import-srd.ts`. Then
-`--check` names the files that change, and the content test shows each
-difference from the SRD.
+To compare a newer upstream commit with our pack:
+
+1. Change the pin in `import-srd.ts`.
+2. In `packages/engine`, run `bun run import-srd <checkout>`.
+3. Read `git diff content/`. It shows each difference, and also the rules
+   layer that the run removes.
+4. Copy the changes that you want into `srd52.json`, and discard the run.
 
 The import leaves out these upstream data:
 
@@ -505,10 +513,10 @@ has `{ "on": "short-rest", "amount": 1 }` and
         { "item": "srd52:spear", "quantity": 1 },
         { "item": { "chosen": "tool" }, "quantity": 1 },
         { "item": "srd52:shortbow", "quantity": 1 },
-        { "item": "srd52:arrow", "quantity": 20 },
+        { "item": "srd52:arrows", "quantity": 20 },
         { "item": "srd52:healers-kit", "quantity": 1 },
         { "item": "srd52:quiver", "quantity": 1 },
-        { "item": "srd52:travelers-clothes", "quantity": 1 }
+        { "item": "srd52:clothes-travelers", "quantity": 1 }
       ],
       "gold": 14
     },
@@ -586,3 +594,4 @@ its effect.
 [^spike]: The 2024 engine spike
 [^5e-bits]: The 5e-bits 2024 data as a content source
 [^rules-delta]: SRD 5.2 rules delta for a character builder
+[^orc-224]: ORC-224: Import the SRD 5.2.1 data, with attribution

@@ -2,8 +2,8 @@
 // one names its SRD 5.2.1 page. The list is docs/kb/5e-bits-2024-data.md,
 // section 3, the three equipment errors that the ORC-95 spike found, and the
 // errors that the content test and the review found: spell materials, one
-// duration, costs, weights and a name in the weapon and armor tables, and two
-// Dragonborn traits.
+// duration, costs, weights and a name in the weapon and armor tables, two
+// Dragonborn traits, and two tools of the Monk.
 //
 // Each correction checks that the upstream value is still the known error, and
 // stops the import if not: a phrase must be in the text, a field must have the
@@ -295,6 +295,15 @@ const SPECIES_TRAITS: Record<string, { page: number; after: string; traits: Trai
   },
 };
 
+/** Tools that upstream puts in a class tool choice, and the SRD does not. */
+const CLASS_TOOLS: Record<string, { page: number; what: string; drop: string[] }> = {
+  monk: {
+    page: 49,
+    what: "One kind of Artisan's Tools or one Musical Instrument: upstream also gives the Disguise Kit and the Forgery Kit, which are Other Tools.",
+    drop: [referenceTo(SRD_PACK, "disguise-kit"), referenceTo(SRD_PACK, "forgery-kit")],
+  },
+};
+
 type Equipment = Record<string, unknown> & { key: string };
 type Weapon = Record<string, unknown> & { damage: Record<string, unknown> };
 const weaponOf = (item: Equipment) => item.weapon as Weapon;
@@ -410,6 +419,13 @@ export const CORRECTIONS = {
     if (correction && upstream !== correction.from) throw new Error(`The size correction of ${key} does not apply: upstream has ${upstream}`);
     return correction?.size;
   },
+  classTools<T extends { choose: number; from: unknown }>(key: string, tools: T): T {
+    const correction = CLASS_TOOLS[key];
+    if (!correction) return tools;
+    const from = tools.from as string[];
+    if (!Array.isArray(from) || !correction.drop.every((tool) => from.includes(tool))) throw new Error(`The tool correction of ${key} does not apply`);
+    return { ...tools, from: from.filter((tool) => !correction.drop.includes(tool)) };
+  },
   speciesTraits(key: string, traits: Trait[]): Trait[] {
     const correction = SPECIES_TRAITS[key];
     if (!correction) return traits;
@@ -455,6 +471,7 @@ export const CORRECTION_LIST: Correction[] = [
     page: s.page,
     what: "Size Medium or Small, chosen when you select the species.",
   })),
+  ...Object.entries(CLASS_TOOLS).map(([record, c]) => ({ record: `class ${record}`, page: c.page, what: c.what })),
   ...Object.entries(SPECIES_TRAITS).map(([record, s]) => ({
     record: `species ${record}`,
     page: s.page,

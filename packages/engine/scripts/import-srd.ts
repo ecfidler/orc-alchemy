@@ -40,7 +40,8 @@ interface Ref {
   name: string;
   note?: string;
 }
-type Up = Record<string, any>;
+/** An upstream record: the script reads only the fields that it needs. */
+type UpstreamRecord = Record<string, any>;
 
 const ref = (key: string) => referenceTo(SRD_PACK, key);
 
@@ -85,6 +86,9 @@ function featureKeys(features: readonly { name: string; level: number }[]): stri
   });
 }
 
+/** The fields that start each record: the key and the name, and the upstream index in `source`. */
+const head = (u: UpstreamRecord, name = u.name as string) => ({ key: u.index as string, name, source: { index: u.index as string } });
+
 /** Drops the fields that are undefined, so that the JSON has no `null` for an absent value. */
 function compact<T extends Record<string, unknown>>(record: T): T {
   return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined)) as T;
@@ -101,15 +105,15 @@ const levelOf = (levelIndex: string) => Number(levelIndex.split("-").at(-1));
 
 class Upstream {
   constructor(readonly dir: string) {}
-  private cache = new Map<string, Up[]>();
-  read(name: string): Up[] {
+  private cache = new Map<string, UpstreamRecord[]>();
+  read(name: string): UpstreamRecord[] {
     const cached = this.cache.get(name);
     if (cached) return cached;
-    const data = JSON.parse(readFileSync(join(this.dir, `5e-SRD-${name}.json`), "utf8")) as Up[];
+    const data = JSON.parse(readFileSync(join(this.dir, `5e-SRD-${name}.json`), "utf8")) as UpstreamRecord[];
     this.cache.set(name, data);
     return data;
   }
-  byIndex(name: string): Map<string, Up> {
+  byIndex(name: string): Map<string, UpstreamRecord> {
     return new Map(this.read(name).map((r) => [r.index, r]));
   }
 }
@@ -139,16 +143,16 @@ export function categoryKey(upstream: string): string {
 }
 
 /** The upstream category indexes of an item, for example "martial-weapons". */
-const categoriesOf = (item: Up) => new Set((item.equipment_categories as Ref[]).map((c) => c.index));
+const categoriesOf = (item: UpstreamRecord) => new Set((item.equipment_categories as Ref[]).map((c) => c.index));
 
-function equipmentCategory(item: Up): string {
+function equipmentCategory(item: UpstreamRecord): string {
   const indexes = categoriesOf(item);
   const found = CATEGORY_ORDER.find(([from]) => indexes.has(from));
   if (!found) throw new Error(`No category for ${item.index}`);
   return found[1];
 }
 
-function weapon(item: Up) {
+function weapon(item: UpstreamRecord) {
   const categories = categoriesOf(item);
   const properties = (item.properties as Ref[]).map((p) => p.index);
   const range = properties.includes("thrown") ? item.throw_range : properties.includes("ammunition") ? item.range : undefined;
@@ -163,7 +167,7 @@ function weapon(item: Up) {
   });
 }
 
-function armor(item: Up) {
+function armor(item: UpstreamRecord) {
   const categories = categoriesOf(item);
   const category = categories.has("shields") ? "shield" : categories.has("heavy-armor") ? "heavy" : categories.has("medium-armor") ? "medium" : "light";
   const ac = item.armor_class;
@@ -177,10 +181,10 @@ function armor(item: Up) {
 }
 
 /** The prose of a tool: its ability, what it can do, and what it can craft (SRD 5.2.1 p92). */
-function toolText(item: Up, abilities: Map<string, Up>): string | undefined {
+function toolText(item: UpstreamRecord, abilities: Map<string, UpstreamRecord>): string | undefined {
   const lines: string[] = [];
   if (item.ability) lines.push(`Ability: ${abilities.get(item.ability.index)?.full_name}`);
-  if (item.utilize) lines.push(`Utilize: ${(item.utilize as Up[]).map((u) => (typeof u === "string" ? u : u.name)).join(", ")}`);
+  if (item.utilize) lines.push(`Utilize: ${(item.utilize as UpstreamRecord[]).map((u) => (typeof u === "string" ? u : u.name)).join(", ")}`);
   if (item.craft) lines.push(`Craft: ${(item.craft as Ref[]).map((c) => c.name).join(", ")}`);
   if (item.description) lines.push(text(item.description));
   return lines.length ? lines.join("\n") : undefined;
@@ -190,9 +194,7 @@ function equipmentRecords(up: Upstream) {
   const abilities = up.byIndex("Ability-Scores");
   return up.read("Equipment").map((item) =>
     compact({
-      key: item.index as string,
-      name: item.name as string,
-      source: { index: item.index as string },
+      ...head(item),
       description: toolText(item, abilities),
       category: equipmentCategory(item),
       cost: gp(item.cost),
@@ -213,17 +215,17 @@ type Item = { item: string | { chosen: string } | { category: string }; quantity
 const TOOL_CATEGORIES = new Set(["artisans-tools", "gaming-sets", "musical-instruments"]);
 
 /** The equipment categories of a choice, through the choices nested in it. */
-function toolCategories(choice: Up): string[] {
+function toolCategories(choice: UpstreamRecord): string[] {
   if (choice.from.option_set_type === "equipment_category") return [choice.from.equipment_category.index];
-  return (choice.from.options as Up[]).flatMap((o) => {
+  return (choice.from.options as UpstreamRecord[]).flatMap((o) => {
     if (o.option_type !== "choice") throw new Error(`Unknown equipment choice: ${choice.desc}`);
     return toolCategories(o.choice);
   });
 }
 
 /** One upstream equipment option as items and gold. `chosen` is the key of the typed field whose choice an item takes. */
-function equipmentOption(option: Up, chosen: string): { items?: Item[]; gold?: number } {
-  const parts: Up[] = option.option_type === "multiple" ? option.items : [option];
+function equipmentOption(option: UpstreamRecord, chosen: string): { items?: Item[]; gold?: number } {
+  const parts: UpstreamRecord[] = option.option_type === "multiple" ? option.items : [option];
   const items: Item[] = [];
   let gold = 0;
   for (const part of parts) {
@@ -242,10 +244,10 @@ function equipmentOption(option: Up, chosen: string): { items?: Item[]; gold?: n
   return compact({ items: items.length ? items : undefined, gold: gold || undefined });
 }
 
-function startingEquipment(options: Up[] | undefined, chosen: string) {
+function startingEquipment(options: UpstreamRecord[] | undefined, chosen: string) {
   if (!options?.length) return undefined;
   if (options.length !== 1 || options[0].choose !== 1) throw new Error("A starting equipment list that is not one choice");
-  return (options[0].from.options as Up[]).map((option) => equipmentOption(option, chosen));
+  return (options[0].from.options as UpstreamRecord[]).map((option) => equipmentOption(option, chosen));
 }
 
 // Proficiencies.
@@ -264,21 +266,24 @@ const ARMOR_TRAINING: Record<string, string[]> = {
   shields: ["shield"],
 };
 
+/** The upstream items of one equipment category of the format. */
+const inCategory = (equipment: Map<string, UpstreamRecord>, category: string) => [...equipment.values()].filter((e) => equipmentCategory(e) === category);
+
 /** The equipment record that a tool proficiency names. */
-function toolReference(proficiency: string, proficiencies: Map<string, Up>): string {
+function toolReference(proficiency: string, proficiencies: Map<string, UpstreamRecord>): string {
   const target = proficiencies.get(proficiency)?.reference as Ref & { url: string };
   if (!target || !target.url.includes("/equipment/")) throw new Error(`Not a tool: ${proficiency}`);
   return ref(target.index);
 }
 
 /** A choice of tools: from the equipment of one category when the options are that category, else a list. */
-function toolChoice(choice: Up, proficiencies: Map<string, Up>, equipment: Map<string, Up>) {
-  const options = choice.from.options as Up[];
+function toolChoice(choice: UpstreamRecord, proficiencies: Map<string, UpstreamRecord>, equipment: Map<string, UpstreamRecord>) {
+  const options = choice.from.options as UpstreamRecord[];
   if (options.every((o) => o.option_type === "reference")) {
     const refs = options.map((o) => toolReference(o.item.index, proficiencies));
-    const categories = new Set(refs.map((r) => equipmentCategory(equipment.get(parseReference(r).key) as Up)));
+    const categories = new Set(refs.map((r) => equipmentCategory(equipment.get(parseReference(r).key) as UpstreamRecord)));
     const [only] = categories;
-    const all = only && [...equipment.values()].filter((e) => equipmentCategory(e) === only).length === refs.length;
+    const all = only && inCategory(equipment, only).length === refs.length;
     return { choose: choice.choose as number, from: categories.size === 1 && all ? { category: only } : refs };
   }
   // The Monk: one kind of Artisan's Tools or one Musical Instrument. Two categories, so the list of both.
@@ -286,9 +291,9 @@ function toolChoice(choice: Up, proficiencies: Map<string, Up>, equipment: Map<s
     if (o.option_type !== "choice") throw new Error("Unknown tool choice");
     if (o.choice.from.option_set_type === "equipment_category") {
       const category = categoryKey(o.choice.from.equipment_category.index);
-      return [...equipment.values()].filter((e) => equipmentCategory(e) === category).map((e) => ref(e.index));
+      return inCategory(equipment, category).map((e) => ref(e.index));
     }
-    return (o.choice.from.options as Up[]).map((inner) => toolReference(inner.item.index, proficiencies));
+    return (o.choice.from.options as UpstreamRecord[]).map((inner) => toolReference(inner.item.index, proficiencies));
   });
   return { choose: choice.choose as number, from: refs };
 }
@@ -296,7 +301,20 @@ function toolChoice(choice: Up, proficiencies: Map<string, Up>, equipment: Map<s
 // Records.
 
 /** An upstream feature with its level as a number. */
-type Feature = Up & { index: string; name: string; level: number };
+type Feature = UpstreamRecord & { index: string; name: string; level: number };
+
+/**
+ * The features of one class or subclass in level order, each with its upstream index and its record form.
+ * The level is a number upstream, or a level index such as "barbarian-3".
+ */
+function ownFeatures(upstream: UpstreamRecord[], corrections: Corrections) {
+  const own = upstream.map((f) => ({ ...f, level: f.level.index ? levelOf(f.level.index) : f.level }) as Feature).sort((a, b) => a.level - b.level);
+  const keys = featureKeys(own);
+  return own.map((f, i) => ({
+    index: f.index,
+    feature: { key: keys[i], name: f.name, text: corrections.featureText(f.index, text(f.description)), level: f.level },
+  }));
+}
 
 function classRecords(up: Upstream, corrections: Corrections) {
   const proficiencies = up.byIndex("Proficiencies");
@@ -304,15 +322,16 @@ function classRecords(up: Upstream, corrections: Corrections) {
   const features = up.read("Features");
   const levels = up.read("Levels");
   return up.read("Classes").map((c) => {
-    const own = features
-      .filter((f) => f.class.index === c.index && !f.subclass)
-      .map((f) => ({ ...f, level: f.level.index ? levelOf(f.level.index) : f.level }) as Feature);
-    own.sort((a, b) => a.level - b.level);
-    const keys = featureKeys(own);
-    const keyByIndex = new Map(own.map((f, i) => [f.index as string, keys[i]]));
+    const own = ownFeatures(
+      features.filter((f) => f.class.index === c.index && !f.subclass),
+      corrections,
+    );
+    const keyByIndex = new Map(own.map((f) => [f.index, f.feature.key]));
     const profs = (c.proficiencies as Ref[]).map((p) => p.index).filter((p) => !p.startsWith("saving-throw-"));
-    const skillChoice = (c.proficiency_choices as Up[]).find((pc) => (pc.from.options as Up[]).every((o) => o.item?.index?.startsWith("skill-")));
-    const toolChoices = (c.proficiency_choices as Up[]).filter((pc) => pc !== skillChoice);
+    const skillChoice = (c.proficiency_choices as UpstreamRecord[]).find((pc) =>
+      (pc.from.options as UpstreamRecord[]).every((o) => o.item?.index?.startsWith("skill-")),
+    );
+    const toolChoices = (c.proficiency_choices as UpstreamRecord[]).filter((pc) => pc !== skillChoice);
     if (!skillChoice || toolChoices.length > 1) throw new Error(`Unknown proficiency choices of ${c.index}`);
     const tools = profs.filter((p) => !WEAPON_TRAINING[p] && !ARMOR_TRAINING[p] && proficiencies.get(p)?.type !== "Weapons");
     const rows = levels
@@ -327,7 +346,7 @@ function classRecords(up: Upstream, corrections: Corrections) {
             ? Object.fromEntries(
                 Object.entries(l.class_specific as Record<string, unknown>).map(([k, v]) => [
                   kebab(k),
-                  typeof v === "object" && v ? `${(v as Up).dice_count}d${(v as Up).dice_value}` : (v as number),
+                  typeof v === "object" && v ? `${(v as UpstreamRecord).dice_count}d${(v as UpstreamRecord).dice_value}` : (v as number),
                 ]),
               )
             : undefined,
@@ -341,9 +360,7 @@ function classRecords(up: Upstream, corrections: Corrections) {
         }),
       );
     return compact({
-      key: c.index as string,
-      name: c.name as string,
-      source: { index: c.index as string },
+      ...head(c),
       hitDie: c.hit_die as 6 | 8 | 10 | 12,
       primaryAbility: c.primary_ability.ability_scores
         ? (c.primary_ability.ability_scores as Ref[]).map((a) => a.index)
@@ -352,23 +369,18 @@ function classRecords(up: Upstream, corrections: Corrections) {
             from: (c.primary_ability.ability_score_options.from.options as { item: Ref }[]).map((o) => o.item.index),
           },
       savingThrows: (c.saving_throws as Ref[]).map((a) => a.index) as [string, string],
-      skills: { choose: skillChoice.choose as number, from: (skillChoice.from.options as Up[]).map((o) => skillKey(o.item.index)) },
+      skills: { choose: skillChoice.choose as number, from: (skillChoice.from.options as UpstreamRecord[]).map((o) => skillKey(o.item.index)) },
       weaponProficiencies: profs.flatMap(
         (p) => WEAPON_TRAINING[p] ?? (proficiencies.get(p)?.type === "Weapons" ? [(proficiencies.get(p)?.reference as Ref).index] : []),
       ),
       armorTraining: profs.flatMap((p) => ARMOR_TRAINING[p] ?? []),
       tools: toolChoices.length
-        ? toolChoice(toolChoices[0], proficiencies, equipment)
+        ? corrections.classTools(c.index, toolChoice(toolChoices[0], proficiencies, equipment))
         : tools.length
           ? tools.map((t) => toolReference(t, proficiencies))
           : undefined,
       startingEquipment: startingEquipment(c.starting_equipment_options, "tools"),
-      features: own.map((f, i) => ({
-        key: keys[i],
-        name: f.name as string,
-        text: corrections.featureText(f.index, text(f.description)),
-        level: f.level as number,
-      })),
+      features: own.map((f) => f.feature),
       table: rows,
     });
   });
@@ -377,17 +389,16 @@ function classRecords(up: Upstream, corrections: Corrections) {
 function subclassRecords(up: Upstream, corrections: Corrections) {
   const features = up.read("Features");
   return up.read("Subclasses").map((s) => {
-    const own = features.filter((f) => f.subclass?.index === s.index).map((f) => ({ ...f, level: levelOf(f.level.index) }) as Feature);
-    own.sort((a, b) => a.level - b.level);
-    const keys = featureKeys(own);
+    const own = ownFeatures(
+      features.filter((f) => f.subclass?.index === s.index),
+      corrections,
+    );
     return compact({
-      key: s.index as string,
-      name: s.name as string,
-      source: { index: s.index as string },
+      ...head(s),
       summary: s.summary as string,
       description: text(s.description),
       class: ref(s.class.index),
-      features: own.map((f, i) => ({ key: keys[i], name: f.name as string, text: corrections.featureText(f.index, text(f.description)), level: f.level })),
+      features: own.map((f) => f.feature),
     });
   });
 }
@@ -395,12 +406,10 @@ function subclassRecords(up: Upstream, corrections: Corrections) {
 function speciesRecords(up: Upstream, corrections: Corrections) {
   const traits = up.byIndex("Traits");
   return up.read("Species").map((s) => {
-    const sizes = s.size_options ? (s.size_options.from.options as Up[]).map((o) => String(o.size).toLowerCase()) : undefined;
+    const sizes = s.size_options ? (s.size_options.from.options as UpstreamRecord[]).map((o) => String(o.size).toLowerCase()) : undefined;
     const size = corrections.speciesSize(s.index, String(s.size)) ?? (sizes ? { choose: 1, from: sizes } : String(s.size).toLowerCase());
     return {
-      key: s.index as string,
-      name: s.name as string,
-      source: { index: s.index as string },
+      ...head(s),
       traits: corrections.speciesTraits(
         s.index,
         (s.traits as Ref[]).map((t) => {
@@ -423,12 +432,10 @@ function backgroundRecords(up: Upstream) {
     const profs = (b.proficiencies as Ref[]).map((p) => p.index);
     const skills = profs.filter((p) => p.startsWith("skill-")).map(skillKey);
     const tools = profs.filter((p) => !p.startsWith("skill-"));
-    const choices = (b.proficiency_choices ?? []) as Up[];
+    const choices = (b.proficiency_choices ?? []) as UpstreamRecord[];
     if (skills.length !== 2 || tools.length + choices.length !== 1) throw new Error(`Unknown proficiencies of ${b.index}`);
     return compact({
-      key: b.index as string,
-      name: b.name as string,
-      source: { index: b.index as string },
+      ...head(b),
       abilityScores: (b.ability_scores as Ref[]).map((a) => a.index) as [string, string, string],
       feat: ref(b.feat.index),
       // "Magic Initiate (Cleric)": upstream gives the spell list as a note.
@@ -443,7 +450,7 @@ function backgroundRecords(up: Upstream) {
 const BENEFIT = /^\*\*(.+?)\.\*\*\s*(.*)$/;
 
 /** The prose of a feat: the lines before the first benefit, and each benefit as a trait (SRD 5.2.1 p87). */
-function featProse(feat: Up) {
+function featProse(feat: UpstreamRecord) {
   let description: string[] = [];
   const traits: { key: string; name: string; text: string }[] = [];
   for (const line of text(feat.description).split("\n")) {
@@ -457,13 +464,13 @@ function featProse(feat: Up) {
 }
 
 /** The prerequisites of a feat. A feature prerequisite passes when the character has a feature of that name from any class. */
-function featPrerequisites(feat: Up, classFeatures: { reference: string; key: string; name: string }[]) {
+function featPrerequisites(feat: UpstreamRecord, classFeatures: { reference: string; key: string; name: string }[]) {
   const list: { label: string; test: unknown }[] = [];
-  const p = feat.prerequisites as Up | undefined;
+  const p = feat.prerequisites as UpstreamRecord | undefined;
   if (p?.minimum_level) list.push({ label: `Level ${p.minimum_level}+`, test: { atLeast: [{ read: "totalLevel" }, p.minimum_level] } });
   if (feat.prerequisite_options) {
     const choice = feat.prerequisite_options;
-    const tests = (choice.from.options as Up[]).map((o) => {
+    const tests = (choice.from.options as UpstreamRecord[]).map((o) => {
       if (o.option_type !== "score_prerequisite") throw new Error(`Unknown prerequisite of ${feat.index}`);
       return { atLeast: [{ read: "abilities", entry: String(o.ability_score.index).trim() }, o.minimum_score] };
     });
@@ -481,9 +488,7 @@ function featRecords(up: Upstream, classes: ReturnType<typeof classRecords>) {
   const classFeatures = classes.flatMap((c) => c.features.map((f) => ({ reference: ref(c.key), key: f.key, name: f.name })));
   return up.read("Feats").map((f) =>
     compact({
-      key: f.index as string,
-      name: f.name as string,
-      source: { index: f.index as string },
+      ...head(f),
       ...featProse(f),
       category: f.type as string,
       repeatable: Boolean(f.repeatable),
@@ -502,9 +507,7 @@ function spellRecords(up: Upstream, corrections: Corrections) {
       concentration: Boolean(s.concentration),
     });
     return compact({
-      key: s.index as string,
-      name: s.name as string,
-      source: { index: s.index as string },
+      ...head(s),
       description: corrections.spellText(s.index, text(s.description)),
       level: s.level as number,
       school: s.school.index as string,
@@ -525,20 +528,11 @@ function spellRecords(up: Upstream, corrections: Corrections) {
 }
 
 function referenceRecords(up: Upstream, corrections: Corrections) {
-  const plain = (file: string) =>
-    up
-      .read(file)
-      .map((r) =>
-        compact({ key: r.index as string, name: r.name as string, source: { index: r.index as string }, description: text(r.description) || undefined }),
-      );
+  const plain = (file: string) => up.read(file).map((r) => compact({ ...head(r), description: text(r.description) || undefined }));
   return {
-    abilities: up.read("Ability-Scores").map((a) => ({ key: a.index, name: a.full_name, source: { index: a.index }, description: text(a.description) })),
-    skills: up
-      .read("Skills")
-      .map((s) => ({ key: s.index, name: s.name, source: { index: s.index }, description: text(s.description), ability: s.ability_score.index })),
-    languages: up
-      .read("Languages")
-      .map((l) => compact({ key: l.index, name: l.name, source: { index: l.index }, description: text(l.note) || undefined, rare: Boolean(l.is_rare) })),
+    abilities: up.read("Ability-Scores").map((a) => ({ ...head(a, a.full_name), description: text(a.description) })),
+    skills: up.read("Skills").map((s) => ({ ...head(s), description: text(s.description), ability: s.ability_score.index })),
+    languages: up.read("Languages").map((l) => compact({ ...head(l), description: text(l.note) || undefined, rare: Boolean(l.is_rare) })),
     conditions: plain("Conditions").map((c) => ({ ...c, description: corrections.conditionText(c.key, c.description ?? "") })),
     damageTypes: plain("Damage-Types"),
     weaponMasteries: plain("Weapon-Mastery-Properties"),
