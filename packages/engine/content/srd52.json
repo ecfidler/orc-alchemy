@@ -19929,7 +19929,7 @@
       "source": {
         "index": "druidic"
       },
-      "rare": false
+      "rare": true
     },
     {
       "key": "infernal",

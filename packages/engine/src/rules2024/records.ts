@@ -3,9 +3,7 @@
 // The engine gets the declared dependencies of each effect from its reads,
 // so a pack does not write them.
 //
-// This file converts species, backgrounds, feats and subclasses. The class
-// frame (levels, Hit Points, proficiencies) comes with the base rules
-// (ORC-225) and the Fighter (ORC-230).
+// This file converts classes, subclasses, species, backgrounds and feats.
 
 import type { Key, Modifier, OptionModifier, Reader } from "../core/modifiers.ts";
 import { type Option, type OptionParts, option, type Prereq, selection } from "../core/template.ts";
@@ -13,6 +11,7 @@ import { parseReference, referenceTo } from "../format/keys.ts";
 import type { IssuePath } from "../format/load.ts";
 import type {
   BackgroundRecord,
+  ClassRecord,
   Condition,
   Effect,
   FeatRecord,
@@ -28,6 +27,7 @@ import type {
 } from "../format/schema.ts";
 import { backgroundAbilitySelection, notTakenAlready } from "./abilities.ts";
 import { type Built2024, type Feature, m, type Size, type Skill } from "./built.ts";
+import { classLevelModifiers } from "./class-frame.ts";
 import { HOOKS, type HookRegistry } from "./hooks/index.ts";
 import { isSheetValue, SHEET_VALUES, type SheetValueKind, type SheetValueName } from "./sheet-values.ts";
 
@@ -379,6 +379,31 @@ export function speciesOption(content: Content, reference: string, species: Spec
   });
 }
 
+/** The tool proficiencies of a typed field: a tool, the tools of a list, or a choice. */
+function toolParts(content: Content, name: string, tool: ClassRecord["tools"] | BackgroundRecord["tool"]): Parts {
+  if (tool === undefined) return EMPTY;
+  if (typeof tool === "string" || Array.isArray(tool)) {
+    return { modifiers: [tool].flat().map((ref) => m.push("toolProficiencies", ref)), selections: [] };
+  }
+  const from = tool.from;
+  const tools = Array.isArray(from)
+    ? from.map((ref) => ({ reference: ref, name: findRecord(content, "equipment", ref)?.name ?? ref }))
+    : recordsOf(content, "equipment")
+        .filter(({ record }) => record.category === from.category)
+        .map(({ reference, record }) => ({ reference, name: record.name }));
+  return {
+    modifiers: [],
+    selections: [
+      selection({
+        name,
+        min: tool.choose,
+        max: tool.choose,
+        options: tools.map(({ reference, name }) => option<Built2024>({ key: reference, name, modifiers: [m.push("toolProficiencies", reference)] })),
+      }),
+    ],
+  };
+}
+
 /**
  * A background as an option of the background selection. The engine makes
  * its rules from the typed fields: the ability score choice, the Origin
@@ -387,26 +412,6 @@ export function speciesOption(content: Content, reference: string, species: Spec
 export function backgroundOption(content: Content, reference: string, background: BackgroundRecord): Option<Built2024> {
   const feat = findRecord(content, "feats", background.feat);
   if (!feat) throw new RecordError(reference, ["feat"], `no feat "${background.feat}" is loaded`);
-  const tool = background.tool;
-  const toolParts: Parts =
-    typeof tool === "string"
-      ? { modifiers: [m.push("toolProficiencies", tool)], selections: [] }
-      : {
-          modifiers: [],
-          selections: [
-            selection({
-              name: "Tool",
-              min: tool.choose,
-              max: tool.choose,
-              options: (Array.isArray(tool.from)
-                ? tool.from.map((ref) => ({ reference: ref, name: findRecord(content, "equipment", ref)?.name ?? ref }))
-                : recordsOf(content, "equipment")
-                    .filter(({ record }) => record.category === (tool.from as { category: string }).category)
-                    .map(({ reference: ref, record }) => ({ reference: ref, name: record.name }))
-              ).map(({ reference: ref, name }) => option<Built2024>({ key: ref, name, modifiers: [m.push("toolProficiencies", ref)] })),
-            }),
-          ],
-        };
   return option({
     key: reference,
     name: background.name,
@@ -415,7 +420,7 @@ export function backgroundOption(content: Content, reference: string, background
         modifiers: [m.set("background", reference), ...background.skills.map((skill) => m.push("skillProficiencies", skill as Skill))],
         selections: [backgroundAbilitySelection(background.abilityScores, background.name)],
       },
-      toolParts,
+      toolParts(content, "Tool", background.tool),
       featParts(content, background.feat, feat),
       recordParts(content, reference, background),
     ),
@@ -452,5 +457,82 @@ export function subclassOption(content: Content, reference: string, subclass: Su
     name: subclass.name,
     modifiers: [m.update("subclasses", (current) => ({ ...current, [classRef]: reference })), ...own.modifiers, ...levelParts.flat(), ...features],
     selections: own.selections,
+  });
+}
+
+/** The highest class level. */
+const MAX_LEVEL = 20;
+
+/**
+ * A class as an option of the class selection. The engine makes the class
+ * frame from the typed fields: the Hit Point Die, the saving throws, the
+ * skill choice, the weapon, armor and tool training, and one sequential
+ * `levels` selection. Each level option gives the class level, its Hit
+ * Points, the features of that level, and the effects of `levels` at that
+ * level. Level 3 opens the subclass choice (SRD 5.2.1 p19). The skill name
+ * comes from the skill records. The saves and the full training are the
+ * rules of a first class; ORC-234 adds the rules of a second class (SRD
+ * 5.2.1 p24).
+ */
+export function classOption(content: Content, reference: string, record: ClassRecord): Option<Built2024> {
+  const context: Context = { record: reference, content, traits: record.features ?? [], uses: new Map(), via: [] };
+  const own = effectParts(context, record.effects ?? [], ["effects"]);
+  // The effects of each level first, so that `uses` effects reach the features of their traits.
+  const levelEffects = (record.levels ?? []).map((entry, i) => ({ level: entry.level, parts: effectParts(context, entry.effects, ["levels", i, "effects"]) }));
+  const features = traitFeatures(context, record.features ?? []).map((modifier, i) => ({ level: record.features?.[i].level ?? 1, modifier }));
+  const subclasses = recordsOf(content, "subclasses").filter(({ record: subclass }) => subclass.class === reference);
+  const skillName = (key: string) => recordsOf(content, "skills").find(({ record: skill }) => skill.key === key)?.record.name ?? key;
+
+  const levels = Array.from({ length: MAX_LEVEL }, (_, i) => {
+    const level = i + 1;
+    const parts = merge(EMPTY, ...levelEffects.filter((entry) => entry.level === level).map((entry) => entry.parts));
+    const subclassChoice =
+      level === 3 && subclasses.length > 0
+        ? [
+            selection<Built2024>({
+              name: `${record.name} Subclass`,
+              key: "subclass",
+              options: subclasses.map(({ reference: ref, record: subclass }) => subclassOption(content, ref, subclass)),
+            }),
+          ]
+        : [];
+    return option<Built2024>({
+      name: `Level ${level}`,
+      modifiers: [
+        ...classLevelModifiers(reference, record.hitDie, level),
+        ...features.filter((feature) => feature.level === level).map((feature) => feature.modifier),
+        ...parts.modifiers,
+      ],
+      selections: [...parts.selections, ...subclassChoice],
+    });
+  });
+
+  return option({
+    key: reference,
+    name: record.name,
+    ...merge(
+      {
+        modifiers: [
+          m.push("classes", reference),
+          m.put("hitDice", reference, record.hitDie),
+          ...record.savingThrows.map((ability) => m.push("savingThrowProficiencies", ability)),
+          ...(record.weaponProficiencies ?? []).map((category) => m.push("weaponProficiencies", category)),
+          ...(record.armorTraining ?? []).map((category) => m.push("armorTraining", category)),
+        ],
+        selections: [
+          selection({
+            name: "Skill Proficiencies",
+            min: record.skills.choose,
+            max: record.skills.choose,
+            options: record.skills.from.map((skill) =>
+              option<Built2024>({ key: skill, name: skillName(skill), modifiers: [m.push("skillProficiencies", skill as Skill)] }),
+            ),
+          }),
+        ],
+      },
+      toolParts(content, "Tool Proficiencies", record.tools),
+      own,
+      { modifiers: [], selections: [selection({ name: "Levels", min: 1, max: null, multiselect: true, sequential: true, options: levels })] },
+    ),
   });
 }

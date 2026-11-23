@@ -29,13 +29,18 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
   reference check, and `keys.ts` is the key scheme. The spec is
   [`docs/design/2024-content-format.md`](../../docs/design/2024-content-format.md).
 - `rules2024/` is the 2024 rules. `built.ts` is the built character
-  (`Built2024`) and its base, `content/` holds the rules content,
-  `template.ts` is the template, and `evaluate.ts` is the facade:
-  `evaluate`, the mutations and `autofill`. `records.ts` converts records of
-  the content format to core options, `hooks/` is the hook registry, and
+  (`Built2024`), its base, and the rules that every character has
+  (`RULES`). `content/` holds the rules content of the spike,
+  `template.ts` makes the template from the content, `built-in.ts` loads
+  the pack `srd52`, and `evaluate.ts` is the facade: `evaluate`, the
+  mutations and `autofill`. `records.ts` converts records of the content
+  format to core options, `class-frame.ts` has the class levels and their
+  Hit Points, `hooks/` is the hook registry with a file for each hook, and
   `packs.ts` loads a pack for the engine: it checks the hooks, then converts
   each record and drops the rules that do not convert. `fighter.test.ts`
-  has the hand-checked values of the Fighter from the spike (ORC-95).
+  has the hand-checked values of the Fighter from the spike (ORC-95), and
+  `base-rules.test.ts` has the rules of every character on test classes
+  (ORC-225).
 - `srd52/srd52.test.ts` compares the built-in pack with the text of the SRD
   5.2.1 PDF, in `srd52/fixtures/`.
 

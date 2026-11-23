@@ -167,6 +167,7 @@ describe("the corrections of the upstream data", () => {
     condition: content.conditions,
     species: content.species,
     equipment: content.equipment,
+    language: content.languages,
     feature: content.classes.flatMap((c) => c.features ?? []),
   };
 

@@ -186,7 +186,7 @@ describe("values and conditions", () => {
   it("applies an effect only when its condition passes", () => {
     const when = (condition: Effect extends infer E ? (E extends { when?: infer C } ? C : never) : never) =>
       single(feat([{ add: "speed", value: 10, when: condition }]))().speed;
-    expect(when({ has: "languages", item: "common" })).toBe(40);
+    expect(when({ has: "languages", item: "srd52:common" })).toBe(40);
     expect(when({ has: "wornArmor" })).toBe(30);
     expect(when({ atLeast: [{ read: "proficiencyBonus" }, 2] })).toBe(40);
     expect(when({ equals: [{ read: "size" }, "small"] })).toBe(30);
@@ -201,7 +201,7 @@ describe("values and conditions", () => {
     const problems = (str: number) => {
       const entity = {
         selections: [
-          { key: "ability-scores", option: { key: "scores", value: { str, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } } },
+          { key: "ability-scores", option: { key: "manual", value: { str, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } } },
           { key: "thing", option: { key: "hb:thing" } },
         ],
       };

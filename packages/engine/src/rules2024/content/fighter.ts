@@ -4,13 +4,12 @@
 import type { OptionModifier, Reader } from "../../core/modifiers.ts";
 import { type Option, option, type Selection, selection } from "../../core/template.ts";
 import { type Built2024, feature, m, type Skill, type Uses } from "../built.ts";
+import { classLevelModifiers } from "../class-frame.ts";
 import { featSelection } from "./feats.ts";
 import { WEAPONS } from "./weapons.ts";
 
 const CLASS = "fighter";
 const HIT_DIE = 10;
-/** The fixed Hit Points for each level after the first (SRD 5.2.1 p23). */
-const FIXED_HIT_POINTS = 6;
 
 const SKILL_NAMES: Partial<Record<Skill, string>> = {
   acrobatics: "Acrobatics",
@@ -68,18 +67,7 @@ interface LevelConfig {
 }
 
 function level(n: number, { modifiers = [], selections = [] }: LevelConfig): Option<Built2024> {
-  return option({
-    name: `Level ${n}`,
-    modifiers: [
-      m.update("classLevels", (levels) => ({ ...levels, [CLASS]: (levels[CLASS] ?? 0) + 1 })),
-      // Level 1 gives the full die. A later level gives the fixed number, or the number rolled, which is the value of the option.
-      n === 1
-        ? m.add("hitPointsFromLevels", HIT_DIE)
-        : m.deferred((value) => (typeof value === "number" ? m.add("hitPointsFromLevels", value) : []), FIXED_HIT_POINTS),
-      ...modifiers,
-    ],
-    selections,
-  });
+  return option({ name: `Level ${n}`, modifiers: [...classLevelModifiers(CLASS, HIT_DIE, n), ...modifiers], selections });
 }
 
 const LEVELS: Option<Built2024>[] = [

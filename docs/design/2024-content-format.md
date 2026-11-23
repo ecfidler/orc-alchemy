@@ -292,15 +292,20 @@ by name:
 { "hook": "spell-slots", "args": { "progression": "half" } }
 ```
 
-The engine has no hook yet (ORC-223). The registry is in
-`packages/engine/src/rules2024/hooks/`. Each hook has a name, a schema for
-its arguments, and a test. The ticket that adds a hook moves it from this
-list of probable hooks to a list of real hooks here. The probable hooks are
-a judgment from the spike and from the 2014 code, not a measured list. The
-Armor Class hook comes with ORC-225.
+The registry is in `packages/engine/src/rules2024/hooks/`. Each hook has a
+name, a schema for its arguments, and a test. The ticket that adds a hook
+moves it from the list of probable hooks to the list of real hooks.
+
+The real hooks:
+
+| Hook | Arguments | What it does |
+|---|---|---|
+| `armor-class` (ORC-225) | `name`, `base`, `abilities` (default none), `shield` (default `true`) | Adds a way to calculate the base Armor Class without armor: `base` plus the modifiers of `abilities`, for example Unarmored Defense. With `shield: false`, the formula does not apply with a Shield. A character uses one base calculation (SRD 5.2.1 p177): the worn armor, or else the best formula that applies. The Shield and the other bonuses add to it. |
+
+The probable hooks are a judgment from the spike and from the 2014 code,
+not a measured list:
 
 - Spell slots: the multiclass slot table, and Pact Magic.
-- Armor Class: the best of the formulas that apply, then the shield.
 - Wild Shape forms: a list from monster data by Challenge Rating and level.
 - Martial Arts: the larger of the weapon die and the Monk die.
 

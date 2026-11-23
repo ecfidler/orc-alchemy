@@ -2,7 +2,7 @@
 // offers. Port of orcpub.template (template.cljc:37-87).
 
 import type { OptionValue } from "./entity.ts";
-import type { Base, OptionModifier } from "./modifiers.ts";
+import type { Base, Modifier, OptionModifier } from "./modifiers.ts";
 
 /**
  * A condition that the built entity must meet (template/option-prereq).
@@ -69,6 +69,12 @@ export interface Selection<S> {
 
 export interface Template<S> {
   base: Base<S>;
+  /**
+   * The rules that every entity has, whatever it chooses. They apply with
+   * the modifiers of the choices, before them in the list, and their
+   * contributions have an empty source.
+   */
+  modifiers?: readonly Modifier<S>[];
   selections: readonly Selection<S>[];
 }
 

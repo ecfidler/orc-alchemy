@@ -12,7 +12,7 @@ import { checkReferences, hasRules, type LoadIssue, type LoadResult, loadPack, w
 import type { AnyRecord, Pack, Records, RecordType } from "../format/schema.ts";
 import type { Built2024 } from "./built.ts";
 import { HOOKS } from "./hooks/index.ts";
-import { backgroundOption, type Content, featOption, RecordError, speciesOption, subclassOption } from "./records.ts";
+import { backgroundOption, type Content, classOption, featOption, RecordError, speciesOption, subclassOption } from "./records.ts";
 
 export interface ContentPackOptions {
   /** The loaded packs that this pack refers to, for example the built-in pack `srd52` for a homebrew pack. */
@@ -21,8 +21,9 @@ export interface ContentPackOptions {
 
 type Converter<T extends RecordType> = (content: Content, reference: string, record: Records[T]) => Option<Built2024>;
 
-/** The converter of each record type that the engine converts now. Classes come with ORC-225 and ORC-230. */
+/** The converter of each record type that the engine converts now. */
 const CONVERTERS: { [T in RecordType]?: Converter<T> } = {
+  classes: classOption,
   species: speciesOption,
   backgrounds: backgroundOption,
   feats: featOption,

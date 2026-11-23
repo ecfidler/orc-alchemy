@@ -2,6 +2,7 @@
 
 ## 2026-11-23
 
+* **Update**: Added the `armor-class` hook to the real hooks of the [2024 content format](design/2024-content-format.md) (ORC-225).
 * **Update**: Added the reference record types, the class table and the pack contents to the [2024 content format](design/2024-content-format.md), and the steps of the import to its section *The source data* (ORC-224).
 * **Update**: Made the [2024 content format](design/2024-content-format.md) stable, with the schema library, the loader issues, the fields of each effect and record type, the value forms and the conditions (ORC-223).
 

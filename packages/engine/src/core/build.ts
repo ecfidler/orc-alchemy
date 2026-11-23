@@ -84,7 +84,7 @@ export function buildWithContributions<S>(entity: StrictEntity<NoInfer<S>>, temp
   const flatOptions = flattenOptions(entity);
   const selections = activeSelections(template, chosenPaths(flatOptions));
   const base = { ...template.base, ...entity.values } as Base<S>;
-  return applyModifiers(base, collectModifiers(flatOptions, selections));
+  return applyModifiers(base, [...(template.modifiers ?? []), ...collectModifiers(flatOptions, selections)]);
 }
 
 /** The built entity: the base, the entity's values, and the modifiers of its choices (entity/build). */

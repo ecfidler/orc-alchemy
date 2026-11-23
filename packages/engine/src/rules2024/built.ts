@@ -1,12 +1,14 @@
-// The built 2024 character and its base: the values before any choice, and
-// the values derived from others. This file is the 2024 counterpart of
-// dnd/e5/template_base.cljc, for the keys the Fighter slice needs. The
-// names are 2024 names: `species`, not `race`.
+// The built 2024 character and its base: the values before any choice, the
+// values derived from others, and the rules that every character has
+// (ORC-225). This file is the 2024 counterpart of
+// dnd/e5/template_base.cljc. The names are 2024 names: `species`, not
+// `race`.
 
 import type { z } from "zod";
-import { type Base, modifiersFor } from "../core/modifiers.ts";
+import { type Base, type Modifier, modifiersFor } from "../core/modifiers.ts";
 import { nameToKey } from "../core/template.ts";
-import { ABILITY_KEYS, type FEAT_CATEGORIES, type Recovery as RecoverySchema, type Size as SizeSchema } from "../format/schema.ts";
+import { referenceTo, SRD_PACK } from "../format/keys.ts";
+import { ABILITY_KEYS, type FEAT_CATEGORIES, type Recovery as RecoverySchema, Size as SizeSchema } from "../format/schema.ts";
 import { ARMOR } from "./content/armor.ts";
 import { WEAPONS, type WeaponMastery } from "./content/weapons.ts";
 
@@ -81,6 +83,29 @@ export interface Feature {
   uses?: Uses;
 }
 
+/**
+ * A way to calculate the base Armor Class without armor: `base` plus the
+ * modifiers of `abilities`. Unarmored Defense is one (SRD 5.2.1 p28).
+ */
+export interface ArmorClassFormula {
+  key: string;
+  name: string;
+  base: number;
+  abilities: readonly Ability[];
+  /** False when the formula does not apply with a Shield, as for the Monk (SRD 5.2.1 p50). */
+  shield: boolean;
+}
+
+/** The base calculation of every character: 10 plus the Dexterity modifier (SRD 5.2.1 p177). */
+export const UNARMORED: ArmorClassFormula = { key: "unarmored", name: "Unarmored", base: 10, abilities: ["dex"], shield: true };
+
+/** The key of `armorClassFormula` when the character wears armor. */
+export const WORN_ARMOR = "armor";
+
+export function formulaValue(formula: ArmorClassFormula, modifiers: AbilityScores): number {
+  return formula.abilities.reduce((sum, ability) => sum + modifiers[ability], formula.base);
+}
+
 export interface WeaponAttack {
   weapon: string;
   name: string;
@@ -119,13 +144,20 @@ export interface Built2024 {
   totalLevel: number;
   proficiencyBonus: number;
 
-  /** The Hit Points from the class at each level, without the Constitution modifier. */
-  hitPointsFromLevels: number;
+  /**
+   * The Hit Points of each level without the Constitution modifier: the
+   * full die at level 1 of the first class, then the fixed or rolled number.
+   */
+  hitPointsPerLevel: readonly number[];
+  /** The number of Hit Point Dice of each size, for example `{ d10: 3 }`. */
+  hitPointDice: Readonly<Record<string, number>>;
   maxHitPoints: number;
 
   savingThrowProficiencies: readonly Ability[];
   saveBonuses: AbilityScores;
   skillProficiencies: readonly Skill[];
+  /** The skills with Expertise. Expertise counts only with the proficiency. */
+  expertise: readonly Skill[];
   skillBonuses: Readonly<Record<Skill, number>>;
   passivePerception: number;
   toolProficiencies: readonly string[];
@@ -133,17 +165,42 @@ export interface Built2024 {
   weaponProficiencies: readonly string[];
   /** Armor categories: "light", "medium", "heavy" and "shield". */
   armorTraining: readonly string[];
+  /** Language references, for example `srd52:common`. */
   languages: readonly string[];
   resistances: readonly string[];
+
+  /** Sizes above the character's size for the carrying capacity: 1 for Powerful Build (SRD 5.2.1 p86). */
+  carryingSizeBonus: number;
+  /** Pounds. */
+  carryingCapacity: number;
+  /** Pounds. */
+  dragLiftPush: number;
 
   feats: readonly FeatTaken[];
   features: readonly Feature[];
 
   wornArmor: string | null;
   shield: boolean;
-  /** Without armor and without a shield. */
+  /**
+   * True when the character wears Light, Medium or Heavy armor without
+   * training: Disadvantage on D20 Tests with Strength or Dexterity, and no
+   * spellcasting (SRD 5.2.1 p92). The sheet shows it, and the spellcasting
+   * of ORC-229 reads it.
+   */
+  armorWithoutTraining: boolean;
+  /** The unarmored formulas that features give, beside `UNARMORED`. */
+  armorClassFormulas: readonly ArmorClassFormula[];
+  /** The key of the base calculation in use: `WORN_ARMOR`, or the key of the best unarmored formula that applies. */
+  armorClassFormula: string;
+  /**
+   * The value of the base calculation in use. Its contribution names the
+   * armor or the formula. The contributions of `armorClass` are the parts
+   * after it, so the parts of the Armor Class are the two lists together.
+   */
+  baseArmorClass: number;
+  /** The best formula without armor and without a shield. */
   unarmoredArmorClass: number;
-  /** With the worn armor and shield. */
+  /** The base calculation, then the Shield and the other bonuses. */
   armorClass: number;
   initiative: number;
 
@@ -174,6 +231,24 @@ export function feature(source: string, name: string, summary: string, more: Pic
 /** A value for each ability. */
 export function forEachAbility(value: (ability: Ability) => number): AbilityScores {
   return Object.fromEntries(ABILITIES.map((ability) => [ability, value(ability)])) as AbilityScores;
+}
+
+/** The unarmored formulas of a character, the base calculation first. */
+function unarmoredFormulas(formulas: readonly ArmorClassFormula[], shield: boolean): ArmorClassFormula[] {
+  return [UNARMORED, ...formulas].filter((formula) => !shield || formula.shield);
+}
+
+/** The best formula of a list. On a tie, the first. */
+function bestFormula(formulas: readonly ArmorClassFormula[], modifiers: AbilityScores): ArmorClassFormula {
+  return formulas.reduce((best, formula) => (formulaValue(formula, modifiers) > formulaValue(best, modifiers) ? formula : best));
+}
+
+/** The Carry factor of each size; Drag/Lift/Push is two times it (SRD 5.2.1 p178). Small and Medium share a row. */
+const CARRY_FACTORS: Readonly<Record<Size, number>> = { tiny: 7.5, small: 15, medium: 15, large: 30, huge: 60, gargantuan: 120 };
+
+function carryFactor(size: Size, sizesAbove: number): number {
+  const sizes = SizeSchema.options;
+  return CARRY_FACTORS[sizes[Math.min(sizes.length - 1, sizes.indexOf(size) + sizesAbove)]];
 }
 
 function signed(bonus: number): string {
@@ -209,48 +284,63 @@ export const base: Base<Built2024> = {
   // SRD 5.2.1 p23.
   proficiencyBonus: m.derived(["totalLevel"], (q) => 2 + Math.floor((Math.max(q("totalLevel"), 1) - 1) / 4)),
 
-  hitPointsFromLevels: 0,
-  // The Constitution modifier counts for every level, so a later increase raises earlier levels too (SRD 5.2.1 p23).
-  maxHitPoints: m.derived(
-    ["hitPointsFromLevels", "totalLevel", "abilityModifiers"],
-    (q) => q("hitPointsFromLevels") + q("totalLevel") * q("abilityModifiers").con,
+  hitPointsPerLevel: [],
+  hitPointDice: m.derived(["classLevels", "hitDice"], (q) => {
+    const dice: Record<string, number> = {};
+    for (const [classRef, level] of Object.entries(q("classLevels"))) {
+      const die = `d${q("hitDice")[classRef]}`;
+      dice[die] = (dice[die] ?? 0) + level;
+    }
+    return dice;
+  }),
+  // Each level adds its number and the Constitution modifier, at least 1. The modifier counts for every level,
+  // so a later increase raises earlier levels too (SRD 5.2.1 p23).
+  maxHitPoints: m.derived(["hitPointsPerLevel", "abilityModifiers"], (q) =>
+    q("hitPointsPerLevel").reduce((sum, hitPoints) => sum + Math.max(1, hitPoints + q("abilityModifiers").con), 0),
   ),
 
   savingThrowProficiencies: [],
-  saveBonuses: m.derived(["abilityModifiers", "savingThrowProficiencies", "proficiencyBonus"], (q) =>
-    forEachAbility((ability) => q("abilityModifiers")[ability] + (q("savingThrowProficiencies").includes(ability) ? q("proficiencyBonus") : 0)),
-  ),
+  // The ability modifier. The Proficiency Bonus is a rule (RULES), so the contributions show it.
+  saveBonuses: m.derived(["abilityModifiers"], (q) => q("abilityModifiers")),
   skillProficiencies: [],
+  expertise: [],
   skillBonuses: m.derived(
-    ["abilityModifiers", "skillProficiencies", "proficiencyBonus"],
-    (q) =>
-      Object.fromEntries(
-        Object.entries(SKILLS).map(([skill, ability]) => [
-          skill,
-          q("abilityModifiers")[ability] + (q("skillProficiencies").includes(skill as Skill) ? q("proficiencyBonus") : 0),
-        ]),
-      ) as Record<Skill, number>,
+    ["abilityModifiers"],
+    (q) => Object.fromEntries(Object.entries(SKILLS).map(([skill, ability]) => [skill, q("abilityModifiers")[ability]])) as Record<Skill, number>,
   ),
   passivePerception: m.derived(["skillBonuses"], (q) => 10 + q("skillBonuses").perception),
   toolProficiencies: [],
   weaponProficiencies: [],
   armorTraining: [],
-  languages: ["common"],
+  // Every character knows Common (SRD 5.2.1 p20).
+  languages: [referenceTo(SRD_PACK, "common")],
   resistances: [],
+
+  carryingSizeBonus: 0,
+  carryingCapacity: m.derived(["abilities", "size", "carryingSizeBonus"], (q) => q("abilities").str * carryFactor(q("size"), q("carryingSizeBonus"))),
+  dragLiftPush: m.derived(["carryingCapacity"], (q) => q("carryingCapacity") * 2),
 
   feats: [],
   features: [],
 
   wornArmor: null,
   shield: false,
-  unarmoredArmorClass: m.derived(["abilityModifiers"], (q) => 10 + q("abilityModifiers").dex),
-  // SRD 5.2.1 p92: the armor gives the base, and a Shield adds 2.
-  armorClass: m.derived(["wornArmor", "shield", "abilityModifiers", "unarmoredArmorClass"], (q) => {
+  armorWithoutTraining: m.derived(["wornArmor", "armorTraining"], (q) => {
     const armor = ARMOR.find((a) => a.key === q("wornArmor"));
-    const dex = q("abilityModifiers").dex;
-    const armored = armor ? armor.base + (armor.dexLimit === null ? dex : Math.min(dex, armor.dexLimit)) : q("unarmoredArmorClass");
-    return armored + (q("shield") ? 2 : 0);
+    return armor !== undefined && !q("armorTraining").includes(armor.category);
   }),
+  armorClassFormulas: [],
+  // A character uses one base calculation (SRD 5.2.1 p177). Worn armor gives its own. Without armor, the engine
+  // takes the best formula that applies: a formula that does not allow a Shield does not apply with one.
+  armorClassFormula: m.derived(["wornArmor", "shield", "armorClassFormulas", "abilityModifiers"], (q) =>
+    q("wornArmor") !== null ? WORN_ARMOR : bestFormula(unarmoredFormulas(q("armorClassFormulas"), q("shield")), q("abilityModifiers")).key,
+  ),
+  // 0 until the modifier of the base calculation in use: the worn armor, UNARMORED in RULES, or the formula of a feature.
+  baseArmorClass: 0,
+  unarmoredArmorClass: m.derived(["armorClassFormulas", "abilityModifiers"], (q) =>
+    formulaValue(bestFormula(unarmoredFormulas(q("armorClassFormulas"), false), q("abilityModifiers")), q("abilityModifiers")),
+  ),
+  armorClass: m.derived(["baseArmorClass"], (q) => q("baseArmorClass")),
   initiative: m.derived(["abilityModifiers"], (q) => q("abilityModifiers").dex),
 
   weaponMasteries: [],
@@ -279,3 +369,48 @@ export const base: Base<Built2024> = {
     }),
   ),
 };
+
+/** Adds the Proficiency Bonus once to each entry of `keys` that `scores` has. */
+function withBonus<K extends string>(scores: Readonly<Record<K, number>>, keys: readonly K[], bonus: number): Record<K, number> {
+  const result: Record<K, number> = { ...scores };
+  for (const key of new Set(keys)) if (key in result) result[key] += bonus;
+  return result;
+}
+
+/**
+ * The rules that every character has. They are modifiers, not derived
+ * values, so that `contributions` shows them as parts of the value.
+ */
+export const RULES: readonly Modifier<Built2024>[] = [
+  // SRD 5.2.1 p8: add the Proficiency Bonus to a saving throw or a check with the proficiency.
+  m.update("saveBonuses", (scores, q) => withBonus(scores, q("savingThrowProficiencies"), q("proficiencyBonus")), {
+    deps: ["savingThrowProficiencies", "proficiencyBonus"],
+    when: (q) => q("savingThrowProficiencies").length > 0,
+    name: "Proficiency Bonus",
+  }),
+  m.update("skillBonuses", (bonuses, q) => withBonus(bonuses, q("skillProficiencies"), q("proficiencyBonus")), {
+    deps: ["skillProficiencies", "proficiencyBonus"],
+    when: (q) => q("skillProficiencies").length > 0,
+    name: "Proficiency Bonus",
+  }),
+  // SRD 5.2.1 p182: Expertise doubles the Proficiency Bonus of a skill with the proficiency, one time only.
+  m.update(
+    "skillBonuses",
+    (bonuses, q) =>
+      withBonus(
+        bonuses,
+        q("expertise").filter((skill) => q("skillProficiencies").includes(skill)),
+        q("proficiencyBonus"),
+      ),
+    {
+      deps: ["expertise", "skillProficiencies", "proficiencyBonus"],
+      when: (q) => q("expertise").some((skill) => q("skillProficiencies").includes(skill)),
+      name: "Expertise",
+    },
+  ),
+  m.add("baseArmorClass", (q) => formulaValue(UNARMORED, q("abilityModifiers")), {
+    deps: ["abilityModifiers", "armorClassFormula"],
+    when: (q) => q("armorClassFormula") === UNARMORED.key,
+    name: "Unarmored: 10 + Dexterity modifier",
+  }),
+];

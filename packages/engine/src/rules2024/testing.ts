@@ -64,7 +64,7 @@ export function fighterCharacter(choices: Choices): Entity2024 {
   return {
     values: { name: "Brunhild" },
     selections: [
-      { key: "ability-scores", option: { key: "scores", value: scores } },
+      { key: "ability-scores", option: { key: "standard-array", value: scores } },
       {
         key: "class",
         options: [
@@ -88,7 +88,7 @@ export function fighterCharacter(choices: Choices): Entity2024 {
           ],
         },
       },
-      { key: "languages", options: [{ key: "dwarvish" }, { key: "giant" }] },
+      { key: "languages", options: [{ key: "srd52:dwarvish" }, { key: "srd52:giant" }] },
       { key: "weapon-mastery", options: masteries.map((key) => ({ key })) },
       ...(armor ? [{ key: "armor", option: { key: armor } }] : []),
       { key: "weapons", options: weapons.map((key) => ({ key })) },

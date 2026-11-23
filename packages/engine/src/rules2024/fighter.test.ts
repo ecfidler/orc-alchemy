@@ -78,7 +78,7 @@ describe("level 1", () => {
     expect(built.weaponProficiencies).toEqual(["simple", "martial"]);
     expect(built.armorTraining).toEqual(["light", "medium", "heavy", "shield"]);
     expect(built.toolProficiencies).toEqual(["dice"]);
-    expect(built.languages).toEqual(["common", "dwarvish", "giant"]);
+    expect(built.languages).toEqual(["srd52:common", "srd52:dwarvish", "srd52:giant"]);
     expect(built.resistances).toEqual(["poison"]);
   });
 
@@ -459,16 +459,17 @@ describe("autofill", () => {
     const { built, selections, problems } = evaluate(first, { rules: "2024" });
     expect(selections.filter((s) => s.remaining !== 0)).toEqual([]);
     expect(problems).toEqual([]);
-    expect(built.classLevels).toEqual({ fighter: 1 });
+    // One class at level 1. The class is any class of the template.
+    expect(built.totalLevel).toBe(1);
     // The scores are the Standard Array in some order.
     expect(Object.values(built.baseAbilities).sort((a, b) => a - b)).toEqual([8, 10, 12, 13, 14, 15]);
   });
 
   it("keeps the choices that the character has", () => {
-    const start: Entity2024 = { selections: [{ key: "languages", options: [{ key: "elvish" }, { key: "orc" }] }] };
+    const start: Entity2024 = { selections: [{ key: "languages", options: [{ key: "srd52:elvish" }, { key: "srd52:orc" }] }] };
     for (const seed of [1, 2, 3]) {
       const { built } = evaluate(autofill(start, { rules: "2024", seed }), { rules: "2024" });
-      expect(built.languages).toEqual(["common", "elvish", "orc"]);
+      expect(built.languages).toEqual(["srd52:common", "srd52:elvish", "srd52:orc"]);
     }
   });
 });

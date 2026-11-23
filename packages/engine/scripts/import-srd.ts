@@ -532,7 +532,9 @@ function referenceRecords(up: Upstream, corrections: Corrections) {
   return {
     abilities: up.read("Ability-Scores").map((a) => ({ ...head(a, a.full_name), description: text(a.description) })),
     skills: up.read("Skills").map((s) => ({ ...head(s), description: text(s.description), ability: s.ability_score.index })),
-    languages: up.read("Languages").map((l) => compact({ ...head(l), description: text(l.note) || undefined, rare: Boolean(l.is_rare) })),
+    languages: up
+      .read("Languages")
+      .map((l) => compact({ ...head(l), description: text(l.note) || undefined, rare: corrections.languageRare(l.index, Boolean(l.is_rare)) })),
     conditions: plain("Conditions").map((c) => ({ ...c, description: corrections.conditionText(c.key, c.description ?? "") })),
     damageTypes: plain("Damage-Types"),
     weaponMasteries: plain("Weapon-Mastery-Properties"),
