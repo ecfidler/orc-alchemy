@@ -240,7 +240,7 @@ The theme spec sets these sizes only. Each component sets the other sizes that i
 
 - **Shell:** a 200px left rail holds the logo and the flag tabs. A double margin rule (1.5px, then 1px at 45%) separates the rail from the page. At 680px and less, the rail is a strip at the top, with the rule along its bottom and the tabs in a row on the rule. A beta build with a feedback form shows a "Send feedback" link after the logo: Inter 12px, weight 600, `--ink-muted`, with an underline. It opens the form in a new tab. In the rail it sits under the logo. In the strip it sits at the right end of the logo row. A build without a form has no link.
 - **Character sheet:** two columns at about 1 : 2, with a maximum width of 960px. The left column is 320px wide or more. Under 720px, the sections go in four tabs (Stats, Spells, Features, More) and the tab row sticks to the top.
-- **Home:** one column: the title row, the tagline, the buttons, three facts, then Recent characters.
+- **Home:** one column: the title row, the tagline, the buttons, three facts, the beta note, then Recent characters.
 - **Dialogs:** a Dialog is 720px wide at most. A wide Dialog (`size="wide"`, for the Spells panel) is 1100px wide at most. With `fill`, a wide Dialog is the height of the window less its 16px margins, and the owner lays out its body, for example as two panes that scroll apart. At 600px and less, a Dialog and a ListModal fill the screen.
 - **Density:** the sheet is dense, as a paper sheet is. Boxes are sized to their content. Forms are one column of labelled fields, with the label above the control.
 - The page never scrolls sideways. Long values truncate with an ellipsis or wrap.
