@@ -1,7 +1,7 @@
 // Backgrounds (SRD 5.2.1 p83). The slice has the Soldier.
 
 import { nameToKey, type Option, option, type Prereq, type Selection, selection } from "../../core/template.ts";
-import { type Ability, m, type Sheet, type Skill } from "../sheet.ts";
+import { type Ability, type Built2024, m, type Skill } from "../built.ts";
 import { abilityIncreaseOptions, grantFeat } from "./feats.ts";
 
 interface Background {
@@ -17,14 +17,14 @@ interface Background {
  * The ability score choice of a background: +2 to one listed ability and +1
  * to a different one, or +1 to all three (SRD 5.2.1 p83).
  */
-function abilityScoreSelection(background: Background): Selection<Sheet> {
+function abilityScoreSelection(background: Background): Selection<Built2024> {
   const source = background.name;
   // The +2 and the +1 go to different abilities, so each excludes what the other took.
   const notTakenBy =
     (otherAmount: number) =>
-    (ability: Ability): Prereq<Sheet> => ({
+    (ability: Ability): Prereq<Built2024> => ({
       label: "A different ability from the other increase",
-      test: (built) => !built.abilityIncreases.some((i) => i.source === source && i.amount === otherAmount && i.ability === ability),
+      canChoose: (built) => !built.abilityIncreases.some((i) => i.source === source && i.amount === otherAmount && i.ability === ability),
     });
   return selection({
     name: "Ability Scores",
@@ -46,7 +46,7 @@ function abilityScoreSelection(background: Background): Selection<Sheet> {
   });
 }
 
-function backgroundOption(background: Background): Option<Sheet> {
+function backgroundOption(background: Background): Option<Built2024> {
   const feat = grantFeat(background.feat);
   const tool = background.tool;
   return option({
@@ -67,7 +67,7 @@ function backgroundOption(background: Background): Option<Sheet> {
   });
 }
 
-export const BACKGROUNDS: readonly Option<Sheet>[] = [
+export const BACKGROUNDS: readonly Option<Built2024>[] = [
   backgroundOption({
     name: "Soldier",
     abilities: ["str", "dex", "con"],

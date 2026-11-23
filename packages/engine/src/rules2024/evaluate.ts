@@ -1,148 +1,75 @@
-// The facade of the spike: an `evaluate` with the shape of the one in
-// `@pubdoor/dmv`, for `rules: "2024"`. Its types come from the 0.4.0
-// `types/index.d.ts`, so this file records where those types describe a
-// second engine and where they do not.
+// The facade of the 2024 engine: the functions that the app calls
+// (docs/design/2024-engine.md, section "The facade"). The shapes copy the
+// facade of `@pubdoor/dmv` where the shape is neutral. The built character
+// is the engine's own `Built2024`.
 
-import type { AbilityKey, AvailableSelection, BuiltCharacter, Feature as SharedFeature } from "@pubdoor/dmv";
-import { actualPath, availableSelections, build, countRemaining, selectedKeys } from "../core/build.ts";
-import type { StrictEntity } from "../core/entity.ts";
-import { ARMOR } from "./content/armor.ts";
-import { ABILITIES, type Ability, type AbilityScores, type FeatTaken, type Feature, type Sheet, type WeaponAttack } from "./sheet.ts";
+import { autofill as autofillCore } from "../core/autofill.ts";
+import { actualPath, availableSelections, buildWithContributions, countRemaining, findProblems, type Problem, selectedKeys } from "../core/build.ts";
+import type { OptionValue, Path, StrictEntity } from "../core/entity.ts";
+import type { Contributions } from "../core/modifiers.ts";
+import * as core from "../core/mutations.ts";
+import type { Built2024 } from "./built.ts";
 import { template2024 } from "./template.ts";
 
-/** A stored 2024 character: the choices, and the free values. */
-export type Entity2024 = StrictEntity<Pick<Sheet, "name">>;
+/** A stored 2024 character: the choices, and the free values. The `rules` tag is on its envelope, not here. */
+export type Entity2024 = StrictEntity<Pick<Built2024, "name">>;
 
 /**
- * The keys of the shared `BuiltCharacter` that the slice fills with the
- * meaning the type documents.
+ * One selection that the character can make now. The shape is the
+ * `AvailableSelection` of the 2014 facade (`@pubdoor/dmv` 0.4.0), so the
+ * builder reads both engines the same way. A `ref` pool is one entry.
  */
-export type SharedKey =
-  | "character-name"
-  | "background"
-  | "classes"
-  | "levels"
-  | "total-levels"
-  | "class-level"
-  | "abilities"
-  | "ability-bonuses"
-  | "proficiency-bonus"
-  | "saving-throws"
-  | "save-bonuses"
-  | "skill-profs"
-  | "skill-bonuses"
-  | "passive-perception"
-  | "initiative"
-  | "armor-profs"
-  | "weapon-profs"
-  | "tool-profs"
-  | "languages"
-  | "armor-class"
-  | "armor-class-with-armor"
-  | "max-hit-points"
-  | "base-land-speed"
-  | "darkvision"
-  | "number-of-attacks"
-  | "traits"
-  | "feats";
-
-/**
- * The other keys of `BuiltCharacter`, each with the reason the slice leaves
- * it out. "Not in the slice" marks a key that the spike did not reach and
- * that gives no evidence. Any other reason is a finding about the type. The
- * `Record` type makes the list complete: a key of `BuiltCharacter` that is
- * in neither list is a compile error.
- */
-export const NOT_SHARED: Record<Exclude<keyof BuiltCharacter, SharedKey>, string> = {
-  race: 'The 2024 rules have species, not races. The value fits, the name does not. The slice returns "species".',
-  subrace: "The 2024 rules have no subraces. A lineage is a choice inside the species.",
-  "skill-expertise": "Not in the slice.",
-  "tool-bonus": "Not in the slice.",
-  "current-hit-points": "Not in the slice.",
-  "base-flying-speed": "Not in the slice.",
-  "base-swimming-speed": "Not in the slice.",
-  "unarmored-speed-bonus": "Not in the slice.",
-  "speed-with-armor": "Not in the slice.",
-  "weapon-modifiers":
-    'The value has the 2014 attack model: "standard" and "finesse" numbers, a "dual-wield?" flag, and no place for a mastery property or a bonus for Ranged weapons only. The slice returns "weaponAttacks".',
-  attacks: "Not in the slice.",
-  "spell-slots": "Not in the slice.",
-  "spells-known": "Not in the slice.",
-  "spell-modifiers": "Not in the slice.",
-  "spell-save-dc": "Not in the slice.",
-  "spell-attack-modifier": "Not in the slice.",
-  "prepares-spells": "Not in the slice.",
-  "prepare-spell-count": "Not in the slice.",
-  actions: "Not in the slice.",
-  "bonus-actions": "Not in the slice.",
-  reactions: "Not in the slice.",
-  weapons:
-    'An inventory with namespaced 2014 keys such as "orcpub.dnd.e5.character.equipment/quantity". The slice returns the carried weapon keys in "weaponAttacks".',
-  armor: 'An inventory with namespaced 2014 keys. The slice returns the worn armor in "armor-class-with-armor".',
-  equipment: "Not in the slice.",
-  treasure: "Not in the slice.",
-  "magic-weapons": "Not in the slice.",
-  "magic-armor": "Not in the slice.",
-  "magic-items": "Not in the slice.",
-};
-
-/** What the 2024 slice has and the shared type has no key for. */
-export interface Extension2024 {
-  species: string | null;
-  creatureType: string;
-  size: Sheet["size"];
-  /** Each feat with its category. The shared "feats" has only the keys. */
-  featsTaken: readonly FeatTaken[];
-  /** Weapon keys. */
-  weaponMasteries: readonly string[];
-  weaponAttacks: readonly WeaponAttack[];
-  /** The lowest d20 roll that is a Critical Hit. */
-  criticalHitMinimum: number;
-  resistances: readonly string[];
-  /**
-   * Every feature with its key, its source and its uses. The shared
-   * "traits" has the same features, but its "frequency" holds one amount
-   * and one unit, so it cannot say that Second Wind regains one use on a
-   * Short Rest and all uses on a Long Rest.
-   */
-  features: readonly Feature[];
+export interface AvailableSelection {
+  key: string;
+  name: string;
+  path: string[];
+  /** The path where the selection's choices are stored. It differs from `path` for a ref selection. */
+  actualPath: string[];
+  min: number;
+  max: number | null;
+  /** Positive when the selection needs more choices, negative when it has too many. */
+  remaining: number;
+  optionCount: number;
+  /** The keys of the chosen options. */
+  selected: string[];
+  ref?: string[];
+  multiselect?: true;
+  sequential?: true;
+  requireValue?: true;
 }
 
-export type Built2024 = Pick<BuiltCharacter, SharedKey> & Extension2024;
+/**
+ * A content pack of the user. The content format (ORC-223) gives the type,
+ * and homebrew in `evaluate` arrives with ORC-235.
+ */
+export type ContentPack = unknown;
+
+export interface EvaluateOptions2024 {
+  rules: "2024";
+  /** The homebrew packs of the user. The built-in content is always present. Empty until ORC-235. */
+  packs?: readonly ContentPack[];
+}
 
 export interface Evaluation2024 {
   built: Built2024;
   selections: AvailableSelection[];
+  problems: Problem[];
+  /** For each value of `built` that modifiers changed, the changes with their name and source. */
+  contributions: Contributions<Built2024>;
 }
 
-export interface EvaluateOptions2024 {
-  rules: "2024";
+export type MutationOptions2024 = EvaluateOptions2024;
+
+/** The template for the options. Throws for another edition, and for packs until ORC-235. */
+function templateFor(options: EvaluateOptions2024) {
+  if (options.rules !== "2024") throw new Error(`Unsupported rules edition: ${String(options.rules)}`);
+  if (options.packs?.length) throw new Error("Homebrew packs in evaluate are not supported yet (ORC-235)");
+  return template2024;
 }
 
-// The shared type names each ability with the 2014 engine's namespace.
-const abilityKey = (ability: Ability) => `orcpub.dnd.e5.character/${ability}` as AbilityKey;
-
-function byAbilityKey(scores: AbilityScores): Record<AbilityKey, number> {
-  return Object.fromEntries(ABILITIES.map((ability) => [abilityKey(ability), scores[ability]])) as Record<AbilityKey, number>;
-}
-
-/** Each key as proficient, with no source named: the slice does not record sources. */
-function withoutSources(keys: readonly string[]): Record<string, Record<string, boolean>> {
-  return Object.fromEntries(keys.map((key) => [key, { nil: true }]));
-}
-
-function sharedFeature(feature: Feature): SharedFeature {
-  return {
-    name: feature.name,
-    summary: feature.summary,
-    ...(feature.level === undefined ? {} : { "class-key": feature.source, level: feature.level }),
-    ...(feature.uses ? { frequency: { amount: feature.uses.amount, units: feature.uses.recharge } } : {}),
-  };
-}
-
-/** The built 2024 sheet of an entity, as prerequisites read it. */
-export function buildSheet(entity: Entity2024): Sheet {
-  return build<Sheet>(entity, template2024);
+/** The built 2024 character of an entity, as prerequisites read it. */
+export function buildCharacter(entity: Entity2024): Built2024 {
+  return buildWithContributions<Built2024>(entity, template2024).built;
 }
 
 /**
@@ -150,63 +77,10 @@ export function buildSheet(entity: Entity2024): Sheet {
  * 2014 rules are in `@pubdoor/dmv`.
  */
 export function evaluate(entity: Entity2024, options: EvaluateOptions2024): Evaluation2024 {
-  if (options.rules !== "2024") throw new Error(`Unsupported rules edition: ${String(options.rules)}`);
-  const sheet = buildSheet(entity);
-  const wornArmor = ARMOR.find((armor) => armor.key === sheet.wornArmor);
-  const classNames = new Map(template2024.selections.find((s) => s.key === "class")?.options.map((o) => [o.key, o.name]));
+  const template = templateFor(options);
+  const { built, contributions } = buildWithContributions<Built2024>(entity, template);
 
-  const built: Built2024 = {
-    "character-name": sheet.name || null,
-    background: sheet.background,
-    classes: [...sheet.classes],
-    levels: Object.fromEntries(
-      sheet.classes.map((key) => [
-        key,
-        {
-          "class-level": sheet.classLevels[key] ?? 0,
-          "class-name": classNames.get(key) ?? key,
-          "hit-die": sheet.hitDice[key] ?? 0,
-          ...(sheet.subclasses[key] ? { subclass: sheet.subclasses[key] } : {}),
-        },
-      ]),
-    ),
-    "total-levels": sheet.totalLevel,
-    "class-level": { ...sheet.classLevels },
-    abilities: byAbilityKey(sheet.abilities),
-    "ability-bonuses": byAbilityKey(sheet.abilityModifiers),
-    "proficiency-bonus": sheet.proficiencyBonus,
-    "saving-throws": sheet.savingThrowProficiencies.map(abilityKey),
-    "save-bonuses": byAbilityKey(sheet.saveBonuses),
-    "skill-profs": withoutSources(sheet.skillProficiencies),
-    "skill-bonuses": { ...sheet.skillBonuses },
-    "passive-perception": sheet.passivePerception,
-    initiative: sheet.initiative,
-    "armor-profs": [...sheet.armorTraining],
-    "weapon-profs": [...sheet.weaponProficiencies],
-    "tool-profs": withoutSources(sheet.toolProficiencies),
-    languages: [...sheet.languages],
-    "armor-class": sheet.unarmoredArmorClass,
-    "armor-class-with-armor":
-      wornArmor || sheet.shield ? [{ armor: wornArmor?.key ?? null, shield: sheet.shield ? "shield" : null, ac: sheet.armorClass }] : [],
-    "max-hit-points": sheet.maxHitPoints,
-    "base-land-speed": sheet.speed,
-    darkvision: sheet.darkvision,
-    "number-of-attacks": sheet.attacksPerAction,
-    traits: sheet.features.map(sharedFeature),
-    feats: sheet.feats.map((feat) => feat.key),
-
-    species: sheet.species,
-    creatureType: sheet.creatureType,
-    size: sheet.size,
-    featsTaken: sheet.feats,
-    weaponMasteries: sheet.weaponMasteries,
-    weaponAttacks: sheet.weaponAttacks,
-    criticalHitMinimum: sheet.criticalHitMinimum,
-    resistances: sheet.resistances,
-    features: sheet.features,
-  };
-
-  const selections = availableSelections(entity, sheet, template2024).map((selection): AvailableSelection => {
+  const selections = availableSelections(entity, built, template).map((selection): AvailableSelection => {
     const selected = selectedKeys(entity, selection);
     return {
       key: selection.key,
@@ -225,5 +99,65 @@ export function evaluate(entity: Entity2024, options: EvaluateOptions2024): Eval
     };
   });
 
-  return { built, selections };
+  return { built, selections, problems: findProblems(entity, built, template), contributions };
+}
+
+// The mutations. Each takes an entity and returns a new one. A path is the
+// `actualPath` of a selection in `evaluate`'s selections. Each throws a
+// `MutationError` with the reason where the builder must refuse the change.
+
+const DEFAULT_OPTIONS: EvaluateOptions2024 = { rules: "2024" };
+
+/** The path of the class levels: one sequential selection for each class. */
+const levelsPath = (classKey: string): Path => ["class", classKey, "levels"];
+
+/** Chooses `optionKey` in the selection at `path`. In a single-select, it replaces the chosen option. */
+export function select(entity: Entity2024, path: Path, optionKey: string, options: MutationOptions2024 = DEFAULT_OPTIONS): Entity2024 {
+  return core.select(templateFor(options), entity, path, optionKey);
+}
+
+/** Removes `optionKey` and its choices from the selection at `path`. */
+export function deselect(entity: Entity2024, path: Path, optionKey: string, options: MutationOptions2024 = DEFAULT_OPTIONS): Entity2024 {
+  return core.deselect(templateFor(options), entity, path, optionKey);
+}
+
+/** Sets a free value of the character, such as the name. */
+export function setValue<K extends keyof NonNullable<Entity2024["values"]>>(
+  entity: Entity2024,
+  key: K,
+  value: NonNullable<Entity2024["values"]>[K] | undefined,
+): Entity2024 {
+  return core.setValue(entity, key, value);
+}
+
+/**
+ * Sets the value of the chosen option at `path`, a selection's actualPath
+ * and the option key: the ability scores, or a rolled Hit Point number.
+ */
+export function setOptionValue(entity: Entity2024, path: Path, value: OptionValue | undefined): Entity2024 {
+  return core.setOptionValue(entity, path, value);
+}
+
+/** Adds the next level of class `classKey`. */
+export function addLevel(entity: Entity2024, classKey: string, options: MutationOptions2024 = DEFAULT_OPTIONS): Entity2024 {
+  return core.addNext(templateFor(options), entity, levelsPath(classKey));
+}
+
+/** Removes the highest level of class `classKey` and its choices. Level 1 stays. */
+export function removeLevel(entity: Entity2024, classKey: string, options: MutationOptions2024 = DEFAULT_OPTIONS): Entity2024 {
+  return core.removeLast(templateFor(options), entity, levelsPath(classKey));
+}
+
+export interface AutofillOptions2024 extends MutationOptions2024 {
+  /** A 32-bit integer. The same seed and the same entity give the same result. */
+  seed: number;
+}
+
+/**
+ * Completes each open selection of the character at random. It never
+ * changes a choice that the entity has. It goes back from a choice that
+ * leaves a selection with nothing to choose.
+ */
+export function autofill(entity: Entity2024, options: AutofillOptions2024): Entity2024 {
+  return autofillCore(templateFor(options), entity, { seed: options.seed });
 }

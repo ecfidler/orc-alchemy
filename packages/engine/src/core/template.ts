@@ -1,12 +1,23 @@
 // The template: the tree of every selection and option that a rules edition
 // offers. Port of orcpub.template (template.cljc:37-87).
 
+import type { OptionValue } from "./entity.ts";
 import type { Base, OptionModifier } from "./modifiers.ts";
 
-/** A condition that the built entity must meet (template/option-prereq). */
+/**
+ * A condition that the built entity must meet (template/option-prereq).
+ *
+ * A prerequisite has two meanings. `canChoose` asks if the character can
+ * choose the option now, on the built entity without it. `stillValid` asks
+ * if a choice that the entity has is still valid, on the built entity with
+ * it. The two differ when the choice itself changes the answer: "this feat
+ * is not taken already" is false for the feat once it is chosen. Without
+ * `stillValid`, the `canChoose` test is used for both.
+ */
 export interface Prereq<S> {
   label: string;
-  test: (built: S) => boolean;
+  canChoose: (built: S) => boolean;
+  stillValid?: (built: S) => boolean;
   /** Hide the option when the condition fails, where a list would show it as unavailable. */
   hideIfFail?: boolean;
 }
@@ -21,6 +32,11 @@ export interface Option<S> {
   /** Opened when the option is chosen. */
   selections: readonly Selection<S>[];
   prereqs: readonly Prereq<S>[];
+  /**
+   * A value for `autofill` to give the option, for a selection with
+   * `requireValue`. `random` returns a number from 0 up to 1.
+   */
+  autofillValue?: (random: () => number) => OptionValue;
 }
 
 export interface Selection<S> {

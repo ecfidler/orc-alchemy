@@ -1,9 +1,9 @@
 // Species (SRD 5.2.1 p84 to p86). The slice has the Dwarf.
 
 import { type Option, option } from "../../core/template.ts";
-import { feature, m, type Sheet } from "../sheet.ts";
+import { type Built2024, feature, m } from "../built.ts";
 
-export const SPECIES: readonly Option<Sheet>[] = [
+export const SPECIES: readonly Option<Built2024>[] = [
   option({
     name: "Dwarf",
     modifiers: [

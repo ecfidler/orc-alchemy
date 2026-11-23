@@ -3,7 +3,7 @@
 // and Grappler, and the four Fighting Style feats.
 
 import { nameToKey, type Option, option, type Prereq, type Selection, selection } from "../../core/template.ts";
-import { ABILITIES, type Ability, type FeatCategory, feature, m, type Sheet } from "../sheet.ts";
+import { ABILITIES, type Ability, type Built2024, type FeatCategory, feature, m } from "../built.ts";
 
 export interface Feat {
   key: string;
@@ -11,9 +11,9 @@ export interface Feat {
   category: FeatCategory;
   /** A feat can be taken once unless it is repeatable (SRD 5.2.1 p87). */
   repeatable: boolean;
-  prereqs: readonly Prereq<Sheet>[];
-  modifiers: Option<Sheet>["modifiers"];
-  selections: readonly Selection<Sheet>[];
+  prereqs: readonly Prereq<Built2024>[];
+  modifiers: Option<Built2024>["modifiers"];
+  selections: readonly Selection<Built2024>[];
 }
 
 const ABILITY_NAMES: Record<Ability, string> = { str: "Strength", dex: "Dexterity", con: "Constitution", int: "Intelligence", wis: "Wisdom", cha: "Charisma" };
@@ -23,8 +23,8 @@ export function abilityIncreaseOptions(
   abilities: readonly Ability[],
   amount: number,
   source: string,
-  prereq?: (ability: Ability) => Prereq<Sheet>,
-): Option<Sheet>[] {
+  prereq?: (ability: Ability) => Prereq<Built2024>,
+): Option<Built2024>[] {
   return abilities.map((ability) =>
     option({
       key: ability,
@@ -35,9 +35,12 @@ export function abilityIncreaseOptions(
   );
 }
 
-const level4: Prereq<Sheet> = { label: "Level 4+", test: (built) => built.totalLevel >= 4 };
+const level4: Prereq<Built2024> = { label: "Level 4+", canChoose: (built) => built.totalLevel >= 4 };
 // Any class can grant the feature, so the class part of the key does not count.
-const fightingStyleFeature: Prereq<Sheet> = { label: "Fighting Style feature", test: (built) => built.features.some((f) => f.key.endsWith("/fighting-style")) };
+const fightingStyleFeature: Prereq<Built2024> = {
+  label: "Fighting Style feature",
+  canChoose: (built) => built.features.some((f) => f.key.endsWith("/fighting-style")),
+};
 
 function feat(config: Pick<Feat, "name" | "category"> & Partial<Feat>): Feat {
   return { key: nameToKey(config.name), repeatable: false, prereqs: [], modifiers: [], selections: [], ...config };
@@ -95,7 +98,7 @@ export const FEATS: readonly Feat[] = [
   feat({
     name: "Grappler",
     category: "general",
-    prereqs: [level4, { label: "Strength or Dexterity 13+", test: (built) => built.abilities.str >= 13 || built.abilities.dex >= 13 }],
+    prereqs: [level4, { label: "Strength or Dexterity 13+", canChoose: (built) => built.abilities.str >= 13 || built.abilities.dex >= 13 }],
     modifiers: [
       m.push(
         "features",
@@ -159,7 +162,7 @@ export const FEATS: readonly Feat[] = [
 ];
 
 /** The modifiers and selections that taking a feat gives: for a fixed grant, such as a background's Origin feat. */
-export function grantFeat(key: string): Pick<Option<Sheet>, "modifiers" | "selections"> {
+export function grantFeat(key: string): Pick<Option<Built2024>, "modifiers" | "selections"> {
   const granted = FEATS.find((f) => f.key === key);
   if (!granted) throw new Error(`No feat "${key}"`);
   return {
@@ -169,8 +172,13 @@ export function grantFeat(key: string): Pick<Option<Sheet>, "modifiers" | "selec
 }
 
 /** A feat as an option of a feat selection. A feat that is not repeatable cannot be taken twice. */
-function featOption(granted: Feat): Option<Sheet> {
-  const once: Prereq<Sheet> = { label: "Not taken already", test: (built) => !built.feats.some((f) => f.key === granted.key) };
+function featOption(granted: Feat): Option<Built2024> {
+  // Once the feat is chosen, the built character has it one time, and that is still valid.
+  const once: Prereq<Built2024> = {
+    label: "Not taken already",
+    canChoose: (built) => !built.feats.some((f) => f.key === granted.key),
+    stillValid: (built) => built.feats.filter((f) => f.key === granted.key).length <= 1,
+  };
   return option({
     key: granted.key,
     name: granted.name,
@@ -184,6 +192,6 @@ function featOption(granted: Feat): Option<Sheet> {
  * "If you're instructed to choose a feat and no category is specified, you
  * can choose from any category" (SRD 5.2.1 p87).
  */
-export function featSelection(name: string, categories?: readonly FeatCategory[]): Selection<Sheet> {
+export function featSelection(name: string, categories?: readonly FeatCategory[]): Selection<Built2024> {
   return selection({ name, tags: ["feat"], options: FEATS.filter((f) => !categories || categories.includes(f.category)).map(featOption) });
 }

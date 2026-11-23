@@ -1,9 +1,10 @@
 // Building an entity against a template. Port of the build half of
-// orcpub.entity (entity.cljc:423-621 and :711-759).
+// orcpub.entity (entity.cljc:423-621 and :711-759), with the problems of the
+// 2024 engine added.
 
-import { type ChoiceTree, chosenPaths, type FlatOption, flattenOptions, optionsAt, pathKey, type StrictEntity } from "./entity.ts";
-import { applyModifiers, type Base, type Modifier } from "./modifiers.ts";
-import type { Option, Selection, Template } from "./template.ts";
+import { type ChoiceTree, chosenPaths, type FlatOption, flattenOptions, optionsAt, type Path, pathKey, type StrictEntity } from "./entity.ts";
+import { type Applied, applyModifiers, type Base, type Modifier } from "./modifiers.ts";
+import type { Option, Prereq, Selection, Template } from "./template.ts";
 
 /** A selection that the entity's choices make active, with its place in the tree. */
 export interface ActiveSelection<S> extends Selection<S> {
@@ -13,6 +14,11 @@ export interface ActiveSelection<S> extends Selection<S> {
 /** Where the choices of a selection are stored (entity/actual-path). */
 export function actualPath<S>(selection: Pick<ActiveSelection<S>, "path" | "ref">): readonly string[] {
   return selection.ref ?? selection.path;
+}
+
+/** true when two paths have the same keys. */
+export function samePath(a: Path, b: Path): boolean {
+  return a.length === b.length && a.every((key, i) => key === b[i]);
 }
 
 /**
@@ -52,42 +58,56 @@ function templateOptions<S>(selections: readonly ActiveSelection<S>[]): Map<stri
 
 /**
  * The modifiers of every chosen option, in the order of the entity
- * (entity/collect-modifiers-2). A deferred modifier gets the value of its
- * option, or its default value. With neither, it gives nothing: the Clojure
- * core calls the function with nil. A chosen option that the template does
- * not have gives nothing.
+ * (entity/collect-modifiers-2). Each modifier gets the path of its option
+ * as its source, and the name of the option when it has no name of its
+ * own. A deferred modifier gets the value of its option, or its default
+ * value. With neither, it gives nothing: the Clojure core calls the
+ * function with nil. A chosen option that the template does not have gives
+ * nothing.
  */
 export function collectModifiers<S>(flatOptions: readonly FlatOption[], selections: readonly ActiveSelection<S>[]): Modifier<S>[] {
   const options = templateOptions(selections);
-  return flatOptions.flatMap(({ path, value }) =>
-    (options.get(pathKey(path))?.modifiers ?? []).flatMap((modifier) => {
-      if (!("deferred" in modifier)) return [modifier];
+  return flatOptions.flatMap(({ path, value }) => {
+    const option = options.get(pathKey(path));
+    if (!option) return [];
+    const sourced = (modifier: Modifier<S>): Modifier<S> => ({ ...modifier, source: path, name: modifier.name ?? option.name });
+    return option.modifiers.flatMap((modifier) => {
+      if (!("deferred" in modifier)) return [sourced(modifier)];
       const optionValue = value ?? modifier.defaultValue;
-      return optionValue === undefined ? [] : modifier.deferred(optionValue);
-    }),
-  );
+      return optionValue === undefined ? [] : [modifier.deferred(optionValue)].flat().map(sourced);
+    });
+  });
 }
 
-/** The built entity: the base, the entity's values, and the modifiers of its choices (entity/build). */
-export function build<S>(entity: StrictEntity<S>, template: Template<S>): S {
+/** The built entity and the contributions to each of its keys. */
+export function buildWithContributions<S>(entity: StrictEntity<NoInfer<S>>, template: Template<S>): Applied<S> {
   const flatOptions = flattenOptions(entity);
   const selections = activeSelections(template, chosenPaths(flatOptions));
   const base = { ...template.base, ...entity.values } as Base<S>;
   return applyModifiers(base, collectModifiers(flatOptions, selections));
 }
 
+/** The built entity: the base, the entity's values, and the modifiers of its choices (entity/build). */
+export function build<S>(entity: StrictEntity<NoInfer<S>>, template: Template<S>): S {
+  return buildWithContributions(entity, template).built;
+}
+
 /**
  * Selections with the same ref as one selection: the counts add up and
  * the options merge, sorted by key (entity/combine-ref-selections). The
- * result takes its other fields from the first of them.
+ * pool is a multiselect when it takes more than one choice. The result
+ * takes its other fields from the first of them.
  */
 function combineRefSelections<S>(selections: readonly ActiveSelection<S>[]): ActiveSelection<S> {
   const options = new Map<string, Option<S>>();
   for (const selection of selections) for (const option of selection.options) if (!options.has(option.key)) options.set(option.key, option);
+  const max = selections.every((s) => s.max !== null) ? selections.reduce((sum, s) => sum + (s.max ?? 0), 0) : null;
   return {
     ...selections[0],
     min: selections.reduce((sum, s) => sum + s.min, 0),
-    max: selections.every((s) => s.max !== null) ? selections.reduce((sum, s) => sum + (s.max ?? 0), 0) : null,
+    max,
+    // Two single-selects in one pool take two choices.
+    multiselect: selections.some((s) => s.multiselect) || max === null || max > 1,
     options: [...options.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
   };
 }
@@ -136,7 +156,67 @@ export function countRemaining<S>(entity: ChoiceTree, selection: ActiveSelection
   return 0;
 }
 
-/** true when the built entity meets every prereq of the option (entity/meets-prereqs?). */
-export function meetsPrereqs<S>(option: Option<S>, built: S): boolean {
-  return option.prereqs.every((prereq) => prereq.test(built));
+/**
+ * true when the character can choose the option now: the built entity,
+ * which does not have the option, meets each prereq (entity/meets-prereqs?).
+ */
+export function canChoose<S>(option: Option<S>, built: S): boolean {
+  return option.prereqs.every((prereq) => prereq.canChoose(built));
+}
+
+/** The prereqs of a chosen option that the built entity, which has the option, no longer meets. */
+export function failedPrereqs<S>(option: Option<S>, built: S): Prereq<S>[] {
+  return option.prereqs.filter((prereq) => !(prereq.stillValid ?? prereq.canChoose)(built));
+}
+
+/** What is wrong with one choice of an entity. */
+export interface Problem {
+  /**
+   * `unknown-choice`: the template does not offer the choice, so it gives
+   * nothing. `prerequisite`: the choice is in the template, but a
+   * prerequisite fails, or its selection is not offered. It still applies.
+   */
+  kind: "unknown-choice" | "prerequisite";
+  /** The path of the chosen option: a selection's actual path and the option key. */
+  path: string[];
+  reason: string;
+}
+
+const startsWith = (path: Path, prefix: Path) => prefix.length <= path.length && prefix.every((key, i) => key === path[i]);
+
+/**
+ * The problems of the entity's choices, in the order of the entity. Below
+ * an unknown choice, the choices are not reported again.
+ */
+export function findProblems<S>(entity: ChoiceTree, built: S, template: Template<S>): Problem[] {
+  const flatOptions = flattenOptions(entity);
+  const selections = activeSelections(template, chosenPaths(flatOptions));
+  const options = templateOptions(selections);
+  const problems: Problem[] = [];
+  const unknown: string[][] = [];
+
+  for (const { path } of flatOptions) {
+    if (unknown.some((prefix) => startsWith(path, prefix))) continue;
+    const option = options.get(pathKey(path));
+    const selectionPath = path.slice(0, -1);
+    const selection = selections.find((s) => samePath(actualPath(s), selectionPath));
+    if (!option) {
+      const optionKey = path[path.length - 1];
+      const reason = selection
+        ? `"${optionKey}" is not an option of "${selection.name}"`
+        : `No selection "${selectionPath[selectionPath.length - 1]}" is offered at this place`;
+      problems.push({ kind: "unknown-choice", path, reason });
+      unknown.push(path);
+      continue;
+    }
+    // In a ref pool, the choice is offered when one selection of the pool is offered.
+    const pool = selections.filter((s) => samePath(actualPath(s), selectionPath));
+    if (selection && pool.every((s) => s.prereq && !s.prereq(built))) {
+      problems.push({ kind: "prerequisite", path, reason: `"${selection.name}" is not offered: its prerequisite fails` });
+    }
+    for (const prereq of failedPrereqs(option, built)) {
+      problems.push({ kind: "prerequisite", path, reason: `"${option.name}" needs: ${prereq.label}` });
+    }
+  }
+  return problems;
 }

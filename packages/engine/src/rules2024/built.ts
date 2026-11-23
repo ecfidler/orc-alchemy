@@ -1,6 +1,7 @@
 // The built 2024 character and its base: the values before any choice, and
 // the values derived from others. This file is the 2024 counterpart of
-// dnd/e5/template_base.cljc, for the keys the Fighter slice needs.
+// dnd/e5/template_base.cljc, for the keys the Fighter slice needs. The
+// names are 2024 names: `species`, not `race`.
 
 import { type Base, modifiersFor } from "../core/modifiers.ts";
 import { nameToKey } from "../core/template.ts";
@@ -80,7 +81,8 @@ export interface WeaponAttack {
   mastery: WeaponMastery | null;
 }
 
-export interface Sheet {
+/** The built 2024 character: every value that `evaluate` computes from the choices. */
+export interface Built2024 {
   name: string;
   species: string | null;
   creatureType: string;
@@ -146,8 +148,8 @@ export interface Sheet {
   weaponAttacks: readonly WeaponAttack[];
 }
 
-/** The modifier constructors for the 2024 sheet. */
-export const m = modifiersFor<Sheet>();
+/** The modifier constructors for the built 2024 character. */
+export const m = modifiersFor<Built2024>();
 
 export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2);
@@ -167,7 +169,7 @@ function signed(bonus: number): string {
   return bonus === 0 ? "" : bonus > 0 ? `+${bonus}` : `${bonus}`;
 }
 
-export const base: Base<Sheet> = {
+export const base: Base<Built2024> = {
   name: "",
   species: null,
   creatureType: "humanoid",
