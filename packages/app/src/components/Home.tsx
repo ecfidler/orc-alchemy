@@ -40,8 +40,24 @@ export function Home() {
         <ul aria-label="What Alchemy 5e does" className="grid gap-1.5 text-[15px]">
           {[
             "Build a character step by step, or roll a random one.",
-            "Import your characters and homebrew from Dungeon Master's Vault",
+            "Import your characters and content from Dungeon Master's Vault",
             "No account necessary. Export your characters at any time.",
+          ].map((fact) => (
+            <li
+              key={fact}
+              className="grid grid-cols-[16px_minmax(0,1fr)] items-baseline gap-2 before:size-[9px] before:translate-y-px before:border-[1.5px] before:border-ink before:content-['']"
+            >
+              {fact}
+            </li>
+          ))}
+        </ul>
+        <p className="max-w-[34ch] text-[19px]">Welcome to the Beta!</p>
+        <ul aria-label="Beta information" className="grid gap-1.5 text-[15px]">
+          {[
+            "Many features are in progress and on the way!",
+            "Community hub for updates tbd...",
+            "Your saved characters and content here are stored solely in your browser. Please use with caution and export as needed.",
+            "For now, I would recommend creating a random character to take a look at the character sheet!",
           ].map((fact) => (
             <li
               key={fact}
