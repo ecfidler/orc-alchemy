@@ -5520,6 +5520,29 @@
           "gold": 100
         }
       ],
+      "multiclass": {
+        "armorTraining": [
+          "light"
+        ],
+        "skills": {
+          "choose": 1,
+          "from": [
+            "acrobatics",
+            "athletics",
+            "deception",
+            "insight",
+            "intimidation",
+            "investigation",
+            "perception",
+            "persuasion",
+            "sleight-of-hand",
+            "stealth"
+          ]
+        },
+        "tools": [
+          "srd52:thieves-tools"
+        ]
+      },
       "features": [
         {
           "key": "expertise",
@@ -5628,6 +5651,150 @@
           "name": "Stroke of Luck",
           "text": "You have a marvelous knack for succeeding when you need to. If you fail a D20 Test, you can turn the roll into a 20.\nOnce you use this feature, you can't use it again until you finish a Short or Long Rest.",
           "level": 20
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "effects": [
+            {
+              "hook": "expertise",
+              "args": {
+                "count": 2
+              }
+            },
+            {
+              "push": "languages",
+              "value": "srd52:thieves-cant",
+              "name": "Thieves' Cant"
+            },
+            {
+              "hook": "language-choice",
+              "args": {
+                "name": "Thieves' Cant"
+              }
+            },
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 2,
+                "proficient": true
+              }
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "effects": [
+            {
+              "hook": "expertise",
+              "args": {
+                "count": 2
+              }
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 10,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 12,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 15,
+          "effects": [
+            {
+              "push": "savingThrowProficiencies",
+              "value": "wis",
+              "name": "Slippery Mind"
+            },
+            {
+              "push": "savingThrowProficiencies",
+              "value": "cha",
+              "name": "Slippery Mind"
+            }
+          ]
+        },
+        {
+          "level": 16,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 19,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Epic Boon"
+              }
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "effects": [
+            {
+              "uses": {
+                "trait": "stroke-of-luck",
+                "amount": 1,
+                "recover": [
+                  {
+                    "on": "short-rest",
+                    "amount": "all"
+                  },
+                  {
+                    "on": "long-rest",
+                    "amount": "all"
+                  }
+                ]
+              }
+            }
+          ]
         }
       ],
       "table": [

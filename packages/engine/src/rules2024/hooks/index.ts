@@ -8,8 +8,10 @@
 import { abilityScoreIncreaseHook } from "./ability-score-increase.ts";
 import { alwaysPreparedSpellsHook } from "./always-prepared-spells.ts";
 import { armorClassHook } from "./armor-class.ts";
+import { expertiseHook } from "./expertise.ts";
 import { featChoiceHook } from "./feat-choice.ts";
 import { type HookRegistry, registry } from "./hook.ts";
+import { languageChoiceHook } from "./language-choice.ts";
 import { magicInitiateHook } from "./magic-initiate.ts";
 import { savingThrowAttackHook } from "./saving-throw-attack.ts";
 import { weaponMasteryHook } from "./weapon-mastery.ts";
@@ -25,4 +27,6 @@ export const HOOKS: HookRegistry = registry([
   featChoiceHook,
   magicInitiateHook,
   weaponMasteryHook,
+  expertiseHook,
+  languageChoiceHook,
 ]);

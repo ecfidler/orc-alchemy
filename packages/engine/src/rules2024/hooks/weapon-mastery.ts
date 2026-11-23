@@ -17,6 +17,8 @@ export const weaponMasteryHook = defineHook({
     count: z.int().min(1),
     /** True when the kinds are Melee weapons only, as for the Barbarian (SRD 5.2.1 p29). */
     melee: z.boolean().default(false),
+    /** True when the kinds are weapons with which the character has proficiency, as for the Rogue (SRD 5.2.1 p62). */
+    proficient: z.boolean().default(false),
   }),
-  apply: ({ count, melee }, call) => ({ modifiers: [], selections: [weaponMasterySelection(call.content, count, { melee })] }),
+  apply: ({ count, melee, proficient }, call) => ({ modifiers: [], selections: [weaponMasterySelection(call.content, count, { melee, proficient })] }),
 });

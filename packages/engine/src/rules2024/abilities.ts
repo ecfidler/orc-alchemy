@@ -4,6 +4,7 @@
 
 import { type Option, option, type Prereq, type Selection, selection } from "../core/template.ts";
 import { type Ability, type Built2024, m } from "./built.ts";
+import { notAlready } from "./choices.ts";
 
 export const ABILITY_NAMES: Record<Ability, string> = {
   str: "Strength",
@@ -73,9 +74,5 @@ export function backgroundAbilitySelection(abilities: readonly [Ability, Ability
  * still valid. Two times is a problem.
  */
 export function notTakenAlready(featKey: string): Prereq<Built2024> {
-  return {
-    label: "Not taken already",
-    canChoose: (built) => !built.feats.some((f) => f.key === featKey),
-    stillValid: (built) => built.feats.filter((f) => f.key === featKey).length <= 1,
-  };
+  return notAlready("Not taken already", (built) => built.feats.map((f) => f.key), featKey);
 }

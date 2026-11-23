@@ -9,10 +9,10 @@
 
 import type { z } from "zod";
 import type { ModifierOptions } from "../core/modifiers.ts";
-import { type Option, type OptionParts, option, type Selection, selection } from "../core/template.ts";
+import { type Option, type OptionParts, option, type Prereq, type Selection, selection } from "../core/template.ts";
 import { parseReference, referenceTo, SRD_PACK } from "../format/keys.ts";
 import type { EquipmentItem, EquipmentOption, Records } from "../format/schema.ts";
-import { ADD_ORDER, type ArmorStats, type Built2024, m, type WeaponStats } from "./built.ts";
+import { ADD_ORDER, type ArmorStats, type Built2024, isProficient, m, type WeaponStats } from "./built.ts";
 import { type Content, findRecord, recordsOf } from "./content.ts";
 
 type EquipmentRecord = Records["equipment"];
@@ -110,14 +110,26 @@ export function carriedItemOptions(content: Content): Option<Built2024>[] {
   );
 }
 
+/** The prerequisite of a Weapon Mastery option that needs the proficiency with the weapon. */
+function weaponProficiency(reference: string, record: EquipmentRecord): Prereq<Built2024> {
+  const weapon = { key: reference, category: (record.weapon as NonNullable<EquipmentRecord["weapon"]>).category };
+  return { label: `Proficiency with ${record.name}`, canChoose: (built) => isProficient(weapon, built.weaponProficiencies) };
+}
+
 /**
  * The Weapon Mastery choice of a class: `count` kinds of weapons. Every
  * occurrence stores its choices at the same ref, so the counts of the class
  * levels add up to one pool. A player changes a choice on a Long Rest by
  * choosing the same selection again. With `melee`, the options are the
- * Melee weapons only, as for the Barbarian (SRD 5.2.1 p29).
+ * Melee weapons only, as for the Barbarian (SRD 5.2.1 p29). With
+ * `proficient`, an option needs the proficiency with the weapon, as for
+ * the Rogue (p62).
  */
-export function weaponMasterySelection(content: Content, count: number, { melee = false }: { melee?: boolean } = {}): Selection<Built2024> {
+export function weaponMasterySelection(
+  content: Content,
+  count: number,
+  { melee = false, proficient = false }: { melee?: boolean; proficient?: boolean } = {},
+): Selection<Built2024> {
   return selection({
     name: "Weapon Mastery",
     ref: ["weapon-mastery"],
@@ -127,7 +139,14 @@ export function weaponMasterySelection(content: Content, count: number, { melee 
     tags: ["weapon-mastery"],
     options: weaponRecords(content)
       .filter(({ record }) => !melee || record.weapon?.ranged === false)
-      .map(({ reference, record }) => option<Built2024>({ key: reference, name: record.name, modifiers: [m.push("weaponMasteries", reference)] })),
+      .map(({ reference, record }) =>
+        option<Built2024>({
+          key: reference,
+          name: record.name,
+          modifiers: [m.push("weaponMasteries", reference)],
+          prereqs: proficient ? [weaponProficiency(reference, record)] : [],
+        }),
+      ),
   });
 }
 

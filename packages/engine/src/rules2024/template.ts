@@ -7,6 +7,7 @@ import { shuffled } from "../core/autofill.ts";
 import { option, type Prereq, selection, type Template } from "../core/template.ts";
 import { ABILITIES, type AbilityScores, type Built2024, base, forEachAbility, m, RULES } from "./built.ts";
 import { BUILT_IN } from "./built-in.ts";
+import { languageOption } from "./choices.ts";
 import { type Content, recordsOf } from "./content.ts";
 import { armorOptions, carriedItemOptions, shieldOptions, weaponOptions } from "./equipment.ts";
 import { backgroundOption, classOption, speciesOption } from "./records.ts";
@@ -87,7 +88,7 @@ export function createTemplate(content: Content): Template<Built2024> {
   // Every character knows Common and two languages from the Standard Languages table (SRD 5.2.1 p20).
   const languages = recordsOf(content, "languages")
     .filter(({ record }) => !record.rare && record.key !== "common")
-    .map(({ reference, record }) => option<Built2024>({ key: reference, name: record.name, modifiers: [m.push("languages", reference)] }));
+    .map(({ reference, record }) => languageOption(reference, record.name));
 
   return {
     base,

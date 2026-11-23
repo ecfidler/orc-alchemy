@@ -25,6 +25,7 @@ import type {
 } from "../format/schema.ts";
 import { backgroundAbilitySelection, notTakenAlready } from "./abilities.ts";
 import { ADD_ORDER, type Built2024, type FeatCategory, type Feature, m, type Size, type Skill, traitKey } from "./built.ts";
+import { skillName } from "./choices.ts";
 import { classLevelModifiers } from "./class-frame.ts";
 import { type Content, findRecord, recordsOf } from "./content.ts";
 import { equipmentInCategory, startingEquipmentSelection } from "./equipment.ts";
@@ -425,8 +426,9 @@ export function speciesOption(content: Content, reference: string, species: Spec
  */
 function toolParts(content: Content, reference: string, selectionName: string, tool: ClassRecord["tools"] | BackgroundRecord["tool"]): Parts {
   if (tool === undefined) return EMPTY;
+  // A proficiency counts once: the Rogue and the Criminal both give Thieves' Tools.
   const proficiency = (ref: string) => [
-    m.push("toolProficiencies", ref),
+    m.update("toolProficiencies", (tools) => (tools.includes(ref) ? tools : [...tools, ref])),
     m.update("chosenTools", (chosen) => ({ ...chosen, [reference]: [...(chosen[reference] ?? []), ref] })),
   ];
   if (typeof tool === "string" || Array.isArray(tool)) return { modifiers: [tool].flat().flatMap(proficiency), selections: [] };
@@ -566,7 +568,6 @@ export function classOption(content: Content, reference: string, record: ClassRe
   const levelEffects = (record.levels ?? []).map((entry, i) => ({ level: entry.level, parts: effectParts(context, entry.effects, ["levels", i, "effects"]) }));
   const features = traitFeatures(context, record.features ?? []).map((modifier, i) => ({ level: record.features?.[i].level ?? 1, modifier }));
   const subclasses = recordsOf(content, "subclasses").filter(({ record: subclass }) => subclass.class === reference);
-  const skillName = (key: string) => recordsOf(content, "skills").find(({ record: skill }) => skill.key === key)?.record.name ?? key;
 
   const levels = Array.from({ length: MAX_LEVEL }, (_, i) => {
     const level = i + 1;
@@ -611,7 +612,7 @@ export function classOption(content: Content, reference: string, record: ClassRe
             min: record.skills.choose,
             max: record.skills.choose,
             options: record.skills.from.map((skill) =>
-              option<Built2024>({ key: skill, name: skillName(skill), modifiers: [m.push("skillProficiencies", skill as Skill)] }),
+              option<Built2024>({ key: skill, name: skillName(content, skill), modifiers: [m.push("skillProficiencies", skill as Skill)] }),
             ),
           }),
         ],
