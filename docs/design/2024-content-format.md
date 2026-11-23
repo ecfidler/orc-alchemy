@@ -4,7 +4,7 @@ title: 2024 content format
 description: The 2024 content format - JSON packs, two layers in each record, rules as data with named hooks, the record types and their fields, the value forms and conditions, the loader, the key scheme, the source data, attribution, and monsters - with an example species, background, feat, and spell.
 tags: [rules-2024, engine, content-format, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T06:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T05:15:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-96
 sources:
   - id: orc-96
