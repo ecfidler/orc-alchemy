@@ -4,10 +4,10 @@
 // so a pack does not write them.
 //
 // This file converts classes, subclasses, species, backgrounds and feats.
+// The loaded records are in content.ts.
 
 import type { Key, Modifier, OptionModifier, Reader } from "../core/modifiers.ts";
-import { type Option, type OptionParts, option, type Prereq, selection } from "../core/template.ts";
-import { parseReference, referenceTo } from "../format/keys.ts";
+import { type Option, type OptionParts, option, type Prereq, type Selection, selection } from "../core/template.ts";
 import type { IssuePath } from "../format/load.ts";
 import type {
   BackgroundRecord,
@@ -15,10 +15,7 @@ import type {
   Condition,
   Effect,
   FeatRecord,
-  Pack,
   Prerequisite,
-  Records,
-  RecordType,
   SelectionOption,
   SpeciesRecord,
   SubclassRecord,
@@ -26,9 +23,10 @@ import type {
   Value,
 } from "../format/schema.ts";
 import { backgroundAbilitySelection, notTakenAlready } from "./abilities.ts";
-import { type Built2024, type Feature, m, type Size, type Skill } from "./built.ts";
+import { type Built2024, type FeatCategory, type Feature, m, type Size, type Skill, traitKey } from "./built.ts";
 import { classLevelModifiers } from "./class-frame.ts";
-import { HOOKS, type HookRegistry } from "./hooks/index.ts";
+import { type Content, findRecord, recordsOf } from "./content.ts";
+import { HOOKS } from "./hooks/index.ts";
 import { isSheetValue, SHEET_VALUES, type SheetValueKind, type SheetValueName } from "./sheet-values.ts";
 
 /** A rule of a record that the engine cannot convert. `path` is the place in the record. */
@@ -42,24 +40,6 @@ export class RecordError extends Error {
     super(`${record} at ${path.join(".") || "the record"}: ${reason}`);
     this.name = "RecordError";
   }
-}
-
-/** The loaded packs that references resolve against, and the hooks of the engine. */
-export interface Content {
-  packs: readonly Pack[];
-  hooks?: HookRegistry;
-}
-
-/** The record of `type` that `reference` names, or undefined. */
-export function findRecord<T extends RecordType>(content: Content, type: T, reference: string): Records[T] | undefined {
-  const { pack, key } = parseReference(reference);
-  const found = content.packs.find((p) => p.pack.id === pack);
-  return (found?.[type] as Records[T][] | undefined)?.find((record) => record.key === key);
-}
-
-/** Each record of `type` in the content, with its reference. */
-export function recordsOf<T extends RecordType>(content: Content, type: T): { reference: string; record: Records[T] }[] {
-  return content.packs.flatMap((pack) => (pack[type] as Records[T][]).map((record) => ({ reference: referenceTo(pack.pack.id, record.key), record })));
 }
 
 type Read = (key: SheetValueName) => unknown;
@@ -82,6 +62,8 @@ interface Context {
   uses: Map<string, Compiled<NonNullable<Feature["uses"]>>>;
   /** The feats that grant this record, through `grantFeat`. A feat that grants one of them makes a loop. */
   via: readonly string[];
+  /** The spell list that a background gives to its feat, for Magic Initiate. */
+  featSpellList?: string;
   /** True in the effects of an option of a `selection` effect. */
   inOption?: true;
 }
@@ -276,7 +258,7 @@ export function effectParts(context: Context, effects: readonly Effect[], path: 
         if (chain.includes(effect.grantFeat)) {
           throw new RecordError(context.record, [...at, "grantFeat"], `the feats grant each other in a loop: ${[...chain, effect.grantFeat].join(" > ")}`);
         }
-        return featParts(context.content, effect.grantFeat, feat, chain);
+        return featParts(context.content, effect.grantFeat, feat, { via: chain });
       }
       if ("selection" in effect) {
         const { key, name, choose, from } = effect.selection;
@@ -288,7 +270,20 @@ export function effectParts(context: Context, effects: readonly Effect[], path: 
       if (!hook) throw new RecordError(context.record, [...at, "hook"], `the engine has no hook "${effect.hook}"`);
       const args = hook.args.safeParse(effect.args ?? {});
       if (!args.success) throw new RecordError(context.record, [...at, "args"], args.error.issues.map((issue) => issue.message).join("; "));
-      return hook.apply(args.data, { record: context.record });
+      return hook.apply(args.data, {
+        record: context.record,
+        content: context.content,
+        featSpellList: context.featSpellList,
+        featSelection: (name, categories) => {
+          // A feat that offers a choice of feats is on the chain, like a granted feat. A loop is an error of this record.
+          const chain = [...context.via, context.record];
+          const loop = recordsOf(context.content, "feats").find(
+            ({ reference, record }) => chain.includes(reference) && (!categories || categories.includes(record.category)),
+          );
+          if (loop) throw new RecordError(context.record, [...at, "args"], `the feats offer each other in a loop: ${[...chain, loop.reference].join(" > ")}`);
+          return featSelection(context.content, name, categories, chain);
+        },
+      });
     }),
   );
 }
@@ -313,9 +308,14 @@ function traitFeatures(context: Context, traits: readonly (Trait & { level?: num
 }
 
 /** The parts of a record: its effects, then a feature for each trait. */
-function recordParts(content: Content, reference: string, record: FeatRecord | SpeciesRecord | BackgroundRecord, via: readonly string[] = []): Parts {
+function recordParts(
+  content: Content,
+  reference: string,
+  record: FeatRecord | SpeciesRecord | BackgroundRecord,
+  { via = [], featSpellList }: Pick<Partial<Context>, "via" | "featSpellList"> = {},
+): Parts {
   const traits = record.traits ?? [];
-  const context: Context = { record: reference, content, traits, uses: new Map(), via };
+  const context: Context = { record: reference, content, traits, uses: new Map(), via, featSpellList };
   const effects = effectParts(context, record.effects ?? [], ["effects"]);
   return merge(effects, { modifiers: traitFeatures(context, traits), selections: [] });
 }
@@ -324,12 +324,26 @@ function recordParts(content: Content, reference: string, record: FeatRecord | S
 
 /**
  * What taking a feat gives: the feat on the sheet, its effects, and its
- * traits as features. `via` is the chain of feats that grant it.
+ * traits as features. A feat with no traits, such as Savage Attacker, is
+ * one feature with its description. `via` is the chain of feats that grant
+ * it. `featSpellList` is the spell list that a background gives to it.
  */
-export function featParts(content: Content, reference: string, feat: FeatRecord, via: readonly string[] = []): Parts {
+export function featParts(
+  content: Content,
+  reference: string,
+  feat: FeatRecord,
+  { via = [], featSpellList }: Pick<Partial<Context>, "via" | "featSpellList"> = {},
+): Parts {
+  const description: Parts = feat.traits?.length
+    ? EMPTY
+    : {
+        modifiers: [m.push("features", { key: traitKey(reference, feat.name), name: feat.name, summary: feat.description ?? "", source: reference })],
+        selections: [],
+      };
   return merge(
     { modifiers: [m.push("feats", { key: reference, name: feat.name, category: feat.category })], selections: [] },
-    recordParts(content, reference, feat, via),
+    recordParts(content, reference, feat, { via, featSpellList }),
+    description,
   );
 }
 
@@ -337,14 +351,30 @@ export function featParts(content: Content, reference: string, feat: FeatRecord,
  * A feat as an option of a feat selection, with its prerequisites. A feat
  * that is not repeatable can be taken once (SRD 5.2.1 p87).
  */
-export function featOption(content: Content, reference: string, feat: FeatRecord): Option<Built2024> {
-  const context: Context = { record: reference, content, traits: feat.traits ?? [], uses: new Map(), via: [] };
+export function featOption(content: Content, reference: string, feat: FeatRecord, via: readonly string[] = []): Option<Built2024> {
+  const context: Context = { record: reference, content, traits: feat.traits ?? [], uses: new Map(), via };
   const prereqs = (feat.prerequisites ?? []).map((p, i) => prerequisite(context, p, ["prerequisites", i]));
   return option({
     key: reference,
     name: feat.name,
-    ...featParts(content, reference, feat),
+    ...featParts(content, reference, feat, { via }),
     prereqs: feat.repeatable ? prereqs : [...prereqs, notTakenAlready(reference)],
+  });
+}
+
+/**
+ * A choice of one feat from the feat records of `categories`. Without
+ * categories, every feat is an option: "If you're instructed to choose a
+ * feat and no category is specified, you can choose from any category"
+ * (SRD 5.2.1 p87). `via` is the chain of feats that offer the choice.
+ */
+export function featSelection(content: Content, name: string, categories?: readonly FeatCategory[], via: readonly string[] = []): Selection<Built2024> {
+  return selection({
+    name,
+    tags: ["feat"],
+    options: recordsOf(content, "feats")
+      .filter(({ record }) => !categories || categories.includes(record.category))
+      .map(({ reference, record }) => featOption(content, reference, record, via)),
   });
 }
 
@@ -418,10 +448,10 @@ export function backgroundOption(content: Content, reference: string, background
     ...merge(
       {
         modifiers: [m.set("background", reference), ...background.skills.map((skill) => m.push("skillProficiencies", skill as Skill))],
-        selections: [backgroundAbilitySelection(background.abilityScores, background.name)],
+        selections: [backgroundAbilitySelection(background.abilityScores, reference)],
       },
       toolParts(content, "Tool", background.tool),
-      featParts(content, background.feat, feat),
+      featParts(content, background.feat, feat, { featSpellList: background.featSpellList }),
       recordParts(content, reference, background),
     ),
   });

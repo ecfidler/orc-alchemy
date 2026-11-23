@@ -2,8 +2,8 @@
 // The test in srd52/srd52.test.ts checks that it loads with no issue.
 
 import pack from "../../content/srd52.json" with { type: "json" };
+import type { Content } from "./content.ts";
 import { loadContentPack } from "./packs.ts";
-import type { Content } from "./records.ts";
 
 const loaded = loadContentPack(pack);
 if (!loaded.pack) throw new Error(`The built-in pack srd52 does not load: ${loaded.issues.map((issue) => issue.message).join("; ")}`);

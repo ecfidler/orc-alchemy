@@ -206,10 +206,10 @@ describe("ability scores", () => {
     const soldier: StrictSelection = {
       key: "background",
       option: {
-        key: "soldier",
+        key: "srd52:soldier",
         selections: [
           { key: "ability-scores", option: twoAndOne("str", "con") },
-          { key: "gaming-set", option: { key: "dice" } },
+          { key: "tool", option: { key: "srd52:dice" } },
         ],
       },
     };

@@ -1,8 +1,8 @@
 // The 2024 template: the selections at the top of a character (ORC-225).
-// The classes, the species (ORC-226) and the languages come from the
-// content. The background and the equipment are still the content of the
-// spike: ORC-227 and ORC-228 replace them. The Fighter of the spike stays until
-// ORC-230 writes the rules of `srd52:fighter`.
+// The classes, the species (ORC-226), the backgrounds and the feats
+// (ORC-227), and the languages come from the content. The equipment is
+// still the content of the spike: ORC-228 replaces it. The Fighter of the
+// spike stays until ORC-230 writes the rules of `srd52:fighter`.
 
 import { shuffled } from "../core/autofill.ts";
 import { option, type Prereq, selection, type Template } from "../core/template.ts";
@@ -10,10 +10,10 @@ import { referenceTo, SRD_PACK } from "../format/keys.ts";
 import { ABILITIES, type AbilityScores, type Built2024, base, forEachAbility, m, RULES } from "./built.ts";
 import { BUILT_IN } from "./built-in.ts";
 import { ARMOR } from "./content/armor.ts";
-import { BACKGROUNDS } from "./content/backgrounds.ts";
-import { FIGHTER } from "./content/fighter.ts";
+import { fighterOption } from "./content/fighter.ts";
 import { WEAPONS } from "./content/weapons.ts";
-import { type Content, classOption, recordsOf, speciesOption } from "./records.ts";
+import { type Content, recordsOf } from "./content.ts";
+import { backgroundOption, classOption, speciesOption } from "./records.ts";
 
 /** The Standard Array (SRD 5.2.1 p21). */
 export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8] as const;
@@ -103,9 +103,12 @@ export function createTemplate(content: Content): Template<Built2024> {
     modifiers: RULES,
     selections: [
       abilityScoreMethods,
-      selection({ name: "Class", min: 1, max: null, multiselect: true, options: [FIGHTER, ...classes] }),
+      selection({ name: "Class", min: 1, max: null, multiselect: true, options: [fighterOption(content), ...classes] }),
       selection({ name: "Species", options: recordsOf(content, "species").map(({ reference, record }) => speciesOption(content, reference, record)) }),
-      selection({ name: "Background", options: BACKGROUNDS }),
+      selection({
+        name: "Background",
+        options: recordsOf(content, "backgrounds").map(({ reference, record }) => backgroundOption(content, reference, record)),
+      }),
       selection({ name: "Languages", min: 2, max: 2, options: languages }),
       selection({
         name: "Armor",

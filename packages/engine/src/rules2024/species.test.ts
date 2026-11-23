@@ -229,7 +229,7 @@ describe("Halfling", () => {
 
 describe("Human", () => {
   it.each(LEVELS)("at level %i", (level) => {
-    const { built, problems } = build("human", level, [choose("size", "small"), choose("skillful", "stealth"), choose("versatile", "alert")]);
+    const { built, problems } = build("human", level, [choose("size", "small"), choose("skillful", "stealth"), choose("versatile", "srd52:alert")]);
     expect(problems).toEqual([]);
     expect(built.size).toBe("small");
     // Skillful: Stealth. Dex +2 + PB.
@@ -238,7 +238,7 @@ describe("Human", () => {
     expect(built.feats).toEqual([{ key: "srd52:alert", name: "Alert", category: "origin" }]);
   });
 
-  it("offers the 18 skills and the 4 Origin feats", () => {
+  it("offers the 18 skills and the Origin feats of the content", () => {
     const selections = template2024.selections.find((s) => s.key === "species")?.options.find((o) => o.key === "srd52:human")?.selections;
     expect(selections?.map((s) => [s.key, s.options.length])).toEqual([
       ["size", 2],

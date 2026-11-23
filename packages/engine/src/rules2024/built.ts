@@ -124,6 +124,8 @@ export interface GrantedSpell {
   spell: string;
   /** The reference of the record that gives it. */
   source: string;
+  /** The class whose spell list the spell came from, when the record lets the player choose a list (Magic Initiate). */
+  list?: string;
   ability: Ability;
   /** The casts without a spell slot, when the trait gives some. */
   uses?: Uses;
@@ -217,6 +219,8 @@ export interface Built2024 {
   feats: readonly FeatTaken[];
   features: readonly Feature[];
   spells: readonly GrantedSpell[];
+  /** The spellcasting ability that the player chose for the spells of a record, by a key of that record. */
+  spellcastingAbilities: Readonly<Record<string, Ability>>;
 
   wornArmor: string | null;
   shield: boolean;
@@ -312,10 +316,12 @@ export const base: Base<Built2024> = {
 
   baseAbilities: forEachAbility(() => 10),
   abilityIncreases: [],
-  // Increases apply in the order of the choices. Each stops at its own maximum (SRD 5.2.1 p21, p87).
+  // Each increase stops at its own maximum (SRD 5.2.1 p21, p87). The increases with the lower maximum apply first,
+  // so an Epic Boon (maximum 30) counts after the increases of character creation and of the other feats, whatever the
+  // order of the choices.
   abilities: m.derived(["baseAbilities", "abilityIncreases"], (q) => {
     const scores = { ...q("baseAbilities") };
-    for (const { ability, amount, max } of q("abilityIncreases")) {
+    for (const { ability, amount, max } of q("abilityIncreases").toSorted((a, b) => a.max - b.max)) {
       scores[ability] = Math.max(scores[ability], Math.min(max, scores[ability] + amount));
     }
     return scores;
@@ -369,6 +375,7 @@ export const base: Base<Built2024> = {
   feats: [],
   features: [],
   spells: [],
+  spellcastingAbilities: {},
 
   wornArmor: null,
   shield: false,

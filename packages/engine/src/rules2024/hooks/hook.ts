@@ -1,13 +1,20 @@
 // The shape of a hook, and the registry type.
 
 import type { z } from "zod";
-import type { OptionParts } from "../../core/template.ts";
-import type { Built2024 } from "../built.ts";
+import type { OptionParts, Selection } from "../../core/template.ts";
+import type { Built2024, FeatCategory } from "../built.ts";
+import type { Content } from "../content.ts";
 
-/** Where a hook is called from. */
+/** Where a hook is called from, and what the converter gives it. */
 export interface HookCall {
   /** The reference of the record that calls the hook. */
   record: string;
+  /** The loaded content, for a hook that lists records. */
+  content: Content;
+  /** The spell list that a background gives to the feat that calls the hook, for Magic Initiate. */
+  featSpellList?: string;
+  /** A choice of one feat of the categories, as the converter makes it. */
+  featSelection: (name: string, categories?: readonly FeatCategory[]) => Selection<Built2024>;
 }
 
 export interface Hook<A = unknown> {

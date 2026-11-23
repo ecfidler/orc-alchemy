@@ -1,7 +1,6 @@
 // Rules that several kinds of content share: the ability score increases of
 // a background (+2 and +1, or +1 to three) and of a feat, and the rule that
-// a feat is taken once. The spike content and the record converter both use
-// them.
+// a feat is taken once. The record converter and the hooks use them.
 
 import { type Option, option, type Prereq, type Selection, selection } from "../core/template.ts";
 import { type Ability, type Built2024, m } from "./built.ts";
@@ -15,18 +14,21 @@ export const ABILITY_NAMES: Record<Ability, string> = {
   cha: "Charisma",
 };
 
-/** One option for each ability. Choosing it increases the score, to at most 20. */
+/** The cap of an ability score increase, except an Epic Boon (SRD 5.2.1 p21). */
+export const ABILITY_CAP = 20;
+
+/** One option for each ability. Choosing it increases the score, to at most `max`. */
 export function abilityIncreaseOptions(
   abilities: readonly Ability[],
   amount: number,
   source: string,
-  prereq?: (ability: Ability) => Prereq<Built2024>,
+  { max = ABILITY_CAP, prereq }: { max?: number; prereq?: (ability: Ability) => Prereq<Built2024> } = {},
 ): Option<Built2024>[] {
   return abilities.map((ability) =>
     option({
       key: ability,
       name: ABILITY_NAMES[ability],
-      modifiers: [m.push("abilityIncreases", { ability, amount, max: 20, source })],
+      modifiers: [m.push("abilityIncreases", { ability, amount, max, source })],
       prereqs: prereq ? [prereq(ability)] : [],
     }),
   );
@@ -52,14 +54,14 @@ export function backgroundAbilitySelection(abilities: readonly [Ability, Ability
         name: "+2 and +1",
         key: "two-and-one",
         selections: [
-          selection({ name: "Increase by 2", key: "plus-two", options: abilityIncreaseOptions(abilities, 2, source, notTakenBy(1)) }),
-          selection({ name: "Increase by 1", key: "plus-one", options: abilityIncreaseOptions(abilities, 1, source, notTakenBy(2)) }),
+          selection({ name: "Increase by 2", key: "plus-two", options: abilityIncreaseOptions(abilities, 2, source, { prereq: notTakenBy(1) }) }),
+          selection({ name: "Increase by 1", key: "plus-one", options: abilityIncreaseOptions(abilities, 1, source, { prereq: notTakenBy(2) }) }),
         ],
       }),
       option({
         name: "+1 to all three",
         key: "three-ones",
-        modifiers: abilities.map((ability) => m.push("abilityIncreases", { ability, amount: 1, max: 20, source })),
+        modifiers: abilities.map((ability) => m.push("abilityIncreases", { ability, amount: 1, max: ABILITY_CAP, source })),
       }),
     ],
   });

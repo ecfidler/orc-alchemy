@@ -35,7 +35,8 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
     loads the pack `srd52`.
   - `evaluate.ts` is the facade: `evaluate`, the mutations and
     `autofill`.
-  - `records.ts` converts records of the content format to core options.
+  - `content.ts` finds the loaded records by type and reference.
+    `records.ts` converts records of the content format to core options.
     `class-frame.ts` has the class levels and their Hit Points.
   - `hooks/` is the hook registry, with one file for each hook.
   - `packs.ts` loads a pack for the engine. It checks the hooks, then
@@ -45,7 +46,9 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
   - `fighter.test.ts` has the hand-checked values of the Fighter from the
     spike (ORC-95). `base-rules.test.ts` has the rules of every character
     on test classes (ORC-225). `species.test.ts` has the 9 species of the
-    pack at levels 1, 5 and 11 (ORC-226).
+    pack at levels 1, 5 and 11 (ORC-226). `feats.test.ts` and
+    `backgrounds.test.ts` have the 17 feats and the 4 backgrounds
+    (ORC-227).
 - `srd52/srd52.test.ts` compares the built-in pack with the text of the SRD
   5.2.1 PDF, in `srd52/fixtures/`.
 

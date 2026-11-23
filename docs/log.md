@@ -2,6 +2,7 @@
 
 ## 2026-11-23
 
+* **Update**: Added the hooks `ability-score-increase`, `feat-choice` and `magic-initiate`, and the feature of a feat with no traits, to the [2024 content format](design/2024-content-format.md) (ORC-227).
 * **Update**: Added the hooks `always-prepared-spells` and `saving-throw-attack` to the [2024 content format](design/2024-content-format.md), and made the damage type in its example Dwarf a reference (ORC-226).
 * **Update**: Added the `armor-class` hook to the real hooks of the [2024 content format](design/2024-content-format.md) (ORC-225).
 * **Update**: Added the reference record types, the class table and the pack contents to the [2024 content format](design/2024-content-format.md), and the steps of the import to its section *The source data* (ORC-224).

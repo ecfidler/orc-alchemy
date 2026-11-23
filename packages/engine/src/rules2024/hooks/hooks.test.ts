@@ -174,3 +174,85 @@ describe("saving-throw-attack", () => {
     expect(speciesWith({ hook: "saving-throw-attack", args: { ...args, dice: [[5, 2]] } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
   });
 });
+
+describe("ability-score-increase", () => {
+  it("increases each ability of the list when the count is the whole list", () => {
+    const { issues, build } = speciesWith({ hook: "ability-score-increase", args: { abilities: ["str", "con"], choose: 2, amount: 2, max: 30 } });
+    expect(issues).toEqual([]);
+    expect(build(1)?.abilityIncreases).toEqual([
+      { ability: "str", amount: 2, max: 30, source: "test:thing" },
+      { ability: "con", amount: 2, max: 30, source: "test:thing" },
+    ]);
+  });
+
+  it("opens a choice of the abilities otherwise", () => {
+    const { build } = speciesWith({ hook: "ability-score-increase", args: { abilities: ["str", "dex", "con"], choose: 2 } });
+    expect(build(1)?.abilityIncreases).toEqual([]);
+    // Con 14 + 1 = 15.
+    expect(build(1, [{ key: "abilities", options: [{ key: "dex" }, { key: "con" }] }])?.abilities).toMatchObject({ dex: 11, con: 15 });
+  });
+
+  it("refuses a count above the number of abilities, and a cap above 30", () => {
+    expect(speciesWith({ hook: "ability-score-increase", args: { abilities: ["str"], choose: 2 } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+    expect(speciesWith({ hook: "ability-score-increase", args: { max: 31 } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});
+
+describe("feat-choice", () => {
+  const feats = [
+    { key: "keen", name: "Keen", category: "origin", repeatable: false },
+    { key: "tough", name: "Tough", category: "general", repeatable: false },
+  ];
+  const withFeats = (args: unknown) =>
+    loadContentPack(
+      testPackFile({
+        classes: [testClass("plain")],
+        feats,
+        species: [{ key: "thing", name: "Thing", creatureType: "humanoid", size: "medium", speed: 30, effects: [{ hook: "feat-choice", args }] }],
+      }),
+    );
+
+  it("offers the feats of the categories in the content", () => {
+    const loaded = withFeats({ name: "Gift", categories: ["origin"] });
+    expect(loaded.issues).toEqual([]);
+    if (!loaded.pack) throw new Error("the test pack does not load");
+    const thing = createTemplate({ packs: [loaded.pack] }).selections.find((s) => s.key === "species")?.options[0];
+    expect(thing?.selections.map((s) => [s.key, s.options.map((o) => o.key)])).toEqual([["gift", ["test:keen"]]]);
+  });
+
+  it("refuses a feat that offers a choice of its own category, so the pack still loads", () => {
+    const loaded = loadContentPack(
+      testPackFile({
+        classes: [testClass("plain")],
+        feats: [
+          ...feats,
+          {
+            key: "gifted",
+            name: "Gifted",
+            category: "origin",
+            repeatable: false,
+            effects: [{ hook: "feat-choice", args: { name: "Gift", categories: ["origin"] } }],
+          },
+        ],
+      }),
+    );
+    expect(loaded.issues).toEqual([
+      {
+        path: ["feats", 2, "effects", 0, "args"],
+        message: "the feats offer each other in a loop: test:gifted > test:gifted, so the record loads without its effects",
+        dropped: "effects",
+      },
+    ]);
+  });
+
+  it("refuses a category that does not exist", () => {
+    expect(withFeats({ name: "Gift", categories: ["heroic"] }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});
+
+// feats.test.ts has the choices of the hook through the Magic Initiate feat, and backgrounds.test.ts the list that a background fixes.
+describe("magic-initiate", () => {
+  it("refuses an empty list of spell lists", () => {
+    expect(speciesWith({ hook: "magic-initiate", args: { lists: [] } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});

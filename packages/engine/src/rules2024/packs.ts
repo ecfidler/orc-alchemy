@@ -11,8 +11,9 @@ import { referenceTo } from "../format/keys.ts";
 import { checkReferences, hasRules, type LoadIssue, type LoadResult, loadPack, withoutRules } from "../format/load.ts";
 import type { AnyRecord, Pack, Records, RecordType } from "../format/schema.ts";
 import type { Built2024 } from "./built.ts";
+import type { Content } from "./content.ts";
 import { HOOKS } from "./hooks/index.ts";
-import { backgroundOption, type Content, classOption, featOption, RecordError, speciesOption, subclassOption } from "./records.ts";
+import { backgroundOption, classOption, featOption, RecordError, speciesOption, subclassOption } from "./records.ts";
 
 export interface ContentPackOptions {
   /** The loaded packs that this pack refers to, for example the built-in pack `srd52` for a homebrew pack. */

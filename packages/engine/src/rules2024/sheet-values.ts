@@ -46,6 +46,7 @@ export const SHEET_VALUES = {
   feats: "list",
   features: "list",
   spells: "list",
+  spellcastingAbilities: "record",
   wornArmor: "nullable",
   shield: "boolean",
   armorWithoutTraining: "boolean",

@@ -8,7 +8,8 @@
 import { describe, expect, it } from "vitest";
 import { canChoose } from "../core/build.ts";
 import type { StrictOption } from "../core/entity.ts";
-import { FEATS, featSelection } from "./content/feats.ts";
+import { BUILT_IN } from "./built-in.ts";
+import { recordsOf } from "./content.ts";
 import {
   addLevel,
   autofill,
@@ -22,6 +23,7 @@ import {
   setOptionValue,
   setValue,
 } from "./evaluate.ts";
+import { featSelection } from "./records.ts";
 import { type Choices, fighterCharacter as character } from "./testing.ts";
 
 const build = (choices: Choices) => evaluate(character(choices), { rules: "2024" });
@@ -34,10 +36,10 @@ describe("level 1", () => {
   it("has the identity of the choices", () => {
     expect(built.name).toBe("Brunhild");
     expect(built.species).toBe("srd52:dwarf");
-    expect(built.background).toBe("soldier");
-    expect(built.classes).toEqual(["fighter"]);
-    expect(built.classLevels).toEqual({ fighter: 1 });
-    expect(built.hitDice).toEqual({ fighter: 10 });
+    expect(built.background).toBe("srd52:soldier");
+    expect(built.classes).toEqual(["srd52:fighter"]);
+    expect(built.classLevels).toEqual({ "srd52:fighter": 1 });
+    expect(built.hitDice).toEqual({ "srd52:fighter": 10 });
     expect(built.subclasses).toEqual({});
     expect(built.totalLevel).toBe(1);
     expect(built.size).toBe("medium");
@@ -77,7 +79,7 @@ describe("level 1", () => {
   it("has the other proficiencies", () => {
     expect(built.weaponProficiencies).toEqual(["simple", "martial"]);
     expect(built.armorTraining).toEqual(["light", "medium", "heavy", "shield"]);
-    expect(built.toolProficiencies).toEqual(["dice"]);
+    expect(built.toolProficiencies).toEqual(["srd52:dice"]);
     expect(built.languages).toEqual(["srd52:common", "srd52:dwarvish", "srd52:giant"]);
     expect(built.resistances).toEqual(["srd52:poison"]);
   });
@@ -93,8 +95,8 @@ describe("level 1", () => {
 
   it("has the Origin feat of the background and the Fighting Style feat", () => {
     expect(built.feats).toEqual([
-      { key: "defense", name: "Defense", category: "fighting-style" },
-      { key: "savage-attacker", name: "Savage Attacker", category: "origin" },
+      { key: "srd52:defense", name: "Defense", category: "fighting-style" },
+      { key: "srd52:savage-attacker", name: "Savage Attacker", category: "origin" },
     ]);
   });
 
@@ -122,6 +124,8 @@ describe("level 1", () => {
       "Fighting Style",
       "Second Wind",
       "Weapon Mastery",
+      // A feat with no traits, such as Defense, is one feature with its description.
+      "Defense",
       // The spike Dwarf had no Darkvision feature. srd52:dwarf lists each trait of the SRD as a feature.
       "Darkvision",
       "Dwarven Resilience",
@@ -139,7 +143,7 @@ describe("level 1", () => {
     });
     // Stonecunning: uses equal to the Proficiency Bonus, +2.
     expect(feature(built, "Stonecunning")?.uses).toEqual({ amount: 2, recover: [{ on: "long-rest", amount: "all" }] });
-    expect(feature(built, "Second Wind")).toMatchObject({ key: "fighter/second-wind", source: "fighter", level: 1 });
+    expect(feature(built, "Second Wind")).toMatchObject({ key: "srd52:fighter/second-wind", source: "srd52:fighter", level: 1 });
   });
 
   it("has every selection filled", () => {
@@ -153,10 +157,10 @@ describe("level 1", () => {
       "class/fighter/levels/level-1/weapon-mastery",
       "species",
       "background",
-      "background/soldier/ability-scores",
-      "background/soldier/ability-scores/two-and-one/plus-two",
-      "background/soldier/ability-scores/two-and-one/plus-one",
-      "background/soldier/gaming-set",
+      "background/srd52:soldier/ability-scores",
+      "background/srd52:soldier/ability-scores/two-and-one/plus-two",
+      "background/srd52:soldier/ability-scores/two-and-one/plus-one",
+      "background/srd52:soldier/tool",
       "languages",
       "armor",
       "shield",
@@ -197,8 +201,8 @@ describe("level 3", () => {
   });
 
   it("is a Champion with Improved Critical", () => {
-    expect(built.classLevels).toEqual({ fighter: 3 });
-    expect(built.subclasses).toEqual({ fighter: "champion" });
+    expect(built.classLevels).toEqual({ "srd52:fighter": 3 });
+    expect(built.subclasses).toEqual({ "srd52:fighter": "champion" });
     expect(built.criticalHitMinimum).toBe(19);
     expect(built.features.filter((f) => f.level === 3).map((f) => f.name)).toEqual(["Improved Critical", "Remarkable Athlete"]);
   });
@@ -230,7 +234,7 @@ describe("level 5", () => {
     // Str 17 + 1 = 18. Con 15 + 1 = 16.
     expect(built.abilities).toEqual({ str: 18, dex: 13, con: 16, int: 8, wis: 12, cha: 10 });
     expect(built.abilityModifiers).toMatchObject({ str: 4, con: 3 });
-    expect(built.feats.map((f) => f.key)).toEqual(["defense", "ability-score-improvement", "savage-attacker"]);
+    expect(built.feats.map((f) => f.key)).toEqual(["srd52:defense", "srd52:ability-score-improvement", "srd52:savage-attacker"]);
   });
 
   it("has 54 Hit Points", () => {
@@ -308,7 +312,7 @@ describe("the background's ability score choice", () => {
 
 describe("feats", () => {
   it("adds 2 to Ranged weapon attacks with Archery, and Defense is then absent", () => {
-    const { built } = build({ level: 1, fightingStyle: "archery" });
+    const { built } = build({ level: 1, fightingStyle: "srd52:archery" });
     // Longbow: Dex +1 + PB 2 + Archery 2 = +5. The Greatsword does not change.
     expect(attack(built, "longbow")?.attackBonus).toBe(5);
     expect(attack(built, "greatsword")?.attackBonus).toBe(5);
@@ -325,7 +329,7 @@ describe("feats", () => {
 
   it("can add 2 to one ability with the Ability Score Improvement feat", () => {
     const plusTwoStr: StrictOption = {
-      key: "ability-score-improvement",
+      key: "srd52:ability-score-improvement",
       selections: [{ key: "increase", option: { key: "two", selections: [{ key: "ability", option: { key: "str" } }] } }],
     };
     // Str 17 + 2 = 19.
@@ -333,27 +337,45 @@ describe("feats", () => {
   });
 
   it("increases Strength or Dexterity by 1 with Grappler", () => {
-    const grappler: StrictOption = { key: "grappler", selections: [{ key: "ability", option: { key: "dex" } }] };
+    const grappler: StrictOption = { key: "srd52:grappler", selections: [{ key: "ability", option: { key: "dex" } }] };
     const { built } = build({ level: 4, level4Feat: grappler });
     // Dex 13 + 1 = 14, so the modifier is +2 and the Armor Class without armor is 12.
     expect(built.abilities.dex).toBe(14);
     expect(built.unarmoredArmorClass).toBe(12);
-    expect(built.features.filter((f) => f.source === "grappler")).toHaveLength(3);
+    // The 4 traits of the record, the increase among them.
+    expect(built.features.filter((f) => f.source === "srd52:grappler")).toHaveLength(4);
   });
 
   it("offers a feat only when the character meets its prerequisites", () => {
-    const anyFeat = featSelection("Feat");
+    const anyFeat = featSelection(BUILT_IN, "Feat");
     const available = (level: number) => anyFeat.options.filter((o) => canChoose(o, buildCharacter(character({ level })))).map((o) => o.key);
-    // Level 1: no General feat. Defense and Savage Attacker are taken, and neither is repeatable.
-    expect(available(1)).toEqual(["alert", "archery", "great-weapon-fighting", "two-weapon-fighting"]);
+    // Level 1: no General feat and no Epic Boon. Defense and Savage Attacker are taken, and neither is repeatable.
+    // Magic Initiate and Skilled are repeatable.
+    expect(available(1)).toEqual([
+      "srd52:alert",
+      "srd52:magic-initiate",
+      "srd52:skilled",
+      "srd52:archery",
+      "srd52:great-weapon-fighting",
+      "srd52:two-weapon-fighting",
+    ]);
     // Level 3, before the level 4 choice: the same.
     expect(available(3)).toEqual(available(1));
     // Level 5: the General feats too. Ability Score Improvement is repeatable.
-    expect(available(5)).toEqual(["alert", "ability-score-improvement", "grappler", "archery", "great-weapon-fighting", "two-weapon-fighting"]);
+    expect(available(5)).toEqual([
+      "srd52:alert",
+      "srd52:magic-initiate",
+      "srd52:skilled",
+      "srd52:ability-score-improvement",
+      "srd52:grappler",
+      "srd52:archery",
+      "srd52:great-weapon-fighting",
+      "srd52:two-weapon-fighting",
+    ]);
   });
 
-  it("has 8 of the 17 SRD feats", () => {
-    expect(FEATS).toHaveLength(8);
+  it("has the 17 SRD feats", () => {
+    expect(recordsOf(BUILT_IN, "feats")).toHaveLength(17);
   });
 });
 
@@ -385,12 +407,16 @@ describe("problems", () => {
 
   it("reports a feat that the character took two times", () => {
     // Defense at level 1 and again at level 4. Defense is not repeatable, so neither choice is still valid.
-    const { problems } = build({ level: 4, level4Feat: { key: "defense" } });
+    const { problems } = build({ level: 4, level4Feat: { key: "srd52:defense" } });
     expect(problems).toEqual([
-      { kind: "prerequisite", path: ["class", "fighter", "levels", "level-1", "fighting-style", "defense"], reason: '"Defense" needs: Not taken already' },
       {
         kind: "prerequisite",
-        path: ["class", "fighter", "levels", "level-4", "ability-score-improvement", "defense"],
+        path: ["class", "fighter", "levels", "level-1", "fighting-style", "srd52:defense"],
+        reason: '"Defense" needs: Not taken already',
+      },
+      {
+        kind: "prerequisite",
+        path: ["class", "fighter", "levels", "level-4", "ability-score-improvement", "srd52:defense"],
         reason: '"Defense" needs: Not taken already',
       },
     ]);
@@ -403,7 +429,7 @@ describe("contributions", () => {
   it("gives the Defense bonus to the Armor Class with its source", () => {
     // Chain Mail 16, then Defense +1.
     expect(contributions.armorClass).toEqual([
-      { name: "Defense", source: ["class", "fighter", "levels", "level-1", "fighting-style", "defense"], from: 16, to: 17 },
+      { name: "Defense", source: ["class", "fighter", "levels", "level-1", "fighting-style", "srd52:defense"], from: 16, to: 17 },
     ]);
   });
 
@@ -419,7 +445,7 @@ describe("mutations", () => {
 
   it("adds and removes a level", () => {
     const two = addLevel(levelOne, "fighter");
-    expect(evaluate(two, { rules: "2024" }).built.classLevels).toEqual({ fighter: 2 });
+    expect(evaluate(two, { rules: "2024" }).built.classLevels).toEqual({ "srd52:fighter": 2 });
     // 13, then level 2: 6, Con +2, Dwarven Toughness +1.
     expect(hitPoints(two)).toBe(22);
     expect(hitPoints(removeLevel(two, "fighter"))).toBe(13);
@@ -446,11 +472,11 @@ describe("mutations", () => {
     const four = character({ level: 4 });
     const slot = ["class", "fighter", "levels", "level-4", "ability-score-improvement"];
     // The Soldier gives Savage Attacker, and it is not repeatable.
-    expect(() => select(four, slot, "savage-attacker")).toThrow('"Savage Attacker" needs: Not taken already');
-    expect(() => select(levelOne, ["class", "fighter", "levels", "level-1", "fighting-style"], "alert")).toThrow(
-      '"alert" is not an option of "Fighting Style"',
+    expect(() => select(four, slot, "srd52:savage-attacker")).toThrow('"Savage Attacker" needs: Not taken already');
+    expect(() => select(levelOne, ["class", "fighter", "levels", "level-1", "fighting-style"], "srd52:alert")).toThrow(
+      '"srd52:alert" is not an option of "Fighting Style"',
     );
-    expect(evaluate(select(four, slot, "alert"), { rules: "2024" }).built.feats.map((f) => f.key)).toContain("alert");
+    expect(evaluate(select(four, slot, "srd52:alert"), { rules: "2024" }).built.feats.map((f) => f.key)).toContain("srd52:alert");
   });
 });
 
