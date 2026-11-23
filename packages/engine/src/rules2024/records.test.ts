@@ -133,9 +133,12 @@ function single(make: (content: Content) => ReturnType<typeof option<Built2024>>
   return (entity: StrictEntity<Pick<Built2024, "name">> = { selections: [{ key: "thing", option: { key: "hb:thing" } }] }) => build(entity, template);
 }
 
+/** The envelope of a homebrew test pack. */
+const homebrew = { format: "alchemy-content", version: 1, rules: "2024", pack: { id: "hb", name: "Test" } };
+
 function feat(effects: Effect[], more: Record<string, unknown> = {}) {
   const raw = { key: "thing", name: "Thing", category: "general", repeatable: true, effects, ...more };
-  const pack = loaded({ format: "alchemy-content", version: 1, rules: "2024", pack: { id: "hb", name: "Test" }, feats: [raw] });
+  const pack = loaded({ ...homebrew, feats: [raw] });
   return (content: Content) => featOption(content, "hb:thing", pack.feats[0]);
 }
 
@@ -193,10 +196,19 @@ describe("values and conditions", () => {
   });
 
   it("checks the prerequisites of a feat", () => {
-    const strong = single(feat([], { prerequisites: [{ label: "Strength 13+", test: { atLeast: [{ read: "abilities", entry: "str" }, 13] } }] }));
-    const entity = { selections: [{ key: "thing", option: { key: "hb:thing" } }] };
-    const built = strong(entity);
-    expect(built.feats.map((f) => f.key)).toEqual(["hb:thing"]);
+    const thing = feat([], { prerequisites: [{ label: "Strength 13+", test: { atLeast: [{ read: "abilities", entry: "str" }, 13] } }] })(content);
+    const template: Template<Built2024> = { ...template2024, selections: [...template2024.selections, selection({ name: "Thing", options: [thing] })] };
+    const problems = (str: number) => {
+      const entity = {
+        selections: [
+          { key: "ability-scores", option: { key: "scores", value: { str, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } } },
+          { key: "thing", option: { key: "hb:thing" } },
+        ],
+      };
+      return findProblems(entity, build(entity, template), template).map((p) => p.reason);
+    };
+    expect(problems(13)).toEqual([]);
+    expect(problems(12)).toEqual(['"Thing" needs: Strength 13+']);
   });
 
   it("gives a choice with its options", () => {
@@ -230,6 +242,17 @@ describe("errors in the rules of a record", () => {
     expect(convert([{ add: "languages", value: 1 }])).toThrow('"languages" is not a number');
     expect(convert([{ push: "speed", value: 1 }])).toThrow('"speed" is not a list');
     expect(convert([{ add: "speed", value: { read: "speed", entry: "x" } }])).toThrow('"speed" has no entries');
+    expect(convert([{ add: "speed", value: { read: "creatureType" } }])).toThrow("hb:thing at effects.0.value: the value is a string, not a number");
+    expect(convert([{ add: "speed", value: { sum: [1, { read: "languages" }] } }])).toThrow("at effects.0.value.sum.1: the value is a list, not a number");
+    expect(convert([{ set: "speed", value: "fast" }])).toThrow('"speed" is a number, and the value is a string');
+    expect(convert([{ set: "species", value: "srd52:dwarf" }])).not.toThrow();
+  });
+
+  it("names a loop of feats that grant each other", () => {
+    const grants = (key: string, other: string) => ({ key, name: key, category: "general", repeatable: true, effects: [{ grantFeat: `hb:${other}` }] });
+    const pack = loaded({ ...homebrew, feats: [grants("one", "two"), grants("two", "one"), grants("self", "self")] });
+    expect(() => featOption({ packs: [pack] }, "hb:one", pack.feats[0])).toThrow("the feats grant each other in a loop: hb:one > hb:two > hb:one");
+    expect(() => featOption({ packs: [pack] }, "hb:self", pack.feats[2])).toThrow("in a loop: hb:self > hb:self");
   });
 
   it("names a trait that the record does not have", () => {

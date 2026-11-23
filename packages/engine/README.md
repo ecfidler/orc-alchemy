@@ -33,7 +33,8 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
   `template.ts` is the template, and `evaluate.ts` is the facade:
   `evaluate`, the mutations and `autofill`. `records.ts` converts records of
   the content format to core options, `hooks/` is the hook registry, and
-  `packs.ts` loads a pack with the hooks of the engine. `fighter.test.ts`
+  `packs.ts` loads a pack for the engine: it checks the hooks, then converts
+  each record and drops the rules that do not convert. `fighter.test.ts`
   has the hand-checked values of the Fighter from the spike (ORC-95).
 
 This work includes material from the System Reference Document 5.2.1

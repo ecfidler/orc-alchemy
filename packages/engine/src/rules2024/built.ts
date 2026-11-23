@@ -3,15 +3,19 @@
 // dnd/e5/template_base.cljc, for the keys the Fighter slice needs. The
 // names are 2024 names: `species`, not `race`.
 
+import type { z } from "zod";
 import { type Base, modifiersFor } from "../core/modifiers.ts";
 import { nameToKey } from "../core/template.ts";
+import { ABILITY_KEYS, type FEAT_CATEGORIES, type Recovery as RecoverySchema, type Size as SizeSchema } from "../format/schema.ts";
 import { ARMOR } from "./content/armor.ts";
 import { WEAPONS, type WeaponMastery } from "./content/weapons.ts";
 
-export const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"] as const;
+// The words that the content format also uses come from its schema, so that the two cannot differ.
+
+export const ABILITIES = ABILITY_KEYS;
 export type Ability = (typeof ABILITIES)[number];
 /** The sizes of a creature (SRD 5.2.1 p176). */
-export type Size = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
+export type Size = z.infer<typeof SizeSchema>;
 
 export type AbilityScores = Readonly<Record<Ability, number>>;
 
@@ -46,7 +50,7 @@ export interface AbilityIncrease {
   source: string;
 }
 
-export type FeatCategory = "origin" | "general" | "fighting-style" | "epic-boon";
+export type FeatCategory = (typeof FEAT_CATEGORIES)[number];
 
 export interface FeatTaken {
   key: string;
@@ -55,10 +59,7 @@ export interface FeatTaken {
 }
 
 /** What a rest restores: a number of uses, or all of them (the `recover` of the content format). */
-export interface Recovery {
-  on: "short-rest" | "long-rest";
-  amount: number | "all";
-}
+export type Recovery = z.infer<typeof RecoverySchema>;
 
 /**
  * The uses of a feature and how they come back. A 2024 feature can have two

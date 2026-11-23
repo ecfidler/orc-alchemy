@@ -7,11 +7,8 @@
 // adds it puts it in the list of the format doc.
 
 import type { z } from "zod";
-import type { Option } from "../../core/template.ts";
+import type { OptionParts } from "../../core/template.ts";
 import type { Built2024 } from "../built.ts";
-
-/** What a hook gives to the option of the record that calls it. */
-export type HookParts = Pick<Option<Built2024>, "modifiers" | "selections">;
 
 /** Where a hook is called from. */
 export interface HookCall {
@@ -23,7 +20,8 @@ export interface Hook<A = unknown> {
   name: string;
   /** The schema of the arguments. */
   args: z.ZodType<A>;
-  apply: (args: A, call: HookCall) => HookParts;
+  /** What the hook gives to the option of the record that calls it. */
+  apply: (args: A, call: HookCall) => OptionParts<Built2024>;
 }
 
 export type HookRegistry = ReadonlyMap<string, Hook>;

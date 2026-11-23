@@ -8,8 +8,9 @@
 // (ORC-225) and the Fighter (ORC-230).
 
 import type { Key, Modifier, OptionModifier, Reader } from "../core/modifiers.ts";
-import { type Option, option, type Prereq, selection } from "../core/template.ts";
+import { type Option, type OptionParts, option, type Prereq, selection } from "../core/template.ts";
 import { parseReference, referenceTo } from "../format/keys.ts";
+import type { IssuePath } from "../format/load.ts";
 import type {
   AnyRecord,
   BackgroundRecord,
@@ -26,19 +27,20 @@ import type {
   Trait,
   Value,
 } from "../format/schema.ts";
-import { backgroundAbilitySelection } from "./abilities.ts";
+import { backgroundAbilitySelection, notTakenAlready } from "./abilities.ts";
 import { type Built2024, type Feature, m, type Size, type Skill } from "./built.ts";
 import { HOOKS, type HookRegistry } from "./hooks/index.ts";
-import { isSheetValue, SHEET_VALUES, type SheetValueName } from "./sheet-values.ts";
+import { isSheetValue, SHEET_VALUES, type SheetValueKind, type SheetValueName } from "./sheet-values.ts";
 
 /** A rule of a record that the engine cannot convert. `path` is the place in the record. */
 export class RecordError extends Error {
   constructor(
     readonly record: string,
-    readonly path: (string | number)[],
-    message: string,
+    readonly path: IssuePath,
+    /** The message without the record and the path. */
+    readonly reason: string,
   ) {
-    super(`${record} at ${path.join(".") || "the record"}: ${message}`);
+    super(`${record} at ${path.join(".") || "the record"}: ${reason}`);
     this.name = "RecordError";
   }
 }
@@ -61,12 +63,16 @@ export function recordsOf<T extends RecordType>(content: Content, type: T): { re
   return content.packs.flatMap((pack) => (pack[type] as Records[T][]).map((record) => ({ reference: referenceTo(pack.pack.id, record.key), record })));
 }
 
-type Path = (string | number)[];
+type Path = IssuePath;
 type Read = (key: SheetValueName) => unknown;
+
+/** The kind of the result of a value, as far as the converter can tell before a build. */
+type ValueKind = SheetValueKind | "unknown";
 
 interface Compiled<T> {
   deps: SheetValueName[];
   get: (read: Read) => T;
+  kind: ValueKind;
 }
 
 /** Where a conversion is: the record, its traits, and the content. */
@@ -76,6 +82,8 @@ interface Context {
   traits: readonly Trait[];
   /** The uses that `uses` effects give to traits, by trait key. */
   uses: Map<string, Compiled<NonNullable<Feature["uses"]>>>;
+  /** The feats that grant this record, through `grantFeat`. A feat that grants one of them makes a loop. */
+  via: readonly string[];
 }
 
 function sheetValue(context: Context, path: Path, name: string): SheetValueName {
@@ -88,7 +96,7 @@ const unique = <T>(items: readonly T[]) => [...new Set(items)];
 // Values and conditions.
 
 export function compileValue(context: Context, value: Value, path: Path): Compiled<unknown> {
-  if (typeof value !== "object") return { deps: [], get: () => value };
+  if (typeof value !== "object") return { deps: [], get: () => value, kind: typeof value as "number" | "string" | "boolean" };
   if ("read" in value) {
     const name = sheetValue(context, [...path, "read"], value.read);
     const entry = value.entry;
@@ -98,6 +106,7 @@ export function compileValue(context: Context, value: Value, path: Path): Compil
     return {
       deps: [name],
       get: (read) => (entry === undefined ? read(name) : ((read(name) as Record<string, unknown>)[entry] ?? 0)),
+      kind: entry === undefined ? SHEET_VALUES[name] : "unknown",
     };
   }
   if ("sum" in value) {
@@ -110,11 +119,15 @@ export function compileValue(context: Context, value: Value, path: Path): Compil
           min,
           parts.reduce((sum, p) => sum + p.get(read), 0),
         ),
+      kind: "number",
     };
   }
   const by = compileNumber(context, value.by, [...path, "by"]);
   const steps = value.steps.map(([at, step], i) => ({ at, value: compileValue(context, step, [...path, "steps", i, 1]) }));
+  const kinds = unique(steps.map((s) => s.value.kind));
   return {
+    // Below the first step the value is 0.
+    kind: kinds.length === 1 && kinds[0] === "number" ? "number" : "unknown",
     deps: unique([...by.deps, ...steps.flatMap((s) => s.value.deps)]),
     get: (read) => {
       const n = by.get(read);
@@ -126,7 +139,11 @@ export function compileValue(context: Context, value: Value, path: Path): Compil
 
 function compileNumber(context: Context, value: Value, path: Path): Compiled<number> {
   const compiled = compileValue(context, value, path);
+  if (compiled.kind !== "number" && compiled.kind !== "unknown") {
+    throw new RecordError(context.record, path, `the value is a ${compiled.kind}, not a number`);
+  }
   return {
+    kind: "number",
     deps: compiled.deps,
     get: (read) => {
       const result = compiled.get(read);
@@ -147,6 +164,7 @@ export function compileCondition(context: Context, condition: Condition, path: P
     const name = sheetValue(context, [...path, "has"], condition.has);
     const item = condition.item;
     return {
+      kind: "boolean",
       deps: [name],
       get: (read) => {
         const value = read(name);
@@ -161,16 +179,17 @@ export function compileCondition(context: Context, condition: Condition, path: P
       compileValue(context, v, [...path, "atLeast" in condition ? "atLeast" : "equals", i]),
     );
     const compare = "atLeast" in condition ? (x: unknown, y: unknown) => Number(x) >= Number(y) : (x: unknown, y: unknown) => x === y;
-    return { deps: unique([...a.deps, ...b.deps]), get: (read) => compare(a.get(read), b.get(read)) };
+    return { kind: "boolean", deps: unique([...a.deps, ...b.deps]), get: (read) => compare(a.get(read), b.get(read)) };
   }
   if ("not" in condition) {
     const inner = compileCondition(context, condition.not, [...path, "not"]);
-    return { deps: inner.deps, get: (read) => !inner.get(read) };
+    return { kind: "boolean", deps: inner.deps, get: (read) => !inner.get(read) };
   }
   const list = "any" in condition ? condition.any : condition.all;
   const parts = list.map((c, i) => compileCondition(context, c, [...path, "any" in condition ? "any" : "all", i]));
   const every = !("any" in condition);
   return {
+    kind: "boolean",
     deps: unique(parts.flatMap((p) => p.deps)),
     get: (read) => (every ? parts.every((p) => p.get(read)) : parts.some((p) => p.get(read))),
   };
@@ -192,7 +211,7 @@ function prerequisite(context: Context, prereq: Prerequisite, path: Path): Prere
 
 // Effects.
 
-export type Parts = Pick<Option<Built2024>, "modifiers" | "selections">;
+export type Parts = OptionParts<Built2024>;
 
 const EMPTY: Parts = { modifiers: [], selections: [] };
 
@@ -207,6 +226,8 @@ function changeModifier(context: Context, effect: Extract<Effect, { set: string 
   if (word === "add" && kind !== "number") throw new RecordError(context.record, [...path, "add"], `"${target}" is not a number`);
   if (word === "push" && kind !== "list") throw new RecordError(context.record, [...path, "push"], `"${target}" is not a list`);
   const value = word === "add" ? compileNumber(context, effect.value, [...path, "value"]) : compileValue(context, effect.value, [...path, "value"]);
+  if (word === "set" && !fits(kind, value.kind))
+    throw new RecordError(context.record, [...path, "value"], `"${target}" is a ${kind}, and the value is a ${value.kind}`);
   const when = effect.when ? compileCondition(context, effect.when, [...path, "when"]) : undefined;
   const deps = unique([...value.deps, ...(when?.deps ?? [])]) as Key<Built2024>[];
   const options = { deps, name: effect.name, when: when && ((q: Reader<Built2024>) => when.get(fromReader(q))) };
@@ -215,6 +236,11 @@ function changeModifier(context: Context, effect: Extract<Effect, { set: string 
   if (word === "set") return m.set(key, get as never, options);
   if (word === "add") return m.add(key, get as (q: Reader<Built2024>) => number, options);
   return m.push(key, get as never, options);
+}
+
+/** Whether a value of kind `value` can be the value of a sheet value of kind `target`. */
+function fits(target: SheetValueKind, value: ValueKind): boolean {
+  return value === "unknown" || value === target || (target === "nullable" && value === "string");
 }
 
 function selectionOption(context: Context, from: SelectionOption, path: Path): Option<Built2024> {
@@ -238,13 +264,17 @@ export function effectParts(context: Context, effects: readonly Effect[], path: 
         const { trait, amount, recover } = effect.uses;
         if (!context.traits.some((t) => t.key === trait)) throw new RecordError(context.record, [...at, "uses", "trait"], `the record has no trait "${trait}"`);
         const value = compileNumber(context, amount, [...at, "uses", "amount"]);
-        context.uses.set(trait, { deps: value.deps, get: (read) => ({ amount: value.get(read), recover }) });
+        context.uses.set(trait, { kind: "record", deps: value.deps, get: (read) => ({ amount: value.get(read), recover }) });
         return EMPTY;
       }
       if ("grantFeat" in effect) {
         const feat = findRecord(context.content, "feats", effect.grantFeat);
         if (!feat) throw new RecordError(context.record, [...at, "grantFeat"], `no feat "${effect.grantFeat}" is loaded`);
-        return featParts(context.content, effect.grantFeat, feat);
+        const chain = [...context.via, context.record];
+        if (chain.includes(effect.grantFeat)) {
+          throw new RecordError(context.record, [...at, "grantFeat"], `the feats grant each other in a loop: ${[...chain, effect.grantFeat].join(" > ")}`);
+        }
+        return featParts(context.content, effect.grantFeat, feat, chain);
       }
       if ("selection" in effect) {
         const { key, name, choose, from } = effect.selection;
@@ -281,19 +311,23 @@ function traitFeatures(context: Context, traits: readonly (Trait & { level?: num
 }
 
 /** The parts of a record: its effects, then a feature for each trait. */
-function recordParts(content: Content, reference: string, record: AnyRecord, traits = record.traits ?? []): Parts {
-  const context: Context = { record: reference, content, traits, uses: new Map() };
+function recordParts(content: Content, reference: string, record: AnyRecord, via: readonly string[] = []): Parts {
+  const traits = record.traits ?? [];
+  const context: Context = { record: reference, content, traits, uses: new Map(), via };
   const effects = effectParts(context, record.effects ?? [], ["effects"]);
   return merge(effects, { modifiers: traitFeatures(context, traits), selections: [] });
 }
 
 // Record types.
 
-/** What taking a feat gives: the feat on the sheet, its effects, and its traits as features. */
-export function featParts(content: Content, reference: string, feat: FeatRecord): Parts {
+/**
+ * What taking a feat gives: the feat on the sheet, its effects, and its
+ * traits as features. `via` is the chain of feats that grant it.
+ */
+export function featParts(content: Content, reference: string, feat: FeatRecord, via: readonly string[] = []): Parts {
   return merge(
     { modifiers: [m.push("feats", { key: reference, name: feat.name, category: feat.category })], selections: [] },
-    recordParts(content, reference, feat),
+    recordParts(content, reference, feat, via),
   );
 }
 
@@ -302,14 +336,14 @@ export function featParts(content: Content, reference: string, feat: FeatRecord)
  * that is not repeatable can be taken once (SRD 5.2.1 p87).
  */
 export function featOption(content: Content, reference: string, feat: FeatRecord): Option<Built2024> {
-  const context: Context = { record: reference, content, traits: feat.traits ?? [], uses: new Map() };
+  const context: Context = { record: reference, content, traits: feat.traits ?? [], uses: new Map(), via: [] };
   const prereqs = (feat.prerequisites ?? []).map((p, i) => prerequisite(context, p, ["prerequisites", i]));
-  const once: Prereq<Built2024> = {
-    label: "Not taken already",
-    canChoose: (built) => !built.feats.some((f) => f.key === reference),
-    stillValid: (built) => built.feats.filter((f) => f.key === reference).length <= 1,
-  };
-  return option({ key: reference, name: feat.name, ...featParts(content, reference, feat), prereqs: feat.repeatable ? prereqs : [...prereqs, once] });
+  return option({
+    key: reference,
+    name: feat.name,
+    ...featParts(content, reference, feat),
+    prereqs: feat.repeatable ? prereqs : [...prereqs, notTakenAlready(reference)],
+  });
 }
 
 /** A species as an option of the species selection. */
@@ -393,7 +427,7 @@ export function backgroundOption(content: Content, reference: string, background
  */
 export function subclassOption(content: Content, reference: string, subclass: SubclassRecord): Option<Built2024> {
   const classRef = subclass.class;
-  const context: Context = { record: reference, content, traits: subclass.features ?? [], uses: new Map() };
+  const context: Context = { record: reference, content, traits: subclass.features ?? [], uses: new Map(), via: [] };
   const atLevel = (level: number) => (q: Reader<Built2024>) => (q("classLevels")[classRef] ?? 0) >= level;
   const gate = (level: number, modifier: OptionModifier<Built2024>): OptionModifier<Built2024> => {
     if ("deferred" in modifier) throw new RecordError(reference, ["levels"], "a level effect cannot need the value of its option");

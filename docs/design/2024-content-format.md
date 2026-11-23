@@ -99,7 +99,7 @@ Eldritch Invocations and Metamagic options.
 One schema, written in TypeScript in `packages/engine/src/format/schema.ts`,
 validates a pack and gives the types of the records. The built-in content,
 the homebrew forms, and the import of a pack file all use that schema. The
-library is Zod 4 (ORC-223): the types come from the schema, each issue has
+library is Zod 4 (ORC-223). The types come from the schema, each issue has
 the path of the bad value, and Zod can write a JSON Schema for the forms.
 
 The loader reads the `version` of a pack before it reads the records.
@@ -120,12 +120,28 @@ message, and what the loader did:
 |---|---|
 | `pack` | The file is not a pack, its envelope is not valid, or its version is newer. The loader returns no pack. |
 | `record` | A record is not valid, or a second record of the same type has the same key. The loader drops the record. |
-| `effects` | A record calls a hook that the engine does not have. The record keeps its display layer and loses its rules layer: `effects`, and `levels` for a class or a subclass. |
-| `none` | A field at the top of the pack that is not a record type. The loader skips it. |
+| `effects` | A record calls a hook that the engine does not have, or the rules of the record do not convert (see below). The record keeps its display layer and loses its rules layer: `effects`, and `levels` for a class or a subclass. |
+| `none` | A field at the top of the pack that is not a record type: the loader skips it. Or a reference that does not resolve (`checkReferences`): the loader keeps the record. |
 
 The loader checks the references of one pack against the packs that load
 with it (`checkReferences`). A homebrew pack loads with the built-in pack,
 so its references to `srd52` resolve.
+
+The engine loads a pack with `loadContentPack`. After the schema, it
+converts each record with the converter of the engine. The converter finds
+the errors that the schema cannot find:
+
+- a sheet value that does not exist, or a value of the wrong kind, for
+  example a string in an `add`;
+- a `uses` on a trait that the record does not have;
+- a hook with arguments that are not valid;
+- a `grantFeat` to a feat that is not loaded, or feats that grant each
+  other in a loop.
+
+A record with such an error in its effects loses its effects. A record that
+still does not convert, for example a background whose Origin feat is not
+loaded, is dropped. Give `loadContentPack` the packs that the pack refers
+to.
 
 ## Names
 
@@ -204,7 +220,7 @@ The fields of each effect:
 
 | Effect | Fields |
 |---|---|
-| `set`, `add`, `push` | The word holds the sheet value, for example `{ "add": "initiative", "value": ... }`. `when` is an optional condition. |
+| `set`, `add`, `push` | The field `set`, `add`, or `push` names the sheet value, for example `{ "add": "initiative", "value": ... }`. `when` is an optional condition. |
 | `uses` | `{ "uses": { "trait": "stonecunning", "amount": ..., "recover": [{ "on": "long-rest", "amount": "all" }] } }`. `on` is `short-rest` or `long-rest`, and `amount` is a number or `"all"`. |
 | `grantFeat` | `{ "grantFeat": "srd52:alert" }`. |
 | `selection` | `{ "selection": { "key": "boost", "name": "Boost", "choose": 1, "from": [options] } }`. An option has `key`, `name`, and optional `effects` and `prerequisites`. |

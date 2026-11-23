@@ -2,8 +2,8 @@
 // Alert and Savage Attacker, the General feats Ability Score Improvement
 // and Grappler, and the four Fighting Style feats.
 
-import { nameToKey, type Option, option, type Prereq, type Selection, selection } from "../../core/template.ts";
-import { abilityIncreaseOptions } from "../abilities.ts";
+import { nameToKey, type Option, type OptionParts, option, type Prereq, type Selection, selection } from "../../core/template.ts";
+import { abilityIncreaseOptions, notTakenAlready } from "../abilities.ts";
 import { ABILITIES, type Built2024, type FeatCategory, feature, m } from "../built.ts";
 
 export interface Feat {
@@ -144,7 +144,7 @@ export const FEATS: readonly Feat[] = [
 ];
 
 /** The modifiers and selections that taking a feat gives: for a fixed grant, such as a background's Origin feat. */
-export function grantFeat(key: string): Pick<Option<Built2024>, "modifiers" | "selections"> {
+export function grantFeat(key: string): OptionParts<Built2024> {
   const granted = FEATS.find((f) => f.key === key);
   if (!granted) throw new Error(`No feat "${key}"`);
   return {
@@ -155,17 +155,11 @@ export function grantFeat(key: string): Pick<Option<Built2024>, "modifiers" | "s
 
 /** A feat as an option of a feat selection. A feat that is not repeatable cannot be taken twice. */
 function featOption(granted: Feat): Option<Built2024> {
-  // Once the feat is chosen, the built character has it one time, and that is still valid.
-  const once: Prereq<Built2024> = {
-    label: "Not taken already",
-    canChoose: (built) => !built.feats.some((f) => f.key === granted.key),
-    stillValid: (built) => built.feats.filter((f) => f.key === granted.key).length <= 1,
-  };
   return option({
     key: granted.key,
     name: granted.name,
     ...grantFeat(granted.key),
-    prereqs: granted.repeatable ? granted.prereqs : [...granted.prereqs, once],
+    prereqs: granted.repeatable ? granted.prereqs : [...granted.prereqs, notTakenAlready(granted.key)],
   });
 }
 

@@ -41,13 +41,13 @@ export function referenceTo(pack: string, key: string): string {
 /**
  * A key from a name, for a record that has no upstream `index` (Eldritch
  * Invocations, Metamagic options, and the variants that upstream divides
- * into trait records). Lowercase, without apostrophes, and with one hyphen
+ * into trait records). Lowercase, without apostrophes or accents, and with one hyphen
  * for each run of other characters. "Thieves' Tools" gives "thieves-tools".
  */
 export function keyFromName(name: string): string {
   return name
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, "-")

@@ -10,15 +10,19 @@ import type { z } from "zod";
 import { isReference, parseReference } from "./keys.ts";
 import { type AnyRecord, CURRENT_VERSION, Envelope, FORMAT, type Pack, RECORD_SCHEMAS, RECORD_TYPES, type RecordType } from "./schema.ts";
 
-/** One problem that the loader found. */
+/** The path of a value in a pack file or a record: `["feats", 2, "effects", 0, "add"]`. */
+export type IssuePath = (string | number)[];
+
+/** One issue that the loader found. */
 export interface LoadIssue {
-  /** The path of the bad value in the pack file: `["feats", 2, "effects", 0, "add"]`. */
-  path: (string | number)[];
+  /** The path of the bad value in the pack file. */
+  path: IssuePath;
   message: string;
   /**
    * What the loader did. `pack`: it refused the whole pack. `record`: it
    * dropped the record. `effects`: it kept the display layer of the record
-   * and dropped its effects. `none`: it kept the record as it is.
+   * and dropped its effects. `none`: it kept the record as it is, for an
+   * unknown field of the pack and for a reference that does not resolve.
    */
   dropped: "pack" | "record" | "effects" | "none";
 }
@@ -44,8 +48,6 @@ export interface LoadOptions {
 /** The upgrades of the real format. Version 1 is the first, so there are none yet. */
 export const UPGRADES: Readonly<Record<number, Upgrade>> = {};
 
-type IssuePath = (string | number)[];
-
 /**
  * The issues of a Zod error as load issues. For a value that matches no
  * branch of a union, the issues of the branch that got furthest stand for
@@ -68,12 +70,17 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Each hook that the effects of a record name, with its path in the record. */
-function hookCalls(value: unknown, path: IssuePath = []): { hook: string; path: IssuePath }[] {
-  if (Array.isArray(value)) return value.flatMap((item, i) => hookCalls(item, [...path, i]));
+/** Each string field named `field` in a tree of effects, with its path. */
+function fieldsNamed(value: unknown, field: string, path: IssuePath): { value: string; path: IssuePath }[] {
+  if (Array.isArray(value)) return value.flatMap((item, i) => fieldsNamed(item, field, [...path, i]));
   if (!isObject(value)) return [];
-  const own = typeof value.hook === "string" ? [{ hook: value.hook, path: [...path, "hook"] }] : [];
-  return [...own, ...Object.entries(value).flatMap(([key, child]) => (key === "hook" ? [] : hookCalls(child, [...path, key])))];
+  const own = typeof value[field] === "string" ? [{ value: value[field], path: [...path, field] }] : [];
+  return [...own, ...Object.entries(value).flatMap(([key, child]) => (key === field ? [] : fieldsNamed(child, field, [...path, key])))];
+}
+
+/** Each hook that the effects of a record name, with its path in the record. */
+function hookCalls(record: unknown): { hook: string; path: IssuePath }[] {
+  return fieldsNamed(record, "hook", []).map(({ value, path }) => ({ hook: value, path }));
 }
 
 /**
@@ -97,7 +104,9 @@ export function loadPack(input: unknown, options: LoadOptions = {}): LoadResult 
   for (let v = version; v < current; v += 1) {
     const upgrade = upgrades[v];
     if (!upgrade) return refuse(["version"], `No upgrade from format version ${v} to ${v + 1}`);
-    data = { ...upgrade(data), version: v + 1 };
+    const upgraded = upgrade(data);
+    if (!isObject(upgraded)) return refuse(["version"], `The upgrade from format version ${v} to ${v + 1} did not give a pack`);
+    data = { ...upgraded, version: v + 1 };
   }
 
   const envelope = Envelope.safeParse({ format: data.format, version: data.version, rules: data.rules, pack: data.pack });
@@ -171,10 +180,7 @@ interface ReferenceAt {
 }
 
 function referencesInEffects(value: unknown, path: IssuePath): ReferenceAt[] {
-  if (Array.isArray(value)) return value.flatMap((item, i) => referencesInEffects(item, [...path, i]));
-  if (!isObject(value)) return [];
-  const own: ReferenceAt[] = typeof value.grantFeat === "string" ? [{ path: [...path, "grantFeat"], reference: value.grantFeat, type: "feats" }] : [];
-  return [...own, ...Object.entries(value).flatMap(([key, child]) => (key === "grantFeat" ? [] : referencesInEffects(child, [...path, key])))];
+  return fieldsNamed(value, "grantFeat", path).map((found) => ({ path: found.path, reference: found.value, type: "feats" }));
 }
 
 function equipmentReferences(options: unknown, path: IssuePath): ReferenceAt[] {

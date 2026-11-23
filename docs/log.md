@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-11-23
+
+* **Update**: Made the [2024 content format](design/2024-content-format.md) stable, with the schema library, the loader issues, the fields of each effect and record type, the value forms and the conditions (ORC-223).
+
 ## 2026-11-22
 
 * **Creation**: Added the `operations/` directory and [Beta deploy](operations/beta-deploy.md) (ORC-293).

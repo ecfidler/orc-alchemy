@@ -22,6 +22,9 @@ export interface Prereq<S> {
   hideIfFail?: boolean;
 }
 
+/** The rules that an option or a grant gives: its modifiers and its selections. */
+export type OptionParts<S> = Pick<Option<S>, "modifiers" | "selections">;
+
 export interface Option<S> {
   key: string;
   name: string;

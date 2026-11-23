@@ -1,6 +1,7 @@
-// Rules for ability score increases that several kinds of content share: a
-// background's +2 and +1 (or +1 to three), a feat's increase. The spike
-// content and the record converter both use them.
+// Rules that several kinds of content share: the ability score increases of
+// a background (+2 and +1, or +1 to three) and of a feat, and the rule that
+// a feat is taken once. The spike content and the record converter both use
+// them.
 
 import { type Option, option, type Prereq, type Selection, selection } from "../core/template.ts";
 import { type Ability, type Built2024, m } from "./built.ts";
@@ -62,4 +63,17 @@ export function backgroundAbilitySelection(abilities: readonly [Ability, Ability
       }),
     ],
   });
+}
+
+/**
+ * The prerequisite of a feat that is not repeatable (SRD 5.2.1 p87). Once
+ * the feat is chosen, the built character has it one time, and that is
+ * still valid. Two times is a problem.
+ */
+export function notTakenAlready(featKey: string): Prereq<Built2024> {
+  return {
+    label: "Not taken already",
+    canChoose: (built) => !built.feats.some((f) => f.key === featKey),
+    stillValid: (built) => built.feats.filter((f) => f.key === featKey).length <= 1,
+  };
 }
