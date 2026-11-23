@@ -7,7 +7,17 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["*.json", "packages/**", "tools/**", "scripts/**", "!**/*.html", "!**/*.strict.json", "!**/.impeccable"]
+    "includes": [
+      "*.json",
+      "packages/**",
+      "tools/**",
+      "scripts/**",
+      "!**/*.html",
+      "!**/*.strict.json",
+      "!**/.impeccable",
+      "!packages/engine/content",
+      "!packages/engine/src/srd52/fixtures"
+    ]
   },
   "formatter": {
     "enabled": true,
