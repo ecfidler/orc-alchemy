@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-22T23:20:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T01:05:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -471,14 +471,19 @@ One column, top to bottom:
 
 1. The title row: the potion at 64px on the same line as the "Alchemy 5E"
    wordmark, `clamp(52px, 10vw, 84px)`.
-2. The tagline: "Build and keep your D&D 5e characters. Everything stays in
-   this browser."
+2. The tagline: "Build and play your D&D 5e character sheets."
 3. The buttons: New character (solid), Random character, Import from
    Dungeon Master's Vault.
 4. Three facts, as a list with square marks: build step by step or roll a
-   random character; bring in characters and homebrew from Dungeon Master's
-   Vault (.orcbrew); works without an account, export any time.
-5. Recent characters: the three most recent, in the character-list row
+   random character; import characters and content from Dungeon Master's
+   Vault; no account necessary, export at any time.
+5. The beta note: the line "Welcome to the Beta!" in the tagline style,
+   then a second list with square marks. It tells testers that many
+   features are in progress, that a community hub for updates is to come,
+   that characters and content stay only in this browser, so they must
+   export as necessary, and to make a random character to see the
+   character sheet. Every build shows the note, not only a beta build.
+6. Recent characters: the three most recent, in the character-list row
    style, then a link "All characters (n)". With no characters, an empty
    note says "Characters you make or import show here."
 
