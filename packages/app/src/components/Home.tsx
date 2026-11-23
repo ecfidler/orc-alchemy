@@ -24,7 +24,7 @@ export function Home() {
             <small className="ml-1.5 align-[32px] font-sans text-[15px] font-semibold tracking-[0.1em] text-ink-muted">5E</small>
           </h1>
         </div>
-        <p className="max-w-[34ch] text-[19px]">Build and keep your D&amp;D 5e characters. Everything stays in this browser.</p>
+        <p className="max-w-[34ch] text-[19px]">Build and play your D&amp;D 5e character sheets.</p>
         <div className="flex flex-wrap gap-2.5">
           <Button onClick={() => create(false)} variant="solid" size="large">
             New character
@@ -40,8 +40,8 @@ export function Home() {
         <ul aria-label="What Alchemy 5e does" className="grid gap-1.5 text-[15px]">
           {[
             "Build a character step by step, or roll a random one.",
-            "Bring in characters and homebrew from Dungeon Master's Vault (.orcbrew).",
-            "Works without an account. Export your characters any time.",
+            "Import your characters and homebrew from Dungeon Master's Vault",
+            "No account necessary. Export your characters at any time.",
           ].map((fact) => (
             <li
               key={fact}
