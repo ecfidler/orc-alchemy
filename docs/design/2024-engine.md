@@ -4,7 +4,7 @@ title: 2024 engine spec
 description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
 tags: [rules-2024, engine, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T13:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T14:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
 sources:
   - id: orc-218
@@ -228,6 +228,9 @@ The 2024 rules have no oracle. The tests are thus in four groups.
 ## Golden characters
 
 - There are 14: one for each of the 12 classes, and two multiclass.
+- They are in `packages/engine/golden/`. Its README gives the file form,
+  the rules, and the plan: the class, species, background and checked
+  levels of each character (ORC-237).
 - Each class ticket writes the character of its class and makes it pass.
 - Do not copy an expected value from the output of the engine.
 

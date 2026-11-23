@@ -52,6 +52,9 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
     `backgrounds.test.ts` have the 17 feats and the 4 backgrounds
     (ORC-227). `equipment.test.ts` has the attack lines, the armor and the
     starting equipment of each class and background (ORC-228).
+- `golden/` holds the golden characters: characters with sheet values
+  computed by hand from SRD 5.2.1, and the suite that checks them
+  (ORC-237). Its README has the rules and the plan of the 14 characters.
 - `srd52/srd52.test.ts` compares the built-in pack with the text of the SRD
   5.2.1 PDF, in `srd52/fixtures/`.
 
