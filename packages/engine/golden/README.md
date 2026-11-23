@@ -17,9 +17,11 @@ section _Test strategy_. This folder is not the `fixtures/` snapshot of the
    a comment above it, for example `// Level 1: d10 + Con 2 = 12 (p47).`
 3. Check three levels or more, and one of them is level 20.
 4. A character makes every choice that the template asks for at the
-   checked level. The suite fails on any problem of the character.
+   checked level. The suite fails on any problem of the character, and on
+   any selection that still needs a choice.
 5. Each class ticket writes the character of its class in this table's
-   plan, adds the file under `characters/`, and lists it in `index.ts`.
+   plan, adds the file under `characters/`, and lists it in
+   `characters/index.ts`. The developer page of the app then shows it.
    The PR names the file, so that the reviewer can check a sample of the
    values.
 
@@ -35,7 +37,10 @@ page of the PDF when in doubt.
 ## The file form
 
 A character is a module in `characters/` that exports
-`defineGolden({ name, packs?, checks })`:
+`defineGolden({ name, packs?, checks })` from `define.ts`. `define.ts` has
+no Node.js import, so the app can load a character: the package exports
+`@orc-alchemy/engine/golden/characters`, the list of `characters/index.ts`
+(ORC-238).
 
 - `packs`: test pack files beside the built-in pack, for a character with
   a test class.

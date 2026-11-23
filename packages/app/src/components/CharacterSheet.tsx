@@ -12,6 +12,7 @@ import {
   modStr,
   type OpenSpells,
   ordinal,
+  recoveryTag,
   type Sheet,
   type SheetFeature,
   type SheetItem,
@@ -191,6 +192,8 @@ export function CharacterSheet({
       </div>
     </ShadedPanel>
   );
+  // A 2024 attack has its damage dice; a 2014 attack has only the modifier.
+  const withDice = sheet.weaponAttacks.length > 0 && sheet.weaponAttacks.every((weapon) => weapon.damage !== undefined);
   const attacksSection = (sheet.weaponAttacks.length > 0 || sheet.specialAttacks.length > 0) && (
     <FramedBox label="Attacks">
       {sheet.weaponAttacks.length > 0 && (
@@ -199,13 +202,19 @@ export function CharacterSheet({
                 shows as "+11" under "To hit", and the off-hand modifier is on its own line. */}
           <Table
             caption="Weapon attacks"
-            headers={["Name", "Proficient?", <ShortWhenNarrow key="attack" text="Attack" short="To hit" />, "Damage modifier"]}
+            headers={["Name", "Proficient?", <ShortWhenNarrow key="attack" text="Attack" short="To hit" />, withDice ? "Damage" : "Damage modifier"]}
             hiddenNarrow={[1]}
           >
             {sheet.weaponAttacks.map((weapon) => (
               <tr key={weapon.key}>
                 <Td>
                   {weapon.name}
+                  {weapon.mastery && (
+                    <>
+                      {" "}
+                      <Tag>{weapon.mastery}</Tag>
+                    </>
+                  )}
                   {!weapon.proficient && (
                     <span className="@min-[720px]:hidden">
                       {" "}
@@ -219,7 +228,7 @@ export function CharacterSheet({
                   <span className="@max-[719px]:hidden"> to hit</span>
                 </Td>
                 <Td className="whitespace-nowrap">
-                  {modStr(weapon.damageModifier)}
+                  {weapon.damage ?? modStr(weapon.damageModifier)}
                   {weapon.offHandDamageModifier !== null && (
                     <span className="@max-[719px]:block @max-[719px]:text-xs @max-[719px]:text-ink-muted">
                       {" "}
@@ -230,7 +239,7 @@ export function CharacterSheet({
               </tr>
             ))}
           </Table>
-          <p className="text-sm text-ink-muted">Damage dice need content data, which is not available yet.</p>
+          {!withDice && <p className="text-sm text-ink-muted">Damage dice need content data, which is not available yet.</p>}
         </>
       )}
       {sheet.numberOfAttacks > 1 && <FieldList fields={[["Number of Attacks", [String(sheet.numberOfAttacks)]]]} />}
@@ -936,18 +945,32 @@ function Features({ items }: { items: SheetFeature[] }) {
     <div className="grid gap-2.5 text-[14.5px]">
       {items.map((item, i) =>
         item.uses ? (
-          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={item.uses.recharge ?? undefined} {...bubbleUses(item.uses)}>
+          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={recoveryTag(item.uses)} {...bubbleUses(item.uses)}>
+            {item.category && <FeatCategory category={item.category} />}
             {item.text}
           </UseBubble>
         ) : (
           <p key={`${i}-${item.name}`} className="grid gap-px">
-            <b className="font-semibold">{item.name}</b>
+            <b className="font-semibold">
+              {item.name}
+              {item.category && (
+                <>
+                  {" "}
+                  <FeatCategory category={item.category} />
+                </>
+              )}
+            </b>
             <span>{item.text}</span>
           </p>
         ),
       )}
     </div>
   );
+}
+
+/** The category of the feat that gives a feature (2024). */
+function FeatCategory({ category }: { category: string }) {
+  return <span className="font-sans text-xs font-normal text-ink-muted">{category}</span>;
 }
 
 /** `hiddenNarrow`: the indexes of the columns that do not show under 720px. Their cells must hide too. */

@@ -53,6 +53,10 @@ export interface WeaponAttack extends Named {
   damageModifier: number;
   offHandDamageModifier: number | null;
   proficient: boolean;
+  /** 2024: the damage dice with the modifier and the damage type, such as "2d6+3 Slashing". */
+  damage?: string;
+  /** 2024: the name of the mastery property when the character has the mastery of the weapon, such as "Graze". */
+  mastery?: string;
 }
 
 /** A feature, action, or special attack, ready to print. */
@@ -65,7 +69,17 @@ export interface SheetFeature {
    * or null for a frequency with no unit. The amount is 1 or more: toSheet gives a feature with 0 uses or fewer
    * no `uses`, so it is a plain feature.
    */
-  uses?: { amount: number; recharge: string | null };
+  uses?: {
+    amount: number;
+    recharge: string | null;
+    /** 2024: each rest that gives uses back and how many, when a rest gives back fewer than all or two rests apply. */
+    recover?: { rest: string; amount: number | "all" }[];
+  };
+  /**
+   * 2024: the category of the feat that gives the feature, such as "Origin feat". When the feature has another
+   * name than the feat, the feat name comes first: "Grappler, General feat".
+   */
+  category?: string;
 }
 
 export interface SheetItem extends Named {
@@ -228,7 +242,7 @@ export function abilityOfKey(key: unknown): Ability | null {
 }
 
 /** The 18 skills, in name order. */
-const SKILLS: [key: string, name: string, ability: Ability][] = [
+export const SKILLS: [key: string, name: string, ability: Ability][] = [
   ["acrobatics", "Acrobatics", "dex"],
   ["animal-handling", "Animal Handling", "wis"],
   ["arcana", "Arcana", "int"],
@@ -255,7 +269,7 @@ const EQUIPMENT_NS = "orcpub.dnd.e5.character.equipment/";
 export const unqualify = (key: string) => key.slice(key.lastIndexOf("/") + 1);
 
 /** The old app's capitalised kw-to-name: "crossbow-light" → "Crossbow Light". */
-const keyToName = (key: string) =>
+export const keyToName = (key: string) =>
   unqualify(key)
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -270,7 +284,7 @@ const sentence = (text: string) => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1) + (trimmed.endsWith(".") ? "" : ".");
 };
 
-const byName = <T extends { name: string }>(items: T[]) => items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+export const byName = <T extends { name: string }>(items: T[]) => items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
 /** The name a feature or special attack shows when the engine gives it none. */
 export const UNNAMED_FEATURE = "Unnamed feature";
@@ -340,6 +354,16 @@ export function usesDisplay(frequency: { amount?: number | null } | null | undef
   if (amount <= 0) return { kind: "plain" };
   if (amount > 8) return { kind: "pool", max: amount, step: amount >= 20 ? 5 : 1 };
   return { kind: "circles", count: amount };
+}
+
+/**
+ * The tag of a use bubble: when the uses come back. With 2024 recovery
+ * rules, each rest, and the number of uses it gives back when it is not all:
+ * "Short rest (1), Long rest".
+ */
+export function recoveryTag(uses: NonNullable<SheetFeature["uses"]>): string | undefined {
+  if (!uses.recover?.length) return uses.recharge ?? undefined;
+  return uses.recover.map(({ rest, amount }) => (amount === "all" ? rest : `${rest} (${amount})`)).join(", ");
 }
 
 /**

@@ -1,9 +1,5 @@
-// The golden characters (ORC-237). A class ticket adds its character here.
+// The golden characters (ORC-237), with the harness that checks them.
 
-import { fighter } from "./characters/fighter.ts";
-import { tester } from "./characters/tester.ts";
-import type { GoldenCharacter } from "./harness.ts";
-
-export { checkGolden, defineGolden, describeMismatch, type GoldenCharacter, type GoldenCheck, type Mismatch } from "./harness.ts";
-
-export const GOLDEN_CHARACTERS: readonly GoldenCharacter[] = [tester, fighter];
+export { GOLDEN_CHARACTERS } from "./characters/index.ts";
+export { defineGolden, type GoldenCharacter, type GoldenCheck } from "./define.ts";
+export { checkGolden, describeMismatch, type Mismatch } from "./harness.ts";

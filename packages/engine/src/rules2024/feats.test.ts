@@ -126,6 +126,8 @@ describe("Origin feats", () => {
     expect(problems).toEqual([]);
     expect(built.skillProficiencies).toEqual(["arcana", "history", "athletics", "stealth"]);
     expect(built.toolProficiencies).toEqual(["srd52:thieves-tools"]);
+    // The Repeatable trait is the typed field `repeatable`, not a feature: the feature is the description.
+    expect(featureNames(built, "skilled")).toEqual(["Skilled"]);
     // The 18 skills and the 37 tools: artisan's tools, gaming sets, musical instruments and other tools.
     expect(template.selections.at(-1)?.options.find((o) => o.key === "srd52:skilled")?.selections[0].options).toHaveLength(55);
   });

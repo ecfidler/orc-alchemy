@@ -2,6 +2,8 @@
 
 ## 2026-11-23
 
+* **Update**: Added the 2024 damage dice, mastery tag, feat category and rest rules of the sheet to the [Theme spec](design/theme.md) (ORC-238).
+* **Update**: Added the edition choice, the 2024 sheet adapter and the developer page to the seam to the app of the [2024 engine spec](design/2024-engine.md) (ORC-238).
 * **Update**: Added the `multiclass` field of a class and the rule of a choice in the `levels` of a subclass to the [2024 content format](design/2024-content-format.md) (ORC-230).
 * **Update**: Added the place of the golden characters, `packages/engine/golden/`, to the test strategy of the [2024 engine spec](design/2024-engine.md) (ORC-237).
 * **Update**: Added the `weapon-mastery` hook, the rules of starting equipment and the damage type of a weapon to the [2024 content format](design/2024-content-format.md), and the equipment values to the [2024 engine spec](design/2024-engine.md) (ORC-228).

@@ -4,7 +4,7 @@ title: 2024 content format
 description: The 2024 content format - JSON packs, two layers in each record, rules as data with named hooks, the record types and their fields, the value forms and conditions, the loader, the key scheme, the source data, attribution, and monsters - with an example species, background, feat, and spell.
 tags: [rules-2024, engine, content-format, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T13:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T15:10:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-96
 sources:
   - id: orc-96
@@ -199,7 +199,9 @@ Every record has `key`, `name`, and the optional fields `source`
 | `abilities`, `skills`, `languages`, `conditions`, `damageTypes`, `weaponMasteries`, `weaponProperties` | Reference data: `key`, `name`, and the optional `source` and `description`. A skill also has `ability`, and a language has `rare`. The key of an ability is `str` to `cha`, and the key of a mastery property is one of the eight in the SRD. |
 | `monsters` | `size`, `creatureType`, `challengeRating`, `armorClass`, `hitPoints`, `speed` (feet for each kind), and `abilities`. ORC-236 adds the rest. |
 
-A feat with no traits shows its `description` as one feature.
+A feat with no traits, or with only the trait `repeatable`, shows its
+`description` as one feature. The typed field `repeatable` already says
+that the feat repeats.
 
 A feature of a class or a subclass is a trait with a `level`. The `levels`
 field is a list of `{ "level": 3, "effects": [...] }`: the effects that the

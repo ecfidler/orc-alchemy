@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 import { BUILT_IN } from "../src/rules2024/built-in.ts";
 import { recordsOf } from "../src/rules2024/content.ts";
 import { tester } from "./characters/tester.ts";
-import { checkGolden, defineGolden, describeMismatch } from "./harness.ts";
+import { defineGolden } from "./define.ts";
+import { checkGolden, describeMismatch } from "./harness.ts";
 import { GOLDEN_CHARACTERS } from "./index.ts";
 
 describe.each(GOLDEN_CHARACTERS.map((character) => [character.name, character] as const))("%s", (_, character) => {
@@ -20,9 +21,16 @@ describe.each(GOLDEN_CHARACTERS.map((character) => [character.name, character] a
 describe("the harness", () => {
   it("names the character, the level and the sheet value of a wrong expected value", () => {
     const [check] = tester.checks;
-    const wrong = defineGolden({ ...tester, checks: [{ ...check, expected: { ...check.expected, armorClass: 13 } }] });
+    const wrong = defineGolden({ ...tester, checks: [{ ...check, expected: { ...check.expected, armorClass: 14 } }] });
     const [{ mismatches }] = checkGolden(wrong);
-    expect(mismatches.map(describeMismatch)).toEqual(["Tester (test class), level 1, armorClass: expected 13, got 12"]);
+    expect(mismatches.map(describeMismatch)).toEqual(["Tester (test class), level 1, armorClass: expected 14, got 13"]);
+  });
+
+  it("reports an open selection as a problem", () => {
+    const [check] = tester.checks;
+    const selections = (check.entity.selections ?? []).filter((selection) => selection.key !== "languages");
+    const [{ problems }] = checkGolden(defineGolden({ ...tester, checks: [{ ...check, entity: { ...check.entity, selections } }] }));
+    expect(problems).toEqual(['"Languages" at languages needs 2 more']);
   });
 
   it("refuses a level outside 1 to 20 or a level two times", () => {

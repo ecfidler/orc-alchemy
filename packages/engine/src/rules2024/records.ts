@@ -327,7 +327,8 @@ function recordParts(
 /**
  * What taking a feat gives: the feat on the sheet, its effects, and its
  * traits as features. A feat with no traits, such as Savage Attacker, is
- * one feature with its description. `via` is the chain of feats that grant
+ * one feature with its description, and so is a feat whose one trait is
+ * Repeatable, such as Ability Score Improvement. `via` is the chain of feats that grant
  * it. `featSpellList` is the spell list that a background gives to it.
  */
 export function featParts(
@@ -336,7 +337,11 @@ export function featParts(
   feat: FeatRecord,
   { via = [], featSpellList }: Pick<Partial<Context>, "via" | "featSpellList"> = {},
 ): Parts {
-  const description: Parts = feat.traits?.length
+  // A Repeatable trait alone repeats the typed field `repeatable`, so the feat shows its description (ORC-238).
+  // Next to other traits it stays: the one of Magic Initiate also says to choose another spell list.
+  const onlyRepeatable = feat.traits?.length === 1 && feat.traits[0].key === "repeatable";
+  const shown: FeatRecord = onlyRepeatable ? { ...feat, traits: [] } : feat;
+  const description: Parts = shown.traits?.length
     ? EMPTY
     : {
         modifiers: [m.push("features", { key: traitKey(reference, feat.name), name: feat.name, summary: feat.description ?? "", source: reference })],
@@ -344,7 +349,7 @@ export function featParts(
       };
   return merge(
     { modifiers: [m.push("feats", { key: reference, name: feat.name, category: feat.category })], selections: [] },
-    recordParts(content, reference, feat, { via, featSpellList }),
+    recordParts(content, reference, shown, { via, featSpellList }),
     description,
   );
 }

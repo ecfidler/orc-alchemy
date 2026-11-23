@@ -22,7 +22,7 @@
 
 import type { StrictOption, StrictSelection } from "../../src/core/entity.ts";
 import type { Entity2024 } from "../../src/rules2024/evaluate.ts";
-import { defineGolden } from "../harness.ts";
+import { defineGolden } from "../define.ts";
 
 const asi = (increase: StrictOption): StrictOption => ({ key: "srd52:ability-score-improvement", selections: [{ key: "increase", option: increase }] });
 const plusTwo = (ability: string) => asi({ key: "two", selections: [{ key: "ability", option: { key: ability } }] });
