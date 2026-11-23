@@ -36,6 +36,21 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
   `packs.ts` loads a pack for the engine: it checks the hooks, then converts
   each record and drops the rules that do not convert. `fighter.test.ts`
   has the hand-checked values of the Fighter from the spike (ORC-95).
+- `srd52/srd52.test.ts` compares the built-in pack with the text of the SRD
+  5.2.1 PDF, in `srd52/fixtures/`.
+
+`content/` holds the built-in pack `srd52.json`, its provenance file, and
+the MIT notice of 5e-bits. `scripts/` makes them (ORC-224):
+
+```bash
+bun run import-srd <5e-srd-api checkout>          # writes content/
+bun run import-srd <5e-srd-api checkout> --check  # compares a new run with content/
+bun run extract-srd-text <SRD_CC_v5.2.1.pdf>      # writes src/srd52/fixtures/
+```
+
+The content format spec, section _The source data_, gives the steps. Do not
+edit the files in `content/` or `src/srd52/fixtures/` by hand. Put a
+correction in `scripts/srd-corrections.ts` and run the script again.
 
 This work includes material from the System Reference Document 5.2.1
 ("SRD 5.2.1") by Wizards of the Coast LLC, available at

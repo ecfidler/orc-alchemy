@@ -11,8 +11,27 @@ export const FORMAT = "alchemy-content";
 /** The version of the format that this engine reads and writes. */
 export const CURRENT_VERSION = 1;
 
-/** The record types, in the order of a pack file. */
-export const RECORD_TYPES = ["classes", "subclasses", "species", "backgrounds", "feats", "spells", "equipment", "monsters"] as const;
+/**
+ * The record types, in the order of a pack file. The last seven are the
+ * reference data: the words that the rules records use, with their prose.
+ */
+export const RECORD_TYPES = [
+  "classes",
+  "subclasses",
+  "species",
+  "backgrounds",
+  "feats",
+  "spells",
+  "equipment",
+  "monsters",
+  "abilities",
+  "skills",
+  "languages",
+  "conditions",
+  "damageTypes",
+  "weaponMasteries",
+  "weaponProperties",
+] as const;
 export type RecordType = (typeof RECORD_TYPES)[number];
 
 // The building blocks.
@@ -173,9 +192,14 @@ export const LevelFeature = Trait.extend({ level: z.int().min(1).max(20) });
 /** The effects that a class or a subclass gives at one class level. */
 export const LevelEffects = z.strictObject({ level: z.int().min(1).max(20), effects: z.array(Effect) });
 
-/** An item of starting equipment, or the item that the character chose in a typed field. */
+/**
+ * An item of starting equipment or of the contents of a pack: a reference,
+ * the item that the character chose in a typed field (`{ "chosen": "tool" }`),
+ * or one item of an equipment category that the character chooses
+ * (`{ "category": "holy-symbol" }`).
+ */
 export const EquipmentItem = z.strictObject({
-  item: z.union([ContentReference, z.strictObject({ chosen: ContentKey })]),
+  item: z.union([ContentReference, z.strictObject({ chosen: ContentKey }), z.strictObject({ category: ContentKey })]),
   quantity: z.int().min(1),
 });
 
@@ -188,12 +212,34 @@ const ReferenceChoice = z.strictObject({
   from: z.union([z.array(ContentReference).min(1), z.strictObject({ category: ContentKey })]),
 });
 
+/**
+ * One row of the table of a class: the values at one class level. `columns`
+ * holds the class columns, for example `{ "rage-count": 2 }`. A die is its
+ * size, and a number of dice is a string such as "1d6".
+ */
+export const ClassLevelRow = z.strictObject({
+  level: z.int().min(1).max(20),
+  proficiencyBonus: z.int().min(2).max(6),
+  /** The keys of the features that the class gives at this level. */
+  features: z.array(ContentKey),
+  columns: z.record(ContentKey, z.union([z.int(), z.string()])).optional(),
+  spellcasting: z
+    .strictObject({
+      cantrips: z.int().min(0),
+      preparedSpells: z.int().min(0),
+      /** The spell slots of levels 1 to 9. */
+      slots: z.array(z.int().min(0)).length(9),
+    })
+    .optional(),
+});
+
 // The record types.
 
 export const ClassRecord = z.strictObject({
   ...recordFields,
   hitDie: z.union([z.literal(6), z.literal(8), z.literal(10), z.literal(12)]),
-  primaryAbility: z.array(Ability).min(1).optional(),
+  /** All of the abilities ("Dexterity and Wisdom"), or a choice of them ("Strength or Dexterity"). */
+  primaryAbility: z.union([z.array(Ability).min(1), choiceOf(Ability)]).optional(),
   savingThrows: z.tuple([Ability, Ability]),
   skills: choiceOf(ContentKey),
   weaponProficiencies: z.array(ContentKey).optional(),
@@ -202,11 +248,15 @@ export const ClassRecord = z.strictObject({
   startingEquipment: z.array(EquipmentOption).optional(),
   features: z.array(LevelFeature).optional(),
   levels: z.array(LevelEffects).optional(),
+  /** The class table, one row for each level from 1 to 20. Display only: the rules are in `levels`. */
+  table: z.array(ClassLevelRow).optional(),
 });
 
 export const SubclassRecord = z.strictObject({
   ...recordFields,
   class: ContentReference,
+  /** The line under the name of the subclass, for example "Channel Rage into Violent Fury". */
+  summary: z.string().optional(),
   features: z.array(LevelFeature).optional(),
   levels: z.array(LevelEffects).optional(),
 });
@@ -262,6 +312,8 @@ export const Weapon = z.strictObject({
   mastery: z.enum(WEAPON_MASTERIES),
   /** Feet: the normal range and the long range. */
   range: z.tuple([z.int().min(0), z.int().min(0)]).optional(),
+  /** The damage with two hands, for a Versatile weapon. */
+  versatile: z.strictObject({ count: z.int().min(1), die: z.int().min(1) }).optional(),
 });
 
 export const Armor = z.strictObject({
@@ -284,6 +336,8 @@ export const EquipmentRecord = z.strictObject({
   weight: z.number().min(0).optional(),
   weapon: Weapon.optional(),
   armor: Armor.optional(),
+  /** What an equipment pack holds. */
+  contents: z.array(EquipmentItem).optional(),
 });
 
 export const MonsterRecord = z.strictObject({
@@ -298,6 +352,19 @@ export const MonsterRecord = z.strictObject({
   abilities: z.strictObject(Object.fromEntries(ABILITY_KEYS.map((a) => [a, z.int().min(1).max(30)])) as Record<(typeof ABILITY_KEYS)[number], z.ZodInt>),
 });
 
+// The reference data. Display only: a record has no effects, and the rules
+// records name it by its key, for example "poison" in `resistances`.
+
+const referenceFields = { key: ContentKey, name: z.string().min(1), source: Source.optional(), description: z.string().optional() };
+
+export const AbilityRecord = z.strictObject({ ...referenceFields, key: Ability });
+export const SkillRecord = z.strictObject({ ...referenceFields, ability: Ability });
+export const LanguageRecord = z.strictObject({ ...referenceFields, rare: z.boolean() });
+export const ConditionRecord = z.strictObject(referenceFields);
+export const DamageTypeRecord = z.strictObject(referenceFields);
+export const WeaponMasteryRecord = z.strictObject({ ...referenceFields, key: z.enum(WEAPON_MASTERIES) });
+export const WeaponPropertyRecord = z.strictObject(referenceFields);
+
 /** The schema of each record type. */
 export const RECORD_SCHEMAS = {
   classes: ClassRecord,
@@ -308,6 +375,13 @@ export const RECORD_SCHEMAS = {
   spells: SpellRecord,
   equipment: EquipmentRecord,
   monsters: MonsterRecord,
+  abilities: AbilityRecord,
+  skills: SkillRecord,
+  languages: LanguageRecord,
+  conditions: ConditionRecord,
+  damageTypes: DamageTypeRecord,
+  weaponMasteries: WeaponMasteryRecord,
+  weaponProperties: WeaponPropertyRecord,
 } as const satisfies Record<RecordType, z.ZodType>;
 
 export type ClassRecord = z.infer<typeof ClassRecord>;
@@ -318,6 +392,7 @@ export type FeatRecord = z.infer<typeof FeatRecord>;
 export type SpellRecord = z.infer<typeof SpellRecord>;
 export type EquipmentRecord = z.infer<typeof EquipmentRecord>;
 export type MonsterRecord = z.infer<typeof MonsterRecord>;
+export type ClassLevelRow = z.infer<typeof ClassLevelRow>;
 export type Trait = z.infer<typeof Trait>;
 export type Prerequisite = z.infer<typeof Prerequisite>;
 export type Recovery = z.infer<typeof Recovery>;
@@ -332,6 +407,13 @@ export interface Records {
   spells: SpellRecord;
   equipment: EquipmentRecord;
   monsters: MonsterRecord;
+  abilities: z.infer<typeof AbilityRecord>;
+  skills: z.infer<typeof SkillRecord>;
+  languages: z.infer<typeof LanguageRecord>;
+  conditions: z.infer<typeof ConditionRecord>;
+  damageTypes: z.infer<typeof DamageTypeRecord>;
+  weaponMasteries: z.infer<typeof WeaponMasteryRecord>;
+  weaponProperties: z.infer<typeof WeaponPropertyRecord>;
 }
 export type AnyRecord = Records[RecordType];
 

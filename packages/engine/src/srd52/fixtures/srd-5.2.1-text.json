@@ -1,0 +1,3521 @@
+{
+  "source": "SRD_CC_v5.2.1.pdf",
+  "sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "spells": [
+    {
+      "name": "Acid Arrow",
+      "page": 107,
+      "header": "Level 2 Evocation (Wizard)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S, M (powdered rhubarb leaf)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Acid Splash",
+      "page": 107,
+      "header": "Evocation Cantrip (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Aid",
+      "page": 107,
+      "header": "Level 2 Abjuration (Bard, Cleric, Druid, Paladin, Ranger)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a strip of white cloth)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Alarm",
+      "page": 107,
+      "header": "Level 1 Abjuration (Ranger, Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "30 feet",
+      "components": "V, S, M (a bell and silver wire)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Alter Self",
+      "page": 107,
+      "header": "Level 2 Transmutation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Animal Friendship",
+      "page": 107,
+      "header": "Level 1 Enchantment (Bard, Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a morsel of food)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Animal Messenger",
+      "page": 108,
+      "header": "Level 2 Enchantment (Bard, Druid, Ranger)",
+      "castingTime": "Action or Ritual",
+      "range": "30 feet",
+      "components": "V, S, M (a morsel of food)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Animal Shapes",
+      "page": 108,
+      "header": "Level 8 Transmutation (Druid)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Animate Dead",
+      "page": 108,
+      "header": "Level 3 Necromancy (Cleric, Wizard)",
+      "castingTime": "1 minute",
+      "range": "10 feet",
+      "components": "V, S, M (a drop of blood, a piece of flesh, and a pinch of bone dust)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Animate Objects",
+      "page": 108,
+      "header": "Level 5 Transmutation (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Antilife Shell",
+      "page": 109,
+      "header": "Level 5 Abjuration (Druid)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Antimagic Field",
+      "page": 109,
+      "header": "Level 8 Abjuration (Cleric, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (iron filings)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Antipathy/Sympathy",
+      "page": 109,
+      "header": "Level 8 Enchantment (Bard, Druid, Wizard)",
+      "castingTime": "1 hour",
+      "range": "60 feet",
+      "components": "V, S, M (a mix of vinegar and honey)",
+      "duration": "10 days"
+    },
+    {
+      "name": "Arcane Eye",
+      "page": 110,
+      "header": "Level 4 Divination (Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a bit of bat fur)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Arcane Hand",
+      "page": 110,
+      "header": "Level 5 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (an eggshell and a glove)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Arcane Lock",
+      "page": 110,
+      "header": "Level 2 Abjuration (Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (gold dust worth 25+ GP, which the spell consumes)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Arcane Sword",
+      "page": 110,
+      "header": "Level 7 Evocation (Bard, Wizard)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S, M (a miniature sword worth 250+ GP)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Arcanist’s Magic Aura",
+      "page": 110,
+      "header": "Level 2 Illusion (Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a small square of silk)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Astral Projection",
+      "page": 111,
+      "header": "Level 9 Necromancy (Cleric, Warlock, Wizard)",
+      "castingTime": "1 hour",
+      "range": "10 feet",
+      "components": "V, S, M (for each of the spell’s targets, one jacinth worth 1,000+ GP and one silver bar worth 100+ GP, all of which the spell consumes)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Augury",
+      "page": 111,
+      "header": "Level 2 Divination (Cleric, Druid, Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "Self",
+      "components": "V, S, M (specially marked sticks, bones, cards, or other divinatory tokens worth 25+ GP)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Aura of Life",
+      "page": 111,
+      "header": "Level 4 Abjuration (Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Awaken",
+      "page": 111,
+      "header": "Level 5 Transmutation (Bard, Druid)",
+      "castingTime": "8 hours",
+      "range": "Touch",
+      "components": "V, S, M (an agate worth 1,000+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Bane",
+      "page": 112,
+      "header": "Level 1 Enchantment (Bard, Cleric, Warlock)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a drop of blood)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Banishment",
+      "page": 112,
+      "header": "Level 4 Abjuration (Cleric, Paladin, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a pentacle)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Barkskin",
+      "page": 112,
+      "header": "Level 2 Transmutation (Druid, Ranger)",
+      "castingTime": "Bonus Action",
+      "range": "Touch",
+      "components": "V, S, M (a handful of bark)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Beacon of Hope",
+      "page": 112,
+      "header": "Level 3 Abjuration (Cleric)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Befuddlement",
+      "page": 112,
+      "header": "Level 8 Enchantment (Bard, Druid, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (a key ring with no keys)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Bestow Curse",
+      "page": 112,
+      "header": "Level 3 Necromancy (Bard, Cleric, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Black Tentacles",
+      "page": 113,
+      "header": "Level 4 Conjuration (Wizard)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S, M (a tentacle)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Blade Barrier",
+      "page": 113,
+      "header": "Level 6 Evocation (Cleric)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Bless",
+      "page": 113,
+      "header": "Level 1 Enchantment (Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a Holy Symbol worth 5+ GP)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Blight",
+      "page": 113,
+      "header": "Level 4 Necromancy (Druid, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Blindness/Deafness",
+      "page": 113,
+      "header": "Level 2 Transmutation (Bard, Cleric, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Blink",
+      "page": 113,
+      "header": "Level 3 Transmutation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Blur",
+      "page": 114,
+      "header": "Level 2 Illusion (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Burning Hands",
+      "page": 114,
+      "header": "Level 1 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Call Lightning",
+      "page": 114,
+      "header": "Level 3 Conjuration (Druid)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Calm Emotions",
+      "page": 114,
+      "header": "Level 2 Enchantment (Bard, Cleric)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Chain Lightning",
+      "page": 114,
+      "header": "Level 6 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (three silver pins)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Charm Monster",
+      "page": 114,
+      "header": "Level 4 Enchantment (Bard, Druid, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Charm Person",
+      "page": 115,
+      "header": "Level 1 Enchantment (Bard, Druid, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Chill Touch",
+      "page": 115,
+      "header": "Necromancy Cantrip (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Chromatic Orb",
+      "page": 115,
+      "header": "Level 1 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S, M (a diamond worth 50+ GP)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Circle of Death",
+      "page": 115,
+      "header": "Level 6 Necromancy (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (the powder of a crushed black pearl worth 500+ GP)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Clairvoyance",
+      "page": 115,
+      "header": "Level 3 Divination (Bard, Cleric, Sorcerer, Wizard)",
+      "castingTime": "10 minutes",
+      "range": "1 mile",
+      "components": "V, S, M (a focus worth 100+ GP, either a jeweled horn for hearing or a glass eye for seeing)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Clone",
+      "page": 115,
+      "header": "Level 8 Necromancy (Wizard)",
+      "castingTime": "1 hour",
+      "range": "Touch",
+      "components": "V, S, M (a diamond worth 1,000+ GP, which the spell consumes, and a sealable vessel worth 2,000+ GP that is large enough to hold the creature being cloned)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Cloudkill",
+      "page": 116,
+      "header": "Level 5 Conjuration (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Color Spray",
+      "page": 116,
+      "header": "Level 1 Illusion (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a pinch of colorful sand)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Command",
+      "page": 116,
+      "header": "Level 1 Enchantment (Bard, Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Commune",
+      "page": 116,
+      "header": "Level 5 Divination (Cleric)",
+      "castingTime": "1 minute or Ritual",
+      "range": "Self",
+      "components": "V, S, M (incense)",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Commune with Nature",
+      "page": 116,
+      "header": "Level 5 Divination (Druid, Ranger)",
+      "castingTime": "1 minute or Ritual",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Comprehend Languages",
+      "page": 117,
+      "header": "Level 1 Divination (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action or Ritual",
+      "range": "Self",
+      "components": "V, S, M (a pinch of soot and salt)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Compulsion",
+      "page": 117,
+      "header": "Level 4 Enchantment (Bard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Cone of Cold",
+      "page": 117,
+      "header": "Level 5 Evocation (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a small crystal or glass cone)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Confusion",
+      "page": 117,
+      "header": "Level 4 Enchantment (Bard, Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S, M (three nut shells)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Conjure Animals",
+      "page": 117,
+      "header": "Level 3 Conjuration (Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Conjure Celestial",
+      "page": 118,
+      "header": "Level 7 Conjuration (Cleric)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Conjure Elemental",
+      "page": 118,
+      "header": "Level 5 Conjuration (Druid, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Conjure Fey",
+      "page": 118,
+      "header": "Level 6 Conjuration (Druid)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Conjure Minor Elementals",
+      "page": 118,
+      "header": "Level 4 Conjuration (Druid, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Conjure Woodland Beings",
+      "page": 118,
+      "header": "Level 4 Conjuration (Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Contact Other Plane",
+      "page": 119,
+      "header": "Level 5 Divination (Warlock, Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "Self",
+      "components": "V",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Contagion",
+      "page": 119,
+      "header": "Level 5 Necromancy (Cleric, Druid)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "7 days"
+    },
+    {
+      "name": "Contingency",
+      "page": 119,
+      "header": "Level 6 Abjuration (Wizard)",
+      "castingTime": "10 minutes",
+      "range": "Self",
+      "components": "V, S, M (a gem-encrusted statuette of yourself worth 1,500+ GP)",
+      "duration": "10 days"
+    },
+    {
+      "name": "Continual Flame",
+      "page": 119,
+      "header": "Level 2 Evocation (Cleric, Druid, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (ruby dust worth 50+ GP, which the spell consumes)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Control Water",
+      "page": 119,
+      "header": "Level 4 Transmutation (Cleric, Druid, Wizard)",
+      "castingTime": "Action",
+      "range": "300 feet",
+      "components": "V, S, M (a mixture of water and dust)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Control Weather",
+      "page": 120,
+      "header": "Level 8 Transmutation (Cleric, Druid, Wizard)",
+      "castingTime": "10 minutes",
+      "range": "Self",
+      "components": "V, S, M (burning incense)",
+      "duration": "Concentration, up to 8 hours"
+    },
+    {
+      "name": "Counterspell",
+      "page": 120,
+      "header": "Level 3 Abjuration (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Reaction, which you take when you see a creature within 60 feet of yourself casting a spell with Verbal, Somatic, or Material components",
+      "range": "60 feet",
+      "components": "S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Create Food and Water",
+      "page": 120,
+      "header": "Level 3 Conjuration (Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Create or Destroy Water",
+      "page": 121,
+      "header": "Level 1 Transmutation (Cleric, Druid)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a mix of water and sand)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Create Undead",
+      "page": 121,
+      "header": "Level 6 Necromancy (Cleric, Warlock, Wizard)",
+      "castingTime": "1 minute",
+      "range": "10 feet",
+      "components": "V, S, M (one 150+ GP black onyx stone for each corpse)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Creation",
+      "page": 121,
+      "header": "Level 5 Illusion (Sorcerer, Wizard)",
+      "castingTime": "1 minute",
+      "range": "30 feet",
+      "components": "V, S, M (a paintbrush)",
+      "duration": "Special"
+    },
+    {
+      "name": "Cure Wounds",
+      "page": 121,
+      "header": "Level 1 Abjuration (Bard, Cleric, Druid, Paladin, Ranger)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Dancing Lights",
+      "page": 121,
+      "header": "Illusion Cantrip (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a bit of phosphorus)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Darkness",
+      "page": 122,
+      "header": "Level 2 Evocation (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, M (bat fur and a piece of coal)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Darkvision",
+      "page": 122,
+      "header": "Level 2 Transmutation (Druid, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a dried carrot)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Daylight",
+      "page": 122,
+      "header": "Level 3 Evocation (Cleric, Druid, Paladin, Ranger, Sorcerer)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Death Ward",
+      "page": 122,
+      "header": "Level 4 Abjuration (Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Delayed Blast Fireball",
+      "page": 122,
+      "header": "Level 7 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (a ball of bat guano and sulfur)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Demiplane",
+      "page": 122,
+      "header": "Level 8 Conjuration (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "S",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Detect Evil and Good",
+      "page": 123,
+      "header": "Level 1 Divination (Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Detect Magic",
+      "page": 123,
+      "header": "Level 1 Divination (Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action or Ritual",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Detect Poison and Disease",
+      "page": 123,
+      "header": "Level 1 Divination (Cleric, Druid, Paladin, Ranger)",
+      "castingTime": "Action or Ritual",
+      "range": "Self",
+      "components": "V, S, M (a yew leaf)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Detect Thoughts",
+      "page": 123,
+      "header": "Level 2 Divination (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (1 Copper Piece)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Dimension Door",
+      "page": 123,
+      "header": "Level 4 Conjuration (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "500 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Disguise Self",
+      "page": 124,
+      "header": "Level 1 Illusion (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Disintegrate",
+      "page": 124,
+      "header": "Level 6 Transmutation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a lodestone and dust)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Dispel Evil and Good",
+      "page": 124,
+      "header": "Level 5 Abjuration (Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (powdered silver and iron)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Dispel Magic",
+      "page": 124,
+      "header": "Level 3 Abjuration (Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Dissonant Whispers",
+      "page": 124,
+      "header": "Level 1 Enchantment (Bard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Divination",
+      "page": 125,
+      "header": "Level 4 Divination (Cleric, Druid, Wizard)",
+      "castingTime": "Action or Ritual",
+      "range": "Self",
+      "components": "V, S, M (incense worth 25+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Divine Favor",
+      "page": 125,
+      "header": "Level 1 Transmutation (Paladin)",
+      "castingTime": "Bonus Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Divine Smite",
+      "page": 125,
+      "header": "Level 1 Evocation (Paladin)",
+      "castingTime": "Bonus Action, which you take immediately after hitting a target with a Melee weapon or an Unarmed Strike",
+      "range": "Self",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Divine Word",
+      "page": 125,
+      "header": "Level 7 Evocation (Cleric)",
+      "castingTime": "Bonus Action",
+      "range": "30 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Dominate Beast",
+      "page": 125,
+      "header": "Level 4 Enchantment (Druid, Ranger, Sorcerer)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Dominate Monster",
+      "page": 125,
+      "header": "Level 8 Enchantment (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Dominate Person",
+      "page": 126,
+      "header": "Level 5 Enchantment (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Dragon’s Breath",
+      "page": 126,
+      "header": "Level 2 Transmutation (Sorcerer, Wizard)",
+      "castingTime": "Bonus Action",
+      "range": "Touch",
+      "components": "V, S, M (a hot pepper)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Dream",
+      "page": 126,
+      "header": "Level 5 Illusion (Bard, Warlock, Wizard)",
+      "castingTime": "1 minute",
+      "range": "Special",
+      "components": "V, S, M (a handful of sand)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Druidcraft",
+      "page": 126,
+      "header": "Transmutation Cantrip (Druid)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Earthquake",
+      "page": 127,
+      "header": "Level 8 Transmutation (Cleric, Druid, Sorcerer)",
+      "castingTime": "Action",
+      "range": "500 feet",
+      "components": "V, S, M (a fractured rock)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Eldritch Blast",
+      "page": 127,
+      "header": "Evocation Cantrip (Warlock)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Elementalism",
+      "page": 127,
+      "header": "Transmutation Cantrip (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Enhance Ability",
+      "page": 127,
+      "header": "Level 2 Transmutation (Bard, Cleric, Druid, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (fur or a feather)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Enlarge/Reduce",
+      "page": 127,
+      "header": "Level 2 Transmutation (Bard, Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a pinch of powdered iron)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Ensnaring Strike",
+      "page": 128,
+      "header": "Level 1 Conjuration (Ranger)",
+      "castingTime": "Bonus Action, which you take immediately after hitting a creature with a weapon",
+      "range": "Self",
+      "components": "V",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Entangle",
+      "page": 128,
+      "header": "Level 1 Conjuration (Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Enthrall",
+      "page": 128,
+      "header": "Level 2 Enchantment (Bard, Warlock)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Etherealness",
+      "page": 128,
+      "header": "Level 7 Conjuration (Bard, Cleric, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Up to 8 hours"
+    },
+    {
+      "name": "Expeditious Retreat",
+      "page": 129,
+      "header": "Level 1 Transmutation (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Bonus Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Eyebite",
+      "page": 129,
+      "header": "Level 6 Necromancy (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Fabricate",
+      "page": 129,
+      "header": "Level 4 Transmutation (Wizard)",
+      "castingTime": "10 minutes",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Faerie Fire",
+      "page": 129,
+      "header": "Level 1 Evocation (Bard, Druid)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Faithful Hound",
+      "page": 129,
+      "header": "Level 4 Conjuration (Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a silver whistle)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "False Life",
+      "page": 129,
+      "header": "Level 1 Necromancy (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a drop of alcohol)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Fear",
+      "page": 130,
+      "header": "Level 3 Illusion (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a white feather)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Feather Fall",
+      "page": 130,
+      "header": "Level 1 Transmutation (Bard, Sorcerer, Wizard)",
+      "castingTime": "Reaction, which you take when you or a creature you can see within 60 feet of you falls",
+      "range": "60 feet",
+      "components": "V, M (a small feather or piece of down)",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Find Familiar",
+      "page": 130,
+      "header": "Level 1 Conjuration (Wizard)",
+      "castingTime": "1 hour or Ritual",
+      "range": "10 feet",
+      "components": "V, S, M (burning incense worth 10+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Find Steed",
+      "page": 130,
+      "header": "Level 2 Conjuration (Paladin)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Find the Path",
+      "page": 131,
+      "header": "Level 6 Divination (Bard, Cleric, Druid)",
+      "castingTime": "1 minute",
+      "range": "Self",
+      "components": "V, S, M (a set of divination tools—such as cards or runes—worth 100+ GP)",
+      "duration": "Concentration, up to 1 day"
+    },
+    {
+      "name": "Find Traps",
+      "page": 131,
+      "header": "Level 2 Divination (Cleric, Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Finger of Death",
+      "page": 131,
+      "header": "Level 7 Necromancy (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Fireball",
+      "page": 131,
+      "header": "Level 3 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (a ball of bat guano and sulfur)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Fire Bolt",
+      "page": 132,
+      "header": "Evocation Cantrip (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Fire Shield",
+      "page": 132,
+      "header": "Level 4 Evocation (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a bit of phosphorus or a firefly)",
+      "duration": "10 minutes"
+    },
+    {
+      "name": "Fire Storm",
+      "page": 132,
+      "header": "Level 7 Evocation (Cleric, Druid, Sorcerer)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Flame Blade",
+      "page": 132,
+      "header": "Level 2 Evocation (Druid, Sorcerer)",
+      "castingTime": "Bonus Action",
+      "range": "Self",
+      "components": "V, S, M (a sumac leaf)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Flame Strike",
+      "page": 132,
+      "header": "Level 5 Evocation (Cleric)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a pinch of sulfur)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Flaming Sphere",
+      "page": 132,
+      "header": "Level 2 Conjuration (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a ball of wax)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Flesh to Stone",
+      "page": 133,
+      "header": "Level 6 Transmutation (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a cockatrice feather)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Floating Disk",
+      "page": 133,
+      "header": "Level 1 Conjuration (Wizard)",
+      "castingTime": "Action or Ritual",
+      "range": "30 feet",
+      "components": "V, S, M (a drop of mercury)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Fly",
+      "page": 133,
+      "header": "Level 3 Transmutation (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a feather)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Fog Cloud",
+      "page": 133,
+      "header": "Level 1 Conjuration (Druid, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Forbiddance",
+      "page": 133,
+      "header": "Level 6 Abjuration (Cleric)",
+      "castingTime": "10 minutes or Ritual",
+      "range": "Touch",
+      "components": "V, S, M (ruby dust worth 1,000+ GP)",
+      "duration": "1 day"
+    },
+    {
+      "name": "Forcecage",
+      "page": 134,
+      "header": "Level 7 Evocation (Bard, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "100 feet",
+      "components": "V, S, M (ruby dust worth 1,500+ GP, which the spell consumes)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Foresight",
+      "page": 134,
+      "header": "Level 9 Divination (Bard, Druid, Warlock, Wizard)",
+      "castingTime": "1 minute",
+      "range": "Touch",
+      "components": "V, S, M (a hummingbird feather)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Freedom of Movement",
+      "page": 134,
+      "header": "Level 4 Abjuration (Bard, Cleric, Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a leather strap)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Freezing Sphere",
+      "page": 134,
+      "header": "Level 6 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "300 feet",
+      "components": "V, S, M (a miniature crystal sphere)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Gaseous Form",
+      "page": 134,
+      "header": "Level 3 Transmutation (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a bit of gauze)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Gate",
+      "page": 135,
+      "header": "Level 9 Conjuration (Cleric, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a diamond worth 5,000+ GP)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Geas",
+      "page": 135,
+      "header": "Level 5 Enchantment (Bard, Cleric, Druid, Paladin, Wizard)",
+      "castingTime": "1 minute",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "30 days"
+    },
+    {
+      "name": "Gentle Repose",
+      "page": 135,
+      "header": "Level 2 Necromancy (Cleric, Paladin, Wizard)",
+      "castingTime": "Action or Ritual",
+      "range": "Touch",
+      "components": "V, S, M (2 Copper Pieces, which the spell consumes)",
+      "duration": "10 days"
+    },
+    {
+      "name": "Giant Insect",
+      "page": 135,
+      "header": "Level 4 Conjuration (Druid)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Glibness",
+      "page": 136,
+      "header": "Level 8 Enchantment (Bard, Warlock)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Globe of Invulnerability",
+      "page": 136,
+      "header": "Level 6 Abjuration (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a glass bead)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Glyph of Warding",
+      "page": 136,
+      "header": "Level 3 Abjuration (Bard, Cleric, Wizard)",
+      "castingTime": "1 hour",
+      "range": "Touch",
+      "components": "V, S, M (powdered diamond worth 200+ GP, which the spell consumes)",
+      "duration": "Until dispelled or triggered"
+    },
+    {
+      "name": "Goodberry",
+      "page": 137,
+      "header": "Level 1 Conjuration (Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a sprig of mistletoe)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Grease",
+      "page": 137,
+      "header": "Level 1 Conjuration (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a bit of pork rind or butter)",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Greater Invisibility",
+      "page": 137,
+      "header": "Level 4 Illusion (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Greater Restoration",
+      "page": 137,
+      "header": "Level 5 Abjuration (Bard, Cleric, Druid, Paladin, Ranger)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (diamond dust worth 100+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Guardian of Faith",
+      "page": 137,
+      "header": "Level 4 Conjuration (Cleric)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Guards and Wards",
+      "page": 137,
+      "header": "Level 6 Abjuration (Bard, Wizard)",
+      "castingTime": "1 hour",
+      "range": "Touch",
+      "components": "V, S, M (a silver rod worth 10+ GP)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Guidance",
+      "page": 138,
+      "header": "Divination Cantrip (Cleric, Druid)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Guiding Bolt",
+      "page": 138,
+      "header": "Level 1 Evocation (Cleric)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "1 round"
+    },
+    {
+      "name": "Gust of Wind",
+      "page": 138,
+      "header": "Level 2 Evocation (Druid, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a legume seed)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Hallow",
+      "page": 138,
+      "header": "Level 5 Abjuration (Cleric)",
+      "castingTime": "24 hours",
+      "range": "Touch",
+      "components": "V, S, M (incense worth 1,000+ GP, which the spell consumes)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Hallucinatory Terrain",
+      "page": 139,
+      "header": "Level 4 Illusion (Bard, Druid, Warlock, Wizard)",
+      "castingTime": "10 minutes",
+      "range": "300 feet",
+      "components": "V, S, M (a mushroom)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Harm",
+      "page": 139,
+      "header": "Level 6 Necromancy (Cleric)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Haste",
+      "page": 139,
+      "header": "Level 3 Transmutation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a shaving of licorice root)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Heal",
+      "page": 139,
+      "header": "Level 6 Abjuration (Cleric, Druid)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Healing Word",
+      "page": 139,
+      "header": "Level 1 Abjuration (Bard, Cleric, Druid)",
+      "castingTime": "Bonus Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Heat Metal",
+      "page": 139,
+      "header": "Level 2 Transmutation (Bard, Druid)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a piece of iron and a flame)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Hellish Rebuke",
+      "page": 140,
+      "header": "Level 1 Evocation (Warlock)",
+      "castingTime": "Reaction, which you take in response to taking damage from a creature that you can see within 60 feet of yourself",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Heroes’ Feast",
+      "page": 140,
+      "header": "Level 6 Conjuration (Bard, Cleric, Druid)",
+      "castingTime": "10 minutes",
+      "range": "Self",
+      "components": "V, S, M (a gem-encrusted bowl worth 1,000+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Heroism",
+      "page": 140,
+      "header": "Level 1 Enchantment (Bard, Paladin)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Hex",
+      "page": 140,
+      "header": "Level 1 Enchantment (Warlock)",
+      "castingTime": "Bonus Action",
+      "range": "90 feet",
+      "components": "V, S, M (the petrified eye of a newt)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Hideous Laughter",
+      "page": 140,
+      "header": "Level 1 Enchantment (Bard, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a tart and a feather)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Hold Monster",
+      "page": 140,
+      "header": "Level 5 Enchantment (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S, M (a straight piece of iron)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Hold Person",
+      "page": 141,
+      "header": "Level 2 Enchantment (Bard, Cleric, Druid, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a straight piece of iron)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Holy Aura",
+      "page": 141,
+      "header": "Level 8 Abjuration (Cleric)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a reliquary worth 1,000+ GP)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Hunter’s Mark",
+      "page": 141,
+      "header": "Level 1 Divination (Ranger)",
+      "castingTime": "Bonus Action",
+      "range": "90 feet",
+      "components": "V",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Hypnotic Pattern",
+      "page": 141,
+      "header": "Level 3 Illusion (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "S, M (a pinch of confetti)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Ice Knife",
+      "page": 141,
+      "header": "Level 1 Conjuration (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "S, M (a drop of water or a piece of ice)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Ice Storm",
+      "page": 141,
+      "header": "Level 4 Evocation (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "300 feet",
+      "components": "V, S, M (a mitten)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Identify",
+      "page": 142,
+      "header": "Level 1 Divination (Bard, Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "Touch",
+      "components": "V, S, M (a pearl worth 100+ GP)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Illusory Script",
+      "page": 142,
+      "header": "Level 1 Illusion (Bard, Warlock, Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "Touch",
+      "components": "S, M (ink worth 10+ GP, which the spell consumes)",
+      "duration": "10 days"
+    },
+    {
+      "name": "Imprisonment",
+      "page": 142,
+      "header": "Level 9 Abjuration (Warlock, Wizard)",
+      "castingTime": "1 minute",
+      "range": "30 feet",
+      "components": "V, S, M (a statuette of the target worth 5,000+ GP)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Incendiary Cloud",
+      "page": 142,
+      "header": "Level 8 Conjuration (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Inflict Wounds",
+      "page": 143,
+      "header": "Level 1 Necromancy (Cleric)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Insect Plague",
+      "page": 143,
+      "header": "Level 5 Conjuration (Cleric, Druid, Sorcerer)",
+      "castingTime": "Action",
+      "range": "300 feet",
+      "components": "V, S, M (a locust)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Instant Summons",
+      "page": 143,
+      "header": "Level 6 Conjuration (Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "Touch",
+      "components": "V, S, M (a sapphire worth 1,000+ GP)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Irresistible Dance",
+      "page": 143,
+      "header": "Level 6 Enchantment (Bard, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Invisibility",
+      "page": 143,
+      "header": "Level 2 Illusion (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (an eyelash in gum arabic)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Jump",
+      "page": 143,
+      "header": "Level 1 Transmutation (Druid, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Bonus Action",
+      "range": "Touch",
+      "components": "V, S, M (a grasshopper’s hind leg)",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Knock",
+      "page": 143,
+      "header": "Level 2 Transmutation (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Legend Lore",
+      "page": 144,
+      "header": "Level 5 Divination (Bard, Cleric, Wizard)",
+      "castingTime": "10 minutes",
+      "range": "Self",
+      "components": "V, S, M (incense worth 250+ GP, which the spell consumes, and four ivory strips worth 50+ GP each)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Lesser Restoration",
+      "page": 144,
+      "header": "Level 2 Abjuration (Bard, Cleric, Druid, Paladin, Ranger)",
+      "castingTime": "Bonus Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Levitate",
+      "page": 144,
+      "header": "Level 2 Transmutation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a metal spring)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Light",
+      "page": 144,
+      "header": "Evocation Cantrip (Bard, Cleric, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, M (a firefly or phosphorescent moss)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Lightning Bolt",
+      "page": 144,
+      "header": "Level 3 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a bit of fur and a crystal rod)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Locate Animals or Plants",
+      "page": 144,
+      "header": "Level 2 Divination (Bard, Druid, Ranger)",
+      "castingTime": "Action or Ritual",
+      "range": "Self",
+      "components": "V, S, M (fur from a bloodhound)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Locate Creature",
+      "page": 145,
+      "header": "Level 4 Divination (Bard, Cleric, Druid, Paladin, Ranger, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (fur from a bloodhound)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Locate Object",
+      "page": 145,
+      "header": "Level 2 Divination (Bard, Cleric, Druid, Paladin, Ranger, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a forked twig)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Longstrider",
+      "page": 145,
+      "header": "Level 1 Transmutation (Bard, Druid, Ranger, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a pinch of dirt)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Mage Armor",
+      "page": 145,
+      "header": "Level 1 Abjuration (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a piece of cured leather)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Mage Hand",
+      "page": 145,
+      "header": "Conjuration Cantrip (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Magic Circle",
+      "page": 145,
+      "header": "Level 3 Abjuration (Cleric, Paladin, Warlock, Wizard)",
+      "castingTime": "1 minute",
+      "range": "10 feet",
+      "components": "V, S, M (salt and powdered silver worth 100+ GP, which the spell consumes)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Magic Jar",
+      "page": 146,
+      "header": "Level 6 Necromancy (Wizard)",
+      "castingTime": "1 minute",
+      "range": "Self",
+      "components": "V, S, M (a gem, crystal, or reliquary worth 500+ GP)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Magic Missile",
+      "page": 146,
+      "header": "Level 1 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Magic Mouth",
+      "page": 146,
+      "header": "Level 2 Illusion (Bard, Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "30 feet",
+      "components": "V, S, M (jade dust worth 10+ GP, which the spell consumes)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Magic Weapon",
+      "page": 146,
+      "header": "Level 2 Transmutation (Paladin, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Bonus Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Magnificent Mansion",
+      "page": 147,
+      "header": "Level 7 Conjuration (Bard, Wizard)",
+      "castingTime": "1 minute",
+      "range": "300 feet",
+      "components": "V, S, M (a miniature door worth 15+ GP)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Major Image",
+      "page": 147,
+      "header": "Level 3 Illusion (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a bit of fleece)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Mass Cure Wounds",
+      "page": 147,
+      "header": "Level 5 Abjuration (Bard, Cleric, Druid)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Mass Heal",
+      "page": 147,
+      "header": "Level 9 Abjuration (Cleric)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Mass Healing Word",
+      "page": 148,
+      "header": "Level 3 Abjuration (Bard, Cleric)",
+      "castingTime": "Bonus Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Mass Suggestion",
+      "page": 148,
+      "header": "Level 6 Enchantment (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, M (a snake’s tongue)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Maze",
+      "page": 148,
+      "header": "Level 8 Conjuration (Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Meld into Stone",
+      "page": 148,
+      "header": "Level 3 Transmutation (Cleric, Druid, Ranger)",
+      "castingTime": "Action or Ritual",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Mending",
+      "page": 148,
+      "header": "Transmutation Cantrip (Bard, Cleric, Druid, Sorcerer, Wizard)",
+      "castingTime": "1 minute",
+      "range": "Touch",
+      "components": "V, S, M (two lodestones)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Message",
+      "page": 148,
+      "header": "Transmutation Cantrip (Bard, Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "S, M (a copper wire)",
+      "duration": "1 round"
+    },
+    {
+      "name": "Meteor Swarm",
+      "page": 149,
+      "header": "Level 9 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "1 mile",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Mind Blank",
+      "page": 149,
+      "header": "Level 8 Abjuration (Bard, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Mind Spike",
+      "page": 149,
+      "header": "Level 2 Divination (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "S",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Minor Illusion",
+      "page": 149,
+      "header": "Illusion Cantrip (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "S, M (a bit of fleece)",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Mirage Arcane",
+      "page": 149,
+      "header": "Level 7 Illusion (Bard, Druid, Wizard)",
+      "castingTime": "10 minutes",
+      "range": "Sight",
+      "components": "V, S",
+      "duration": "10 days"
+    },
+    {
+      "name": "Mirror Image",
+      "page": 150,
+      "header": "Level 2 Illusion (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Mislead",
+      "page": 150,
+      "header": "Level 5 Illusion (Bard, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "S",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Misty Step",
+      "page": 150,
+      "header": "Level 2 Conjuration (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Bonus Action",
+      "range": "Self",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Modify Memory",
+      "page": 150,
+      "header": "Level 5 Enchantment (Bard, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Moonbeam",
+      "page": 150,
+      "header": "Level 2 Evocation (Druid)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a moonseed leaf)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Move Earth",
+      "page": 151,
+      "header": "Level 6 Transmutation (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a miniature shovel)",
+      "duration": "Concentration, up to 2 hours"
+    },
+    {
+      "name": "Nondetection",
+      "page": 151,
+      "header": "Level 3 Abjuration (Bard, Ranger, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a pinch of diamond dust worth 25+ GP, which the spell consumes)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Passwall",
+      "page": 151,
+      "header": "Level 5 Transmutation (Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a pinch of sesame seeds)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Pass without Trace",
+      "page": 151,
+      "header": "Level 2 Abjuration (Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (ashes from burned mistletoe)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Phantasmal Force",
+      "page": 151,
+      "header": "Level 2 Illusion (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a bit of fleece)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Phantasmal Killer",
+      "page": 152,
+      "header": "Level 4 Illusion (Bard, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Phantom Steed",
+      "page": 152,
+      "header": "Level 3 Illusion (Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Planar Ally",
+      "page": 152,
+      "header": "Level 6 Conjuration (Cleric)",
+      "castingTime": "10 minutes",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Planar Binding",
+      "page": 152,
+      "header": "Level 5 Abjuration (Bard, Cleric, Druid, Warlock, Wizard)",
+      "castingTime": "1 hour",
+      "range": "60 feet",
+      "components": "V, S, M (a jewel worth 1,000+ GP, which the spell consumes)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Plane Shift",
+      "page": 153,
+      "header": "Level 7 Conjuration (Cleric, Druid, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a forked, metal rod worth 250+ GP and attuned to a plane of existence)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Plant Growth",
+      "page": 153,
+      "header": "Level 3 Transmutation (Bard, Druid, Ranger)",
+      "castingTime": "Action (Overgrowth) or 8 hours (Enrichment)",
+      "range": "150 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Poison Spray",
+      "page": 153,
+      "header": "Necromancy Cantrip (Druid, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Polymorph",
+      "page": 153,
+      "header": "Level 4 Transmutation (Bard, Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a caterpillar cocoon)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Power Word Heal",
+      "page": 154,
+      "header": "Level 9 Enchantment (Bard, Cleric)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Power Word Kill",
+      "page": 154,
+      "header": "Level 9 Enchantment (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Power Word Stun",
+      "page": 154,
+      "header": "Level 8 Enchantment (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Prayer of Healing",
+      "page": 154,
+      "header": "Level 2 Abjuration (Cleric, Paladin)",
+      "castingTime": "10 minutes",
+      "range": "30 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Prestidigitation",
+      "page": 154,
+      "header": "Transmutation Cantrip (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "10 feet",
+      "components": "V, S",
+      "duration": "Up to 1 hour"
+    },
+    {
+      "name": "Prismatic Spray",
+      "page": 154,
+      "header": "Level 7 Evocation (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Prismatic Wall",
+      "page": 155,
+      "header": "Level 9 Abjuration (Bard, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "10 minutes"
+    },
+    {
+      "name": "Private Sanctum",
+      "page": 156,
+      "header": "Level 4 Abjuration (Wizard)",
+      "castingTime": "10 minutes",
+      "range": "120 feet",
+      "components": "V, S, M (a thin sheet of lead)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Produce Flame",
+      "page": 156,
+      "header": "Conjuration Cantrip (Druid)",
+      "castingTime": "Bonus Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "10 minutes"
+    },
+    {
+      "name": "Programmed Illusion",
+      "page": 156,
+      "header": "Level 6 Illusion (Bard, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (jade dust worth 25+ GP)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Project Image",
+      "page": 156,
+      "header": "Level 7 Illusion (Bard, Wizard)",
+      "castingTime": "Action",
+      "range": "500 miles",
+      "components": "V, S, M (a statuette of yourself worth 5+ GP)",
+      "duration": "Concentration, up to 1 day"
+    },
+    {
+      "name": "Protection from Energy",
+      "page": 157,
+      "header": "Level 3 Abjuration (Cleric, Druid, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Protection from Evil and Good",
+      "page": 157,
+      "header": "Level 1 Abjuration (Cleric, Druid, Paladin, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a flask of Holy Water worth 25+ GP, which the spell consumes)",
+      "duration": "Concentration up to 10 minutes"
+    },
+    {
+      "name": "Protection from Poison",
+      "page": 157,
+      "header": "Level 2 Abjuration (Cleric, Druid, Paladin, Ranger)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Purify Food and Drink",
+      "page": 157,
+      "header": "Level 1 Transmutation (Cleric, Druid, Paladin)",
+      "castingTime": "Action or Ritual",
+      "range": "10 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Raise Dead",
+      "page": 157,
+      "header": "Level 5 Necromancy (Bard, Cleric, Paladin)",
+      "castingTime": "1 hour",
+      "range": "Touch",
+      "components": "V, S, M (a diamond worth 500+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Ray of Enfeeblement",
+      "page": 157,
+      "header": "Level 2 Necromancy (Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Ray of Frost",
+      "page": 157,
+      "header": "Evocation Cantrip (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Regenerate",
+      "page": 158,
+      "header": "Level 7 Transmutation (Bard, Cleric, Druid)",
+      "castingTime": "1 minute",
+      "range": "Touch",
+      "components": "V, S, M (a prayer wheel)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Ray of Sickness",
+      "page": 158,
+      "header": "Level 1 Necromancy (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Reincarnate",
+      "page": 158,
+      "header": "Level 5 Necromancy (Druid)",
+      "castingTime": "1 hour",
+      "range": "Touch",
+      "components": "V, S, M (rare oils worth 1,000+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Remove Curse",
+      "page": 158,
+      "header": "Level 3 Abjuration (Cleric, Paladin, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Resilient Sphere",
+      "page": 158,
+      "header": "Level 4 Abjuration (Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a glass sphere)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Resistance",
+      "page": 158,
+      "header": "Abjuration Cantrip (Cleric, Druid)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Resurrection",
+      "page": 158,
+      "header": "Level 7 Necromancy (Bard, Cleric)",
+      "castingTime": "1 hour",
+      "range": "Touch",
+      "components": "V, S, M (a diamond worth 1,000+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Reverse Gravity",
+      "page": 159,
+      "header": "Level 7 Transmutation (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "100 feet",
+      "components": "V, S, M (a lodestone and iron filings)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Revivify",
+      "page": 159,
+      "header": "Level 3 Necromancy (Cleric, Druid, Paladin, Ranger)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a diamond worth 300+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Rope Trick",
+      "page": 159,
+      "header": "Level 2 Transmutation (Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a segment of rope)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Sacred Flame",
+      "page": 159,
+      "header": "Evocation Cantrip (Cleric)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Sanctuary",
+      "page": 159,
+      "header": "Level 1 Abjuration (Cleric)",
+      "castingTime": "Bonus Action",
+      "range": "30 feet",
+      "components": "V, S, M (a shard of glass from a mirror)",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Scorching Ray",
+      "page": 159,
+      "header": "Level 2 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Scrying",
+      "page": 160,
+      "header": "Level 5 Divination (Bard, Cleric, Druid, Warlock, Wizard)",
+      "castingTime": "10 minutes",
+      "range": "Self",
+      "components": "V, S, M (a focus worth 1,000+ GP, such as a crystal ball, mirror, or water-filled font)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Searing Smite",
+      "page": 160,
+      "header": "Level 1 Evocation (Paladin)",
+      "castingTime": "Bonus Action, which you take immediately after hitting a target with a Melee weapon or an Unarmed Strike",
+      "range": "Self",
+      "components": "V",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Secret Chest",
+      "page": 160,
+      "header": "Level 4 Conjuration (Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a chest, 3 feet by 2 feet by 2 feet, constructed from rare materials worth 5,000+ GP, and a Tiny replica of the chest made from the same materials worth 50+ GP)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "See Invisibility",
+      "page": 160,
+      "header": "Level 2 Divination (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a pinch of talc)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Seeming",
+      "page": 160,
+      "header": "Level 5 Illusion (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Sending",
+      "page": 161,
+      "header": "Level 3 Divination (Bard, Cleric, Wizard)",
+      "castingTime": "Action",
+      "range": "Unlimited",
+      "components": "V, S, M (a copper wire)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Sequester",
+      "page": 161,
+      "header": "Level 7 Transmutation (Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (gem dust worth 5,000+ GP, which the spell consumes)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Shapechange",
+      "page": 161,
+      "header": "Level 9 Transmutation (Druid, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a jade circlet worth 1,500+ GP)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Shatter",
+      "page": 161,
+      "header": "Level 2 Evocation (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a chip of mica)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Shield",
+      "page": 161,
+      "header": "Level 1 Abjuration (Sorcerer, Wizard)",
+      "castingTime": "Reaction, which you take when you are hit by an attack roll or targeted by the Magic Missile spell",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "1 round"
+    },
+    {
+      "name": "Shield of Faith",
+      "page": 162,
+      "header": "Level 1 Abjuration (Cleric, Paladin)",
+      "castingTime": "Bonus Action",
+      "range": "60 feet",
+      "components": "V, S, M (a prayer scroll)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Shillelagh",
+      "page": 162,
+      "header": "Transmutation Cantrip (Druid)",
+      "castingTime": "Bonus Action",
+      "range": "Self",
+      "components": "V, S, M (mistletoe)",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Shining Smite",
+      "page": 162,
+      "header": "Level 2 Transmutation (Paladin)",
+      "castingTime": "Bonus Action, which you take immediately after hitting a creature with a Melee weapon or an Unarmed Strike",
+      "range": "Self",
+      "components": "V",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Shocking Grasp",
+      "page": 162,
+      "header": "Evocation Cantrip (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Silence",
+      "page": 162,
+      "header": "Level 2 Illusion (Bard, Cleric, Ranger)",
+      "castingTime": "Action or Ritual",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Silent Image",
+      "page": 162,
+      "header": "Level 1 Illusion (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a bit of fleece)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Simulacrum",
+      "page": 162,
+      "header": "Level 7 Illusion (Wizard)",
+      "castingTime": "12 hours",
+      "range": "Touch",
+      "components": "V, S, M (powdered ruby worth 1,500+ GP, which the spell consumes)",
+      "duration": "Until dispelled"
+    },
+    {
+      "name": "Sleep",
+      "page": 163,
+      "header": "Level 1 Enchantment (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a pinch of sand or rose petals)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Sleet Storm",
+      "page": 163,
+      "header": "Level 3 Conjuration (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (a miniature umbrella)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Slow",
+      "page": 163,
+      "header": "Level 3 Transmutation (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a drop of molasses)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Sorcerous Burst",
+      "page": 163,
+      "header": "Evocation Cantrip (Sorcerer)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Spare the Dying",
+      "page": 163,
+      "header": "Necromancy Cantrip (Cleric, Druid)",
+      "castingTime": "Action",
+      "range": "15 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Speak with Animals",
+      "page": 164,
+      "header": "Level 1 Divination (Bard, Druid, Ranger, Warlock)",
+      "castingTime": "Action or Ritual",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "10 minutes"
+    },
+    {
+      "name": "Speak with Dead",
+      "page": 164,
+      "header": "Level 3 Necromancy (Bard, Cleric, Wizard)",
+      "castingTime": "Action",
+      "range": "10 feet",
+      "components": "V, S, M (burning incense)",
+      "duration": "10 minutes"
+    },
+    {
+      "name": "Speak with Plants",
+      "page": 164,
+      "header": "Level 3 Transmutation (Bard, Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "10 minutes"
+    },
+    {
+      "name": "Spider Climb",
+      "page": 164,
+      "header": "Level 2 Transmutation (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a drop of bitumen and a spider)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Spike Growth",
+      "page": 164,
+      "header": "Level 2 Transmutation (Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (seven thorns)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Spirit Guardians",
+      "page": 164,
+      "header": "Level 3 Conjuration (Cleric)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a prayer scroll)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Spiritual Weapon",
+      "page": 165,
+      "header": "Level 2 Evocation (Cleric)",
+      "castingTime": "Bonus Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Starry Wisp",
+      "page": 165,
+      "header": "Evocation Cantrip (Bard, Druid)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Stinking Cloud",
+      "page": 165,
+      "header": "Level 3 Conjuration (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "90 feet",
+      "components": "V, S, M (a rotten egg)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Stone Shape",
+      "page": 165,
+      "header": "Level 4 Transmutation (Cleric, Druid, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (soft clay)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Stoneskin",
+      "page": 165,
+      "header": "Level 4 Transmutation (Druid, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (diamond dust worth 100+ GP, which the spell consumes)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Storm of Vengeance",
+      "page": 165,
+      "header": "Level 9 Conjuration (Druid)",
+      "castingTime": "Action",
+      "range": "1 mile",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Suggestion",
+      "page": 166,
+      "header": "Level 2 Enchantment (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, M (a drop of honey)",
+      "duration": "Concentration, up to 8 hours"
+    },
+    {
+      "name": "Summon Dragon",
+      "page": 166,
+      "header": "Level 5 Conjuration (Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (an object with the image of a dragon engraved on it worth 500+ GP)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Sunbeam",
+      "page": 166,
+      "header": "Level 6 Evocation (Cleric, Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S, M (a magnifying glass)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Sunburst",
+      "page": 167,
+      "header": "Level 8 Evocation (Cleric, Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (a piece of sunstone)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Symbol",
+      "page": 167,
+      "header": "Level 7 Abjuration (Bard, Cleric, Druid, Wizard)",
+      "castingTime": "1 minute",
+      "range": "Touch",
+      "components": "V, S, M (powdered diamond worth 1,000+ GP, which the spell consumes)",
+      "duration": "Until dispelled or triggered"
+    },
+    {
+      "name": "Telekinesis",
+      "page": 167,
+      "header": "Level 5 Transmutation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Telepathic Bond",
+      "page": 168,
+      "header": "Level 5 Divination (Bard, Wizard)",
+      "castingTime": "Action or Ritual",
+      "range": "30 feet",
+      "components": "V, S, M (two eggs)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Teleport",
+      "page": 168,
+      "header": "Level 7 Conjuration (Bard, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "10 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Teleportation Circle",
+      "page": 168,
+      "header": "Level 5 Conjuration (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "1 minute",
+      "range": "10 feet",
+      "components": "V, M (rare inks worth 50+ GP, which the spell consumes)",
+      "duration": "1 round"
+    },
+    {
+      "name": "Thaumaturgy",
+      "page": 169,
+      "header": "Transmutation Cantrip (Cleric)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V",
+      "duration": "Up to 1 minute"
+    },
+    {
+      "name": "Thunderwave",
+      "page": 169,
+      "header": "Level 1 Evocation (Bard, Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Time Stop",
+      "page": 169,
+      "header": "Level 9 Transmutation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Tiny Hut",
+      "page": 169,
+      "header": "Level 3 Evocation (Bard, Wizard)",
+      "castingTime": "1 minute or Ritual",
+      "range": "Self",
+      "components": "V, S, M (a crystal bead)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Tongues",
+      "page": 169,
+      "header": "Level 3 Divination (Bard, Cleric, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, M (a miniature ziggurat)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Transport via Plants",
+      "page": 170,
+      "header": "Level 6 Conjuration (Druid)",
+      "castingTime": "Action",
+      "range": "10 feet",
+      "components": "V, S",
+      "duration": "1 minute"
+    },
+    {
+      "name": "Tree Stride",
+      "page": 170,
+      "header": "Level 5 Conjuration (Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "True Polymorph",
+      "page": 170,
+      "header": "Level 9 Transmutation (Bard, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "30 feet",
+      "components": "V, S, M (a drop of mercury, a dollop of gum arabic, and a wisp of smoke)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "True Resurrection",
+      "page": 170,
+      "header": "Level 9 Necromancy (Cleric, Druid)",
+      "castingTime": "1 hour",
+      "range": "Touch",
+      "components": "V, S, M (diamonds worth 25,000+ GP, which the spell consumes)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "True Seeing",
+      "page": 171,
+      "header": "Level 6 Divination (Bard, Cleric, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (mushroom powder worth 25+ GP, which the spell consumes)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "True Strike",
+      "page": 171,
+      "header": "Divination Cantrip (Bard, Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "S, M (a weapon with which you have proficiency and that is worth 1+ CP)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Tsunami",
+      "page": 171,
+      "header": "Level 8 Conjuration (Druid)",
+      "castingTime": "1 minute",
+      "range": "1 mile",
+      "components": "V, S",
+      "duration": "Concentration, up to 6 rounds"
+    },
+    {
+      "name": "Unseen Servant",
+      "page": 171,
+      "header": "Level 1 Conjuration (Bard, Warlock, Wizard)",
+      "castingTime": "Action or Ritual",
+      "range": "60 feet",
+      "components": "V, S, M (a bit of string and of wood)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Vampiric Touch",
+      "page": 171,
+      "header": "Level 3 Necromancy (Sorcerer, Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Vicious Mockery",
+      "page": 171,
+      "header": "Enchantment Cantrip (Bard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Vitriolic Sphere",
+      "page": 172,
+      "header": "Level 4 Evocation (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "150 feet",
+      "components": "V, S, M (a drop of bile)",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Wall of Fire",
+      "page": 172,
+      "header": "Level 4 Evocation (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a piece of charcoal)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Wall of Force",
+      "page": 172,
+      "header": "Level 5 Evocation (Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a shard of glass)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Wall of Ice",
+      "page": 172,
+      "header": "Level 6 Evocation (Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a piece of quartz)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Wall of Stone",
+      "page": 173,
+      "header": "Level 5 Evocation (Druid, Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a cube of granite)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Wall of Thorns",
+      "page": 173,
+      "header": "Level 6 Conjuration (Druid)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a handful of thorns)",
+      "duration": "Concentration, up to 10 minutes"
+    },
+    {
+      "name": "Warding Bond",
+      "page": 173,
+      "header": "Level 2 Abjuration (Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "Touch",
+      "components": "V, S, M (a pair of platinum rings worth 50+ GP each, which you and the target must wear for the duration)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Water Breathing",
+      "page": 173,
+      "header": "Level 3 Transmutation (Druid, Ranger, Sorcerer, Wizard)",
+      "castingTime": "Action or Ritual",
+      "range": "30 feet",
+      "components": "V, S, M (a short reed)",
+      "duration": "24 hours"
+    },
+    {
+      "name": "Water Walk",
+      "page": 173,
+      "header": "Level 3 Transmutation (Cleric, Druid, Ranger, Sorcerer)",
+      "castingTime": "Action or Ritual",
+      "range": "30 feet",
+      "components": "V, S, M (a piece of cork)",
+      "duration": "1 hour"
+    },
+    {
+      "name": "Web",
+      "page": 174,
+      "header": "Level 2 Conjuration (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S, M (a bit of spiderweb)",
+      "duration": "Concentration, up to 1 hour"
+    },
+    {
+      "name": "Weird",
+      "page": 174,
+      "header": "Level 9 Illusion (Warlock, Wizard)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Wind Walk",
+      "page": 174,
+      "header": "Level 6 Transmutation (Druid)",
+      "castingTime": "1 minute",
+      "range": "30 feet",
+      "components": "V, S, M (a candle)",
+      "duration": "8 hours"
+    },
+    {
+      "name": "Wind Wall",
+      "page": 174,
+      "header": "Level 3 Evocation (Druid, Ranger)",
+      "castingTime": "Action",
+      "range": "120 feet",
+      "components": "V, S, M (a fan and a feather)",
+      "duration": "Concentration, up to 1 minute"
+    },
+    {
+      "name": "Wish",
+      "page": 175,
+      "header": "Level 9 Conjuration (Sorcerer, Wizard)",
+      "castingTime": "Action",
+      "range": "Self",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Word of Recall",
+      "page": 175,
+      "header": "Level 6 Conjuration (Cleric)",
+      "castingTime": "Action",
+      "range": "5 feet",
+      "components": "V",
+      "duration": "Instantaneous"
+    },
+    {
+      "name": "Zone of Truth",
+      "page": 175,
+      "header": "Level 2 Enchantment (Bard, Cleric, Paladin)",
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": "V, S",
+      "duration": "10 minutes"
+    }
+  ],
+  "weapons": [
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Club",
+      "damage": "1d4 Bludgeoning",
+      "properties": "Light",
+      "mastery": "Slow",
+      "weight": "2 lb.",
+      "cost": "1 SP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Dagger",
+      "damage": "1d4 Piercing",
+      "properties": "Finesse, Light, Thrown (Range 20/60)",
+      "mastery": "Nick",
+      "weight": "1 lb.",
+      "cost": "2 GP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Greatclub",
+      "damage": "1d8 Bludgeoning",
+      "properties": "Two-Handed",
+      "mastery": "Push",
+      "weight": "10 lb.",
+      "cost": "2 SP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Handaxe",
+      "damage": "1d6 Slashing",
+      "properties": "Light, Thrown (Range 20/60)",
+      "mastery": "Vex",
+      "weight": "2 lb.",
+      "cost": "5 GP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Javelin",
+      "damage": "1d6 Piercing",
+      "properties": "Thrown (Range 30/120)",
+      "mastery": "Slow",
+      "weight": "2 lb.",
+      "cost": "5 SP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Light Hammer",
+      "damage": "1d4 Bludgeoning",
+      "properties": "Light, Thrown (Range 20/60)",
+      "mastery": "Nick",
+      "weight": "2 lb.",
+      "cost": "2 GP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Mace",
+      "damage": "1d6 Bludgeoning",
+      "properties": "—",
+      "mastery": "Sap",
+      "weight": "4 lb.",
+      "cost": "5 GP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Quarterstaff",
+      "damage": "1d6 Bludgeoning",
+      "properties": "Versatile (1d8)",
+      "mastery": "Topple",
+      "weight": "4 lb.",
+      "cost": "2 SP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Sickle",
+      "damage": "1d4 Slashing",
+      "properties": "Light",
+      "mastery": "Nick",
+      "weight": "2 lb.",
+      "cost": "1 GP"
+    },
+    {
+      "group": "Simple Melee Weapons",
+      "name": "Spear",
+      "damage": "1d6 Piercing",
+      "properties": "Thrown (Range 20/60), Versatile (1d8)",
+      "mastery": "Sap",
+      "weight": "3 lb.",
+      "cost": "1 GP"
+    },
+    {
+      "group": "Simple Ranged Weapons",
+      "name": "Dart",
+      "damage": "1d4 Piercing",
+      "properties": "Finesse, Thrown (Range 20/60)",
+      "mastery": "Vex",
+      "weight": "1/4 lb.",
+      "cost": "5 CP"
+    },
+    {
+      "group": "Simple Ranged Weapons",
+      "name": "Light Crossbow",
+      "damage": "1d8 Piercing",
+      "properties": "Ammunition (Range 80/320; Bolt), Loading, Two-Handed",
+      "mastery": "Slow",
+      "weight": "5 lb.",
+      "cost": "25 GP"
+    },
+    {
+      "group": "Simple Ranged Weapons",
+      "name": "Shortbow",
+      "damage": "1d6 Piercing",
+      "properties": "Ammunition (Range 80/320; Arrow), Two-Handed",
+      "mastery": "Vex",
+      "weight": "2 lb.",
+      "cost": "25 GP"
+    },
+    {
+      "group": "Simple Ranged Weapons",
+      "name": "Sling",
+      "damage": "1d4 Bludgeoning",
+      "properties": "Ammunition (Range 30/120; Bullet)",
+      "mastery": "Slow",
+      "weight": "—",
+      "cost": "1 SP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Battleaxe",
+      "damage": "1d8 Slashing",
+      "properties": "Versatile (1d10)",
+      "mastery": "Topple",
+      "weight": "4 lb.",
+      "cost": "10 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Flail",
+      "damage": "1d8 Bludgeoning",
+      "properties": "—",
+      "mastery": "Sap",
+      "weight": "2 lb.",
+      "cost": "10 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Glaive",
+      "damage": "1d10 Slashing",
+      "properties": "Heavy, Reach, Two-Handed",
+      "mastery": "Graze",
+      "weight": "6 lb.",
+      "cost": "20 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Greataxe",
+      "damage": "1d12 Slashing",
+      "properties": "Heavy, Two-Handed",
+      "mastery": "Cleave",
+      "weight": "7 lb.",
+      "cost": "30 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Greatsword",
+      "damage": "2d6 Slashing",
+      "properties": "Heavy, Two-Handed",
+      "mastery": "Graze",
+      "weight": "6 lb.",
+      "cost": "50 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Halberd",
+      "damage": "1d10 Slashing",
+      "properties": "Heavy, Reach, Two-Handed",
+      "mastery": "Cleave",
+      "weight": "6 lb.",
+      "cost": "20 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Lance",
+      "damage": "1d10 Piercing",
+      "properties": "Heavy, Reach, Two-Handed (unless mounted)",
+      "mastery": "Topple",
+      "weight": "6 lb.",
+      "cost": "10 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Longsword",
+      "damage": "1d8 Slashing",
+      "properties": "Versatile (1d10)",
+      "mastery": "Sap",
+      "weight": "3 lb.",
+      "cost": "15 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Maul",
+      "damage": "2d6 Bludgeoning",
+      "properties": "Heavy, Two-Handed",
+      "mastery": "Topple",
+      "weight": "10 lb.",
+      "cost": "10 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Morningstar",
+      "damage": "1d8 Piercing",
+      "properties": "—",
+      "mastery": "Sap",
+      "weight": "4 lb.",
+      "cost": "15 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Pike",
+      "damage": "1d10 Piercing",
+      "properties": "Heavy, Reach, Two-Handed",
+      "mastery": "Push",
+      "weight": "18 lb.",
+      "cost": "5 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Rapier",
+      "damage": "1d8 Piercing",
+      "properties": "Finesse",
+      "mastery": "Vex",
+      "weight": "2 lb.",
+      "cost": "25 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Scimitar",
+      "damage": "1d6 Slashing",
+      "properties": "Finesse, Light",
+      "mastery": "Nick",
+      "weight": "3 lb.",
+      "cost": "25 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Shortsword",
+      "damage": "1d6 Piercing",
+      "properties": "Finesse, Light",
+      "mastery": "Vex",
+      "weight": "2 lb.",
+      "cost": "10 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Trident",
+      "damage": "1d8 Piercing",
+      "properties": "Thrown (Range 20/60), Versatile (1d10)",
+      "mastery": "Topple",
+      "weight": "4 lb.",
+      "cost": "5 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Warhammer",
+      "damage": "1d8 Bludgeoning",
+      "properties": "Versatile (1d10)",
+      "mastery": "Push",
+      "weight": "5 lb.",
+      "cost": "15 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "War Pick",
+      "damage": "1d8 Piercing",
+      "properties": "Versatile (1d10)",
+      "mastery": "Sap",
+      "weight": "2 lb.",
+      "cost": "5 GP"
+    },
+    {
+      "group": "Martial Melee Weapons",
+      "name": "Whip",
+      "damage": "1d4 Slashing",
+      "properties": "Finesse, Reach",
+      "mastery": "Slow",
+      "weight": "3 lb.",
+      "cost": "2 GP"
+    },
+    {
+      "group": "Martial Ranged Weapons",
+      "name": "Blowgun",
+      "damage": "1 Piercing",
+      "properties": "Ammunition (Range 25/100; Needle), Loading",
+      "mastery": "Vex",
+      "weight": "1 lb.",
+      "cost": "10 GP"
+    },
+    {
+      "group": "Martial Ranged Weapons",
+      "name": "Hand Crossbow",
+      "damage": "1d6 Piercing",
+      "properties": "Ammunition (Range 30/120; Bolt), Light, Loading",
+      "mastery": "Vex",
+      "weight": "3 lb.",
+      "cost": "75 GP"
+    },
+    {
+      "group": "Martial Ranged Weapons",
+      "name": "Heavy Crossbow",
+      "damage": "1d10 Piercing",
+      "properties": "Ammunition (Range 100/400; Bolt), Heavy, Loading, Two-Handed",
+      "mastery": "Push",
+      "weight": "18 lb.",
+      "cost": "50 GP"
+    },
+    {
+      "group": "Martial Ranged Weapons",
+      "name": "Longbow",
+      "damage": "1d8 Piercing",
+      "properties": "Ammunition (Range 150/600; Arrow), Heavy, Two-Handed",
+      "mastery": "Slow",
+      "weight": "2 lb.",
+      "cost": "50 GP"
+    },
+    {
+      "group": "Martial Ranged Weapons",
+      "name": "Musket",
+      "damage": "1d12 Piercing",
+      "properties": "Ammunition (Range 40/120; Bullet), Loading, Two-Handed",
+      "mastery": "Slow",
+      "weight": "10 lb.",
+      "cost": "500 GP"
+    },
+    {
+      "group": "Martial Ranged Weapons",
+      "name": "Pistol",
+      "damage": "1d10 Piercing",
+      "properties": "Ammunition (Range 30/90; Bullet), Loading",
+      "mastery": "Vex",
+      "weight": "3 lb.",
+      "cost": "250 GP"
+    }
+  ],
+  "armor": [
+    {
+      "group": "Light Armor",
+      "name": "Padded Armor",
+      "armorClass": "11 + Dex modifier",
+      "strength": "—",
+      "stealth": "Disadvantage",
+      "weight": "8 lb.",
+      "cost": "5 GP"
+    },
+    {
+      "group": "Light Armor",
+      "name": "Leather Armor",
+      "armorClass": "11 + Dex modifier",
+      "strength": "—",
+      "stealth": "—",
+      "weight": "10 lb.",
+      "cost": "10 GP"
+    },
+    {
+      "group": "Light Armor",
+      "name": "Studded Leather Armor",
+      "armorClass": "12 + Dex modifier",
+      "strength": "—",
+      "stealth": "—",
+      "weight": "13 lb.",
+      "cost": "45 GP"
+    },
+    {
+      "group": "Medium Armor",
+      "name": "Hide Armor",
+      "armorClass": "12 + Dex modifier (max 2)",
+      "strength": "—",
+      "stealth": "—",
+      "weight": "12 lb.",
+      "cost": "10 GP"
+    },
+    {
+      "group": "Medium Armor",
+      "name": "Chain Shirt",
+      "armorClass": "13 + Dex modifier (max 2)",
+      "strength": "—",
+      "stealth": "—",
+      "weight": "20 lb.",
+      "cost": "50 GP"
+    },
+    {
+      "group": "Medium Armor",
+      "name": "Scale Mail",
+      "armorClass": "14 + Dex modifier (max 2)",
+      "strength": "—",
+      "stealth": "Disadvantage",
+      "weight": "45 lb.",
+      "cost": "50 GP"
+    },
+    {
+      "group": "Medium Armor",
+      "name": "Breastplate",
+      "armorClass": "14 + Dex modifier (max 2)",
+      "strength": "—",
+      "stealth": "—",
+      "weight": "20 lb.",
+      "cost": "400 GP"
+    },
+    {
+      "group": "Medium Armor",
+      "name": "Half Plate Armor",
+      "armorClass": "15 + Dex modifier (max 2)",
+      "strength": "—",
+      "stealth": "Disadvantage",
+      "weight": "40 lb.",
+      "cost": "750 GP"
+    },
+    {
+      "group": "Heavy Armor",
+      "name": "Ring Mail",
+      "armorClass": "14",
+      "strength": "—",
+      "stealth": "Disadvantage",
+      "weight": "40 lb.",
+      "cost": "30 GP"
+    },
+    {
+      "group": "Heavy Armor",
+      "name": "Chain Mail",
+      "armorClass": "16",
+      "strength": "Str 13",
+      "stealth": "Disadvantage",
+      "weight": "55 lb.",
+      "cost": "75 GP"
+    },
+    {
+      "group": "Heavy Armor",
+      "name": "Splint Armor",
+      "armorClass": "17",
+      "strength": "Str 15",
+      "stealth": "Disadvantage",
+      "weight": "60 lb.",
+      "cost": "200 GP"
+    },
+    {
+      "group": "Heavy Armor",
+      "name": "Plate Armor",
+      "armorClass": "18",
+      "strength": "Str 15",
+      "stealth": "Disadvantage",
+      "weight": "65 lb.",
+      "cost": "1,500 GP"
+    },
+    {
+      "group": "Shield",
+      "name": "Shield",
+      "armorClass": "+2",
+      "strength": "—",
+      "stealth": "—",
+      "weight": "6 lb.",
+      "cost": "10 GP"
+    }
+  ]
+}

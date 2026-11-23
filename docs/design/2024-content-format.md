@@ -4,7 +4,7 @@ title: 2024 content format
 description: The 2024 content format - JSON packs, two layers in each record, rules as data with named hooks, the record types and their fields, the value forms and conditions, the loader, the key scheme, the source data, attribution, and monsters - with an example species, background, feat, and spell.
 tags: [rules-2024, engine, content-format, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T04:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T06:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-96
 sources:
   - id: orc-96
@@ -19,6 +19,9 @@ sources:
   - id: rules-delta
     resource: ../kb/srd-5.2-rules-delta.md
     title: SRD 5.2 rules delta for a character builder
+  - id: orc-224
+    resource: https://linear.app/orc-alchemy/issue/ORC-224
+    title: "ORC-224: Import the SRD 5.2.1 data, with attribution"
 ---
 
 # Purpose
@@ -184,18 +187,23 @@ Every record has `key`, `name`, and the optional fields `source`
 
 | Type | Typed fields |
 |---|---|
-| `classes` | `hitDie` (6, 8, 10, or 12), `savingThrows` (two abilities), `skills` (a choice of skill keys), and the optional `primaryAbility`, `weaponProficiencies`, `armorTraining`, `tools`, `startingEquipment`, `features`, and `levels`. |
-| `subclasses` | `class` (a reference), and the optional `features` and `levels`. |
+| `classes` | `hitDie` (6, 8, 10, or 12), `savingThrows` (two abilities), `skills` (a choice of skill keys), and the optional `primaryAbility` (a list of abilities, or a choice of them), `weaponProficiencies`, `armorTraining`, `tools`, `startingEquipment`, `features`, `table`, and `levels`. |
+| `subclasses` | `class` (a reference), and the optional `summary`, `features`, and `levels`. |
 | `species` | `creatureType`, `size` (a size, or a choice of sizes), and `speed` in feet. |
 | `backgrounds` | `abilityScores` (three abilities), `feat` (a reference), `skills` (two skill keys), `tool` (a reference, or a choice), and the optional `startingEquipment`. |
 | `feats` | `category` (`origin`, `general`, `fighting-style`, or `epic-boon`), `repeatable`, and the optional `prerequisites`. |
 | `spells` | `level` (0 to 9), `school`, `classes` (references), `castingTime`, `ritual`, `range`, `components`, `duration`, `concentration`, and the optional `higherLevels`. |
-| `equipment` | `category`, for example `weapon` or `gaming-set`, and the optional `cost` (gp), `weight` (lb), `weapon`, and `armor`. |
+| `equipment` | `category`, for example `weapon` or `gaming-set`, and the optional `cost` (gp), `weight` (lb), `weapon`, `armor`, and `contents` (the items in a pack, as in starting equipment). A `weapon` has `category`, `ranged`, `damage`, `properties`, `mastery`, and the optional `range` and `versatile` (the damage with two hands). |
+| `abilities`, `skills`, `languages`, `conditions`, `damageTypes`, `weaponMasteries`, `weaponProperties` | Reference data: `key`, `name`, and the optional `source` and `description`. A skill also has `ability`, and a language has `rare`. The key of an ability is `str` to `cha`, and the key of a mastery property is one of the eight in the SRD. |
 | `monsters` | `size`, `creatureType`, `challengeRating`, `armorClass`, `hitPoints`, `speed` (feet for each kind), and `abilities`. ORC-236 adds the rest. |
 
 A feature of a class or a subclass is a trait with a `level`. The `levels`
 field is a list of `{ "level": 3, "effects": [...] }`: the effects that the
-class or the subclass gives from that class level. A choice in a typed field
+class or the subclass gives from that class level. The `table` field of a
+class is display data: one row for each class level, with
+`proficiencyBonus`, `features` (the feature keys of that level), the
+optional `columns` (for example `{ "rage-damage": 2 }`), and the optional
+`spellcasting` (`cantrips`, `preparedSpells`, and `slots`, nine numbers). A choice in a typed field
 is `{ "choose": 1, "from": [...] }`. For a tool, `from` can also be
 `{ "category": "gaming-set" }`: the equipment records of that category.
 
@@ -338,6 +346,12 @@ A 2024 reference cannot collide with a 2014 key. A 2014 key has no pack
 prefix. A character has one edition, from the `rules` tag on its envelope,
 and loads only the content of that edition.
 
+A feature of a class or a subclass, a trait of a species, and a benefit of
+a feat take their key from their name, without the class name:
+`srd52:fighter/second-wind`, not `fighter-second-wind`. When two features of
+one class have the same name, each key gets the level, for example
+`ability-score-improvement-4`.
+
 Three kinds of record have no upstream `index`: Eldritch Invocations,
 Metamagic options, and the variants that upstream divides into trait
 records.[^5e-bits] Their key comes from the name (`keyFromName` in
@@ -347,19 +361,45 @@ Drow" gives `elven-lineage-drow`.
 
 # 5. The source data
 
-The built-in pack starts from the 5e-bits 2024 data.[^5e-bits]
+The built-in pack starts from the 5e-bits 2024 data.[^5e-bits] Two scripts
+in `packages/engine/scripts/` make it, and both write files that we commit.
 
-1. A script reads `5e-bits/5e-srd-api` at a pinned commit and writes packs
-   in this format. It runs one time. After that, our files are the source.
-2. We commit the packs, the script, and a provenance file. The provenance
-   file has the upstream repository, the commit, and the date.
-3. The script corrects the errors that ORC-219 and the spike found.
-4. A test compares the spell header fields and the weapon and armor tables
-   with the SRD 5.2.1 text.
-5. A later run of the script against a newer commit can print a difference
-   report.
+| Script | Reads | Writes |
+|---|---|---|
+| `import-srd.ts` | A checkout of `5e-bits/5e-srd-api` at the pinned commit. The data is in `packages/5e-database/src/2024/en/`. | `content/srd52.json`, `content/srd52.provenance.json` (the repository, the commit, and the commit date), and `content/NOTICE-5e-bits.md`. |
+| `extract-srd-text.ts` | The SRD 5.2.1 PDF, with `pdftotext`. | `src/srd52/fixtures/srd-5.2.1-text.json`: the header of each spell, and the weapon and armor tables of p91 and p92. |
 
-ORC-224 is the build ticket.
+To make the pack again, clone `5e-bits/5e-srd-api`, check out the commit in
+the provenance file, and run `bun run import-srd <checkout>` in
+`packages/engine`. With `--check`, the script compares a new run with the
+committed files. The output has no run date, so the same commit gives the
+same files. The script refuses a checkout at a different commit. We do not
+commit the upstream JSON or the PDF.
+
+1. The import fills the display layer and the typed fields. The rules
+   layer, `effects` and `levels`, comes from the rules tickets and the class
+   tickets.
+2. `scripts/srd-corrections.ts` corrects the upstream errors. Each
+   correction names its SRD page, and each one stops the import if the
+   upstream value is not the known error.
+3. `src/srd52/srd52.test.ts` compares the pack with the PDF text: the
+   record counts, the spell header fields, and the weapon and armor tables.
+   It also checks the page of each correction.
+4. The import joins a line break inside a sentence, a copy error in the
+   upstream text.
+5. A spell keeps `castingTime` and `duration` without the flags. The SRD
+   prints "1 minute or Ritual" and "Concentration, up to 1 minute". The
+   record has `castingTime: "1 minute"` with `ritual: true`, and
+   `duration: "up to 1 minute"` with `concentration: true`.
+
+The import leaves out these upstream data:
+
+- Subspecies. The SRD gives each lineage table in the trait text, and the
+  choice is rules work (ORC-226).
+- The multiclass prerequisites (ORC-234) and the spellcasting ability
+  (ORC-229).
+- The kind of ammunition of a weapon ("Bolt"), and "unless mounted" on the
+  Two-Handed property of the Lance. The format has no field for them.
 
 # 6. Attribution
 

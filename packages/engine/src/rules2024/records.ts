@@ -12,7 +12,6 @@ import { type Option, type OptionParts, option, type Prereq, selection } from ".
 import { parseReference, referenceTo } from "../format/keys.ts";
 import type { IssuePath } from "../format/load.ts";
 import type {
-  AnyRecord,
   BackgroundRecord,
   Condition,
   Effect,
@@ -314,7 +313,7 @@ function traitFeatures(context: Context, traits: readonly (Trait & { level?: num
 }
 
 /** The parts of a record: its effects, then a feature for each trait. */
-function recordParts(content: Content, reference: string, record: AnyRecord, via: readonly string[] = []): Parts {
+function recordParts(content: Content, reference: string, record: FeatRecord | SpeciesRecord | BackgroundRecord, via: readonly string[] = []): Parts {
   const traits = record.traits ?? [];
   const context: Context = { record: reference, content, traits, uses: new Map(), via };
   const effects = effectParts(context, record.effects ?? [], ["effects"]);
