@@ -3,7 +3,7 @@
 
 import type { OptionModifier, Reader } from "../../core/modifiers.ts";
 import { type Option, option, type Selection, selection } from "../../core/template.ts";
-import { feature, m, type Sheet, type Skill, type Uses } from "../sheet.ts";
+import { type Built2024, feature, m, type Skill, type Uses } from "../built.ts";
 import { featSelection } from "./feats.ts";
 import { WEAPONS } from "./weapons.ts";
 
@@ -25,10 +25,10 @@ const SKILL_NAMES: Partial<Record<Skill, string>> = {
 };
 
 /** A class feature. `uses` reads the Fighter level, so the feature updates as the class gains levels. */
-function classFeature(level: number, name: string, summary: string, uses?: (fighterLevel: number) => Uses): OptionModifier<Sheet> {
+function classFeature(level: number, name: string, summary: string, uses?: (fighterLevel: number) => Uses): OptionModifier<Built2024> {
   const granted = feature(CLASS, name, summary, { level });
   if (!uses) return m.push("features", granted);
-  return m.push("features", (q: Reader<Sheet>) => ({ ...granted, uses: uses(q("classLevels")[CLASS] ?? 0) }), { deps: ["classLevels"] });
+  return m.push("features", (q: Reader<Built2024>) => ({ ...granted, uses: uses(q("classLevels")[CLASS] ?? 0) }), { deps: ["classLevels"] });
 }
 
 /**
@@ -36,7 +36,7 @@ function classFeature(level: number, name: string, summary: string, uses?: (figh
  * same ref, so the counts of the levels add up to one pool: 3 kinds at
  * level 1 and 4 at level 4 (SRD 5.2.1 p47 to p48).
  */
-function weaponMasterySelection(count: number): Selection<Sheet> {
+function weaponMasterySelection(count: number): Selection<Built2024> {
   return selection({
     name: "Weapon Mastery",
     ref: ["weapon-mastery"],
@@ -48,7 +48,7 @@ function weaponMasterySelection(count: number): Selection<Sheet> {
   });
 }
 
-const CHAMPION = option<Sheet>({
+const CHAMPION = option<Built2024>({
   name: "Champion",
   modifiers: [
     m.put("subclasses", CLASS, "champion"),
@@ -63,11 +63,11 @@ const CHAMPION = option<Sheet>({
 });
 
 interface LevelConfig {
-  modifiers?: OptionModifier<Sheet>[];
-  selections?: Selection<Sheet>[];
+  modifiers?: OptionModifier<Built2024>[];
+  selections?: Selection<Built2024>[];
 }
 
-function level(n: number, { modifiers = [], selections = [] }: LevelConfig): Option<Sheet> {
+function level(n: number, { modifiers = [], selections = [] }: LevelConfig): Option<Built2024> {
   return option({
     name: `Level ${n}`,
     modifiers: [
@@ -82,7 +82,7 @@ function level(n: number, { modifiers = [], selections = [] }: LevelConfig): Opt
   });
 }
 
-const LEVELS: Option<Sheet>[] = [
+const LEVELS: Option<Built2024>[] = [
   level(1, {
     modifiers: [
       classFeature(
@@ -94,7 +94,13 @@ const LEVELS: Option<Sheet>[] = [
         1,
         "Second Wind",
         "As a Bonus Action, regain Hit Points equal to 1d10 plus your Fighter level. You regain one use when you finish a Short Rest and all uses when you finish a Long Rest.",
-        (fighterLevel) => ({ amount: fighterLevel >= 10 ? 4 : fighterLevel >= 4 ? 3 : 2, recharge: "long-rest", shortRestRegain: 1 }),
+        (fighterLevel) => ({
+          amount: fighterLevel >= 10 ? 4 : fighterLevel >= 4 ? 3 : 2,
+          recover: [
+            { on: "short-rest", amount: 1 },
+            { on: "long-rest", amount: "all" },
+          ],
+        }),
       ),
       classFeature(
         1,
@@ -108,7 +114,7 @@ const LEVELS: Option<Sheet>[] = [
     modifiers: [
       classFeature(2, "Action Surge", "On your turn, you can take one additional action, except the Magic action.", (fighterLevel) => ({
         amount: fighterLevel >= 17 ? 2 : 1,
-        recharge: "short-rest",
+        recover: [{ on: "short-rest", amount: "all" }],
       })),
       classFeature(
         2,
@@ -132,7 +138,7 @@ const LEVELS: Option<Sheet>[] = [
   }),
 ];
 
-export const FIGHTER = option<Sheet>({
+export const FIGHTER = option<Built2024>({
   name: "Fighter",
   modifiers: [
     m.push("classes", CLASS),

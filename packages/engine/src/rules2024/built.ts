@@ -1,14 +1,22 @@
 // The built 2024 character and its base: the values before any choice, and
 // the values derived from others. This file is the 2024 counterpart of
-// dnd/e5/template_base.cljc, for the keys the Fighter slice needs.
+// dnd/e5/template_base.cljc, for the keys the Fighter slice needs. The
+// names are 2024 names: `species`, not `race`.
 
+import type { z } from "zod";
 import { type Base, modifiersFor } from "../core/modifiers.ts";
 import { nameToKey } from "../core/template.ts";
+import { ABILITY_KEYS, type FEAT_CATEGORIES, type Recovery as RecoverySchema, type Size as SizeSchema } from "../format/schema.ts";
 import { ARMOR } from "./content/armor.ts";
 import { WEAPONS, type WeaponMastery } from "./content/weapons.ts";
 
-export const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"] as const;
+// The words that the content format also uses come from its schema, so that the two cannot differ.
+
+export const ABILITIES = ABILITY_KEYS;
 export type Ability = (typeof ABILITIES)[number];
+/** The sizes of a creature (SRD 5.2.1 p176). */
+export type Size = z.infer<typeof SizeSchema>;
+
 export type AbilityScores = Readonly<Record<Ability, number>>;
 
 /** Each skill and its ability (SRD 5.2.1 p9). */
@@ -42,7 +50,7 @@ export interface AbilityIncrease {
   source: string;
 }
 
-export type FeatCategory = "origin" | "general" | "fighting-style" | "epic-boon";
+export type FeatCategory = (typeof FEAT_CATEGORIES)[number];
 
 export interface FeatTaken {
   key: string;
@@ -50,12 +58,16 @@ export interface FeatTaken {
   category: FeatCategory;
 }
 
-/** The uses of a feature and the rest that restores all of them. */
+/** What a rest restores: a number of uses, or all of them (the `recover` of the content format). */
+export type Recovery = z.infer<typeof RecoverySchema>;
+
+/**
+ * The uses of a feature and how they come back. A 2024 feature can have two
+ * rules: Second Wind regains one use on a Short Rest and all on a Long Rest.
+ */
 export interface Uses {
   amount: number;
-  recharge: "short-rest" | "long-rest";
-  /** The uses that a Short Rest restores, when a Long Rest restores all. */
-  shortRestRegain?: number;
+  recover: readonly Recovery[];
 }
 
 export interface Feature {
@@ -80,11 +92,12 @@ export interface WeaponAttack {
   mastery: WeaponMastery | null;
 }
 
-export interface Sheet {
+/** The built 2024 character: every value that `evaluate` computes from the choices. */
+export interface Built2024 {
   name: string;
   species: string | null;
   creatureType: string;
-  size: "small" | "medium";
+  size: Size;
   /** Feet. */
   speed: number;
   /** Feet, 0 without Darkvision. */
@@ -146,8 +159,8 @@ export interface Sheet {
   weaponAttacks: readonly WeaponAttack[];
 }
 
-/** The modifier constructors for the 2024 sheet. */
-export const m = modifiersFor<Sheet>();
+/** The modifier constructors for the built 2024 character. */
+export const m = modifiersFor<Built2024>();
 
 export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2);
@@ -167,7 +180,7 @@ function signed(bonus: number): string {
   return bonus === 0 ? "" : bonus > 0 ? `+${bonus}` : `${bonus}`;
 }
 
-export const base: Base<Sheet> = {
+export const base: Base<Built2024> = {
   name: "",
   species: null,
   creatureType: "humanoid",

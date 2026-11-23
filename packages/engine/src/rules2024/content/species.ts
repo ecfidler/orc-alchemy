@@ -1,9 +1,9 @@
 // Species (SRD 5.2.1 p84 to p86). The slice has the Dwarf.
 
 import { type Option, option } from "../../core/template.ts";
-import { feature, m, type Sheet } from "../sheet.ts";
+import { type Built2024, feature, m } from "../built.ts";
 
-export const SPECIES: readonly Option<Sheet>[] = [
+export const SPECIES: readonly Option<Built2024>[] = [
   option({
     name: "Dwarf",
     modifiers: [
@@ -31,7 +31,7 @@ export const SPECIES: readonly Option<Sheet>[] = [
             "Stonecunning",
             "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on or touching a stone surface.",
             {
-              uses: { amount: q("proficiencyBonus"), recharge: "long-rest" },
+              uses: { amount: q("proficiencyBonus"), recover: [{ on: "long-rest", amount: "all" }] },
             },
           ),
         { deps: ["proficiencyBonus"] },

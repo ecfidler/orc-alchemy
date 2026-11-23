@@ -1,0 +1,284 @@
+{
+  "format": "alchemy-content",
+  "version": 1,
+  "rules": "2024",
+  "pack": {
+    "id": "srd52",
+    "name": "SRD 5.2.1 (test examples)",
+    "license": "CC-BY-4.0",
+    "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+    "modified": true
+  },
+  "classes": [
+    {
+      "key": "sorcerer",
+      "name": "Sorcerer",
+      "hitDie": 6,
+      "savingThrows": ["con", "cha"],
+      "skills": {
+        "choose": 2,
+        "from": ["arcana", "history"]
+      }
+    },
+    {
+      "key": "wizard",
+      "name": "Wizard",
+      "hitDie": 6,
+      "savingThrows": ["int", "wis"],
+      "skills": {
+        "choose": 2,
+        "from": ["arcana", "history"]
+      }
+    }
+  ],
+  "species": [
+    {
+      "key": "dwarf",
+      "name": "Dwarf",
+      "source": {
+        "index": "dwarf"
+      },
+      "creatureType": "humanoid",
+      "size": "medium",
+      "speed": 30,
+      "description": "Dwarves were raised from the earth in the elder days by a deity of the forge.",
+      "traits": [
+        {
+          "key": "darkvision",
+          "name": "Darkvision",
+          "text": "You have Darkvision with a range of 120 feet."
+        },
+        {
+          "key": "dwarven-resilience",
+          "name": "Dwarven Resilience",
+          "text": "You have Resistance to Poison damage. You have Advantage on saving throws to avoid or end the Poisoned condition."
+        },
+        {
+          "key": "dwarven-toughness",
+          "name": "Dwarven Toughness",
+          "text": "Your Hit Point maximum increases by 1, and by 1 again whenever you gain a level."
+        },
+        {
+          "key": "stonecunning",
+          "name": "Stonecunning",
+          "text": "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on or touching a stone surface."
+        }
+      ],
+      "effects": [
+        {
+          "set": "darkvision",
+          "value": 120
+        },
+        {
+          "push": "resistances",
+          "value": "poison"
+        },
+        {
+          "add": "maxHitPoints",
+          "value": {
+            "read": "totalLevel"
+          },
+          "name": "Dwarven Toughness"
+        },
+        {
+          "uses": {
+            "trait": "stonecunning",
+            "amount": {
+              "read": "proficiencyBonus"
+            },
+            "recover": [
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "backgrounds": [
+    {
+      "key": "soldier",
+      "name": "Soldier",
+      "source": {
+        "index": "soldier"
+      },
+      "description": "You began training for war as soon as you reached adulthood.",
+      "abilityScores": ["str", "dex", "con"],
+      "feat": "srd52:savage-attacker",
+      "skills": ["athletics", "intimidation"],
+      "tool": {
+        "choose": 1,
+        "from": {
+          "category": "gaming-set"
+        }
+      },
+      "startingEquipment": [
+        {
+          "items": [
+            {
+              "item": "srd52:spear",
+              "quantity": 1
+            },
+            {
+              "item": {
+                "chosen": "tool"
+              },
+              "quantity": 1
+            },
+            {
+              "item": "srd52:shortbow",
+              "quantity": 1
+            },
+            {
+              "item": "srd52:arrow",
+              "quantity": 20
+            },
+            {
+              "item": "srd52:healers-kit",
+              "quantity": 1
+            },
+            {
+              "item": "srd52:quiver",
+              "quantity": 1
+            },
+            {
+              "item": "srd52:travelers-clothes",
+              "quantity": 1
+            }
+          ],
+          "gold": 14
+        },
+        {
+          "gold": 50
+        }
+      ]
+    }
+  ],
+  "feats": [
+    {
+      "key": "alert",
+      "name": "Alert",
+      "source": {
+        "index": "alert"
+      },
+      "category": "origin",
+      "repeatable": false,
+      "description": "You gain the following benefits.",
+      "traits": [
+        {
+          "key": "initiative-proficiency",
+          "name": "Initiative Proficiency",
+          "text": "When you roll Initiative, you can add your Proficiency Bonus to the roll."
+        },
+        {
+          "key": "initiative-swap",
+          "name": "Initiative Swap",
+          "text": "After you roll Initiative, you can swap your Initiative with one willing ally in the same combat."
+        }
+      ],
+      "effects": [
+        {
+          "add": "initiative",
+          "value": {
+            "read": "proficiencyBonus"
+          },
+          "name": "Alert"
+        }
+      ]
+    },
+    {
+      "key": "savage-attacker",
+      "name": "Savage Attacker",
+      "source": {
+        "index": "savage-attacker"
+      },
+      "category": "origin",
+      "repeatable": false,
+      "traits": [
+        {
+          "key": "savage-attacker",
+          "name": "Savage Attacker",
+          "text": "Once per turn when you hit a target with a weapon, you can roll the weapon's damage dice twice and use either roll."
+        }
+      ]
+    }
+  ],
+  "spells": [
+    {
+      "key": "fireball",
+      "name": "Fireball",
+      "source": {
+        "index": "fireball"
+      },
+      "level": 3,
+      "school": "evocation",
+      "classes": ["srd52:sorcerer", "srd52:wizard"],
+      "castingTime": "action",
+      "ritual": false,
+      "range": "150 feet",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": "a ball of bat guano and sulfur"
+      },
+      "duration": "instantaneous",
+      "concentration": false,
+      "description": "A bright streak flashes from you to a point you choose within range and then blossoms with a low roar into a fiery explosion.",
+      "higherLevels": "The damage increases by 1d6 for each spell slot level above 3."
+    }
+  ],
+  "equipment": [
+    {
+      "key": "spear",
+      "name": "Spear",
+      "category": "weapon"
+    },
+    {
+      "key": "shortbow",
+      "name": "Shortbow",
+      "category": "weapon"
+    },
+    {
+      "key": "arrow",
+      "name": "Arrow",
+      "category": "ammunition"
+    },
+    {
+      "key": "healers-kit",
+      "name": "Healer's Kit",
+      "category": "adventuring-gear"
+    },
+    {
+      "key": "quiver",
+      "name": "Quiver",
+      "category": "adventuring-gear"
+    },
+    {
+      "key": "travelers-clothes",
+      "name": "Traveler's Clothes",
+      "category": "adventuring-gear"
+    },
+    {
+      "key": "dice",
+      "name": "Dice",
+      "category": "gaming-set"
+    },
+    {
+      "key": "dragonchess",
+      "name": "Dragonchess",
+      "category": "gaming-set"
+    },
+    {
+      "key": "playing-cards",
+      "name": "Playing Cards",
+      "category": "gaming-set"
+    },
+    {
+      "key": "three-dragon-ante",
+      "name": "Three-Dragon Ante",
+      "category": "gaming-set"
+    }
+  ]
+}

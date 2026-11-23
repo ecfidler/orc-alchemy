@@ -1,8 +1,9 @@
 // Backgrounds (SRD 5.2.1 p83). The slice has the Soldier.
 
-import { nameToKey, type Option, option, type Prereq, type Selection, selection } from "../../core/template.ts";
-import { type Ability, m, type Sheet, type Skill } from "../sheet.ts";
-import { abilityIncreaseOptions, grantFeat } from "./feats.ts";
+import { nameToKey, type Option, option, selection } from "../../core/template.ts";
+import { backgroundAbilitySelection } from "../abilities.ts";
+import { type Ability, type Built2024, m, type Skill } from "../built.ts";
+import { grantFeat } from "./feats.ts";
 
 interface Background {
   name: string;
@@ -13,40 +14,7 @@ interface Background {
   tool: string | { name: string; choices: readonly string[] };
 }
 
-/**
- * The ability score choice of a background: +2 to one listed ability and +1
- * to a different one, or +1 to all three (SRD 5.2.1 p83).
- */
-function abilityScoreSelection(background: Background): Selection<Sheet> {
-  const source = background.name;
-  // The +2 and the +1 go to different abilities, so each excludes what the other took.
-  const notTakenBy =
-    (otherAmount: number) =>
-    (ability: Ability): Prereq<Sheet> => ({
-      label: "A different ability from the other increase",
-      test: (built) => !built.abilityIncreases.some((i) => i.source === source && i.amount === otherAmount && i.ability === ability),
-    });
-  return selection({
-    name: "Ability Scores",
-    options: [
-      option({
-        name: "+2 and +1",
-        key: "two-and-one",
-        selections: [
-          selection({ name: "Increase by 2", key: "plus-two", options: abilityIncreaseOptions(background.abilities, 2, source, notTakenBy(1)) }),
-          selection({ name: "Increase by 1", key: "plus-one", options: abilityIncreaseOptions(background.abilities, 1, source, notTakenBy(2)) }),
-        ],
-      }),
-      option({
-        name: "+1 to all three",
-        key: "three-ones",
-        modifiers: background.abilities.map((ability) => m.push("abilityIncreases", { ability, amount: 1, max: 20, source })),
-      }),
-    ],
-  });
-}
-
-function backgroundOption(background: Background): Option<Sheet> {
+function backgroundOption(background: Background): Option<Built2024> {
   const feat = grantFeat(background.feat);
   const tool = background.tool;
   return option({
@@ -58,7 +26,7 @@ function backgroundOption(background: Background): Option<Sheet> {
       ...feat.modifiers,
     ],
     selections: [
-      abilityScoreSelection(background),
+      backgroundAbilitySelection(background.abilities, background.name),
       ...(typeof tool === "string"
         ? []
         : [selection({ name: tool.name, options: tool.choices.map((name) => option({ name, modifiers: [m.push("toolProficiencies", nameToKey(name))] })) })]),
@@ -67,7 +35,7 @@ function backgroundOption(background: Background): Option<Sheet> {
   });
 }
 
-export const BACKGROUNDS: readonly Option<Sheet>[] = [
+export const BACKGROUNDS: readonly Option<Built2024>[] = [
   backgroundOption({
     name: "Soldier",
     abilities: ["str", "dex", "con"],

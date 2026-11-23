@@ -44,8 +44,10 @@ export interface Modifier<S> {
   readonly when?: (q: Reader<S>) => boolean;
   /** Sorts the modifiers of one key: lowest first, absent first of all. */
   readonly order?: number;
-  /** A label for the source of the change. */
+  /** A label for the change, as the contributions show it. */
   readonly name?: string;
+  /** The path of the chosen option that carries the modifier. The build sets it. */
+  readonly source?: readonly string[];
 }
 
 /**
@@ -173,10 +175,31 @@ function compareOrder(a: number | undefined, b: number | undefined): number {
   return a - b;
 }
 
+/** One change that one modifier made to one key of the built entity. */
+export interface Contribution<T = unknown> {
+  /** The name of the modifier, or of the option that carries it. */
+  name: string;
+  /** The path of the chosen option that carries the modifier. Empty for a modifier with no option. */
+  source: readonly string[];
+  /** The value before the change. */
+  from: T;
+  /** The value after the change. */
+  to: T;
+}
+
+/** For each key that modifiers changed, the changes in the order they applied. */
+export type Contributions<S> = { readonly [K in Key<S>]?: readonly Contribution<S[K]>[] };
+
+export interface Applied<S> {
+  built: S;
+  contributions: Contributions<S>;
+}
+
 /**
  * Applies the modifiers to the base in dependency order and returns the
- * built entity (entity/apply-options from the sort on, and
- * modifiers/apply-modifiers).
+ * built entity with the contributions to each key (entity/apply-options
+ * from the sort on, and modifiers/apply-modifiers). A modifier whose `when`
+ * fails gives no contribution.
  *
  * The order is the dependency order of the keys first. Keys with no
  * dependency between them keep the order of their first use. Within one
@@ -184,7 +207,7 @@ function compareOrder(a: number | undefined, b: number | undefined): number {
  * all. Modifiers with the same number keep the order of the list, which is
  * the order of the choices in the entity.
  */
-export function applyModifiers<S>(base: Base<S>, modifiers: readonly Modifier<S>[]): S {
+export function applyModifiers<S>(base: Base<S>, modifiers: readonly Modifier<S>[]): Applied<S> {
   const state = new Map<string, unknown>(Object.entries(base));
   // A derived value is computed again only after a modifier changed the state.
   const cache = new Map<string, unknown>();
@@ -218,15 +241,20 @@ export function applyModifiers<S>(base: Base<S>, modifiers: readonly Modifier<S>
       (a, b) => (rank.get(a.modifier.key) ?? -1) - (rank.get(b.modifier.key) ?? -1) || compareOrder(a.modifier.order, b.modifier.order) || a.index - b.index,
     );
 
+  const contributions: Record<string, Contribution[]> = {};
   for (const { modifier } of ordered) {
-    const q = readerFor(modifier.name ?? `modifier of ${modifier.key}`, [...modifier.deps, modifier.key]);
+    const name = modifier.name ?? `modifier of ${modifier.key}`;
+    const q = readerFor(name, [...modifier.deps, modifier.key]);
     if (modifier.when && !modifier.when(q)) continue;
-    const next = modifier.apply(read(modifier.key) as never, q);
-    state.set(modifier.key, next);
+    const from = read(modifier.key);
+    const to = modifier.apply(from as never, q);
+    state.set(modifier.key, to);
     cache.clear();
+    contributions[modifier.key] ??= [];
+    contributions[modifier.key].push({ name, source: modifier.source ?? [], from, to });
   }
 
   const built: Record<string, unknown> = {};
   for (const key of state.keys()) built[key] = read(key);
-  return built as S;
+  return { built: built as S, contributions: contributions as unknown as Contributions<S> };
 }
