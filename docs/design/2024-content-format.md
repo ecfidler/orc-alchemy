@@ -135,13 +135,15 @@ the errors that the schema cannot find:
   example a string in an `add`;
 - a `uses` on a trait that the record does not have;
 - a hook with arguments that are not valid;
+- a `uses` in an option of a `selection` (the uses of a trait apply
+  whatever the character chooses);
 - a `grantFeat` to a feat that is not loaded, or feats that grant each
   other in a loop.
 
 A record with such an error in its effects loses its effects. A record that
 still does not convert, for example a background whose Origin feat is not
-loaded, is dropped. Give `loadContentPack` the packs that the pack refers
-to.
+loaded, is dropped. Then `loadContentPack` checks the references of the
+pack. Give it the packs that the pack refers to.
 
 ## Names
 

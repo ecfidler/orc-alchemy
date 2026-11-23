@@ -63,7 +63,6 @@ export function recordsOf<T extends RecordType>(content: Content, type: T): { re
   return content.packs.flatMap((pack) => (pack[type] as Records[T][]).map((record) => ({ reference: referenceTo(pack.pack.id, record.key), record })));
 }
 
-type Path = IssuePath;
 type Read = (key: SheetValueName) => unknown;
 
 /** The kind of the result of a value, as far as the converter can tell before a build. */
@@ -84,9 +83,11 @@ interface Context {
   uses: Map<string, Compiled<NonNullable<Feature["uses"]>>>;
   /** The feats that grant this record, through `grantFeat`. A feat that grants one of them makes a loop. */
   via: readonly string[];
+  /** True in the effects of an option of a `selection` effect. */
+  inOption?: true;
 }
 
-function sheetValue(context: Context, path: Path, name: string): SheetValueName {
+function sheetValue(context: Context, path: IssuePath, name: string): SheetValueName {
   if (!isSheetValue(name)) throw new RecordError(context.record, path, `"${name}" is not a sheet value`);
   return name;
 }
@@ -95,7 +96,7 @@ const unique = <T>(items: readonly T[]) => [...new Set(items)];
 
 // Values and conditions.
 
-export function compileValue(context: Context, value: Value, path: Path): Compiled<unknown> {
+export function compileValue(context: Context, value: Value, path: IssuePath): Compiled<unknown> {
   if (typeof value !== "object") return { deps: [], get: () => value, kind: typeof value as "number" | "string" | "boolean" };
   if ("read" in value) {
     const name = sheetValue(context, [...path, "read"], value.read);
@@ -137,7 +138,7 @@ export function compileValue(context: Context, value: Value, path: Path): Compil
   };
 }
 
-function compileNumber(context: Context, value: Value, path: Path): Compiled<number> {
+function compileNumber(context: Context, value: Value, path: IssuePath): Compiled<number> {
   const compiled = compileValue(context, value, path);
   if (compiled.kind !== "number" && compiled.kind !== "unknown") {
     throw new RecordError(context.record, path, `the value is a ${compiled.kind}, not a number`);
@@ -159,7 +160,7 @@ function isEmpty(value: unknown): boolean {
   return typeof value === "object" && Object.keys(value).length === 0;
 }
 
-export function compileCondition(context: Context, condition: Condition, path: Path): Compiled<boolean> {
+export function compileCondition(context: Context, condition: Condition, path: IssuePath): Compiled<boolean> {
   if ("has" in condition) {
     const name = sheetValue(context, [...path, "has"], condition.has);
     const item = condition.item;
@@ -204,7 +205,7 @@ const fromBuilt =
   (key) =>
     built[key];
 
-function prerequisite(context: Context, prereq: Prerequisite, path: Path): Prereq<Built2024> {
+function prerequisite(context: Context, prereq: Prerequisite, path: IssuePath): Prereq<Built2024> {
   const test = compileCondition(context, prereq.test, [...path, "test"]);
   return { label: prereq.label, canChoose: (built) => test.get(fromBuilt(built)) };
 }
@@ -219,7 +220,7 @@ function merge(...parts: Parts[]): Parts {
   return { modifiers: parts.flatMap((p) => p.modifiers), selections: parts.flatMap((p) => p.selections) };
 }
 
-function changeModifier(context: Context, effect: Extract<Effect, { set: string } | { add: string } | { push: string }>, path: Path): Modifier<Built2024> {
+function changeModifier(context: Context, effect: Extract<Effect, { set: string } | { add: string } | { push: string }>, path: IssuePath): Modifier<Built2024> {
   const [word, name] = "set" in effect ? (["set", effect.set] as const) : "add" in effect ? (["add", effect.add] as const) : (["push", effect.push] as const);
   const target = sheetValue(context, [...path, word], name);
   const kind = SHEET_VALUES[target];
@@ -243,8 +244,8 @@ function fits(target: SheetValueKind, value: ValueKind): boolean {
   return value === "unknown" || value === target || (target === "nullable" && value === "string");
 }
 
-function selectionOption(context: Context, from: SelectionOption, path: Path): Option<Built2024> {
-  const parts = effectParts(context, from.effects ?? [], [...path, "effects"]);
+function selectionOption(context: Context, from: SelectionOption, path: IssuePath): Option<Built2024> {
+  const parts = effectParts({ ...context, inOption: true }, from.effects ?? [], [...path, "effects"]);
   return option({
     key: from.key,
     name: from.name,
@@ -254,7 +255,7 @@ function selectionOption(context: Context, from: SelectionOption, path: Path): O
 }
 
 /** The modifiers and selections of a list of effects. */
-export function effectParts(context: Context, effects: readonly Effect[], path: Path): Parts {
+export function effectParts(context: Context, effects: readonly Effect[], path: IssuePath): Parts {
   return merge(
     EMPTY,
     ...effects.map((effect, i): Parts => {
@@ -262,6 +263,8 @@ export function effectParts(context: Context, effects: readonly Effect[], path: 
       if ("set" in effect || "add" in effect || "push" in effect) return { modifiers: [changeModifier(context, effect, at)], selections: [] };
       if ("uses" in effect) {
         const { trait, amount, recover } = effect.uses;
+        // The uses of a trait apply whatever the character chooses, so an option cannot give them.
+        if (context.inOption) throw new RecordError(context.record, [...at, "uses"], "an option of a selection cannot give uses to a trait");
         if (!context.traits.some((t) => t.key === trait)) throw new RecordError(context.record, [...at, "uses", "trait"], `the record has no trait "${trait}"`);
         const value = compileNumber(context, amount, [...at, "uses", "amount"]);
         context.uses.set(trait, { kind: "record", deps: value.deps, get: (read) => ({ amount: value.get(read), recover }) });

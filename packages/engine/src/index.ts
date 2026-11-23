@@ -31,5 +31,5 @@ export {
 } from "./rules2024/evaluate.ts";
 export { defineHook, HOOKS, type Hook, type HookRegistry } from "./rules2024/hooks/index.ts";
 export { type ContentPackOptions, loadContentPack } from "./rules2024/packs.ts";
-export { backgroundOption, type Content, featOption, findRecord, RecordError, speciesOption, subclassOption } from "./rules2024/records.ts";
+export { backgroundOption, type Content, featOption, findRecord, RecordError, recordsOf, speciesOption, subclassOption } from "./rules2024/records.ts";
 export { template2024 } from "./rules2024/template.ts";

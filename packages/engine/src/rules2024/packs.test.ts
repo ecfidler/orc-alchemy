@@ -35,22 +35,22 @@ describe("loadContentPack", () => {
     expect(issues).toEqual([
       {
         path: ["feats", 1, "effects", 0, "add"],
-        message: 'hb:no-value at effects.0.add: "hitPoints" is not a sheet value, so the record loads without its effects',
+        message: '"hitPoints" is not a sheet value, so the record loads without its effects',
         dropped: "effects",
       },
       {
         path: ["feats", 2, "effects", 0, "value"],
-        message: "hb:wrong-kind at effects.0.value: the value is a string, not a number, so the record loads without its effects",
+        message: "the value is a string, not a number, so the record loads without its effects",
         dropped: "effects",
       },
       {
         path: ["feats", 3, "effects", 0, "grantFeat"],
-        message: "hb:loop at effects.0.grantFeat: the feats grant each other in a loop: hb:loop > hb:loop, so the record loads without its effects",
+        message: "the feats grant each other in a loop: hb:loop > hb:loop, so the record loads without its effects",
         dropped: "effects",
       },
       {
         path: ["feats", 4, "effects", 0, "uses", "trait"],
-        message: 'hb:bad-uses at effects.0.uses.trait: the record has no trait "nothing", so the record loads without its effects',
+        message: 'the record has no trait "nothing", so the record loads without its effects',
         dropped: "effects",
       },
     ]);
@@ -81,8 +81,30 @@ describe("loadContentPack", () => {
     // Without the built-in pack, the Origin feat is not loaded. The field is not an effect, so the record is dropped.
     const alone = loadContentPack({ ...homebrew, backgrounds: [background] });
     expect(alone.issues).toEqual([
-      { path: ["backgrounds", 0, "feat"], message: 'hb:gladiator at feat: no feat "srd52:alert" is loaded, so the record does not load', dropped: "record" },
+      { path: ["backgrounds", 0, "feat"], message: 'no feat "srd52:alert" is loaded, so the record does not load', dropped: "record" },
     ]);
     expect(alone.pack?.backgrounds).toEqual([]);
+  });
+
+  it("gives the index of the record in the file when the loader dropped a record before it", () => {
+    const { issues } = loadContentPack({ ...homebrew, feats: [{ ...feat("x", []), key: "Not A Key" }, feat("bad", [{ add: "nope", value: 1 }])] });
+    expect(issues.map((issue) => [issue.path.join("."), issue.dropped])).toEqual([
+      ["feats.0.key", "record"],
+      ["feats.1.effects.0.add", "effects"],
+    ]);
+  });
+
+  it("refuses uses that an option of a selection gives", () => {
+    const option = { key: "o1", name: "O1", effects: [{ uses: { trait: "benefit", amount: 3, recover: [{ on: "long-rest", amount: "all" }] } }] };
+    const { issues } = loadContentPack({ ...homebrew, feats: [feat("choice", [{ selection: { key: "pick", name: "Pick", choose: 1, from: [option] } }])] });
+    expect(issues.map((issue) => issue.path.join("."))).toEqual(["feats.0.effects.0.selection.from.0.effects.0.uses"]);
+    expect(issues[0].message).toBe("an option of a selection cannot give uses to a trait, so the record loads without its effects");
+  });
+
+  it("reports a reference that does not resolve, and keeps the record", () => {
+    const spell = { ...examplePack.spells[0], key: "flare", classes: ["hb:nobody"] };
+    const { pack, issues } = loadContentPack({ ...homebrew, spells: [spell] });
+    expect(issues).toEqual([{ path: ["spells", 0, "classes", 0], message: '"hb:nobody" is not a record of classes in "hb"', dropped: "none" }]);
+    expect(pack?.spells).toHaveLength(1);
   });
 });

@@ -159,7 +159,16 @@ function withKnownHooks(record: AnyRecord, path: IssuePath, hooks: ReadonlySet<s
       dropped: "effects",
     });
   }
-  // The rules layer of a record is its effects, and for a class or a subclass also the effects of its levels.
+  return withoutRules(record);
+}
+
+/** Whether the record has a rules layer: its effects, and for a class or a subclass also the effects of its levels. */
+export function hasRules(record: AnyRecord): boolean {
+  return "effects" in record || "levels" in record;
+}
+
+/** The record with its display layer only: without its effects and the effects of its levels. */
+export function withoutRules(record: AnyRecord): AnyRecord {
   const display: Record<string, unknown> = { ...record };
   delete display.effects;
   delete display.levels;
