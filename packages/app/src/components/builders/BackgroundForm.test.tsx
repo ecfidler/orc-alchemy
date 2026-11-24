@@ -85,7 +85,7 @@ test("an empty background shows five headings, each with one control, and no Add
     within(screen.getByRole("group", { name: "Tool proficiencies" }))
       .getAllByRole("button")
       .map((b) => b.textContent),
-  ).toEqual(["+ Add a tool proficiency6 more"]);
+  ).toEqual(["Add a tool proficiency6 more"]);
   expect(screen.getByLabelText("Gold")).toBeTruthy();
   expect(equipmentButton()).toBeTruthy();
   // Only Vehicles and Other tools are checkbox groups, and they show only when added.

@@ -261,7 +261,7 @@ export function Modifiers({ record, onChange, modifiers }: { record: ItemRecord;
           {m.render({
             name: m.name,
             action: m.common ? undefined : (
-              <Button variant="link" aria-label={`Remove ${m.name}`} onClick={() => remove(m)}>
+              <Button variant="link" icon="trash" aria-label={`Remove ${m.name}`} onClick={() => remove(m)}>
                 Remove
               </Button>
             ),

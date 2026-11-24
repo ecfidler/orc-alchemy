@@ -26,13 +26,13 @@ export function Home() {
         </div>
         <p className="max-w-[34ch] text-[19px]">Build and play your D&amp;D 5e character sheets.</p>
         <div className="flex flex-wrap gap-2.5">
-          <Button onClick={() => create(false)} variant="solid" size="large">
+          <Button icon="plus" onClick={() => create(false)} variant="solid" size="large">
             New character
           </Button>
-          <Button onClick={() => create(true)} size="large">
+          <Button icon="dice" onClick={() => create(true)} size="large">
             Random character
           </Button>
-          <ButtonLink size="large" render={<Link to="/import/dmv" />}>
+          <ButtonLink size="large" icon="import" render={<Link to="/import/dmv" />}>
             Import from Dungeon Master's Vault
           </ButtonLink>
         </div>

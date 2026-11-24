@@ -1,3 +1,4 @@
+import { PixelIcon } from "@orc-alchemy/ui";
 import { useLocation } from "react-router";
 
 /** What a feedback report carries about where the tester was. */
@@ -38,6 +39,7 @@ export function FeedbackLink() {
       rel="noopener noreferrer"
       className="font-sans text-xs font-semibold text-ink-muted underline underline-offset-2 hover:text-ink"
     >
+      <PixelIcon name="external" />
       Send feedback
     </a>
   );

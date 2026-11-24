@@ -169,7 +169,7 @@ test("a new feat shows only the common modifiers; the add list has the others in
   expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
   const add = screen.getByRole("button", { name: "Add a modifier" });
   expect(add.getAttribute("aria-haspopup")).toBe("dialog");
-  expect(add.textContent).toBe("+ Add a modifierSkill or Tool Proficiency, Languages, Weapon Proficiency and 11 more");
+  expect(add.textContent).toBe("Add a modifierSkill or Tool Proficiency, Languages, Weapon Proficiency and 11 more");
   expect(await addList()).toEqual(ADDED);
   // A real click puts the focus on the button.
   add.focus();

@@ -19,7 +19,7 @@
 // A failed save (ORC-290, "A failed save") shows the alert note of the shell
 // under the header, with a "Try again" button. The sheet behind the panel
 // shows the same note.
-import { Button, Checkbox, Dialog, FramedBox, Label, LockIcon } from "@orc-alchemy/ui";
+import { Button, Checkbox, Dialog, FramedBox, Label, LockIcon, PixelIcon } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { bonusStr, type PrepareSpell, type Sheet, type Spellcasting, type SpellRef, type SpendSlots } from "../engine/sheet.ts";
@@ -485,12 +485,13 @@ function PanelBody({
               <CountText key={count.className} count={count} withClass={withClass} prepareMode={prepareMode} />
             ))}
             {/* One button that changes its label. It has no pressed state. */}
-            <Button size="small" onClick={() => setPrepareMode((on) => !on)}>
+            <Button size="small" icon={prepareMode ? "check" : "sparkles"} onClick={() => setPrepareMode((on) => !on)}>
               {prepareMode ? "Done" : "Prepare spells"}
             </Button>
           </div>
         )}
         <Link to={builderHref} className="ml-auto underline underline-offset-2">
+          <PixelIcon name="pencil" />
           Change known spells in the builder
         </Link>
       </div>
@@ -539,7 +540,7 @@ function PanelBody({
         >
           {spellView && (
             // The initial focus at an open in the spell view.
-            <Button variant="link" {...{ [BACK]: "", [INITIAL_FOCUS]: "" }} className="mb-3 font-sans text-[13px]" onClick={() => setView("list")}>
+            <Button variant="link" icon="left" {...{ [BACK]: "", [INITIAL_FOCUS]: "" }} className="mb-3 font-sans text-[13px]" onClick={() => setView("list")}>
               Back to the list
             </Button>
           )}

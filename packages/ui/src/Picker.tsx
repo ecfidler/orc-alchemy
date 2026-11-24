@@ -1,10 +1,11 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import { forwardRef, useId, useRef, useState } from "react";
+import { PixelIcon } from "./Icon.tsx";
 import { type ListItem, ListModal } from "./ListModal.tsx";
 import { Token, Tokens } from "./Token.tsx";
 
 export type AddButtonProps = {
-  /** The text after the "+", for example "Add a part". It names the button. */
+  /** The text after the plus icon, for example "Add a part". It names the button. */
   label: string;
   /** The number of options that remain, shown on the right as "15 more". It describes the button. Leave it out to show no count. */
   remaining?: number;
@@ -25,7 +26,7 @@ export type AddButtonProps = {
 };
 
 /**
- * A wide ghost button that adds to a list: "+ {label}" on the left, and the
+ * A wide ghost button that adds to a list: the plus icon and the label on the left, and the
  * number of options that remain on the right, or `detail` after the label.
  * It gives a ref, so a ListModal can give the focus back to it.
  */
@@ -45,7 +46,7 @@ export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function 
       className={className ? `ui-button ui-add-button ${className}` : "ui-button ui-add-button"}
     >
       <span className="ui-add-label">
-        <span aria-hidden="true">+ </span>
+        <PixelIcon name="plus" />
         {label}
       </span>
       {detail !== undefined ? (

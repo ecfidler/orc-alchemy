@@ -12,8 +12,12 @@ export function NewCharacter() {
   return (
     <div className="mt-4">
       <div className="flex gap-2">
-        <Button onClick={() => create(false)}>New character</Button>
-        <Button onClick={() => create(true)}>Random character</Button>
+        <Button icon="plus" onClick={() => create(false)}>
+          New character
+        </Button>
+        <Button icon="dice" onClick={() => create(true)}>
+          Random character
+        </Button>
       </div>
       {error && <p role="alert">{error}</p>}
     </div>
@@ -88,7 +92,7 @@ function CharacterRow({ summary, confirm, onDeleted }: { summary: CharacterSumma
         }
         onMessage={setExportMessage}
       />
-      <Button onClick={onDelete} variant="link">
+      <Button icon="trash" onClick={onDelete} variant="link">
         Delete <span className="sr-only">{name}</span>
       </Button>
       {error && <p role="alert">{error}</p>}

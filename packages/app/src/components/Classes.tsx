@@ -86,19 +86,17 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
                 disabled={level <= 1}
                 onClick={() => run((e, entity, opts) => e.removeLevel(entity, key, opts))}
                 size="small"
-              >
-                −
-              </Button>
+                icon="minus"
+              />
               <span>{level}</span>
               <Button
                 aria-label={`Add a ${name} level`}
                 disabled={level >= MAX_LEVEL}
                 onClick={() => run((e, entity, opts) => e.addLevel(entity, key, opts))}
                 size="small"
-              >
-                +
-              </Button>
-              <Button disabled={selection.selected.length === 1} onClick={() => remove(i, key)} size="small">
+                icon="plus"
+              />
+              <Button icon="trash" disabled={selection.selected.length === 1} onClick={() => remove(i, key)} size="small">
                 Remove {name}
               </Button>
             </li>
@@ -108,7 +106,7 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
       {toAdd && (
         <div className="flex flex-wrap items-center gap-2">
           <Select aria-label="Add a class" value={toAdd.key} options={free.map((o) => [o.key, o.name])} onValueChange={setAdding} />
-          <Button onClick={() => run((e, entity, opts) => e.addClass(entity, toAdd.key, opts))} size="small">
+          <Button icon="plus" onClick={() => run((e, entity, opts) => e.addClass(entity, toAdd.key, opts))} size="small">
             Add class
           </Button>
         </div>
@@ -191,18 +189,16 @@ export function Improvements({ selection }: { selection: BuilderSelection }) {
                   disabled={count === 0}
                   onClick={() => run((e, entity, opts) => e.decreaseAbility(entity, actualPath, ability, opts))}
                   size="small"
-                >
-                  −
-                </Button>
+                  icon="minus"
+                />
                 <span>+{count}</span>
                 <Button
                   aria-label={`Increase ${abbr}`}
                   disabled={!offered || full || total >= 20}
                   onClick={() => run((e, entity, opts) => e.increaseAbility(entity, actualPath, ability, opts))}
                   size="small"
-                >
-                  +
-                </Button>
+                  icon="plus"
+                />
               </div>
             </li>
           );

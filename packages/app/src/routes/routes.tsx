@@ -1,4 +1,4 @@
-import { AlertNote, AlertNotes, Button, ButtonLink, useConfirm } from "@orc-alchemy/ui";
+import { AlertNote, AlertNotes, Button, ButtonLink, PixelIcon, useConfirm } from "@orc-alchemy/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import type { RouteObject } from "react-router";
 import { Link, useBlocker, useParams, useSearchParams } from "react-router";
@@ -83,6 +83,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
       <>
         <h1 className="text-xl">{problem}</h1>
         <Link to="/characters" className="underline">
+          <PixelIcon name="left" />
           Back to characters
         </Link>
       </>
@@ -94,7 +95,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
       {confirmDialog}
       <div className="mb-4 @container">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <ButtonLink render={<Link to="/characters" aria-label="Back to List" />}>
+          <ButtonLink icon="left" render={<Link to="/characters" aria-label="Back to List" />}>
             Back<span className="@max-[719px]:hidden"> to List</span>
           </ButtonLink>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
@@ -107,7 +108,11 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
                 "Saved"
               )}
             </span>
-            {unsaved && <Button onClick={() => flushAutosave().catch(console.error)}>Save</Button>}
+            {unsaved && (
+              <Button icon="save" onClick={() => flushAutosave().catch(console.error)}>
+                Save
+              </Button>
+            )}
             {actions(id)}
           </div>
         </div>
@@ -147,7 +152,7 @@ function SheetPage() {
     <OpenCharacter
       actions={(id) => (
         <>
-          <ButtonLink variant="solid" render={<Link to={`/build/${id}`} />}>
+          <ButtonLink variant="solid" icon="pencil" render={<Link to={`/build/${id}`} />}>
             Edit
           </ButtonLink>
           <ExportCharacter id={id} label="Export" variant="ghost" onMessage={(message) => setExported({ id, message })} />
@@ -184,7 +189,7 @@ function BuildPage() {
   return (
     <OpenCharacter
       actions={(id) => (
-        <ButtonLink variant="solid" render={<Link to={`/sheet/${id}`} />}>
+        <ButtonLink variant="solid" icon="check" render={<Link to={`/sheet/${id}`} />}>
           Done
         </ButtonLink>
       )}
@@ -207,6 +212,7 @@ export const routes: RouteObject[] = [
             <NewCharacter />
             <p className="mt-4">
               <Link to="/import" className="underline">
+                <PixelIcon name="import" />
                 Import homebrew and characters
               </Link>
             </p>

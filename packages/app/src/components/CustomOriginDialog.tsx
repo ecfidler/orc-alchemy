@@ -180,7 +180,7 @@ export function CustomOriginDialog({ open, initial, bases, loadBase, problem, el
       title="Custom Origin"
       finalFocus={finalFocus}
       actions={
-        <Button variant="solid" disabled={!canSave} onClick={save}>
+        <Button variant="solid" icon="check" disabled={!canSave} onClick={save}>
           Save
         </Button>
       }

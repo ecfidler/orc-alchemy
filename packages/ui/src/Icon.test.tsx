@@ -1,12 +1,32 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
-import { LockIcon } from "./Icon.tsx";
+import { LockIcon, PixelIcon } from "./Icon.tsx";
 
 afterEach(cleanup);
 
-test("the lock icon is an SVG in the text color, hidden from a screen reader, and it does not shrink", () => {
+test("the lock icon is the lock pixel icon with no space after it, hidden from a screen reader", () => {
   const { container } = render(<LockIcon className="ml-1" />);
   const svg = container.querySelector("svg")!;
-  expect([svg.getAttribute("aria-hidden"), svg.getAttribute("class"), svg.style.flexShrink, svg.getAttribute("width")]).toEqual(["true", "ml-1", "0", "13"]);
-  expect([...svg.children].every((part) => [part.getAttribute("fill"), part.getAttribute("stroke")].includes("currentColor"))).toBe(true);
+  expect([svg.getAttribute("aria-hidden"), svg.getAttribute("class"), svg.dataset.icon, svg.getAttribute("width")]).toEqual([
+    "true",
+    "ui-icon ui-icon-alone ml-1",
+    "lock",
+    "16",
+  ]);
+});
+
+test("a pixel icon is a 16px SVG in the text color, hidden from a screen reader, with a path for each of its three tones", () => {
+  const { container } = render(<PixelIcon name="x" className="ml-1" />);
+  const svg = container.querySelector("svg")!;
+  expect([svg.getAttribute("aria-hidden"), svg.getAttribute("class"), svg.getAttribute("width"), svg.getAttribute("fill"), svg.dataset.icon]).toEqual([
+    "true",
+    "ui-icon ml-1",
+    "16",
+    "currentColor",
+    "x",
+  ]);
+  expect([...svg.children].map((path) => path.getAttribute("opacity"))).toEqual(["1", "0.75", "0.25"]);
+  // The first row of the X is ".++..........++.": two runs of the edge tone, and the shape starts on the second row.
+  expect(svg.children[1].getAttribute("d")).toMatch(/^M1 0h2v1h-2zM13 0h2v1h-2z/);
+  expect(svg.children[0].getAttribute("d")).toMatch(/^M1 1h2v1h-2z/);
 });
