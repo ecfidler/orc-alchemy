@@ -1,0 +1,368 @@
+<meta charset="utf-8">
+<title>Cast Button</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..700&display=swap">
+<style>
+/* PROTOTYPE (ORC-311), throwaway. The Cast button and the level menu in the spell view of the Spells panel.
+   Rules: the resolution of ORC-302. M8 paper theme (docs/design/theme.md). Light is the default; dark is only the Theme toggle here.
+   Hash: #<control><place>, control s (split button), l (two buttons) or r (a button for each level); place o (own row) or n (beside the name). */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --danger: #c2271d; --success: #1f7a3a; --info: #1e5fb4;
+  --note: #ffe45c; --note-ink: #222222;
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --wash: color-mix(in srgb, var(--ink) 40%, transparent);
+  --shadow: rgba(60, 45, 0, 0.22);
+  --proto-bg: #1c2b4a; --proto-fg: #ffffff;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:root[data-proto-theme="dark"] {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --success: #4ed07a; --info: #5ea2ff;
+  --note-ink: #000000; --wash: rgba(255, 255, 255, 0.22); --shadow: rgba(255, 255, 255, 0.12);
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-serif); font-size: 17px; line-height: 1.5;
+  font-weight: 450; font-variant-numeric: lining-nums tabular-nums; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* ---------- prototype chrome (not part of the design) ---------- */
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.proto-top { font-family: var(--font-sans); font-size: 12.5px; background: var(--proto-bg); color: var(--proto-fg);
+  padding-block: 8px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.proto-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.proto-group > span { opacity: .75; margin-right: 2px; }
+.proto-top button { background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.proto-top button[aria-pressed="true"] { background: var(--proto-fg); color: var(--proto-bg); }
+.proto-notes { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; background: var(--panel); border-bottom: 1px solid var(--rule); padding-block: 8px; }
+.proto-notes summary { cursor: pointer; font-weight: 600; }
+.proto-notes ul { margin: 6px 0 2px; padding-left: 18px; max-width: 92ch; list-style: disc; }
+.proto-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  display: flex; align-items: center; gap: 4px; background: var(--proto-bg); color: var(--proto-fg); border-radius: 999px;
+  padding: 5px 6px; box-shadow: 0 6px 20px rgba(0,0,0,.3); font-family: var(--font-sans); font-size: 13px; max-width: calc(100vw - 24px); }
+.proto-bar button { background: transparent; border: 0; color: inherit; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; flex: none; }
+.proto-bar button:hover { background: color-mix(in srgb, var(--proto-fg) 18%, transparent); }
+.proto-bar .lbl { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- the stage: a short sheet ---------- */
+.stagewrap { padding-block: 18px 110px; }
+.stage { position: relative; width: 100%; max-width: 760px; margin: 0 auto; }
+.stage.phone { max-width: 390px; outline: 1px dashed var(--rule-strong); outline-offset: 8px; }
+.lab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.btn { font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; border: 1px solid var(--ink); background: var(--paper-raised); padding: 7px 12px; border-radius: 0; white-space: nowrap; min-height: 36px; }
+.btn:hover { background: var(--panel); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn.solid:hover { background: color-mix(in srgb, var(--ink) 85%, var(--paper)); }
+.btn.small { font-size: 12.5px; padding: 3px 10px; min-height: 30px; }
+.btn:disabled { opacity: .4; cursor: default; }
+.linkbtn { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; font-family: var(--font-sans); font-size: 13px; }
+.xbtn { width: 34px; height: 34px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 16px; line-height: 1; flex: none; }
+.actionrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--rule-strong); padding-bottom: 10px; }
+.actionrow h1 { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.actionrow .sub { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; position: relative; }
+.menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--shadow); min-width: 190px; display: grid; }
+.menu button { background: none; border: 0; text-align: left; padding: 9px 14px; font-family: var(--font-sans); font-size: 14px; display: grid; }
+.menu button small { color: var(--ink-muted); font-size: 12px; }
+.menu button:hover { background: var(--panel); }
+.menu button + button { border-top: 1px solid var(--rule); }
+.state { background: var(--panel); padding: 12px; margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.framed { border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 8px 10px 5px; display: grid; grid-template-rows: 1fr auto; gap: 4px; text-align: center; }
+.framed .v { font-size: 24px; line-height: 1.2; align-self: center; }
+.framed .v small { font-size: 14px; color: var(--ink-muted); }
+.lines { margin-top: 12px; border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 8px 12px; font-size: 15px; }
+.lines li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--rule); padding: 3px 0; }
+.lines li:last-child { border-bottom: 0; }
+.lines .grp { font-family: var(--font-sans); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); }
+.dots { letter-spacing: 2px; white-space: nowrap; }
+.said { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); min-height: 20px; margin-top: 10px; }
+
+/* ---------- the dialogs ---------- */
+.wash { position: fixed; inset: 0; background: var(--wash); z-index: 30; display: grid; place-items: center; padding: 16px; }
+.dlg { background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 6px 6px 0 var(--shadow); width: min(520px, 100%); max-height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+.dlg.phone { width: min(358px, 100%); }
+.dlghead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--rule); }
+.dlghead h2 { font-size: 22px; font-weight: 600; line-height: 1.2; }
+.dlgbody { padding: 12px 16px; overflow: auto; display: grid; gap: 16px; align-content: start; }
+.dlgfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid var(--rule); flex-wrap: wrap; }
+.sec h3 { font-family: var(--font-sans); font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.sec .hint { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); }
+.chg li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding: 4px 0; }
+.chg li b { font-weight: 600; white-space: nowrap; font-family: var(--font-sans); font-size: 15px; }
+.chg .nochg { font-weight: 400; color: var(--ink-muted); }
+.chg .arrow { color: var(--ink-muted); }
+.none { font-style: italic; color: var(--ink-muted); }
+.hdrow { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; border-bottom: 1px solid var(--rule); padding: 6px 0; }
+.hdrow .die { font-size: 19px; }
+.hdrow .die small { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+.hdctl { min-height: 36px; display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.num:disabled { opacity: .4; }
+.num { border: 1.5px solid var(--ink); background: var(--paper-raised); padding: 2px 6px; width: 58px; text-align: center; font-size: 17px; border-radius: 0; min-height: 30px; -moz-appearance: textfield; }
+.num::-webkit-outer-spin-button, .num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.rolls { grid-column: 1 / -1; min-height: 30px; align-items: center; color: var(--ink-muted); font-family: var(--font-sans); font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; }
+.roll { color: var(--ink); font-weight: 600; border: 1px solid var(--rule-strong); padding: 1px 4px 1px 8px; display: inline-flex; gap: 6px; align-items: center; }
+.roll button { border: 0; background: none; padding: 0 4px; font-size: 14px; }
+.total { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 14px; padding-top: 6px; }
+.total b { font-size: 15px; }
+.step { display: inline-flex; align-items: center; gap: 0; }
+.step button { width: 30px; height: 30px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 16px; line-height: 1; }
+.step span { min-width: 34px; text-align: center; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; padding: 4px 0; }
+.check input { width: 18px; height: 18px; margin: 4px 0 0; accent-color: var(--ink); flex: none; }
+.check small { display: block; font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); }
+.stepsnav { font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); display: flex; gap: 6px; flex-wrap: wrap; }
+.stepsnav b { color: var(--ink); font-weight: 600; }
+.dlgfoot .grow { flex: 1; }
+/* ---------- ORC-311: the Spells panel stage ---------- */
+.stage { max-width: 900px; }
+.strip { border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; font-size: 15px; }
+.strip .grp { display: inline-flex; gap: 8px; align-items: center; }
+.circ { display: inline-flex; gap: 3px; }
+.circ button { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--ink); background: transparent; padding: 0; }
+.circ button.on { background: var(--ink); }
+.concline { min-height: 34px; margin-top: 8px; display: flex; align-items: center; gap: 8px; font-family: var(--font-sans); font-size: 13.5px; }
+.conctok { border: 1px solid var(--ink); background: var(--paper-raised); padding: 2px 4px 2px 10px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.conctok button { border: 0; background: none; font-size: 15px; padding: 0 6px; }
+.panes { margin-top: 4px; border: 1px solid var(--ink); background: var(--paper-raised); display: grid; grid-template-columns: 230px 1fr; min-height: 560px; }
+.stage.phone .panes { grid-template-columns: 1fr; }
+.list { border-right: 1px solid var(--rule-strong); padding: 6px 0; }
+.stage.phone .list { border-right: 0; }
+.list h4 { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); padding: 8px 12px 2px; margin: 0; }
+.list button { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: none; border: 0; padding: 5px 12px; font-size: 16px; }
+.list button:hover { background: var(--panel); }
+.list button[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.list small { font-family: var(--font-sans); font-size: 11px; opacity: .75; align-self: center; white-space: nowrap; }
+.view { padding: 16px 18px 22px; min-width: 0; }
+.head { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-start; justify-content: space-between; }
+.head h3 { font-size: 26px; line-height: 1.15; font-weight: 600; }
+.small { margin-top: 5px; font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); }
+.boxtag { font-family: var(--font-sans); font-style: normal; font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--ink); padding: 0 5px; }
+.prep { margin-top: 10px; font-family: var(--font-sans); font-size: 13.5px; display: flex; gap: 8px; align-items: center; }
+.prep i { width: 16px; height: 16px; border: 1.5px solid var(--ink); display: inline-grid; place-items: center; font-style: normal; font-size: 12px; line-height: 1; }
+.castrow { margin-top: 12px; }
+.cast { position: relative; display: inline-flex; flex-direction: column; gap: 4px; max-width: 100%; }
+.head .cast { align-items: flex-end; }
+.stage.phone .head .cast { align-items: flex-start; }
+.ctl { display: inline-flex; gap: 8px; flex-wrap: wrap; position: relative; }
+.ctl.split { gap: 0; }
+.ctl.split .btn + .btn { border-left-color: var(--paper); padding-inline: 10px; }
+.btn.solid:disabled { opacity: .4; }
+.btn .sub { font-weight: 400; opacity: .8; margin-left: 6px; }
+.hint2 { font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); min-height: 19px; }
+.lvmenu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--shadow); width: max-content; min-width: 250px; max-width: min(340px, calc(100vw - 48px)); }
+.head .lvmenu { left: auto; right: 0; }
+.stage.phone .head { position: relative; }
+.stage.phone .head .cast, .stage.phone .head .ctl { position: static; }
+.stage.phone .head .lvmenu { left: 0; right: 0; top: calc(100% + 4px); width: auto; max-width: none; }
+.lvmenu h5 { font-family: var(--font-sans); font-size: 13px; font-weight: 700; margin: 0; padding: 8px 12px 4px; }
+.lvmenu button { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--rule); padding: 8px 12px; font-family: var(--font-sans); font-size: 14px; }
+.lvmenu button:hover:not(:disabled) { background: var(--panel); }
+.lvmenu button:disabled { color: var(--ink-muted); cursor: default; }
+.lvmenu .calc { font-weight: 700; }
+.lvmenu .left { font-size: 12.5px; color: var(--ink-muted); min-width: 62px; text-align: right; }
+.lvmenu .hl { font-family: var(--font-sans); font-size: 12.5px; line-height: 1.4; color: var(--ink-muted); border-top: 1px solid var(--rule); padding: 8px 12px; }
+.lvrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.lvrow .btn { display: inline-flex; gap: 8px; align-items: baseline; }
+.lvrow .btn b { font-weight: 700; }
+.facts { margin: 14px 0 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; border-block: 1px solid var(--rule-strong); padding: 10px 0; }
+.facts dt { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.facts dd { margin: 0; }
+.desc { max-width: 56ch; }
+.desc .hlp { margin-top: .8em; border-top: 1px solid var(--rule); padding-top: .7em; }
+.said2 { min-height: 24px; margin-top: 8px; font-family: var(--font-sans); font-size: 13.5px; }
+.back { margin-bottom: 12px; }
+.dlgbody p { max-width: 46ch; }
+</style>
+
+<div class="proto-top gut">
+  <b>Prototype · ORC-311 · Cast button and level menu</b>
+  <span class="proto-group"><span>Character</span><span id="g-char"></span></span>
+  <span class="proto-group"><span>Control</span><span id="g-form"></span></span>
+  <span class="proto-group"><span>Place</span><span id="g-place"></span></span>
+  <span class="proto-group"><span>Slots</span><span id="g-slots"></span></span>
+  <span class="proto-group"><span>Width</span><span id="g-width"></span></span>
+  <span class="proto-group"><button id="b-theme" aria-pressed="false">Dark</button></span>
+</div>
+<details class="proto-notes gut" open>
+  <summary>What to try</summary>
+  <ul>
+    <li><b>Wizard 5 / Warlock 3:</b> Magic Missile and Burning Hands show a calculated number for each higher level. Magic Weapon has no number, so the menu shows its "At Higher Levels" text. Misty Step has no higher level text. Fireball has no higher slot, so it has no menu.</li>
+    <li>Cast Hold Person, then Invisibility: the second concentration spell asks first. True Strike is a cantrip with a "Concentrate" button. Fire Bolt has no button.</li>
+    <li>Set "Slots" to "No 1st-level" (Cast is disabled, the menu still works) and to "None left". The slot circles at the top also work with a click.</li>
+    <li><b>Warlock 11:</b> only pact slots, so Cast has no menu. Circle of Death spends Mystic Arcanum. Bane spends Thief of Five Fates and a pact slot. Misty Step has its own uses and no link, so it has no Cast button.</li>
+    <li>"Control" switches between a split button, two buttons, and a row with one button for each level. "Place" puts the control beside the spell name or on its own row.</li>
+  </ul>
+</details>
+
+<div class="stagewrap gut"><div class="stage" id="stage"></div></div>
+
+<div class="proto-bar" role="group" aria-label="Variant">
+  <button id="prev" aria-label="Previous variant">‹</button>
+  <span class="lbl" id="barlbl"></span>
+  <button id="next" aria-label="Next variant">›</button>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+const ORD = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", 6: "6th", 7: "7th", 8: "8th", 9: "9th" };
+/* per: the amount for each slot level above the level of the spell, read from the usual wording. */
+const SPELLS = {
+  firebolt: { name: "Fire Bolt", lv: 0, school: "Evocation", time: "1 action", range: "120 feet", dur: "Instantaneous", comp: "V, S", desc: "You hurl a mote of fire at a creature or object within range. Make a ranged spell attack against the target. On a hit, the target takes 1d10 fire damage." },
+  truestrike: { name: "True Strike", lv: 0, school: "Divination", conc: true, time: "1 action", range: "30 feet", dur: "up to 1 round", comp: "S", desc: "You extend your hand and point a finger at a target in range. Your magic grants you a brief insight into the target's defenses. On your next turn, you gain advantage on your first attack roll against the target." },
+  magicmissile: { name: "Magic Missile", lv: 1, school: "evocation", time: "1 action", range: "120 feet", dur: "Instantaneous", comp: "V, S", desc: "You create three glowing darts of magical force. Each dart hits a creature of your choice that you can see within range. A dart deals 1d4 + 1 force damage to its target.", hl: "When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart for each slot level above 1st.", per: { n: 1, unit: "dart" } },
+  burninghands: { name: "Burning Hands", lv: 1, school: "evocation", time: "1 action", range: "Self (15-foot cone)", dur: "Instantaneous", comp: "V, S", desc: "As you hold your hands with thumbs touching and fingers spread, a thin sheet of flames shoots forth from your outstretched fingertips. Each creature in a 15-foot cone must make a Dexterity saving throw. A creature takes 3d6 fire damage on a failed save, or half as much damage on a successful one.", hl: "When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.", per: { dice: 1, die: 6 } },
+  hellishrebuke: { name: "Hellish Rebuke", lv: 1, school: "evocation", time: "1 reaction", range: "60 feet", dur: "Instantaneous", comp: "V, S", desc: "You point your finger, and the creature that damaged you is momentarily surrounded by hellish flames. The creature must make a Dexterity saving throw. It takes 2d10 fire damage on a failed save, or half as much damage on a successful one.", hl: "When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d10 for each slot level above 1st.", per: { dice: 1, die: 10 } },
+  holdperson: { name: "Hold Person", lv: 2, school: "enchantment", conc: true, time: "1 action", range: "60 feet", dur: "up to 1 minute", comp: "V, S, M (a small, straight piece of iron)", desc: "Choose a humanoid that you can see within range. The target must succeed on a Wisdom saving throw or be paralyzed for the duration.", hl: "When you cast this spell using a spell slot of 3rd level or higher, you can target one additional humanoid for each slot level above 2nd.", per: { n: 1, unit: "humanoid" } },
+  invisibility: { name: "Invisibility", lv: 2, school: "illusion", conc: true, time: "1 action", range: "Touch", dur: "up to 1 hour", comp: "V, S, M (an eyelash encased in gum arabic)", desc: "A creature you touch becomes invisible until the spell ends. The spell ends for a target that attacks or casts a spell.", hl: "When you cast this spell using a spell slot of 3rd level or higher, you can target one additional creature for each slot level above 2nd.", per: { n: 1, unit: "creature" } },
+  magicweapon: { name: "Magic Weapon", lv: 2, school: "transmutation", conc: true, time: "1 bonus action", range: "Touch", dur: "up to 1 hour", comp: "V, S", desc: "You touch a nonmagical weapon. Until the spell ends, that weapon becomes a magic weapon with a +1 bonus to attack rolls and damage rolls.", hl: "When you cast this spell using a spell slot of 4th level or higher, the bonus increases to +2. When you use a spell slot of 6th level or higher, the bonus increases to +3." },
+  mistystep: { name: "Misty Step", lv: 2, school: "conjuration", time: "1 bonus action", range: "Self", dur: "Instantaneous", comp: "V", desc: "Briefly surrounded by silvery mist, you teleport up to 30 feet to an unoccupied space that you can see." },
+  fireball: { name: "Fireball", lv: 3, school: "evocation", time: "1 action", range: "150 feet", dur: "Instantaneous", comp: "V, S, M (a tiny ball of bat guano and sulfur)", desc: "A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much damage on a successful one.", hl: "When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.", per: { dice: 1, die: 6 } },
+  circleofdeath: { name: "Circle of Death", lv: 6, school: "necromancy", note: "Uses Mystic Arcanum", use: "Mystic Arcanum", time: "1 action", range: "150 feet", dur: "Instantaneous", comp: "V, S, M (the powder of a crushed black pearl worth at least 500 gp)", desc: "A sphere of negative energy ripples out in a 60-foot-radius sphere from a point within range. Each creature in that area must make a Constitution saving throw. A target takes 8d6 necrotic damage on a failed save, or half as much damage on a successful one.", hl: "When you cast this spell using a spell slot of 7th level or higher, the damage increases by 2d6 for each slot level above 6th." },
+  bane: { name: "Bane", lv: 1, school: "enchantment", conc: true, note: "Once per long rest", use: "Thief of Five Fates", andPact: true, time: "1 action", range: "30 feet", dur: "up to 1 minute", comp: "V, S, M (a drop of blood)", desc: "Up to three creatures of your choice that you can see within range must make Charisma saving throws. Whenever a target that fails this saving throw makes an attack roll or a saving throw before the spell ends, the target must roll a d4 and subtract the number rolled from the attack roll or saving throw.", hl: "When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st.", per: { n: 1, unit: "creature" } },
+  mistystep2: { name: "Misty Step", lv: 2, school: "conjuration", note: "Once per long rest", noLink: "Fey Step", time: "1 bonus action", range: "Self", dur: "Instantaneous", comp: "V", desc: "Briefly surrounded by silvery mist, you teleport up to 30 feet to an unoccupied space that you can see." },
+};
+const CHARS = {
+  "Wizard 5 / Warlock 3": () => ({ name: "Ysolde Vane", prep: true,
+    slots: [{ lv: 1, total: 4, spent: 1 }, { lv: 2, total: 3, spent: 1 }, { lv: 3, total: 2, spent: 0 }], pact: { lv: 2, total: 2, spent: 0 }, uses: [],
+    spells: ["firebolt", "truestrike", "magicmissile", "burninghands", "holdperson", "invisibility", "magicweapon", "mistystep", "fireball"] }),
+  "Warlock 11": () => ({ name: "Corvin Ashe", prep: false, slots: [], pact: { lv: 5, total: 3, spent: 1 },
+    uses: [{ name: "Mystic Arcanum", total: 1, spent: 0 }, { name: "Thief of Five Fates", total: 1, spent: 0 }, { name: "Fey Step", total: 1, spent: 0 }],
+    spells: ["truestrike", "hellishrebuke", "bane", "holdperson", "mistystep2", "circleofdeath"] }),
+};
+const FORM = { s: "Split button", l: "Two buttons", r: "A button for each level" }, PLACE = { n: "Beside the name", o: "Own row" };
+let who = Object.keys(CHARS)[0], c = CHARS[who](), form = "s", place = "n", phone = false, sel = "magicmissile", listShown = false, menu = false, conc = null, ask = null, said = "";
+
+const plural = (n, u) => (n === 1 ? u : u + "s");
+function calc(sp, lv) { const n = lv - sp.lv; if (!sp.per || n <= 0) return ""; return sp.per.die ? `+${n * sp.per.dice}d${sp.per.die}` : `+${n * sp.per.n} ${plural(n * sp.per.n, sp.per.unit)}`; }
+const leftOf = (s) => s.total - s.spent;
+/* The choices for a slot spell: main (the one click Cast) and the menu entries. */
+function choices(sp) {
+  const slot = c.slots.find((s) => s.lv === sp.lv), more = c.slots.filter((s) => s.lv > sp.lv).map((s) => ({ kind: "slot", lv: s.lv, left: leftOf(s) }));
+  if (!c.slots.length) return { main: { kind: "pact", lv: c.pact.lv, left: leftOf(c.pact) }, more: [] };
+  if (c.pact && c.pact.lv >= sp.lv) more.push({ kind: "pact", lv: c.pact.lv, left: leftOf(c.pact) });
+  return { main: slot ? { kind: "slot", lv: slot.lv, left: leftOf(slot) } : null, more };
+}
+const choiceName = (ch) => (ch.kind === "pact" ? `Pact (${ORD[ch.lv]})` : `${ORD[ch.lv]} level`);
+const leftText = (n) => (n ? `${n} left` : "none left");
+
+function tryCast(key, ch) { const sp = SPELLS[key]; menu = false; if (sp.conc && conc && conc !== sp.name) { ask = { key, ch }; return render(); } doCast(key, ch); }
+function doCast(key, ch) {
+  const sp = SPELLS[key]; ask = null;
+  if (ch.kind === "conc") { conc = sp.name; said = `Concentrating on ${sp.name}.`; return render(); }
+  const parts = [];
+  if (sp.use) { const u = c.uses.find((x) => x.name === sp.use); u.spent++; parts.push(`${sp.use} −1`); }
+  if (ch.kind === "slot") { const s = c.slots.find((x) => x.lv === ch.lv); s.spent++; parts.push(`${ORD[ch.lv]}-level slots −1 (${leftOf(s)} left)`); }
+  if (ch.kind === "pact") { c.pact.spent++; parts.push(`Pact slots −1 (${leftOf(c.pact)} left)`); }
+  if (sp.conc) conc = sp.name;
+  said = `Cast ${sp.name}${ch.kind !== "use" && ch.lv > sp.lv ? ` at ${ORD[ch.lv]} level` : ""}. ${parts.join(", ")}.`; render();
+}
+
+function castHtml(key) {
+  const sp = SPELLS[key];
+  if (sp.noLink) return `<div class="cast"><span class="hint2">This spell has its own uses (${esc(sp.noLink)}). Spend the use on the sheet.</span></div>`;
+  if (sp.lv === 0) return sp.conc ? `<div class="cast"><span class="ctl"><button class="btn" data-cast="conc" ${conc === sp.name ? "disabled" : ""}>Concentrate</button></span><span class="hint2">${conc === sp.name ? "You concentrate on this spell." : "A cantrip spends nothing. This only sets the concentration mark."}</span></div>` : "";
+  if (sp.use) {
+    const u = c.uses.find((x) => x.name === sp.use), ok = leftOf(u) > 0 && (!sp.andPact || leftOf(c.pact) > 0);
+    const why = leftOf(u) <= 0 ? `${sp.use} has no use left.` : sp.andPact && leftOf(c.pact) <= 0 ? "No pact slot left." : sp.andPact ? `Spends ${sp.use} (${leftOf(u)} left) and a pact slot (${ORD[c.pact.lv]}, ${leftOf(c.pact)} left).` : `Spends ${sp.use} (${leftOf(u)} of ${u.total} left).`;
+    return `<div class="cast"><span class="ctl"><button class="btn solid" data-cast="${sp.andPact ? "pact" : "use"}" ${ok ? "" : "disabled"}>Cast</button></span><span class="hint2">${esc(why)}</span></div>`;
+  }
+  const { main, more } = choices(sp), any = (main && main.left > 0) || more.some((m) => m.left > 0);
+  if (!more.length) { /* one kind of slot, or no higher slot: no menu */
+    const at = main.lv > sp.lv ? calc(sp, main.lv) : "";
+    return `<div class="cast"><span class="ctl"><button class="btn solid" data-cast="main" ${main.left ? "" : "disabled"}>${main.left ? "Cast" : "No slots left"}</button></span>
+      <span class="hint2">${main.kind === "pact" ? `Pact slot (${ORD[main.lv]})` : `${ORD[main.lv]}-level slot`} · ${leftText(main.left)}${at ? ` · <b>${at}</b> at ${ORD[main.lv]} level` : ""}</span></div>`;
+  }
+  const hint = !any ? "Each slot that can cast this spell is spent." : main && main.left ? `${ORD[main.lv]}-level slot · ${main.left} left` : `No ${ORD[sp.lv]}-level slot left. Pick a higher level.`;
+  if (form === "r") {
+    const row = (ch, i, isMain) => `<button class="btn ${isMain ? "solid" : ""}" data-cast="${isMain ? "main" : i}" ${ch.left ? "" : "disabled"}>${isMain ? "Cast" : choiceName(ch)}${!isMain && calc(sp, ch.lv) ? ` <b>${calc(sp, ch.lv)}</b>` : ""} <span class="sub">${isMain ? `${ORD[ch.lv]} · ` : ""}${leftText(ch.left)}</span></button>`;
+    return `<div class="cast"><span class="lvrow">${main ? row(main, 0, true) : ""}${more.map((m, i) => row(m, i, false)).join("")}</span><span class="hint2">${!any ? hint : sp.hl && !sp.per ? "See At Higher Levels in the text for a higher slot." : ""}</span></div>`;
+  }
+  const mainBtn = `<button class="btn solid" data-cast="main" ${main && main.left ? "" : "disabled"}>${any ? "Cast" : "No slots left"}</button>`;
+  const opener = form === "s" ? `<button class="btn solid" id="lvbtn" aria-haspopup="menu" aria-expanded="${menu}" aria-label="Cast at a higher level" ${any ? "" : "disabled"}>▾</button>` : `<button class="btn" id="lvbtn" aria-haspopup="menu" aria-expanded="${menu}" ${any ? "" : "disabled"}>Higher level ▾</button>`;
+  const menuHtml = menu ? `<div class="lvmenu" role="menu" aria-label="Cast at a higher level"><h5>Cast at a higher level</h5>${more.map((m, i) => `<button role="menuitem" data-cast="${i}" ${m.left ? "" : "disabled"}><span>${choiceName(m)}</span><span class="calc">${calc(sp, m.lv)}</span><span class="left">${leftText(m.left)}</span></button>`).join("")}${sp.hl && !sp.per ? `<p class="hl"><b>At Higher Levels.</b> ${esc(sp.hl)}</p>` : ""}</div>` : "";
+  return `<div class="cast"><span class="ctl ${form === "s" ? "split" : ""}">${mainBtn}${opener}${menuHtml}</span><span class="hint2">${esc(hint)}</span></div>`;
+}
+function viewHtml(key) {
+  const sp = SPELLS[key], cast = castHtml(key);
+  const level = sp.lv ? `${ORD[sp.lv]}-level ${sp.school}` : `${sp.school} cantrip`;
+  const prep = c.prep && sp.lv ? `<div class="prep"><i>✓</i><span>Prepared</span><span style="color:var(--ink-muted)">6 of 9 prepared</span></div>` : "";
+  return `${phone ? `<button class="btn back" data-back>‹ Back to the list</button>` : ""}
+    <div class="head"><div><h3>${esc(sp.name)}</h3><p style="font-style:italic;margin-top:2px">${level}</p>${sp.note ? `<p class="small">${esc(sp.note)}</p>` : ""}</div>${place === "n" ? cast : ""}</div>
+    ${prep}${place === "o" && cast ? `<div class="castrow">${cast}</div>` : ""}
+    <dl class="facts"><div><dt>Casting time</dt><dd>${sp.time}</dd></div><div><dt>Range</dt><dd>${sp.range}</dd></div>
+      <div><dt>Duration</dt><dd>${sp.conc ? `<span class="boxtag">Concentration</span> ` : ""}${sp.dur}</dd></div><div><dt>Components</dt><dd>${esc(sp.comp)}</dd></div></dl>
+    <div class="desc"><p>${esc(sp.desc)}</p>${sp.hl ? `<p class="hlp"><b>At Higher Levels.</b> ${esc(sp.hl)}</p>` : ""}</div>`;
+}
+const circles = (s, attr) => `<span class="circ">${Array.from({ length: s.total }, (_, i) => `<button class="${i < s.spent ? "on" : ""}" ${attr} aria-label="${i < s.spent ? "Spent, click to give back" : "Not spent, click to spend"}"></button>`).join("")}</span>`;
+function render() {
+  const st = $("stage"); st.className = "stage" + (phone ? " phone" : "");
+  const groups = {}; for (const k of c.spells) (groups[SPELLS[k].lv] ||= []).push(k);
+  const list = `<div class="list">${Object.entries(groups).map(([lv, ks]) => `<h4>${+lv ? ORD[lv] + " level" : "Cantrips"}</h4>${ks.map((k) => `<button data-sel="${k}" aria-current="${!phone && k === sel}"><span>${esc(SPELLS[k].name)}</span><small>${SPELLS[k].conc ? "C" : ""}</small></button>`).join("")}`).join("")}</div>`;
+  const a = ask && SPELLS[ask.key];
+  st.innerHTML = `<div class="strip"><b style="font-family:var(--font-sans);font-size:13px">${esc(c.name)} · ${esc(who)}</b>
+      ${c.slots.map((s) => `<span class="grp">${ORD[s.lv]} ${circles(s, `data-slot="${s.lv}"`)}</span>`).join("")}
+      ${c.pact ? `<span class="grp">Pact (${ORD[c.pact.lv]}) ${circles(c.pact, "data-pact")}</span>` : ""}
+      ${c.uses.map((u, i) => `<span class="grp">${esc(u.name)} ${circles(u, `data-use="${i}"`)}</span>`).join("")}</div>
+    <div class="concline">${conc ? `<span class="conctok">Concentrating on ${esc(conc)}<button data-endconc aria-label="End concentration on ${esc(conc)}">×</button></span><span style="color:var(--ink-muted)">(The place of this mark is for the layout prototype.)</span>` : ""}</div>
+    <div class="panes">${phone ? (listShown ? list : `<div class="view">${viewHtml(sel)}</div>`) : list + `<div class="view">${viewHtml(sel)}</div>`}</div>
+    <p class="said2" role="status">${esc(said)}</p>
+    ${a ? `<div class="wash" data-wash><div class="dlg ${phone ? "phone" : ""}" role="alertdialog" aria-modal="true" aria-labelledby="askh" style="grid-template-rows:auto auto auto">
+      <div class="dlghead"><h2 id="askh">${ask.ch.kind === "conc" ? "Concentrate on" : "Cast"} ${esc(a.name)}?</h2></div>
+      <div class="dlgbody"><p>You concentrate on <b>${esc(conc)}</b>. ${esc(a.name)} also needs concentration, so <b>${esc(conc)} ends</b>.</p></div>
+      <div class="dlgfoot"><button class="btn" data-no>Cancel</button><button class="btn solid" data-yes>${ask.ch.kind === "conc" ? "Concentrate" : "Cast"} and end ${esc(conc)}</button></div></div></div>` : ""}`;
+  $("barlbl").textContent = `Control: ${FORM[form]} · Place: ${PLACE[place]}`;
+  if (a) st.querySelector("[data-yes]").focus();
+}
+function group(id, entries, get, set) {
+  const el = $(id);
+  el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; set(b.dataset.k); drawAll(); });
+  return () => { el.innerHTML = entries.map(([k, label]) => `<button data-k="${esc(k)}" aria-pressed="${String(get()) === String(k)}">${esc(label)}</button>`).join(" "); };
+}
+let slotState = "some";
+function setSlots(k) { slotState = k; const fresh = CHARS[who](); c.slots = fresh.slots; c.pact = fresh.pact;
+  if (k === "low") { const s = c.slots[0] || c.pact; s.spent = s.total; }
+  if (k === "none") { for (const s of c.slots) s.spent = s.total; if (c.pact) c.pact.spent = c.pact.total; } said = ""; }
+const draws = [
+  group("g-char", Object.keys(CHARS).map((k) => [k, k]), () => who, (k) => { who = k; c = CHARS[k](); sel = c.spells[1]; conc = null; ask = null; said = ""; menu = false; slotState = "some"; listShown = false; }),
+  group("g-form", Object.entries(FORM), () => form, (k) => { form = k; menu = false; }),
+  group("g-place", Object.entries(PLACE), () => place, (k) => { place = k; menu = false; }),
+  group("g-slots", [["some", "Some left"], ["low", "No 1st-level"], ["none", "None left"]], () => slotState, setSlots),
+  group("g-width", [["d", "Desktop"], ["p", "Phone"]], () => (phone ? "p" : "d"), (k) => { phone = k === "p"; listShown = false; }),
+];
+function drawAll() { draws.forEach((d) => d()); try { history.replaceState(null, "", "#" + form + place); } catch (e) {} render(); }
+$("stage").addEventListener("click", (e) => {
+  const t = e.target;
+  if (ask) { if (t.closest("[data-yes]")) return doCast(ask.key, ask.ch); if (t.closest("[data-no]") || t.matches("[data-wash]")) { ask = null; said = "Cancelled. Nothing changed."; render(); } return; }
+  if (t.closest("#lvbtn")) { menu = !menu; return render(); }
+  const cb = t.closest("[data-cast]");
+  if (cb) { const sp = SPELLS[sel], v = cb.dataset.cast;
+    if (v === "conc") return tryCast(sel, { kind: "conc" });
+    if (v === "use") return tryCast(sel, { kind: "use" });
+    if (v === "pact") return tryCast(sel, { kind: "pact", lv: c.pact.lv });
+    const { main, more } = choices(sp); return tryCast(sel, v === "main" ? main : more[+v]); }
+  if (menu) { menu = false; render(); }
+  const s = t.closest("[data-sel]"); if (s) { sel = s.dataset.sel; listShown = false; said = ""; return render(); }
+  if (t.closest("[data-back]")) { listShown = true; return render(); }
+  if (t.closest("[data-endconc]")) { said = `Concentration on ${conc} ended.`; conc = null; return render(); }
+  const tog = (o, on) => { o.spent += on ? -1 : 1; slotState = ""; drawAll(); };
+  const sl = t.closest("[data-slot]"); if (sl) return tog(c.slots.find((x) => x.lv === +sl.dataset.slot), sl.classList.contains("on"));
+  if (t.closest("[data-pact]")) return tog(c.pact, t.classList.contains("on"));
+  const us = t.closest("[data-use]"); if (us) return tog(c.uses[+us.dataset.use], us.classList.contains("on"));
+});
+document.addEventListener("keydown", (e) => { if (e.key !== "Escape") return; if (ask) { ask = null; said = "Cancelled. Nothing changed."; render(); } else if (menu) { menu = false; render(); $("lvbtn")?.focus(); } });
+$("b-theme").addEventListener("click", (e) => { const d = document.documentElement.dataset.protoTheme === "dark"; if (d) delete document.documentElement.dataset.protoTheme; else document.documentElement.dataset.protoTheme = "dark"; e.currentTarget.setAttribute("aria-pressed", !d); });
+const ORDER = []; for (const f of "slr") for (const p of "on") ORDER.push(f + p);
+function step(d) { [form, place] = ORDER[(ORDER.indexOf(form + place) + d + ORDER.length) % ORDER.length]; menu = false; drawAll(); }
+$("prev").addEventListener("click", () => step(-1)); $("next").addEventListener("click", () => step(1));
+function fromHash() { const m = /^#([slr])([on])$/.exec(location.hash); if (m) [, form, place] = m; }
+window.addEventListener("hashchange", () => { fromHash(); drawAll(); });
+fromHash(); drawAll();
+</script>

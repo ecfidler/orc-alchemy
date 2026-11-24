@@ -1,0 +1,469 @@
+<meta charset="utf-8">
+<title>Sheet Play Controls</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..700&display=swap">
+<style>
+/* PROTOTYPE (ORC-312), throwaway. Where the new play controls go on the character sheet, at desktop width and in the phone tabs.
+   Rules: the resolutions of ORC-300, ORC-302, ORC-303 and ORC-304. M8 paper theme (docs/design/theme.md). Light is the default; dark is only the Theme toggle here.
+   Hash: #<place><circles>, place v (in the vitals panel) or b (a bar under the header); circles s (as the slot circles) or u (as today). */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --danger: #c2271d; --success: #1f7a3a; --info: #1e5fb4;
+  --note: #ffe45c; --note-ink: #222222;
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --wash: color-mix(in srgb, var(--ink) 40%, transparent);
+  --shadow: rgba(60, 45, 0, 0.22);
+  --proto-bg: #1c2b4a; --proto-fg: #ffffff;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:root[data-proto-theme="dark"] {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --success: #4ed07a; --info: #5ea2ff;
+  --note-ink: #000000; --wash: rgba(255, 255, 255, 0.22); --shadow: rgba(255, 255, 255, 0.12);
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-serif); font-size: 17px; line-height: 1.5;
+  font-weight: 450; font-variant-numeric: lining-nums tabular-nums; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* ---------- prototype chrome (not part of the design) ---------- */
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.proto-top { font-family: var(--font-sans); font-size: 12.5px; background: var(--proto-bg); color: var(--proto-fg);
+  padding-block: 8px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.proto-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.proto-group > span { opacity: .75; margin-right: 2px; }
+.proto-top button { background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.proto-top button[aria-pressed="true"] { background: var(--proto-fg); color: var(--proto-bg); }
+.proto-notes { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; background: var(--panel); border-bottom: 1px solid var(--rule); padding-block: 8px; }
+.proto-notes summary { cursor: pointer; font-weight: 600; }
+.proto-notes ul { margin: 6px 0 2px; padding-left: 18px; max-width: 92ch; list-style: disc; }
+.proto-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  display: flex; align-items: center; gap: 4px; background: var(--proto-bg); color: var(--proto-fg); border-radius: 999px;
+  padding: 5px 6px; box-shadow: 0 6px 20px rgba(0,0,0,.3); font-family: var(--font-sans); font-size: 13px; max-width: calc(100vw - 24px); }
+.proto-bar button { background: transparent; border: 0; color: inherit; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; flex: none; }
+.proto-bar button:hover { background: color-mix(in srgb, var(--proto-fg) 18%, transparent); }
+.proto-bar .lbl { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- the stage: a short sheet ---------- */
+.stagewrap { padding-block: 18px 110px; }
+.stage { position: relative; width: 100%; max-width: 760px; margin: 0 auto; }
+.stage.phone { max-width: 390px; outline: 1px dashed var(--rule-strong); outline-offset: 8px; }
+.lab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.btn { font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; border: 1px solid var(--ink); background: var(--paper-raised); padding: 7px 12px; border-radius: 0; white-space: nowrap; min-height: 36px; }
+.btn:hover { background: var(--panel); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn.solid:hover { background: color-mix(in srgb, var(--ink) 85%, var(--paper)); }
+.btn.small { font-size: 12.5px; padding: 3px 10px; min-height: 30px; }
+.btn:disabled { opacity: .4; cursor: default; }
+.linkbtn { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; font-family: var(--font-sans); font-size: 13px; }
+.xbtn { width: 34px; height: 34px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 16px; line-height: 1; flex: none; }
+.actionrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--rule-strong); padding-bottom: 10px; }
+.actionrow h1 { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.actionrow .sub { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; position: relative; }
+.menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--shadow); min-width: 190px; display: grid; }
+.menu button { background: none; border: 0; text-align: left; padding: 9px 14px; font-family: var(--font-sans); font-size: 14px; display: grid; }
+.menu button small { color: var(--ink-muted); font-size: 12px; }
+.menu button:hover { background: var(--panel); }
+.menu button + button { border-top: 1px solid var(--rule); }
+.state { background: var(--panel); padding: 12px; margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.framed { border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 8px 10px 5px; display: grid; grid-template-rows: 1fr auto; gap: 4px; text-align: center; }
+.framed .v { font-size: 24px; line-height: 1.2; align-self: center; }
+.framed .v small { font-size: 14px; color: var(--ink-muted); }
+.lines { margin-top: 12px; border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 8px 12px; font-size: 15px; }
+.lines li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--rule); padding: 3px 0; }
+.lines li:last-child { border-bottom: 0; }
+.lines .grp { font-family: var(--font-sans); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); }
+.dots { letter-spacing: 2px; white-space: nowrap; }
+.said { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); min-height: 20px; margin-top: 10px; }
+
+/* ---------- the dialogs ---------- */
+.wash { position: fixed; inset: 0; background: var(--wash); z-index: 30; display: grid; place-items: center; padding: 16px; }
+.dlg { background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 6px 6px 0 var(--shadow); width: min(520px, 100%); max-height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+.dlg.phone { width: min(358px, 100%); }
+.dlghead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--rule); }
+.dlghead h2 { font-size: 22px; font-weight: 600; line-height: 1.2; }
+.dlgbody { padding: 12px 16px; overflow: auto; display: grid; gap: 16px; align-content: start; }
+.dlgfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid var(--rule); flex-wrap: wrap; }
+.sec h3 { font-family: var(--font-sans); font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.sec .hint { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); }
+.chg li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding: 4px 0; }
+.chg li b { font-weight: 600; white-space: nowrap; font-family: var(--font-sans); font-size: 15px; }
+.chg .nochg { font-weight: 400; color: var(--ink-muted); }
+.chg .arrow { color: var(--ink-muted); }
+.none { font-style: italic; color: var(--ink-muted); }
+.hdrow { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; border-bottom: 1px solid var(--rule); padding: 6px 0; }
+.hdrow .die { font-size: 19px; }
+.hdrow .die small { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+.hdctl { min-height: 36px; display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.num:disabled { opacity: .4; }
+.num { border: 1.5px solid var(--ink); background: var(--paper-raised); padding: 2px 6px; width: 58px; text-align: center; font-size: 17px; border-radius: 0; min-height: 30px; -moz-appearance: textfield; }
+.num::-webkit-outer-spin-button, .num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.rolls { grid-column: 1 / -1; min-height: 30px; align-items: center; color: var(--ink-muted); font-family: var(--font-sans); font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; }
+.roll { color: var(--ink); font-weight: 600; border: 1px solid var(--rule-strong); padding: 1px 4px 1px 8px; display: inline-flex; gap: 6px; align-items: center; }
+.roll button { border: 0; background: none; padding: 0 4px; font-size: 14px; }
+.total { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 14px; padding-top: 6px; }
+.total b { font-size: 15px; }
+.step { display: inline-flex; align-items: center; gap: 0; }
+.step button { width: 30px; height: 30px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 16px; line-height: 1; }
+.step span { min-width: 34px; text-align: center; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; padding: 4px 0; }
+.check input { width: 18px; height: 18px; margin: 4px 0 0; accent-color: var(--ink); flex: none; }
+.check small { display: block; font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); }
+.stepsnav { font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); display: flex; gap: 6px; flex-wrap: wrap; }
+.stepsnav b { color: var(--ink); font-weight: 600; }
+.dlgfoot .grow { flex: 1; }
+/* ---------- ORC-312: the sheet ---------- */
+:root { --bubble: #eef4ff; --caution: #b45309; --hl: #ffe45c; }
+:root[data-proto-theme="dark"] { --bubble: #0d1830; --caution: #ffa94d; --hl: #5c4a00; }
+.stage { max-width: 960px; font-size: 15.5px; }
+.stage.phone { max-width: 390px; }
+.stage button { font: inherit; color: inherit; }
+.toprow { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; position: relative; }
+.toprow > span { display: inline-flex; gap: 8px; position: relative; }
+.hdr { display: grid; grid-template-columns: 1fr 1.9fr; gap: 14px; align-items: start; }
+.phone .hdr { grid-template-columns: 1fr; gap: 8px; }
+.namebox { border: 1.5px solid var(--rule-strong); border-radius: 6px 26px 26px 6px; background: var(--paper-raised); padding: 6px 18px; }
+.namebox b { display: block; font-size: 30px; font-weight: 500; line-height: 1.2; border-bottom: 1.5px solid var(--rule-strong); }
+.detbox { border: 1.5px solid var(--rule-strong); border-radius: 6px; padding: 8px 14px; display: grid; grid-template-columns: 1fr auto auto; gap: 6px 18px; align-items: end; }
+.detbox > span { display: grid; }
+.detbox > span > i { font-style: normal; border-bottom: 1px solid var(--rule-strong); min-height: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cols { margin-top: 16px; display: grid; grid-template-columns: minmax(320px, 1fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.col { display: grid; gap: 12px; min-width: 0; align-content: start; }
+.shaded { background: var(--panel); border-radius: 6px; padding: 10px; display: grid; gap: 8px; }
+.fbox { border: 1.5px solid var(--rule-strong); border-radius: 6px; background: var(--paper-raised); padding: 8px 10px 4px; display: grid; gap: 6px; position: relative; min-width: 0; }
+.fbox > .lab { text-align: center; border-top: 1px solid var(--rule); padding-top: 3px; }
+.fbox > .lab.top { text-align: left; border-top: 0; border-bottom: 1px solid var(--rule); padding: 0 0 3px; }
+.abil { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; }
+.phone .abil { grid-template-columns: 1fr; }
+.stats { align-content: start; gap: 16px; padding: 8px 6px 18px; }
+.phone .stats { grid-template-columns: repeat(3, 1fr); gap: 20px 10px; }
+.stat { display: grid; justify-items: center; border: 1.5px solid var(--rule-strong); border-radius: 8px; background: var(--paper-raised); padding: 6px 0 12px; position: relative; width: 100%; }
+.stat .v { font-size: 30px; line-height: 1.1; font-weight: 500; }
+.stat .o { position: absolute; bottom: -11px; border: 1.5px solid var(--rule-strong); border-radius: 999px; background: var(--paper-raised); padding: 0 10px; font-size: 14px; line-height: 1.35; }
+.stat:hover, .stat[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
+.stat[aria-pressed="true"] .lab { color: var(--ink); font-weight: 700; }
+.sbox { display: grid; grid-template-columns: 42px 1fr; align-items: center; border: 1.5px solid var(--rule-strong); border-radius: 6px; background: var(--paper-raised); min-height: 44px; width: 100%; text-align: left; padding: 0; }
+.sbox .v { font-size: 20px; text-align: center; border-right: 1px solid var(--rule-strong); align-self: stretch; display: grid; place-items: center; }
+.sbox .lab { padding: 0 10px; }
+button.sbox:hover { box-shadow: inset 0 0 0 2px var(--ink); }
+.slines { display: grid; gap: 1px; }
+.slines li { display: flex; gap: 8px; align-items: baseline; padding: 1px 4px; margin: 0 -4px; border-radius: 3px; }
+.slines li.hl { background: var(--hl); }
+.mk { width: 10px; height: 10px; border: 1.5px solid var(--ink); flex: none; align-self: center; }
+.mk.on { background: var(--ink); }
+.tag { font-family: var(--font-sans); font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.rowboxes { display: flex; justify-content: space-evenly; gap: 8px; }
+.rbox { position: relative; min-width: 96px; border: 1.5px solid var(--rule-strong); border-radius: 6px; background: var(--paper-raised); padding: 8px 14px; text-align: center; display: grid; grid-template-rows: 1fr auto; }
+.phone .rbox { min-width: 0; flex: 1 1 0; max-width: 112px; padding-inline: 6px; }
+.rbox .v { font-size: 26px; line-height: 1.1; font-weight: 500; align-self: center; }
+.rbox.shield { border-radius: 8px 8px 50% 50% / 8px 8px 34% 34%; padding-bottom: 14px; }
+button.rbox:hover, button.rbox[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
+.cap { display: block; font-family: var(--font-sans); font-size: 9.5px; line-height: 1.2; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.cap.chg { color: var(--danger); }
+.vit2 { position: relative; display: grid; grid-template-columns: 2fr 1fr 1.1fr; gap: 8px; }
+.phone .vit2 { grid-template-columns: 4fr 5fr; }
+.phone .vit2 .hpbox { grid-column: span 2; }
+.hpbox .in { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; align-items: end; }
+.hpbox .tmp { border-right: 1px solid var(--rule); text-align: center; display: grid; min-height: 52px; align-content: end; }
+.hpbox .hpnum { text-align: center; font-size: 34px; line-height: 1.1; align-self: center; }
+.hpbox .hpnum small { display: block; }
+.hpbox .max { color: var(--ink-muted); }
+button.hdbox { text-align: center; }
+button.hdbox:hover, button.hdbox[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
+.hdbox .v { font-size: 24px; line-height: 1.1; align-self: center; }
+.ds { display: grid; gap: 6px; align-content: space-evenly; }
+.ds > div { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.deadtag { font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--paper); background: var(--danger); padding: 1px 8px; justify-self: center; }
+.circs { display: inline-flex; flex-wrap: wrap; }
+.circs.static { flex-wrap: nowrap; }
+.circs button { width: 26px; height: 26px; display: grid; place-items: center; background: none; border: 0; padding: 0; }
+.circs button::before { content: ""; width: 17px; height: 17px; box-sizing: border-box; border: 1.5px solid var(--c, var(--ink)); border-radius: 50%; }
+.circs button.on::before { background: var(--c, var(--ink)); }
+.circs.static button { width: 20px; height: 20px; cursor: default; } .circs.static button::before { width: 15px; height: 15px; }
+/* status: exhaustion, conditions, concentration */
+.vit3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; }
+.phone .vit3 { grid-template-columns: 1fr; }
+.tok.exh { position: relative; align-items: center; }
+.tok.exh .circs { padding-right: 2px; } .tok.exh .circs button { width: 22px; height: 24px; } .tok.exh .circs button::before { width: 15px; height: 15px; }
+.tok.exh .x { align-self: stretch; }
+.exh .fx { display: none; position: absolute; z-index: 25; top: calc(100% + 4px); left: -1px; width: min(330px, calc(100vw - 48px)); background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--shadow); padding: 8px 12px; font-family: var(--font-sans); font-size: 13px; font-weight: 400; }
+.exh .fx.open { display: block; }
+@media (hover: hover) { .tok.exh:hover .fx { display: block; } }
+.exh .fx li { display: grid; grid-template-columns: 18px 1fr; padding: 2px 0; color: var(--ink-muted); }
+.exh .fx li.act { color: var(--ink); font-weight: 600; }
+.toks { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 30px; position: relative; }
+.tok { display: inline-flex; align-items: stretch; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
+.tok button { background: none; border: 0; padding: 3px 8px; font-weight: 600; }
+.tok button:hover { background: var(--panel); }
+.tok .x { border-left: 1px solid var(--rule-strong); padding: 3px 7px; font-weight: 400; }
+.tok.conc { background: var(--bubble); border-color: var(--info); }
+.tok.auto { border-style: dashed; }
+.tok small { font-weight: 400; color: var(--ink-muted); padding: 3px 8px 3px 0; align-self: center; }
+.addc { font-family: var(--font-sans); font-size: 13px; background: none; border: 1px dashed var(--rule-strong); padding: 3px 9px; }
+.addc:hover { border-style: solid; border-color: var(--ink); }
+.pop { position: absolute; z-index: 25; top: calc(100% + 4px); left: 0; background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--shadow); font-family: var(--font-sans); font-size: 13.5px; text-align: left; font-weight: 400; }
+.pop.r { left: auto; right: 0; }
+.pop h5 { margin: 0; padding: 8px 12px 4px; font-size: 13px; font-weight: 700; }
+.pop.list { width: max-content; min-width: 230px; max-width: calc(100vw - 48px); max-height: 330px; overflow: auto; }
+.pop.list button { display: flex; justify-content: space-between; gap: 18px; width: 100%; background: none; border: 0; border-top: 1px solid var(--rule); padding: 7px 12px; text-align: left; }
+.pop.list button:hover { background: var(--panel); }
+.pop.list button[aria-checked="true"] { font-weight: 700; }
+.pop.list small { color: var(--ink-muted); }
+.pop.text { width: min(340px, 100%); padding: 0 0 8px; }
+.pop.text p { padding: 2px 12px; line-height: 1.4; }
+.pop.form { padding: 10px 12px; display: grid; gap: 8px; width: max-content; max-width: calc(100vw - 48px); }
+.pop.form .r1 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.statusbar { margin-top: 12px; border: 1.5px solid var(--rule-strong); border-radius: 6px; background: var(--paper-raised); padding: 6px 12px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; justify-content: space-between; }
+/* attacks, features */
+table { border-collapse: collapse; width: 100%; }
+th { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); text-align: left; padding: 2px 6px; }
+td { padding: 3px 6px; border-bottom: 1px solid var(--rule); }
+tbody tr:nth-child(odd) td { background: var(--panel); }
+tr.shown td { font-weight: 700; }
+.grp { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); border-bottom: 1px solid var(--rule); }
+.feat { display: grid; gap: 1px; font-size: 14.5px; }
+.bub { border: 1.5px solid var(--info); border-radius: 18px; background: var(--bubble); padding: 8px 14px 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; font-size: 14.5px; }
+.bub.spent { background: transparent; border-style: dashed; border-color: var(--ink-muted); color: var(--ink-muted); }
+.bub .hd { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-weight: 600; }
+.bub .side { grid-column: 2; grid-row: 1 / span 2; display: grid; justify-items: end; align-content: start; gap: 4px; position: relative; }
+.bub .body { grid-column: 1; }
+.phone .bub { grid-template-columns: 1fr; } .phone .bub .side { grid-column: 1; grid-row: auto; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.uc { display: inline-flex; flex-wrap: wrap; }
+.uc button { width: 24px; height: 24px; display: grid; place-items: center; background: none; border: 0; padding: 0; position: relative; }
+.uc button::before { content: ""; width: 15px; height: 15px; box-sizing: border-box; border: 1.5px solid var(--info); border-radius: 50%; background: var(--bubble); }
+.uc.u button.on::before { background: transparent; border-color: var(--ink-muted); }
+.uc.u button.on::after { content: ""; position: absolute; width: 21px; height: 2px; background: var(--ink); border-radius: 2px; transform: rotate(-52deg); }
+.uc.s button::before { width: 17px; height: 17px; border-color: var(--ink); background: transparent; }
+.uc.s button.on::before { background: var(--ink); }
+.pool { display: inline-flex; align-items: center; gap: 4px; }
+.pool .pm { width: 30px; height: 30px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 16px; line-height: 1; }
+.pool .n { background: none; border: 0; font-size: 28px; font-weight: 500; line-height: 1; padding: 0 6px; min-width: 96px; text-align: center; }
+.pool .n:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pool .n small { font-size: 18px; color: var(--ink-muted); }
+.fl { display: grid; gap: 4px; }
+.fl > div { border-bottom: 1px solid var(--rule); padding-bottom: 3px; }
+.tabs { margin-top: 12px; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 2px solid var(--ink); }
+.tabs button { background: var(--panel); border: 1px solid var(--rule-strong); border-bottom: 0; padding: 7px 0; font-family: var(--font-sans); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tabpanel { margin-top: 12px; display: grid; gap: 12px; }
+.said3 { min-height: 22px; margin-top: 8px; font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); }
+.insp .v { font-size: 22px; }
+</style>
+
+<div class="proto-top gut">
+  <b>Prototype · ORC-312 · Sheet layout for the play controls</b>
+  <span class="proto-group"><span>Conditions and statuses</span><span id="g-place"></span></span>
+  <span class="proto-group"><span>Use circles</span><span id="g-circ"></span></span>
+  <span class="proto-group"><span>Width</span><span id="g-width"></span></span>
+  <span class="proto-group"><span>Set up</span><button id="b-hp0">Hit points to 0</button><button id="b-conc">Concentrate on Bless</button><button id="b-reset">Reset</button><button id="b-theme" aria-pressed="false">Dark</button></span>
+</div>
+<details class="proto-notes gut" open>
+  <summary>What to try</summary>
+  <ul>
+    <li><b>Abilities:</b> hover an ability box, or tap it so the highlight stays. Constitution has no skill.</li>
+    <li><b>AC:</b> click the AC box and pick a row. "AC by armor" (bottom left, or the More tab) marks the row that shows. The speed does not change.</li>
+    <li><b>Conditions and statuses:</b> "Add condition" opens the menu. Exhaustion is in the menu. Its token has the six level circles and an X. Level 2 halves the speed (25 to 12), level 4 halves the hit point maximum, level 5 sets speed 0, level 6 shows Dead. Hover the token, or click its name, for the effects of each level.</li>
+    <li>Charmed says "immune". Restrained sets speed 0. A click on a token shows its rule text. "Hit points to 0" shows Unconscious with no X.</li>
+    <li><b>Uses:</b> Divine Sense and Channel Divinity have circles. Lay on Hands is a pool with minus and plus, and a click on its number opens Spend, Regain and Set. The Hit dice box opens a small Spend popup.</li>
+    <li><b>Inspiration</b> is a click on its box. The Rest button is beside Edit. The hit points popup, the rest dialogs and the Cast button are in the earlier prototypes.</li>
+  </ul>
+</details>
+
+<div class="stagewrap gut"><div class="stage" id="stage"></div></div>
+
+<div class="proto-bar" role="group" aria-label="Variant">
+  <button id="prev" aria-label="Previous variant">‹</button>
+  <span class="lbl" id="barlbl"></span>
+  <button id="next" aria-label="Next variant">›</button>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+const ABIL = [["str", "Strength", 16], ["dex", "Dexterity", 10], ["con", "Constitution", 14], ["int", "Intelligence", 8], ["wis", "Wisdom", 12], ["cha", "Charisma", 16]];
+const mod = (n) => Math.floor((n - 10) / 2), sg = (n) => (n > 0 ? "+" + n : n < 0 ? "−" + -n : "0");
+const SAVES = { wis: 1, cha: 1 }, PROF = 3;
+const SKILLS = [["Acrobatics", "dex"], ["Animal Handling", "wis"], ["Arcana", "int"], ["Athletics", "str", 1], ["Deception", "cha"], ["History", "int"], ["Insight", "wis", 1], ["Intimidation", "cha", 1], ["Investigation", "int"], ["Medicine", "wis"], ["Nature", "int"], ["Perception", "wis"], ["Performance", "cha"], ["Persuasion", "cha", 1], ["Religion", "int"], ["Sleight of Hand", "dex"], ["Stealth", "dex"], ["Survival", "wis"]];
+const AC = [["Chain Mail + Shield", 18], ["Chain Mail", 16], ["Unarmored + Shield", 12], ["Unarmored", 10]];
+const EXH = ["Disadvantage on ability checks", "Speed halved", "Disadvantage on attack rolls and saving throws", "Hit point maximum halved", "Speed reduced to 0", "Death"];
+const STOP = ["Grappled", "Restrained", "Paralyzed", "Petrified", "Stunned", "Unconscious"];
+const COND = {
+  Blinded: ["You can't see, and you fail each ability check that needs sight.", "Attack rolls against you have advantage, and your attack rolls have disadvantage."],
+  Charmed: ["You can't attack the charmer or target the charmer with harmful abilities or magical effects.", "The charmer has advantage on ability checks to interact socially with you."],
+  Deafened: ["You can't hear, and you fail each ability check that needs hearing."],
+  Frightened: ["You have disadvantage on ability checks and attack rolls while the source of your fear is in line of sight.", "You can't willingly move closer to the source of your fear."],
+  Grappled: ["Your speed becomes 0, and you can't benefit from a bonus to your speed.", "The condition ends if the grappler is incapacitated, or if an effect removes you from its reach."],
+  Incapacitated: ["You can't take actions or reactions."],
+  Invisible: ["You can't be seen without magic or a special sense. You are heavily obscured for the purpose of hiding.", "Attack rolls against you have disadvantage, and your attack rolls have advantage."],
+  Paralyzed: ["You are incapacitated, and you can't move or speak.", "You fail Strength and Dexterity saving throws.", "Attack rolls against you have advantage. A hit from within 5 feet is a critical hit."],
+  Petrified: ["You are turned to stone and incapacitated. You can't move or speak.", "You fail Strength and Dexterity saving throws, and attack rolls against you have advantage.", "You have resistance to all damage, and you are immune to poison and disease."],
+  Poisoned: ["You have disadvantage on attack rolls and ability checks."],
+  Prone: ["Your only movement option is to crawl, unless you stand up.", "You have disadvantage on attack rolls.", "An attack roll against you has advantage from within 5 feet, and disadvantage from farther away."],
+  Restrained: ["Your speed becomes 0, and you can't benefit from a bonus to your speed.", "Attack rolls against you have advantage, and your attack rolls have disadvantage.", "You have disadvantage on Dexterity saving throws."],
+  Stunned: ["You are incapacitated, you can't move, and you can speak only falteringly.", "You fail Strength and Dexterity saving throws.", "Attack rolls against you have advantage."],
+  Unconscious: ["You are incapacitated, you can't move or speak, and you are unaware of your surroundings.", "You drop what you hold and fall prone.", "You fail Strength and Dexterity saving throws.", "Attack rolls against you have advantage. A hit from within 5 feet is a critical hit."],
+};
+const IMMUNE = ["Charmed"];
+const fresh = () => ({ insp: false, exh: 0, conds: [], conc: null, hp: 52, hdSpent: 2, uses: { "Divine Sense": 1, "Channel Divinity": 0 }, pool: 25, pick: null });
+const MAX = 67, HD = 7, POOL = 35, SPEED = 25;
+let s = fresh(), place = "v", circ = "u", phone = false, tab = "stats", pop = null, sticky = null, said = "";
+
+const maxNow = () => (s.exh >= 4 ? Math.floor(MAX / 2) : MAX);
+const hpNow = () => Math.min(s.hp, maxNow());
+const dead = () => s.exh >= 6;
+const autoUnc = () => hpNow() === 0 && !dead();
+const active = () => [...(autoUnc() && !s.conds.includes("Unconscious") ? ["Unconscious"] : []), ...s.conds];
+function speed() {
+  const stop = active().find((x) => STOP.includes(x));
+  if (stop) return { v: 0, why: stop };
+  if (s.exh >= 5) return { v: 0, why: "Exhaustion" };
+  if (s.exh >= 2) return { v: Math.floor(SPEED / 2), why: "Exhaustion" };
+  return { v: SPEED, why: "" };
+}
+const acNow = () => AC[s.pick ?? 0][1];
+const open = (kind, extra) => (pop && pop.kind === kind && (!extra || pop.id === extra.id) ? null : { kind, ...extra });
+
+function circles(n, on, key, color, label) {
+  return `<span class="circs" role="group" aria-label="${label}: ${on} of ${n}" ${color ? `style="--c:var(--${color})"` : ""}>${Array.from({ length: n }, (_, i) => `<button class="${i < on ? "on" : ""}" data-circ="${key}" aria-label="${i < on ? "One less" : "One more"}"></button>`).join("")}</span>`;
+}
+function exhHtml() {
+  return `<span class="tok exh"><button data-pop="exh" aria-expanded="${pop?.kind === "exh"}" aria-label="Exhaustion level ${s.exh}. Show the effects">Exhaustion</button>${circles(6, s.exh, "exh", "", "Exhaustion level")}<button class="x" data-rmcond="Exhaustion" aria-label="Remove Exhaustion">×</button>
+    <ul class="fx ${pop?.kind === "exh" ? "open" : ""}">${EXH.map((t, i) => `<li class="${i < s.exh ? "act" : ""}"><span>${i + 1}</span><span>${t}</span></li>`).join("")}</ul></span>`;
+}
+function toksHtml() {
+  const list = active(), avail = [...Object.keys(COND), "Exhaustion"].sort().filter((x) => !list.includes(x));
+  const tok = (name) => { if (name === "Exhaustion") return exhHtml(); const auto = name === "Unconscious" && autoUnc() && !s.conds.includes(name);
+    return `<span class="tok ${auto ? "auto" : ""}"><button data-pop="ctext" data-id="${name}" aria-expanded="${pop?.kind === "ctext" && pop.id === name}">${name}</button>${auto ? `<small>0 hit points</small>` : `<button class="x" data-rmcond="${name}" aria-label="Remove ${name}">×</button>`}</span>`; };
+  return `<div class="toks">
+    ${s.conc ? `<span class="tok conc"><button disabled style="cursor:default">Concentrating on ${esc(s.conc)}</button><button class="x" data-endconc aria-label="End concentration on ${esc(s.conc)}">×</button></span>` : ""}
+    ${list.map(tok).join("")}<button class="addc" data-pop="addc" aria-haspopup="menu" aria-expanded="${pop?.kind === "addc"}">+ Add condition</button>
+    ${pop?.kind === "addc" ? `<div class="pop list" role="menu"><h5>Add a condition</h5>${avail.map((x) => `<button role="menuitem" data-addcond="${x}"><span>${x}</span>${x === "Exhaustion" ? `<small>level 1</small>` : IMMUNE.includes(x) ? `<small>immune</small>` : STOP.includes(x) ? `<small>speed 0</small>` : ""}</button>`).join("")}</div>` : ""}
+    ${pop?.kind === "ctext" ? `<div class="pop text"><h5>${pop.id}</h5>${COND[pop.id].map((t) => `<p>${t}</p>`).join("")}</div>` : ""}</div>`;
+}
+function abilitiesHtml() {
+  return `<div class="abil"><div class="shaded stats">${ABIL.map(([k, name, sc]) => `<button class="stat" data-ab="${k}" aria-pressed="${sticky === k}" aria-label="${name} ${sg(mod(sc))}, score ${sc}. Highlight its skills"><span class="lab">${k}</span><span class="v">${sg(mod(sc))}</span><span class="o">${sc}</span></button>`).join("")}</div>
+    <div class="col" style="gap:10px">
+      <button class="sbox insp" data-insp aria-pressed="${s.insp}"><span class="v">${s.insp ? "✦" : ""}</span><span class="lab">Inspiration</span></button>
+      <div class="sbox"><span class="v">+${PROF}</span><span class="lab">Proficiency bonus</span></div>
+      <div class="fbox"><ul class="slines">${ABIL.map(([k, name, sc]) => `<li><span class="mk ${SAVES[k] ? "on" : ""}"></span>${sg(mod(sc) + (SAVES[k] ? PROF : 0))} ${name}</li>`).join("")}</ul><span class="lab">Saving throws</span></div>
+      <div class="fbox"><ul class="slines">${SKILLS.map(([n, ab, p]) => `<li data-sk="${ab}"><span class="mk ${p ? "on" : ""}"></span>${sg(mod(ABIL.find((a) => a[0] === ab)[2]) + (p ? PROF : 0))} ${n} <span class="tag">${ab}</span></li>`).join("")}</ul><span class="lab">Skills</span></div>
+    </div></div>
+    <div class="sbox"><span class="v">11</span><span class="lab">Passive perception</span></div>`;
+}
+function vitalsHtml() {
+  const sp = speed(), mx = maxNow();
+  return `<div class="shaded"><div class="rowboxes">
+      <button class="rbox shield" data-pop="ac" aria-haspopup="menu" aria-expanded="${pop?.kind === "ac"}" aria-label="Armor class ${acNow()}. Choose the armor"><span class="v">${acNow()}</span><span class="lab">Armor class</span></button>
+      <div class="rbox"><span class="v">+0</span><span class="lab">Initiative</span></div>
+      <div class="rbox"><span class="v">${sp.v} ft.${sp.why ? `<span class="cap chg">${sp.why}</span>` : ""}</span><span class="lab">Speed</span></div>
+      ${pop?.kind === "ac" ? `<div class="pop list" role="menu" style="top:76px;left:10px"><h5>Armor class shows</h5><button role="menuitemradio" aria-checked="${s.pick === null}" data-pick="worn"><span>Worn armor</span><small>${AC[0][1]}</small></button>${AC.map(([n, ac], i) => `<button role="menuitemradio" aria-checked="${s.pick === i}" data-pick="${i}"><span>${n}</span><span>${ac}</span></button>`).join("")}</div>` : ""}
+    </div>
+    <div class="vit2">
+      <div class="fbox hpbox"><div class="in"><div class="tmp"><span class="lab">Temporary</span></div><div class="hpnum">${hpNow()} <span class="max">/ ${mx}</span>${mx < MAX ? `<span class="cap chg">Maximum halved · Exhaustion</span>` : ""}</div></div><span class="lab">Hit points</span></div>
+      <button class="fbox hdbox" data-pop="hd" aria-expanded="${pop?.kind === "hd"}" aria-label="Hit dice: ${HD - s.hdSpent} of ${HD} d10 left. Spend a hit die"><span class="v">${HD - s.hdSpent} <span class="max" style="color:var(--ink-muted)">/ ${HD}</span><span class="cap">d10</span></span><span class="lab">Hit dice</span></button>
+      <div class="fbox">${dead() ? `<span class="deadtag">Dead</span>` : ""}<div class="ds"><div><span class="lab">Successes</span><span class="circs static" style="--c:var(--success)"><button tabindex="-1"></button><button tabindex="-1"></button><button tabindex="-1"></button></span></div><div><span class="lab">Failures</span><span class="circs static" style="--c:var(--caution)"><button tabindex="-1"></button><button tabindex="-1"></button><button tabindex="-1"></button></span></div></div><span class="lab">Death saves</span></div>
+      ${pop?.kind === "hd" ? `<div class="pop form" style="position:absolute"><b>Spend a hit die (d10)</b><div class="r1"><label class="lab" for="hdroll">Roll</label><input class="num" id="hdroll" type="number" inputmode="numeric" min="1" max="10" placeholder="1–10" ${HD - s.hdSpent ? "" : "disabled"}><button class="btn small" data-hdspend ${HD - s.hdSpent ? "" : "disabled"}>Spend</button><button class="btn small" data-hdroll ${HD - s.hdSpent ? "" : "disabled"}>Roll for me</button></div><span style="color:var(--ink-muted)">Each die adds Constitution +2.</span></div>` : ""}
+    </div>
+    ${place === "v" ? `<div class="fbox">${toksHtml()}<span class="lab">Conditions and statuses</span></div>` : ""}
+  </div>`;
+}
+const attacksHtml = () => `<div class="fbox"><table><thead><tr><th>Name</th>${phone ? "" : "<th>Proficient?</th>"}<th>${phone ? "To hit" : "Attack"}</th><th>Damage modifier</th></tr></thead><tbody>
+  <tr><td>Warhammer</td>${phone ? "" : "<td>Yes</td>"}<td>+6${phone ? "" : " to hit"}</td><td>+3</td></tr><tr><td>Javelin</td>${phone ? "" : "<td>Yes</td>"}<td>+6${phone ? "" : " to hit"}</td><td>+3</td></tr></tbody></table><span class="lab">Attacks</span></div>`;
+const spellsHtml = () => `<div class="fbox"><span class="lab top">Spellcasting</span><table><tbody>
+  <tr><td style="width:70px">1st</td><td style="width:110px"><span class="circs static"><button class="on" tabindex="-1"></button><button tabindex="-1"></button><button tabindex="-1"></button><button tabindex="-1"></button></span></td><td>Bless, Cure Wounds, Shield of Faith</td></tr>
+  <tr><td>2nd</td><td><span class="circs static"><button tabindex="-1"></button><button tabindex="-1"></button><button tabindex="-1"></button></span></td><td>Lesser Restoration, Zone of Truth</td></tr></tbody></table></div>`;
+function useCircles(name, n) { const on = s.uses[name]; return `<span class="uc ${circ}" role="group" aria-label="${n} uses, ${n - on} left">${Array.from({ length: n }, (_, i) => `<button class="${i < on ? "on" : ""}" data-use="${name}" aria-label="${i < on ? "Give back a use" : "Spend a use"}"></button>`).join("")}</span>`; }
+function featuresHtml() {
+  const bub = (name, n, tag, text) => `<div class="bub ${s.uses[name] >= n ? "spent" : ""}"><span class="hd">${name} ${useCircles(name, n)}</span><span class="side"><span class="tag">${tag}</span></span><span class="body">${text}</span></div>`;
+  return `<div class="fbox"><span class="lab top">Features &amp; traits</span><div class="col" style="gap:10px">
+    <div class="grp">Class features</div>
+    ${bub("Divine Sense", 4, "Long rest", "As an action, you know the location of any celestial, fiend, or undead within 60 feet of you that is not behind total cover.")}
+    <div class="bub ${s.pool <= 0 ? "spent" : ""}"><span class="hd">Lay on Hands</span><span class="side"><span class="tag">Long rest</span>
+        <span class="pool"><button class="pm" data-pool="-1" ${s.pool <= 0 ? "disabled" : ""} aria-label="Spend 1">−</button><button class="n" data-pop="pool" aria-expanded="${pop?.kind === "pool"}" aria-label="${s.pool} of ${POOL} left. Spend, regain or set">${s.pool} <small>/ ${POOL}</small></button><button class="pm" data-pool="1" ${s.pool >= POOL ? "disabled" : ""} aria-label="Regain 1">+</button></span>
+        ${pop?.kind === "pool" ? `<div class="pop form r"><b>Lay on Hands</b><div class="r1"><input class="num" id="poolnum" type="number" inputmode="numeric" min="0" max="${POOL}" aria-label="Amount"><button class="btn small" data-poolact="spend">Spend</button><button class="btn small" data-poolact="regain">Regain</button><button class="btn small" data-poolact="set">Set</button></div></div>` : ""}</span>
+      <span class="body">You have a pool of healing power. As an action, you can touch a creature and restore hit points from the pool, or spend 5 points to cure one disease or poison.</span></div>
+    ${bub("Channel Divinity", 1, "Short rest", "Sacred Weapon, or Turn the Unholy.")}
+    <p class="feat"><b>Aura of Protection</b><span>You and friendly creatures within 10 feet of you gain a +3 bonus to saving throws while you are conscious.</span></p>
+    <div class="grp">Race traits</div>
+    <p class="feat"><b>Dwarven Resilience</b><span>You have advantage on saving throws against poison, and resistance against poison damage.</span></p></div></div>`;
+}
+const equipmentHtml = () => `<div class="fbox"><div class="fl"><div>Chain Mail <span style="font-size:13px;color:var(--ink-muted)">(equipped)</span></div><div>Shield <span style="font-size:13px;color:var(--ink-muted)">(equipped)</span></div><div>Warhammer</div><div>5 Javelin</div><div>Explorer's Pack</div></div><span class="lab">Equipment</span></div>`;
+const profsHtml = () => `<div class="fbox"><div class="fl"><div><span class="tag">Languages</span> Common, Dwarvish</div><div><span class="tag">Armor</span> All armor, Shields</div></div><span class="lab">Other proficiencies &amp; languages</span></div>`;
+const defensesHtml = () => `<div class="fbox"><div class="fl"><div><span class="tag">Damage resistances</span> Poison</div><div><span class="tag">Condition immunities</span> Charmed</div><div><span class="tag">Darkvision</span> 60 ft.</div></div><span class="lab">Defenses</span></div>`;
+const acTableHtml = () => `<div class="fbox"><table><thead><tr><th style="width:22px"></th><th>Armor</th><th>AC</th></tr></thead><tbody>${AC.map(([n, ac], i) => { const shown = (s.pick ?? 0) === i; return `<tr class="${shown ? "shown" : ""}"><td>${shown ? `<span aria-label="Shows in the AC box">●</span>` : ""}</td><td>${n}${i === 0 ? ` <span class="tag">worn</span>` : ""}</td><td>${ac}</td></tr>`; }).join("")}</tbody></table><span class="lab">AC by armor</span></div>`;
+
+function render(keepId) {
+  const st = $("stage"); st.className = "stage" + (phone ? " phone" : "");
+  const bar = place === "b" ? `<div class="statusbar">${toksHtml()}<span class="lab">Conditions and statuses</span></div>` : "";
+  const TABS = { stats: "Stats", spells: "Spells", features: "Features", more: "More" };
+  const panel = { stats: vitalsHtml() + attacksHtml() + abilitiesHtml(), spells: spellsHtml(), features: featuresHtml(), more: equipmentHtml() + profsHtml() + defensesHtml() + acTableHtml() };
+  st.innerHTML = `<div class="toprow"><span><button class="btn">‹ Characters</button></span><span><button class="btn" id="restbtn" data-pop="rest" aria-haspopup="menu" aria-expanded="${pop?.kind === "rest"}">Rest ▾</button><button class="btn">Edit</button>
+      ${pop?.kind === "rest" ? `<div class="pop list r" role="menu"><button role="menuitem" data-close>Short rest</button><button role="menuitem" data-close>Long rest</button><button role="menuitem" data-close>Dawn</button></div>` : ""}</span></div>
+    <div class="hdr"><div class="namebox"><b>Brakka Stonefist</b><span class="lab">Character name</span></div>
+      <div class="detbox"><span${phone ? ' style="grid-column:span 3"' : ""}><i>Paladin 7 (Oath of Devotion)</i><span class="lab">Class</span></span><span><i>Soldier</i><span class="lab">Background</span></span><span><i>Hill Dwarf</i><span class="lab">Race</span></span></div></div>
+    ${bar}
+    ${phone ? `<div class="tabs" role="tablist">${Object.entries(TABS).map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${tab === k}">${l}</button>`).join("")}</div><div class="tabpanel">${panel[tab]}</div>`
+      : `<div class="cols"><div class="col">${abilitiesHtml()}${equipmentHtml()}${profsHtml()}${defensesHtml()}${acTableHtml()}</div><div class="col">${vitalsHtml()}${attacksHtml()}${spellsHtml()}${featuresHtml()}</div></div>`}
+    <p class="said3" role="status">${esc(said)}</p>`;
+  const hd = st.querySelector(".pop.form:not(.r)"); if (hd) { const b = st.querySelector(".hdbox"); hd.style.left = b.offsetLeft + "px"; hd.style.top = b.offsetTop + b.offsetHeight + 4 + "px"; }
+  $("barlbl").textContent = `Status: ${PLACE[place]} · Use circles: ${CIRC[circ]}`;
+  applyHl(); if (keepId) $(keepId)?.focus();
+}
+let hover = null;
+function applyHl() { const ab = hover || sticky; document.querySelectorAll("[data-sk]").forEach((li) => li.classList.toggle("hl", li.dataset.sk === ab)); }
+const PLACE = { v: "In the vitals panel", b: "A bar under the header" }, CIRC = { s: "As the slot circles", u: "As today" };
+function group(id, entries, get, set) {
+  const el = $(id);
+  el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; set(b.dataset.k); drawAll(); });
+  return () => { el.innerHTML = entries.map(([k, label]) => `<button data-k="${esc(k)}" aria-pressed="${String(get()) === String(k)}">${esc(label)}</button>`).join(" "); };
+}
+const draws = [
+  group("g-place", [["v", "Vitals panel"], ["b", "Bar under the header"]], () => place, (k) => { place = k; pop = null; }),
+  group("g-circ", [["s", "As the slot circles"], ["u", "As today"]], () => circ, (k) => { circ = k; }),
+  group("g-width", [["d", "Desktop"], ["p", "Phone"]], () => (phone ? "p" : "d"), (k) => { phone = k === "p"; pop = null; }),
+];
+function drawAll() { draws.forEach((d) => d()); try { history.replaceState(null, "", "#" + place + circ); } catch (e) {} render(); }
+function setExh(n) { s.exh = Math.max(0, Math.min(6, n)); if (s.exh >= 4) s.hp = Math.min(s.hp, maxNow()); }
+const st = $("stage");
+st.addEventListener("mouseover", (e) => { const b = e.target.closest("[data-ab]"); hover = b ? b.dataset.ab : null; applyHl(); });
+st.addEventListener("focusin", (e) => { const b = e.target.closest("[data-ab]"); if (b) { hover = b.dataset.ab; applyHl(); } });
+st.addEventListener("focusout", (e) => { if (e.target.closest("[data-ab]")) { hover = null; applyHl(); } });
+st.addEventListener("click", (e) => {
+  const t = e.target, q = (sel) => t.closest(sel);
+  let b;
+  if ((b = q("[data-ab]"))) { sticky = sticky === b.dataset.ab ? null : b.dataset.ab; return render(); }
+  if (q(".pop.form") && !q("button")) return;
+  if ((b = q("[data-pop]"))) { pop = open(b.dataset.pop, b.dataset.id ? { id: b.dataset.id } : null); return render(); }
+  if ((b = q("[data-pick]"))) { s.pick = b.dataset.pick === "worn" ? null : +b.dataset.pick; pop = null; said = s.pick === null ? "The AC box follows the worn armor." : `The AC box shows ${AC[s.pick][0]}.`; return render(); }
+  if ((b = q("[data-addcond]"))) { s.conds.push(b.dataset.addcond); if (b.dataset.addcond === "Exhaustion") setExh(1); pop = null; said = `${b.dataset.addcond} added.`; return render(); }
+  if ((b = q("[data-rmcond]"))) { s.conds = s.conds.filter((x) => x !== b.dataset.rmcond); if (b.dataset.rmcond === "Exhaustion") s.exh = 0; pop = null; said = `${b.dataset.rmcond} removed.`; return render(); }
+  if (q("[data-endconc]")) { said = `Concentration on ${s.conc} ended.`; s.conc = null; return render(); }
+  if (q("[data-insp]")) { s.insp = !s.insp; return render(); }
+  if ((b = q("[data-circ]"))) { setExh(s.exh + (b.classList.contains("on") ? -1 : 1)); if (s.exh === 0) { s.conds = s.conds.filter((x) => x !== "Exhaustion"); said = "Exhaustion removed."; } return render(); }
+  if ((b = q("[data-use]"))) { s.uses[b.dataset.use] += b.classList.contains("on") ? -1 : 1; return render(); }
+  if ((b = q("[data-pool]"))) { s.pool = Math.max(0, Math.min(POOL, s.pool + +b.dataset.pool)); return render(); }
+  if ((b = q("[data-poolact]"))) { const v = parseInt($("poolnum").value, 10); if (!(v >= 0)) return $("poolnum").focus(); const a = b.dataset.poolact; s.pool = Math.max(0, Math.min(POOL, a === "set" ? v : s.pool + (a === "spend" ? -v : v))); pop = null; return render(); }
+  if (q("[data-hdspend]") || q("[data-hdroll]")) { let v = q("[data-hdroll]") ? 1 + Math.floor(Math.random() * 10) : parseInt($("hdroll").value, 10); if (!(v >= 1 && v <= 10)) return $("hdroll").focus(); const before = hpNow(); s.hdSpent++; s.hp = Math.min(maxNow(), hpNow() + v + 2); pop = null; said = `Hit dice −1. Hit points ${before} → ${s.hp} (rolled ${v}, +2).`; return render(); }
+  if ((b = q("[data-tab]"))) { tab = b.dataset.tab; pop = null; return render(); }
+  if (pop) { pop = null; render(); }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pop) { pop = null; render(); } });
+$("b-hp0").addEventListener("click", (e) => { s.hp = s.hp === 0 ? 52 : 0; e.currentTarget.textContent = s.hp === 0 ? "Hit points to 52" : "Hit points to 0"; render(); });
+$("b-conc").addEventListener("click", () => { s.conc = s.conc ? null : "Bless"; render(); });
+$("b-reset").addEventListener("click", () => { s = fresh(); pop = null; sticky = null; said = ""; $("b-hp0").textContent = "Hit points to 0"; render(); });
+$("b-theme").addEventListener("click", (e) => { const d = document.documentElement.dataset.protoTheme === "dark"; if (d) delete document.documentElement.dataset.protoTheme; else document.documentElement.dataset.protoTheme = "dark"; e.currentTarget.setAttribute("aria-pressed", !d); });
+const ORDER = ["vs", "vu", "bs", "bu"];
+function step(d) { [place, circ] = ORDER[(ORDER.indexOf(place + circ) + d + ORDER.length) % ORDER.length]; pop = null; drawAll(); }
+$("prev").addEventListener("click", () => step(-1)); $("next").addEventListener("click", () => step(1));
+function fromHash() { const m = /^#([vb])([su])$/.exec(location.hash); if (m) [, place, circ] = m; }
+window.addEventListener("hashchange", () => { fromHash(); drawAll(); });
+fromHash(); drawAll();
+</script>

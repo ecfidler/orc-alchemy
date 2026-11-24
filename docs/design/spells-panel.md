@@ -4,7 +4,7 @@ title: Spells panel spec
 description: The settled design of the Spells panel on the character sheet - the popup with the spell list and the spell text, prepared spells, spent spell slots in the panel and on the sheet, Pact Magic slots, how a sheet change saves, the spell records, and the run order of the build tickets.
 tags: [design, sheet, spells]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-22T05:38:07Z }
+generated: { by: claude-code/agent, at: 2026-11-24T17:36:53Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel
 sources:
   - id: orc-262
@@ -84,7 +84,8 @@ rule.[^orc-265]
   The Save button shows only after a failed save.
 * The app has no undo for a sheet change. A second click reverses a
   single change. A bulk action asks for confirmation before it runs. This
-  project has no bulk action.
+  project has no bulk action. A rest is a bulk action: see the
+  [Sheet interactivity spec](sheet-interactivity.md#rests).
 * A failed save keeps the change on the screen and in the draft. The
   alert note of today shows at the top of the app, the status is
   "Unsaved changes", and the Save button shows. See
@@ -310,6 +311,11 @@ From top to bottom:
    text of more than 28 characters gives Components the full width.
 7. The description.
 
+The owner can also give the view a control beside the spell name. The
+panel gives the Cast control there, which the
+[Sheet interactivity spec](sheet-interactivity.md#casting-a-spell)
+describes.
+
 The view is `packages/app/src/components/SpellView.tsx`, and its text
 rules are in `packages/app/src/engine/spell-text.ts` (ORC-284).
 
@@ -464,7 +470,9 @@ same state.
   more. A circle that cannot change, as in the builder preview, has a
   15px drawing.
 * There is no "Clear all" button, in the panel or on the sheet. The
-  later rests project adds a "Long rest" button.
+  Rest button of the
+  [Sheet interactivity spec](sheet-interactivity.md#rests) gives the
+  slots back.
 * A change saves as a sheet change.
 
 ## Where the circles are
@@ -747,10 +755,11 @@ the phone views adds screenshots at a phone width.
 
 * Changes to the spells that the character knows: the known spells of a
   sorcerer, the spellbook of a wizard, cantrips. The builder does these.
-* A Cast button that spends a slot for a spell.
-* Rests, and a "Clear all" or "Long rest" button.
-* Hit points, equipment and other feature uses on the sheet. These are
-  later projects. They use the save rule of this document.
+* A Cast button that spends a slot for a spell, rests, hit points and
+  other feature uses on the sheet. The
+  [Sheet interactivity spec](sheet-interactivity.md) now covers them,
+  with the save rule of this document.
+* Equipment on the sheet. This is a later project.
 * Filters in the list other than the search by name.
 * A Browse page for spells (ORC-87). This project only makes the spell
   view and the lookup shared parts.

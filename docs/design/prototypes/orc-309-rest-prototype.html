@@ -1,0 +1,353 @@
+<meta charset="utf-8">
+<title>Rest Dialogs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..700&display=swap">
+<style>
+/* PROTOTYPE (ORC-309), throwaway. The Rest button and the Short rest, Long rest and Dawn dialogs of the character sheet.
+   Rules: the resolutions of ORC-301 and ORC-300. M8 paper theme (docs/design/theme.md). Light is the default; dark is only the Theme toggle here.
+   Layout: prototype toolbar, one stage (a short sheet: action row + play state, also at 390px), a variant bar at the bottom.
+   Hash: #<button><dialog><dawn>, button m (menu) or t (three buttons), dialog a (one page) or b (steps), dawn 1 (fields start at all back) or 0 (start at 0). */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --danger: #c2271d; --success: #1f7a3a; --info: #1e5fb4;
+  --note: #ffe45c; --note-ink: #222222;
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --wash: color-mix(in srgb, var(--ink) 40%, transparent);
+  --shadow: rgba(60, 45, 0, 0.22);
+  --proto-bg: #1c2b4a; --proto-fg: #ffffff;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:root[data-proto-theme="dark"] {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --success: #4ed07a; --info: #5ea2ff;
+  --note-ink: #000000; --wash: rgba(255, 255, 255, 0.22); --shadow: rgba(255, 255, 255, 0.12);
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-serif); font-size: 17px; line-height: 1.5;
+  font-weight: 450; font-variant-numeric: lining-nums tabular-nums; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* ---------- prototype chrome (not part of the design) ---------- */
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.proto-top { font-family: var(--font-sans); font-size: 12.5px; background: var(--proto-bg); color: var(--proto-fg);
+  padding-block: 8px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.proto-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.proto-group > span { opacity: .75; margin-right: 2px; }
+.proto-top button { background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.proto-top button[aria-pressed="true"] { background: var(--proto-fg); color: var(--proto-bg); }
+.proto-notes { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; background: var(--panel); border-bottom: 1px solid var(--rule); padding-block: 8px; }
+.proto-notes summary { cursor: pointer; font-weight: 600; }
+.proto-notes ul { margin: 6px 0 2px; padding-left: 18px; max-width: 92ch; list-style: disc; }
+.proto-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  display: flex; align-items: center; gap: 4px; background: var(--proto-bg); color: var(--proto-fg); border-radius: 999px;
+  padding: 5px 6px; box-shadow: 0 6px 20px rgba(0,0,0,.3); font-family: var(--font-sans); font-size: 13px; max-width: calc(100vw - 24px); }
+.proto-bar button { background: transparent; border: 0; color: inherit; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; flex: none; }
+.proto-bar button:hover { background: color-mix(in srgb, var(--proto-fg) 18%, transparent); }
+.proto-bar .lbl { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- the stage: a short sheet ---------- */
+.stagewrap { padding-block: 18px 110px; }
+.stage { position: relative; width: 100%; max-width: 760px; margin: 0 auto; }
+.stage.phone { max-width: 390px; outline: 1px dashed var(--rule-strong); outline-offset: 8px; }
+.lab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.btn { font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; border: 1px solid var(--ink); background: var(--paper-raised); padding: 7px 12px; border-radius: 0; white-space: nowrap; min-height: 36px; }
+.btn:hover { background: var(--panel); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn.solid:hover { background: color-mix(in srgb, var(--ink) 85%, var(--paper)); }
+.btn.small { font-size: 12.5px; padding: 3px 10px; min-height: 30px; }
+.btn:disabled { opacity: .4; cursor: default; }
+.linkbtn { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; font-family: var(--font-sans); font-size: 13px; }
+.xbtn { width: 34px; height: 34px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 16px; line-height: 1; flex: none; }
+.actionrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--rule-strong); padding-bottom: 10px; }
+.actionrow h1 { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.actionrow .sub { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; position: relative; }
+.menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--shadow); min-width: 190px; display: grid; }
+.menu button { background: none; border: 0; text-align: left; padding: 9px 14px; font-family: var(--font-sans); font-size: 14px; display: grid; }
+.menu button small { color: var(--ink-muted); font-size: 12px; }
+.menu button:hover { background: var(--panel); }
+.menu button + button { border-top: 1px solid var(--rule); }
+.state { background: var(--panel); padding: 12px; margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.framed { border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 8px 10px 5px; display: grid; grid-template-rows: 1fr auto; gap: 4px; text-align: center; }
+.framed .v { font-size: 24px; line-height: 1.2; align-self: center; }
+.framed .v small { font-size: 14px; color: var(--ink-muted); }
+.lines { margin-top: 12px; border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 8px 12px; font-size: 15px; }
+.lines li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--rule); padding: 3px 0; }
+.lines li:last-child { border-bottom: 0; }
+.lines .grp { font-family: var(--font-sans); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); }
+.dots { letter-spacing: 2px; white-space: nowrap; }
+.said { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); min-height: 20px; margin-top: 10px; }
+
+/* ---------- the dialogs ---------- */
+.wash { position: fixed; inset: 0; background: var(--wash); z-index: 30; display: grid; place-items: center; padding: 16px; }
+.dlg { background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 6px 6px 0 var(--shadow); width: min(520px, 100%); max-height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+.dlg.phone { width: min(358px, 100%); }
+.dlghead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--rule); }
+.dlghead h2 { font-size: 22px; font-weight: 600; line-height: 1.2; }
+.dlgbody { padding: 12px 16px; overflow: auto; display: grid; gap: 16px; align-content: start; }
+.dlgfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid var(--rule); flex-wrap: wrap; }
+.sec h3 { font-family: var(--font-sans); font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.sec .hint { font-family: var(--font-sans); font-size: 13px; color: var(--ink-muted); }
+.chg li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding: 4px 0; }
+.chg li b { font-weight: 600; white-space: nowrap; font-family: var(--font-sans); font-size: 15px; }
+.chg .nochg { font-weight: 400; color: var(--ink-muted); }
+.chg .arrow { color: var(--ink-muted); }
+.none { font-style: italic; color: var(--ink-muted); }
+.hdrow { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; border-bottom: 1px solid var(--rule); padding: 6px 0; }
+.hdrow .die { font-size: 19px; }
+.hdrow .die small { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+.hdctl { min-height: 36px; display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.num:disabled { opacity: .4; }
+.num { border: 1.5px solid var(--ink); background: var(--paper-raised); padding: 2px 6px; width: 58px; text-align: center; font-size: 17px; border-radius: 0; min-height: 30px; -moz-appearance: textfield; }
+.num::-webkit-outer-spin-button, .num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.rolls { grid-column: 1 / -1; min-height: 30px; align-items: center; color: var(--ink-muted); font-family: var(--font-sans); font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; }
+.roll { color: var(--ink); font-weight: 600; border: 1px solid var(--rule-strong); padding: 1px 4px 1px 8px; display: inline-flex; gap: 6px; align-items: center; }
+.roll button { border: 0; background: none; padding: 0 4px; font-size: 14px; }
+.total { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 14px; padding-top: 6px; }
+.total b { font-size: 15px; }
+.step { display: inline-flex; align-items: center; gap: 0; }
+.step button { width: 30px; height: 30px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 16px; line-height: 1; }
+.step span { min-width: 34px; text-align: center; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; padding: 4px 0; }
+.check input { width: 18px; height: 18px; margin: 4px 0 0; accent-color: var(--ink); flex: none; }
+.check small { display: block; font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); }
+.stepsnav { font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); display: flex; gap: 6px; flex-wrap: wrap; }
+.stepsnav b { color: var(--ink); font-weight: 600; }
+.dlgfoot .grow { flex: 1; }
+</style>
+
+<div class="proto-top gut">
+  <b>Prototype · ORC-309 · Rest button and rest dialogs</b>
+  <span class="proto-group"><span>Character</span><span id="g-char"></span></span>
+  <span class="proto-group"><span>Rest button</span><span id="g-btn"></span></span>
+  <span class="proto-group"><span>Short rest dialog</span><span id="g-dlg"></span></span>
+  <span class="proto-group"><span>Dawn fields start at</span><span id="g-dawn"></span></span>
+  <span class="proto-group"><span>Width</span><span id="g-width"></span></span>
+  <span class="proto-group"><button id="b-reset">Reset character</button><button id="b-theme" aria-pressed="false">Dark</button></span>
+</div>
+<details class="proto-notes gut" open>
+  <summary>What to try</summary>
+  <ul>
+    <li><b>Wizard 6 / Warlock 2:</b> Short rest. Spend hit dice (type the roll, or Roll for me), pick slots for Arcane Recovery (3 slot levels), then Finish. Nothing changes before Finish, and Cancel changes nothing.</li>
+    <li>The same character has two Dawn uses, so the menu has Dawn, and the Long rest dialog has "Dawn came during the rest".</li>
+    <li><b>Fighter 5:</b> exhaustion 1, so Long rest has "Ate and drank". No Dawn uses, so no Dawn choice.</li>
+    <li><b>Rested fighter:</b> each dialog says that nothing will change, and Finish still works.</li>
+    <li>Switch "Rest button" between one button with a menu and three buttons, and "Short rest dialog" between one page and steps.</li>
+  </ul>
+</details>
+
+<div class="stagewrap gut"><div class="stage" id="stage"></div></div>
+
+<div class="proto-bar" role="group" aria-label="Variant">
+  <button id="prev" aria-label="Previous variant">‹</button>
+  <span class="lbl" id="barlbl"></span>
+  <button id="next" aria-label="Next variant">›</button>
+</div>
+
+<script>
+const ORD = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"];
+const CHARS = {
+  "Wizard 6 / Warlock 2": () => ({ name: "Ysolde Vane", cls: "Wizard 6 / Warlock 2", hp: 20, max: 41, temp: 4, con: 1, exh: 0, ds: [0, 0],
+    hd: [{ die: 8, total: 2, spent: 1 }, { die: 6, total: 6, spent: 3 }],
+    slots: [{ lv: 1, total: 4, spent: 3 }, { lv: 2, total: 3, spent: 2 }, { lv: 3, total: 3, spent: 1 }],
+    pact: { lv: 1, total: 2, spent: 2 }, arcane: 3,
+    uses: [{ name: "Arcane Recovery", g: "dawn", total: 1, spent: 0 }, { name: "Cape of the Mountebank", g: "dawn", total: 1, spent: 1 }, { name: "Circlet of Blasting", g: "dawn", total: 1, spent: 1 }] }),
+  "Fighter 5": () => ({ name: "Brakka Stonefist", cls: "Fighter 5", hp: 12, max: 44, temp: 0, con: 2, exh: 1, ds: [0, 0],
+    hd: [{ die: 10, total: 5, spent: 3 }], slots: [], pact: null, arcane: 0,
+    uses: [{ name: "Second Wind", g: "short", total: 1, spent: 1 }, { name: "Action Surge", g: "short", total: 1, spent: 1 }, { name: "Boots of Speed", g: "long", total: 1, spent: 1 }] }),
+  "Rested fighter": () => ({ name: "Brakka Stonefist", cls: "Fighter 5", hp: 44, max: 44, temp: 0, con: 2, exh: 0, ds: [0, 0],
+    hd: [{ die: 10, total: 5, spent: 0 }], slots: [], pact: null, arcane: 0,
+    uses: [{ name: "Second Wind", g: "short", total: 1, spent: 0 }, { name: "Action Surge", g: "short", total: 1, spent: 0 }] }),
+};
+const BTN = { m: "One button with a menu", t: "Three buttons" }, DLG = { a: "One page", b: "Steps" }, DAWN = { 1: "All back", 0: "0" };
+let who = "Wizard 6 / Warlock 2", btnForm = "m", dlgForm = "a", dawnStart = "1", phone = false;
+let c = CHARS[who](), menu = false, dlg = null, said = "";
+/* dlg: { kind, rolls: [{die, roll}], arc: {lv: n}, ate, dawn, back: {name: n}, step } */
+
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+const dawnUses = () => c.uses.filter((u) => u.g === "dawn");
+const hasDawn = () => dawnUses().length > 0;
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+/* ---------- what each rest would change (rules of ORC-301) ---------- */
+function gained() { return dlg.rolls.reduce((t, r) => t + Math.max(0, r.roll + c.con), 0); }
+function arcTotal() { return Object.entries(dlg.arc).reduce((t, [lv, n]) => t + lv * n, 0); }
+function arcOpen() { const u = c.uses.find((x) => x.name === "Arcane Recovery"); return c.arcane > 0 && u && u.spent === 0 && c.slots.some((s) => s.spent > 0 && s.lv < 6); }
+function shortChanges(fixed) {
+  const out = [], NO = `<span class="nochg">No change</span>`;
+  if (c.pact && c.pact.spent) out.push(["Pact Magic slots", `+${c.pact.spent}`]);
+  for (const u of c.uses) if (u.g === "short" && u.spent) out.push([u.name, `+${u.spent}`]);
+  const canHeal = fixed && c.hp < c.max && c.hd.some((h) => h.total - h.spent > 0);
+  if (!dlg.rolls.length && canHeal) { out.push(["Hit points", NO]); out.push(["Hit dice", NO]); }
+  if (dlg.rolls.length) { const after = Math.min(c.max, c.hp + gained()); out.push(["Hit points", `${c.hp} <span class="arrow">→</span> ${after}`]); out.push(["Hit dice", `−${dlg.rolls.length}`]); }
+  if (fixed && arcOpen()) { for (const sl of c.slots) if (sl.spent > 0 && sl.lv < 6) out.push([`${ORD[sl.lv]}-level spell slots`, dlg.arc[sl.lv] ? `+${dlg.arc[sl.lv]}` : NO]); out.push(["Arcane Recovery", arcTotal() ? "−1" : NO]); }
+  else { for (const [lv, n] of Object.entries(dlg.arc)) if (n) out.push([`${ORD[lv]}-level spell slots`, `+${n}`]);
+    if (arcTotal()) out.push(["Arcane Recovery", "−1"]); }
+  return out;
+}
+function hdBack() { /* half the total, at least 1, largest dice first */
+  let n = Math.max(1, Math.floor(c.hd.reduce((t, h) => t + h.total, 0) / 2)); const out = [];
+  for (const h of [...c.hd].sort((a, b) => b.die - a.die)) { const k = Math.min(n, h.spent); if (k) out.push([h, k]); n -= k; }
+  return out;
+}
+function dawnChanges() { return dawnUses().filter((u) => (dlg.back[u.name] || 0) > 0).map((u) => [u.name, `+${dlg.back[u.name]}`]); }
+function longChanges() {
+  const out = [];
+  if (c.hp < c.max) out.push(["Hit points", `${c.hp} <span class="arrow">→</span> ${c.max}`]);
+  if (c.temp) out.push(["Temporary hit points", `${c.temp} <span class="arrow">→</span> 0`]);
+  for (const s of c.slots) if (s.spent) out.push([`${ORD[s.lv]}-level spell slots`, `+${s.spent}`]);
+  if (c.pact && c.pact.spent) out.push(["Pact Magic slots", `+${c.pact.spent}`]);
+  for (const u of c.uses) if ((u.g === "short" || u.g === "long") && u.spent) out.push([u.name, `+${u.spent}`]);
+  for (const [h, k] of hdBack()) out.push([`Hit dice (d${h.die})`, `+${k}`]);
+  if (c.ds[0] || c.ds[1]) out.push(["Death saves", "cleared"]);
+  if (c.exh && dlg.ate) out.push(["Exhaustion", `${c.exh} <span class="arrow">→</span> ${c.exh - 1}`]);
+  return out;
+}
+function finish() {
+  if (dlg.kind === "short") {
+    if (c.pact) c.pact.spent = 0;
+    for (const u of c.uses) if (u.g === "short") u.spent = 0;
+    for (const r of dlg.rolls) c.hd.find((h) => h.die === r.die).spent++;
+    c.hp = Math.min(c.max, c.hp + gained());
+    for (const [lv, n] of Object.entries(dlg.arc)) c.slots.find((s) => s.lv == lv).spent -= n;
+    if (arcTotal()) c.uses.find((u) => u.name === "Arcane Recovery").spent = 1;
+    said = "Short rest finished.";
+  } else if (dlg.kind === "long") {
+    const back = hdBack(); for (const [h, k] of back) h.spent -= k;
+    c.hp = c.max; c.temp = 0; c.ds = [0, 0]; for (const s of c.slots) s.spent = 0; if (c.pact) c.pact.spent = 0;
+    for (const u of c.uses) if (u.g === "short" || u.g === "long") u.spent = 0;
+    if (c.exh && dlg.ate) c.exh--;
+    if (dlg.dawn) for (const u of dawnUses()) u.spent -= dlg.back[u.name] || 0;
+    said = "Long rest finished.";
+  } else { for (const u of dawnUses()) u.spent -= dlg.back[u.name] || 0; said = "Dawn: the uses came back."; }
+  dlg = null; render();
+}
+function openDlg(kind) {
+  menu = false; const back = {}; for (const u of dawnUses()) back[u.name] = dawnStart === "1" ? u.spent : 0;
+  dlg = { kind, rolls: [], arc: {}, ate: true, dawn: true, back, step: 0 }; said = ""; render(); document.querySelector(".dlg .xbtn")?.focus();
+}
+
+/* ---------- drawing ---------- */
+const chg = (rows) => rows.length ? `<ul class="chg">${rows.map(([a, b]) => `<li><span>${a}</span><b>${b}</b></li>`).join("")}</ul>` : `<p class="none">Nothing will change.</p>`;
+function hitDiceSec() {
+  const after = Math.min(c.max, c.hp + gained());
+  const rows = c.hd.map((h) => {
+    const mine = dlg.rolls.map((r, i) => [r, i]).filter(([r]) => r.die === h.die), left = h.total - h.spent - mine.length;
+    if (left <= 0 && !mine.length) return "";
+    const can = left > 0 && after < c.max;
+    return `<div class="hdrow"><span class="die">d${h.die} <small>${left} of ${h.total} left</small></span>
+      <span class="hdctl"><label class="lab" for="roll${h.die}">Roll</label><input class="num" id="roll${h.die}" type="number" inputmode="numeric" min="1" max="${h.die}" placeholder="1–${h.die}" ${can ? "" : "disabled"}>
+        <button class="btn small" data-spend="${h.die}" ${can ? "" : "disabled"}>Spend</button><button class="btn small" data-rollme="${h.die}" ${can ? "" : "disabled"}>Roll for me</button></span>
+      <span class="rolls">${mine.length ? mine.map(([r, i]) => `<span class="roll">+${Math.max(0, r.roll + c.con)}<button data-unroll="${i}" aria-label="Take back this die, rolled ${r.roll}">×</button></span>`).join("") : "No dice spent"}</span></div>`;
+  }).join("");
+  if (!rows) return "";
+  return `<div class="sec"><h3>Spend hit dice</h3>${c.hp >= c.max && !dlg.rolls.length ? `<p class="hint">Hit points are full, so there is nothing to heal.</p>` : rows + `<div class="total"><span>Hit points gained: <b>${gained()}</b> (each die adds Constitution ${c.con >= 0 ? "+" : "−"}${Math.abs(c.con)})</span><span><b>${c.hp} → ${after}</b> / ${c.max}</span></div>`}</div>`;
+}
+function arcaneSec() {
+  if (!arcOpen()) return "";
+  const rows = c.slots.filter((s) => s.spent > 0 && s.lv < 6).map((s) => { const n = dlg.arc[s.lv] || 0, canUp = n < s.spent && arcTotal() + s.lv <= c.arcane;
+    return `<li><span>${ORD[s.lv]}-level slots <span class="sec"><span class="hint">(${s.spent} spent)</span></span></span><span class="step"><button data-arc="${s.lv}" data-d="-1" ${n ? "" : "disabled"} aria-label="One less ${ORD[s.lv]}-level slot">−</button><span>${n}</span><button data-arc="${s.lv}" data-d="1" ${canUp ? "" : "disabled"} aria-label="One more ${ORD[s.lv]}-level slot">+</button></span></li>`; }).join("");
+  return `<div class="sec"><h3>Arcane Recovery</h3><p class="hint">Get back spell slots with a total of ${c.arcane} slot levels or fewer. This spends Arcane Recovery until dawn.</p><ul class="chg">${rows}</ul><div class="total"><span>Slot levels picked</span><b>${arcTotal()} of ${c.arcane}</b></div></div>`;
+}
+function dawnSec(title) {
+  const rows = dawnUses().map((u) => `<li><label for="dawn-${esc(u.name)}">${esc(u.name)} <span class="sec"><span class="hint">(${u.spent} of ${u.total} spent)</span></span></label>
+    <input class="num" id="dawn-${esc(u.name)}" data-dawn="${esc(u.name)}" type="number" inputmode="numeric" min="0" max="${u.spent}" value="${dlg.back[u.name] || 0}" ${u.spent ? "" : "disabled"}></li>`).join("");
+  return `<div class="sec"><h3>${title}</h3><p class="hint">How many of each use come back. Some items roll for it.</p><ul class="chg">${rows}</ul></div>`;
+}
+function dlgHtml() {
+  let title, body, foot = "", verb;
+  if (dlg.kind === "short") {
+    title = "Short rest"; verb = "Finish short rest";
+    const secs = [hitDiceSec(), arcaneSec()].filter(Boolean), review = `<div class="sec"><h3>${secs.length ? "This rest will change" : "This rest will change"}</h3>${chg(shortChanges(true))}</div>`;
+    if (dlgForm === "a" || !secs.length) body = secs.join("") + review;
+    else {
+      const names = [...(hitDiceSec() ? ["Hit dice"] : []), ...(arcaneSec() ? ["Arcane Recovery"] : []), "Review"], all = [...secs, review];
+      dlg.step = Math.min(dlg.step, all.length - 1);
+      body = `<div class="stepsnav">${names.map((n, i) => (i === dlg.step ? `<b>${i + 1}. ${n}</b>` : `<span>${i + 1}. ${n}</span>`)).join("<span>›</span>")}</div>` + all[dlg.step];
+      const last = dlg.step === all.length - 1;
+      foot = `${dlg.step ? `<button class="btn" data-step="-1">Back</button>` : ""}<span class="grow"></span><button class="btn" data-cancel>Cancel</button>${last ? `<button class="btn solid" data-finish>${verb}</button>` : `<button class="btn solid" data-step="1">Next</button>`}`;
+    }
+  } else if (dlg.kind === "long") {
+    title = "Long rest"; verb = "Finish long rest";
+    const checks = `${c.exh ? `<label class="check"><input type="checkbox" id="ate" ${dlg.ate ? "checked" : ""}><span>Ate and drank<small>Exhaustion goes down by 1.</small></span></label>` : ""}
+      ${hasDawn() ? `<label class="check"><input type="checkbox" id="dawnck" ${dlg.dawn ? "checked" : ""}><span>Dawn came during the rest<small>The uses that come back at dawn come back too.</small></span></label>` : ""}`;
+    body = `<div class="sec"><h3>This rest will change</h3>${chg(longChanges())}</div>${checks ? `<div class="sec">${checks}</div>` : ""}${hasDawn() && dlg.dawn ? dawnSec("At dawn") : ""}`;
+  } else { title = "Dawn"; verb = "Finish"; body = dawnSec("Uses that come back at dawn") + (dawnChanges().length ? "" : `<p class="none">Nothing will change.</p>`); }
+  if (!foot) foot = `<button class="btn" data-cancel>Cancel</button><button class="btn solid" data-finish>${verb}</button>`;
+  return `<div class="wash" data-wash><div class="dlg${phone ? " phone" : ""}" role="dialog" aria-modal="true" aria-label="${title}">
+    <div class="dlghead"><h2>${title}</h2><button class="xbtn" data-cancel aria-label="Close">×</button></div><div class="dlgbody">${body}</div><div class="dlgfoot">${foot}</div></div></div>`;
+}
+const dots = (total, spent) => `<span class="dots" aria-label="${spent} of ${total} spent">${"●".repeat(spent)}${"○".repeat(total - spent)}</span>`;
+function render(keep) {
+  const act = document.activeElement && document.activeElement.id;
+  const rest = btnForm === "m"
+    ? `<button class="btn solid" id="restbtn" aria-haspopup="menu" aria-expanded="${menu}">Rest ▾</button>${menu ? `<div class="menu" role="menu">
+        <button role="menuitem" data-open="short">Short rest<small>An hour. Spend hit dice.</small></button><button role="menuitem" data-open="long">Long rest<small>Eight hours. Most things come back.</small></button>
+        ${hasDawn() ? `<button role="menuitem" data-open="dawn">Dawn<small>Items that recharge at dawn.</small></button>` : ""}</div>` : ""}`
+    : `<button class="btn" data-open="short">Short rest</button><button class="btn" data-open="long">Long rest</button>${hasDawn() ? `<button class="btn" data-open="dawn">Dawn</button>` : ""}`;
+  const groups = { short: "Short rest", long: "Long rest", dawn: "Dawn" };
+  $("stage").className = "stage" + (phone ? " phone" : "");
+  $("stage").innerHTML = `<div class="actionrow"><div><h1>${esc(c.name)}</h1><p class="sub">${esc(c.cls)}</p></div><div class="actions"><button class="btn">Edit</button>${rest}</div></div>
+    <div class="state">
+      <div class="framed"><span class="v">${c.temp ? `<small>${c.temp} temp · </small>` : ""}${c.hp} <small>/ ${c.max}</small></span><span class="lab">Hit points</span></div>
+      <div class="framed"><span class="v">${c.hd.map((h) => `${h.total - h.spent} <small>/ ${h.total} d${h.die}</small>`).join("<br>")}</span><span class="lab">Hit dice</span></div>
+      <div class="framed"><span class="v">${c.exh}</span><span class="lab">Exhaustion</span></div>
+    </div>
+    <ul class="lines">${c.slots.map((s) => `<li><span>${ORD[s.lv]}-level slots</span>${dots(s.total, s.spent)}</li>`).join("")}
+      ${c.pact ? `<li><span>Pact slots (${ORD[c.pact.lv]}) <span class="grp">Short rest</span></span>${dots(c.pact.total, c.pact.spent)}</li>` : ""}
+      ${c.uses.map((u) => `<li><span>${esc(u.name)} <span class="grp">${groups[u.g]}</span></span>${dots(u.total, u.spent)}</li>`).join("")}</ul>
+    <p class="said" role="status">${esc(said)}</p>${dlg ? dlgHtml() : ""}`;
+  $("barlbl").textContent = `Rest: ${BTN[btnForm]} · Short rest: ${DLG[dlgForm]} · Dawn starts at ${DAWN[dawnStart]}`;
+  if (keep && act) $(act)?.focus();
+}
+function group(id, entries, get, set) {
+  const el = $(id);
+  el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; set(b.dataset.k); drawAll(); });
+  return () => { el.innerHTML = entries.map(([k, label]) => `<button data-k="${esc(k)}" aria-pressed="${String(get()) === String(k)}">${esc(label)}</button>`).join(" "); };
+}
+const draws = [
+  group("g-char", Object.keys(CHARS).map((k) => [k, k]), () => who, (k) => { who = k; c = CHARS[k](); dlg = null; said = ""; }),
+  group("g-btn", [["m", "Menu"], ["t", "Three buttons"]], () => btnForm, (k) => { btnForm = k; menu = false; }),
+  group("g-dlg", [["a", "One page"], ["b", "Steps"]], () => dlgForm, (k) => { dlgForm = k; if (dlg) dlg.step = 0; }),
+  group("g-dawn", [["1", "All back"], ["0", "0"]], () => dawnStart, (k) => { dawnStart = k; if (dlg) for (const u of dawnUses()) dlg.back[u.name] = k === "1" ? u.spent : 0; }),
+  group("g-width", [["d", "Desktop"], ["p", "Phone"]], () => (phone ? "p" : "d"), (k) => { phone = k === "p"; }),
+];
+function drawAll() { draws.forEach((d) => d()); try { history.replaceState(null, "", "#" + btnForm + dlgForm + dawnStart); } catch (e) {} render(); }
+
+$("stage").addEventListener("click", (e) => {
+  const t = e.target;
+  if (t.closest("#restbtn")) { menu = !menu; return render(); }
+  const o = t.closest("[data-open]"); if (o) return openDlg(o.dataset.open);
+  if (!dlg) { if (menu) { menu = false; render(); } return; }
+  if (t.closest("[data-cancel]") || t.matches("[data-wash]")) { dlg = null; said = "Cancelled. Nothing changed."; return render(); }
+  if (t.closest("[data-finish]")) return finish();
+  const st = t.closest("[data-step]"); if (st) { dlg.step += +st.dataset.step; return render(); }
+  const sp = t.closest("[data-spend]"); if (sp) { const die = +sp.dataset.spend, v = parseInt($("roll" + die).value, 10); if (!(v >= 1 && v <= die)) { $("roll" + die).focus(); return; } dlg.rolls.push({ die, roll: v }); return render(); }
+  const rm = t.closest("[data-rollme]"); if (rm) { const die = +rm.dataset.rollme; dlg.rolls.push({ die, roll: 1 + Math.floor(Math.random() * die) }); return render(); }
+  const un = t.closest("[data-unroll]"); if (un) { dlg.rolls.splice(+un.dataset.unroll, 1); return render(); }
+  const ar = t.closest("[data-arc]"); if (ar) { const lv = ar.dataset.arc; dlg.arc[lv] = (dlg.arc[lv] || 0) + +ar.dataset.d; return render(); }
+});
+$("stage").addEventListener("change", (e) => {
+  if (!dlg) return;
+  if (e.target.id === "ate") { dlg.ate = e.target.checked; render(true); }
+  if (e.target.id === "dawnck") { dlg.dawn = e.target.checked; render(true); }
+  if (e.target.dataset.dawn) { const u = c.uses.find((x) => x.name === e.target.dataset.dawn); dlg.back[u.name] = Math.max(0, Math.min(u.spent, parseInt(e.target.value, 10) || 0)); render(true); }
+});
+document.addEventListener("keydown", (e) => { if (e.key !== "Escape") return; if (dlg) { dlg = null; said = "Cancelled. Nothing changed."; render(); } else if (menu) { menu = false; render(); } });
+$("b-reset").addEventListener("click", () => { c = CHARS[who](); dlg = null; said = ""; render(); });
+$("b-theme").addEventListener("click", (e) => { const d = document.documentElement.dataset.protoTheme === "dark"; if (d) delete document.documentElement.dataset.protoTheme; else document.documentElement.dataset.protoTheme = "dark"; e.currentTarget.setAttribute("aria-pressed", !d); });
+const ORDER = []; for (const b of "mt") for (const d of "ab") for (const w of "10") ORDER.push(b + d + w);
+function step(d) { const k = ORDER[(ORDER.indexOf(btnForm + dlgForm + dawnStart) + d + ORDER.length) % ORDER.length]; [btnForm, dlgForm, dawnStart] = k; menu = false; drawAll(); }
+$("prev").addEventListener("click", () => step(-1)); $("next").addEventListener("click", () => step(1));
+function fromHash() { const m = /^#([mt])([ab])([10])$/.exec(location.hash); if (m) [, btnForm, dlgForm, dawnStart] = m; }
+window.addEventListener("hashchange", () => { fromHash(); drawAll(); });
+fromHash(); drawAll();
+</script>

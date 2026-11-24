@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-17T03:05:00Z }
+generated: { by: claude-code/agent, at: 2026-11-24T17:36:53Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -478,7 +478,9 @@ A segmented toggle None / Fixed / Scaled, under the label "Uses".
   * "Plus": −3 to +5.
   * "Minimum": None, or 0 to 5. When the user picks an ability modifier, the
     form sets the minimum to 1. The user can change it.
-* **Recharges:** a segmented toggle Short rest / Long rest / Day / Turn.
+* **Recharges:** a segmented toggle Short rest / Long rest / Dawn / Turn.
+  "Dawn" is the name of the stored unit `day` (see the
+  [Sheet interactivity spec](sheet-interactivity.md#feature-uses)).
   * "Short or long rest" is a short rest.
   * A pack from the old app can have another unit (rest, round, minute,
     hour). The toggle then shows that unit as one more option, "(from the

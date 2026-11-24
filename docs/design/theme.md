@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-24T20:10:00Z }
+generated: { by: claude-code/agent, at: 2026-11-24T20:32:10Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -344,6 +344,12 @@ beside a level, has an `aria-label`.
 Do not use an icon for a second meaning. A control without a row in this
 table has no icon.
 
+**Split button and popup.** The
+[Sheet interactivity spec](sheet-interactivity.md) adds two parts. A split
+button is a Button with an arrow part that opens a Menu (the Cast control).
+A popup is a small panel under the box that opens it, with a title and its
+controls (hit points, hit dice, a pool).
+
 **A box out of the Tab order.** A Checkbox can take `tabIndex={-1}` when a
 key on another control changes it, for example Space on a row of a list
 that is one Tab stop. A mouse and a screen reader still reach it.
@@ -378,6 +384,10 @@ These patterns are in the package. They have no game meaning.
   does not see it (the level headings of the Spells panel). The
   [Spells panel spec](spells-panel.md#spent-spell-slots) has the full
   rules.
+* **No layout shift:** a change to the play state does not move the other
+  parts of the sheet or change the size of a dialog. A box keeps the space
+  for a mark, a caption or a tag before it shows. See
+  [No layout shift](sheet-interactivity.md#no-layout-shift).
 * **Current / max:** current at full size, then `/ max` at the same size in
   `--ink-muted`, with no label. Use it for every current / max pair: hit
   points and feature pools.
@@ -446,8 +456,12 @@ The outline around a limited-use feature (ORC-146).
 * When the bubble is 380px wide or less, no column is kept free for the
   rest type (ORC-176). The name and the text use the full width, and the
   circles and the rest type share the line under the name.
-* **Look only.** The app does not record uses. A click changes the circles
-  on the page only, until the page reloads.
+* **Recorded.** The app records spent uses. A click on a circle is a sheet
+  change. A pool has a minus button and a plus button beside its number,
+  and a click on the number opens a popup. A feature with the unit `turn`
+  has no circles, and the unit `day` shows as "Dawn". The
+  [Sheet interactivity spec](sheet-interactivity.md#feature-uses) has the
+  rules.
 
 # App shell
 
@@ -583,9 +597,12 @@ same row.
 * A sheet change saves at once, so the status stays "Saved" and Save does
   not show. If the save fails, the status is "Unsaved changes" and Save
   shows. See [How a sheet change saves](spells-panel.md#how-a-sheet-change-saves).
-* The page actions come after Save. On the sheet, they are a solid Edit (to
-  the builder) and a ghost Export. In the builder, there is a solid Done (to
-  the sheet).
+* The page actions come after Save. On the sheet, they are a Rest button
+  with the moon icon, a solid Edit (to the builder) and a ghost Export.
+  Rest opens a menu with Short rest, Long rest and Dawn. Narrower than
+  720px, Rest shows its label only. See the
+  [Sheet interactivity spec](sheet-interactivity.md#rests). In the
+  builder, there is a solid Done (to the sheet).
 * Back to List, Edit and Done are links with the look of buttons
   (`ButtonLink`). Export is a button.
 * When unsaved changes come back from a draft, a blue info note under the
@@ -610,8 +627,9 @@ The left column is at least 320px wide.
 
 * Six ability boxes, labelled STR, DEX, CON, INT, WIS, CHA (13px Inter caps,
   10px between label and modifier). Each box is 10 : 9. The score is in the
-  oval.
-* Inspiration (an empty box) and proficiency bonus.
+  oval. Each box is a button that highlights the skills of its ability.
+* Inspiration and proficiency bonus. The Inspiration box is a button, and
+  it shows a mark when the character has inspiration.
 * Saving throws and skills, one line each, with square proficiency marks.
   Expertise is a ring around the filled square, as on the paper sheet, with
   "Expertise" as its accessible name. There is no "expertise" text tag
@@ -625,7 +643,12 @@ The left column is at least 320px wide.
 * **Other proficiencies & languages.**
 * **Defenses** (resistances and immunities), shown only when the character
   has any.
-* **AC by armor**, a table of the AC with each armor the character has.
+* **AC by armor**, a table of the AC with each armor the character has. The
+  row whose AC shows in the Armor Class box has a dot and bold text, and
+  the worn pair has the tag "worn".
+
+The [Sheet interactivity spec](sheet-interactivity.md) has the rules for
+the ability highlight, inspiration and the AC pick.
 
 ## Right column
 
@@ -635,15 +658,28 @@ The left column is at least 320px wide.
 * Speed: only the first speed's number is large ("60 ft."). Its qualifier
   ("UNARMORED") is small Inter caps under it. Other speeds (armored, swim,
   fly) are small lines under that (ORC-176).
-* Hit points: temporary on the left, then current / max on the right. The
-  sheet model has no temporary HP, so that box is empty. When the record has
-  no current HP, show the max as the current value, as the sheet does
-  today.
-* Hit dice: the value and the "Hit dice" label only.
+* The AC box is a button that opens the menu "Armor class shows" (the AC
+  pick).
+* A caption in red caps under the speed gives the cause when a condition
+  or exhaustion changes it.
+* Hit points: temporary on the left, then current / max on the right. Each
+  part is a button that opens a popup. When the record has no current HP,
+  show the max as the current value. At 0, the current number is
+  `--caution`. The caption "MAXIMUM HALVED · EXHAUSTION" shows under the
+  box at exhaustion level 4, in a space that the box keeps.
+* Hit dice: a button with the dice left for each die size ("3 / 5" and
+  "d10") and the "Hit dice" label. It opens a popup.
 * Death saves: two rows of three slot circles, successes `--success` and
   failures `--caution`. The "Death saves" label is at the bottom, and the
-  two rows fill the space above it. The app records no death saves, so the
-  circles are empty.
+  two rows fill the space above it. The circles change. A Stable tag
+  shows beside the label, and a Dead label takes the place of the
+  failure circles.
+* **Conditions and statuses**, a box in a row under the hit points. It holds
+  tokens for the concentration mark, the conditions and exhaustion, and
+  the button "+ Add condition".
+* A status line with a reserved height says what the last action changed.
+  The [Sheet interactivity spec](sheet-interactivity.md) has the rules for
+  each control of this panel.
 * **Attacks**, as a table. Attack cantrips such as Sacred Flame stay in it.
   The numbers do not wrap. A 2024 attack shows its damage dice and damage
   type ("2d6+5 Slashing") in a "Damage" column, and its mastery property
@@ -752,8 +788,9 @@ The phone layout of the character sheet is ORC-173. These rules apply:
   away. The tab row sticks to the top of the page.
 * The tabs, in order:
   1. **Stats:** AC, initiative and speed, hit points, hit dice and death
-     saves, then Attacks, then the ability column (abilities, inspiration,
-     proficiency bonus, saving throws, skills, passive perception).
+     saves, Conditions and statuses, then Attacks, then the ability
+     column (abilities, inspiration, proficiency bonus, saving throws,
+     skills, passive perception).
   2. **Spells:** Spellcasting.
   3. **Features:** Features & traits.
   4. **More:** Equipment (with the Gold box), Other proficiencies &
@@ -815,7 +852,8 @@ tests, because font rendering differs between machines.
 * Recording spent uses, and choosing prepared spells from the sheet. Both
   change the character record, so they are features, not styling. The
   [Spells panel spec](spells-panel.md) now covers prepared spells and
-  spent spell slots.
+  spent spell slots, and the
+  [Sheet interactivity spec](sheet-interactivity.md) covers spent uses.
 * A page-by-page layout redesign of the builder, homebrew forms, import and
   export pages. It needs its own prototypes. M8 gives these pages the
   tokens, fonts, controls and notes only.
