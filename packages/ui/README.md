@@ -87,7 +87,8 @@ bun run test       # vitest
     and does not shrink in a flex row, so put a text beside it.
   - `PixelIcon`: a pixel icon, 16px, drawn as an SVG in the text color,
     for the start of the text of a button or a link. `name` is "pencil",
-    "x", "check", "download", "moon", "external", "up" or "down"
+    "x", "check", "download", "moon", "sparkles", "external", "up" or
+    "down"
     (`PixelIconName`). It has `aria-hidden`. `docs/design/theme.md`,
     "Icons", gives the one use of each icon. In a `Button` or a
     `ButtonLink`, use `icon`. Styles: `src/button.css`.

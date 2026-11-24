@@ -485,7 +485,7 @@ function PanelBody({
               <CountText key={count.className} count={count} withClass={withClass} prepareMode={prepareMode} />
             ))}
             {/* One button that changes its label. It has no pressed state. */}
-            <Button size="small" icon={prepareMode ? "check" : undefined} onClick={() => setPrepareMode((on) => !on)}>
+            <Button size="small" icon={prepareMode ? "check" : "sparkles"} onClick={() => setPrepareMode((on) => !on)}>
               {prepareMode ? "Done" : "Prepare spells"}
             </Button>
           </div>

@@ -534,7 +534,17 @@ function SpellcastingBox({
     new Set(groups.filter((group) => isNamed(group, groups)).flatMap((group) => group.names)),
   );
   return (
-    <FramedBox label="Spellcasting" className="gap-2.5" action={onOpenSpells && <Button onClick={() => onOpenSpells()}>All spells</Button>}>
+    <FramedBox
+      label="Spellcasting"
+      className="gap-2.5"
+      action={
+        onOpenSpells && (
+          <Button icon="sparkles" onClick={() => onOpenSpells()}>
+            All spells
+          </Button>
+        )
+      }
+    >
       {groups.length > 0 && (
         <ShadedPanel>
           {groups.map((group) => (
