@@ -266,6 +266,11 @@ const SPECIES_SIZE: Record<string, { page: number; from: string; size: { choose:
   human: { page: 86, from: "Medium", size: { choose: 1, from: ["small", "medium"] } },
 };
 
+/** Languages that upstream does not mark as rare. The Rare Languages table lists them. */
+const RARE_LANGUAGES: Record<string, { page: number }> = {
+  druidic: { page: 20 },
+};
+
 interface Trait {
   key: string;
   name: string;
@@ -414,6 +419,11 @@ export const CORRECTIONS = {
   conditionText(key: string, value: string): string {
     return (CONDITION_TEXT[key] ?? []).reduce((text, phrase) => replacePhrase(key, text, phrase), value);
   },
+  languageRare(key: string, upstream: boolean): boolean {
+    if (!RARE_LANGUAGES[key]) return upstream;
+    if (upstream) throw new Error(`The rare correction of ${key} does not apply: upstream marks it rare`);
+    return true;
+  },
   speciesSize(key: string, upstream: string) {
     const correction = SPECIES_SIZE[key];
     if (correction && upstream !== correction.from) throw new Error(`The size correction of ${key} does not apply: upstream has ${upstream}`);
@@ -472,6 +482,7 @@ export const CORRECTION_LIST: Correction[] = [
     what: "Size Medium or Small, chosen when you select the species.",
   })),
   ...Object.entries(CLASS_TOOLS).map(([record, c]) => ({ record: `class ${record}`, page: c.page, what: c.what })),
+  ...Object.entries(RARE_LANGUAGES).map(([record, l]) => ({ record: `language ${record}`, page: l.page, what: "A rare language, not a Standard Language." })),
   ...Object.entries(SPECIES_TRAITS).map(([record, s]) => ({
     record: `species ${record}`,
     page: s.page,

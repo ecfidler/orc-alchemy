@@ -28,14 +28,24 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
   record types, `load.ts` is the loader with the version upgrade and the
   reference check, and `keys.ts` is the key scheme. The spec is
   [`docs/design/2024-content-format.md`](../../docs/design/2024-content-format.md).
-- `rules2024/` is the 2024 rules. `built.ts` is the built character
-  (`Built2024`) and its base, `content/` holds the rules content,
-  `template.ts` is the template, and `evaluate.ts` is the facade:
-  `evaluate`, the mutations and `autofill`. `records.ts` converts records of
-  the content format to core options, `hooks/` is the hook registry, and
-  `packs.ts` loads a pack for the engine: it checks the hooks, then converts
-  each record and drops the rules that do not convert. `fighter.test.ts`
-  has the hand-checked values of the Fighter from the spike (ORC-95).
+- `rules2024/` is the 2024 rules.
+  - `built.ts` is the built character (`Built2024`), its base, and the
+    rules that every character has (`RULES`).
+  - `template.ts` makes the template from the content. `built-in.ts`
+    loads the pack `srd52`.
+  - `evaluate.ts` is the facade: `evaluate`, the mutations and
+    `autofill`.
+  - `records.ts` converts records of the content format to core options.
+    `class-frame.ts` has the class levels and their Hit Points.
+  - `hooks/` is the hook registry, with one file for each hook.
+  - `packs.ts` loads a pack for the engine. It checks the hooks, then
+    converts each record and drops the rules that do not convert.
+  - `content/` holds the rules content of the spike that the records do
+    not replace yet.
+  - `fighter.test.ts` has the hand-checked values of the Fighter from the
+    spike (ORC-95). `base-rules.test.ts` has the rules of every character
+    on test classes (ORC-225). `species.test.ts` has the 9 species of the
+    pack at levels 1, 5 and 11 (ORC-226).
 - `srd52/srd52.test.ts` compares the built-in pack with the text of the SRD
   5.2.1 PDF, in `srd52/fixtures/`.
 

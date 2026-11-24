@@ -1,6 +1,6 @@
-// The converter from records to core options. The Dwarf, the Soldier and
-// Alert of the example pack must build the same sheet values as the
-// TypeScript content of the spike.
+// The converter from records to core options. The Soldier and Alert of the
+// example pack must build the same sheet values as the TypeScript content
+// of the spike. The species of the template are records since ORC-226.
 
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -13,9 +13,9 @@ import type { Effect, Pack } from "../format/schema.ts";
 import { type Built2024, m } from "./built.ts";
 import { featSelection } from "./content/feats.ts";
 import { defineHook, registry } from "./hooks/index.ts";
-import { backgroundOption, type Content, featOption, findRecord, RecordError, speciesOption, subclassOption } from "./records.ts";
+import { backgroundOption, type Content, featOption, findRecord, RecordError, subclassOption } from "./records.ts";
 import { template2024 } from "./template.ts";
-import { fighterCharacter } from "./testing.ts";
+import { fighterCharacter, testPackEnvelope } from "./testing.ts";
 
 /** A pack that loads with no issue. Without `hooks`, the loader does not check the hook names, so the converter must. */
 function loaded(input: unknown, hooks?: ReadonlySet<string>): Pack {
@@ -35,12 +35,11 @@ const record = <T extends "species" | "backgrounds" | "feats">(type: T, referenc
 /** The spike template with one more selection: an Origin feat, so that Alert has a place. */
 const spikeTemplate: Template<Built2024> = { ...template2024, selections: [...template2024.selections, featSelection("Extra Feat", ["origin"])] };
 
-/** The same template with the Dwarf, the Soldier and the feats from their records. */
+/** The same template with the Soldier and the feats from their records. */
 const recordTemplate: Template<Built2024> = {
   ...template2024,
   selections: [
     ...template2024.selections.map((s) => {
-      if (s.key === "species") return { ...s, options: [speciesOption(content, "srd52:dwarf", record("species", "srd52:dwarf"))] };
       if (s.key === "background") return { ...s, options: [backgroundOption(content, "srd52:soldier", record("backgrounds", "srd52:soldier"))] };
       return s;
     }),
@@ -54,7 +53,6 @@ const recordTemplate: Template<Built2024> = {
 /** The spike entity with the record keys: references for the records, and the tool choice of the Soldier record. */
 function asRecordEntity(entity: StrictEntity<Pick<Built2024, "name">>): StrictEntity<Pick<Built2024, "name">> {
   const swap = (s: StrictSelection): StrictSelection => {
-    if (s.key === "species") return { key: "species", option: { key: "srd52:dwarf" } };
     if (s.key === "extra-feat") return { key: "extra-feat", option: { key: `srd52:${s.option?.key}` } };
     if (s.key !== "background" || !s.option) return s;
     const selections = (s.option.selections ?? []).map((inner) =>
@@ -67,13 +65,13 @@ function asRecordEntity(entity: StrictEntity<Pick<Built2024, "name">>): StrictEn
 
 /**
  * The built values with the pack prefix removed, so that a reference and a
- * spike key compare equal. The records add a feature for two traits that
- * the spike shows in other ways: Darkvision (the `darkvision` value) and
- * Initiative Proficiency (the `initiative` value).
+ * spike key compare equal. The record of Alert adds a feature for a trait
+ * that the spike shows in another way: Initiative Proficiency (the
+ * `initiative` value).
  */
 function comparable(built: Built2024) {
   const plain = JSON.parse(JSON.stringify(built).replaceAll("srd52:", "")) as Built2024;
-  return { ...plain, features: plain.features.filter((f) => !["dwarf/darkvision", "alert/initiative-proficiency"].includes(f.key)) };
+  return { ...plain, features: plain.features.filter((f) => f.key !== "alert/initiative-proficiency") };
 }
 
 describe("records build the values of the spike content", () => {
@@ -134,7 +132,7 @@ function single(make: (content: Content) => ReturnType<typeof option<Built2024>>
 }
 
 /** The envelope of a homebrew test pack. */
-const homebrew = { format: "alchemy-content", version: 1, rules: "2024", pack: { id: "hb", name: "Test" } };
+const homebrew = testPackEnvelope("hb");
 
 function feat(effects: Effect[], more: Record<string, unknown> = {}) {
   const raw = { key: "thing", name: "Thing", category: "general", repeatable: true, effects, ...more };
@@ -186,7 +184,7 @@ describe("values and conditions", () => {
   it("applies an effect only when its condition passes", () => {
     const when = (condition: Effect extends infer E ? (E extends { when?: infer C } ? C : never) : never) =>
       single(feat([{ add: "speed", value: 10, when: condition }]))().speed;
-    expect(when({ has: "languages", item: "common" })).toBe(40);
+    expect(when({ has: "languages", item: "srd52:common" })).toBe(40);
     expect(when({ has: "wornArmor" })).toBe(30);
     expect(when({ atLeast: [{ read: "proficiencyBonus" }, 2] })).toBe(40);
     expect(when({ equals: [{ read: "size" }, "small"] })).toBe(30);
@@ -201,7 +199,7 @@ describe("values and conditions", () => {
     const problems = (str: number) => {
       const entity = {
         selections: [
-          { key: "ability-scores", option: { key: "scores", value: { str, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } } },
+          { key: "ability-scores", option: { key: "manual", value: { str, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } } },
           { key: "thing", option: { key: "hb:thing" } },
         ],
       };
@@ -287,10 +285,7 @@ describe("hooks", () => {
 
 describe("subclasses", () => {
   const pack = loaded({
-    format: "alchemy-content",
-    version: 1,
-    rules: "2024",
-    pack: { id: "hb", name: "Test" },
+    ...homebrew,
     classes: [{ key: "knight", name: "Knight", hitDie: 10, savingThrows: ["str", "con"], skills: { choose: 2, from: ["athletics", "history"] } }],
     subclasses: [
       {

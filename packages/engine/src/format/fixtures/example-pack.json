@@ -71,7 +71,7 @@
         },
         {
           "push": "resistances",
-          "value": "poison"
+          "value": "srd52:poison"
         },
         {
           "add": "maxHitPoints",

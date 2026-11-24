@@ -411,6 +411,16 @@ describe("contributions", () => {
     expect(contributions.wheels).toEqual([{ name: "Axle", source: [], from: 0, to: 2 }]);
     expect(contributions.log).toBeUndefined();
   });
+
+  it("applies the rules of the template to every entity, before the modifiers of the choices", () => {
+    const withRules: Template<Wagon> = { ...template, modifiers: [w.add("wheels", 1, { name: "Spare wheel" })] };
+    expect(build({ selections: [] }, withRules).wheels).toBe(1);
+    const { contributions } = buildWithContributions(wagon, withRules);
+    expect(contributions.wheels).toEqual([
+      { name: "Spare wheel", source: [], from: 0, to: 1 },
+      { name: "Wagon", source: ["body", "wagon"], from: 1, to: 5 },
+    ]);
+  });
 });
 
 describe("mutations", () => {

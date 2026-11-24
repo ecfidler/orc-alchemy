@@ -64,7 +64,7 @@ export function fighterCharacter(choices: Choices): Entity2024 {
   return {
     values: { name: "Brunhild" },
     selections: [
-      { key: "ability-scores", option: { key: "scores", value: scores } },
+      { key: "ability-scores", option: { key: "standard-array", value: scores } },
       {
         key: "class",
         options: [
@@ -77,7 +77,7 @@ export function fighterCharacter(choices: Choices): Entity2024 {
           },
         ],
       },
-      { key: "species", option: { key: "dwarf" } },
+      { key: "species", option: { key: "srd52:dwarf" } },
       {
         key: "background",
         option: {
@@ -88,10 +88,32 @@ export function fighterCharacter(choices: Choices): Entity2024 {
           ],
         },
       },
-      { key: "languages", options: [{ key: "dwarvish" }, { key: "giant" }] },
+      { key: "languages", options: [{ key: "srd52:dwarvish" }, { key: "srd52:giant" }] },
       { key: "weapon-mastery", options: masteries.map((key) => ({ key })) },
       ...(armor ? [{ key: "armor", option: { key: armor } }] : []),
       { key: "weapons", options: weapons.map((key) => ({ key })) },
     ],
+  };
+}
+
+/** The envelope of a test pack file, without records. */
+export function testPackEnvelope(id = "test") {
+  return { format: "alchemy-content", version: 1, rules: "2024", pack: { id, name: "Test" } } as const;
+}
+
+/** A pack file with the id `test` and the given records, for `loadContentPack`. */
+export function testPackFile(records: Record<string, unknown[]>): unknown {
+  return { ...testPackEnvelope(), ...records };
+}
+
+/** A class record with no features: a d8, Dexterity and Intelligence saves, and two skills of three. `more` adds or replaces fields. */
+export function testClass(key: string, more: Record<string, unknown> = {}) {
+  return {
+    key,
+    name: key[0].toUpperCase() + key.slice(1),
+    hitDie: 8,
+    savingThrows: ["dex", "int"],
+    skills: { choose: 2, from: ["stealth", "perception", "arcana"] },
+    ...more,
   };
 }
