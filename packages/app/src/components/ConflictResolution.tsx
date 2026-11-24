@@ -56,6 +56,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
   const [applying, setApplying] = useState(false);
   const toChoose = conflictsToChoose(conflicts, pending.homebrew);
   const decided = toChoose.filter((c) => choices[c.id] !== undefined).length;
+  const ready = decided === toChoose.length;
 
   const chooseAll = (choice: "rename" | "skip") => setChoices(Object.fromEntries(toChoose.map((c) => [c.id, choice])));
 
@@ -105,8 +106,8 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
       </ul>
       {error && <p role="alert">{error}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button icon={decided < toChoose.length ? undefined : "check"} disabled={decided < toChoose.length || applying} onClick={apply}>
-          {decided < toChoose.length ? `Choose for each conflict (${decided} of ${toChoose.length})` : "Apply and import"}
+        <Button icon={ready ? "check" : undefined} disabled={!ready || applying} onClick={apply}>
+          {!ready ? `Choose for each conflict (${decided} of ${toChoose.length})` : "Apply and import"}
         </Button>
         <Button icon="x" onClick={() => useHomebrew.getState().cancelImport()} variant="link">
           Cancel import
@@ -115,7 +116,7 @@ export function ConflictResolution({ pending }: { pending: PendingImport }) {
     </section>
   );
   // The user must choose before the import goes on.
-  const note = decided < toChoose.length && (
+  const note = !ready && (
     <>
       <b>Choose for each conflict</b> ({decided} of {toChoose.length}) before import.
     </>

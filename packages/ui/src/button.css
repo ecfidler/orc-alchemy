@@ -79,6 +79,11 @@
     margin-inline-end: 6px;
     vertical-align: -3px;
   }
+  /* In a wide button the gap of the row is the space, and the icon is in the middle of the line. */
+  .ui-button:where([data-wide]) > .ui-icon {
+    margin-inline-end: 0;
+    align-self: center;
+  }
 
   /* The X button: an X of two lines in a square hit area, with no text. */
   .ui-x-button {

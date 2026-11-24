@@ -109,6 +109,24 @@ const PIXEL_ICONS = {
     "...##########...",
     "...oooooooooo...",
   ],
+  external: [
+    ".++++++..++++++.",
+    ".######..######.",
+    ".######..######.",
+    ".##oooo..oo####.",
+    ".##......++####.",
+    ".##......##oo##.",
+    ".##....++##..##.",
+    ".##....##oo..oo.",
+    ".##..++##....++.",
+    ".##..##oo....##.",
+    ".##..##......##.",
+    ".##..oo......##.",
+    ".##++++++++++##.",
+    ".##############.",
+    ".##############.",
+    ".oooooooooooooo.",
+  ],
   up: [
     ".......++.......",
     ".......##.......",
@@ -151,16 +169,14 @@ export type PixelIconName = keyof typeof PIXEL_ICONS;
 
 // The gray of the edge and of the shadow in the sprite sheet, as a part of the text color. So the icon is correct on paper, in dark mode and in a solid button.
 const TONES = [
-  ["#", 1],
-  ["+", 0.75],
-  ["o", 0.25],
+  [/#+/g, 1],
+  [/\++/g, 0.75],
+  [/o+/g, 0.25],
 ] as const;
 
-/** One SVG path for the pixels of one tone: a rectangle for each run of pixels in a row. */
-function tonePath(rows: readonly string[], tone: string): string {
-  return rows
-    .map((row, y) => [...row.matchAll(new RegExp(`\\${tone}+`, "g"))].map((run) => `M${run.index} ${y}h${run[0].length}v1h-${run[0].length}z`).join(""))
-    .join("");
+/** One SVG path for the pixels of one tone: a rectangle for each run of pixels in a row. `runs` finds the runs of the tone. */
+function tonePath(rows: readonly string[], runs: RegExp): string {
+  return rows.map((row, y) => [...row.matchAll(runs)].map((run) => `M${run.index} ${y}h${run[0].length}v1h-${run[0].length}z`).join("")).join("");
 }
 
 /**
@@ -181,8 +197,8 @@ export function PixelIcon({ name, className }: { name: PixelIconName; className?
       data-icon={name}
       className={className ? `ui-icon ${className}` : "ui-icon"}
     >
-      {TONES.map(([tone, opacity]) => (
-        <path key={tone} d={tonePath(PIXEL_ICONS[name], tone)} opacity={opacity} />
+      {TONES.map(([runs, opacity]) => (
+        <path key={opacity} d={tonePath(PIXEL_ICONS[name], runs)} opacity={opacity} />
       ))}
     </svg>
   );

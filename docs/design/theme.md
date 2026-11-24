@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-24T17:45:00Z }
+generated: { by: claude-code/agent, at: 2026-11-24T17:38:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -318,11 +318,18 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | Icon | Use |
 | --- | --- |
 | `pencil` | A control that opens the builder, a Customize dialog, or a homebrew form: a place where content changes. |
-| `check` | A control that confirms: Save or Done of a dialog or a form, and the action of a confirm dialog. |
+| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. |
 | `x` | A control that closes and does not keep the changes: Cancel. |
+| `external` | A link that opens a page of another site: Send feedback. |
 | `download` | A control that writes a file to the device: each Export button. |
 | `moon` | Only the Rest button of the character sheet. The button is not built: it comes with the Sheet interactivity spec (ORC-306). |
 | `up`, `down` | No use at this time. They are for a control that moves or sorts. |
+
+A confirm dialog shows the check and the x only when its cancel text is
+"Cancel". With another text, for example "Stay", the action can be the one
+that drops the changes, so the two buttons have no icon. The Save button
+of the action row writes the character and closes nothing, so it has no
+icon.
 
 Do not use an icon for a second meaning. A control without a row in this
 table has no icon.

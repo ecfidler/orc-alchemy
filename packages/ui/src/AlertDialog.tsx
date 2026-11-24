@@ -18,10 +18,13 @@ export type AlertDialogProps = {
 /**
  * A modal question with a cancel button and one action, with Base UI
  * AlertDialog inside. The cancel button has the focus when it opens. A
- * click outside does not close it. Most apps use `useConfirm()` and not
+ * click outside does not close it. When the cancel text is "Cancel", the
+ * cancel button shows the x icon and the action shows the check icon. Most apps use `useConfirm()` and not
  * this.
  */
 export function AlertDialog({ open, message, action, cancel = "Cancel", onAnswer }: AlertDialogProps) {
+  // With another cancel text, for example "Stay", the action can be the one that drops the changes. Then a check on it is wrong, so there are no icons.
+  const icons = cancel === "Cancel";
   return (
     <BaseAlertDialog.Root open={open} onOpenChange={(next) => next || onAnswer(false)}>
       <BaseAlertDialog.Portal>
@@ -31,10 +34,10 @@ export function AlertDialog({ open, message, action, cancel = "Cancel", onAnswer
           <div className="ui-dialog-actions">
             {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
             <BaseAlertDialog.Close data-variant="ghost" data-size="normal" className="ui-button">
-              <PixelIcon name="x" />
+              {icons && <PixelIcon name="x" />}
               {cancel}
             </BaseAlertDialog.Close>
-            <Button variant="solid" icon="check" onClick={() => onAnswer(true)}>
+            <Button variant="solid" icon={icons ? "check" : undefined} onClick={() => onAnswer(true)}>
               {action}
             </Button>
           </div>

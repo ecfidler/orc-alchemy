@@ -1,6 +1,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Input } from "@base-ui/react/input";
 import { type KeyboardEvent, type RefObject, useId, useRef, useState } from "react";
+import { PixelIcon } from "./Icon.tsx";
 import { ListRow } from "./ListRow.tsx";
 import { useRefocus } from "./refocus.ts";
 
@@ -217,6 +218,7 @@ function ListBody<T>({
             {(props.pickedText ?? ((n: number) => `${n} picked`))(props.picked)}
           </span>
           <Dialog.Close data-variant="solid" data-size="normal" className="ui-button ui-list-done">
+            <PixelIcon name="check" />
             Done
           </Dialog.Close>
         </div>
