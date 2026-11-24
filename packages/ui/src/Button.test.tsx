@@ -123,3 +123,18 @@ test("a plain button has the look of the text around it: no size, never wide, an
   fireEvent.click(plain);
   expect(onClick).toHaveBeenCalledOnce();
 });
+
+test("an icon shows before the text of a button and of a button link, and is not a part of the name", () => {
+  render(
+    <>
+      <Button icon="check">Done</Button>
+      <ButtonLink icon="pencil" render={<a href="/build" />}>
+        Edit
+      </ButtonLink>
+    </>,
+  );
+  const done = screen.getByRole("button", { name: "Done" });
+  expect([(done.firstElementChild as HTMLElement).dataset.icon, done.textContent]).toEqual(["check", "Done"]);
+  const edit = screen.getByRole("link", { name: "Edit" });
+  expect([(edit.firstElementChild as HTMLElement).dataset.icon, edit.textContent]).toEqual(["pencil", "Edit"]);
+});

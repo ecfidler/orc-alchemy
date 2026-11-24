@@ -147,7 +147,7 @@ function SheetPage() {
     <OpenCharacter
       actions={(id) => (
         <>
-          <ButtonLink variant="solid" render={<Link to={`/build/${id}`} />}>
+          <ButtonLink variant="solid" icon="pencil" render={<Link to={`/build/${id}`} />}>
             Edit
           </ButtonLink>
           <ExportCharacter id={id} label="Export" variant="ghost" onMessage={(message) => setExported({ id, message })} />
@@ -184,7 +184,7 @@ function BuildPage() {
   return (
     <OpenCharacter
       actions={(id) => (
-        <ButtonLink variant="solid" render={<Link to={`/sheet/${id}`} />}>
+        <ButtonLink variant="solid" icon="check" render={<Link to={`/sheet/${id}`} />}>
           Done
         </ButtonLink>
       )}

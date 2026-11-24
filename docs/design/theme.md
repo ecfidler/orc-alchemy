@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T20:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-24T17:45:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -303,8 +303,29 @@ text: it is an SVG in the package, in the text color (`currentColor`), with
 `aria-hidden`, so the text names the control or the label. It is not an
 emoji. The first icon is the lock, `LockIcon`, 13px, for a value that
 cannot change, for example an always-prepared spell in the
-[Spells panel](spells-panel.md#the-prepare-control) (ORC-287). The pencil
-icon of ORC-272 follows the same rule.
+[Spells panel](spells-panel.md#the-prepare-control) (ORC-287).
+
+**Pixel icons** (ORC-272). A button or a link can show one pixel icon
+before its text. The art is from Ethan's sprite sheet: a grid of 16 by 16
+pixels, a shape of 2-pixel blocks, an edge of 1 pixel above the shape, and
+a shadow of 1 pixel below it. `PixelIcon` in the package draws an icon at
+16px, so each pixel of the art is one CSS pixel. The shape has the text
+color, the edge has 75 percent of it, and the shadow has 25 percent of it.
+Thus one drawing is correct on paper, in dark mode, and in a solid button.
+The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
+`ButtonLink` take the name of an icon in `icon`.
+
+| Icon | Use |
+| --- | --- |
+| `pencil` | A control that opens the builder, a Customize dialog, or a homebrew form: a place where content changes. |
+| `check` | A control that confirms: Save or Done of a dialog or a form, and the action of a confirm dialog. |
+| `x` | A control that closes and does not keep the changes: Cancel. |
+| `download` | A control that writes a file to the device: each Export button. |
+| `moon` | Only the Rest button of the character sheet. The button is not built: it comes with the Sheet interactivity spec (ORC-306). |
+| `up`, `down` | No use at this time. They are for a control that moves or sorts. |
+
+Do not use an icon for a second meaning. A control without a row in this
+table has no icon.
 
 **A box out of the Tab order.** A Checkbox can take `tabIndex={-1}` when a
 key on another control changes it, for example Space on a row of a list

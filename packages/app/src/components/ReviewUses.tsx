@@ -220,7 +220,7 @@ function Rows({
         <span className="text-sm text-ink-muted" aria-live="polite">
           {checkedRows.length} of {rows.length} checked
         </span>
-        <Button variant="solid" className="ml-auto" onClick={() => void save()} disabled={saving}>
+        <Button variant="solid" icon="check" className="ml-auto" onClick={() => void save()} disabled={saving}>
           Save
         </Button>
       </div>

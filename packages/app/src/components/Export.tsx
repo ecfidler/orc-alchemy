@@ -118,14 +118,14 @@ function ExportButton({
   }
   if (onMessage) {
     return (
-      <Button onClick={onClick} variant={variant}>
+      <Button icon="download" onClick={onClick} variant={variant}>
         {label}
       </Button>
     );
   }
   return (
     <div className="space-y-1">
-      <Button onClick={onClick} variant={variant}>
+      <Button icon="download" onClick={onClick} variant={variant}>
         {label}
       </Button>
       <ExportMessageLine message={message} />

@@ -15,3 +15,175 @@ export function LockIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+// The pixel icons, from Ethan's 16px sprite sheet. Each icon is 16 rows of 16 characters, one for each pixel:
+// "#" is the shape, "+" is the edge above it, "o" is the shadow below it, and "." is empty. To change an icon, change its rows.
+const PIXEL_ICONS = {
+  pencil: [
+    ".++++...........",
+    ".####...........",
+    ".####++.........",
+    ".##..##.........",
+    ".##..##++.......",
+    ".oo##..##.......",
+    "...##..##++.....",
+    "...oo##..##.....",
+    ".....##..##++...",
+    ".....oo##..##...",
+    ".......##..##...",
+    ".......oo##..++.",
+    ".........##..++.",
+    ".........oo++++.",
+    "...........++++.",
+    "+++++++++++++++.",
+  ],
+  x: [
+    ".++..........++.",
+    ".##..........##.",
+    ".##++......++##.",
+    ".oo##......##oo.",
+    "...##++..++##...",
+    "...oo##..##oo...",
+    ".....##++##.....",
+    ".....oo##oo.....",
+    ".....++##++.....",
+    ".....##oo##.....",
+    "...++##..##++...",
+    "...##oo..oo##...",
+    ".++##......##++.",
+    ".##oo......oo##.",
+    ".##..........##.",
+    ".oo..........oo.",
+  ],
+  check: [
+    ".............++.",
+    ".............##.",
+    "............+##.",
+    "............##o.",
+    "...........+##..",
+    "...........##o..",
+    ".++.......+##...",
+    ".##.......##o...",
+    ".##++....+##....",
+    ".oo##....##o....",
+    "...##++.+##.....",
+    "...oo##.##o.....",
+    ".....##.##......",
+    ".....oo##o......",
+    ".......##.......",
+    ".......oo.......",
+  ],
+  download: [
+    ".......++.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    "...++..##..++...",
+    "...##..##..##...",
+    "...##++##++##...",
+    "...oo######oo...",
+    ".....######.....",
+    ".....oo##oo.....",
+    ".++....##....++.",
+    ".##....oo....##.",
+    ".##++++++++++##.",
+    ".##############.",
+    ".##############.",
+    ".oooooooooooooo.",
+  ],
+  moon: [
+    "...++++++++++...",
+    "...##########...",
+    ".++##########++.",
+    ".######oooooo##.",
+    ".######......##.",
+    ".####oo......oo.",
+    ".####...........",
+    ".####...........",
+    ".####...........",
+    ".####...........",
+    ".####++......++.",
+    ".######......##.",
+    ".######++++++##.",
+    ".oo##########oo.",
+    "...##########...",
+    "...oooooooooo...",
+  ],
+  up: [
+    ".......++.......",
+    ".......##.......",
+    ".....++##++.....",
+    ".....######.....",
+    "...++######++...",
+    "...##oo##oo##...",
+    ".++##..##..##++.",
+    ".##oo..##..oo##.",
+    ".##....##....##.",
+    ".oo....##....oo.",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......oo.......",
+  ],
+  down: [
+    ".......++.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".......##.......",
+    ".++....##....++.",
+    ".##....##....##.",
+    ".##++..##..++##.",
+    ".oo##..##..##oo.",
+    "...##++##++##...",
+    "...oo######oo...",
+    ".....######.....",
+    ".....oo##oo.....",
+    ".......##.......",
+    ".......oo.......",
+  ],
+} as const;
+
+export type PixelIconName = keyof typeof PIXEL_ICONS;
+
+// The gray of the edge and of the shadow in the sprite sheet, as a part of the text color. So the icon is correct on paper, in dark mode and in a solid button.
+const TONES = [
+  ["#", 1],
+  ["+", 0.75],
+  ["o", 0.25],
+] as const;
+
+/** One SVG path for the pixels of one tone: a rectangle for each run of pixels in a row. */
+function tonePath(rows: readonly string[], tone: string): string {
+  return rows
+    .map((row, y) => [...row.matchAll(new RegExp(`\\${tone}+`, "g"))].map((run) => `M${run.index} ${y}h${run[0].length}v1h-${run[0].length}z`).join(""))
+    .join("");
+}
+
+/**
+ * A pixel icon, 16px, in the text color, for the start of the text of a
+ * button or a link. Its edge and its shadow are lighter tones of the same
+ * color. It is hidden from a screen reader: the text names the control.
+ * `className` is for layout.
+ */
+export function PixelIcon({ name, className }: { name: PixelIconName; className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      fill="currentColor"
+      shapeRendering="crispEdges"
+      data-icon={name}
+      className={className ? `ui-icon ${className}` : "ui-icon"}
+    >
+      {TONES.map(([tone, opacity]) => (
+        <path key={tone} d={tonePath(PIXEL_ICONS[name], tone)} opacity={opacity} />
+      ))}
+    </svg>
+  );
+}

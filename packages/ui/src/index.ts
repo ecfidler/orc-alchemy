@@ -7,7 +7,7 @@ export { AddChip, type AddChipProps, Chips, type ChipsProps } from "./Chips.tsx"
 export { Combobox, type ComboboxProps } from "./Combobox.tsx";
 export { Dialog, type DialogProps } from "./Dialog.tsx";
 export { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
-export { LockIcon } from "./Icon.tsx";
+export { LockIcon, PixelIcon, type PixelIconName } from "./Icon.tsx";
 export { type ListItem, ListModal, type ListModalProps } from "./ListModal.tsx";
 export { ListRow, type ListRowProps } from "./ListRow.tsx";
 export { Menu, type MenuProps } from "./Menu.tsx";

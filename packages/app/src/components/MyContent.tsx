@@ -2,7 +2,7 @@
 // (views.cljs my-content): the stored packs, each with its content lists, and
 // the .orcbrew export of one pack or of all of them; and the stored custom
 // magic items (ORC-77).
-import { Button, Checkbox, useConfirm } from "@orc-alchemy/ui";
+import { Button, Checkbox, PixelIcon, useConfirm } from "@orc-alchemy/ui";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { CONTENT_TYPES, packItems, tag } from "../engine/content.ts";
@@ -122,6 +122,7 @@ function MagicItems({ items, report, askDelete }: { items: MagicItemRecord[]; re
             <li key={id} className="flex flex-wrap items-center gap-2">
               <Checkbox label={name} checked={enabled} onCheckedChange={(on) => report(useHomebrew.getState().setMagicItemEnabled(id, on))} />
               <Link to={`/content/edit/magicItem/${encodeURIComponent(id)}`} aria-label={`Edit ${name}`} className="underline">
+                <PixelIcon name="pencil" />
                 Edit
               </Link>
               <Button
@@ -190,6 +191,7 @@ function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: b
                         aria-label={`Edit ${name}`}
                         className="underline"
                       >
+                        <PixelIcon name="pencil" />
                         Edit
                       </Link>
                     )}
@@ -235,7 +237,9 @@ function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; 
 
   return (
     <div>
-      <Button onClick={() => run(false)}>{label}</Button>
+      <Button icon="download" onClick={() => run(false)}>
+        {label}
+      </Button>
       {error && <p role="alert">{error}</p>}
       {invalid && (
         <div role="alert" aria-label={`Export problems${pack ? ` in ${pack}` : ""}`} className="mt-1">
@@ -243,7 +247,9 @@ function OrcbrewExport({ label, pack, pretty }: { label: string; pack?: string; 
           <ul className="ml-4 list-disc">
             {invalid.flatMap(({ pack: name, problems }) => problems.map((problem, i) => <li key={`${name}-${i}`}>{`${name}: ${problem}`}</li>))}
           </ul>
-          <Button onClick={() => run(true)}>Export anyway</Button>{" "}
+          <Button icon="download" onClick={() => run(true)}>
+            Export anyway
+          </Button>{" "}
           <span>It fills placeholders for the missing fields and repairs the items, as the old app did.</span>
         </div>
       )}

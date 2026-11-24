@@ -72,6 +72,14 @@
     text-align: left;
   }
 
+  /* A pixel icon before the text of a button or a link. Its 16 pixels are 16px, so each pixel is sharp. */
+  .ui-icon {
+    display: inline-block;
+    flex: none;
+    margin-inline-end: 6px;
+    vertical-align: -3px;
+  }
+
   /* The X button: an X of two lines in a square hit area, with no text. */
   .ui-x-button {
     position: relative;

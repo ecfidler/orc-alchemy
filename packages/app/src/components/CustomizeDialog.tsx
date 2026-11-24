@@ -179,7 +179,7 @@ export function CustomizeDialog({ open, builder, initial, title, check, note, re
       title={title}
       finalFocus={finalFocus}
       actions={
-        <Button variant="solid" disabled={!ok} onClick={save}>
+        <Button variant="solid" icon="check" disabled={!ok} onClick={save}>
           Save
         </Button>
       }
@@ -399,6 +399,7 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
                 <span>{option.name}</span>
                 <Button
                   variant="link"
+                  icon="pencil"
                   data-customize={option.key}
                   aria-label={`${label} ${option.name}`}
                   onClick={() => (owner ? owner.open(option.key) : void open(option.key, option.name))}

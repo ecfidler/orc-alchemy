@@ -1,5 +1,6 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { PixelIcon } from "./Icon.tsx";
 
 type DialogBase = {
   open: boolean;
@@ -171,6 +172,7 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
             <div className="ui-modal-foot">
               {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
               <BaseDialog.Close data-variant="ghost" data-size="normal" className="ui-button">
+                <PixelIcon name="x" />
                 Cancel
               </BaseDialog.Close>
               {actions}
