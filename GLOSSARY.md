@@ -25,13 +25,13 @@ _Avoid_: Banner, toast, callout
 
 **Use bubble**:
 The frame around a feature with limited uses, which shows its uses and the
-rest that restores them.
+rest that restores them. The user spends a use and gets it back there.
 _Avoid_: Pill, chip, tracker, spent-ability bubble
 
 **Uses**:
 How many times a feature can be used before a rest restores it: an amount
 and a rest. The amount is fixed, or it scales with the character. In place
-of a rest, the uses can come back each day or each turn.
+of a rest, the uses can come back at dawn or each turn.
 _Avoid_: Charges, frequency (the stored key only), limited uses
 
 **Suggested uses**:
@@ -78,8 +78,9 @@ not a spellbook, and the known spells of another class are not one.
 _Avoid_: Grimoire, spell list
 
 **Play state**:
-The part of a character that changes during play: prepared spells, spent
-slots, and later hit points and feature uses. The builder does not set it.
+The part of a character that changes during play, for example prepared
+spells, spent slots, hit points and spent uses. The builder does not set it.
+The Sheet interactivity spec lists each part.
 _Avoid_: Session state, tracker, live data
 
 **Sheet change**:
@@ -106,3 +107,53 @@ _Avoid_: Domain spell (one kind only), free spell, bonus spell
 A short note on a known spell that says how the character can cast it, for
 example "at will" or "once per long rest".
 _Avoid_: Qualifier (the stored key only), tag
+
+**Cast**:
+The action on a known spell that spends what the spell costs: a spell slot,
+a use of a feature, or the two. A cast is a sheet change.
+_Avoid_: Use (of a spell), fire, trigger
+
+**Concentration mark**:
+The record of the one spell that the character concentrates on. A cast or
+the Concentrate button sets it. The user or a long rest removes it.
+_Avoid_: Concentration flag, concentration tracker
+
+**Short rest**:
+The rest that gives back Pact Magic slots and the uses that recharge on a
+short rest, and lets the character spend hit dice.
+_Avoid_: Short break
+
+**Long rest**:
+The rest that gives back hit points, all spell slots, the uses that recharge
+on a short or a long rest, and half of the hit dice.
+_Avoid_: Sleep, full rest
+
+**Dawn**:
+The time when the uses with the stored unit `day` come back. It is not a
+rest. It can come during a long rest.
+_Avoid_: Sunrise, day, daily, each day
+
+**Hit dice**:
+The dice of a character, one for each level. The user spends a die to heal.
+The record keeps the spent dice for each die size.
+_Avoid_: HD, hit die pool
+
+**Inspiration**:
+The one mark that a character has or does not have. The user sets and
+removes it on the sheet, and no rest changes it.
+_Avoid_: Heroic inspiration (2024 only), Bardic Inspiration (a feature)
+
+**Condition**:
+One of the 14 conditions of the SRD that the user sets on the character, for
+example Poisoned. Exhaustion is not a condition, but it is in the same box.
+_Avoid_: Status effect, debuff, state
+
+**Exhaustion**:
+A level from 0 to 6 on the character. The app applies its effects on the
+speed and the hit point maximum, and level 6 is death.
+_Avoid_: Fatigue, exhaustion condition
+
+**AC pick**:
+The pair of armor and shield whose AC the sheet shows in place of the AC of
+the worn armor. It does not change the equipment.
+_Avoid_: AC override, equipped armor, loadout
