@@ -12,8 +12,11 @@ interface Change {
   from?: unknown;
   to?: unknown;
   description?: string;
-  /** key-renamed: the pack of the renamed item. */
+  /** key-renamed and removed-unknown-weapon: the pack of the item. */
   pack?: unknown;
+  /** removed-unknown-weapon: the race's name, and the weapon key taken out of its choice (ORC-310). */
+  name?: unknown;
+  weapon?: unknown;
   details?: {
     key?: unknown;
     "content-type"?: unknown;
@@ -33,7 +36,7 @@ const SECTIONS: { types: string[]; title: (changes: Change[]) => string }[] = [
     },
   },
   {
-    types: ["string-fix", "text-normalization", "renamed-plugin-key", "normalized-ability-key", "defaulted-choose"],
+    types: ["string-fix", "text-normalization", "renamed-plugin-key", "normalized-ability-key", "defaulted-choose", "removed-unknown-weapon"],
     title: (changes) => `Data cleanup (${changes.length})`,
   },
 ];
@@ -127,6 +130,12 @@ function ChangeText({ change }: { change: Change }) {
       return (
         <>
           Set skill choice to <Code>{show(to)}</Code> at <Code>{show(path)}</Code>
+        </>
+      );
+    case "removed-unknown-weapon":
+      return (
+        <>
+          Removed the unknown weapon <Code>{show(change.weapon)}</Code> from the weapon proficiency choice of {show(change.name)} in {show(change.pack)}
         </>
       );
     case "key-renamed":

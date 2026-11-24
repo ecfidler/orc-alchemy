@@ -20,6 +20,7 @@ import {
 import { CUSTOM_PACK, reservedPackMessage } from "../engine/custom.ts";
 import { type Content, engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
 import { type BundleHomebrew, magicItemKey } from "../engine/import.ts";
+import { homebrewWithoutUnknownWeapons, knownWeapons, withoutUnknownWeapons } from "../engine/unknown-weapons.ts";
 import { deleteMagicItem, deletePack, listMagicItems, listPacks, type MagicItemRecord, type PackRecord, saveMagicItems, savePacks } from "../storage/packs.ts";
 import { forgetSkipped } from "./skipped-uses.ts";
 
@@ -220,8 +221,12 @@ export const useHomebrew = create<HomebrewState>()((set, get) => {
     await restorePacks();
     const { packs } = get();
     const existing = packs.length === 0 ? undefined : pluginMap(packs);
-    const { data, ...withoutData } = engine().parseOrcbrew(text, { name, existing, strict });
-    if (data === null) return set({ lastImport: { ...withoutData, fileName } });
+    const { data: parsed, ...parsedResult } = engine().parseOrcbrew(text, { name, existing, strict });
+    if (parsed === null) return set({ lastImport: { ...parsedResult, fileName } });
+    // ORC-310: weapons the engine does not know stop the build, so they go, and the log says so.
+    const known = await knownWeapons(get().magicItems.map((r) => r.id));
+    const { homebrew: data, changes: weaponChanges } = homebrewWithoutUnknownWeapons(parsed, known);
+    const withoutData = { ...parsedResult, log: { ...parsedResult.log, changes: [...parsedResult.log.changes, ...weaponChanges] } };
     // data holds the stored packs too, and the engine's result does not name the packs of the file, so the
     // file is read once more alone for their names. That takes about 90 ms for 1,200 features.
     const lastImport = {
@@ -420,6 +425,7 @@ export function restorePacks(): Promise<void> {
         if (reason === null) shaped.push(record as PackRecord);
         else quarantined.push({ id: String((record as { id?: unknown } | null)?.id), reason });
       }
+      await withoutStoredUnknownWeapons(shaped);
       // One build checks them all. If it fails, the packs are added one at a time in
       // name order, and each that does not build with the ones before it is quarantined.
       let packs = shaped;
@@ -515,6 +521,24 @@ function shapeProblem(record: unknown): string | null {
   }
   if (record.rules !== "2014") return `The record is for rules ${JSON.stringify(record.rules)}; only 2014 packs are used.`;
   return null;
+}
+
+/**
+ * Takes the weapons that the engine does not know out of the stored packs
+ * (ORC-310), in place in records, and stores each pack that changes. A pack
+ * imported before ORC-310 can have them.
+ */
+async function withoutStoredUnknownWeapons(records: PackRecord[]) {
+  const known = await knownWeapons(useHomebrew.getState().magicItems.map((r) => r.id));
+  const changed: PackRecord[] = [];
+  records.forEach((record, i) => {
+    const { plugin, changes } = withoutUnknownWeapons(record.id, record.plugin, known);
+    if (changes.length === 0) return;
+    for (const change of changes) console.warn(`${record.id}: ${change.description}`);
+    records[i] = { ...record, plugin, updatedAt: now() };
+    changed.push(records[i]);
+  });
+  if (changed.length > 0) await savePacks(changed);
 }
 
 function buildProblem(homebrew: Record<string, object>): string | null {
