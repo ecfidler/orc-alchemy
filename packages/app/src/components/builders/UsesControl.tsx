@@ -206,6 +206,9 @@ export function UsesPreview({ name, feature, levelName }: { name: string; featur
   const known = baseAbility(frequency);
   const ability = known && ABILITY_NAMES[known];
   const shown = previewFeature(feature, exampleNumbers(level, score));
+  // The spent uses of the preview: they change on a click, as on the sheet, and are never saved.
+  const [spent, setSpent] = useState(0);
+  const item = shown.feature.uses ? { ...shown.feature, uses: { ...shown.feature.uses, spent } } : shown.feature;
   return (
     <div className="grid gap-[6px]">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -236,7 +239,7 @@ export function UsesPreview({ name, feature, levelName }: { name: string; featur
         )}
       </div>
       <div role="group" aria-label={`${name} preview`} className="grid border-[1.5px] border-ink bg-paper px-3 pt-2 pb-3">
-        <FeatureGroup section={shown.section} items={[shown.feature]} />
+        <FeatureGroup section={shown.section} items={[item]} onUses={(_, next) => setSpent(next)} />
       </div>
       {scaled && (
         <p aria-live="polite" className="text-[14.5px] text-ink-muted">

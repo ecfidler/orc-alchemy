@@ -74,6 +74,7 @@ const playOf = (
   status,
   onHitPoints: vi.fn<(action: HitPointAction) => void>(),
   onDeathSaves: vi.fn<(saves: DeathSaves) => void>(),
+  onUses: vi.fn(),
 });
 
 const hitPointsButton = () => screen.getByRole("button", { name: /^Hit points, / });

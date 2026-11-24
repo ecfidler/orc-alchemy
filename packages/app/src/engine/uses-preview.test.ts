@@ -49,11 +49,11 @@ test("previewFeature: the sheet section of the type, and the feature as the shee
     ),
   ).toEqual({
     section: "reactions",
-    feature: { name: "Undertow", text: "You pull.", uses: { amount: 3, recharge: "Long rest" } },
+    feature: { name: "Undertow", text: "You pull.", uses: { amount: 3, recharge: "Long rest", units: LONG.slice(2), name: "Undertow", spent: 0 } },
   });
   expect(previewFeature({ "~:name": "No Unit", "~:frequency": { "~:amount": 2 } }, numbers)).toEqual({
     section: "traits",
-    feature: { name: "No Unit", text: "", uses: { amount: 2, recharge: null } },
+    feature: { name: "No Unit", text: "", uses: { amount: 2, recharge: null, units: null, name: "No Unit", spent: 0 } },
   });
   expect(previewFeature({}, numbers)).toEqual({ section: "traits", feature: { name: "Unnamed feature", text: "" } });
 });

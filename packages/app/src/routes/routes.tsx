@@ -22,8 +22,8 @@ import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
 import type { HitPointAction } from "../engine/hit-points.ts";
 import { applyHitPoints } from "../engine/hit-points-apply.ts";
-import { type DeathSaves, setDeathSaves } from "../engine/play.ts";
-import type { Sheet, SpellRef } from "../engine/sheet.ts";
+import { type DeathSaves, setDeathSaves, setFeatureUsesSpent } from "../engine/play.ts";
+import type { FeatureUsesKey, Sheet, SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
@@ -165,6 +165,11 @@ function changeDeathSaves(saves: DeathSaves) {
   useCharacter.getState().sheetChange((entity) => setDeathSaves(engine(), entity, saves));
 }
 
+/** Writes the spent uses of a feature as a sheet change: it saves at once (ORC-316). Features of one name and unit share it. */
+function changeUses(feature: FeatureUsesKey, spent: number) {
+  useCharacter.getState().sheetChange((entity) => setFeatureUsesSpent(engine(), entity, feature.units, feature.name, spent));
+}
+
 function SheetPage() {
   // Why an export failed shows under the action row, so the row keeps its one line. It belongs to the character it came from.
   const { id: openId } = useParams();
@@ -205,6 +210,10 @@ function SheetPage() {
               // A change of the circles is the next action, so it takes the text of the last one away.
               onDeathSaves: (saves) => {
                 changeDeathSaves(saves);
+                say("");
+              },
+              onUses: (feature, spent) => {
+                changeUses(feature, spent);
                 say("");
               },
             }}

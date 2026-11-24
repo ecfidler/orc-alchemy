@@ -9,7 +9,8 @@ import type { Options } from "./fields.tsx";
 import { readFeatureText, type SuggestedUnit, type SuggestedUses, suggestedTypeOption, type TextMatch } from "./suggested-uses.ts";
 import { suggestedFrequency, usesKind } from "./uses.ts";
 
-const UNIT_TEXT: Record<SuggestedUnit, string> = { "short-rest": "short rest", "long-rest": "long rest", day: "each day" };
+/** The rest of each unit, as the Recharges toggle names it: the unit `day` is "dawn". */
+const UNIT_TEXT: Record<SuggestedUnit, string> = { "short-rest": "short rest", "long-rest": "long rest", day: "dawn" };
 
 /** The suggested uses in words: "1 use, short rest", "Proficiency bonus uses, long rest", "Wisdom modifier uses (minimum 1), long rest". */
 function suggestedUsesText({ amount, unit }: SuggestedUses): string {

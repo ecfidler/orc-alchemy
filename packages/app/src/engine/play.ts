@@ -217,6 +217,84 @@ export function setFeatureUsesSpent(e: Engine, entity: StrictEntity, units: stri
   return setUsesSpent(e, entity, all);
 }
 
+// Old records (sheet-interactivity.md, "Feature uses", "Old records").
+
+/**
+ * The spent uses of the old app: a map of a tagged unit keyword to a set of
+ * strings, { "~:orcpub.dnd.e5.units/long-rest": { "~#set": ["Rage-0"] } }
+ * (ORC-298). The app reads it once, at an import, and never writes it.
+ */
+const FEATURES_USED = "orcpub.dnd.e5.character/features-used";
+
+/** The amount from which the old app keeps the uses left as one string, not one string for each spent circle. */
+const OLD_POOL_FROM = 5;
+
+/** A feature with uses, as the old record needs it: its unit and name as built gives them, and its amount. */
+export interface OldUsesFeature {
+  units: string | null;
+  name: string;
+  amount: number;
+}
+
+/** The last part of a unit, without its "~:" and its namespace: "long-rest". */
+const unitName = (units: string) => {
+  const bare = untag(units);
+  return bare.slice(bare.lastIndexOf("/") + 1);
+};
+
+/** The strings of the old record under the unit of a feature. A unit key matches with or without its namespace. */
+function oldStrings(entity: StrictEntity, units: string): string[] {
+  const value = stored(entity, FEATURES_USED);
+  if (!isMap(value)) return [];
+  const name = unitName(units);
+  return Object.entries(value).flatMap(([key, set]) => {
+    if (!key.startsWith("~:") || unitName(key) !== name) return [];
+    const items = Array.isArray(set) ? set : setItems(set);
+    return Array.isArray(items) ? items.filter((item): item is string => typeof item === "string") : [];
+  });
+}
+
+/**
+ * The spent uses of a feature in the old record. For fewer than 5 uses, the
+ * old app keeps one string "<name>-<i>" for each spent circle, where i is the
+ * circle from 0: the count is the number of these strings, and a circle past
+ * the amount does not count. For 5 uses or more, it keeps one string
+ * "<name>-<n>", where n is the uses left; with no string, all uses are left.
+ * A feature with no unit or with the unit `turn` has no count.
+ */
+export function oldFeatureUsesSpent(entity: StrictEntity, feature: OldUsesFeature): number {
+  const { units, name, amount } = feature;
+  if (units === null || unitName(units) === "turn" || !Number.isInteger(amount) || amount <= 0) return 0;
+  const strings = new Set(oldStrings(entity, units));
+  if (amount < OLD_POOL_FROM) return Array.from({ length: amount }, (_, i) => `${name}-${i}`).filter((text) => strings.has(text)).length;
+  for (const text of strings) {
+    if (!text.startsWith(`${name}-`)) continue;
+    const left = text.slice(name.length + 1);
+    if (/^\d+$/.test(left)) return amount - Math.min(Number(left), amount);
+  }
+  return 0;
+}
+
+/**
+ * The entity with the spent uses made from the old record, at an import.
+ * Only an entity that has the old key and no `uses-spent` key changes. Two
+ * features with the same name and unit share one count: the higher one. The
+ * old key stays as it is.
+ */
+export function importOldUsesSpent(e: Engine, entity: StrictEntity, features: readonly OldUsesFeature[]): StrictEntity {
+  const values = strictValues(entity);
+  if (!(tag(FEATURES_USED) in values) || tag(USES_SPENT) in values) return entity;
+  const spent = new Map<string, Map<string, number>>();
+  for (const feature of features) {
+    const n = oldFeatureUsesSpent(entity, feature);
+    if (n <= 0) continue;
+    const group = spent.get(rechargeGroup(feature.units)) ?? new Map<string, number>();
+    group.set(feature.name, Math.max(n, group.get(feature.name) ?? 0));
+    spent.set(rechargeGroup(feature.units), group);
+  }
+  return spent.size > 0 ? setUsesSpent(e, entity, spent) : entity;
+}
+
 // Concentration.
 
 /** The spell key of the concentration mark, such as "bless"; null without a mark. */

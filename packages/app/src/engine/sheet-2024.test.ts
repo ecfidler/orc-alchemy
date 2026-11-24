@@ -75,6 +75,9 @@ describe("toSheet2024, the golden Fighter at level 20", () => {
     expect(secondWind).toEqual({
       amount: 4,
       recharge: null,
+      units: null,
+      name: "Second Wind",
+      spent: 0,
       recover: [
         { rest: "Short rest", amount: 1 },
         { rest: "Long rest", amount: "all" },
@@ -82,9 +85,9 @@ describe("toSheet2024, the golden Fighter at level 20", () => {
     });
     expect(secondWind && recoveryTag(secondWind)).toBe("Short rest (1), Long rest");
     // Action Surge: 2 uses at level 17; all back on a Short or Long Rest (p48).
-    expect(recoveryTag(feature(sheet, "Action Surge")?.uses ?? { amount: 0, recharge: null })).toBe("Short rest, Long rest");
+    expect(recoveryTag(feature(sheet, "Action Surge")?.uses ?? { recharge: null })).toBe("Short rest, Long rest");
     // Indomitable: 3 uses at level 17; all back on a Long Rest (p48). One rule that gives back all is the plain recharge.
-    expect(feature(sheet, "Indomitable")?.uses).toEqual({ amount: 3, recharge: "Long rest" });
+    expect(feature(sheet, "Indomitable")?.uses).toEqual({ amount: 3, recharge: "Long rest", units: null, name: "Indomitable", spent: 0 });
   });
 
   test("gives the category of the feat that gives a feature", () => {

@@ -278,8 +278,9 @@ bun run test       # vitest
     - `SectionRule`: a section title on a rule, a heading of `level` 2
       (or 3 or 4).
     - `SlotCircles`: `count` plain circles; the first `marked` fill solid
-      in `color` ("ink", "success" or "caution"). A `marked` above `count`
-      marks them all. `size="small"` draws 12px circles closer together.
+      in `color` ("ink", "success", "caution" or "info"). A `marked` above
+      `count` marks them all. `mark="slash"` keeps a marked circle empty,
+      with a muted outline and an ink slash across it. `size="small"` draws 12px circles closer together.
       `shape="diamond"` draws each circle as a diamond of the same size,
       with the same rules, to set one group apart from others.
       Without `onChange` it takes no clicks, and it is an image named
@@ -323,10 +324,20 @@ bun run test       # vitest
     at the end of the line. Styles: `src/paper.css`.
   - `UseBubble`: the outline around something with limited uses: a
     `title`, its text, a `tag` in the top right, and one circle for each of
-    its `uses`, or a `pool` with a large current / max. It is a group named
-    by its title. A click spends a use on the page. Nothing is stored, so a
-    reload resets it. With every use spent, the outline is dashed and the
-    text is muted.
+    its `uses`, or a `pool` with a large left / max. It is a group named by
+    its title. `spent` gives the spent uses; a count above the uses reads as
+    all spent. With every use spent, the outline is dashed and the text is
+    muted. Without `onSpentChange`, it shows the spent uses and takes no
+    clicks. With `onSpentChange(spent)`, the owner stores the count and
+    sets the new `spent`: the circles are `SlotCircles` with the slash mark
+    and the rule "one more, one less", one Tab stop that a screen reader
+    reads as "{title}, 2 of 3 spent"; a pool gets a minus button ("Spend 1
+    {title}") and a plus button ("Regain 1 {title}"), and a click on its
+    number opens a `SmallPopup` with an Amount field and Spend, Regain and
+    Set. Spend and Regain stop at 0 and at the maximum, and Set gives the
+    uses left. The number keeps the width of its largest value, so the
+    pool keeps its size. With neither `uses` nor `pool`, the bubble has no
+    circles.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.

@@ -8,7 +8,7 @@
 // also a short unit or a unit of the old app. The example character and the
 // sentence of the preview are in uses-example.ts.
 import { tag, untag } from "../../engine/content.ts";
-import { type Ability, abilityOfKey, scaledBase, unqualify } from "../../engine/sheet.ts";
+import { type Ability, abilityOfKey, DAWN, scaledBase, unqualify } from "../../engine/sheet.ts";
 import type { SuggestedUses } from "./suggested-uses.ts";
 
 /** A stored map in verbose Transit-JSON, such as a :frequency or its :amount. */
@@ -25,11 +25,14 @@ export const USES_KINDS: [UsesKind, string][] = [
 /** The namespace of a full unit keyword. */
 const UNITS = "orcpub.dnd.e5.units/";
 
-/** The rests of the Recharges toggle, by the name of their unit. A "short or long rest" is a short rest. */
+/**
+ * The rests of the Recharges toggle, by the name of their unit. A "short or long rest" is a short rest. The unit
+ * `day` has the name "Dawn", as on the sheet; the stored unit stays `day`.
+ */
 export const RECHARGES: [string, string][] = [
   ["short-rest", "Short rest"],
   ["long-rest", "Long rest"],
-  ["day", "Day"],
+  ["day", DAWN],
   ["turn", "Turn"],
 ];
 

@@ -8,8 +8,9 @@
 import { BACKGROUND_TYPE, CONTENT_TYPES, OPTION_PACK, tag, untag } from "./content.ts";
 import { CUSTOM_PACK, characterContent, hasCustomItems, pruneCustom } from "./custom.ts";
 import { type Content, engine, type Rules, type StrictEntity, type ValidationProblem } from "./engine.ts";
+import { importOldUsesSpent } from "./play.ts";
 import { missingContent, type UnresolvedKey } from "./reconcile.ts";
-import { toSheet } from "./sheet.ts";
+import { featureUses, toSheet } from "./sheet.ts";
 
 /**
  * The version of the dmv-character envelope and the dmv-export bundle that
@@ -391,7 +392,10 @@ export const CUSTOM_BUILD_FAILURE = "The custom options were left out: the app c
 
 /**
  * One strict entity, with its checked custom content (checkCustom), which is
- * kept only for the options that the entity selects. Custom items can pass
+ * kept only for the options that the entity selects. The spent uses of the
+ * old app's record become the counts of the play state here, one time,
+ * because the amounts and units come from the built character
+ * (importOldUsesSpent). Custom items can pass
  * their validator and still stop the build: then the character imports
  * without its custom content, and customLeftOut is true. An entity that
  * does not build alone throws, as it does without custom content.
@@ -403,14 +407,22 @@ function importWithCustom(entity: unknown, content: Content | undefined, checked
     throw new Error("This is not a character file");
   }
   const imported = engine().importCharacter(entity);
-  /** The name and the unresolved keys against the content; this builds the sheet too, as a save does, so it throws where a save would. */
+  /**
+   * The name, the unresolved keys and the entity with the spent uses of an
+   * old record, against the content. This builds the sheet too, as a save
+   * does, so it throws where a save would.
+   */
   const check = (withContent: Content | undefined) => {
     const { built } = engine().evaluate(imported.entity, withContent);
-    toSheet(built, imported.entity);
-    return { name: built["character-name"] || null, unresolved: missingContent(imported.entity, withContent) };
+    const sheet = toSheet(built, imported.entity);
+    return {
+      name: built["character-name"] || null,
+      unresolved: missingContent(imported.entity, withContent),
+      entity: importOldUsesSpent(engine(), imported.entity, featureUses(sheet)),
+    };
   };
   let custom = pruneCustom(imported.entity, checked);
-  let result: { name: string | null; unresolved: UnresolvedKey[] };
+  let result: { name: string | null; unresolved: UnresolvedKey[]; entity: StrictEntity };
   let customLeftOut = false;
   if (custom === undefined) result = check(content);
   else {

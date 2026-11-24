@@ -196,8 +196,8 @@ test("scaled-uses shows its typed pack features in the Actions, Bonus Actions an
     "Shelter the Faithful",
     "Steady Footing",
   ]);
-  await expect(page.getByRole("group", { name: "Crashing Wave" }).getByRole("button", { name: "30 / 30 left. Spend 5" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Brine Ward" }).getByRole("button", { name: "Use 1" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Crashing Wave" }).getByRole("button", { name: "Crashing Wave, 30 of 30 left" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Brine Ward" }).getByRole("slider", { name: "Brine Ward" })).toHaveAttribute("aria-valuetext", "0 of 1 spent");
   // Undertow resolves to -1 uses: no bubble.
   await expect(page.getByRole("group", { name: "Undertow" })).toHaveCount(0);
 });

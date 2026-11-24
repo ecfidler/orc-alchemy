@@ -5,7 +5,7 @@
 // preview's, as functions and as drawn.
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { toSheet } from "../../engine/sheet.ts";
 import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
@@ -73,7 +73,10 @@ test("for each feature, the sheet's section and uses are the preview's", () => {
     expect(onSheet, name).toEqual([[section, inPreview]]);
   }
   // The cases the test is for.
-  const uses = (name: string) => FEATURE_SECTIONS.flatMap((section) => sheet.features[section]).find((f) => f.name === name)!.uses;
+  const uses = (name: string) => {
+    const found = FEATURE_SECTIONS.flatMap((section) => sheet.features[section]).find((f) => f.name === name)!.uses;
+    return found && { amount: found.amount, recharge: found.recharge };
+  };
   expect(
     [
       "Brine Blessing",
@@ -93,11 +96,11 @@ test("for each feature, the sheet's section and uses are the preview's", () => {
   ).toEqual([
     { amount: 3, recharge: "Long rest" },
     { amount: 25, recharge: "Long rest" },
-    { amount: 3, recharge: "Each day" },
+    { amount: 3, recharge: "Dawn" },
     { amount: 3, recharge: "Short rest" },
     undefined,
     { amount: 26, recharge: "Long rest" },
-    { amount: 1, recharge: "Each turn" },
+    { amount: 1, recharge: "Once per turn" },
     undefined,
     { amount: 3, recharge: "Long rest" },
     { amount: 3, recharge: "Long rest" },
@@ -120,7 +123,8 @@ test("the preview draws each feature as the sheet draws it, under the same headi
   render(
     <>
       <section aria-label="Sheet">
-        <CharacterSheet sheet={sheet} />
+        {/* With play, the bubbles take clicks, as in the preview. */}
+        <CharacterSheet sheet={sheet} play={{ status: "", onHitPoints: vi.fn(), onDeathSaves: vi.fn(), onUses: vi.fn() }} />
       </section>
       <section aria-label="Form">
         <Form />

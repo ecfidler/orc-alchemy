@@ -58,7 +58,7 @@ test("shows the golden Fighter at level 20 with its Weapon Mastery properties an
   await expect(attacks.getByRole("row", { name: /^Longbow / }).getByRole("cell")).toHaveText(["Longbow Slow", "Yes", "+10 to hit", "1d8+2 Piercing"]);
   // Second Wind: 4 uses; one back on a Short Rest, all on a Long Rest.
   const secondWind = page.getByRole("group", { name: "Second Wind" });
-  await expect(secondWind.getByRole("group", { name: "4 uses, 4 left" })).toBeVisible();
+  await expect(secondWind.getByRole("img", { name: "Second Wind uses spent: 0 of 4" })).toBeVisible();
   await expect(secondWind.getByText("Short rest (1), Long rest")).toBeVisible();
   await expect(page.getByText("Origin feat")).toBeVisible();
 });
@@ -67,7 +67,7 @@ test("changes the level", async ({ page }) => {
   await openFighter(page, 20);
   await page.getByRole("link", { name: "Level 1", exact: true }).click();
   await expect(page.getByText("Fighter 1", { exact: true })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Second Wind" }).getByRole("group", { name: "2 uses, 2 left" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Second Wind" }).getByRole("img", { name: "Second Wind uses spent: 0 of 2" })).toBeVisible();
 });
 
 test("shows the Monk's Martial Arts on the Shortsword and the Unarmed Strike", async ({ page }) => {

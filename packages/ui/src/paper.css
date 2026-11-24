@@ -145,6 +145,9 @@
   .ui-slot-circles:where([data-color="caution"]) {
     --circle: var(--caution);
   }
+  .ui-slot-circles:where([data-color="info"]) {
+    --circle: var(--info);
+  }
   .ui-slot-circle {
     box-sizing: border-box;
     width: var(--circle-size);
@@ -217,6 +220,30 @@
   }
   .ui-slot-circles:where([data-shape="diamond"]) > .ui-slot-circle:where([data-marked])::before {
     background: var(--circle);
+  }
+  /*
+   * The slash mark: a marked circle stays empty, with a muted outline and an
+   * ink slash across it, as a spent use. The slash is the same in a group
+   * that changes and in one that does not.
+   */
+  .ui-slot-circles:where([data-mark="slash"]) > .ui-slot-circle {
+    position: relative;
+  }
+  .ui-slot-circles:where([data-mark="slash"]) > .ui-slot-circle:where([data-marked]),
+  .ui-slot-circles:where([data-mark="slash"]) > .ui-slot-circle:where([data-marked])::before {
+    background: transparent;
+    border-color: var(--ink-muted);
+  }
+  .ui-slot-circles:where([data-mark="slash"]) > .ui-slot-circle:where([data-marked])::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(var(--circle-size) + 6px);
+    height: 2px;
+    background: var(--ink);
+    border-radius: 2px;
+    transform: translate(-50%, -50%) rotate(-52deg);
   }
   /* The focus ring goes round the drawings, 1.5px clear of them, inside the tap areas, so a table cell does not cut it. */
   .ui-slot-circles:where([data-changes]):focus-visible {
@@ -344,9 +371,7 @@
     text-underline-offset: 2px;
   }
   .ui-note-line-action:focus-visible,
-  .ui-stuck-note :is(button, a):focus-visible,
-  .ui-use-circle:focus-visible,
-  .ui-use-pool:focus-visible {
+  .ui-stuck-note :is(button, a):focus-visible {
     outline: 2px solid var(--focus-ring, var(--info));
     outline-offset: 2px;
   }
@@ -391,52 +416,97 @@
     text-transform: uppercase;
     color: var(--ink-muted);
   }
-  .ui-use-circles {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    align-items: center;
+  /*
+   * The circles of the bubble: 15px, as a group that does not change. A
+   * group that changes keeps the 15px drawing, with a 24px tap area.
+   */
+  .ui-use-bubble-head > .ui-slot-circles {
+    --circle-size: 15px;
+    --circle-tap: 24px;
   }
-  .ui-use-circle,
-  .ui-use-pool {
-    appearance: none;
-    margin: 0;
-    padding: 0;
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
-  }
-  .ui-use-circle {
-    position: relative;
-    box-sizing: border-box;
-    width: 15px;
-    height: 15px;
+  /* A free circle has the fill of the bubble. */
+  .ui-use-bubble-head > .ui-slot-circles > .ui-slot-circle:where(:not([data-marked])),
+  .ui-use-bubble-head > .ui-slot-circles:where([data-changes]) > .ui-slot-circle:where(:not([data-marked]))::before {
     background: var(--bubble);
-    border: 1.5px solid var(--info);
-    border-radius: 50%;
   }
-  /* A spent circle gets an ink slash. */
-  .ui-use-circle:where([aria-pressed="true"]) {
-    background: transparent;
-    border-color: var(--ink-muted);
-  }
-  .ui-use-circle:where([aria-pressed="true"])::after {
-    content: "";
-    position: absolute;
-    left: -3px;
-    right: -3px;
-    top: 50%;
-    height: 2px;
-    background: var(--ink);
-    border-radius: 2px;
-    transform: rotate(-52deg);
-  }
-  .ui-use-pool {
+  .ui-use-bubble-head > .ui-slot-circles:where([data-changes]) > .ui-slot-circle:where(:not([data-marked])) {
     background: none;
-    border: 0;
-    font-size: 30px;
+  }
+  /*
+   * A pool: minus, the uses left / max, plus. The number keeps the width of
+   * its largest value, so the pool keeps its size when the number changes.
+   */
+  .ui-use-pool {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ui-use-pool .ui-use-pool-step {
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1;
+    background: var(--paper-raised);
+    border: 1px solid var(--ink);
+    border-radius: 4px;
+  }
+  .ui-use-pool .ui-use-pool-step:where([data-disabled]) {
+    border-color: var(--rule-strong);
+  }
+  .ui-use-pool-count {
+    font-size: 28px;
     font-weight: 500;
     line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .ui-use-pool .ui-use-pool-count {
+    padding: 0 6px;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .ui-use-pool .ui-use-pool-count:hover {
+    text-decoration: underline;
+  }
+  .ui-use-pool .ui-use-pool-count:focus-visible {
+    outline: 2px solid var(--focus-ring, var(--info));
+    outline-offset: 2px;
+  }
+  .ui-use-pool-left {
+    display: inline-grid;
+    justify-items: end;
+  }
+  .ui-use-pool-left > span,
+  .ui-use-pool-left::before {
+    grid-area: 1 / 1;
+  }
+  .ui-use-pool-left::before {
+    content: attr(data-reserve);
+    visibility: hidden;
+  }
+  .ui-use-pool-of {
+    font-size: 18px;
+    color: var(--ink-muted);
+  }
+  /* The popup of a pool: the field and the three buttons on one line, then the space of the note. */
+  .ui-use-pool-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    gap: 6px;
+    align-items: stretch;
+  }
+  .ui-use-pool-form .ui-use-pool-amount {
+    box-sizing: border-box;
+    width: 100%;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .ui-use-pool-note {
+    min-height: 33px;
   }
   /*
    * A narrow bubble keeps no column free for the tag: the name and the text
@@ -455,7 +525,7 @@
     .ui-use-bubble-title {
       grid-area: title;
     }
-    .ui-use-circles {
+    .ui-use-bubble-head > .ui-slot-circles {
       grid-area: circles;
     }
     .ui-use-bubble-side {
@@ -474,7 +544,7 @@
     border-style: dashed;
     border-color: var(--ink-muted);
   }
-  .ui-use-bubble:where([data-spent]) :where(.ui-use-bubble-title, .ui-use-bubble-body, .ui-use-pool) {
+  .ui-use-bubble:where([data-spent]) :where(.ui-use-bubble-title, .ui-use-bubble-body, .ui-use-pool-count) {
     color: var(--ink-muted);
   }
 }

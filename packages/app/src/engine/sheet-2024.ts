@@ -36,7 +36,15 @@ function toFeature(feature: Feature2024, category: string | undefined): SheetFea
   const plain = recover.length === 1 && recover[0].amount === "all";
   return {
     ...sheetFeature,
-    uses: { amount: uses.amount, recharge: recover.length === 1 ? recover[0].rest : null, ...(plain || recover.length === 0 ? {} : { recover }) },
+    // The 2024 sheet has no play state (sheet-interactivity.md, "Scope"): nothing is spent.
+    uses: {
+      amount: uses.amount,
+      recharge: recover.length === 1 ? recover[0].rest : null,
+      units: null,
+      name: feature.name,
+      spent: 0,
+      ...(plain || recover.length === 0 ? {} : { recover }),
+    },
   };
 }
 

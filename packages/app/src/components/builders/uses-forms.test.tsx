@@ -132,7 +132,7 @@ test("the feat form: the feat's own section shows the line of its description, a
   const featUses = await screen.findByRole("button", { name: "Feat uses: Use this" });
   expect(featUses.closest("p")!.textContent).toContain("Suggested: Wisdom modifier uses (minimum 1), long rest.");
   expect(screen.getByRole("button", { name: "Feat type: Use this" }).closest("p")!.textContent).toContain("Suggested type: Bonus Action.");
-  expect(screen.getByRole("button", { name: "Feature 1 uses: Use this" }).closest("p")!.textContent).toContain("Suggested: 2 uses, each day.");
+  expect(screen.getByRole("button", { name: "Feature 1 uses: Use this" }).closest("p")!.textContent).toContain("Suggested: 2 uses, dawn.");
   const save = screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
   await waitFor(() => expect(save.disabled).toBe(false));
   fireEvent.click(save);
