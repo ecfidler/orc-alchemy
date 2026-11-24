@@ -56,6 +56,7 @@ const sheet: Sheet = {
   currentHitPoints: null,
   tempHitPoints: 0,
   deathSaves: { successes: 0, failures: 0 },
+  hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
   darkvision: 60,
   numberOfAttacks: 1,
@@ -486,7 +487,8 @@ test("layout F: header details, hit dice, empty death saves, and HP as current /
   expect(screen.getByLabelText("Race").title).toBe("Dwarf (Hill Dwarf)");
   expect(screen.getByLabelText("Hit Points").textContent).toBe("20 / 28");
   expect(screen.getByLabelText("Temporary").textContent).toBe("");
-  expect(within(screen.getByRole("group", { name: "Hit dice" })).getByText("3d10")).toBeTruthy();
+  // Without play, the Hit dice box is not a button: it shows the dice left / the dice of each die size.
+  expect(screen.getByRole("group", { name: "Hit dice" }).textContent).toBe("3 / 3d10");
   expect(screen.getByRole("img", { name: "Successes: 0 of 3" })).toBeTruthy();
   expect(screen.getByRole("img", { name: "Failures: 0 of 3" })).toBeTruthy();
   expect(screen.getByLabelText("Inspiration").textContent).toBe("");
@@ -497,7 +499,9 @@ test("the builder preview leaves out temporary hit points and death saves", () =
   expect(screen.getByLabelText("Hit Points").textContent).toBe("20 / 28");
   expect(screen.queryByLabelText("Temporary")).toBeNull();
   expect(screen.queryByRole("img", { name: /^(Successes|Failures):/ })).toBeNull();
-  expect(screen.getByRole("group", { name: "Hit dice" })).toBeTruthy();
+  // The preview shows the play state of the hit dice, and the box is not a button.
+  expect(screen.getByRole("group", { name: "Hit dice" }).textContent).toBe("3 / 3d10");
+  expect(screen.queryByRole("button", { name: /^Hit dice/ })).toBeNull();
 });
 
 test("the Gold box adds up the coins as gold pieces, and the coins leave the equipment list", () => {
@@ -540,7 +544,7 @@ test("a limited-use feature sits in a use bubble, with circles, a pool for more 
 
 test("with play, the circles and the pool write the spent uses with play.onUses by the unit and name (ORC-316)", () => {
   const onUses = vi.fn();
-  const play = { status: "", onHitPoints: vi.fn(), onDeathSaves: vi.fn(), onUses };
+  const play = { status: "", onHitPoints: vi.fn(), onHitDice: vi.fn(), onDeathSaves: vi.fn(), onUses };
   render(<CharacterSheet sheet={{ ...sheet, features: usesFeatures({ wind: 1, hands: 5 }) }} play={play} />);
   const wind = bubbleOf("Second Wind").getByRole("slider", { name: "Second Wind" });
   expect(wind.getAttribute("aria-valuetext")).toBe("1 of 2 spent");

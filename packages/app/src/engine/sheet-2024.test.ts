@@ -24,6 +24,8 @@ describe("toSheet2024, the golden Fighter at level 20", () => {
   test("names the class, the subclass, the species and the background from the records", () => {
     expect(sheet.name).toBe("Brunhild");
     expect(sheet.classes).toEqual([{ key: "srd52:fighter", name: "Fighter", level: 20, hitDie: 10, subclass: "Champion" }]);
+    // A 2024 character has no play state: no die is spent.
+    expect(sheet.hitDice).toEqual([{ die: 10, total: 20, left: 20 }]);
     expect(sheet.race).toBe("Dwarf");
     expect(sheet.background).toBe("Soldier");
     expect(sheet.totalLevel).toBe(20);

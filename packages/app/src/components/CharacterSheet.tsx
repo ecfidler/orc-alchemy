@@ -26,6 +26,7 @@ import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
 import { slotGroupsOf, spentText } from "../engine/spell-slots.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { DeathSavesBox } from "./DeathSavesBox.tsx";
+import { HitDiceBox } from "./HitDiceBox.tsx";
 import { HitPointsBox } from "./HitPointsBox.tsx";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -45,7 +46,8 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * Spellcasting section has an "All spells" button and each spell name is a button. Without it, as in the builder
  * preview, there is no button and the names are plain text.
  * `play`: the play controls (docs/design/sheet-interactivity.md): the handlers that change the play state, one for each
- * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, and the vitals
+ * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, the Hit dice
+ * box is a button with its popup, and the vitals
  * panel has the status line and the space for the concentration note under it, and the use bubbles of "Features &
  * traits" change the spent uses. Without it, as in the builder preview
  * and the 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a
@@ -82,7 +84,6 @@ export function CharacterSheet({
   const tabbed = narrow && !preview;
   const race = sheet.subrace ? `${sheet.race} (${sheet.subrace})` : sheet.race;
   const classes = sheet.classes.map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ""}`).join(" / ");
-  const hitDice = sheet.classes.map((c) => `${c.level}d${c.hitDie}`).join(" + ");
   const defenses: [string, string[]][] = [
     ["Resistances", sheet.resistances],
     ["Immunities", sheet.immunities],
@@ -185,9 +186,7 @@ export function CharacterSheet({
             popupWidthOf={narrow ? vitals : null}
             className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
           />
-          <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
-            <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
-          </FramedBox>
+          <HitDiceBox dice={sheet.hitDice} onAction={play?.onHitDice} popupWidthOf={narrow ? vitals : null} />
           {!preview && <DeathSavesBox saves={sheet.deathSaves} onChange={play?.onDeathSaves} />}
         </div>
         {play && (

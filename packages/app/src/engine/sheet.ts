@@ -5,8 +5,9 @@
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
 import { untag } from "./content.ts";
+import { type HitDiceAction, type HitDie, hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
 import type { HitPointAction } from "./hit-points.ts";
-import { currentHitPoints, type DeathSaves, deathSaves, featureUsesSpent, tempHitPoints } from "./play.ts";
+import { currentHitPoints, type DeathSaves, deathSaves, featureUsesSpent, hitDiceSpent, tempHitPoints } from "./play.ts";
 import { preparedSpells, type SlotGroup, type SpentSlotGroups, slotLayout, spentSlotGroups } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -156,6 +157,8 @@ export interface SheetPlay {
   statusKey?: number;
   /** Applies an action of the Hit points popup or the Temporary hit points popup, as one sheet change (ORC-314). */
   onHitPoints: (action: HitPointAction) => void;
+  /** Applies an action of the Hit dice popup: Spend (also Roll for me) or Regain, as one sheet change (ORC-317). */
+  onHitDice: (action: HitDiceAction) => void;
   /** Writes the death save counts after a click or an arrow key on the Death saves box, as one sheet change (ORC-315). */
   onDeathSaves: (saves: DeathSaves) => void;
   /**
@@ -213,6 +216,11 @@ export interface Sheet {
   tempHitPoints: number;
   /** The death save counts (play state). */
   deathSaves: DeathSaves;
+  /**
+   * The hit dice by die size, the largest die first, with the dice left
+   * (play state). Two classes with the same die size share one entry.
+   */
+  hitDice: HitDie[];
   speeds: Speed[];
   darkvision: number;
 
@@ -700,6 +708,17 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
       ? undefined
       : acOptions.find((option) => option.armor === noneToNull(wornArmor) && option.shield === noneToNull(wieldedShield));
   const text = (key: string) => blankToNull(built[key]);
+  const classes = built.classes.map((key) => {
+    const levels = built.levels[key];
+    return {
+      key,
+      name: levels?.["class-name"] ?? keyToName(key),
+      level: levels?.["class-level"] ?? 0,
+      hitDie: levels?.["hit-die"] ?? 0,
+      subclass: levels?.["subclass-name"] ?? (levels?.subclass ? keyToName(levels.subclass) : null),
+    };
+  });
+  const hitDice = hitDiceTotals(classes);
 
   return {
     name: blankToNull(built["character-name"]),
@@ -711,16 +730,7 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     subrace: built.subrace,
     background: built.background,
     alignment: text("alignment"),
-    classes: built.classes.map((key) => {
-      const levels = built.levels[key];
-      return {
-        key,
-        name: levels?.["class-name"] ?? keyToName(key),
-        level: levels?.["class-level"] ?? 0,
-        hitDie: levels?.["hit-die"] ?? 0,
-        subclass: levels?.["subclass-name"] ?? (levels?.subclass ? keyToName(levels.subclass) : null),
-      };
-    }),
+    classes,
     totalLevel: built["total-levels"],
     xp: (built.xps as number | null | undefined) ?? null,
 
@@ -753,6 +763,7 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     currentHitPoints: currentHitPoints(entity, built["max-hit-points"]),
     tempHitPoints: tempHitPoints(entity),
     deathSaves: deathSaves(entity),
+    hitDice: hitDiceLeft(hitDice, hitDiceSpent(entity, hitDice)),
     speeds: toSpeeds(built),
     darkvision: built.darkvision ?? 0,
 

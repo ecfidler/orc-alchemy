@@ -32,6 +32,7 @@ const sheet: Sheet = {
   currentHitPoints: 12,
   tempHitPoints: 5,
   deathSaves: { successes: 0, failures: 0 },
+  hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
   darkvision: 0,
   numberOfAttacks: 1,
@@ -73,6 +74,7 @@ const playOf = (
 } => ({
   status,
   onHitPoints: vi.fn<(action: HitPointAction) => void>(),
+  onHitDice: vi.fn(),
   onDeathSaves: vi.fn<(saves: DeathSaves) => void>(),
   onUses: vi.fn(),
 });
