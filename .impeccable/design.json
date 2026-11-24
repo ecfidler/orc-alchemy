@@ -696,7 +696,7 @@
       "name": "Button with a pixel icon",
       "kind": "button",
       "refersTo": "button-solid",
-      "description": "A pixel icon before the text of a button. The shape has the text color, the edge has 75 percent of it, and the shadow has 25 percent of it, so one drawing serves the outline button, the solid button and the Dark theme.",
+      "description": "A pixel icon before the text of a button. The shape has the text color, the edge has 75 percent of it, and the shadow has 25 percent of it. Thus one drawing is correct on paper, in the Dark theme, and in a solid button.",
       "html": "<button class=\"ds-btn-icon\"><svg aria-hidden=\"true\" viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"currentColor\" shape-rendering=\"crispEdges\"><path d=\"M1 1h4v1h-4zM1 2h4v1h-4zM1 3h2v1h-2zM5 3h2v1h-2zM1 4h2v1h-2zM5 4h2v1h-2zM3 5h2v1h-2zM7 5h2v1h-2zM3 6h2v1h-2zM7 6h2v1h-2zM5 7h2v1h-2zM9 7h2v1h-2zM5 8h2v1h-2zM9 8h2v1h-2zM7 9h2v1h-2zM11 9h2v1h-2zM7 10h2v1h-2zM11 10h2v1h-2zM9 11h2v1h-2zM9 12h2v1h-2z\" opacity=\"1\"/><path d=\"M1 0h4v1h-4zM5 2h2v1h-2zM7 4h2v1h-2zM9 6h2v1h-2zM11 8h2v1h-2zM13 11h2v1h-2zM13 12h2v1h-2zM11 13h4v1h-4zM11 14h4v1h-4zM0 15h15v1h-15z\" opacity=\"0.75\"/><path d=\"M1 5h2v1h-2zM3 7h2v1h-2zM5 9h2v1h-2zM7 11h2v1h-2zM9 13h2v1h-2z\" opacity=\"0.25\"/></svg>Edit</button>",
       "css": ".ds-btn-icon { font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--paper); background: var(--ink); border: 1.5px solid var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; } .ds-btn-icon svg { margin-inline-end: 6px; vertical-align: -3px; } .ds-btn-icon:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }"
     },
@@ -826,7 +826,7 @@
       "Don't use red for a thing that did not fail.",
       "Don't import a control from `@base-ui/react` in the app. Import it from `@orc-alchemy/ui`.",
       "Don't use an icon in place of a text label, or use an emoji or an icon from another set. A pixel icon from `@orc-alchemy/ui` goes before a text, and a button that shows only an icon has an `aria-label`.",
-      "Don't use an icon for a second meaning, and do not draw separate Light and Dark copies of an icon.",
+      "Don't use an icon for a second meaning. A control with no entry in the Icons list has no icon.",
       "Don't make the Dark theme a dark paper color. It is black and white.",
       "Don't load a font from a third party."
     ]

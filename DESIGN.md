@@ -332,25 +332,25 @@ A row of plain circles, and a marked circle fills solid. The color is a prop: In
 
 The app uses text labels. A drawn icon is only an addition to a text: an SVG in `@orc-alchemy/ui`, in the text color (`currentColor`), with `aria-hidden`, so the text names the control or the label. It is not an emoji.
 
-The icons are pixel icons, from Ethan's sprite sheets: a grid of 16 by 16 pixels, a shape of 2-pixel blocks, an edge of 1 pixel above the shape, and a shadow of 1 pixel below it. `PixelIcon` draws an icon at 16px, so each pixel of the art is one CSS pixel. The shape has the text color, the edge has 75 percent of it, and the shadow has 25 percent of it. Thus one drawing is correct on paper, in the Dark theme, and in a solid button. An icon is before the text, with 6px between them. `Button` and `ButtonLink` take the name of an icon in `icon`.
+The icons are pixel icons, from Ethan's sprite sheet. The art is a grid of 16 by 16 pixels, a shape of 2-pixel blocks, an edge of 1 pixel above the shape, and a shadow of 1 pixel below it. `PixelIcon` draws an icon at 16px, so each pixel of the art is one CSS pixel. The shape has the text color, the edge has 75 percent of it, and the shadow has 25 percent of it. Thus one drawing is correct on paper, in the Dark theme, and in a solid button. An icon is before the text, with 6px between them, or 8px in a wide button. `Button` and `ButtonLink` take the name of an icon in `icon`.
 
 Each icon has one use:
 
 - **pencil:** a control that opens the builder, a Customize dialog or a homebrew form.
 - **check:** a control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog.
 - **x:** a control that closes and does not keep the changes: Cancel.
-- **download:** each Export button.
+- **download:** a control that writes a file to the device: each Export button.
 - **import:** a control that reads a file or pasted text into the app.
 - **sparkles:** a control for spellcasting: All spells, Prepare spells, and later the Cast button of a spell.
 - **moon:** only the Rest button of the character sheet, which is not built.
 - **external:** a link that opens a page of another site.
-- **left:** a control that goes back.
+- **left:** a control that goes back: Back to List and each "Back to" link.
 - **plus** and **minus:** plus is for a control that makes a new record, adds to a list or increases a number. Minus is for a button that decreases a number.
-- **trash:** Delete and Remove.
+- **trash:** a control that deletes a record or removes an item from a list: Delete and Remove.
 - **dice:** a control that makes a random result: Random character and Re-roll.
-- **save:** the Save button of the action row.
+- **save:** the Save button of the action row, which writes the character and closes nothing.
 - **lock:** a value that cannot change, for example an always-prepared spell. `LockIcon` draws it with no space after it.
-- **up** and **down:** no use at this time.
+- **up** and **down:** no use at this time. They are for a control that moves or sorts.
 
 A confirm dialog shows the check and the x only when its cancel text is "Cancel". A control with no entry in this list has no icon. The full rules are in `docs/design/theme.md`, "Icons".
 
@@ -376,6 +376,6 @@ The potion bottle, 16 × 16 pixel art. Show it only at a whole power-of-two scal
 - **Don't** use red for a thing that did not fail.
 - **Don't** import a control from `@base-ui/react` in the app. Import it from `@orc-alchemy/ui`.
 - **Don't** use an icon in place of a text label, or use an emoji or an icon from another set. A pixel icon from `@orc-alchemy/ui` goes before a text, and a button that shows only an icon has an `aria-label`.
-- **Don't** use an icon for a second meaning, and do not draw separate Light and Dark copies of an icon.
+- **Don't** use an icon for a second meaning. A control with no entry in the Icons list has no icon.
 - **Don't** make the Dark theme a dark paper color. It is black and white.
 - **Don't** load a font from a third party.
