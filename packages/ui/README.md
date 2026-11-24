@@ -214,7 +214,10 @@ bun run test       # vitest
     type any other text. It is controlled by `value` and
     `onValueChange`.
   - `Menu`: Base UI Menu, a ghost button named `label` that opens a list
-    of actions. A pick of one of its `items` calls `onPick`.
+    of actions. A pick of one of its `items` calls `onPick`. `icon` shows
+    a pixel icon before the label, as on `Button`. `buttonRef` gives a ref
+    to the button, for example to give the focus back to it when a dialog
+    that an item opened closes.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`. Menu takes `className` for its button.
   - `ListModal`: Base UI Dialog with a title, a close X and one list of

@@ -355,7 +355,8 @@ The decisions are in ORC-301, and the look is in ORC-309.[^orc-301] [^orc-309]
   uses.
 * The icon is an addition to the label, as the Theme spec says for each
   icon. When the action row is narrower than 720px, the button shows the
-  label only. The row stays on one line at 390px.
+  label only, as Save, Edit and Export do. The row stays on one line at
+  390px.
 * Each entry opens a dialog. A rest is a bulk action, and the dialog is
   its confirmation.
 
