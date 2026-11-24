@@ -368,7 +368,14 @@ The decisions are in ORC-301, and the look is in ORC-309.[^orc-301] [^orc-309]
 * **Finish** writes all the changes as one sheet change. **Cancel**
   changes nothing.
 * When the rest changes nothing, the dialog says so, and Finish works.
+  The line "Nothing will change." is under the rows. When a pick can
+  change whether the rest changes something, the dialog keeps the space
+  of the line.
 * The dialog does not change its size while the user works in it.
+* Each dialog is up to 520px wide (the narrow Dialog). At 600px and less
+  it fills the screen.
+* After Finish, the status line says "Short rest finished.", "Long rest
+  finished." or "Dawn finished."
 
 ## Short rest
 
@@ -386,6 +393,8 @@ The dialog is one page with three sections.
   dice popup.
 * When no die is left, or the hit points are full, the controls stay in
   their place, disabled.
+* The note of a roll that is not valid shows over the total line. It
+  takes no space of its own (ORC-319).
 
 **Arcane Recovery**
 
@@ -433,6 +442,15 @@ Two checkboxes can show, and each is on at the start.
   checkbox is off, the list stays in its place and its fields are
   disabled, so the dialog keeps its size.
 
+The list has one row for each value that changes, in the order above.
+The rows are "Hit points" ("9 → 32 / 32"), "Temporary hit points"
+("4 → 0"), one row for each slot level and for the Pact Magic slots, one
+row for each use by feature name, one row for each die size ("+2"),
+"Death saves" and "Concentration" ("cleared"), and "Exhaustion"
+("2 → 1", or "No change" when "Ate and drank" is off). The Dawn list is
+under the checkboxes, with the title "At dawn". It has no rows in the
+list "This rest will change".
+
 A long rest does not change inspiration, the conditions, or the uses of
 the groups `round`, `minute` and `hour`. The dialog has no note and no block
 for a character at 0 hit points.
@@ -448,6 +466,7 @@ number.
 * Each field starts at the spent count, thus all uses come back.
 * The field stops at the spent count.
 * A feature with no spent use shows "No change" and has no field.
+* In the Dawn dialog, these rows are the list "This rest will change".
 
 # Casting a spell
 

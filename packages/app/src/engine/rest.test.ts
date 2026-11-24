@@ -2,22 +2,34 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { setCurrentHitPoints, setFeatureUsesSpent, setHitDiceSpent } from "./play.ts";
+import { setConcentration, setCurrentHitPoints, setDeathSaves, setExhaustion, setFeatureUsesSpent, setHitDiceSpent, setTempHitPoints } from "./play.ts";
 import {
   arcaneRecoveryLimit,
   canPickSlot,
   canSpendDie,
+  dawnStart,
+  dawnUses,
+  hitDiceBack,
   hitPointsAfter,
+  longRest,
+  longRestChangesNothing,
+  longRestPicks,
+  longRestReserve,
+  longRestRows,
+  nothingChanges,
+  type RestRow,
   restKinds,
   type ShortRest,
   shortRest,
+  shortRestPicks,
   shortRestRows,
   signed,
   slotLevelSum,
+  validBack,
   validDice,
   validSlotPicks,
 } from "./rest.ts";
-import { toSheet } from "./sheet.ts";
+import { type SheetFeature, toSheet } from "./sheet.ts";
 import { setSpentSlots, slotLayout } from "./spells.ts";
 
 beforeAll(() => loadEngine());
@@ -41,8 +53,13 @@ const spendSlots = (entity: StrictEntity, spent: [group: number | "pact", n: num
 
 const NONE = { dice: [], arcaneRecovery: new Map() };
 
-test("the Rest menu has Short rest; Long rest and Dawn come with ORC-319", () => {
-  expect(restKinds(sheetOf(fighter()))).toEqual(["short"]);
+/** The rows without their keys. */
+const plain = (rows: RestRow[]) => rows.map(({ label, change }) => ({ label, change }));
+
+test("the Rest menu has Short rest and Long rest, and Dawn only with one feature or more with Dawn uses", () => {
+  expect(restKinds(sheetOf(fighter()))).toEqual(["short", "long"]);
+  // Arcane Recovery comes back at dawn, also when it is not spent.
+  expect(restKinds(sheetOf(wizard5()))).toEqual(["short", "long", "dawn"]);
 });
 
 test("Arcane Recovery gives back slot levels up to half the wizard level, rounded up", () => {
@@ -68,7 +85,14 @@ test("a short rest reads the hit points, the dice, the pact slots and the spent 
       { die: 6, total: 1, left: 1 },
     ],
     pactSpent: 0,
-    uses: [{ name: "Channel Divinity", spent: 2 }],
+    uses: [
+      {
+        key: "orcpub.dnd.e5.units/rest\nChannel Divinity",
+        use: { units: "orcpub.dnd.e5.units/rest", name: "Channel Divinity" },
+        name: "Channel Divinity",
+        spent: 2,
+      },
+    ],
     arcaneRecovery: { use: { units: "orcpub.dnd.e5.units/day", name: "Arcane Recovery" }, limit: 1, slots: [] },
   });
 });
@@ -207,7 +231,7 @@ test("the rows of 'This rest will change' are a fixed set; counts have a sign an
   entity = setFeatureUsesSpent(e, entity, "orcpub.dnd.e5.units/rest", "Channel Divinity", 1);
   entity = spendSlots(entity, [[1, 2]]);
   const r = shortRest(sheetOf(entity));
-  expect(shortRestRows(r, NONE)).toEqual([
+  expect(plain(shortRestRows(r, NONE))).toEqual([
     { label: "Hit points", change: null },
     { label: "Hit dice (d10)", change: null },
     { label: "Hit dice (d8)", change: null },
@@ -224,7 +248,7 @@ test("the rows of 'This rest will change' are a fixed set; counts have a sign an
     ],
     arcaneRecovery: new Map([[1, 1]]),
   });
-  expect(picked).toEqual([
+  expect(plain(picked)).toEqual([
     { label: "Hit points", change: "50 → 64 / 91" },
     { label: "Hit dice (d10)", change: null },
     { label: "Hit dice (d8)", change: "−2" },
@@ -240,7 +264,7 @@ test("a rested character has no row, and the pact slots have one row with all of
   expect(shortRestRows(shortRest(sheetOf(setFeatureUsesSpent(engine(), wizard5(), "orcpub.dnd.e5.units/day", "Arcane Recovery", 1))), NONE)).toEqual([]);
   // Full hit points: no row for the hit points and the dice. The wizard has Arcane Recovery and no spent slot: only its use row.
   const warlock = spendSlots(wizardWarlock(), [["pact", 1]]);
-  expect(shortRestRows(shortRest(sheetOf(warlock)), NONE)).toEqual([
+  expect(plain(shortRestRows(shortRest(sheetOf(warlock)), NONE))).toEqual([
     { label: "Pact Magic slots", change: "+1" },
     { label: "Arcane Recovery", change: null },
   ]);
@@ -248,4 +272,186 @@ test("a rested character has no row, and the pact slots have one row with all of
 
 test("signed counts use the minus sign U+2212", () => {
   expect([signed(2), signed(0), signed(-1)]).toEqual(["+2", "+0", "−1"]);
+});
+
+/** A feature with uses, spent or not, for a sheet made by hand. */
+const feature = (name: string, unit: string, amount: number, spent: number): SheetFeature => ({
+  name,
+  text: "",
+  uses: { amount, recharge: null, units: `orcpub.dnd.e5.units/${unit}`, name, spent },
+});
+
+/** A sheet with these features in its traits. */
+const withTraits = (entity: StrictEntity, traits: SheetFeature[]) => {
+  const sheet = sheetOf(entity);
+  return { ...sheet, features: { ...sheet.features, traits } };
+};
+
+test("two features with the same name in two groups give two rows, each with its own key", () => {
+  const sheet = withTraits(fighter(), [feature("Second Wind", "short-rest", 1, 1), feature("Second Wind", "rest", 1, 1)]);
+  const rows = shortRestRows(shortRest(sheet), NONE).filter((row) => row.label === "Second Wind");
+  expect(rows.map((row) => row.change)).toEqual(["+1", "+1"]);
+  expect(new Set(rows.map((row) => row.key)).size).toBe(2);
+  // The keys of a long rest are also unique.
+  const long = longRestRows(longRest(sheet), { ate: true });
+  expect(new Set(long.map((row) => row.key)).size).toBe(long.length);
+});
+
+test("a long rest gives back half the hit dice, rounded down and at least 1, the largest die first, and only spent dice", () => {
+  // Wizard 3 / warlock 2: 2 d8 and 3 d6, so 2 dice come back; the d8 first.
+  expect(
+    hitDiceBack([
+      { die: 8, total: 2, left: 0 },
+      { die: 6, total: 3, left: 0 },
+    ]),
+  ).toEqual([{ die: 8, back: 2 }]);
+  // One d8 is spent: it comes back, then one d6.
+  expect(
+    hitDiceBack([
+      { die: 8, total: 2, left: 1 },
+      { die: 6, total: 3, left: 0 },
+    ]),
+  ).toEqual([
+    { die: 8, back: 1 },
+    { die: 6, back: 1 },
+  ]);
+  // The order of the input does not count: the largest die comes back first.
+  expect(
+    hitDiceBack([
+      { die: 6, total: 3, left: 0 },
+      { die: 10, total: 1, left: 0 },
+    ]),
+  ).toEqual([
+    { die: 10, back: 1 },
+    { die: 6, back: 1 },
+  ]);
+  // Level 1: half of 1 rounded down is 0, so 1 comes back. Level 3: 1 comes back.
+  expect(hitDiceBack([{ die: 10, total: 1, left: 0 }])).toEqual([{ die: 10, back: 1 }]);
+  expect(hitDiceBack([{ die: 10, total: 3, left: 0 }])).toEqual([{ die: 10, back: 1 }]);
+  // No die is spent: none comes back.
+  expect(hitDiceBack([{ die: 10, total: 4, left: 4 }])).toEqual([]);
+});
+
+/** Wizard 3 / warlock 2 after a hard day: each value that a long rest changes, and the values that it must not change. */
+function tired() {
+  const e = engine();
+  let entity = setCurrentHitPoints(e, wizardWarlock(), 3);
+  entity = setTempHitPoints(e, entity, 4);
+  entity = setDeathSaves(e, entity, { successes: 1, failures: 2 });
+  entity = setConcentration(e, entity, "bless");
+  entity = setExhaustion(e, entity, 2);
+  entity = setHitDiceSpent(
+    e,
+    entity,
+    new Map([
+      [8, 1],
+      [6, 3],
+    ]),
+  );
+  entity = setFeatureUsesSpent(e, entity, "orcpub.dnd.e5.units/day", "Arcane Recovery", 1);
+  return spendSlots(entity, [
+    [1, 2],
+    [2, 1],
+    ["pact", 2],
+  ]);
+}
+
+test("a long rest reads each value that it changes, and lists them in a fixed set of rows", () => {
+  const sheet = withTraits(tired(), [
+    ...sheetOf(tired()).features.traits,
+    feature("Action Surge", "short-rest", 1, 1),
+    feature("Channel Divinity", "rest", 2, 2),
+    feature("Divine Sense", "long-rest", 3, 1),
+    feature("Bardic Inspiration", "long-rest", 3, 0),
+    feature("Rage of the round", "round", 1, 1),
+    feature("Wand of Magic Missiles", "day", 7, 3),
+  ]);
+  const rest = longRest(sheet);
+  expect(rest.dice).toEqual([
+    { die: 8, back: 1 },
+    { die: 6, back: 1 },
+  ]);
+  expect(rest.dawn.map(({ name, spent }) => [name, spent])).toEqual([
+    ["Arcane Recovery", 1],
+    ["Wand of Magic Missiles", 3],
+  ]);
+  const rows = (ate: boolean) => longRestRows(rest, { ate }).map(({ label, change }) => [label, change]);
+  expect(rows(true)).toEqual([
+    ["Hit points", "3 → 11 / 11"],
+    ["Temporary hit points", "4 → 0"],
+    ["1st-level slots", "+2"],
+    ["2nd-level slots", "+1"],
+    ["Pact Magic slots", "+2"],
+    ["Action Surge", "+1"],
+    ["Channel Divinity", "+2"],
+    ["Divine Sense", "+1"],
+    ["Hit dice (d8)", "+1"],
+    ["Hit dice (d6)", "+1"],
+    ["Death saves", "cleared"],
+    ["Concentration", "cleared"],
+    ["Exhaustion", "2 → 1"],
+  ]);
+  // "Ate and drank" off: the Exhaustion row stays, with no change.
+  expect(rows(false).at(-1)).toEqual(["Exhaustion", null]);
+  expect(rows(false).map(([label]) => label)).toEqual(rows(true).map(([label]) => label));
+  expect(longRestPicks(rest)).toBe(true);
+});
+
+test("the Dawn list: each use of the group day, spent or not; the fields start at the spent count and stop at it", () => {
+  const sheet = withTraits(fighter(), [feature("Wand", "day", 7, 3), feature("Cape", "day", 1, 0), feature("Boots", "long-rest", 1, 1)]);
+  const uses = dawnUses(sheet);
+  expect(uses.map(({ name, spent }) => [name, spent])).toEqual([
+    ["Wand", 3],
+    ["Cape", 0],
+  ]);
+  const [wand, cape] = uses.map((u) => u.key);
+  expect([...dawnStart(uses)]).toEqual([
+    [wand, 3],
+    [cape, 0],
+  ]);
+  // Above the spent count stops at it; 0, a number below 0 and a key of no use give nothing back.
+  expect([...validBack(uses, new Map([[wand ?? "", 9]]))]).toEqual([[wand, 3]]);
+  expect([
+    ...validBack(
+      uses,
+      new Map([
+        [wand ?? "", 0],
+        [cape ?? "", 1],
+        ["other", 2],
+      ]),
+    ),
+  ]).toEqual([]);
+  expect([...validBack(uses, new Map([[wand ?? "", -2]]))]).toEqual([]);
+});
+
+test("a rest that changes nothing says so: a rested long rest, one with its checkboxes off, and a short rest with no picks", () => {
+  const e = engine();
+  // The fighter has 40 of 54 hit points: full hit points are no value.
+  const rested = longRest(sheetOf(setCurrentHitPoints(e, fighter(), null)));
+  expect(longRestRows(rested, { ate: true })).toEqual([]);
+  expect(longRestChangesNothing(rested, { ate: true, dawn: true, back: new Map() })).toBe(true);
+  expect(longRestPicks(rested)).toBe(false);
+  // Exhaustion and a spent Dawn use: something changes only with a checkbox on and a number above 0.
+  const wizard = longRest(
+    sheetOf(setFeatureUsesSpent(e, setExhaustion(e, setCurrentHitPoints(e, wizard5(), null), 1), "orcpub.dnd.e5.units/day", "Arcane Recovery", 1)),
+  );
+  const back = dawnStart(wizard.dawn);
+  expect(longRestChangesNothing(wizard, { ate: true, dawn: false, back })).toBe(false);
+  expect(longRestChangesNothing(wizard, { ate: false, dawn: true, back })).toBe(false);
+  expect(longRestChangesNothing(wizard, { ate: false, dawn: true, back: new Map() })).toBe(true);
+  expect(longRestChangesNothing(wizard, { ate: false, dawn: false, back })).toBe(true);
+  // The dialog keeps the space of the line only when the picks can take the rest to nothing and back.
+  expect(longRestReserve(wizard)).toBe(true);
+  expect(longRestReserve(rested)).toBe(false);
+  // The hit points always come back, so the line is never needed.
+  expect(longRestReserve(longRest(sheetOf(setExhaustion(e, setCurrentHitPoints(e, wizard5(), 10), 1))))).toBe(false);
+  // A short rest with only rows that wait for a pick.
+  const short = shortRestRows(shortRest(sheetOf(setCurrentHitPoints(e, fighter(), 10))), NONE);
+  expect(short.length).toBeGreaterThan(0);
+  expect(nothingChanges(short)).toBe(true);
+  expect(shortRestPicks(shortRest(sheetOf(setCurrentHitPoints(e, fighter(), 10))))).toBe(true);
+  // Channel Divinity always comes back, so the line is never needed.
+  expect(
+    shortRestPicks(shortRest(sheetOf(setFeatureUsesSpent(e, setCurrentHitPoints(e, multiclass(), 10), "orcpub.dnd.e5.units/rest", "Channel Divinity", 1)))),
+  ).toBe(false);
 });

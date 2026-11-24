@@ -1,5 +1,6 @@
-// The Rest button and the Short rest dialog, with Arcane Recovery (ORC-318,
-// docs/design/sheet-interactivity.md "Rests").
+// The Rest button, the Short rest dialog with Arcane Recovery (ORC-318), and
+// the Long rest and Dawn dialogs (ORC-319, docs/design/sheet-interactivity.md
+// "Rests").
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
@@ -11,6 +12,23 @@ const WIZARD_WARLOCK = join(import.meta.dirname, "wizard-3-warlock-2.strict.json
 
 /** fighter-5: 5 d10; Second Wind and Action Surge (rest). */
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
+
+/** wizard-5: 5 d6, 32 hit points; 4 1st-level, 3 2nd-level and 2 3rd-level slots; Arcane Recovery (Dawn). */
+const WIZARD = join(import.meta.dirname, "../../../fixtures/characters/wizard-5.strict.json");
+
+/** The play state of a wizard after a hard day: each value that a long rest changes, and inspiration and a condition, which it keeps. */
+const TIRED = {
+  "~:orcpub.dnd.e5.character/current-hit-points": 9,
+  "~:orc-alchemy.play/temp-hit-points": 4,
+  "~:orc-alchemy.play/death-saves": { "~:successes": 1, "~:failures": 2 },
+  "~:orc-alchemy.play/concentration": "~:bless",
+  "~:orc-alchemy.play/exhaustion": 2,
+  "~:orc-alchemy.play/inspiration": true,
+  "~:orc-alchemy.play/conditions": { "~#set": ["~:prone"] },
+  "~:orc-alchemy.play/hit-dice-spent": { "~i6": 4 },
+  "~:orc-alchemy.play/uses-spent": { "~:orcpub.dnd.e5.units/day": { "Arcane Recovery": 1 } },
+  "~:orcpub.dnd.e5.spells/slots-used": { "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0, 1] }, "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0] } },
+};
 
 const VALUES = "~:orcpub.entity.strict/values";
 
@@ -53,7 +71,7 @@ const storedValues = (page: Page) =>
   );
 
 const restButton = (page: Page) => page.getByRole("button", { name: "Rest", exact: true });
-const dialog = (page: Page) => page.getByRole("dialog", { name: "Short rest" });
+const dialog = (page: Page, name = "Short rest") => page.getByRole("dialog", { name });
 const row = (page: Page, die: string) => dialog(page).getByRole("group", { name: die, exact: true });
 const changes = (page: Page) => dialog(page).getByRole("region", { name: "This rest will change" }).getByRole("listitem");
 const status = (page: Page) =>
@@ -74,11 +92,21 @@ async function spend(page: Page, die: string, roll: string) {
   await row(page, die).getByRole("button", { name: "Spend", exact: true }).click();
 }
 
-/** The place and size of the dialog and of each part in it, from the top left of the dialog. */
-const layout = (page: Page) =>
-  dialog(page).evaluate((element) => {
+/** Takes the focus off the focused element, if one has it, so that a screenshot shows no focus ring. */
+const blur = (page: Page) => page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+/** Opens a rest dialog from the menu. */
+async function openRest(page: Page, name: string) {
+  await restButton(page).click();
+  await page.getByRole("menuitem", { name }).click();
+  await expect(dialog(page, name)).toBeVisible();
+}
+
+/** The place and size of the dialog and of each part in it, from the top left of the dialog. A note shows over other parts, so it is not a part. */
+const layout = (page: Page, name?: string) =>
+  dialog(page, name).evaluate((element) => {
     const origin = element.getBoundingClientRect();
-    return [element, ...element.querySelectorAll("section, li, [role=group], .ui-tokens, h3, p, button, input, output")].map((part) => {
+    return [element, ...element.querySelectorAll("section, li, [role=group], .ui-tokens, h3, p:not(.ui-note-line), button, input, output")].map((part) => {
       const { x, y, width, height } = part.getBoundingClientRect();
       return [x - origin.x, y - origin.y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
     });
@@ -109,6 +137,10 @@ for (const [width, height] of [
     // The list has the same rows, with other changes.
     expect(await labels()).toEqual(rows);
     await dialog(page).getByRole("button", { name: "Take back the d10, +8" }).click();
+    expect(await layout(page)).toEqual(before);
+    // The note of a roll that is not valid takes no space.
+    await spend(page, "d8", "9");
+    await expect(dialog(page).getByText("Type a roll from 1 to 8 for the d8.")).toBeVisible();
     expect(await layout(page)).toEqual(before);
   });
 }
@@ -285,6 +317,140 @@ test("the builder has no Rest button", async ({ page }) => {
   await expect(restButton(page)).toHaveCount(0);
 });
 
+test("the menu has Dawn only when the character has a feature with Dawn uses", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, FIGHTER);
+  await restButton(page).click();
+  await expect(page.getByRole("menuitem")).toHaveText(["Short rest", "Long rest"]);
+  await page.keyboard.press("Escape");
+  await open(page, WIZARD);
+  await restButton(page).click();
+  await expect(page.getByRole("menuitem")).toHaveText(["Short rest", "Long rest", "Dawn"]);
+});
+
+const longChanges = (page: Page) => dialog(page, "Long rest").getByRole("region", { name: "This rest will change" }).getByRole("listitem");
+
+test("Long rest lists its changes, writes them at once, and keeps inspiration and the conditions after a reload", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, WIZARD, TIRED);
+  const before = await storedValues(page);
+  await openRest(page, "Long rest");
+  await expect(longChanges(page)).toHaveText([
+    "Hit points9 → 32 / 32",
+    "Temporary hit points4 → 0",
+    "1st-level slots+2",
+    "2nd-level slots+1",
+    "Hit dice (d6)+2",
+    "Death savescleared",
+    "Concentrationcleared",
+    "Exhaustion2 → 1",
+  ]);
+  await expect(dialog(page, "Long rest").getByRole("checkbox", { name: "Ate and drank" })).toBeChecked();
+  await expect(dialog(page, "Long rest").getByRole("checkbox", { name: "Dawn came during the rest" })).toBeChecked();
+  await expect(dialog(page, "Long rest").getByRole("textbox", { name: "Arcane Recovery" })).toHaveValue("1");
+  await dialog(page, "Long rest").getByRole("button", { name: "Finish" }).click();
+  await expect(dialog(page, "Long rest")).toHaveCount(0);
+  await expect(status(page)).toHaveText("Long rest finished.");
+  await expect(restButton(page)).toBeFocused();
+  const expected: Record<string, unknown> = { ...before, "~:orc-alchemy.play/exhaustion": 1, "~:orc-alchemy.play/hit-dice-spent": { "~i6": 2 } };
+  for (const key of [
+    "~:orcpub.dnd.e5.character/current-hit-points",
+    "~:orc-alchemy.play/temp-hit-points",
+    "~:orc-alchemy.play/death-saves",
+    "~:orc-alchemy.play/concentration",
+    "~:orc-alchemy.play/uses-spent",
+    "~:orcpub.dnd.e5.spells/slots-used",
+  ])
+    delete expected[key];
+  // The whole stored record of the play state, after the save and after a reload.
+  await expect.poll(() => storedValues(page)).toEqual(expected);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Hit points, 32 of 32" })).toBeVisible();
+  expect(await storedValues(page)).toEqual(expected);
+});
+
+test("Long rest with both checkboxes off keeps the exhaustion level and the Dawn uses; the Dawn list stays in its place, disabled", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, WIZARD, TIRED);
+  const before = await storedValues(page);
+  await openRest(page, "Long rest");
+  await dialog(page, "Long rest").getByRole("checkbox", { name: "Ate and drank" }).click();
+  await expect(longChanges(page).last()).toHaveText("ExhaustionNo change");
+  await dialog(page, "Long rest").getByRole("checkbox", { name: "Dawn came during the rest" }).click();
+  await expect(dialog(page, "Long rest").getByRole("textbox", { name: "Arcane Recovery" })).toBeDisabled();
+  await dialog(page, "Long rest").getByRole("button", { name: "Finish" }).click();
+  await expect(status(page)).toHaveText("Long rest finished.");
+  await expect
+    .poll(() => storedValues(page))
+    .toEqual({
+      ...Object.fromEntries(
+        Object.entries(before).filter(
+          ([key]) =>
+            ![
+              "~:orcpub.dnd.e5.character/current-hit-points",
+              "~:orc-alchemy.play/temp-hit-points",
+              "~:orc-alchemy.play/death-saves",
+              "~:orc-alchemy.play/concentration",
+              "~:orcpub.dnd.e5.spells/slots-used",
+            ].includes(key),
+        ),
+      ),
+      "~:orc-alchemy.play/hit-dice-spent": { "~i6": 2 },
+    });
+});
+
+for (const [width, height] of [
+  [1280, 900],
+  [390, 844],
+] as const) {
+  test(`at ${width}px the Long rest dialog keeps its size and its parts keep their places when the checkboxes go off and on`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await open(page, WIZARD, TIRED);
+    await openRest(page, "Long rest");
+    const before = await layout(page, "Long rest");
+    const dawn = dialog(page, "Long rest").getByRole("checkbox", { name: "Dawn came during the rest" });
+    await dawn.click();
+    await expect(dawn).not.toBeChecked();
+    expect(await layout(page, "Long rest")).toEqual(before);
+    await dialog(page, "Long rest").getByRole("checkbox", { name: "Ate and drank" }).click();
+    // Both off: the rest still changes the hit points, so the list has no line "Nothing will change.".
+    expect(await layout(page, "Long rest")).toEqual(before);
+    await dawn.click();
+    await expect(dawn).toBeChecked();
+    expect(await layout(page, "Long rest")).toEqual(before);
+    if (width === 1280) {
+      // The rest dialogs are narrow: about 520px wide.
+      expect((await dialog(page, "Long rest").boundingBox())?.width).toBeLessThanOrEqual(520);
+    }
+  });
+}
+
+test("Dawn gives back the number in each field, and a field at 0 says that nothing will change; the record keeps it after a reload", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, WIZARD, TIRED);
+  const before = await storedValues(page);
+  await openRest(page, "Dawn");
+  const field = dialog(page, "Dawn").getByRole("textbox", { name: "Arcane Recovery" });
+  await expect(field).toHaveValue("1");
+  await expect(dialog(page, "Dawn").getByText("Nothing will change.")).toHaveCount(0);
+  const size = await layout(page, "Dawn");
+  await field.fill("0");
+  await expect(dialog(page, "Dawn").getByText("Nothing will change.")).toBeVisible();
+  expect(await layout(page, "Dawn")).toEqual(size);
+  // Finish with nothing to change works, and changes nothing.
+  await dialog(page, "Dawn").getByRole("button", { name: "Finish" }).click();
+  await expect(status(page)).toHaveText("Dawn finished.");
+  await page.waitForTimeout(800);
+  expect(await storedValues(page)).toEqual(before);
+  await openRest(page, "Dawn");
+  await dialog(page, "Dawn").getByRole("button", { name: "Finish" }).click();
+  const { "~:orc-alchemy.play/uses-spent": _, ...rest } = before;
+  await expect.poll(() => storedValues(page)).toEqual(rest);
+  await page.reload();
+  await expect(restButton(page)).toBeVisible();
+  expect(await storedValues(page)).toEqual(rest);
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- rest.spec.ts -g orc-318
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -313,13 +479,13 @@ test.describe("screenshots", () => {
         }
         await page.getByRole("menuitem", { name: "Short rest" }).click();
         await expect(dialog(page)).toBeVisible();
-        await page.locator(":focus").blur();
+        await blur(page);
         await page.screenshot({ path: shot(`${size}-dialog-empty`) });
         await spend(page, "d10", "7");
         await spend(page, "d8", "3");
         await spend(page, "d8", "6");
         await dialog(page).getByRole("button", { name: "One more 1st-level slot" }).click();
-        await page.locator(":focus").blur();
+        await blur(page);
         await page.screenshot({ path: shot(`${size}-dialog-picked`) });
         if (size === "phone") {
           await dialog(page)
@@ -327,6 +493,64 @@ test.describe("screenshots", () => {
             .evaluate((body) => body.scrollTo(0, body.scrollHeight));
           await page.screenshot({ path: shot(`${size}-dialog-picked-end`) });
         }
+        await page.keyboard.press("Escape");
+      }
+    });
+  }
+});
+
+// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/rest.spec.ts -g orc-319
+test.describe("screenshots of ORC-319", () => {
+  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
+  test.use({ deviceScaleFactor: 2 });
+  const dir = join(import.meta.dirname, "../../../pr-screenshots");
+  for (const theme of ["light", "dark"] as const) {
+    test(`orc-319 Long rest and Dawn, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-319-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      for (const [size, width, height] of [
+        ["desktop", 1280, 900],
+        ["phone", 390, 844],
+      ] as const) {
+        await page.setViewportSize({ width, height });
+        await open(page, WIZARD, TIRED);
+        // The action row with the menu of three entries.
+        await restButton(page).click();
+        const menu = page.getByRole("menu");
+        await expect(menu).toBeVisible();
+        const row = await page.getByRole("link", { name: "Back to List" }).locator("..").boundingBox();
+        const list = await menu.boundingBox();
+        if (row && list) {
+          const top = Math.max(0, row.y - 8);
+          await page.screenshot({
+            path: shot(`${size}-menu`),
+            clip: { x: 0, y: top, width, height: Math.max(row.y + row.height, list.y + list.height) + 8 - top },
+          });
+        }
+        await page.getByRole("menuitem", { name: "Long rest" }).click();
+        await expect(dialog(page, "Long rest")).toBeVisible();
+        await blur(page);
+        await page.screenshot({ path: shot(`${size}-long-rest`) });
+        if (size === "phone") {
+          await dialog(page, "Long rest")
+            .locator(".ui-modal-body")
+            .evaluate((body) => body.scrollTo(0, body.scrollHeight));
+          await page.screenshot({ path: shot(`${size}-long-rest-end`) });
+        }
+        await dialog(page, "Long rest").getByRole("checkbox", { name: "Dawn came during the rest" }).click();
+        await blur(page);
+        await page.screenshot({ path: shot(`${size}-long-rest-dawn-off`) });
+        await page.keyboard.press("Escape");
+        await openRest(page, "Dawn");
+        await blur(page);
+        await page.screenshot({ path: shot(`${size}-dawn`) });
+        await page.keyboard.press("Escape");
+        // A rested fighter: the Long rest changes nothing.
+        await open(page, FIGHTER, { "~:orcpub.dnd.e5.character/current-hit-points": null });
+        await openRest(page, "Long rest");
+        await blur(page);
+        await page.screenshot({ path: shot(`${size}-nothing`) });
         await page.keyboard.press("Escape");
       }
     });

@@ -46,8 +46,12 @@ type WideBase = {
 export type DialogProps = DialogBase &
   (
     | {
-        /** Not set: up to 720px wide, with the title row and a footer. */
-        size?: "normal";
+        /**
+         * Not set or "normal": up to 720px wide, with the title row and a
+         * footer. "narrow": the same, up to 520px wide, for a short form or
+         * list. At 600px and less, each fills the screen.
+         */
+        size?: "normal" | "narrow";
         /** The buttons after Cancel, at the end of the footer, for example a solid Save button. */
         actions?: ReactNode;
         header?: never;
@@ -112,7 +116,8 @@ function useLateControlFocus(open: boolean, body: HTMLElement | null, ownFocus: 
  * if the body shows it later. `initialFocus` gives it to another element.
  * Cancel, Escape and a click outside call `onOpenChange(false)`.
  *
- * With `size="wide"` it is up to 1100px wide. The owner can then give its
+ * With `size="narrow"` it is up to 520px wide. With `size="wide"` it is up
+ * to 1100px wide. The owner can then give its
  * own `header` in place of the title, and `footer={false}` removes the
  * footer and puts an X in the header row. The X also calls
  * `onOpenChange(false)`. `fill` gives it the height of the window less its
@@ -155,7 +160,7 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
         <BaseDialog.Popup
           ref={popup}
           className="ui-modal"
-          data-size={wide ? "wide" : undefined}
+          data-size={size === "wide" || size === "narrow" ? size : undefined}
           data-fill={wide && fill ? "" : undefined}
           aria-label={ownHeader ? title : undefined}
           initialFocus={initial}

@@ -2,7 +2,18 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { setCurrentHitPoints, setDeathSaves, setFeatureUsesSpent, setHitDiceSpent, setTempHitPoints } from "./play.ts";
+import {
+  setConcentration,
+  setConditions,
+  setCurrentHitPoints,
+  setDeathSaves,
+  setExhaustion,
+  setFeatureUsesSpent,
+  setHitDiceSpent,
+  setInspiration,
+  setTempHitPoints,
+} from "./play.ts";
+import { type DawnBack, dawnStart, dawnUses } from "./rest.ts";
 import { applyRest } from "./rest-apply.ts";
 import { toSheet } from "./sheet.ts";
 import { setSpentSlots, slotLayout } from "./spells.ts";
@@ -113,4 +124,104 @@ test("picks that the rules do not allow change nothing: slot levels above the li
 test("a rest that changes nothing keeps the record as it is", () => {
   const entity = multiclass();
   expect(shortRest(entity, [{ die: 10, roll: 5 }])).toEqual({ entity, status: "Short rest finished." });
+});
+
+const DAY = "orcpub.dnd.e5.units/day";
+
+/** The play state that no rest changes: inspiration, the conditions, and the uses of the groups round, minute and hour. */
+function untouched(entity: StrictEntity) {
+  const e = engine();
+  let next = setInspiration(e, entity, true);
+  next = setConditions(e, next, ["prone", "poisoned"]);
+  for (const unit of ["round", "minute", "hour"]) next = setFeatureUsesSpent(e, next, `orcpub.dnd.e5.units/${unit}`, `A ${unit} use`, 1);
+  return next;
+}
+
+/** Wizard 3 / warlock 2 after a hard day, with the play state that no rest changes. */
+function tired() {
+  const e = engine();
+  let entity = setCurrentHitPoints(e, untouched(wizardWarlock()), 3);
+  entity = setTempHitPoints(e, entity, 4);
+  entity = setDeathSaves(e, entity, { successes: 1, failures: 2 });
+  entity = setConcentration(e, entity, "bless");
+  entity = setExhaustion(e, entity, 2);
+  // 1 of 2 d8 and 3 of 3 d6 spent: half of 5 is 2, so the d8 and one d6 come back.
+  entity = setHitDiceSpent(
+    e,
+    entity,
+    new Map([
+      [8, 1],
+      [6, 3],
+    ]),
+  );
+  entity = setFeatureUsesSpent(e, entity, DAY, "Arcane Recovery", 1);
+  entity = setFeatureUsesSpent(e, entity, "orcpub.dnd.e5.units/long-rest", "Divine Sense", 1);
+  entity = setFeatureUsesSpent(e, entity, "orcpub.dnd.e5.units/rest", "Channel Divinity", 2);
+  entity = setFeatureUsesSpent(e, entity, "orcpub.dnd.e5.units/short-rest", "Action Surge", 1);
+  return spendSlots(entity, [
+    [1, 2],
+    [2, 1],
+    ["pact", 2],
+  ]);
+}
+
+const longRest = (entity: StrictEntity, ate: boolean, dawn: boolean, back?: DawnBack) => {
+  const sheet = sheetOf(entity);
+  return applyRest(engine(), entity, sheet, { kind: "long", ate, dawn, back: back ?? dawnStart(dawnUses(sheet)) });
+};
+
+test("a long rest writes each change at once and keeps inspiration, the conditions and the round, minute and hour uses", () => {
+  const e = engine();
+  const result = longRest(tired(), true, true);
+  expect(result.status).toBe("Long rest finished.");
+  // The whole record: full hit points, no temporary hit points, death saves, concentration or spent slots; one d6 spent;
+  // exhaustion 1; the uses of short-rest, rest, long-rest and day back.
+  let expected = setHitDiceSpent(e, untouched(wizardWarlock()), new Map([[6, 2]]));
+  expected = setExhaustion(e, expected, 1);
+  expect(result.entity).toEqual(expected);
+});
+
+test("a long rest with 'Ate and drank' off keeps the exhaustion level; with 'Dawn came during the rest' off, the Dawn uses stay spent", () => {
+  const e = engine();
+  let expected = setHitDiceSpent(e, untouched(wizardWarlock()), new Map([[6, 2]]));
+  expected = setExhaustion(e, expected, 2);
+  expected = setFeatureUsesSpent(e, expected, DAY, "Arcane Recovery", 1);
+  expect(longRest(tired(), false, false).entity).toEqual(expected);
+});
+
+test("the hit dice of a long rest: half the total, at least 1, the largest die first; a long rest at level 1 gives back the one die", () => {
+  const e = engine();
+  // All 5 dice spent: 2 come back, both d8.
+  const spent = setHitDiceSpent(
+    e,
+    wizardWarlock(),
+    new Map([
+      [8, 2],
+      [6, 3],
+    ]),
+  );
+  expect(longRest(spent, true, true).entity).toEqual(setHitDiceSpent(e, wizardWarlock(), new Map([[6, 3]])));
+  const wizard1 = read("../../../../fixtures/characters/wizard-1.strict.json");
+  expect(longRest(setHitDiceSpent(e, wizard1, new Map([[6, 1]])), true, true).entity).toEqual(setCurrentHitPoints(e, wizard1, null));
+});
+
+test("the Dawn dialog gives back the numbers of its fields, up to the spent count, and nothing else", () => {
+  const e = engine();
+  const start = untouched(setFeatureUsesSpent(e, tired(), DAY, "Arcane Recovery", 1));
+  const sheet = sheetOf(start);
+  const [arcane] = dawnUses(sheet);
+  const dawn = (back: DawnBack) => applyRest(e, start, sheet, { kind: "dawn", back });
+  expect(dawn(new Map([[arcane?.key ?? "", 5]]))).toEqual({ entity: setFeatureUsesSpent(e, start, DAY, "Arcane Recovery", 0), status: "Dawn finished." });
+  // 0 back changes nothing.
+  expect(dawn(new Map([[arcane?.key ?? "", 0]])).entity).toEqual(start);
+  // A long rest with Dawn and 0 in the field keeps the Dawn use spent.
+  expect(longRest(tired(), true, true, new Map([[arcane?.key ?? "", 0]])).entity).toEqual(
+    setFeatureUsesSpent(e, setExhaustion(e, setHitDiceSpent(e, untouched(wizardWarlock()), new Map([[6, 2]])), 1), DAY, "Arcane Recovery", 1),
+  );
+});
+
+test("a long rest and a Dawn that change nothing keep the record as it is", () => {
+  const entity = untouched(setCurrentHitPoints(engine(), wizardWarlock(), null));
+  expect(longRest(entity, true, true)).toEqual({ entity, status: "Long rest finished." });
+  expect(applyRest(engine(), entity, sheetOf(entity), { kind: "dawn", back: new Map() })).toEqual({ entity, status: "Dawn finished." });
 });

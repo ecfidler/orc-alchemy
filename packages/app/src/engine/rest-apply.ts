@@ -1,14 +1,62 @@
-// Applies a rest to the strict entity (ORC-318): it reads what the rest can
-// change (rest.ts), keeps only the picks that the rules allow, and writes
-// all the changes together with play.ts and spells.ts, for one sheet change.
+// Applies a rest to the strict entity (ORC-318, ORC-319): it reads what the
+// rest can change (rest.ts), keeps only the picks that the rules allow, and
+// writes all the changes together with play.ts and spells.ts, for one sheet
+// change.
 import type { Engine, StrictEntity } from "./engine.ts";
 import { applyHitPoints } from "./hit-points-apply.ts";
-import { hitDiceSpent, rechargeGroup, setHitDiceSpent, setUsesSpent, usesSpent } from "./play.ts";
-import { diceHealing, type RestAction, restStatus, type ShortRest, shortRest, shortRestGroup, validDice, validSlotPicks } from "./rest.ts";
+import {
+  exhaustion,
+  hitDiceSpent,
+  rechargeGroup,
+  setConcentration,
+  setCurrentHitPoints,
+  setDeathSaves,
+  setExhaustion,
+  setHitDiceSpent,
+  setTempHitPoints,
+  setUsesSpent,
+  type UsesSpent,
+  usesSpent,
+} from "./play.ts";
+import {
+  type DawnBack,
+  dawnUses,
+  diceHealing,
+  type LongRest,
+  longRest,
+  longRestGroup,
+  type RestAction,
+  type RestUse,
+  restStatus,
+  type ShortRest,
+  shortRest,
+  shortRestGroup,
+  validBack,
+  validDice,
+  validSlotPicks,
+} from "./rest.ts";
 import type { Sheet } from "./sheet.ts";
 import { setSpentSlots } from "./spells.ts";
 
-type RestSheet = Parameters<typeof shortRest>[0];
+type RestSheet = Parameters<typeof shortRest>[0] & Parameters<typeof longRest>[0];
+
+/** The spent uses of the record, as a copy that the caller can change, without the groups that `cleared` passes. */
+const usesWithout = (entity: StrictEntity, cleared: (group: string) => boolean) =>
+  new Map([...usesSpent(entity)].filter(([group]) => !cleared(group)).map(([group, features]) => [group, new Map(features)]));
+
+/** Takes the Dawn uses that come back off the spent counts. A use with no number keeps its stored count. */
+function giveBackDawn(uses: Map<string, Map<string, number>>, dawn: readonly RestUse[], back: DawnBack): UsesSpent {
+  const kept = validBack(dawn, back);
+  for (const { key, use, spent } of dawn) {
+    const n = kept.get(key) ?? 0;
+    if (n <= 0) continue;
+    const group = rechargeGroup(use.units);
+    const features = uses.get(group) ?? new Map<string, number>();
+    features.set(use.name, spent - n);
+    uses.set(group, features);
+  }
+  return uses;
+}
 
 /**
  * The entity after a Short rest, and the text of the status line.
@@ -42,7 +90,7 @@ function applyShortRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest:
     const spent = rest.arcaneRecovery?.slots.find((s) => s.level === level)?.spent ?? 0;
     next = setSpentSlots(e, next, layout, level, spent - n);
   }
-  const uses = new Map([...usesSpent(entity)].filter(([group]) => !shortRestGroup(group)).map(([group, features]) => [group, new Map(features)]));
+  const uses = usesWithout(entity, shortRestGroup);
   const recovery = rest.arcaneRecovery;
   if (recovery && picks.size > 0) {
     const group = rechargeGroup(recovery.use.units);
@@ -51,6 +99,43 @@ function applyShortRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest:
     uses.set(group, features);
   }
   return setUsesSpent(e, next, uses);
+}
+
+/**
+ * The entity after a Long rest.
+ *
+ * - The hit points go to full (no value), the temporary hit points to 0,
+ *   and the death save counts and the concentration mark clear.
+ * - All spell slots come back, the Pact Magic slots also.
+ * - The spent uses of the groups `short-rest`, `rest` and `long-rest` come
+ *   back. Round, minute and hour uses stay.
+ * - The spent hit dice of hitDiceBack come back, the largest die first.
+ * - With "Ate and drank", the exhaustion level goes down by 1.
+ * - With "Dawn came during the rest", the numbers of the Dawn list come back.
+ *
+ * Inspiration and the conditions do not change.
+ */
+function applyLongRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest: LongRest, action: Extract<RestAction, { kind: "long" }>) {
+  let next = setCurrentHitPoints(e, entity, null);
+  next = setTempHitPoints(e, next, 0);
+  next = setDeathSaves(e, next, { successes: 0, failures: 0 });
+  next = setConcentration(e, next, null);
+  const layout = sheet.spellcasting ?? { slots: [], pact: null };
+  if (rest.pactSpent > 0) next = setSpentSlots(e, next, layout, "pact", 0);
+  for (const { level } of rest.slots) next = setSpentSlots(e, next, layout, level, 0);
+  if (rest.dice.length > 0) {
+    // A stored die that the character no longer has keeps its entry.
+    const spent = new Map(hitDiceSpent(entity));
+    for (const { die, back } of rest.dice) {
+      const hitDie = sheet.hitDice.find((d) => d.die === die);
+      if (hitDie) spent.set(die, hitDie.total - hitDie.left - back);
+    }
+    next = setHitDiceSpent(e, next, spent);
+  }
+  const level = exhaustion(entity);
+  if (action.ate && level > 0) next = setExhaustion(e, next, level - 1);
+  const uses = usesWithout(entity, longRestGroup);
+  return setUsesSpent(e, next, action.dawn ? giveBackDawn(uses, rest.dawn, action.back) : uses);
 }
 
 /**
@@ -63,5 +148,20 @@ export function applyRest(e: Engine, entity: StrictEntity, sheet: Pick<Sheet, ke
   switch (action.kind) {
     case "short":
       return { entity: applyShortRest(e, entity, sheet, shortRest(sheet), action), status: restStatus("short") };
+    case "long":
+      return { entity: applyLongRest(e, entity, sheet, longRest(sheet), action), status: restStatus("long") };
+    case "dawn":
+      return {
+        entity: setUsesSpent(
+          e,
+          entity,
+          giveBackDawn(
+            usesWithout(entity, () => false),
+            dawnUses(sheet),
+            action.back,
+          ),
+        ),
+        status: restStatus("dawn"),
+      };
   }
 }

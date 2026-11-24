@@ -251,7 +251,9 @@ homebrew forms. They have no game words: the app gives the lists.
   ask the owner to close it, so the owner can ask first. A ListModal, an
   AlertDialog or another Dialog that the body opens shows above it. Esc
   and a click outside then close only the top one, and the focus comes
-  back into the Dialog. With `size="wide"` it is up to 1100px wide, for
+  back into the Dialog. With `size="narrow"` it is up to 520px wide, for
+  a short form or list such as the rest dialogs (ORC-319). With
+  `size="wide"` it is up to 1100px wide, for
   the Spells panel (ORC-270). The owner can then give its own header in
   place of the title row; the title still names the dialog for a screen
   reader. The footer is optional. A wide Dialog with no footer closes

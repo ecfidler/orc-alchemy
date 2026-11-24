@@ -173,7 +173,9 @@ bun run test       # vitest
     `finalFocus` (a ref, or a function that runs at the close), or else
     back to where it was before it opened. `initialFocus` (a ref, or a
     function that runs at the open) gives the focus to another element at
-    the open. With `size="wide"` it is up to 1100px wide. The owner can
+    the open. With `size="narrow"` it is up to 520px wide, for a short
+    form or list; at 600px and less it fills the screen too. With
+    `size="wide"` it is up to 1100px wide. The owner can
     then give a `header` in place of the title row: the `title` does not
     show, and it still names the dialog. `footer={false}` removes the
     footer and does not take `actions`, and an X named "Close" at the end
