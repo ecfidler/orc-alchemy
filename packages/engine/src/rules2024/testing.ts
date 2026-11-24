@@ -21,6 +21,9 @@ export interface Choices {
   level4Feat?: StrictOption;
 }
 
+/** The value of a column of a class table at `level`: the last step at or below it, or undefined before the first step. */
+export const stepAt = (level: number, table: [number, number][]) => table.filter(([from]) => level >= from).at(-1)?.[1];
+
 export const twoAndOne = (plusTwo: string, plusOne: string): StrictOption => ({
   key: "two-and-one",
   selections: [

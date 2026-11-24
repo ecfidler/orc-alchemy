@@ -1,7 +1,7 @@
 // A test for each hook of the engine.
 
 import { describe, expect, it } from "vitest";
-import { availableSelections, buildWithContributions } from "../../core/build.ts";
+import { availableSelections, buildWithContributions, canChoose, findProblems } from "../../core/build.ts";
 import { SRD52 } from "../built-in.ts";
 import type { Entity2024 } from "../evaluate.ts";
 import { loadContentPack } from "../packs.ts";
@@ -319,5 +319,109 @@ describe("weapon-mastery", () => {
         disadvantage: false,
       },
     ]);
+  });
+
+  it("offers the Melee weapons only with melee, as for the Barbarian", () => {
+    const brute = loadContentPack(
+      testPackFile({
+        classes: [testClass("brute", { levels: [{ level: 1, effects: [{ hook: "weapon-mastery", args: { count: 2, melee: true } }] }] })],
+        equipment: [boomerang],
+      }),
+    );
+    if (!brute.pack) throw new Error("the test pack does not load");
+    const entity: Entity2024 = {
+      selections: [{ key: "class", options: [{ key: "test:brute", selections: [{ key: "levels", options: [{ key: "level-1" }] }] }] }],
+    };
+    const bruteTemplate = createTemplate({ packs: [SRD52, brute.pack] });
+    const pool = availableSelections(entity, buildWithContributions(entity, bruteTemplate).built, bruteTemplate).find((s) => s.key === "weapon-mastery");
+    // The 38 SRD weapons less the 10 Ranged ones (p90, p91). The Boomerang is a Ranged weapon too.
+    expect(pool).toMatchObject({ min: 2, max: 2 });
+    expect(pool?.options).toHaveLength(28);
+    expect(pool?.options.map((o) => o.key)).toContain("srd52:handaxe");
+    expect(pool?.options.map((o) => o.key)).not.toContain("srd52:dart");
+  });
+});
+
+// The hooks of the Rogue (ORC-252), on a test class with the skills Stealth and Perception and the Simple weapons.
+describe("expertise, language-choice, and weapon-mastery with proficient", () => {
+  const loaded = pack([
+    testClass("sneak", {
+      weaponProficiencies: ["simple"],
+      levels: [
+        {
+          level: 1,
+          effects: [
+            { hook: "expertise", args: { count: 1 } },
+            { hook: "language-choice", args: { name: "Cant" } },
+            { hook: "weapon-mastery", args: { count: 1, proficient: true } },
+          ],
+        },
+        { level: 2, effects: [{ hook: "expertise", args: { count: 1 } }] },
+      ],
+    }),
+  ]);
+  if (!loaded.pack) throw new Error("the test pack does not load");
+  const template = createTemplate({ packs: [SRD52, loaded.pack] });
+  const levelOne = (choices: { key: string; option: { key: string } }[], levels = 1, more: { key: string; option: { key: string } }[] = []): Entity2024 => ({
+    selections: [
+      {
+        key: "class",
+        options: [
+          {
+            key: "test:sneak",
+            selections: [
+              { key: "skill-proficiencies", options: [{ key: "stealth" }, { key: "perception" }] },
+              {
+                key: "levels",
+                options: Array.from({ length: levels }, (_, i) => ({ key: `level-${i + 1}`, ...(i === 0 ? { selections: choices } : { selections: more }) })),
+              },
+            ],
+          },
+        ],
+      },
+      { key: "languages", options: [{ key: "srd52:elvish" }, { key: "srd52:dwarvish" }] },
+    ],
+  });
+  const offered = (entity: Entity2024, key: string) => {
+    const { built } = buildWithContributions(entity, template);
+    const choice = availableSelections(entity, built, template).find((s) => s.key === key);
+    return choice?.options.filter((o) => canChoose(o, built)).map((o) => o.key) ?? [];
+  };
+
+  it("are in the registry", () => {
+    expect(["expertise", "language-choice"].every((name) => HOOKS.has(name))).toBe(true);
+  });
+
+  it("offers Expertise only in a skill with proficiency, and once for each skill", () => {
+    expect(offered(levelOne([]), "expertise")).toEqual(["perception", "stealth"]);
+    const stealth = levelOne([{ key: "expertise", option: { key: "stealth" } }], 2);
+    const { built } = buildWithContributions(stealth, template);
+    // Stealth: Dex 0 + two times the Proficiency Bonus 2 (p182).
+    expect(built.skillBonuses.stealth).toBe(4);
+    // The choice of level 2 offers Perception only.
+    const second = availableSelections(stealth, built, template).filter((s) => s.key === "expertise")[1];
+    expect(second?.options.filter((o) => canChoose(o, built)).map((o) => o.key)).toEqual(["perception"]);
+    const twice = levelOne([{ key: "expertise", option: { key: "stealth" } }], 2, [{ key: "expertise", option: { key: "stealth" } }]);
+    expect(findProblems(twice, buildWithContributions(twice, template).built, template).map((p) => p.reason)).toEqual([
+      '"Stealth" needs: Not Expertise already',
+      '"Stealth" needs: Not Expertise already',
+    ]);
+  });
+
+  it("offers each language that the character does not know, the Rare languages too", () => {
+    const languages = offered(levelOne([]), "cant");
+    // Common, Elvish and Dwarvish are known. The SRD has 19 languages (p20).
+    expect(languages).toHaveLength(16);
+    expect(languages).toContain("srd52:thieves-cant");
+    expect(languages).not.toContain("srd52:elvish");
+    const { built } = buildWithContributions(levelOne([{ key: "cant", option: { key: "srd52:orc" } }]), template);
+    expect(built.languages).toEqual(["srd52:common", "srd52:orc", "srd52:elvish", "srd52:dwarvish"]);
+  });
+
+  it("offers a Weapon Mastery only for a weapon with proficiency", () => {
+    const weapons = offered(levelOne([]), "weapon-mastery");
+    expect(weapons).toContain("srd52:dagger");
+    expect(weapons).toContain("srd52:shortbow");
+    expect(weapons).not.toContain("srd52:longsword");
   });
 });

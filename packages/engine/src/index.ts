@@ -10,7 +10,7 @@ export * from "./core/template.ts";
 export * from "./format/keys.ts";
 export { checkReferences, type IssuePath, type LoadIssue, type LoadOptions, type LoadResult, loadPack, type Upgrade } from "./format/load.ts";
 export * from "./format/schema.ts";
-export type { ArmorClassFormula, Built2024 } from "./rules2024/built.ts";
+export { type ArmorClassFormula, type Built2024, isProficient, UNARMED_STRIKE } from "./rules2024/built.ts";
 export { BUILT_IN } from "./rules2024/built-in.ts";
 export { type Content, findRecord, recordsOf } from "./rules2024/content.ts";
 export {

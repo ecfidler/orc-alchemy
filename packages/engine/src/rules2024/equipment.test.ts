@@ -194,6 +194,19 @@ describe("armor", () => {
     expect(weak("plate-armor")).toBe(20);
     expect(weak("chain-mail")).toBe(30);
   });
+
+  it("takes the 10 feet also when the armor comes before the species in the choices", () => {
+    // The Speed 30 that the Dwarf sets does not hide the penalty: 30 - 10 = 20.
+    const entity = fighterCharacter({
+      level: 1,
+      armor: srd("plate-armor"),
+      scores: { str: 13, dex: 15, con: 14, int: 10, wis: 12, cha: 8 },
+      backgroundAbilities: twoAndOne("con", "dex"),
+    });
+    const armorFirst = [...entity.selections].sort((a, b) => Number(b.key === "armor") - Number(a.key === "armor"));
+    expect(armorFirst[0].key).toBe("armor");
+    expect(build({ ...entity, selections: armorFirst }).built.speed).toBe(20);
+  });
 });
 
 describe("carried items", () => {

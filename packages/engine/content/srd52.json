@@ -16,6 +16,51 @@
       "source": {
         "index": "barbarian"
       },
+      "effects": [
+        {
+          "uses": {
+            "trait": "rage",
+            "amount": {
+              "steps": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  3,
+                  3
+                ],
+                [
+                  6,
+                  4
+                ],
+                [
+                  12,
+                  5
+                ],
+                [
+                  17,
+                  6
+                ]
+              ],
+              "by": {
+                "read": "classLevels",
+                "entry": "srd52:barbarian"
+              }
+            },
+            "recover": [
+              {
+                "on": "short-rest",
+                "amount": 1
+              },
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        }
+      ],
       "hitDie": 12,
       "primaryAbility": [
         "str"
@@ -66,6 +111,14 @@
           "gold": 75
         }
       ],
+      "multiclass": {
+        "weaponProficiencies": [
+          "martial"
+        ],
+        "armorTraining": [
+          "shield"
+        ]
+      },
       "features": [
         {
           "key": "rage",
@@ -186,6 +239,239 @@
           "name": "Primal Champion",
           "text": "You embody primal power. Your Strength and Constitution scores increase by 4, to a maximum of 25.",
           "level": 20
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "effects": [
+            {
+              "hook": "armor-class",
+              "args": {
+                "name": "Unarmored Defense",
+                "base": 10,
+                "abilities": [
+                  "dex",
+                  "con"
+                ]
+              }
+            },
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 2,
+                "melee": true
+              }
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "effects": [
+            {
+              "selection": {
+                "key": "primal-knowledge",
+                "name": "Primal Knowledge",
+                "choose": 1,
+                "from": [
+                  {
+                    "key": "animal-handling",
+                    "name": "Animal Handling",
+                    "effects": [
+                      {
+                        "push": "skillProficiencies",
+                        "value": "animal-handling"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "athletics",
+                    "name": "Athletics",
+                    "effects": [
+                      {
+                        "push": "skillProficiencies",
+                        "value": "athletics"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "intimidation",
+                    "name": "Intimidation",
+                    "effects": [
+                      {
+                        "push": "skillProficiencies",
+                        "value": "intimidation"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "nature",
+                    "name": "Nature",
+                    "effects": [
+                      {
+                        "push": "skillProficiencies",
+                        "value": "nature"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "perception",
+                    "name": "Perception",
+                    "effects": [
+                      {
+                        "push": "skillProficiencies",
+                        "value": "perception"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "survival",
+                    "name": "Survival",
+                    "effects": [
+                      {
+                        "push": "skillProficiencies",
+                        "value": "survival"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            },
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 1,
+                "melee": true
+              }
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "effects": [
+            {
+              "set": "attacksPerAction",
+              "value": 2,
+              "name": "Extra Attack"
+            },
+            {
+              "add": "speed",
+              "value": 10,
+              "name": "Fast Movement",
+              "when": {
+                "not": {
+                  "equals": [
+                    {
+                      "read": "wornArmorCategory"
+                    },
+                    "heavy"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 10,
+          "effects": [
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 1,
+                "melee": true
+              }
+            }
+          ]
+        },
+        {
+          "level": 12,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 15,
+          "effects": [
+            {
+              "uses": {
+                "trait": "persistent-rage",
+                "amount": 1,
+                "recover": [
+                  {
+                    "on": "long-rest",
+                    "amount": "all"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "level": 16,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 19,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Epic Boon"
+              }
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "effects": [
+            {
+              "hook": "ability-score-increase",
+              "args": {
+                "abilities": [
+                  "str",
+                  "con"
+                ],
+                "amount": 4,
+                "choose": 2,
+                "max": 25
+              },
+              "name": "Primal Champion"
+            }
+          ]
         }
       ],
       "table": [
@@ -3057,6 +3343,112 @@
       "source": {
         "index": "monk"
       },
+      "effects": [
+        {
+          "set": "martialArtsDie",
+          "value": {
+            "steps": [
+              [
+                1,
+                6
+              ],
+              [
+                5,
+                8
+              ],
+              [
+                11,
+                10
+              ],
+              [
+                17,
+                12
+              ]
+            ],
+            "by": {
+              "read": "classLevels",
+              "entry": "srd52:monk"
+            }
+          },
+          "name": "Martial Arts"
+        },
+        {
+          "uses": {
+            "trait": "monks-focus",
+            "amount": {
+              "steps": [
+                [
+                  2,
+                  {
+                    "read": "classLevels",
+                    "entry": "srd52:monk"
+                  }
+                ]
+              ],
+              "by": {
+                "read": "classLevels",
+                "entry": "srd52:monk"
+              }
+            },
+            "recover": [
+              {
+                "on": "short-rest",
+                "amount": "all"
+              },
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "add": "speed",
+          "value": {
+            "steps": [
+              [
+                2,
+                10
+              ],
+              [
+                6,
+                15
+              ],
+              [
+                10,
+                20
+              ],
+              [
+                14,
+                25
+              ],
+              [
+                18,
+                30
+              ]
+            ],
+            "by": {
+              "read": "classLevels",
+              "entry": "srd52:monk"
+            }
+          },
+          "name": "Unarmored Movement",
+          "when": {
+            "all": [
+              {
+                "not": {
+                  "has": "wornArmor"
+                }
+              },
+              {
+                "not": {
+                  "has": "shield"
+                }
+              }
+            ]
+          }
+        }
+      ],
       "hitDie": 8,
       "primaryAbility": [
         "dex",
@@ -3144,6 +3536,7 @@
           "gold": 50
         }
       ],
+      "multiclass": {},
       "features": [
         {
           "key": "martial-arts",
@@ -3276,6 +3669,150 @@
           "name": "Body and Mind",
           "text": "You have developed your body and mind to new heights. Your Dexterity and Wisdom scores increase by 4, to a maximum of 25.",
           "level": 20
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "effects": [
+            {
+              "hook": "armor-class",
+              "args": {
+                "name": "Unarmored Defense",
+                "base": 10,
+                "abilities": [
+                  "dex",
+                  "wis"
+                ],
+                "shield": false
+              }
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "effects": [
+            {
+              "uses": {
+                "trait": "uncanny-metabolism",
+                "amount": 1,
+                "recover": [
+                  {
+                    "on": "long-rest",
+                    "amount": "all"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "effects": [
+            {
+              "set": "attacksPerAction",
+              "value": 2,
+              "name": "Extra Attack"
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 12,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "effects": [
+            {
+              "push": "savingThrowProficiencies",
+              "value": "con",
+              "name": "Disciplined Survivor"
+            },
+            {
+              "push": "savingThrowProficiencies",
+              "value": "int",
+              "name": "Disciplined Survivor"
+            },
+            {
+              "push": "savingThrowProficiencies",
+              "value": "wis",
+              "name": "Disciplined Survivor"
+            },
+            {
+              "push": "savingThrowProficiencies",
+              "value": "cha",
+              "name": "Disciplined Survivor"
+            }
+          ]
+        },
+        {
+          "level": 16,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 19,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Epic Boon"
+              }
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "effects": [
+            {
+              "hook": "ability-score-increase",
+              "args": {
+                "abilities": [
+                  "dex",
+                  "wis"
+                ],
+                "amount": 4,
+                "choose": 2,
+                "max": 25
+              },
+              "name": "Body and Mind"
+            }
+          ]
         }
       ],
       "table": [
@@ -4983,6 +5520,29 @@
           "gold": 100
         }
       ],
+      "multiclass": {
+        "armorTraining": [
+          "light"
+        ],
+        "skills": {
+          "choose": 1,
+          "from": [
+            "acrobatics",
+            "athletics",
+            "deception",
+            "insight",
+            "intimidation",
+            "investigation",
+            "perception",
+            "persuasion",
+            "sleight-of-hand",
+            "stealth"
+          ]
+        },
+        "tools": [
+          "srd52:thieves-tools"
+        ]
+      },
       "features": [
         {
           "key": "expertise",
@@ -5091,6 +5651,150 @@
           "name": "Stroke of Luck",
           "text": "You have a marvelous knack for succeeding when you need to. If you fail a D20 Test, you can turn the roll into a 20.\nOnce you use this feature, you can't use it again until you finish a Short or Long Rest.",
           "level": 20
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "effects": [
+            {
+              "hook": "expertise",
+              "args": {
+                "count": 2
+              }
+            },
+            {
+              "push": "languages",
+              "value": "srd52:thieves-cant",
+              "name": "Thieves' Cant"
+            },
+            {
+              "hook": "language-choice",
+              "args": {
+                "name": "Thieves' Cant"
+              }
+            },
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 2,
+                "proficient": true
+              }
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "effects": [
+            {
+              "hook": "expertise",
+              "args": {
+                "count": 2
+              }
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 10,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 12,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 15,
+          "effects": [
+            {
+              "push": "savingThrowProficiencies",
+              "value": "wis",
+              "name": "Slippery Mind"
+            },
+            {
+              "push": "savingThrowProficiencies",
+              "value": "cha",
+              "name": "Slippery Mind"
+            }
+          ]
+        },
+        {
+          "level": 16,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 19,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Epic Boon"
+              }
+            }
+          ]
+        },
+        {
+          "level": 20,
+          "effects": [
+            {
+              "uses": {
+                "trait": "stroke-of-luck",
+                "amount": 1,
+                "recover": [
+                  {
+                    "on": "short-rest",
+                    "amount": "all"
+                  },
+                  {
+                    "on": "long-rest",
+                    "amount": "all"
+                  }
+                ]
+              }
+            }
+          ]
         }
       ],
       "table": [
@@ -7127,6 +7831,25 @@
           "text": "As a Bonus Action, you can strike terror into others with your menacing presence and primal power.\nWhen you do so, each creature of your choice in a 30-foot Emanation originating from you must make a Wisdom saving throw (DC 8 plus your Strength modifier and Proficiency Bonus). On a failed save, a creature has the Frightened condition for 1 minute. At the end of each of the Frightened creature's turns, the creature repeats the save, ending the effect on itself on a success.\nOnce you use this feature, you can't use it again until you finish a Long Rest unless you expend a use of your Rage (no action required) to restore your use of it.",
           "level": 14
         }
+      ],
+      "levels": [
+        {
+          "level": 14,
+          "effects": [
+            {
+              "uses": {
+                "trait": "intimidating-presence",
+                "amount": 1,
+                "recover": [
+                  {
+                    "on": "long-rest",
+                    "amount": "all"
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {
@@ -7371,6 +8094,33 @@
           "name": "Quivering Palm",
           "text": "You gain the ability to set up lethal vibrations in someone's body. When you hit a creature with an Unarmed Strike, you can expend 4 Focus Points to start these imperceptible vibrations, which last for a number of days equal to your Monk level. The vibrations are harmless unless you take an action to end them. Alternatively, when you take the Attack action on your turn, you can forgo one of the attacks to end the vibrations. To end them, you and the target must be on the same plane of existence. When you end them, the target must make a Constitution saving throw, taking 10d12 Force damage on a failed save or half as much damage on a successful one.\nYou can have only one creature under the effect of this feature at a time. You can end the vibrations harmlessly (no action required).",
           "level": 17
+        }
+      ],
+      "levels": [
+        {
+          "level": 6,
+          "effects": [
+            {
+              "uses": {
+                "trait": "wholeness-of-body",
+                "amount": {
+                  "sum": [
+                    {
+                      "read": "abilityModifiers",
+                      "entry": "wis"
+                    }
+                  ],
+                  "min": 1
+                },
+                "recover": [
+                  {
+                    "on": "long-rest",
+                    "amount": "all"
+                  }
+                ]
+              }
+            }
+          ]
         }
       ]
     },

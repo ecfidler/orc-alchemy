@@ -4,7 +4,7 @@
 // the 2014 path loads no 2024 code. The names come from the records of the
 // content; the 2024 spells, slots and lists arrive with ORC-229.
 
-import { BUILT_IN, type Built2024, type Content, findRecord, type RecordType, referenceTo, SRD_PACK } from "@orc-alchemy/engine";
+import { BUILT_IN, type Built2024, type Content, findRecord, isProficient, type RecordType, referenceTo, SRD_PACK } from "@orc-alchemy/engine";
 import { ABILITIES, byName, keyToName, type Named, type Sheet, type SheetFeature, type SheetItem, SKILLS } from "./sheet.ts";
 
 type Feature2024 = Built2024["features"][number];
@@ -64,8 +64,6 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
     const category = FEAT_CATEGORY_NAMES[feat.category] ?? keyToName(feat.category);
     return feature.name === feat.name ? category : `${feat.name}, ${category}`;
   };
-  const proficient = (weapon: Built2024["weapons"][number]) =>
-    built.weaponProficiencies.includes(weapon.category) || built.weaponProficiencies.includes(weapon.key);
   const weaponOf = (reference: string) => built.weapons.find((weapon) => weapon.key === reference);
 
   return {
@@ -133,7 +131,8 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
           attackBonus: attack.attackBonus,
           damageModifier: damageModifierOf(attack.damage),
           offHandDamageModifier: null,
-          proficient: weapon ? proficient(weapon) : true,
+          // The Unarmed Strike has no weapon record, and every character has proficiency with it (SRD 5.2.1 p190).
+          proficient: weapon ? isProficient(weapon, built.weaponProficiencies) : true,
           damage: `${attack.damage} ${name("damageTypes")(attack.damageType)}`,
           ...(attack.mastery ? { mastery: name("weaponMasteries")(referenceTo(SRD_PACK, attack.mastery)) } : {}),
         };

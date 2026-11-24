@@ -129,3 +129,17 @@ describe("the edition of a character", () => {
     expect(sheet.weaponAttacks.every((attack) => attack.damage === undefined)).toBe(true);
   });
 });
+
+describe("toSheet2024, the golden Monk at level 5 (ORC-251)", () => {
+  const monk = GOLDEN_CHARACTERS.find((character) => character.name.startsWith("Monk"))!;
+  const check = monk.checks.find((c) => c.level === 5)!;
+  const sheet = toSheet2024(evaluate(check.entity, { rules: "2024" }).built);
+
+  test("has proficiency with the Shortsword, which the class names by its key", () => {
+    expect(sheet.weaponAttacks.find((a) => a.name === "Shortsword")).toMatchObject({ proficient: true, attackBonus: 7, damage: "1d8+4 Piercing" });
+  });
+
+  test("shows the Unarmed Strike of Martial Arts", () => {
+    expect(sheet.weaponAttacks.find((a) => a.name === "Unarmed Strike")).toMatchObject({ proficient: true, attackBonus: 7, damage: "1d8+4 Bludgeoning" });
+  });
+});

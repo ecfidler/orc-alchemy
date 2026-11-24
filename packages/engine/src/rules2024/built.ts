@@ -172,7 +172,7 @@ export interface InventoryItem {
 
 /** The attack line of a weapon that the character uses (SRD 5.2.1 p90). */
 export interface WeaponAttack {
-  /** The reference of the weapon record. */
+  /** The reference of the weapon record, or `UNARMED_STRIKE`. */
   weapon: string;
   name: string;
   attackBonus: number;
@@ -218,6 +218,11 @@ export interface Built2024 {
   subclasses: Readonly<Record<string, string>>;
   /** Class key to the size of its Hit Point Die. */
   hitDice: Readonly<Record<string, number>>;
+  /**
+   * Class key to the class columns of the table row at its class level, for
+   * example `{ "rage-damage-bonus": 2 }` or `{ "sneak-attack": "1d6" }`.
+   */
+  classColumns: Readonly<Record<string, Readonly<Record<string, number | string>>>>;
   totalLevel: number;
   proficiencyBonus: number;
 
@@ -263,6 +268,8 @@ export interface Built2024 {
   wornArmor: string | null;
   /** The armor table row of the worn armor. */
   wornArmorStats: ArmorStats | null;
+  /** The category of the worn armor, for a rule such as "while you aren't wearing Heavy armor" (SRD 5.2.1 p29). */
+  wornArmorCategory: ArmorStats["category"] | null;
   /** True when the worn armor gives Disadvantage on Dexterity (Stealth) checks (SRD 5.2.1 p92). */
   stealthDisadvantage: boolean;
   shield: boolean;
@@ -296,6 +303,12 @@ export interface Built2024 {
   /** Added to attack rolls with Ranged weapons. */
   rangedAttackBonus: number;
   attacksPerAction: number;
+  /**
+   * The die of Martial Arts, for example 6 for 1d6, or 0 without Martial
+   * Arts (SRD 5.2.1 p50). Without armor and a Shield, the Monk weapons and
+   * the Unarmed Strike use it: see `weaponAttacks`.
+   */
+  martialArtsDie: number;
   /** The lowest d20 roll that is a Critical Hit. */
   criticalHitMinimum: number;
   weaponAttacks: readonly WeaponAttack[];
@@ -311,6 +324,13 @@ export interface Built2024 {
 
 /** The modifier constructors for the built 2024 character. */
 export const m = modifiersFor<Built2024>();
+
+/**
+ * The `order` of an `add` to a value that a `set` can change, for example
+ * the Speed of a species: after the modifiers of the same value that have
+ * no order, so that the `set` does not hide the `add`.
+ */
+export const ADD_ORDER = 1;
 
 export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2);
@@ -362,6 +382,14 @@ function dice({ count, die }: { count: number; die: number }): string {
   return die === 1 ? `${count}` : `${count}d${die}`;
 }
 
+/** The `weapon` of the Unarmed Strike line of Martial Arts. It is not a reference, because no record has it. */
+export const UNARMED_STRIKE = "unarmed-strike";
+
+/** A Monk weapon: a Simple Melee weapon, or a Martial Melee weapon that has the Light property (SRD 5.2.1 p50). */
+export function isMonkWeapon(weapon: Pick<WeaponStats, "category" | "ranged" | "properties">): boolean {
+  return !weapon.ranged && (weapon.category === "simple" || weapon.properties.includes("light"));
+}
+
 /** The score that a Heavy weapon needs: Strength for a Melee weapon, Dexterity for a Ranged weapon (SRD 5.2.1 p89). */
 const HEAVY_MINIMUM = 13;
 
@@ -376,23 +404,46 @@ export function weaponAttack(
   weapon: WeaponStats,
   scores: AbilityScores,
   proficiency: number,
-  { rangedBonus, mastery }: { rangedBonus: number; mastery: boolean },
+  { rangedBonus, mastery, martialArtsDie = 0 }: { rangedBonus: number; mastery: boolean; martialArtsDie?: number },
 ): WeaponAttack {
   const str = abilityModifier(scores.str);
   const dex = abilityModifier(scores.dex);
-  const ability = weapon.properties.includes("finesse") ? Math.max(str, dex) : weapon.ranged ? dex : str;
+  // Martial Arts (p50): a Monk weapon can use Dexterity, and the Martial Arts die in place of a smaller die.
+  const martialArts = martialArtsDie > 0 && isMonkWeapon(weapon);
+  const ability = weapon.properties.includes("finesse") || martialArts ? Math.max(str, dex) : weapon.ranged ? dex : str;
+  const damageDie = (roll: { count: number; die: number }) =>
+    martialArts && roll.count === 1 && martialArtsDie > roll.die ? { count: 1, die: martialArtsDie } : roll;
   const heavyScore = weapon.ranged ? scores.dex : scores.str;
   return {
     weapon: weapon.key,
     name: weapon.name,
     attackBonus: ability + proficiency + (weapon.ranged ? rangedBonus : 0),
-    damage: `${dice(weapon.damage)}${signed(ability)}`,
-    ...(weapon.versatile ? { versatileDamage: `${dice(weapon.versatile)}${signed(ability)}` } : {}),
+    damage: `${dice(damageDie(weapon.damage))}${signed(ability)}`,
+    ...(weapon.versatile ? { versatileDamage: `${dice(damageDie(weapon.versatile))}${signed(ability)}` } : {}),
     damageType: weapon.damageType,
     properties: weapon.properties,
     ...(weapon.range ? { range: weapon.range } : {}),
     mastery: mastery ? weapon.mastery : null,
     disadvantage: weapon.properties.includes("heavy") && heavyScore < HEAVY_MINIMUM,
+  };
+}
+
+/**
+ * The Unarmed Strike with Martial Arts (SRD 5.2.1 p50): the better of
+ * Strength and Dexterity, the Proficiency Bonus (p190), and the Martial
+ * Arts die in place of the 1 of an Unarmed Strike. Bludgeoning damage.
+ */
+function unarmedStrike(scores: AbilityScores, proficiency: number, martialArtsDie: number): WeaponAttack {
+  const ability = Math.max(abilityModifier(scores.str), abilityModifier(scores.dex));
+  return {
+    weapon: UNARMED_STRIKE,
+    name: "Unarmed Strike",
+    attackBonus: ability + proficiency,
+    damage: `${dice({ count: 1, die: martialArtsDie })}${signed(ability)}`,
+    damageType: "srd52:bludgeoning",
+    properties: [],
+    mastery: null,
+    disadvantage: false,
   };
 }
 
@@ -424,6 +475,7 @@ export const base: Base<Built2024> = {
   classLevels: {},
   subclasses: {},
   hitDice: {},
+  classColumns: {},
   totalLevel: m.derived(["classLevels"], (q) => Object.values(q("classLevels")).reduce((sum, level) => sum + level, 0)),
   // SRD 5.2.1 p23.
   proficiencyBonus: m.derived(["totalLevel"], (q) => 2 + Math.floor((Math.max(q("totalLevel"), 1) - 1) / 4)),
@@ -471,6 +523,7 @@ export const base: Base<Built2024> = {
 
   wornArmor: null,
   wornArmorStats: null,
+  wornArmorCategory: m.derived(["wornArmorStats"], (q) => q("wornArmorStats")?.category ?? null),
   stealthDisadvantage: m.derived(["wornArmorStats"], (q) => q("wornArmorStats")?.stealthDisadvantage === true),
   shield: false,
   armorWithoutTraining: m.derived(["wornArmorStats", "armorTraining"], (q) => {
@@ -495,14 +548,22 @@ export const base: Base<Built2024> = {
   weapons: [],
   rangedAttackBonus: 0,
   attacksPerAction: 1,
+  martialArtsDie: 0,
   criticalHitMinimum: 20,
-  weaponAttacks: m.derived(["weapons", "abilities", "proficiencyBonus", "weaponProficiencies", "weaponMasteries", "rangedAttackBonus"], (q) =>
-    q("weapons").map((weapon) =>
-      weaponAttack(weapon, q("abilities"), isProficient(weapon, q("weaponProficiencies")) ? q("proficiencyBonus") : 0, {
-        rangedBonus: q("rangedAttackBonus"),
-        mastery: q("weaponMasteries").includes(weapon.key),
-      }),
-    ),
+  // Martial Arts applies without armor and a Shield (p50). It also gives the line of the Unarmed Strike.
+  weaponAttacks: m.derived(
+    ["weapons", "abilities", "proficiencyBonus", "weaponProficiencies", "weaponMasteries", "rangedAttackBonus", "martialArtsDie", "wornArmor", "shield"],
+    (q) => {
+      const martialArtsDie = q("wornArmor") === null && !q("shield") ? q("martialArtsDie") : 0;
+      const attacks = q("weapons").map((weapon) =>
+        weaponAttack(weapon, q("abilities"), isProficient(weapon, q("weaponProficiencies")) ? q("proficiencyBonus") : 0, {
+          rangedBonus: q("rangedAttackBonus"),
+          mastery: q("weaponMasteries").includes(weapon.key),
+          martialArtsDie,
+        }),
+      );
+      return martialArtsDie > 0 ? [...attacks, unarmedStrike(q("abilities"), q("proficiencyBonus"), martialArtsDie)] : attacks;
+    },
   ),
   savingThrowAttacks: [],
 
