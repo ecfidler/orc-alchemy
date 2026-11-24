@@ -25,9 +25,6 @@ function build(entity: Entity2024) {
 
 const attack = (built: ReturnType<typeof build>["built"], weapon: string) => built.weaponAttacks.find((a) => a.weapon === srd(weapon));
 
-/** The key of the class option: the Fighter is still the one of the spike (ORC-230). */
-const classOptionKey = (reference: string) => (reference === "srd52:fighter" ? "fighter" : reference);
-
 /** A character of one class at level 1, with the given choices of the class and the top-level selections. */
 function classCharacter(classKey: string, classSelections: StrictSelection[] = [], more: StrictSelection[] = []): Entity2024 {
   return {
@@ -35,7 +32,7 @@ function classCharacter(classKey: string, classSelections: StrictSelection[] = [
       { key: "ability-scores", option: { key: "manual", value: { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 } } },
       {
         key: "class",
-        options: [{ key: classOptionKey(srd(classKey)), selections: [{ key: "levels", options: [{ key: "level-1" }] }, ...classSelections] }],
+        options: [{ key: srd(classKey), selections: [{ key: "levels", options: [{ key: "level-1" }] }, ...classSelections] }],
       },
       ...more,
     ],

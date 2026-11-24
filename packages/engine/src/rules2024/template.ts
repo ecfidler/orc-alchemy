@@ -1,15 +1,12 @@
 // The 2024 template: the selections at the top of a character (ORC-225).
 // The classes, the species (ORC-226), the backgrounds and the feats
 // (ORC-227), the languages, and the equipment (ORC-228) come from the
-// content. The Fighter of the spike stays until ORC-230 writes the rules of
-// `srd52:fighter`.
+// content.
 
 import { shuffled } from "../core/autofill.ts";
 import { option, type Prereq, selection, type Template } from "../core/template.ts";
-import { referenceTo, SRD_PACK } from "../format/keys.ts";
 import { ABILITIES, type AbilityScores, type Built2024, base, forEachAbility, m, RULES } from "./built.ts";
 import { BUILT_IN } from "./built-in.ts";
-import { fighterOption } from "./content/fighter.ts";
 import { type Content, recordsOf } from "./content.ts";
 import { armorOptions, carriedItemOptions, shieldOptions, weaponOptions } from "./equipment.ts";
 import { backgroundOption, classOption, speciesOption } from "./records.ts";
@@ -84,14 +81,9 @@ const abilityScoreMethods = selection<Built2024>({
   ],
 });
 
-/** The class of the spike, which `srd52:fighter` replaces in ORC-230. */
-const SPIKE_CLASS = referenceTo(SRD_PACK, "fighter");
-
 /** The template of a character that can use `content`. */
 export function createTemplate(content: Content): Template<Built2024> {
-  const classes = recordsOf(content, "classes")
-    .filter(({ reference }) => reference !== SPIKE_CLASS)
-    .map(({ reference, record }) => classOption(content, reference, record));
+  const classes = recordsOf(content, "classes").map(({ reference, record }) => classOption(content, reference, record));
   // Every character knows Common and two languages from the Standard Languages table (SRD 5.2.1 p20).
   const languages = recordsOf(content, "languages")
     .filter(({ record }) => !record.rare && record.key !== "common")
@@ -102,7 +94,7 @@ export function createTemplate(content: Content): Template<Built2024> {
     modifiers: RULES,
     selections: [
       abilityScoreMethods,
-      selection({ name: "Class", min: 1, max: null, multiselect: true, options: [fighterOption(content), ...classes] }),
+      selection({ name: "Class", min: 1, max: null, multiselect: true, options: classes }),
       selection({ name: "Species", options: recordsOf(content, "species").map(({ reference, record }) => speciesOption(content, reference, record)) }),
       selection({
         name: "Background",

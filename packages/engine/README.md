@@ -43,15 +43,17 @@ Use `bun run test`, not `bun test`, which runs Bun's own test runner.
   - `hooks/` is the hook registry, with one file for each hook.
   - `packs.ts` loads a pack for the engine. It checks the hooks, then
     converts each record and drops the rules that do not convert.
-  - `content/` holds the Fighter of the spike, which the records do not
-    replace yet (ORC-230).
   - `fighter.test.ts` has the hand-checked values of the Fighter from the
-    spike (ORC-95). `base-rules.test.ts` has the rules of every character
+    spike (ORC-95), and each level from 1 to 20 of the `srd52:fighter`
+    record with Champion (ORC-230). `base-rules.test.ts` has the rules of every character
     on test classes (ORC-225). `species.test.ts` has the 9 species of the
     pack at levels 1, 5 and 11 (ORC-226). `feats.test.ts` and
     `backgrounds.test.ts` have the 17 feats and the 4 backgrounds
     (ORC-227). `equipment.test.ts` has the attack lines, the armor and the
     starting equipment of each class and background (ORC-228).
+- `golden/` holds the golden characters: characters with sheet values
+  computed by hand from SRD 5.2.1, and the suite that checks them
+  (ORC-237). Its README has the rules and the plan of the 14 characters.
 - `srd52/srd52.test.ts` compares the built-in pack with the text of the SRD
   5.2.1 PDF, in `srd52/fixtures/`.
 

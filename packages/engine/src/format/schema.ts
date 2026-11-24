@@ -246,6 +246,19 @@ export const ClassRecord = z.strictObject({
   armorTraining: z.array(ContentKey).optional(),
   tools: z.union([z.array(ContentReference), ReferenceChoice]).optional(),
   startingEquipment: z.array(EquipmentOption).optional(),
+  /**
+   * The traits of the class that a character gets when the class is not the
+   * first class ("As a Multiclass Character"): the Hit Point Die and the
+   * level 1 features always, and these proficiencies. Data for ORC-234.
+   */
+  multiclass: z
+    .strictObject({
+      weaponProficiencies: z.array(ContentKey).optional(),
+      armorTraining: z.array(ContentKey).optional(),
+      skills: choiceOf(ContentKey).optional(),
+      tools: z.union([z.array(ContentReference), ReferenceChoice]).optional(),
+    })
+    .optional(),
   features: z.array(LevelFeature).optional(),
   levels: z.array(LevelEffects).optional(),
   /** The class table, one row for each level from 1 to 20. Display only: the rules are in `levels`. */

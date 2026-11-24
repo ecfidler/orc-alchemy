@@ -13,6 +13,7 @@ import { HomebrewBuilder } from "../components/HomebrewBuilder.tsx";
 import { ImportPage } from "../components/ImportPage.tsx";
 import { useAskOnBlock } from "../components/leave-guard.tsx";
 import { MyContent } from "../components/MyContent.tsx";
+import { NotFound } from "../components/NotFound.tsx";
 import { Preferences } from "../components/Preferences.tsx";
 import { ReviewUses } from "../components/ReviewUses.tsx";
 import { SpellsPanel } from "../components/SpellsPanel.tsx";
@@ -252,16 +253,11 @@ export const routes: RouteObject[] = [
           </EngineGate>
         ),
       },
+      // The developer view of a 2024 character (ORC-238). Its own chunk; the page checks the developer flag.
+      { path: "dev/2024", lazy: () => import("../components/Dev2024Sheet.tsx").then(({ Dev2024Sheet }) => ({ Component: Dev2024Sheet })) },
       {
         path: "*",
-        element: (
-          <>
-            <h1 className="text-xl">Page not found</h1>
-            <Link to="/characters" className="underline">
-              Back to characters
-            </Link>
-          </>
-        ),
+        element: <NotFound />,
       },
     ],
   },

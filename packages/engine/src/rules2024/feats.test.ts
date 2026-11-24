@@ -1,7 +1,7 @@
 // The 17 feats of SRD 5.2.1 (ORC-227), p87 to p88. The character is a
 // Wizard of the pack with no background and no species, so each value below
 // comes from the feat. The Fighting Style feats need the Fighting Style
-// feature, so they are on the Fighter of the spike. Each expected number has
+// feature, so they are on the test Fighter. Each expected number has
 // its arithmetic in a comment.
 
 import { describe, expect, it } from "vitest";
@@ -126,6 +126,8 @@ describe("Origin feats", () => {
     expect(problems).toEqual([]);
     expect(built.skillProficiencies).toEqual(["arcana", "history", "athletics", "stealth"]);
     expect(built.toolProficiencies).toEqual(["srd52:thieves-tools"]);
+    // The Repeatable trait is the typed field `repeatable`, not a feature: the feature is the description.
+    expect(featureNames(built, "skilled")).toEqual(["Skilled"]);
     // The 18 skills and the 37 tools: artisan's tools, gaming sets, musical instruments and other tools.
     expect(template.selections.at(-1)?.options.find((o) => o.key === "srd52:skilled")?.selections[0].options).toHaveLength(55);
   });

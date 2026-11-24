@@ -327,7 +327,8 @@ function recordParts(
 /**
  * What taking a feat gives: the feat on the sheet, its effects, and its
  * traits as features. A feat with no traits, such as Savage Attacker, is
- * one feature with its description. `via` is the chain of feats that grant
+ * one feature with its description, and so is a feat whose one trait is
+ * Repeatable, such as Ability Score Improvement. `via` is the chain of feats that grant
  * it. `featSpellList` is the spell list that a background gives to it.
  */
 export function featParts(
@@ -336,7 +337,11 @@ export function featParts(
   feat: FeatRecord,
   { via = [], featSpellList }: Pick<Partial<Context>, "via" | "featSpellList"> = {},
 ): Parts {
-  const description: Parts = feat.traits?.length
+  // A Repeatable trait alone repeats the typed field `repeatable`, so the feat shows its description (ORC-238).
+  // Next to other traits it stays: the one of Magic Initiate also says to choose another spell list.
+  const onlyRepeatable = feat.traits?.length === 1 && feat.traits[0].key === "repeatable";
+  const shown: FeatRecord = onlyRepeatable ? { ...feat, traits: [] } : feat;
+  const description: Parts = shown.traits?.length
     ? EMPTY
     : {
         modifiers: [m.push("features", { key: traitKey(reference, feat.name), name: feat.name, summary: feat.description ?? "", source: reference })],
@@ -344,7 +349,7 @@ export function featParts(
       };
   return merge(
     { modifiers: [m.push("feats", { key: reference, name: feat.name, category: feat.category })], selections: [] },
-    recordParts(content, reference, feat, { via, featSpellList }),
+    recordParts(content, reference, shown, { via, featSpellList }),
     description,
   );
 }
@@ -474,7 +479,8 @@ export function backgroundOption(content: Content, reference: string, background
 /**
  * A subclass as an option of a subclass selection. Its features and the
  * effects of its levels apply from their class level, which the parts read
- * from `classLevels`.
+ * from `classLevels`. A choice at a level is offered from that class level,
+ * and its options give nothing below it.
  */
 export function subclassOption(content: Content, reference: string, subclass: SubclassRecord): Option<Built2024> {
   const classRef = subclass.class;
@@ -489,18 +495,39 @@ export function subclassOption(content: Content, reference: string, subclass: Su
       when: (q) => atLevel(level)(q) && (!own || own(q)),
     };
   };
+  // A choice at a subclass level: offered from that class level, and its options give nothing below it.
+  const gateOption = (level: number, chosen: Option<Built2024>): Option<Built2024> => ({
+    ...chosen,
+    modifiers: chosen.modifiers.map((modifier) => gate(level, modifier)),
+    selections: chosen.selections.map((inner) => gateSelection(level, inner)),
+  });
+  const gateSelection = (level: number, choice: Selection<Built2024>): Selection<Built2024> => {
+    const own = choice.prereq;
+    return {
+      ...choice,
+      prereq: (built) => (built.classLevels[classRef] ?? 0) >= level && (!own || own(built)),
+      options: choice.options.map((chosen) => gateOption(level, chosen)),
+    };
+  };
   const levelParts = (subclass.levels ?? []).map((entry, i) => {
     const parts = effectParts(context, entry.effects, ["levels", i, "effects"]);
-    if (parts.selections.length) throw new RecordError(reference, ["levels", i], "a choice at a level needs the class frame (ORC-230)");
-    return parts.modifiers.map((modifier) => gate(entry.level, modifier));
+    return {
+      modifiers: parts.modifiers.map((modifier) => gate(entry.level, modifier)),
+      selections: parts.selections.map((choice) => gateSelection(entry.level, choice)),
+    };
   });
   const own = effectParts(context, subclass.effects ?? [], ["effects"]);
   const features = traitFeatures(context, subclass.features ?? []).map((modifier, i) => gate(subclass.features?.[i].level ?? 1, modifier));
   return option({
     key: reference,
     name: subclass.name,
-    modifiers: [m.update("subclasses", (current) => ({ ...current, [classRef]: reference })), ...own.modifiers, ...levelParts.flat(), ...features],
-    selections: own.selections,
+    modifiers: [
+      m.update("subclasses", (current) => ({ ...current, [classRef]: reference })),
+      ...own.modifiers,
+      ...levelParts.flatMap((parts) => parts.modifiers),
+      ...features,
+    ],
+    selections: [...own.selections, ...levelParts.flatMap((parts) => parts.selections)],
   });
 }
 

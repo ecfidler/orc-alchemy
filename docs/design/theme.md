@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T00:58:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T15:10:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -396,6 +396,9 @@ The outline around a limited-use feature (ORC-146).
 * One clickable circle for each use, after the feature name. A spent circle
   gets an ink slash.
 * The rest type ("Long rest", "Short rest") in small caps in the top right.
+  A 2024 feature can have two rules, or a rest that gives back fewer than
+  all uses. The tag then names each rest, with the number of uses in
+  parentheses when it is not all: "Short rest (1), Long rest" (ORC-238).
 * A pool (for example Lay on Hands) shows its number large under the rest
   type, as current / max.
 * More than 8 uses show as a pool. A feature with 0 uses or fewer has no
@@ -597,11 +600,17 @@ The left column is at least 320px wide.
   two rows fill the space above it. The app records no death saves, so the
   circles are empty.
 * **Attacks**, as a table. Attack cantrips such as Sacred Flame stay in it.
-  The numbers do not wrap.
+  The numbers do not wrap. A 2024 attack shows its damage dice and damage
+  type ("2d6+5 Slashing") in a "Damage" column, and its mastery property
+  as a tag after the weapon name. The note on damage dice then does not
+  show (ORC-238).
 * **Spellcasting** (see below).
 * **Features & traits.** Each feature's name is on its own line above its
   text. Limited-use features sit in a use bubble. A pack feature goes to
-  Actions, Bonus Actions or Reactions by its type. See
+  Actions, Bonus Actions or Reactions by its type. A feature of a 2024
+  feat has the feat category after its name, in small `--ink-muted` Inter
+  ("Origin feat"). When the feature name is not the feat name, the feat
+  name comes first ("Grappler, General feat") (ORC-238). See
   [Homebrew forms spec, "On the sheet"](homebrew-forms.md#on-the-sheet).
 * **Notes.**
 

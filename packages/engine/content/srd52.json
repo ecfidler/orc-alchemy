@@ -2366,6 +2366,138 @@
       "source": {
         "index": "fighter"
       },
+      "effects": [
+        {
+          "uses": {
+            "trait": "second-wind",
+            "amount": {
+              "steps": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  3
+                ],
+                [
+                  10,
+                  4
+                ]
+              ],
+              "by": {
+                "read": "classLevels",
+                "entry": "srd52:fighter"
+              }
+            },
+            "recover": [
+              {
+                "on": "short-rest",
+                "amount": 1
+              },
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "uses": {
+            "trait": "action-surge",
+            "amount": {
+              "steps": [
+                [
+                  2,
+                  1
+                ],
+                [
+                  17,
+                  2
+                ]
+              ],
+              "by": {
+                "read": "classLevels",
+                "entry": "srd52:fighter"
+              }
+            },
+            "recover": [
+              {
+                "on": "short-rest",
+                "amount": "all"
+              },
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "uses": {
+            "trait": "indomitable",
+            "amount": {
+              "steps": [
+                [
+                  9,
+                  1
+                ],
+                [
+                  13,
+                  2
+                ],
+                [
+                  17,
+                  3
+                ]
+              ],
+              "by": {
+                "read": "classLevels",
+                "entry": "srd52:fighter"
+              }
+            },
+            "recover": [
+              {
+                "on": "long-rest",
+                "amount": "all"
+              }
+            ]
+          }
+        },
+        {
+          "set": "attacksPerAction",
+          "value": {
+            "steps": [
+              [
+                5,
+                2
+              ],
+              [
+                11,
+                3
+              ],
+              [
+                20,
+                4
+              ]
+            ],
+            "by": {
+              "read": "classLevels",
+              "entry": "srd52:fighter"
+            }
+          },
+          "name": "Extra Attack",
+          "when": {
+            "atLeast": [
+              {
+                "read": "classLevels",
+                "entry": "srd52:fighter"
+              },
+              5
+            ]
+          }
+        }
+      ],
       "hitDie": 10,
       "primaryAbility": {
         "choose": 1,
@@ -2465,6 +2597,16 @@
           "gold": 155
         }
       ],
+      "multiclass": {
+        "weaponProficiencies": [
+          "martial"
+        ],
+        "armorTraining": [
+          "light",
+          "medium",
+          "shield"
+        ]
+      },
       "features": [
         {
           "key": "fighting-style",
@@ -2555,6 +2697,128 @@
           "name": "Three Extra Attacks",
           "text": "You can attack four times instead of once whenever you take the Attack action on your turn.",
           "level": 20
+        }
+      ],
+      "levels": [
+        {
+          "level": 1,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Fighting Style",
+                "categories": [
+                  "fighting-style"
+                ]
+              }
+            },
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 3
+              }
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            },
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 1
+              }
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 10,
+          "effects": [
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 1
+              }
+            }
+          ]
+        },
+        {
+          "level": 12,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 14,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            }
+          ]
+        },
+        {
+          "level": 16,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Ability Score Improvement"
+              }
+            },
+            {
+              "hook": "weapon-mastery",
+              "args": {
+                "count": 1
+              }
+            }
+          ]
+        },
+        {
+          "level": 19,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Epic Boon"
+              }
+            }
+          ]
         }
       ],
       "table": [
@@ -7030,6 +7294,47 @@
           "name": "Survivor",
           "text": "You attain the pinnacle of resilience in battle, giving you these benefits.\nDefy Death. You have Advantage on Death Saving Throws. Moreover, when you roll 18-20 on a Death Saving Throw, you gain the benefit of rolling a 20 on it.\nHeroic Rally. At the start of each of your turns, you regain Hit Points equal to 5 plus your Constitution modifier if you are Bloodied and have at least 1 Hit Point.",
           "level": 18
+        }
+      ],
+      "levels": [
+        {
+          "level": 3,
+          "effects": [
+            {
+              "set": "criticalHitMinimum",
+              "value": {
+                "steps": [
+                  [
+                    3,
+                    19
+                  ],
+                  [
+                    15,
+                    18
+                  ]
+                ],
+                "by": {
+                  "read": "classLevels",
+                  "entry": "srd52:fighter"
+                }
+              },
+              "name": "Improved Critical"
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "effects": [
+            {
+              "hook": "feat-choice",
+              "args": {
+                "name": "Additional Fighting Style",
+                "categories": [
+                  "fighting-style"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

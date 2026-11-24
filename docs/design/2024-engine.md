@@ -4,7 +4,7 @@ title: 2024 engine spec
 description: The spec of the 2024 rules engine in packages/engine - the engine model, the facade, the seam to the app, the content format and pipeline, the test strategy with golden characters, and the run order of the E1 build tickets.
 tags: [rules-2024, engine, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T13:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T15:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-218/map-plan-the-2024-engine
 sources:
   - id: orc-218
@@ -184,6 +184,15 @@ The 2024 engine has no `.orcbrew` function.
   editions. It gains optional 2024 values.
 - `toSheet` adapts the 2014 engine. A second adapter in the same folder
   adapts `Built2024`.
+- `edition.ts` picks the engine, and `sheet-2024.ts` is the second
+  adapter. The 2024 engine loads in its own chunk, so a 2014 character
+  loads no 2024 code. Until the Alchemy 5e milestone, the page `/dev/2024`
+  shows the golden Fighter of the engine on the sheet. It shows only when
+  the developer flag `alchemy-dev-2024` is `on` in the local storage of
+  the browser (ORC-238). The open character of the builder and the sheet
+  still builds with the 2014 engine only: it reads the tag with the
+  Alchemy 5e milestone. Until then, the import refuses a file with
+  another tag than `"2014"`, so no stored character has one.
 - The files of that folder that read 2014 keys need a 2024 counterpart:
   `abilities.ts`, `builder-choices.ts`, `equipment.ts`, `spells.ts`, and
   `description.ts`. That work is in the Alchemy 5e milestone, not in E1.
@@ -228,6 +237,9 @@ The 2024 rules have no oracle. The tests are thus in four groups.
 ## Golden characters
 
 - There are 14: one for each of the 12 classes, and two multiclass.
+- They are in `packages/engine/golden/`. Its README gives the file form,
+  the rules, and the plan: the class, species, background and checked
+  levels of each character (ORC-237).
 - Each class ticket writes the character of its class and makes it pass.
 - Do not copy an expected value from the output of the engine.
 
