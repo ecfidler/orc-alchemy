@@ -138,3 +138,9 @@ test("an icon shows before the text of a button and of a button link, and is not
   const edit = screen.getByRole("link", { name: "Edit" });
   expect([(edit.firstElementChild as HTMLElement).dataset.icon, edit.textContent]).toEqual(["pencil", "Edit"]);
 });
+
+test("an icon with no text has no space after it, and aria-label names the button", () => {
+  render(<Button icon="plus" aria-label="Add a level" />);
+  const add = screen.getByRole("button", { name: "Add a level" });
+  expect([(add.firstElementChild as HTMLElement).dataset.icon, add.firstElementChild?.getAttribute("class")]).toEqual(["plus", "ui-icon ui-icon-alone"]);
+});

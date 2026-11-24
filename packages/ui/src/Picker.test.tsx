@@ -25,7 +25,7 @@ const addButton = () => screen.getByRole("button", { name: "Add a fruit" });
 test("the add button is wide, says how many options remain, and opens the modal", async () => {
   render(<Fruit start={["cherry"]} />);
   const button = addButton();
-  expect([button.className, button.dataset.wide, button.textContent]).toEqual(["ui-button ui-add-button", "", "+ Add a fruit6 more"]);
+  expect([button.className, button.dataset.wide, button.textContent]).toEqual(["ui-button ui-add-button", "", "Add a fruit6 more"]);
   expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toBe("6 more");
   expect([button.getAttribute("aria-haspopup"), button.getAttribute("aria-expanded")]).toEqual(["dialog", "false"]);
   fireEvent.click(button);
@@ -107,13 +107,13 @@ test("after an X removes a token, the focus goes to the next X, then to the last
 test("an AddButton with no count is a wide button with no description", () => {
   render(<AddButton label="Add a row" />);
   const button = screen.getByRole("button", { name: "Add a row" });
-  expect([button.textContent, button.hasAttribute("aria-describedby")]).toEqual(["+ Add a row", false]);
+  expect([button.textContent, button.hasAttribute("aria-describedby")]).toEqual(["Add a row", false]);
 });
 
 test("an AddButton with a detail shows it in place of the count, as its description", () => {
   render(<AddButton label="Add a row" remaining={5} detail="Apple, Banana and 3 more" />);
   const button = screen.getByRole("button", { name: "Add a row" });
-  expect([button.textContent, button.dataset.detail]).toEqual(["+ Add a rowApple, Banana and 3 more", ""]);
+  expect([button.textContent, button.dataset.detail]).toEqual(["Add a rowApple, Banana and 3 more", ""]);
   expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toBe("Apple, Banana and 3 more");
 });
 

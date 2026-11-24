@@ -120,7 +120,11 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
               : `Points: ${-left} too many of ${POINT_BUY_POINTS}`}
         </p>
       )}
-      {method === "standard-roll" && <Button onClick={() => write(method, rollScores())}>Re-roll</Button>}
+      {method === "standard-roll" && (
+        <Button icon="dice" onClick={() => write(method, rollScores())}>
+          Re-roll
+        </Button>
+      )}
       <table aria-label="Ability scores" className="w-full text-center">
         <thead>
           <tr>

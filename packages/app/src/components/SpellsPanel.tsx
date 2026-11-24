@@ -540,7 +540,7 @@ function PanelBody({
         >
           {spellView && (
             // The initial focus at an open in the spell view.
-            <Button variant="link" {...{ [BACK]: "", [INITIAL_FOCUS]: "" }} className="mb-3 font-sans text-[13px]" onClick={() => setView("list")}>
+            <Button variant="link" icon="left" {...{ [BACK]: "", [INITIAL_FOCUS]: "" }} className="mb-3 font-sans text-[13px]" onClick={() => setView("list")}>
               Back to the list
             </Button>
           )}

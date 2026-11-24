@@ -19,7 +19,7 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "className" | 
   className?: string;
   /** The full width of its column, with the text on the left, for example a button that adds a row under a list. */
   wide?: boolean;
-  /** A pixel icon before the text. It is decoration: the text names the button. */
+  /** A pixel icon before the text. It is decoration: the text names the button, or `aria-label` when the button has no text. */
   icon?: PixelIconName;
 };
 
@@ -38,7 +38,7 @@ export function Button({ variant = "ghost", size = "normal", type = "button", cl
       data-wide={wide && variant !== "link" && variant !== "plain" ? "" : undefined}
       className={className ? `ui-button ${className}` : "ui-button"}
     >
-      {icon && <PixelIcon name={icon} />}
+      {icon && <PixelIcon name={icon} className={children == null ? "ui-icon-alone" : undefined} />}
       {children}
     </BaseButton>
   );

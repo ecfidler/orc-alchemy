@@ -79,6 +79,10 @@
     margin-inline-end: 6px;
     vertical-align: -3px;
   }
+  /* An icon with no text after it, for example in a "+" button with an aria-label. */
+  .ui-icon:where(.ui-icon-alone) {
+    margin-inline-end: 0;
+  }
   /* In a wide button the gap of the row is the space, and the icon is in the middle of the line. */
   .ui-button:where([data-wide]) > .ui-icon {
     margin-inline-end: 0;

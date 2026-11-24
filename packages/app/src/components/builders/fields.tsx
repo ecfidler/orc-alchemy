@@ -11,6 +11,7 @@ import {
   type ListItem,
   NumberToggle,
   Picker,
+  PixelIcon,
   Select,
   type SelectOption,
   TextArea,
@@ -361,7 +362,7 @@ export function Help({ children }: { children: ReactNode }) {
 export function AddButton({ onClick, children }: { onClick: () => void; children: string }) {
   return (
     <Button wide onClick={onClick} className="mt-[10px]">
-      <span aria-hidden="true">+</span>
+      <PixelIcon name="plus" />
       {children}
     </Button>
   );

@@ -49,7 +49,8 @@ bun run test       # vitest
     the text around it, with a line under a mouse, for example a name in a
     list that opens more; like a link button it has no size. `className` is
     for layout and spacing; colors and borders come from the variant.
-    `icon` is the name of a pixel icon to show before the text.
+    `icon` is the name of a pixel icon to show before the text. A button
+    with an icon and no text needs an `aria-label`.
     Styles: `src/button.css`.
   - `ButtonLink`: a link with the look of a button. Like `FlagTab`, it
     takes the link element as `render`. It takes `className` and `icon` as
@@ -82,12 +83,13 @@ bun run test       # vitest
     for a box that a key on another control also changes, for example
     Space on a row of a list that is one Tab stop; a mouse and a screen
     reader still reach it. Styles: `src/check.css`.
-  - `LockIcon`: a closed lock, 13px, drawn as an SVG in the text color
-    (`currentColor`), for a value that cannot change. It has `aria-hidden`
+  - `LockIcon`: a closed lock, the `lock` pixel icon with no space after
+    it, for a value that cannot change. It has `aria-hidden`
     and does not shrink in a flex row, so put a text beside it.
   - `PixelIcon`: a pixel icon, 16px, drawn as an SVG in the text color,
     for the start of the text of a button or a link. `name` is "pencil",
-    "x", "check", "download", "moon", "sparkles", "external", "up" or
+    "x", "check", "download", "moon", "sparkles", "external", "left",
+    "plus", "minus", "trash", "import", "dice", "save", "lock", "up" or
     "down"
     (`PixelIconName`). It has `aria-hidden`. `docs/design/theme.md`,
     "Icons", gives the one use of each icon. In a `Button` or a

@@ -83,6 +83,7 @@ function NotFound({ text }: { text: string }) {
     <>
       <h1 className="text-xl">{text}</h1>
       <Link to="/content" className="underline">
+        <PixelIcon name="left" />
         Back to My Content
       </Link>
     </>

@@ -67,6 +67,7 @@ export function MyContent() {
       <p className="flex flex-wrap gap-4">
         {Object.entries(BUILDERS).map(([name, { one }]) => (
           <Link key={name} to={`/content/new/${name}`} className="underline">
+            <PixelIcon name="plus" />
             New {one}
           </Link>
         ))}
@@ -81,7 +82,11 @@ export function MyContent() {
             {quarantined.map(({ id, reason }) => (
               <li key={id}>
                 The stored pack {id} could not be read, so it is not used. It is kept in this browser as it is. {reason}{" "}
-                <Button onClick={askDelete(`Delete the unreadable pack ${id}?`, () => useHomebrew.getState().removeQuarantined(id))} variant="link">
+                <Button
+                  icon="trash"
+                  onClick={askDelete(`Delete the unreadable pack ${id}?`, () => useHomebrew.getState().removeQuarantined(id))}
+                  variant="link"
+                >
                   Delete {id}
                 </Button>
               </li>
@@ -129,6 +134,7 @@ function MagicItems({ items, report, askDelete }: { items: MagicItemRecord[]; re
                 aria-label={`Delete ${name}`}
                 onClick={askDelete(`Delete the magic item ${name} from this browser?`, () => useHomebrew.getState().removeMagicItem(id))}
                 variant="link"
+                icon="trash"
               >
                 Delete
               </Button>
@@ -157,7 +163,7 @@ function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: b
         <h2 className="text-lg font-bold">{id}</h2>
         <Checkbox label="Enabled" checked={packOn(pack)} onCheckedChange={(on) => report(useHomebrew.getState().setPackEnabled(id, on))} />
         <OrcbrewExport label="Export" pack={id} pretty={pretty} />
-        <Button onClick={askDelete(`Delete the pack ${id} from this browser?`, () => useHomebrew.getState().remove(id))} variant="link">
+        <Button icon="trash" onClick={askDelete(`Delete the pack ${id} from this browser?`, () => useHomebrew.getState().remove(id))} variant="link">
           Delete
         </Button>
       </div>
@@ -199,6 +205,7 @@ function Pack({ pack, pretty, report, askDelete }: { pack: PackRecord; pretty: b
                       aria-label={`Delete ${name}`}
                       onClick={askDelete(`Delete ${name} from ${id}?`, () => useHomebrew.getState().removeItem(id, taggedType, tagged))}
                       variant="link"
+                      icon="trash"
                     >
                       Delete
                     </Button>

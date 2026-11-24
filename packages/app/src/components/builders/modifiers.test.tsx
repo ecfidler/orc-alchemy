@@ -128,7 +128,7 @@ test("the add button is under the Other modifiers heading, and its description n
   render(<FakeForm initial={{}} />);
   const add = () => within(screen.getByRole("group", { name: "Other modifiers" })).getByRole("button", { name: "Add a modifier" });
   const description = () => document.getElementById(add().getAttribute("aria-describedby")!)?.textContent;
-  expect([add().textContent, description()]).toEqual(["+ Add a modifierSpeeds, Saves", "Speeds, Saves"]);
+  expect([add().textContent, description()]).toEqual(["Add a modifierSpeeds, Saves", "Speeds, Saves"]);
   await pickFromPicker(add(), "Speeds");
   expect(description()).toBe("Saves");
   fireEvent.click(screen.getByRole("button", { name: "Remove Speeds" }));

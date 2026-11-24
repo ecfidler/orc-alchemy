@@ -4,11 +4,15 @@ import { LockIcon, PixelIcon } from "./Icon.tsx";
 
 afterEach(cleanup);
 
-test("the lock icon is an SVG in the text color, hidden from a screen reader, and it does not shrink", () => {
+test("the lock icon is the lock pixel icon with no space after it, hidden from a screen reader", () => {
   const { container } = render(<LockIcon className="ml-1" />);
   const svg = container.querySelector("svg")!;
-  expect([svg.getAttribute("aria-hidden"), svg.getAttribute("class"), svg.style.flexShrink, svg.getAttribute("width")]).toEqual(["true", "ml-1", "0", "13"]);
-  expect([...svg.children].every((part) => [part.getAttribute("fill"), part.getAttribute("stroke")].includes("currentColor"))).toBe(true);
+  expect([svg.getAttribute("aria-hidden"), svg.getAttribute("class"), svg.dataset.icon, svg.getAttribute("width")]).toEqual([
+    "true",
+    "ui-icon ui-icon-alone ml-1",
+    "lock",
+    "16",
+  ]);
 });
 
 test("a pixel icon is a 16px SVG in the text color, hidden from a screen reader, with a path for each of its three tones", () => {

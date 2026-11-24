@@ -84,6 +84,7 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                 // An item removed is no longer attuned.
                 onClick={() => run((e, entity) => setAttuned(e, e.removeInventoryItem(entity, list, item.key), item.key, false))}
                 size="small"
+                icon="trash"
               >
                 Remove {name}
               </Button>
@@ -113,14 +114,14 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
               value={item.quantity}
               onCommit={(n) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { quantity: n }))}
             />
-            <Button onClick={() => run((e, entity) => removeCustomItem(e, entity, customKey, item.name))} size="small">
+            <Button icon="trash" onClick={() => run((e, entity) => removeCustomItem(e, entity, customKey, item.name))} size="small">
               Remove {item.name}
             </Button>
           </li>
         ))}
       </ul>
       {customKey && (
-        <Button onClick={() => run((e, entity) => addCustomItem(e, entity, customKey))} size="small">
+        <Button icon="plus" onClick={() => run((e, entity) => addCustomItem(e, entity, customKey))} size="small">
           Add custom item
         </Button>
       )}

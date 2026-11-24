@@ -5,7 +5,7 @@
 // pack, as the forms write them, and skips the unchecked rows that have a
 // suggestion. Nothing is stored before Save. The rows have no preview, so a
 // pack with hundreds of rows stays quick.
-import { Button, Checkbox } from "@orc-alchemy/ui";
+import { Button, Checkbox, PixelIcon } from "@orc-alchemy/ui";
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import type { Choice } from "../engine/builder-choices.ts";
@@ -57,6 +57,7 @@ export function ReviewUses() {
 function BackLink() {
   return (
     <Link to="/content" className="underline">
+      <PixelIcon name="left" />
       Back to My Content
     </Link>
   );

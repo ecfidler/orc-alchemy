@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-24T18:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-24T20:10:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -301,7 +301,7 @@ inputs and links.
 **Icons.** The app uses text labels. A drawn icon is only an addition to a
 text: it is an SVG in the package, in the text color (`currentColor`), with
 `aria-hidden`, so the text names the control or the label. It is not an
-emoji. The first icon is the lock, `LockIcon`, 13px, for a value that
+emoji. The first icon is the lock, `LockIcon`, for a value that
 cannot change, for example an always-prepared spell in the
 [Spells panel](spells-panel.md#the-prepare-control) (ORC-287).
 
@@ -324,13 +324,22 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | `external` | A link that opens a page of another site: Send feedback. |
 | `download` | A control that writes a file to the device: each Export button. |
 | `moon` | Only the Rest button of the character sheet. The button is not built: it comes with the Sheet interactivity spec (ORC-306). |
+| `left` | A control that goes back: Back to List and each "Back to" link. |
+| `plus` | A control that makes a new record or adds to a list: New character, the "New" links of My Content, each "Add" button, and a button that increases a number. |
+| `minus` | A button that decreases a number. |
+| `trash` | A control that deletes a record or removes an item from a list: Delete and Remove. |
+| `import` | A control that reads a file or pasted text into the app: the Import links and buttons. |
+| `dice` | A control that makes a random result: Random character and Re-roll. |
+| `save` | The Save button of the action row, which writes the character and closes nothing. |
+| `lock` | A value that cannot change. `LockIcon` draws it with no space after it. |
 | `up`, `down` | No use at this time. They are for a control that moves or sorts. |
 
 A confirm dialog shows the check and the x only when its cancel text is
 "Cancel". With another text, for example "Stay", the action can be the one
-that drops the changes, so the two buttons have no icon. The Save button
-of the action row writes the character and closes nothing, so it has no
-icon.
+that drops the changes, so the two buttons have no icon.
+
+A button that shows only an icon, for example the plus and the minus
+beside a level, has an `aria-label`.
 
 Do not use an icon for a second meaning. A control without a row in this
 table has no icon.
