@@ -20,6 +20,8 @@ import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
+import { applyHitPointAction, type HitPointAction } from "../engine/hit-points.ts";
+import { currentHitPoints, deathSaves, setCurrentHitPoints, setDeathSaves, setTempHitPoints, tempHitPoints } from "../engine/play.ts";
 import type { Sheet, SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -140,6 +142,28 @@ function prepareSpell(spell: SpellRef, prepared: boolean) {
   useCharacter.getState().sheetChange((entity) => setPrepared(engine(), entity, spell.source, spell.key, prepared));
 }
 
+/**
+ * Applies an action of the Hit points popups as one sheet change, which
+ * writes the hit points, the temporary hit points and the death saves
+ * together (ORC-314). The rules read the play state of the record as it is
+ * now, with the maximum that the sheet shows. Returns the text of the status
+ * line.
+ */
+function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
+  const max = sheet.maxHitPoints;
+  let status = "";
+  useCharacter.getState().sheetChange((entity) => {
+    const e = engine();
+    const change = applyHitPointAction(
+      { current: currentHitPoints(entity, max) ?? max, max, temp: tempHitPoints(entity), deathSaves: deathSaves(entity) },
+      action,
+    );
+    status = change.status;
+    return setDeathSaves(e, setTempHitPoints(e, setCurrentHitPoints(e, entity, change.current), change.temp), change.deathSaves);
+  });
+  return status;
+}
+
 function SheetPage() {
   // Why an export failed shows under the action row, so the row keeps its one line. It belongs to the character it came from.
   const { id: openId } = useParams();
@@ -148,6 +172,9 @@ function SheetPage() {
   // The Spells panel (ORC-285): open or not, and the spell it opened at. It is not in the URL, so a reload shows the sheet.
   // The spell stays while the panel closes, so the panel does not change during its close.
   const [spells, setSpells] = useState<{ open: boolean; at?: SpellRef }>({ open: false });
+  // The status line of the vitals panel: what the last action changed. It starts empty, and it belongs to its character.
+  const [status, setStatus] = useState<{ id: string | undefined; text: string }>({ id: undefined, text: "" });
+  const statusText = status.id === openId ? status.text : "";
   return (
     <OpenCharacter
       actions={(id) => (
@@ -164,7 +191,12 @@ function SheetPage() {
           <ExportMessageLine message={exportMessage} className="mb-4" />
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
           {/* The sheet and the Spells panel change the spent slots with the same handler, so they show the same state (ORC-286). */}
-          <CharacterSheet sheet={sheet} onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)} onOpenSpells={(at) => setSpells({ open: true, at })} />
+          <CharacterSheet
+            sheet={sheet}
+            onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
+            onOpenSpells={(at) => setSpells({ open: true, at })}
+            play={{ status: statusText, onHitPoints: (action) => setStatus({ id: openId, text: changeHitPoints(sheet, action) }) }}
+          />
           {sheet.spellcasting && (
             <SpellsPanel
               open={spells.open}

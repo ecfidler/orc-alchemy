@@ -147,6 +147,23 @@ test("fighter-1 armor class and hit points", () => {
   expect(sheet.maxHitPoints).toBe(12);
 });
 
+test("the play state: the hit points show at most the maximum, with the temporary hit points and the death saves (ORC-119, ORC-314)", () => {
+  const values = (play: Record<string, unknown>) => ({ "~:orcpub.entity.strict/values": play });
+  const empty = toSheet(builtOf("fighter-1"), {});
+  expect([empty.currentHitPoints, empty.tempHitPoints, empty.deathSaves]).toEqual([null, 0, { successes: 0, failures: 0 }]);
+  const hurt = toSheet(
+    builtOf("fighter-1"),
+    values({
+      "~:orcpub.dnd.e5.character/current-hit-points": 5,
+      "~:orc-alchemy.play/temp-hit-points": 4,
+      "~:orc-alchemy.play/death-saves": { "~:successes": 1, "~:failures": 2 },
+    }),
+  );
+  expect([hurt.currentHitPoints, hurt.tempHitPoints, hurt.deathSaves]).toEqual([5, 4, { successes: 1, failures: 2 }]);
+  // A stored value above the maximum of 12, for example after a level goes, shows as the maximum. The record keeps it.
+  expect(toSheet(builtOf("fighter-1"), values({ "~:orcpub.dnd.e5.character/current-hit-points": 30 })).currentHitPoints).toBe(12);
+});
+
 test("resistances and immunities become display strings", () => {
   expect(toSheet(builtOf("fighter-5"), {}).resistances).toEqual(["Poison"]);
   expect(toSheet(builtOf("wizard-1"), {}).immunities).toEqual(["Magical Sleep"]);

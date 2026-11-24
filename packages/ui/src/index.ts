@@ -20,6 +20,7 @@ export { Radio, RadioGroup, type RadioGroupProps } from "./Radio.tsx";
 export { SegmentedToggle, type SegmentedToggleProps } from "./SegmentedToggle.tsx";
 export { Select, SelectBox, type SelectBoxProps, type SelectOption, type SelectProps } from "./Select.tsx";
 export { type FlagColor, FlagTab, FlagTabs, Shell } from "./Shell.tsx";
+export { SmallPopup, type SmallPopupProps } from "./SmallPopup.tsx";
 export { InlineNote, NoteCount, StuckNote } from "./StuckNote.tsx";
 export { type StoredValue, type StoredValueOptions, storedValue, useStoredValue } from "./stored-value.ts";
 export { type Tab, Tabs } from "./Tabs.tsx";

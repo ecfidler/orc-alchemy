@@ -54,6 +54,8 @@ const sheet: Sheet = {
   ],
   maxHitPoints: 28,
   currentHitPoints: null,
+  tempHitPoints: 0,
+  deathSaves: { successes: 0, failures: 0 },
   speeds: [{ feet: 25, label: null }],
   darkvision: 60,
   numberOfAttacks: 1,

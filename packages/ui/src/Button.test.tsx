@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { Button, ButtonLink, XButton } from "./Button.tsx";
 
@@ -121,6 +122,28 @@ test("a plain button has the look of the text around it: no size, never wide, an
     "button",
   ]);
   fireEvent.click(plain);
+  expect(onClick).toHaveBeenCalledOnce();
+});
+
+test("a bare button has no size, is never wide, takes the owner's classes, and gives a ref", () => {
+  const onClick = vi.fn();
+  const ref = createRef<HTMLButtonElement>();
+  render(
+    <Button ref={ref} variant="bare" size="large" wide className="grid px-2.5" aria-label="Hit points, 7 of 10" onClick={onClick}>
+      7 / 10
+    </Button>,
+  );
+  const bare = screen.getByRole("button", { name: "Hit points, 7 of 10" });
+  // src/button.css gives it no font, color, box or padding of its own: its classes draw it all.
+  expect([bare.className, bare.dataset.variant, bare.dataset.size, bare.dataset.wide, bare.getAttribute("type")]).toEqual([
+    "ui-button grid px-2.5",
+    "bare",
+    undefined,
+    undefined,
+    "button",
+  ]);
+  expect(ref.current).toBe(bare);
+  fireEvent.click(bare);
   expect(onClick).toHaveBeenCalledOnce();
 });
 

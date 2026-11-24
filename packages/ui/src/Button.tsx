@@ -1,14 +1,16 @@
 import { Button as BaseButton } from "@base-ui/react/button";
-import { type ComponentProps, cloneElement, type ReactElement, type ReactNode } from "react";
+import { type ComponentPropsWithoutRef, cloneElement, forwardRef, type ReactElement, type ReactNode } from "react";
 import { PixelIcon, type PixelIconName } from "./Icon.tsx";
 
-export type ButtonVariant = "solid" | "ghost" | "link" | "plain";
+export type ButtonVariant = "solid" | "ghost" | "link" | "plain" | "bare";
 export type ButtonSize = "small" | "normal" | "large";
 
-export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "className" | "render" | "type" | "nativeButton" | "focusableWhenDisabled"> & {
+export type ButtonProps = Omit<ComponentPropsWithoutRef<typeof BaseButton>, "className" | "render" | "type" | "nativeButton" | "focusableWhenDisabled"> & {
   /**
    * "ghost" (the default) is an outlined button, "solid" is filled with ink, "link" looks like a link. "plain" looks
    * like the text around it, and its text is underlined under a mouse, for example a name in a list that opens more.
+   * "bare" has no look of its own: the owner draws it all with `className`, for example a part of a box that opens a
+   * popup.
    */
   variant?: ButtonVariant;
   /** "small" fits in a row of fields, "large" is for the main actions of a page. */
@@ -23,26 +25,33 @@ export type ButtonProps = Omit<ComponentProps<typeof BaseButton>, "className" | 
   icon?: PixelIconName;
 };
 
+/** The variants with no box: they take no size and are never wide. */
+const textual = (variant: ButtonVariant) => variant === "link" || variant === "plain" || variant === "bare";
+
 /**
  * A button, with Base UI Button inside. A ghost button with `aria-current`
  * set shows as solid while it is current. For a button that is on or off,
- * use Toggle.
+ * use Toggle. It gives a ref, so it can be the trigger of a popup.
  */
-export function Button({ variant = "ghost", size = "normal", type = "button", className, wide = false, icon, children, ...props }: ButtonProps) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = "ghost", size = "normal", type = "button", className, wide = false, icon, children, ...props },
+  ref,
+) {
   return (
     <BaseButton
       {...props}
+      ref={ref}
       type={type}
       data-variant={variant}
-      data-size={variant === "link" || variant === "plain" ? undefined : size}
-      data-wide={wide && variant !== "link" && variant !== "plain" ? "" : undefined}
+      data-size={textual(variant) ? undefined : size}
+      data-wide={wide && !textual(variant) ? "" : undefined}
       className={className ? `ui-button ${className}` : "ui-button"}
     >
       {icon && <PixelIcon name={icon} className={children == null ? "ui-icon-alone" : undefined} />}
       {children}
     </BaseButton>
   );
-}
+});
 
 /**
  * A square button that shows only an X, for example to remove a row. It
@@ -93,7 +102,7 @@ export function ButtonLink({
   render,
   children,
 }: {
-  variant?: Exclude<ButtonVariant, "link" | "plain">;
+  variant?: Exclude<ButtonVariant, "link" | "plain" | "bare">;
   size?: ButtonSize;
   className?: string;
   icon?: PixelIconName;

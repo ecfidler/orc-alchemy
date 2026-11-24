@@ -5,6 +5,8 @@
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
 import { untag } from "./content.ts";
+import type { HitPointAction } from "./hit-points.ts";
+import { currentHitPoints, type DeathSaves, deathSaves, tempHitPoints } from "./play.ts";
 import { preparedSpells, type SlotGroup, type SpentSlotGroups, slotLayout, spentSlotGroups } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -131,6 +133,20 @@ export type PrepareSpell = (spell: SpellRef, prepared: boolean) => void;
 /** Opens the Spells panel at a spell, or at the top of its list without one (ORC-285). */
 export type OpenSpells = (spell?: SpellRef) => void;
 
+/**
+ * The play controls of the sheet (docs/design/sheet-interactivity.md): the
+ * handlers that change the play state, and the text of the status line. The
+ * sheet page gives it; without it, as in the builder preview, the sheet
+ * shows the play state and cannot change it. Later tickets add a handler
+ * for each new control.
+ */
+export interface SheetPlay {
+  /** The text of the last action for the status line of the vitals panel: "" when the sheet opens. */
+  status: string;
+  /** Applies an action of the Hit points popup or the Temporary hit points popup, as one sheet change (ORC-314). */
+  onHitPoints: (action: HitPointAction) => void;
+}
+
 export interface Spellcasting extends SpentSlotGroups {
   casters: Spellcaster[];
   /** Level 0 is cantrips. Spells sorted by key within a level; a component sorts them by the name it shows. */
@@ -167,7 +183,15 @@ export interface Sheet {
   armorClass: number;
   armorClassOptions: ArmorClassOption[];
   maxHitPoints: number;
+  /**
+   * The current hit points that show: the lower of the stored value and the
+   * maximum (ORC-119). null is full hit points: the record has no value.
+   */
   currentHitPoints: number | null;
+  /** The temporary hit points, 0 when there are none (play state). */
+  tempHitPoints: number;
+  /** The death save counts (play state). */
+  deathSaves: DeathSaves;
   speeds: Speed[];
   darkvision: number;
 
@@ -611,7 +635,10 @@ const castNoteOf = (qualifier: string | null | undefined) => {
   return note && note !== DOMAIN_QUALIFIER ? note : null;
 };
 
-/** The built character as a Sheet; the entity it was built from gives the prepared spells, which built lacks. */
+/**
+ * The built character as a Sheet. The entity it was built from gives what
+ * built lacks: the prepared spells, the spent slots and the play state.
+ */
 export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
   const abilityKey = (ability: Ability) => `orcpub.dnd.e5.character/${ability}` as const;
   const skillProfs = built["skill-profs"] ?? {};
@@ -678,7 +705,9 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
       ac,
     })),
     maxHitPoints: built["max-hit-points"],
-    currentHitPoints: built["current-hit-points"],
+    currentHitPoints: currentHitPoints(entity, built["max-hit-points"]),
+    tempHitPoints: tempHitPoints(entity),
+    deathSaves: deathSaves(entity),
     speeds: toSpeeds(built),
     darkvision: built.darkvision ?? 0,
 
