@@ -26,7 +26,7 @@ export type ButtonProps = Omit<ComponentPropsWithoutRef<typeof BaseButton>, "cla
 };
 
 /** The variants with no box: they take no size and are never wide. */
-const textual = (variant: ButtonVariant) => variant === "link" || variant === "plain" || variant === "bare";
+const boxless = (variant: ButtonVariant) => variant === "link" || variant === "plain" || variant === "bare";
 
 /**
  * A button, with Base UI Button inside. A ghost button with `aria-current`
@@ -43,8 +43,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type}
       data-variant={variant}
-      data-size={textual(variant) ? undefined : size}
-      data-wide={wide && !textual(variant) ? "" : undefined}
+      data-size={boxless(variant) ? undefined : size}
+      data-wide={wide && !boxless(variant) ? "" : undefined}
       className={className ? `ui-button ${className}` : "ui-button"}
     >
       {icon && <PixelIcon name={icon} className={children == null ? "ui-icon-alone" : undefined} />}

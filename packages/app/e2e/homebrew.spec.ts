@@ -88,7 +88,8 @@ test("a homebrew golden character, imported after its pack, shows its expected.j
 
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { level: 1, name: built["character-name"] })).toBeVisible();
-  await expect(page.getByLabel("Hit Points")).toHaveText(`${built["max-hit-points"]} / ${built["max-hit-points"]}`);
+  const hp = built["max-hit-points"];
+  await expect(page.getByRole("button", { name: `Hit points, ${hp} of ${hp}` })).toHaveText(`${hp} / ${hp}`);
   await expect(page.getByLabel("Proficiency Bonus")).toHaveText(bonusStr(built["proficiency-bonus"]));
   await expect(page.getByLabel("Passive Perception")).toHaveText(String(built["passive-perception"]));
   for (const ability of ["str", "dex", "con", "int", "wis", "cha"]) {

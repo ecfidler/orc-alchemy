@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { applyHitPointAction, damage, type HitPointState, heal, removeTempHitPoints, setHitPoints, setTempHitPoints } from "./hit-points.ts";
+import { applyHitPointAction, damage, type HitPointState, heal, removeTempHitPoints, replaceTempHitPoints, setHitPoints } from "./hit-points.ts";
 
 const state = (over: Partial<HitPointState> = {}): HitPointState => ({
   current: 26,
@@ -122,24 +122,24 @@ describe("Set HP", () => {
 
 describe("Set temp HP and Remove", () => {
   test("the new amount replaces the old amount, also when it is smaller", () => {
-    expect(setTempHitPoints(state({ temp: 8 }), 3)).toEqual({
+    expect(replaceTempHitPoints(state({ temp: 8 }), 3)).toEqual({
       temp: 3,
       deathSaves: { successes: 0, failures: 0 },
       status: "Temporary hit points set to 3.",
     });
-    expect(setTempHitPoints(state({ temp: 3 }), 8).temp).toBe(8);
+    expect(replaceTempHitPoints(state({ temp: 3 }), 8).temp).toBe(8);
   });
 
   test("0 or Remove takes them away", () => {
-    expect(setTempHitPoints(state({ temp: 8 }), 0)).toMatchObject({ temp: 0, status: "Temporary hit points removed." });
+    expect(replaceTempHitPoints(state({ temp: 8 }), 0)).toMatchObject({ temp: 0, status: "Temporary hit points removed." });
     expect(removeTempHitPoints(state({ temp: 8 }))).toMatchObject({ temp: 0, status: "Temporary hit points removed." });
   });
 
   test("do not change the hit points or the death saves", () => {
     const dying = state({ current: 0, deathSaves: { successes: 1, failures: 2 } });
-    expect(setTempHitPoints(dying, 5)).toMatchObject({ deathSaves: { successes: 1, failures: 2 } });
+    expect(replaceTempHitPoints(dying, 5)).toMatchObject({ deathSaves: { successes: 1, failures: 2 } });
     // No value for the hit points: the stored value stays, also one above the maximum.
-    expect(setTempHitPoints(dying, 5)).not.toHaveProperty("current");
+    expect(replaceTempHitPoints(dying, 5)).not.toHaveProperty("current");
     expect(removeTempHitPoints(state({ temp: 2 }))).not.toHaveProperty("current");
   });
 });
@@ -149,6 +149,6 @@ test("applyHitPointAction runs the rule of each action", () => {
   expect(applyHitPointAction(s, { kind: "damage", amount: 12 })).toEqual(damage(s, 12));
   expect(applyHitPointAction(s, { kind: "heal", amount: 8 })).toEqual(heal(s, 8));
   expect(applyHitPointAction(s, { kind: "set", amount: 20 })).toEqual(setHitPoints(s, 20));
-  expect(applyHitPointAction(s, { kind: "set-temp", amount: 9 })).toEqual(setTempHitPoints(s, 9));
+  expect(applyHitPointAction(s, { kind: "set-temp", amount: 9 })).toEqual(replaceTempHitPoints(s, 9));
   expect(applyHitPointAction(s, { kind: "remove-temp" })).toEqual(removeTempHitPoints(s));
 });

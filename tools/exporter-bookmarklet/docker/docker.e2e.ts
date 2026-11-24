@@ -124,7 +124,9 @@ test("the bookmarklet exports the old server's characters, and the app imports t
   await expect(page.getByRole("heading", { level: 1, name: fighter["character-name"] })).toBeVisible();
   await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText(String(worn.ac));
   const hp = fighter["max-hit-points"];
-  await expect(page.getByLabel("Hit Points", { exact: true })).toHaveText(`${fighter["current-hit-points"] ?? hp} / ${hp}`);
+  // The sheet shows the lower of the stored hit points and the maximum (ORC-119).
+  const current = Math.min(fighter["current-hit-points"] ?? hp, hp);
+  await expect(page.getByRole("button", { name: `Hit points, ${current} of ${hp}` })).toHaveText(`${current} / ${hp}`);
 });
 
 // The guide's way without the bookmark (ORC-68, doc 03 Path A): open a

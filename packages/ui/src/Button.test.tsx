@@ -129,11 +129,11 @@ test("a bare button has no size, is never wide, takes the owner's classes, and g
   const onClick = vi.fn();
   const ref = createRef<HTMLButtonElement>();
   render(
-    <Button ref={ref} variant="bare" size="large" wide className="grid px-2.5" aria-label="Hit points, 7 of 10" onClick={onClick}>
+    <Button ref={ref} variant="bare" size="large" wide className="grid px-2.5" aria-label="Count, 7" onClick={onClick}>
       7 / 10
     </Button>,
   );
-  const bare = screen.getByRole("button", { name: "Hit points, 7 of 10" });
+  const bare = screen.getByRole("button", { name: "Count, 7" });
   // src/button.css gives it no font, color, box or padding of its own: its classes draw it all.
   expect([bare.className, bare.dataset.variant, bare.dataset.size, bare.dataset.wide, bare.getAttribute("type")]).toEqual([
     "ui-button grid px-2.5",

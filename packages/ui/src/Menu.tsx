@@ -1,5 +1,5 @@
 import { Menu as BaseMenu } from "@base-ui/react/menu";
-import type { ButtonSize } from "./Button.tsx";
+import { Button, type ButtonSize } from "./Button.tsx";
 import type { SelectOption } from "./Select.tsx";
 
 export type MenuProps<T> = {
@@ -20,10 +20,7 @@ export type MenuProps<T> = {
 export function Menu<T>({ label, items, onPick, size = "small", className }: MenuProps<T>) {
   return (
     <BaseMenu.Root>
-      {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
-      <BaseMenu.Trigger data-variant="ghost" data-size={size} className={className ? `ui-button ${className}` : "ui-button"}>
-        {label}
-      </BaseMenu.Trigger>
+      <BaseMenu.Trigger render={<Button size={size} className={className} />}>{label}</BaseMenu.Trigger>
       <BaseMenu.Portal>
         <BaseMenu.Positioner sideOffset={2} align="start" className="ui-select-positioner">
           <BaseMenu.Popup className="ui-select-popup">

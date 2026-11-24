@@ -1,7 +1,6 @@
 import { AlertDialog as BaseAlertDialog } from "@base-ui/react/alert-dialog";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./Button.tsx";
-import { PixelIcon } from "./Icon.tsx";
 
 export type AlertDialogProps = {
   open: boolean;
@@ -32,11 +31,7 @@ export function AlertDialog({ open, message, action, cancel = "Cancel", onAnswer
         <BaseAlertDialog.Popup className="ui-dialog">
           <BaseAlertDialog.Title className="ui-dialog-message">{message}</BaseAlertDialog.Title>
           <div className="ui-dialog-actions">
-            {/* The button classes, not render={<Button />}: Button gives no ref, which Base UI needs. */}
-            <BaseAlertDialog.Close data-variant="ghost" data-size="normal" className="ui-button">
-              {icons && <PixelIcon name="x" />}
-              {cancel}
-            </BaseAlertDialog.Close>
+            <BaseAlertDialog.Close render={<Button icon={icons ? "x" : undefined} />}>{cancel}</BaseAlertDialog.Close>
             <Button variant="solid" icon={icons ? "check" : undefined} onClick={() => onAnswer(true)}>
               {action}
             </Button>

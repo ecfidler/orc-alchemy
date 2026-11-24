@@ -20,8 +20,9 @@ import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
-import { applyHitPointAction, type HitPointAction } from "../engine/hit-points.ts";
-import { currentHitPoints, type DeathSaves, deathSaves, setCurrentHitPoints, setDeathSaves, setTempHitPoints, tempHitPoints } from "../engine/play.ts";
+import type { HitPointAction } from "../engine/hit-points.ts";
+import { applyHitPoints } from "../engine/hit-points-apply.ts";
+import { type DeathSaves, setDeathSaves } from "../engine/play.ts";
 import type { Sheet, SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -150,17 +151,11 @@ function prepareSpell(spell: SpellRef, prepared: boolean) {
  * line.
  */
 function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
-  const max = sheet.maxHitPoints;
   let status = "";
   useCharacter.getState().sheetChange((entity) => {
-    const e = engine();
-    const change = applyHitPointAction(
-      { current: currentHitPoints(entity, max) ?? max, max, temp: tempHitPoints(entity), deathSaves: deathSaves(entity) },
-      action,
-    );
-    status = change.status;
-    const next = change.current === undefined ? entity : setCurrentHitPoints(e, entity, change.current);
-    return setDeathSaves(e, setTempHitPoints(e, next, change.temp), change.deathSaves);
+    const result = applyHitPoints(engine(), entity, sheet.maxHitPoints, action);
+    status = result.status;
+    return result.entity;
   });
   return status;
 }

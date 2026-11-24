@@ -138,28 +138,42 @@ function AmountField({ amount, onChange, missing }: { amount: number | null; onC
 }
 
 /**
+ * The amount of a popup and its Amount field. `submit` gives the amount to
+ * `act` when the field has a number. Without a number, it shows the note,
+ * which goes away when the field changes.
+ */
+function useAmount(initial: number | null) {
+  const [amount, setAmount] = useState<number | null>(initial);
+  const [missing, setMissing] = useState(false);
+  const submit = (act: (amount: number) => void) => {
+    const value = valid(amount);
+    if (value === null) setMissing(true);
+    else act(value);
+  };
+  const field = (
+    <AmountField
+      amount={amount}
+      onChange={(next) => {
+        setAmount(next);
+        setMissing(false);
+      }}
+      missing={missing}
+    />
+  );
+  return { field, submit };
+}
+
+/**
  * The popup "Hit points": the Amount field, Damage, Heal and Set HP. Enter
  * in the field does nothing, because the popup has three actions. With no
  * number, the popup stays open and the note says so.
  */
 function HitPointsForm({ onAction }: { onAction: (action: HitPointAction) => void }) {
-  const [amount, setAmount] = useState<number | null>(null);
-  const [missing, setMissing] = useState(false);
-  const run = (kind: "damage" | "heal" | "set") => {
-    const value = valid(amount);
-    if (value === null) setMissing(true);
-    else onAction({ kind, amount: value });
-  };
+  const { field, submit } = useAmount(null);
+  const run = (kind: "damage" | "heal" | "set") => submit((amount) => onAction({ kind, amount }));
   return (
     <>
-      <AmountField
-        amount={amount}
-        onChange={(next) => {
-          setAmount(next);
-          setMissing(false);
-        }}
-        missing={missing}
-      />
+      {field}
       <div className="grid grid-cols-2 gap-1.5">
         <Button onClick={() => run("damage")}>Damage</Button>
         <Button onClick={() => run("heal")}>Heal</Button>
@@ -177,13 +191,8 @@ function HitPointsForm({ onAction }: { onAction: (action: HitPointAction) => voi
  * disabled when there are none.
  */
 function TemporaryForm({ temp, onAction }: { temp: number; onAction: (action: HitPointAction) => void }) {
-  const [amount, setAmount] = useState<number | null>(temp > 0 ? temp : null);
-  const [missing, setMissing] = useState(false);
-  const set = () => {
-    const value = valid(amount);
-    if (value === null) setMissing(true);
-    else onAction({ kind: "set-temp", amount: value });
-  };
+  const { field, submit } = useAmount(temp > 0 ? temp : null);
+  const set = () => submit((amount) => onAction({ kind: "set-temp", amount }));
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement)) return;
     event.preventDefault();
@@ -192,14 +201,7 @@ function TemporaryForm({ temp, onAction }: { temp: number; onAction: (action: Hi
   return (
     <>
       <div className="grid gap-2.5" onKeyDown={onKeyDown}>
-        <AmountField
-          amount={amount}
-          onChange={(next) => {
-            setAmount(next);
-            setMissing(false);
-          }}
-          missing={missing}
-        />
+        {field}
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         <Button variant="solid" onClick={set}>
