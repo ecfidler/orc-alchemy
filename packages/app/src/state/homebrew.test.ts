@@ -469,3 +469,35 @@ test("an item cannot be saved into the reserved custom pack", async () => {
   );
   expect(await app.listPacks()).toEqual([]);
 });
+
+// ORC-310: old packs can name :thunder-cannon, which engine 0.4.0 cannot build.
+const THUNDER_CANNON_RACE = `{:orcpub.dnd.e5/races
+ {:gearwright {:key :gearwright :name "Gearwright" :option-pack "Weapon Test" :speed 30 :size :medium
+               :profs {:weapon-proficiency-options {:choose 1 :options {:longsword true :thunder-cannon true}}}}}}`;
+
+test("an import takes unknown weapons out of a race's weapon proficiency choice, logs them, and builds", async () => {
+  const { engine, useHomebrew, listPacks } = await reload();
+  await useHomebrew.getState().load("Weapon Test.orcbrew", THUNDER_CANNON_RACE);
+  const { lastImport, homebrew } = useHomebrew.getState();
+
+  expect(lastImport?.log.changes).toContainEqual(expect.objectContaining({ type: "removed-unknown-weapon", weapon: "thunder-cannon", name: "Gearwright" }));
+  const [stored] = (await listPacks()) as PackRecord[];
+  expect(JSON.stringify(stored!.plugin)).not.toContain("thunder-cannon");
+  expect(() => engine().buildTemplate(homebrew)).not.toThrow();
+});
+
+test("a stored pack with an unknown weapon loads without it, and is stored again without it", async () => {
+  let app = await reload();
+  const parsed = app.engine().parseOrcbrew(THUNDER_CANNON_RACE, { name: "Weapon Test" }).data!;
+  await app.savePacks([
+    { id: "Weapon Test", rules: "2014", enabled: true, disabledItems: [], plugin: parsed["Weapon Test"]!, updatedAt: "2026-11-01T00:00:00.000Z" },
+  ]);
+
+  app = await reload();
+  await app.restorePacks();
+
+  expect(app.useHomebrew.getState().quarantined).toEqual([]);
+  expect(app.useHomebrew.getState().packs.map((p) => p.id)).toEqual(["Weapon Test"]);
+  const [stored] = (await app.listPacks()) as PackRecord[];
+  expect(JSON.stringify(stored!.plugin)).not.toContain("thunder-cannon");
+});
