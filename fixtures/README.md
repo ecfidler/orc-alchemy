@@ -2,8 +2,8 @@
 
 > **Snapshot provenance.** This directory is a verbatim snapshot of the
 > fork's `fixtures/`, copied with `git archive` from `ecfidler/orcpub`
-> branch `pubdoor` at commit **`bcb795969a58db16943674fa9beeef63ef22aa99`** (tag `pubdoor-v0.4.0`), which
-> publishes **`@pubdoor/dmv@0.4.0`**. Only this note was added. Paths in the
+> branch `pubdoor` at commit **`8b3a63fba32c898add0576f38667d4560acf2526`** (tag `pubdoor-v0.4.1`), which
+> publishes **`@pubdoor/dmv@0.4.1`**. Only this note was added. Paths in the
 > rest of this file (`scripts/`, `src/`, `test/`, `engine-js/`) are fork paths.
 >
 > Do not edit the fixtures here. To refresh, regenerate in the fork (see
@@ -37,6 +37,8 @@ baseline was not regenerated then. ORC-178 changed it in one place
 (finding 19). ORC-192 added `scaled-uses.orcbrew` and
 `scaled-uses-fighter-6-barbarian-1` for engine patch D8, and a regeneration
 of every character and of the baseline then gave no other change.
+ORC-310 changes only the weapon proficiency choice of a homebrew race, and
+no fixture pack has one, so no fixture changes (finding 20).
 Regenerate whenever
 `src/cljc` or one of the files the engine reads from `src/cljs` changes (see
 *Regenerating*): `orcpub/dnd/e5.cljc`, `spell_subs.cljs`,
@@ -680,3 +682,14 @@ Line numbers are for commit `bcd9d68`.
     entry, the only one in the baseline. Each pack's `templateDelta` does
     not change, because both sides of the diff lose the same entry. The
     test character is `engine-js/test/fixtures/ranger-20-evasion.strict.json`.
+20. **An unknown weapon in a race's weapon proficiency choice stopped the
+    build.** In `options.cljc`, `weapon-proficiency-selection-2` looked up
+    each key of `:profs :weapon-proficiency-options :options` in the weapon
+    map with `map`. Old packs can name `:thunder-cannon`, the UA Artificer
+    weapon, which this build does not have. The lookup gave `nil`, and
+    `buildTemplate` threw `Doesn't support namespace: `. The old app has
+    the same bug when a pack names a weapon it does not have. ORC-310 skips
+    an unknown key, asks for no more weapons than the choice has left, and
+    leaves out a choice with no known weapon. No fixture pack has this
+    choice, so no fixture changes. The tests are in
+    `engine-js/test/template.test.ts`.
