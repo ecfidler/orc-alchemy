@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { HitPointAction } from "../engine/hit-points.ts";
+import type { DeathSaves } from "../engine/play.ts";
 import type { Sheet, SheetPlay } from "../engine/sheet.ts";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { HitPointsBox, NO_AMOUNT } from "./HitPointsBox.tsx";
@@ -64,9 +65,15 @@ const sheet: Sheet = {
   },
 };
 
-const playOf = (status = ""): SheetPlay & { onHitPoints: ReturnType<typeof vi.fn<(action: HitPointAction) => void>> } => ({
+const playOf = (
+  status = "",
+): SheetPlay & {
+  onHitPoints: ReturnType<typeof vi.fn<(action: HitPointAction) => void>>;
+  onDeathSaves: ReturnType<typeof vi.fn<(saves: DeathSaves) => void>>;
+} => ({
   status,
   onHitPoints: vi.fn<(action: HitPointAction) => void>(),
+  onDeathSaves: vi.fn<(saves: DeathSaves) => void>(),
 });
 
 const hitPointsButton = () => screen.getByRole("button", { name: /^Hit points, / });
@@ -216,10 +223,12 @@ test("the status line is a polite live region that starts empty and shows the te
   expect(screen.getByRole("status").tagName).toBe("P");
 });
 
-test("the Death saves box shows the stored counts", () => {
-  render(<CharacterSheet sheet={{ ...sheet, currentHitPoints: 0, deathSaves: { successes: 1, failures: 2 } }} play={playOf()} />);
-  expect(screen.getByRole("img", { name: "Successes: 1 of 3" })).toBeTruthy();
-  expect(screen.getByRole("img", { name: "Failures: 2 of 3" })).toBeTruthy();
+test("on the sheet, the Death saves box shows the stored counts and writes a change with play.onDeathSaves (ORC-315)", () => {
+  const play = playOf();
+  render(<CharacterSheet sheet={{ ...sheet, currentHitPoints: 0, deathSaves: { successes: 1, failures: 2 } }} play={play} />);
+  expect(screen.getByRole("slider", { name: "Death save successes" }).getAttribute("aria-valuetext")).toBe("1 of 3");
+  fireEvent.keyDown(screen.getByRole("slider", { name: "Death save failures" }), { key: "ArrowRight" });
+  expect(play.onDeathSaves.mock.calls).toEqual([[{ successes: 1, failures: 3 }]]);
 });
 
 test("HitPointsBox alone: without onAction it is read-only", () => {

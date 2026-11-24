@@ -143,8 +143,12 @@ export type OpenSpells = (spell?: SpellRef) => void;
 export interface SheetPlay {
   /** The text of the last action for the status line of the vitals panel: "" when the sheet opens. */
   status: string;
+  /** Changes with each action, so that the status line also reads out a text that is the same as the last one. */
+  statusKey?: number;
   /** Applies an action of the Hit points popup or the Temporary hit points popup, as one sheet change (ORC-314). */
   onHitPoints: (action: HitPointAction) => void;
+  /** Writes the death save counts after a click or an arrow key on the Death saves box, as one sheet change (ORC-315). */
+  onDeathSaves: (saves: DeathSaves) => void;
 }
 
 export interface Spellcasting extends SpentSlotGroups {

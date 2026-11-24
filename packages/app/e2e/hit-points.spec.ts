@@ -76,19 +76,19 @@ test("damage at 0 and instant death write the death saves; Heal clears them; the
   await openFighter(page);
   await act(page, "hit-points", "0", "Set HP");
   await act(page, "hit-points", "2", "Damage");
-  await expect(page.getByRole("img", { name: "Failures: 1 of 3" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Death save failures" })).toHaveAttribute("aria-valuetext", "1 of 3");
   await act(page, "hit-points", "54", "Damage");
-  await expect(page.getByRole("img", { name: "Failures: 3 of 3" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dead", exact: true })).toBeVisible();
   await expect(within0(page)).toHaveClass("text-caution");
   await act(page, "temporary", "6", "Set temp HP");
   await page.reload();
   await expect(hitPoints(page)).toHaveAccessibleName("Hit points, 0 of 54");
   await expect(temporary(page)).toHaveAccessibleName("Temporary hit points, 6");
-  await expect(page.getByRole("img", { name: "Failures: 3 of 3" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dead", exact: true })).toBeVisible();
   // The status line starts empty when the sheet opens.
   await expect(statusLine(page)).toHaveText("");
   await act(page, "hit-points", "5", "Heal");
-  await expect(page.getByRole("img", { name: "Failures: 0 of 3" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Death save failures" })).toHaveAttribute("aria-valuetext", "0 of 3");
   await expect(hitPoints(page)).toHaveAccessibleName("Hit points, 5 of 54");
 });
 

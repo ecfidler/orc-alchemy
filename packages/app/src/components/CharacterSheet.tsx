@@ -24,6 +24,7 @@ import {
 import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
 import { slotGroupsOf, spentText } from "../engine/spell-slots.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
+import { DeathSavesBox } from "./DeathSavesBox.tsx";
 import { HitPointsBox } from "./HitPointsBox.tsx";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -164,12 +165,13 @@ export function CharacterSheet({
             ))}
           </RowBox>
         </div>
-        {/* The three boxes share a row only when the panel is wide enough for the death save circles. */}
+        {/* The three boxes share a row only when the panel is wide enough for the death save circles. In a row, the Death
+          saves box is never narrower than its content, so a row of circles does not wrap (ORC-315). */}
         <div
           className={
             preview
               ? "grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2"
-              : "grid grid-cols-[minmax(0,4fr)_minmax(0,5fr)] gap-2 @min-[600px]/vitals:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)]"
+              : "grid grid-cols-[minmax(0,4fr)_minmax(0,5fr)] gap-2 @min-[600px]/vitals:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(max-content,1.1fr)]"
           }
         >
           <HitPointsBox
@@ -184,33 +186,14 @@ export function CharacterSheet({
           <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
             <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
           </FramedBox>
-          {!preview && (
-            <FramedBox label="Death saves" className="grid-rows-[1fr_auto]">
-              {/* The circles show the stored counts. ORC-315 makes them change. */}
-              <div className="grid content-evenly gap-1.5">
-                <div className="flex items-center justify-between gap-1.5">
-                  {/* The circles say "Successes", so the visible label is not read twice. */}
-                  <span aria-hidden>
-                    <Label>Successes</Label>
-                  </span>
-                  <SlotCircles label="Successes" count={3} marked={sheet.deathSaves.successes} color="success" />
-                </div>
-                <div className="flex items-center justify-between gap-1.5">
-                  <span aria-hidden>
-                    <Label>Failures</Label>
-                  </span>
-                  <SlotCircles label="Failures" count={3} marked={sheet.deathSaves.failures} color="caution" />
-                </div>
-              </div>
-            </FramedBox>
-          )}
+          {!preview && <DeathSavesBox saves={sheet.deathSaves} onChange={play?.onDeathSaves} />}
         </div>
         {play && (
           <>
             {/* The status line keeps the height of one line; a long text is cut, and a screen reader reads all of it.
               The next action replaces the text. */}
             <p role="status" title={play.status || undefined} className="h-5 truncate text-center font-sans text-[13px] leading-5 text-ink-muted">
-              {play.status}
+              <span key={play.statusKey}>{play.status}</span>
             </p>
             {/* The space of one note line for the concentration note (ORC-322), so that the note moves nothing. */}
             <div data-concentration-note className="h-[33px]" />

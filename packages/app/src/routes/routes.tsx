@@ -21,7 +21,7 @@ import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
 import { applyHitPointAction, type HitPointAction } from "../engine/hit-points.ts";
-import { currentHitPoints, deathSaves, setCurrentHitPoints, setDeathSaves, setTempHitPoints, tempHitPoints } from "../engine/play.ts";
+import { currentHitPoints, type DeathSaves, deathSaves, setCurrentHitPoints, setDeathSaves, setTempHitPoints, tempHitPoints } from "../engine/play.ts";
 import type { Sheet, SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -159,9 +159,15 @@ function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
       action,
     );
     status = change.status;
-    return setDeathSaves(e, setTempHitPoints(e, setCurrentHitPoints(e, entity, change.current), change.temp), change.deathSaves);
+    const next = change.current === undefined ? entity : setCurrentHitPoints(e, entity, change.current);
+    return setDeathSaves(e, setTempHitPoints(e, next, change.temp), change.deathSaves);
   });
   return status;
+}
+
+/** Writes the death save counts as a sheet change: it saves at once (ORC-315). */
+function changeDeathSaves(saves: DeathSaves) {
+  useCharacter.getState().sheetChange((entity) => setDeathSaves(engine(), entity, saves));
 }
 
 function SheetPage() {
@@ -173,8 +179,10 @@ function SheetPage() {
   // The spell stays while the panel closes, so the panel does not change during its close.
   const [spells, setSpells] = useState<{ open: boolean; at?: SpellRef }>({ open: false });
   // The status line of the vitals panel: what the last action changed. It starts empty, and it belongs to its character.
-  const [status, setStatus] = useState<{ id: string | undefined; text: string }>({ id: undefined, text: "" });
+  // Each action gives the line a new key, so that a screen reader also reads a text that is the same as the last one.
+  const [status, setStatus] = useState<{ id: string | undefined; text: string; key: number }>({ id: undefined, text: "", key: 0 });
   const statusText = status.id === openId ? status.text : "";
+  const say = (text: string) => setStatus((last) => ({ id: openId, text, key: last.key + 1 }));
   return (
     <OpenCharacter
       actions={(id) => (
@@ -195,7 +203,16 @@ function SheetPage() {
             sheet={sheet}
             onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
             onOpenSpells={(at) => setSpells({ open: true, at })}
-            play={{ status: statusText, onHitPoints: (action) => setStatus({ id: openId, text: changeHitPoints(sheet, action) }) }}
+            play={{
+              status: statusText,
+              statusKey: status.key,
+              onHitPoints: (action) => say(changeHitPoints(sheet, action)),
+              // A change of the circles is the next action, so it takes the text of the last one away.
+              onDeathSaves: (saves) => {
+                changeDeathSaves(saves);
+                say("");
+              },
+            }}
           />
           {sheet.spellcasting && (
             <SpellsPanel

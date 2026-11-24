@@ -201,7 +201,7 @@ test("on the sheet, a click or an arrow key spends a slot and gives it back; it 
   expect(first.getAttribute("aria-valuetext")).toBe("0 of 4 spent");
   expect(screen.getByRole("slider", { name: "3rd-level slots" }).getAttribute("aria-valuetext")).toBe("0 of 2 spent");
   // The death saves do not change.
-  expect(screen.getByRole("img", { name: "Successes: 0 of 3" })).toBeTruthy();
+  expect(screen.getByRole("slider", { name: "Death save successes" }).getAttribute("aria-valuetext")).toBe("0 of 3");
 
   fireEvent.click(first.children[2]!);
   fireEvent.click(first.children[3]!);
