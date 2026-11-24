@@ -14,8 +14,9 @@ interface Change {
   description?: string;
   /** key-renamed and removed-unknown-weapon: the pack of the item. */
   pack?: unknown;
-  /** removed-unknown-weapon: the race's name, and the weapon key taken out of its choice (ORC-310). */
+  /** removed-unknown-weapon: the name of the race (ORC-310). */
   name?: unknown;
+  /** removed-unknown-weapon: the weapon key that the app removed from the choice of the race. */
   weapon?: unknown;
   details?: {
     key?: unknown;

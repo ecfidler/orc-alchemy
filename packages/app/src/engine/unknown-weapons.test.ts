@@ -20,15 +20,14 @@ const choiceOf = (result: object) =>
     "~:weapon-proficiency-options"
   ];
 
-test("knows the SRD weapons, the SRD magic weapons, and the user's own magic items with a base weapon", async () => {
-  const known = await knownWeapons(["storm-blade"]);
-  expect(["longsword", "defender-longsword", "storm-blade", "storm-blade-rapier"].every(known)).toBe(true);
-  expect(known("thunder-cannon")).toBe(false);
-  expect(known("storm-bladed")).toBe(false);
+test("knows the SRD weapons and the SRD magic weapons, and nothing else", async () => {
+  const known = await knownWeapons();
+  expect(["longsword", "defender-longsword"].every(known)).toBe(true);
+  expect(["thunder-cannon", "bag-of-holding", "arrow"].some(known)).toBe(false);
 });
 
 test("takes an unknown weapon out of a race's choice, and logs it", async () => {
-  const known = await knownWeapons([]);
+  const known = await knownWeapons();
   const { plugin: result, changes } = withoutUnknownWeapons("Weapon Test", plugin({ longsword: true, "thunder-cannon": false }), known);
 
   expect(choiceOf(result)).toEqual({ "~:choose": 1, "~:options": { "~:longsword": true } });
@@ -37,8 +36,14 @@ test("takes an unknown weapon out of a race's choice, and logs it", async () => 
   ]);
 });
 
+test("asks for no more weapons than the choice has left", async () => {
+  const { plugin: result } = withoutUnknownWeapons("Weapon Test", plugin({ longsword: true, "thunder-cannon": true }, 2), await knownWeapons());
+
+  expect(choiceOf(result)).toEqual({ "~:choose": 1, "~:options": { "~:longsword": true } });
+});
+
 test("takes the whole choice out when no weapon is left, and keeps the other proficiencies", async () => {
-  const known = await knownWeapons([]);
+  const known = await knownWeapons();
   const { plugin: result } = withoutUnknownWeapons("Weapon Test", plugin({ "thunder-cannon": true }), known);
   const profs = (result as Record<string, Record<string, Record<string, unknown>>>)["~:orcpub.dnd.e5/races"]["~:gearwright"]["~:profs"];
 
@@ -46,7 +51,7 @@ test("takes the whole choice out when no weapon is left, and keeps the other pro
 });
 
 test("gives back the same objects when every weapon is known", async () => {
-  const known = await knownWeapons([]);
+  const known = await knownWeapons();
   const homebrew = { "Weapon Test": plugin({ longsword: true, shortsword: true }) };
   const result = homebrewWithoutUnknownWeapons(homebrew, known);
 
@@ -55,7 +60,7 @@ test("gives back the same objects when every weapon is known", async () => {
 });
 
 test("does not change a choice of any weapon", async () => {
-  const known = await knownWeapons([]);
+  const known = await knownWeapons();
   const input = plugin({ any: true });
 
   expect(withoutUnknownWeapons("Weapon Test", input, known).plugin).toBe(input);

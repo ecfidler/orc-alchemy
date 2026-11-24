@@ -692,6 +692,25 @@ Dungeon Master's Vault does not need to show the new content correctly. It
 imports a scaled amount with no error, but its sheet shows the amount
 incorrectly and can fail.
 
+## Unknown weapons in a race's weapon choice
+
+Added by ORC-310. Old packs can name a weapon that the engine does not
+have in the weapon proficiency choice of a race, such as `:thunder-cannon`
+from the UA Artificer of the old app. Engine 0.4.0 then cannot build the
+template. Every save on a form or on the Review uses page then fails, and
+a reload quarantines the pack.
+
+* When the app imports a file, it removes each such key from the choice.
+  The import log shows each removal under Data cleanup.
+* When the app loads the stored packs, it removes such keys and stores
+  the changed packs again. It writes each removal only to the console.
+* The known keys are the SRD weapons and the SRD magic weapons. These are
+  the weapons that the build checks of the store use.
+* The choice then asks for no more weapons than it has. When no weapon is
+  left, the app removes the choice.
+
+Engine 0.4.1 (orcpub PR #44) also skips unknown keys in this choice.
+
 # Customize
 
 Added in M5.1 (ORC-134). The builder lets the user make a copy of a
