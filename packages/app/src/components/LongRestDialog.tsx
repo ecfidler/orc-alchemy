@@ -3,8 +3,20 @@
 // in engine/rest.ts.
 import { Checkbox } from "@orc-alchemy/ui";
 import { useState } from "react";
-import { dawnStart, dawnUses, longRest, longRestChangesNothing, longRestPicks, longRestReserve, longRestRows, validBack } from "../engine/rest.ts";
-import { type DawnFields, DawnRows, dawnBack, RestChanges, RestDialog, type RestDialogProps, Section } from "./RestDialog.tsx";
+import {
+  type DawnFields,
+  dawnBack,
+  dawnChangesNothing,
+  dawnReserve,
+  dawnStart,
+  dawnUses,
+  longRest,
+  longRestChangesNothing,
+  longRestPicks,
+  longRestReserve,
+  longRestRows,
+} from "../engine/rest.ts";
+import { DawnRows, RestChanges, RestDialog, type RestDialogProps, Section } from "./RestDialog.tsx";
 
 /**
  * The Long rest dialog: "This rest will change", then the checkboxes "Ate
@@ -49,7 +61,7 @@ export function DawnDialog({ open, sheet, onCancel, onFinish, finalFocus }: Rest
   const back = dawnBack(fields);
   return (
     <RestDialog kind="dawn" open={open} onCancel={onCancel} finalFocus={finalFocus} onFinish={() => onFinish({ kind: "dawn", back })}>
-      <RestChanges nothing={validBack(uses, back).size === 0} reserve={uses.some((u) => u.spent > 0)}>
+      <RestChanges nothing={dawnChangesNothing(uses, back)} reserve={dawnReserve(uses)}>
         <DawnRows uses={uses} fields={fields} onChange={setFields} />
       </RestChanges>
     </RestDialog>

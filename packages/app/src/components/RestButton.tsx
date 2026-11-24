@@ -46,11 +46,11 @@ export function RestButton({ sheet, onRest, random }: RestButtonProps) {
         icon="moon"
         size="normal"
         buttonRef={button}
-        items={restKinds(sheet).map((kind) => [kind, REST_NAMES[kind]])}
-        onPick={(kind) => {
+        items={restKinds(sheet).map((entry) => [entry, REST_NAMES[entry]])}
+        onPick={(entry) => {
           setOpens((n) => n + 1);
-          setKind(kind);
-          setOpen(kind);
+          setKind(entry);
+          setOpen(entry);
         }}
       />
       {RestKindDialog && (

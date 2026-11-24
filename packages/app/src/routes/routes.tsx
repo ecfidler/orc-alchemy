@@ -40,8 +40,8 @@ import { useStorage } from "../storage/characters.ts";
  * open and built, under one row of buttons: Back to List on the left; on the
  * right, the save status, Save while it has unsaved changes to show (a sheet
  * change on its way to the record is not one), then the page's
- * `actions`, which get the sheet. A note under the row says when unsaved changes were recovered
- * from a draft on open.
+ * `actions`, which get the sheet. A note under the row says when unsaved
+ * changes were recovered from a draft on open.
  */
 function OpenCharacter({ actions, children }: { actions: (id: string, sheet: Sheet) => ReactNode; children: (sheet: Sheet) => ReactNode }) {
   const { id } = useParams() as { id: string };

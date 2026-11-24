@@ -43,8 +43,8 @@ test("optionNames reads a menu's items", async () => {
 
 test("a menu button can show an icon before its label and gives a ref to the button", () => {
   const ref = createRef<HTMLButtonElement>();
-  render(<Menu label="Rest" icon="moon" size="normal" buttonRef={ref} items={[[1, "One"]]} onPick={() => {}} />);
-  const button = screen.getByRole("button", { name: "Rest" });
+  render(<Menu label="Actions" icon="moon" size="normal" buttonRef={ref} items={[[1, "One"]]} onPick={() => {}} />);
+  const button = screen.getByRole("button", { name: "Actions" });
   expect(ref.current).toBe(button);
   expect(button.dataset.size).toBe("normal");
   expect(button.querySelector("svg")?.dataset.icon).toBe("moon");

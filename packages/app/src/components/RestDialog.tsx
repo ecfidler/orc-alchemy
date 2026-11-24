@@ -2,9 +2,9 @@
 // docs/design/sheet-interactivity.md "Rules for the three dialogs"): the
 // narrow dialog with Finish, a section with its large bold title, the list
 // "This rest will change", and the rows of the Dawn list.
-import { Button, Dialog, NumberField } from "@orc-alchemy/ui";
+import { Button, CurrentMax, Dialog, NumberField } from "@orc-alchemy/ui";
 import type { ReactNode, RefObject } from "react";
-import { REST_NAMES, type RestAction, type RestKind, type RestRow, type RestUse } from "../engine/rest.ts";
+import { type DawnFields, REST_NAMES, type RestAction, type RestKind, type RestRow, type RestUse } from "../engine/rest.ts";
 import type { Sheet } from "../engine/sheet.ts";
 
 /** The props of each rest dialog. */
@@ -56,8 +56,23 @@ export function Section({ title, children }: { title: string; children: ReactNod
   );
 }
 
-const ROW = "flex items-center justify-between gap-3 border-b border-rule py-1";
-const NO_CHANGE = "font-sans text-sm text-ink-muted";
+/** The class of a row of a list in a rest dialog: its name on the left, its value or control on the right, a rule under it. */
+export const ROW = "flex items-center justify-between gap-3 border-b border-rule py-1";
+
+/** The class of a quiet note in a rest dialog: "No change", "(2 spent)". */
+export const NO_CHANGE = "font-sans text-sm text-ink-muted";
+
+/** A total line of a rest dialog: its name on the left and a bold current / max on the right, with the width of `reserve` kept. */
+export function TotalLine({ label, current, max, reserve }: { label: string; current: ReactNode; max: ReactNode; reserve: string | number }) {
+  return (
+    <p className="flex items-baseline justify-between gap-3 font-sans text-sm">
+      <span>{label}</span>
+      <b className="text-[15px] font-semibold tabular-nums">
+        <CurrentMax current={current} max={max} reserve={reserve} />
+      </b>
+    </p>
+  );
+}
 
 /**
  * The list "This rest will change": a fixed set of rows, each with its
@@ -89,12 +104,6 @@ export function RestChanges({ rows = [], nothing, reserve, children }: { rows?: 
   );
 }
 
-/** The numbers of the Dawn list, as the key of a use to its field: null for an empty field. */
-export type DawnFields = ReadonlyMap<string, number | null>;
-
-/** The fields of the Dawn list as the picks of a rest: an empty field gives back 0. */
-export const dawnBack = (fields: DawnFields) => new Map([...fields].map(([key, n]) => [key, n ?? 0]));
-
 /**
  * The rows of the Dawn list: each feature with Dawn uses, with a number
  * field for the uses that come back, from 0 to the spent count. A feature
@@ -117,7 +126,7 @@ export function DawnRows({
       {uses.map(({ key, name, spent }) => (
         <li key={key} className={`${ROW} min-h-10`}>
           <span>
-            {name} {spent > 0 && <span className="font-sans text-sm text-ink-muted">({spent} spent)</span>}
+            {name} {spent > 0 && <span className={NO_CHANGE}>({spent} spent)</span>}
           </span>
           {spent > 0 ? (
             <NumberField

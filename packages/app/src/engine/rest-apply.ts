@@ -6,6 +6,7 @@ import type { Engine, StrictEntity } from "./engine.ts";
 import { applyHitPoints } from "./hit-points-apply.ts";
 import {
   exhaustion,
+  type FeatureUsesKey,
   hitDiceSpent,
   rechargeGroup,
   setConcentration,
@@ -44,16 +45,26 @@ type RestSheet = Parameters<typeof shortRest>[0] & Parameters<typeof longRest>[0
 const usesWithout = (entity: StrictEntity, cleared: (group: string) => boolean) =>
   new Map([...usesSpent(entity)].filter(([group]) => !cleared(group)).map(([group, features]) => [group, new Map(features)]));
 
+/** Sets the spent count of a use in the spent uses of the record: it gets or makes the map of the use's recharge group. */
+function setUse(uses: Map<string, Map<string, number>>, use: FeatureUsesKey, spent: (now: number) => number) {
+  const group = rechargeGroup(use.units);
+  const features = uses.get(group) ?? new Map<string, number>();
+  features.set(use.name, spent(features.get(use.name) ?? 0));
+  uses.set(group, features);
+}
+
+/** The slot layout of the sheet, and the entity with the Pact Magic slots back when some are spent. */
+function restorePact(e: Engine, entity: StrictEntity, sheet: RestSheet, pactSpent: number) {
+  const layout = sheet.spellcasting ?? { slots: [], pact: null };
+  return { layout, next: pactSpent > 0 ? setSpentSlots(e, entity, layout, "pact", 0) : entity };
+}
+
 /** Takes the Dawn uses that come back off the spent counts. A use with no number keeps its stored count. */
 function giveBackDawn(uses: Map<string, Map<string, number>>, dawn: readonly RestUse[], back: DawnBack): UsesSpent {
   const kept = validBack(dawn, back);
   for (const { key, use, spent } of dawn) {
     const n = kept.get(key) ?? 0;
-    if (n <= 0) continue;
-    const group = rechargeGroup(use.units);
-    const features = uses.get(group) ?? new Map<string, number>();
-    features.set(use.name, spent - n);
-    uses.set(group, features);
+    if (n > 0) setUse(uses, use, () => spent - n);
   }
   return uses;
 }
@@ -83,21 +94,16 @@ function applyShortRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest:
     next = applyHitPoints(e, next, rest.max, { kind: "heal", amount: diceHealing(dice, rest.conModifier) }).entity;
     next = setHitDiceSpent(e, next, spent);
   }
-  const layout = sheet.spellcasting ?? { slots: [], pact: null };
-  if (rest.pactSpent > 0) next = setSpentSlots(e, next, layout, "pact", 0);
+  const pact = restorePact(e, next, sheet, rest.pactSpent);
+  next = pact.next;
   const picks = validSlotPicks(rest.arcaneRecovery, action.arcaneRecovery);
   for (const [level, n] of picks) {
     const spent = rest.arcaneRecovery?.slots.find((s) => s.level === level)?.spent ?? 0;
-    next = setSpentSlots(e, next, layout, level, spent - n);
+    next = setSpentSlots(e, next, pact.layout, level, spent - n);
   }
   const uses = usesWithout(entity, shortRestGroup);
   const recovery = rest.arcaneRecovery;
-  if (recovery && picks.size > 0) {
-    const group = rechargeGroup(recovery.use.units);
-    const features = uses.get(group) ?? new Map<string, number>();
-    features.set(recovery.use.name, (features.get(recovery.use.name) ?? 0) + 1);
-    uses.set(group, features);
-  }
+  if (recovery && picks.size > 0) setUse(uses, recovery.use, (n) => n + 1);
   return setUsesSpent(e, next, uses);
 }
 
@@ -116,13 +122,13 @@ function applyShortRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest:
  * Inspiration and the conditions do not change.
  */
 function applyLongRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest: LongRest, action: Extract<RestAction, { kind: "long" }>) {
-  let next = setCurrentHitPoints(e, entity, null);
+  let next: StrictEntity = setCurrentHitPoints(e, entity, null);
   next = setTempHitPoints(e, next, 0);
   next = setDeathSaves(e, next, { successes: 0, failures: 0 });
   next = setConcentration(e, next, null);
-  const layout = sheet.spellcasting ?? { slots: [], pact: null };
-  if (rest.pactSpent > 0) next = setSpentSlots(e, next, layout, "pact", 0);
-  for (const { level } of rest.slots) next = setSpentSlots(e, next, layout, level, 0);
+  const pact = restorePact(e, next, sheet, rest.pactSpent);
+  next = pact.next;
+  for (const { level } of rest.slots) next = setSpentSlots(e, next, pact.layout, level, 0);
   if (rest.dice.length > 0) {
     // A stored die that the character no longer has keeps its entry.
     const spent = new Map(hitDiceSpent(entity));

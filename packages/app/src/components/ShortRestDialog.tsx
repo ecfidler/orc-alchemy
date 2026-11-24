@@ -1,10 +1,11 @@
 // The Short rest dialog (ORC-318, docs/design/sheet-interactivity.md
 // "Short rest"): Spend hit dice, Arcane Recovery and "This rest will
 // change". The rules are in engine/rest.ts.
-import { Button, CurrentMax, NoteSpace, Token, Tokens } from "@orc-alchemy/ui";
+import { Button, NoteSpace, Token, Tokens } from "@orc-alchemy/ui";
 import { useLayoutEffect, useRef, useState } from "react";
 import { dieName, hitDieHealing } from "../engine/hit-dice.ts";
 import {
+  arrow,
   canPickSlot,
   canSpendDie,
   diceLeft,
@@ -20,7 +21,7 @@ import {
   slotsName,
 } from "../engine/rest.ts";
 import { HitDiceRow } from "./HitDiceBox.tsx";
-import { RestChanges, RestDialog, type RestDialogProps, Section } from "./RestDialog.tsx";
+import { NO_CHANGE, RestChanges, RestDialog, type RestDialogProps, ROW, Section, TotalLine } from "./RestDialog.tsx";
 
 /**
  * The spent dice of one size, as tokens with only their result ("+6") and
@@ -33,7 +34,7 @@ function SpentDice({ die, results, room, onTakeBack }: { die: number; results: n
   const token = "[&>.ui-token-label]:min-w-[3ch] [&>.ui-token-label]:text-right tabular-nums";
   return (
     <div role="group" aria-label={`Spent ${dieName(die)}`} className="relative min-h-[30px]">
-      {results.length === 0 && <span className="absolute top-0.5 left-0 font-sans text-sm text-ink-muted">No dice spent</span>}
+      {results.length === 0 && <span className={`absolute top-0.5 left-0 ${NO_CHANGE}`}>No dice spent</span>}
       <Tokens>
         {results.map((result, i) => (
           <Token
@@ -103,12 +104,7 @@ function SpendHitDice({ rest, dice, onChange, random }: { rest: ShortRest; dice:
           );
         })}
         <div className="relative">
-          <p className="flex items-baseline justify-between gap-3 font-sans text-sm">
-            <span>Hit points</span>
-            <b className="text-[15px] font-semibold tabular-nums">
-              <CurrentMax current={`${rest.current} → ${after}`} max={rest.max} reserve={`${rest.max} → ${rest.max}`} />
-            </b>
-          </p>
+          <TotalLine label="Hit points" current={arrow(rest.current, after)} max={rest.max} reserve={arrow(rest.max, rest.max)} />
           {/*
            * The note of a roll that is not valid shows on the total line, over the gap under it, so it takes no space of its
            * own and the dialog keeps its size. The list "This rest will change" also shows the hit points.
@@ -135,7 +131,7 @@ function ArcaneRecoveryPicks({ rest, picks, onChange }: { rest: ShortRest; picks
   };
   return (
     <Section title="Arcane Recovery">
-      <p className="font-sans text-sm text-ink-muted">
+      <p className={NO_CHANGE}>
         Pick spent slots to get back, with {recovery.limit} slot {recovery.limit === 1 ? "level" : "levels"} or fewer in all. This spends Arcane Recovery.
       </p>
       {recovery.slots.length === 0 ? (
@@ -146,19 +142,19 @@ function ArcaneRecoveryPicks({ rest, picks, onChange }: { rest: ShortRest; picks
             const n = picks.get(level) ?? 0;
             const name = slotsName(level);
             return (
-              <li key={level} role="group" aria-label={name} className="flex items-center justify-between gap-3 border-b border-rule py-1">
+              <li key={level} role="group" aria-label={name} className={ROW}>
                 <span>
-                  {name} <span className="font-sans text-sm text-ink-muted">({spent} spent)</span>
+                  {name} <span className={NO_CHANGE}>({spent} spent)</span>
                 </span>
                 <span className="flex items-center gap-1">
-                  <Button size="small" icon="minus" aria-label={`One less ${ordinalName(name)}`} disabled={n === 0} onClick={() => change(level, -1)} />
+                  <Button size="small" icon="minus" aria-label={`One less ${oneSlotName(name)}`} disabled={n === 0} onClick={() => change(level, -1)} />
                   <output aria-label={`${name} to get back`} className="min-w-[2ch] text-center tabular-nums">
                     {n}
                   </output>
                   <Button
                     size="small"
                     icon="plus"
-                    aria-label={`One more ${ordinalName(name)}`}
+                    aria-label={`One more ${oneSlotName(name)}`}
                     disabled={!canPickSlot(recovery, picks, level)}
                     onClick={() => change(level, 1)}
                   />
@@ -168,18 +164,13 @@ function ArcaneRecoveryPicks({ rest, picks, onChange }: { rest: ShortRest; picks
           })}
         </ul>
       )}
-      <p className="flex items-baseline justify-between gap-3 font-sans text-sm">
-        <span>Slot levels picked</span>
-        <b className="text-[15px] font-semibold tabular-nums">
-          <CurrentMax current={slotLevelSum(picks)} max={recovery.limit} reserve={recovery.limit} />
-        </b>
-      </p>
+      <TotalLine label="Slot levels picked" current={slotLevelSum(picks)} max={recovery.limit} reserve={recovery.limit} />
     </Section>
   );
 }
 
-/** "1st-level slots" as one slot: "1st-level slot". */
-const ordinalName = (name: string) => name.replace(/s$/, "");
+/** The name of the slots of a level as one slot: "1st-level slots" gives "1st-level slot". */
+const oneSlotName = (name: string) => name.replace(/s$/, "");
 
 export interface ShortRestDialogProps extends RestDialogProps {
   /** The random source of Roll for me. Math.random by default. */

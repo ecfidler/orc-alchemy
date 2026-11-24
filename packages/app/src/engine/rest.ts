@@ -366,6 +366,22 @@ export const dawnUses = (sheet: Pick<Sheet, "features">) => restUses(sheet, dawn
 /** The fields of the Dawn list at the open: each starts at the spent count, so all uses come back. */
 export const dawnStart = (uses: readonly RestUse[]): Map<string, number> => new Map(uses.map((u) => [u.key, u.spent]));
 
+/** The numbers of the Dawn list, as the key of a use to its field: null for an empty field. */
+export type DawnFields = ReadonlyMap<string, number | null>;
+
+/** The fields of the Dawn list as the picks of a rest: an empty field gives back 0. */
+export const dawnBack = (fields: DawnFields): Map<string, number> => new Map([...fields].map(([key, n]) => [key, n ?? 0]));
+
+/** True when the Dawn dialog with these numbers changes nothing: no use comes back. */
+export const dawnChangesNothing = (uses: readonly RestUse[], back: DawnBack) => validBack(uses, back).size === 0;
+
+/**
+ * True when the numbers of the Dawn dialog can change whether it changes
+ * nothing: a use is spent. The dialog then keeps the space of the line
+ * "Nothing will change." while the user picks.
+ */
+export const dawnReserve = (uses: readonly RestUse[]) => uses.some((u) => u.spent > 0);
+
 /**
  * The numbers of the Dawn list that the rest can give back, as the key of a
  * use to a number from 1 to its spent count. A field above the spent count
@@ -390,6 +406,8 @@ export function validBack(uses: readonly RestUse[], back: DawnBack): Map<string,
  */
 export function longRestRows(rest: LongRest, action: Pick<Extract<RestAction, { kind: "long" }>, "ate">): RestRow[] {
   const rows: RestRow[] = [];
+  // rest.max is sheet.maxHitPoints before the rest. ORC-323 (exhaustion halves the maximum) must compute this row from the
+  // exhaustion level after the rest, as "Ate and drank" can change it.
   if (rest.current < rest.max) rows.push({ key: "hit points", label: "Hit points", change: `${arrow(rest.current, rest.max)} / ${rest.max}` });
   if (rest.temp > 0) rows.push({ key: "temp hit points", label: "Temporary hit points", change: arrow(rest.temp, 0) });
   for (const { level, spent } of rest.slots) rows.push(slotsRow(level, signed(spent)));

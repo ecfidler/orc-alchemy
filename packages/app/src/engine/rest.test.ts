@@ -7,6 +7,9 @@ import {
   arcaneRecoveryLimit,
   canPickSlot,
   canSpendDie,
+  dawnBack,
+  dawnChangesNothing,
+  dawnReserve,
   dawnStart,
   dawnUses,
   hitDiceBack,
@@ -422,6 +425,30 @@ test("the Dawn list: each use of the group day, spent or not; the fields start a
     ),
   ]).toEqual([]);
   expect([...validBack(uses, new Map([[wand ?? "", -2]]))]).toEqual([]);
+});
+
+test("the Dawn dialog: an empty field gives back 0; it changes nothing with no use back; it keeps the line's space only with a spent use", () => {
+  const sheet = withTraits(fighter(), [feature("Wand", "day", 7, 3), feature("Cape", "day", 1, 0)]);
+  const uses = dawnUses(sheet);
+  const [wand = "", cape = ""] = uses.map((u) => u.key);
+  expect([
+    ...dawnBack(
+      new Map([
+        [wand, null],
+        [cape, 1],
+      ]),
+    ),
+  ]).toEqual([
+    [wand, 0],
+    [cape, 1],
+  ]);
+  expect(dawnChangesNothing(uses, dawnStart(uses))).toBe(false);
+  expect(dawnChangesNothing(uses, dawnBack(new Map([[wand, null]])))).toBe(true);
+  // Cape is not spent, so a number for it gives nothing back.
+  expect(dawnChangesNothing(uses, new Map([[cape, 1]]))).toBe(true);
+  expect(dawnReserve(uses)).toBe(true);
+  expect(dawnReserve(uses.filter((u) => u.key === cape))).toBe(false);
+  expect(dawnReserve([])).toBe(false);
 });
 
 test("a rest that changes nothing says so: a rested long rest, one with its checkboxes off, and a short rest with no picks", () => {
