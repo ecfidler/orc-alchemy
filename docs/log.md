@@ -2,6 +2,7 @@
 
 ## 2026-11-23
 
+* **Update**: Added the Experimental section of the Preferences page, with the 2024 rules preview, to the [Theme spec](design/theme.md), and the preview to the seam to the app of the [2024 engine spec](design/2024-engine.md) (ORC-308).
 * **Update**: Added the hooks `expertise` and `language-choice`, and the `proficient` argument of `weapon-mastery`, to the [2024 content format](design/2024-content-format.md) (ORC-252).
 * **Update**: Replaced the probable Martial Arts hook with the sheet value `martialArtsDie` in the [2024 content format](design/2024-content-format.md), and added it with the Unarmed Strike line to the [2024 engine spec](design/2024-engine.md) (ORC-251).
 * **Update**: Added the `melee` argument of the `weapon-mastery` hook, the order of an `add` effect and the sheet value `classColumns` to the [2024 content format](design/2024-content-format.md), and `classColumns` and `wornArmorCategory` to the [2024 engine spec](design/2024-engine.md) (ORC-250).

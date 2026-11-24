@@ -1,4 +1,4 @@
-// The 2024 golden characters on the sheet, behind the developer flag (ORC-238, ORC-250 to ORC-252).
+// The 2024 golden characters on the sheet, behind the 2024 rules preview of Preferences (ORC-238, ORC-250 to ORC-252, ORC-308).
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -16,7 +16,22 @@ async function openGolden(page: Page, name: string, level: number) {
   await page.goto(`/dev/2024?${new URLSearchParams({ character: name, level: String(level) })}`);
 }
 
-test("without the developer flag, the page is not found", async ({ page }) => {
+test("without the 2024 rules preview, the page is not found", async ({ page }) => {
+  await page.goto("/dev/2024");
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+});
+
+test("Preferences turns the 2024 rules preview on and links to it (ORC-308)", async ({ page }) => {
+  await page.goto("/preferences");
+  const experimental = page.getByRole("region", { name: "Experimental" });
+  await experimental.getByRole("checkbox", { name: "2024 rules preview" }).click();
+  await experimental.getByRole("link", { name: "Open the 2024 rules preview" }).click();
+  await expect(page).toHaveURL(/\/dev\/2024$/);
+  await expect(page.getByText("2024 rules preview", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Brunhild" })).toBeVisible();
+
+  await page.goto("/preferences");
+  await experimental.getByRole("checkbox", { name: "2024 rules preview" }).click();
   await page.goto("/dev/2024");
   await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
 });
@@ -109,5 +124,24 @@ test.describe("screenshots of the classes", () => {
         await page.screenshot({ path: join(dir, `${file}-20-${theme}.png`), fullPage: true });
       });
     }
+  }
+});
+
+test.describe("screenshots of Preferences", () => {
+  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
+  test.use({ deviceScaleFactor: 2 });
+  const dir = join(import.meta.dirname, "../../../pr-screenshots");
+  for (const theme of ["light", "dark"] as const) {
+    test(`orc-308 the Experimental section, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      await page.setViewportSize({ width: 1280, height: 700 });
+      await page.goto("/preferences");
+      await page.getByRole("checkbox", { name: "2024 rules preview" }).click();
+      await expect(page.getByRole("link", { name: "Open the 2024 rules preview" })).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: join(dir, `orc-308-preferences-${theme}.png`) });
+    });
   }
 });

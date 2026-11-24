@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T15:10:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T20:50:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -503,12 +503,19 @@ will draw the real stain.
 ORC-149.
 
 * Route `/preferences`, linked from the orange Preferences tab.
-* One heading, "Appearance", with one Select: Light, Dark, Match System.
+* The heading "Appearance" has one Select: Light, Dark, Match System.
   Match System is the default. A change applies at once. There is no Save
   button.
 * Later options get their own headings below "Appearance".
-* The page uses `useThemePreference()`. It does not touch `localStorage`
-  itself. Another open tab changes at once, with no alert note.
+* "Experimental" is the last heading (ORC-308). It holds features that
+  are not finished, under the note "Features that are not finished. They
+  can change or break." Its one option is the checkbox "2024 rules
+  preview". While it is checked, the link "Open the 2024 rules preview"
+  goes to `/dev/2024`. The section stays until the 2024 rules are a
+  normal part of the app.
+* The page uses `useThemePreference()` and `usePreview2024()`. It does
+  not touch `localStorage` itself. Another open tab changes at once, with
+  no alert note.
 * `/account` stays free for Demiplane.
 * In M8 the choice is stored in this browser only. When Demiplane comes, it
   also syncs with the user's account. The `localStorage` copy stays,
