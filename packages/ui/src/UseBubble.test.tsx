@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
-import { POOL_NO_AMOUNT, UseBubble } from "./UseBubble.tsx";
+import { AMOUNT_NOTE } from "./AmountField.tsx";
+import { UseBubble } from "./UseBubble.tsx";
 
 afterEach(cleanup);
 
@@ -105,10 +106,11 @@ test("the minus and plus buttons of a pool change the uses left by one and stop 
 
 test("the number of a pool keeps the width of its largest value", () => {
   render(<UseBubble title="Well" pool={100} spent={95} onSpentChange={() => {}} />);
-  // The maximum, hidden in the same cell, reserves the width.
-  const left = bubble("Well").querySelector<HTMLElement>(".ui-use-pool-left");
+  // The pair is a CurrentMax, and the maximum, hidden in the same cell, reserves the width.
+  const left = bubble("Well").querySelector<HTMLElement>(".ui-current-max .ui-current-max-now");
   expect(left?.getAttribute("data-reserve")).toBe("100");
   expect(left?.textContent).toBe("5");
+  expect(left?.parentElement?.textContent).toBe("5 / 100");
 });
 
 /** Opens the popup of the pool, types an amount (or nothing) and clicks a button. */
@@ -141,6 +143,6 @@ test("with no number, the popup of a pool stays open and a note says so", () => 
   render(<Owned pool={20} onChange={onChange} />);
   act("", "Spend");
   const popup = screen.getByRole("dialog", { name: "Well" });
-  expect(within(popup).getByText(POOL_NO_AMOUNT)).toBeTruthy();
+  expect(within(popup).getByText(AMOUNT_NOTE)).toBeTruthy();
   expect(onChange).not.toHaveBeenCalled();
 });

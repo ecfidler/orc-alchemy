@@ -229,11 +229,23 @@ export function SlotCircles({
   );
 }
 
-/** A current value at full size, then "/ max" at the same size in the muted ink. It has no label. */
-export function CurrentMax({ current, max }: { current: ReactNode; max: ReactNode }) {
+/**
+ * A current value at full size, then "/ max" at the same size in the muted
+ * ink. It has no label. With `reserve`, the current value keeps the width of
+ * that text, for example its largest value, at its right end, so that the
+ * pair does not move when the value changes.
+ */
+export function CurrentMax({ current, max, reserve }: { current: ReactNode; max: ReactNode; reserve?: string | number }) {
   return (
     <span className="ui-current-max">
-      {current}
+      {reserve === undefined ? (
+        current
+      ) : (
+        // The reserve text, hidden, in the same cell as the value: it keeps the width.
+        <span className="ui-current-max-now" data-reserve={reserve}>
+          <span>{current}</span>
+        </span>
+      )}
       <span className="ui-current-max-of"> / {max}</span>
     </span>
   );

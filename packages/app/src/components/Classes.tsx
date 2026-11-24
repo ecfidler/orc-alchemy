@@ -6,8 +6,9 @@ import { Button, InlineNote, Select, Toggle, ToggleGroup, useConfirm } from "@or
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
+import { unqualify } from "../engine/content.ts";
 import { type Content, type Engine, engine, type StrictEntity } from "../engine/engine.ts";
-import { ABILITIES, unqualify } from "../engine/sheet.ts";
+import { ABILITIES } from "../engine/sheet.ts";
 import { useCharacter, useCharacterContent, useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
 

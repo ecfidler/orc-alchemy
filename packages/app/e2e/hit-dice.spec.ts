@@ -181,8 +181,10 @@ test("keyboard: the box opens the popup with the focus in the first field; Enter
   await expect(popup(page)).toHaveCount(0);
   await expect(status(page)).toHaveText("Hit die d8: 5 + 1 = 6 healed.");
   await expect(hitDice(page)).toBeFocused();
-  // Enter with an empty field shows the note and keeps the popup open.
+  // Enter with an empty field shows the note and keeps the popup open. The popup moves the
+  // focus to the first field after it opens; until then a second Enter goes to the box and closes it.
   await page.keyboard.press("Enter");
+  await expect(row(page, "d10").getByRole("textbox", { name: "Roll" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(popup(page).getByRole("status")).toHaveText("Type a roll from 1 to 10 for the d10.");
 });

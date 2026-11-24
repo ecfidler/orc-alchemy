@@ -1,8 +1,7 @@
 import { type ReactNode, useId, useState } from "react";
+import { AmountField, NoteSpace, useAmount } from "./AmountField.tsx";
 import { Button } from "./Button.tsx";
-import { NoteLine } from "./NoteLine.tsx";
-import { NumberField } from "./NumberField.tsx";
-import { SlotCircles } from "./Paper.tsx";
+import { CurrentMax, SlotCircles } from "./Paper.tsx";
 import { SmallPopup } from "./SmallPopup.tsx";
 
 export type UseBubbleProps = {
@@ -25,9 +24,6 @@ export type UseBubbleProps = {
   | { /** A pool of this many uses: the uses left show large under the tag, as left / max. */ pool: number; uses?: never }
   | { uses?: never; pool?: never }
 );
-
-/** The text of the note when the field of the pool popup has no number. */
-export const POOL_NO_AMOUNT = "Type a number of 0 or more.";
 
 /**
  * The outline around something with limited uses. It is a group named by
@@ -82,17 +78,7 @@ export function UseBubble({ title, children, tag, uses, pool, spent: spentProp =
 }
 
 /** The uses left / max of a pool. The left part keeps the width of the maximum, its largest value. */
-function PoolCount({ left, max }: { left: number; max: number }) {
-  return (
-    <>
-      {/* The maximum, hidden, in the same cell: it reserves the width of the largest number. */}
-      <span className="ui-use-pool-left" data-reserve={max}>
-        <span>{left}</span>
-      </span>
-      <span className="ui-use-pool-of"> / {max}</span>
-    </>
-  );
-}
+const PoolCount = ({ left, max }: { left: number; max: number }) => <CurrentMax current={left} max={max} reserve={max} />;
 
 function Pool({ title, max, spent, onSpentChange }: { title: string; max: number; spent: number; onSpentChange?: (spent: number) => void }) {
   const [open, setOpen] = useState(false);
@@ -142,37 +128,17 @@ function Pool({ title, max, spent, onSpentChange }: { title: string; max: number
  * has three actions.
  */
 function PoolForm({ left, max, onLeft }: { left: number; max: number; onLeft: (left: number) => void }) {
-  const [amount, setAmount] = useState<number | null>(null);
-  const [missing, setMissing] = useState(false);
-  const run = (kind: "spend" | "regain" | "set") => {
-    if (amount === null || amount < 0) {
-      setMissing(true);
-      return;
-    }
-    onLeft(kind === "spend" ? left - amount : kind === "regain" ? left + amount : amount);
-  };
+  const amount = useAmount();
+  const run = (kind: "spend" | "regain" | "set") => amount.submit((n) => onLeft(kind === "spend" ? left - n : kind === "regain" ? left + n : n));
   return (
     <>
-      {/* The text of the field is selected at the focus, so a typed number replaces it. */}
-      <div className="ui-use-pool-form" onFocus={(event) => event.target instanceof HTMLInputElement && event.target.select()}>
-        <NumberField
-          aria-label="Amount"
-          value={amount}
-          min={0}
-          max={max}
-          onValueChange={(next) => {
-            setAmount(next);
-            setMissing(false);
-          }}
-          className="ui-use-pool-amount"
-        />
+      <div className="ui-use-pool-form">
+        <AmountField amount={amount} showLabel={false} max={max} className="ui-use-pool-amount" />
         <Button onClick={() => run("spend")}>Spend</Button>
         <Button onClick={() => run("regain")}>Regain</Button>
         <Button onClick={() => run("set")}>Set</Button>
       </div>
-      <div role="status" className="ui-use-pool-note">
-        {missing && <NoteLine>{POOL_NO_AMOUNT}</NoteLine>}
-      </div>
+      <NoteSpace note={amount.note} />
     </>
   );
 }

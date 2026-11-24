@@ -291,7 +291,7 @@ test("Customize on a pack background makes '<Name> (Custom)', selects it by the 
     expect(sheet).toHaveTextContent(text);
   // The feature keeps its uses: one use, back on a long rest.
   const bubble = within(within(sheet).getByRole("group", { name: "Features & traits" })).getByRole("group", { name: "Researcher" });
-  expect(within(bubble).getAllByRole("button", { name: /^Use / })).toHaveLength(1);
+  expect(within(bubble).getByRole("img", { name: "Researcher uses spent: 0 of 1" }).querySelectorAll(".ui-slot-circle")).toHaveLength(1);
   expect(within(bubble).getByText("Long rest")).toBeTruthy();
   const edit = within(lines).getByRole("button", { name: "Edit custom Sage (Custom)" });
   await waitFor(() => expect(document.activeElement).toBe(edit));
@@ -519,7 +519,7 @@ test("Customize on a pack race makes '<Name> (Custom)', selects it, and the shee
   for (const text of ["Common, Draconic, Elvish, Sylvan", "Leafstep"]) expect(sheet).toHaveTextContent(text);
   // The feature keeps its uses: one use, back on a long rest.
   const bubble = within(within(sheet).getByRole("group", { name: "Features & traits" })).getByRole("group", { name: "Leafstep" });
-  expect(within(bubble).getAllByRole("button", { name: /^Use / })).toHaveLength(1);
+  expect(within(bubble).getByRole("img", { name: "Leafstep uses spent: 0 of 1" }).querySelectorAll(".ui-slot-circle")).toHaveLength(1);
   expect(within(bubble).getByText("Long rest")).toBeTruthy();
   const edit = within(lines).getByRole("button", { name: "Edit custom Sylvar (Custom)" });
   await waitFor(() => expect(document.activeElement).toBe(edit));

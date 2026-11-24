@@ -9,7 +9,7 @@
 // state as null or as no entry, so that the record stays small: the engine
 // removes null and each empty collection, also in a nested map. It keeps 0
 // and false. Each writer is a pure function for sheetChange of useCharacter.
-import { asSet, intKey, isMap, setItems, strictValues, tag, untag } from "./content.ts";
+import { asSet, intKey, isMap, setItems, strictValues, tag, unqualify, untag } from "./content.ts";
 import type { Engine, StrictEntity } from "./engine.ts";
 
 /** The keys, as setValue takes them: with the full namespace and without "~:". */
@@ -157,6 +157,12 @@ export function rechargeGroup(units: string | null | undefined): string {
   return typeof units === "string" && untag(units) !== "" ? untag(units) : NO_RECHARGE;
 }
 
+/** The key of the spent count of a feature in the record: its unit and its name, as built gives them. */
+export interface FeatureUsesKey {
+  units: string | null;
+  name: string;
+}
+
 /**
  * Spent uses, as recharge group (see rechargeGroup) to feature name to the
  * number spent. Two features with the same name and group share one count.
@@ -230,17 +236,10 @@ const FEATURES_USED = "orcpub.dnd.e5.character/features-used";
 const OLD_POOL_FROM = 5;
 
 /** A feature with uses, as the old record needs it: its unit and name as built gives them, and its amount. */
-export interface OldUsesFeature {
-  units: string | null;
-  name: string;
-  amount: number;
-}
+export type OldUsesFeature = FeatureUsesKey & { amount: number };
 
 /** The last part of a unit, without its "~:" and its namespace: "long-rest". */
-const unitName = (units: string) => {
-  const bare = untag(units);
-  return bare.slice(bare.lastIndexOf("/") + 1);
-};
+const unitName = (units: string) => unqualify(untag(units));
 
 /** The strings of the old record under the unit of a feature. A unit key matches with or without its namespace. */
 function oldStrings(entity: StrictEntity, units: string): string[] {
@@ -260,7 +259,13 @@ function oldStrings(entity: StrictEntity, units: string): string[] {
  * circle from 0: the count is the number of these strings, and a circle past
  * the amount does not count. For 5 uses or more, it keeps one string
  * "<name>-<n>", where n is the uses left; with no string, all uses are left.
- * A feature with no unit or with the unit `turn` has no count.
+ * A feature with the unit `turn` has no count.
+ *
+ * Two limits:
+ * - For fewer than 5 uses, only the strings with an index below the amount
+ *   count. A string "<name>-7" for a feature with 2 uses gives nothing.
+ * - A feature with no unit gets no count, also when the old record has a
+ *   string for its name.
  */
 export function oldFeatureUsesSpent(entity: StrictEntity, feature: OldUsesFeature): number {
   const { units, name, amount } = feature;

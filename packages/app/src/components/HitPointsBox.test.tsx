@@ -1,10 +1,11 @@
+import { AMOUNT_NOTE } from "@orc-alchemy/ui";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { HitPointAction } from "../engine/hit-points.ts";
 import type { DeathSaves } from "../engine/play.ts";
 import type { Sheet, SheetPlay } from "../engine/sheet.ts";
 import { CharacterSheet } from "./CharacterSheet.tsx";
-import { HitPointsBox, NO_AMOUNT } from "./HitPointsBox.tsx";
+import { HitPointsBox } from "./HitPointsBox.tsx";
 
 afterEach(cleanup);
 
@@ -160,15 +161,16 @@ test("with no number, the popup stays open and a note says so, in space that the
   const popup = await openPopup(hitPointsButton(), "Hit points");
   const field = within(popup).getByRole("textbox", { name: "Amount" });
   const note = within(popup).getByRole("status");
-  expect(note.className).toBe("min-h-[33px]");
+  // NoteSpace of the package keeps the height of one note line.
+  expect(note.className).toBe("ui-note-space");
   expect(note.textContent).toBe("");
   fireEvent.click(within(popup).getByRole("button", { name: "Damage" }));
-  expect(note.textContent).toBe(NO_AMOUNT);
+  expect(note.textContent).toBe(AMOUNT_NOTE);
   fireEvent.change(field, { target: { value: "-3" } });
   // A new entry takes the note away; a number below 0 is not an amount.
   expect(note.textContent).toBe("");
   fireEvent.click(within(popup).getByRole("button", { name: "Heal" }));
-  expect(note.textContent).toBe(NO_AMOUNT);
+  expect(note.textContent).toBe(AMOUNT_NOTE);
   fireEvent.change(field, { target: { value: "7" } });
   fireEvent.keyDown(field, { key: "Enter" });
   expect(play.onHitPoints).not.toHaveBeenCalled();

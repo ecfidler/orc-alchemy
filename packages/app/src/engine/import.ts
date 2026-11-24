@@ -409,10 +409,11 @@ function importWithCustom(entity: unknown, content: Content | undefined, checked
   const imported = engine().importCharacter(entity);
   /**
    * The name, the unresolved keys and the entity with the spent uses of an
-   * old record, against the content. This builds the sheet too, as a save
-   * does, so it throws where a save would.
+   * old record (importOldUsesSpent), against the content. The entity
+   * replaces imported.entity. This builds the sheet too, as a save does, so
+   * it throws where a save would.
    */
-  const check = (withContent: Content | undefined) => {
+  const checkAndMigrate = (withContent: Content | undefined) => {
     const { built } = engine().evaluate(imported.entity, withContent);
     const sheet = toSheet(built, imported.entity);
     return {
@@ -424,18 +425,22 @@ function importWithCustom(entity: unknown, content: Content | undefined, checked
   let custom = pruneCustom(imported.entity, checked);
   let result: { name: string | null; unresolved: UnresolvedKey[]; entity: StrictEntity };
   let customLeftOut = false;
-  if (custom === undefined) result = check(content);
+  if (custom === undefined) result = checkAndMigrate(content);
   else {
     try {
-      result = check(characterContent(content ?? { homebrew: undefined }, custom));
+      result = checkAndMigrate(characterContent(content ?? { homebrew: undefined }, custom));
     } catch {
-      result = check(content); // throws if the entity does not build alone either
+      result = checkAndMigrate(content); // throws if the entity does not build alone either
       custom = undefined;
       customLeftOut = true;
     }
   }
   // Every importable character is 2014: old-app files are, and readCharacterFile refuses other envelopes.
-  return { character: { ...imported, rules: "2014", ...result, ...(custom !== undefined && { custom }) }, customLeftOut };
+  const { name, unresolved, entity: migrated } = result;
+  return {
+    character: { ...imported, rules: "2014", name, unresolved, entity: migrated, ...(custom !== undefined && { custom }) },
+    customLeftOut,
+  };
 }
 
 /** One strict entity that has no custom content. */

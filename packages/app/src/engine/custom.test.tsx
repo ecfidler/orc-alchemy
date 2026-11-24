@@ -138,11 +138,15 @@ test("a custom feat with scaled uses shows its bubble on the open character's sh
   act(() => useCharacter.getState().load("t", entity, false, custom));
   const sheet = result.current.sheet!;
   expect(sheet.features.bonusActions.filter((f) => f.name === "Tireless Custom")).toEqual([
-    { name: "Tireless Custom", text: "You keep going.", uses: { amount: 3, recharge: "Short rest" } },
+    {
+      name: "Tireless Custom",
+      text: "You keep going.",
+      uses: { amount: 3, recharge: "Short rest", units: "orcpub.dnd.e5.units/short-rest", name: "Tireless Custom", spent: 0 },
+    },
   ]);
   render(<CharacterSheet sheet={sheet} />);
   const bubble = within(screen.getByRole("group", { name: "Features & traits" })).getByRole("group", { name: "Tireless Custom" });
-  expect(within(bubble).getAllByRole("button", { name: /^Use / })).toHaveLength(3);
+  expect(within(bubble).getByRole("img", { name: "Tireless Custom uses spent: 0 of 3" }).querySelectorAll(".ui-slot-circle")).toHaveLength(3);
   expect(within(bubble).getByText("Short rest")).toBeTruthy();
 
   // Without its custom content, the character has no such feat.

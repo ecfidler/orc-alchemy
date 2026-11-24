@@ -18,13 +18,14 @@ import {
   SUBRACE_TYPE,
   sameRecord,
   tag,
+  unqualify,
   untag,
   withItem,
   withoutItem,
 } from "./content.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { missingContent, picksUnder, remapOption, withOptionOf, withoutOption } from "./reconcile.ts";
-import { type Resistance, unqualify } from "./sheet.ts";
+import type { Resistance } from "./sheet.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
 export const CUSTOM_PACK = "Custom (this character)";

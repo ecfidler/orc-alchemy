@@ -9,7 +9,6 @@ import {
   type Ability,
   bonusStr,
   type FeatureSection,
-  type FeatureUsesKey,
   modStr,
   type OpenSpells,
   ordinal,
@@ -47,11 +46,10 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * preview, there is no button and the names are plain text.
  * `play`: the play controls (docs/design/sheet-interactivity.md): the handlers that change the play state, one for each
  * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, the Hit dice
- * box is a button with its popup, and the vitals
- * panel has the status line and the space for the concentration note under it, and the use bubbles of "Features &
- * traits" change the spent uses. Without it, as in the builder preview
- * and the 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a
- * handler of SheetPlay, not as a new prop.
+ * box is a button with its popup, the vitals panel has the status line and the space for the concentration note under
+ * it, and the use bubbles of "Features & traits" change the spent uses. Without it, as in the builder preview and the
+ * 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a handler of
+ * SheetPlay, not as a new prop.
  */
 export function CharacterSheet({
   sheet,
@@ -919,7 +917,7 @@ export const FEATURE_SECTION_TITLES: Record<FeatureSection, string> = {
 };
 
 /** Writes the spent uses of a feature (SheetPlay.onUses). */
-type OnUses = (feature: FeatureUsesKey, spent: number) => void;
+type OnUses = SheetPlay["onUses"];
 
 /**
  * One section of "Features & traits": its heading, then its features. The

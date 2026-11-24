@@ -107,13 +107,14 @@ test("Enter in a Roll field does Spend of that row", async () => {
   expect(onAction.mock.calls).toEqual([[{ kind: "spend", die: 6, roll: 5 }]]);
 });
 
-test("HitDiceRow without onRegain has no Regain, as in the Short rest dialog; disabled keeps Spend and Roll for me disabled", () => {
+test("HitDiceRow without onRegain has no Regain, as in the Short rest dialog; disabled keeps the Roll field, Spend and Roll for me disabled", () => {
   const onSpend = vi.fn();
   render(<HitDiceRow hitDie={{ die: 8, total: 4, left: 2 }} onSpend={onSpend} onProblem={vi.fn()} disabled />);
   expect(screen.getAllByRole("button").map((b) => [b.textContent, (b as HTMLButtonElement).disabled])).toEqual([
     ["Spend", true],
     ["Roll for me", true],
   ]);
+  expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Roll" }).disabled).toBe(true);
   fireEvent.change(screen.getByRole("textbox", { name: "Roll" }), { target: { value: "3" } });
   fireEvent.keyDown(screen.getByRole("textbox", { name: "Roll" }), { key: "Enter" });
   expect(onSpend).not.toHaveBeenCalled();

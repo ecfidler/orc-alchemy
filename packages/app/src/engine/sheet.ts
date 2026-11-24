@@ -4,10 +4,10 @@
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
-import { untag } from "./content.ts";
+import { unqualify, untag } from "./content.ts";
 import { type HitDiceAction, type HitDie, hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
 import type { HitPointAction } from "./hit-points.ts";
-import { currentHitPoints, type DeathSaves, deathSaves, featureUsesSpent, hitDiceSpent, tempHitPoints } from "./play.ts";
+import { currentHitPoints, type DeathSaves, deathSaves, type FeatureUsesKey, featureUsesSpent, hitDiceSpent, tempHitPoints } from "./play.ts";
 import { preparedSpells, type SlotGroup, type SpentSlotGroups, slotLayout, spentSlotGroups } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -168,9 +168,6 @@ export interface SheetPlay {
   onUses: (feature: FeatureUsesKey, spent: number) => void;
 }
 
-/** The key of the spent count of a feature in the record: its unit and its name, as built gives them. */
-export type FeatureUsesKey = Pick<NonNullable<SheetFeature["uses"]>, "units" | "name">;
-
 export interface Spellcasting extends SpentSlotGroups {
   casters: Spellcaster[];
   /** Level 0 is cantrips. Spells sorted by key within a level; a component sorts them by the name it shows. */
@@ -317,9 +314,6 @@ export const SKILLS: [key: string, name: string, ability: Ability][] = [
 ];
 
 const EQUIPMENT_NS = "orcpub.dnd.e5.character.equipment/";
-
-/** The name part of a keyword string: "orcpub.dnd.e5.units/long-rest" → "long-rest". */
-export const unqualify = (key: string) => key.slice(key.lastIndexOf("/") + 1);
 
 /** The old app's capitalised kw-to-name: "crossbow-light" → "Crossbow Light". */
 export const keyToName = (key: string) =>

@@ -3,7 +3,7 @@
 // engine/hit-dice.ts; the sheet page applies an action as one sheet change.
 // HitDiceRow is also the row of the Short rest dialog (ORC-318), without
 // Regain.
-import { Button, CurrentMax, FramedBox, Label, NoteLine, NumberField, SmallPopup } from "@orc-alchemy/ui";
+import { Button, CurrentMax, FramedBox, Label, NoteSpace, NumberField, SmallPopup, selectOnFocus } from "@orc-alchemy/ui";
 import { type KeyboardEvent, type RefObject, useId, useRef, useState } from "react";
 import { dieName, type HitDiceAction, type HitDie, rollDie, validRoll } from "../engine/hit-dice.ts";
 
@@ -20,7 +20,7 @@ export interface HitDiceRowProps {
   onSpend: (roll: number) => void;
   /** Gives one spent die back. Without it, the row has no Regain, as in the Short rest dialog. */
   onRegain?: () => void;
-  /** True: Spend and Roll for me are disabled also with dice left, for example at full hit points in the Short rest dialog. */
+  /** True: the Roll field, Spend and Roll for me are disabled also with dice left, for example at full hit points in the Short rest dialog. */
   disabled?: boolean;
   /** Gets the note when the field has no valid roll, and null when the field changes. The owner shows it in a space that it keeps. */
   onProblem: (problem: string | null) => void;
@@ -57,14 +57,11 @@ export function HitDiceRow({ hitDie, onSpend, onRegain, disabled = false, onProb
         {dieName(die)}
       </span>
       {/* The text of the field is selected at the focus, so a typed number replaces it. */}
-      <label
-        className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2"
-        onFocus={(event) => event.target instanceof HTMLInputElement && event.target.select()}
-        onKeyDown={onKeyDown}
-      >
+      <label className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2" onFocus={selectOnFocus} onKeyDown={onKeyDown}>
         <Label>Roll</Label>
         <NumberField
           value={roll}
+          disabled={disabled}
           onValueChange={(next) => {
             setRoll(next);
             onProblem(null);
@@ -111,16 +108,7 @@ export interface HitDiceBoxProps {
  * spent die moves nothing.
  */
 function DicePairs({ dice }: { dice: HitDie[] }) {
-  const pair = ({ left, total }: HitDie) => (
-    <CurrentMax
-      current={
-        <span className="inline-block text-right" style={{ minWidth: `${String(total).length}ch` }}>
-          {left}
-        </span>
-      }
-      max={total}
-    />
-  );
+  const pair = ({ left, total }: HitDie) => <CurrentMax current={left} max={total} reserve={total} />;
   const die = (hitDie: HitDie) => (
     <span className="font-sans text-[11px] leading-none font-semibold tracking-[0.06em] text-ink-muted">{dieName(hitDie.die)}</span>
   );
@@ -213,9 +201,7 @@ export function HitDiceBox({ dice, onAction, popupWidthOf, random, className }: 
               </div>
             ))}
           </div>
-          <div role="status" className="min-h-[33px]">
-            {problem && <NoteLine>{problem}</NoteLine>}
-          </div>
+          <NoteSpace note={problem} />
         </SmallPopup>
       </FramedBox>
     </div>

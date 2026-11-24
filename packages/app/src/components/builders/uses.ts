@@ -7,8 +7,8 @@
 // change writes: a frequency that the user does not touch stays as it was,
 // also a short unit or a unit of the old app. The example character and the
 // sentence of the preview are in uses-example.ts.
-import { tag, untag } from "../../engine/content.ts";
-import { type Ability, abilityOfKey, DAWN, scaledBase, unqualify } from "../../engine/sheet.ts";
+import { tag, unqualify, untag } from "../../engine/content.ts";
+import { type Ability, abilityOfKey, DAWN, scaledBase } from "../../engine/sheet.ts";
 import type { SuggestedUses } from "./suggested-uses.ts";
 
 /** A stored map in verbose Transit-JSON, such as a :frequency or its :amount. */

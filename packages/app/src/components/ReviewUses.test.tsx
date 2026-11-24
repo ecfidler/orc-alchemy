@@ -348,12 +348,18 @@ test("after Save, the sheet shows the bubble of a saved feature, and an .orcbrew
   const homebrew = useHomebrew.getState().homebrew!;
   const character = e.select(e.emptyCharacter(), ["race"], "tidecaller", { homebrew });
   const sheet = toSheet(e.evaluate(character, { homebrew }).built, character);
-  expect(sheet.features.actions.find((f) => f.name === "Tidal Surge")?.uses).toEqual({ amount: 1, recharge: "Long rest" });
+  expect(sheet.features.actions.find((f) => f.name === "Tidal Surge")?.uses).toEqual({
+    amount: 1,
+    recharge: "Long rest",
+    units: "orcpub.dnd.e5.units/long-rest",
+    name: "Tidal Surge",
+    spent: 0,
+  });
   expect(sheet.features.traits.find((f) => f.name === "Mist Walk")?.uses).toBeUndefined();
   cleanup();
   render(<CharacterSheet sheet={sheet} />);
   const bubble = screen.getByRole("group", { name: "Tidal Surge" });
-  expect(within(bubble).getAllByRole("button", { name: /^Use / })).toHaveLength(1);
+  expect(within(bubble).getByRole("img", { name: "Tidal Surge uses spent: 0 of 1" }).querySelectorAll(".ui-slot-circle")).toHaveLength(1);
   expect(within(bubble).getByText("Long rest")).toBeTruthy();
 
   // The export has the uses, reads back equal, and says nothing of the skipped row.

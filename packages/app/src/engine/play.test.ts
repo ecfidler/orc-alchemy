@@ -414,19 +414,26 @@ test("an import makes the counts from the old record once: only with the old key
       "~:orcpub.dnd.e5.units/turn": { "~#set": ["Sneak Attack-0"] },
     },
   };
-  const imported = readCharacterFile(JSON.stringify(withRaw(multiclass(), old))).characters[0].entity;
-  expect(storedAt(imported, "orc-alchemy.play/uses-spent")).toEqual({
-    [`~:${REST}`]: { "Channel Divinity": 1 },
-    [`~:${LONG_REST}`]: { "Divine Sense": 2, "Lay on Hands": 3 },
-  });
-  // The old key stays as it was.
-  expect(storedAt(imported, FEATURES_USED)).toEqual(old[FEATURES_USED]);
+  /** The entity as an import gives it, without the step that reads the old record. */
+  const importedAs = (input: StrictEntity) => e.importCharacter(JSON.parse(JSON.stringify(input))).entity;
+  const read = (input: StrictEntity) => readCharacterFile(JSON.stringify(input)).characters[0].entity;
+  // The counts are written, the turn gets none, and the old key stays as it was.
+  const expected = new Map([
+    [REST, new Map([["Channel Divinity", 1]])],
+    [
+      LONG_REST,
+      new Map([
+        ["Divine Sense", 2],
+        ["Lay on Hands", 3],
+      ]),
+    ],
+  ]);
+  expect(read(withRaw(multiclass(), old))).toEqual(setUsesSpent(e, importedAs(withRaw(multiclass(), old)), expected));
   // A record that has the uses-spent key keeps its counts.
   const kept = setFeatureUsesSpent(e, withRaw(multiclass(), old), LONG_REST, "Divine Sense", 3);
-  const again = readCharacterFile(JSON.stringify(kept)).characters[0].entity;
-  expect(storedAt(again, "orc-alchemy.play/uses-spent")).toEqual({ [`~:${LONG_REST}`]: { "Divine Sense": 3 } });
+  expect(read(kept)).toEqual(importedAs(kept));
   // With no old key, nothing is written.
-  expect(storedAt(readCharacterFile(JSON.stringify(multiclass())).characters[0].entity, "orc-alchemy.play/uses-spent")).toBeUndefined();
+  expect(read(multiclass())).toEqual(importedAs(multiclass()));
   // importOldUsesSpent with no spent string gives the entity as it is.
   const none = withRaw(multiclass(), { [FEATURES_USED]: { [`~:${REST}`]: { "~#set": ["Other-0"] } } });
   expect(importOldUsesSpent(e, none, [{ units: REST, name: "Channel Divinity", amount: 2 }])).toBe(none);

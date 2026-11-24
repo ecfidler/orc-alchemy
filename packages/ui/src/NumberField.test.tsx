@@ -75,3 +75,17 @@ test("a new value from the owner replaces the shown number", () => {
   rerender(<NumberField aria-label="Count" value={null} onValueChange={() => {}} />);
   expect(field().value).toBe("");
 });
+
+test("a disabled field is disabled and marked, and the arrow keys do not change it", () => {
+  const change = vi.fn();
+  render(<NumberField aria-label="Count" value={5} min={1} max={20} onValueChange={change} disabled />);
+  expect([field().disabled, field().hasAttribute("data-disabled")]).toEqual([true, true]);
+  fireEvent.keyDown(field(), { key: "ArrowUp" });
+  expect([field().value, change.mock.calls.length]).toEqual(["5", 0]);
+  // src/number-field.css gives [data-disabled] the muted text and the --rule-strong border of a disabled button.
+});
+
+test("a field is not disabled by default", () => {
+  render(<Count />);
+  expect([field().disabled, field().hasAttribute("data-disabled")]).toEqual([false, false]);
+});

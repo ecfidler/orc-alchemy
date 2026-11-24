@@ -262,6 +262,28 @@
   .ui-current-max-of {
     color: var(--ink-muted);
   }
+  .ui-current-max-now {
+    display: inline-grid;
+    justify-items: end;
+  }
+  /*
+   * The cell is an atomic inline, so an underline of the parent (a trigger
+   * under a mouse) does not reach its value. Each part takes the line of its
+   * parent, so the line runs under the whole pair.
+   */
+  .ui-current-max:has(.ui-current-max-now),
+  .ui-current-max-now,
+  .ui-current-max-now > span {
+    text-decoration: inherit;
+  }
+  .ui-current-max-now > span,
+  .ui-current-max-now::before {
+    grid-area: 1 / 1;
+  }
+  .ui-current-max-now::before {
+    content: attr(data-reserve);
+    visibility: hidden;
+  }
 
   /*
    * The stuck note sits in its own row above the box. It overlaps the box by
@@ -375,6 +397,10 @@
     outline: 2px solid var(--focus-ring, var(--info));
     outline-offset: 2px;
   }
+  /* The space of a note under a form: the height of one note line (7px + 7px padding and 13.5px × 1.4), kept when it is empty. */
+  .ui-note-space {
+    min-height: 33px;
+  }
 
   .ui-use-bubble {
     container-type: inline-size;
@@ -476,22 +502,6 @@
     outline: 2px solid var(--focus-ring, var(--info));
     outline-offset: 2px;
   }
-  .ui-use-pool-left {
-    display: inline-grid;
-    justify-items: end;
-  }
-  .ui-use-pool-left > span,
-  .ui-use-pool-left::before {
-    grid-area: 1 / 1;
-  }
-  .ui-use-pool-left::before {
-    content: attr(data-reserve);
-    visibility: hidden;
-  }
-  .ui-use-pool-of {
-    font-size: 18px;
-    color: var(--ink-muted);
-  }
   /* The popup of a pool: the field and the three buttons on one line, then the space of the note. */
   .ui-use-pool-form {
     display: grid;
@@ -504,9 +514,6 @@
     width: 100%;
     text-align: center;
     font-variant-numeric: tabular-nums;
-  }
-  .ui-use-pool-note {
-    min-height: 33px;
   }
   /*
    * A narrow bubble keeps no column free for the tag: the name and the text
