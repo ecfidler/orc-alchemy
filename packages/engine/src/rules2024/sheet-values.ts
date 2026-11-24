@@ -46,7 +46,10 @@ export const SHEET_VALUES = {
   feats: "list",
   features: "list",
   spells: "list",
+  spellcastingAbilities: "record",
   wornArmor: "nullable",
+  wornArmorStats: "nullable",
+  stealthDisadvantage: "boolean",
   shield: "boolean",
   armorWithoutTraining: "boolean",
   armorClassFormulas: "list",
@@ -62,6 +65,9 @@ export const SHEET_VALUES = {
   criticalHitMinimum: "number",
   weaponAttacks: "list",
   savingThrowAttacks: "list",
+  inventory: "list",
+  gold: "number",
+  chosenTools: "record",
 } as const satisfies Record<keyof Built2024, SheetValueKind>;
 
 export type SheetValueName = keyof typeof SHEET_VALUES;

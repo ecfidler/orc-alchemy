@@ -498,6 +498,12 @@
               "quantity": 2
             },
             {
+              "item": {
+                "category": "musical-instrument"
+              },
+              "quantity": 1
+            },
+            {
               "item": "srd52:entertainers-pack",
               "quantity": 1
             }
@@ -8679,47 +8685,11 @@
           }
         },
         {
-          "selection": {
-            "key": "versatile",
+          "hook": "feat-choice",
+          "args": {
             "name": "Versatile",
-            "choose": 1,
-            "from": [
-              {
-                "key": "alert",
-                "name": "Alert",
-                "effects": [
-                  {
-                    "grantFeat": "srd52:alert"
-                  }
-                ]
-              },
-              {
-                "key": "magic-initiate",
-                "name": "Magic Initiate",
-                "effects": [
-                  {
-                    "grantFeat": "srd52:magic-initiate"
-                  }
-                ]
-              },
-              {
-                "key": "savage-attacker",
-                "name": "Savage Attacker",
-                "effects": [
-                  {
-                    "grantFeat": "srd52:savage-attacker"
-                  }
-                ]
-              },
-              {
-                "key": "skilled",
-                "name": "Skilled",
-                "effects": [
-                  {
-                    "grantFeat": "srd52:skilled"
-                  }
-                ]
-              }
+            "categories": [
+              "origin"
             ]
           }
         }
@@ -9253,7 +9223,16 @@
         }
       ],
       "category": "origin",
-      "repeatable": false
+      "repeatable": false,
+      "effects": [
+        {
+          "add": "initiative",
+          "value": {
+            "read": "proficiencyBonus"
+          },
+          "name": "Alert"
+        }
+      ]
     },
     {
       "key": "magic-initiate",
@@ -9285,7 +9264,19 @@
         }
       ],
       "category": "origin",
-      "repeatable": true
+      "repeatable": true,
+      "effects": [
+        {
+          "hook": "magic-initiate",
+          "args": {
+            "lists": [
+              "srd52:cleric",
+              "srd52:druid",
+              "srd52:wizard"
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "savage-attacker",
@@ -9312,7 +9303,568 @@
         }
       ],
       "category": "origin",
-      "repeatable": true
+      "repeatable": true,
+      "effects": [
+        {
+          "selection": {
+            "key": "skilled",
+            "name": "Skilled",
+            "choose": 3,
+            "from": [
+              {
+                "key": "acrobatics",
+                "name": "Acrobatics",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "acrobatics"
+                  }
+                ]
+              },
+              {
+                "key": "animal-handling",
+                "name": "Animal Handling",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "animal-handling"
+                  }
+                ]
+              },
+              {
+                "key": "arcana",
+                "name": "Arcana",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "arcana"
+                  }
+                ]
+              },
+              {
+                "key": "athletics",
+                "name": "Athletics",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "athletics"
+                  }
+                ]
+              },
+              {
+                "key": "deception",
+                "name": "Deception",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "deception"
+                  }
+                ]
+              },
+              {
+                "key": "history",
+                "name": "History",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "history"
+                  }
+                ]
+              },
+              {
+                "key": "insight",
+                "name": "Insight",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "insight"
+                  }
+                ]
+              },
+              {
+                "key": "intimidation",
+                "name": "Intimidation",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "intimidation"
+                  }
+                ]
+              },
+              {
+                "key": "investigation",
+                "name": "Investigation",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "investigation"
+                  }
+                ]
+              },
+              {
+                "key": "medicine",
+                "name": "Medicine",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "medicine"
+                  }
+                ]
+              },
+              {
+                "key": "nature",
+                "name": "Nature",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "nature"
+                  }
+                ]
+              },
+              {
+                "key": "perception",
+                "name": "Perception",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "perception"
+                  }
+                ]
+              },
+              {
+                "key": "performance",
+                "name": "Performance",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "performance"
+                  }
+                ]
+              },
+              {
+                "key": "persuasion",
+                "name": "Persuasion",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "persuasion"
+                  }
+                ]
+              },
+              {
+                "key": "religion",
+                "name": "Religion",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "religion"
+                  }
+                ]
+              },
+              {
+                "key": "sleight-of-hand",
+                "name": "Sleight of Hand",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "sleight-of-hand"
+                  }
+                ]
+              },
+              {
+                "key": "stealth",
+                "name": "Stealth",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "stealth"
+                  }
+                ]
+              },
+              {
+                "key": "survival",
+                "name": "Survival",
+                "effects": [
+                  {
+                    "push": "skillProficiencies",
+                    "value": "survival"
+                  }
+                ]
+              },
+              {
+                "key": "alchemists-supplies",
+                "name": "Alchemist's Supplies",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:alchemists-supplies"
+                  }
+                ]
+              },
+              {
+                "key": "bagpipes",
+                "name": "Bagpipes",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:bagpipes"
+                  }
+                ]
+              },
+              {
+                "key": "brewers-supplies",
+                "name": "Brewer's Supplies",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:brewers-supplies"
+                  }
+                ]
+              },
+              {
+                "key": "calligraphers-supplies",
+                "name": "Calligrapher's Supplies",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:calligraphers-supplies"
+                  }
+                ]
+              },
+              {
+                "key": "carpenters-tools",
+                "name": "Carpenter's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:carpenters-tools"
+                  }
+                ]
+              },
+              {
+                "key": "cartographer-tools",
+                "name": "Cartographer's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:cartographer-tools"
+                  }
+                ]
+              },
+              {
+                "key": "cobblers-tools",
+                "name": "Cobbler's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:cobblers-tools"
+                  }
+                ]
+              },
+              {
+                "key": "cooks-utensils",
+                "name": "Cook's Utensils",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:cooks-utensils"
+                  }
+                ]
+              },
+              {
+                "key": "dice",
+                "name": "Dice",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:dice"
+                  }
+                ]
+              },
+              {
+                "key": "disguise-kit",
+                "name": "Disguise Kit",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:disguise-kit"
+                  }
+                ]
+              },
+              {
+                "key": "dragonchess",
+                "name": "Dragonchess",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:dragonchess"
+                  }
+                ]
+              },
+              {
+                "key": "drum",
+                "name": "Drum",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:drum"
+                  }
+                ]
+              },
+              {
+                "key": "dulcimer",
+                "name": "Dulcimer",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:dulcimer"
+                  }
+                ]
+              },
+              {
+                "key": "flute",
+                "name": "Flute",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:flute"
+                  }
+                ]
+              },
+              {
+                "key": "forgery-kit",
+                "name": "Forgery Kit",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:forgery-kit"
+                  }
+                ]
+              },
+              {
+                "key": "glassblowers-tools",
+                "name": "Glassblower's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:glassblowers-tools"
+                  }
+                ]
+              },
+              {
+                "key": "herbalism-kit",
+                "name": "Herbalism Kit",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:herbalism-kit"
+                  }
+                ]
+              },
+              {
+                "key": "horn",
+                "name": "Horn",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:horn"
+                  }
+                ]
+              },
+              {
+                "key": "jewelers-tools",
+                "name": "Jeweler's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:jewelers-tools"
+                  }
+                ]
+              },
+              {
+                "key": "leatherworkers-tools",
+                "name": "Leatherworker's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:leatherworkers-tools"
+                  }
+                ]
+              },
+              {
+                "key": "lute",
+                "name": "Lute",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:lute"
+                  }
+                ]
+              },
+              {
+                "key": "lyre",
+                "name": "Lyre",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:lyre"
+                  }
+                ]
+              },
+              {
+                "key": "masons-tools",
+                "name": "Mason's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:masons-tools"
+                  }
+                ]
+              },
+              {
+                "key": "navigators-tools",
+                "name": "Navigator's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:navigators-tools"
+                  }
+                ]
+              },
+              {
+                "key": "painters-supplies",
+                "name": "Painter's Supplies",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:painters-supplies"
+                  }
+                ]
+              },
+              {
+                "key": "pan-flute",
+                "name": "Pan flute",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:pan-flute"
+                  }
+                ]
+              },
+              {
+                "key": "poisoners-kit",
+                "name": "Poisoner's Kit",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:poisoners-kit"
+                  }
+                ]
+              },
+              {
+                "key": "playing-cards",
+                "name": "Playing Cards",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:playing-cards"
+                  }
+                ]
+              },
+              {
+                "key": "potters-tools",
+                "name": "Potter's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:potters-tools"
+                  }
+                ]
+              },
+              {
+                "key": "shawm",
+                "name": "Shawm",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:shawm"
+                  }
+                ]
+              },
+              {
+                "key": "smiths-tools",
+                "name": "Smith's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:smiths-tools"
+                  }
+                ]
+              },
+              {
+                "key": "thieves-tools",
+                "name": "Thieves' Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:thieves-tools"
+                  }
+                ]
+              },
+              {
+                "key": "three-dragon-ante",
+                "name": "Three-Dragon Ante",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:three-dragon-ante"
+                  }
+                ]
+              },
+              {
+                "key": "tinkers-tools",
+                "name": "Tinker's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:tinkers-tools"
+                  }
+                ]
+              },
+              {
+                "key": "viol",
+                "name": "Viol",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:viol"
+                  }
+                ]
+              },
+              {
+                "key": "weavers-tools",
+                "name": "Weaver's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:weavers-tools"
+                  }
+                ]
+              },
+              {
+                "key": "woodcarvers-tools",
+                "name": "Woodcarver's Tools",
+                "effects": [
+                  {
+                    "push": "toolProficiencies",
+                    "value": "srd52:woodcarvers-tools"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "ability-score-improvement",
@@ -9339,6 +9891,41 @@
                 "read": "totalLevel"
               },
               4
+            ]
+          }
+        }
+      ],
+      "effects": [
+        {
+          "selection": {
+            "key": "increase",
+            "name": "Increase",
+            "choose": 1,
+            "from": [
+              {
+                "key": "two",
+                "name": "One ability by 2",
+                "effects": [
+                  {
+                    "hook": "ability-score-increase",
+                    "args": {
+                      "amount": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "key": "one-and-one",
+                "name": "Two abilities by 1",
+                "effects": [
+                  {
+                    "hook": "ability-score-increase",
+                    "args": {
+                      "choose": 2
+                    }
+                  }
+                ]
+              }
             ]
           }
         }
@@ -9412,6 +9999,17 @@
             ]
           }
         }
+      ],
+      "effects": [
+        {
+          "hook": "ability-score-increase",
+          "args": {
+            "abilities": [
+              "str",
+              "dex"
+            ]
+          }
+        }
       ]
     },
     {
@@ -9443,6 +10041,13 @@
             ]
           }
         }
+      ],
+      "effects": [
+        {
+          "add": "rangedAttackBonus",
+          "value": 2,
+          "name": "Archery"
+        }
       ]
     },
     {
@@ -9473,6 +10078,16 @@
               }
             ]
           }
+        }
+      ],
+      "effects": [
+        {
+          "add": "armorClass",
+          "value": 1,
+          "when": {
+            "has": "wornArmor"
+          },
+          "name": "Defense"
         }
       ]
     },
@@ -9571,6 +10186,14 @@
             ]
           }
         }
+      ],
+      "effects": [
+        {
+          "hook": "ability-score-increase",
+          "args": {
+            "max": 30
+          }
+        }
       ]
     },
     {
@@ -9606,6 +10229,14 @@
             ]
           }
         }
+      ],
+      "effects": [
+        {
+          "hook": "ability-score-increase",
+          "args": {
+            "max": 30
+          }
+        }
       ]
     },
     {
@@ -9639,6 +10270,14 @@
               },
               19
             ]
+          }
+        }
+      ],
+      "effects": [
+        {
+          "hook": "ability-score-increase",
+          "args": {
+            "max": 30
           }
         }
       ]
@@ -9679,6 +10318,18 @@
               },
               19
             ]
+          }
+        }
+      ],
+      "effects": [
+        {
+          "hook": "ability-score-increase",
+          "args": {
+            "abilities": [
+              "str",
+              "dex"
+            ],
+            "max": 30
           }
         }
       ]
@@ -9751,6 +10402,19 @@
             ]
           }
         }
+      ],
+      "effects": [
+        {
+          "hook": "ability-score-increase",
+          "args": {
+            "abilities": [
+              "int",
+              "wis",
+              "cha"
+            ],
+            "max": 30
+          }
+        }
       ]
     },
     {
@@ -9791,6 +10455,14 @@
             ]
           }
         }
+      ],
+      "effects": [
+        {
+          "hook": "ability-score-increase",
+          "args": {
+            "max": 30
+          }
+        }
       ]
     },
     {
@@ -9824,6 +10496,14 @@
               },
               19
             ]
+          }
+        }
+      ],
+      "effects": [
+        {
+          "hook": "ability-score-increase",
+          "args": {
+            "max": 30
           }
         }
       ]

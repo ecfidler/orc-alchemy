@@ -4,7 +4,7 @@ title: 2024 content format
 description: The 2024 content format - JSON packs, two layers in each record, rules as data with named hooks, the record types and their fields, the value forms and conditions, the loader, the key scheme, the source data, attribution, and monsters - with an example species, background, feat, and spell.
 tags: [rules-2024, engine, content-format, design]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-23T05:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-23T13:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-96
 sources:
   - id: orc-96
@@ -199,6 +199,8 @@ Every record has `key`, `name`, and the optional fields `source`
 | `abilities`, `skills`, `languages`, `conditions`, `damageTypes`, `weaponMasteries`, `weaponProperties` | Reference data: `key`, `name`, and the optional `source` and `description`. A skill also has `ability`, and a language has `rare`. The key of an ability is `str` to `cha`, and the key of a mastery property is one of the eight in the SRD. |
 | `monsters` | `size`, `creatureType`, `challengeRating`, `armorClass`, `hitPoints`, `speed` (feet for each kind), and `abilities`. ORC-236 adds the rest. |
 
+A feat with no traits shows its `description` as one feature.
+
 A feature of a class or a subclass is a trait with a `level`. The `levels`
 field is a list of `{ "level": 3, "effects": [...] }`: the effects that the
 class or the subclass gives from that class level. The `table` field of a
@@ -211,8 +213,17 @@ A choice in a typed field is `{ "choose": 1, "from": [...] }`. For a tool,
 `from` can also be `{ "category": "gaming-set" }`: the equipment records of
 that category. An item of starting equipment or of a pack is
 `{ "item": ..., "quantity": 1 }`. The item is a reference, or
-`{ "chosen": "tool" }` (the tool that the character chose in that typed
-field), or `{ "category": "holy-symbol" }` (one item of that category).
+`{ "chosen": "tool" }` (the tool that the character chose in the typed
+tool field of the same record, `tool` or `tools`), or
+`{ "category": "holy-symbol" }` (one item of that category, which the
+character chooses). The engine offers the starting equipment of a class only
+for the first class of the character (SRD 5.2.1 p24). An equipment pack
+goes into the inventory as one item, and its `contents` stay in its record.
+The armor and the weapons of a package go into the inventory only: the
+player chooses the armor to wear and the weapons to use. The damage type of a
+weapon is a key: the engine takes the damage type record of that key from
+the pack of the weapon, else from another loaded pack, else names the
+`srd52` type of that key.
 
 # 3. Rules as data, with named hooks
 
@@ -303,6 +314,10 @@ The real hooks:
 | `armor-class` (ORC-225) | `name`, `base`, `abilities` (default none), `shield` (default `true`) | Adds a way to calculate the base Armor Class without armor: `base` plus the modifiers of `abilities`, for example Unarmored Defense. With `shield: false`, the formula does not apply with a Shield. A character uses one base calculation (SRD 5.2.1 p177): the worn armor, or else the best formula that applies. The Shield and the other bonuses add to it. |
 | `always-prepared-spells` (ORC-226) | `abilities` (one or more), `spells`: each `{ spell, level, uses }` | Gives the spells of a trait, always prepared, each from a character level (default 1). With more than one ability, it opens the choice "Spellcasting Ability". `uses` is the casts without a spell slot: `amount` is a number or `"proficiency-bonus"`, and `recover` is as in the `uses` effect. The spells go in the sheet value `spells`. |
 | `saving-throw-attack` (ORC-226) | `name`, `save`, `dcAbility`, `die`, `dice`, `damageType` | Gives an attack that forces a saving throw, for example Breath Weapon. The DC is 8 plus the modifier of `dcAbility` and the Proficiency Bonus. `dice` is a list of `[character level, number of dice]` from level 1. The attack goes in the sheet value `savingThrowAttacks`. |
+| `ability-score-increase` (ORC-227) | `abilities` (default all six), `amount` (default 1), `choose` (default 1), `max` (default 20) | Increases `choose` different abilities of the list by `amount`, to at most `max`. When `choose` is the whole list, there is no choice. An Epic Boon has `max: 30`. The Ability Score Improvement feat is a `selection` of two options that call it. |
+| `feat-choice` (ORC-227) | `name`, `categories` (default every category) | Adds a choice of one feat from the feat records of the categories in the loaded content, for example the Origin feat of Human Versatile. A homebrew feat of the category is an option too. |
+| `weapon-mastery` (ORC-228) | `count` | Adds `count` kinds of weapons to the Weapon Mastery choice of the character. The options are the weapon records in the loaded content. Every call adds to one pool, so a class calls the hook at each level that gives more kinds. |
+| `magic-initiate` (ORC-227) | `lists` (class references), `abilities` (default `int`, `wis`, `cha`), `cantrips` (default 2), `spells` (default 1) | Adds a choice of a spell list, a spellcasting ability, the cantrips and the level 1 spells of that list: the spell records whose `classes` name the class. The level 1 spell has one cast without a slot each Long Rest. The `featSpellList` of a background fixes the list. The list choice does not offer a list that the feat gives already. |
 
 The probable hooks are a judgment from the spike and from the 2014 code,
 not a measured list:

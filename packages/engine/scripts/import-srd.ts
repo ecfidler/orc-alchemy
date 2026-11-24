@@ -379,7 +379,7 @@ function classRecords(up: Upstream, corrections: Corrections) {
         : tools.length
           ? tools.map((t) => toolReference(t, proficiencies))
           : undefined,
-      startingEquipment: startingEquipment(c.starting_equipment_options, "tools"),
+      startingEquipment: corrections.classEquipment(c.index, startingEquipment(c.starting_equipment_options, "tools")),
       features: own.map((f) => f.feature),
       table: rows,
     });

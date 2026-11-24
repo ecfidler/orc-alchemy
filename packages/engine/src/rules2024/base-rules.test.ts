@@ -88,7 +88,7 @@ function character({
       { key: "class", options: classOptions },
       { key: "languages", options: [{ key: "srd52:draconic" }, { key: "srd52:elvish" }] },
       ...(armor ? [{ key: "armor", option: { key: armor } }] : []),
-      ...(shield ? [{ key: "shield", option: { key: "shield" } }] : []),
+      ...(shield ? [{ key: "shield", option: { key: "srd52:shield" } }] : []),
       ...more,
     ],
   };
@@ -206,10 +206,10 @@ describe("ability scores", () => {
     const soldier: StrictSelection = {
       key: "background",
       option: {
-        key: "soldier",
+        key: "srd52:soldier",
         selections: [
           { key: "ability-scores", option: twoAndOne("str", "con") },
-          { key: "gaming-set", option: { key: "dice" } },
+          { key: "tool", option: { key: "srd52:dice" } },
         ],
       },
     };
@@ -307,14 +307,14 @@ describe("Armor Class", () => {
     // No armor: 10 + Dex +3 (SRD p22).
     expect(guard().built.armorClass).toBe(13);
     // Leather Armor, Light: 11 + Dex +3 (SRD p92).
-    expect(guard("leather-armor").built.armorClass).toBe(14);
+    expect(guard("srd52:leather-armor").built.armorClass).toBe(14);
     // Scale Mail, Medium: 14 + Dex +3, at most +2 = 16.
-    expect(guard("scale-mail").built.armorClass).toBe(16);
+    expect(guard("srd52:scale-mail").built.armorClass).toBe(16);
     // Chain Mail, Heavy: 16, no Dexterity.
-    expect(guard("chain-mail").built.armorClass).toBe(16);
+    expect(guard("srd52:chain-mail").built.armorClass).toBe(16);
     // A Shield: +2.
     expect(guard(undefined, true).built.armorClass).toBe(15);
-    expect(guard("chain-mail", true).built.armorClass).toBe(18);
+    expect(guard("srd52:chain-mail", true).built.armorClass).toBe(18);
   });
 
   it("takes a Dexterity penalty with Light and Medium armor, but not with Heavy armor", () => {
@@ -329,13 +329,13 @@ describe("Armor Class", () => {
         }),
       ).built.armorClass;
     // Leather Armor: 11 - 1. Scale Mail: 14 - 1. Chain Mail: 16 and Plate Armor: 18, flat (SRD p92).
-    expect(["leather-armor", "scale-mail", "chain-mail", "plate-armor"].map(clumsy)).toEqual([10, 13, 16, 18]);
+    expect(["srd52:leather-armor", "srd52:scale-mail", "srd52:chain-mail", "srd52:plate-armor"].map(clumsy)).toEqual([10, 13, 16, 18]);
   });
 
   it("gives the parts in the contributions", () => {
-    const { contributions } = guard("chain-mail", true);
-    expect(contributions.baseArmorClass).toEqual([{ name: "Chain Mail", source: ["armor", "chain-mail"], from: 0, to: 16 }]);
-    expect(contributions.armorClass).toEqual([{ name: "Shield", source: ["shield", "shield"], from: 16, to: 18 }]);
+    const { contributions } = guard("srd52:chain-mail", true);
+    expect(contributions.baseArmorClass).toEqual([{ name: "Chain Mail", source: ["armor", "srd52:chain-mail"], from: 0, to: 16 }]);
+    expect(contributions.armorClass).toEqual([{ name: "Shield", source: ["shield", "srd52:shield"], from: 16, to: 18 }]);
     expect(guard().contributions.baseArmorClass).toEqual([{ name: "Unarmored: 10 + Dexterity modifier", source: [], from: 0, to: 13 }]);
   });
 
@@ -344,9 +344,9 @@ describe("Armor Class", () => {
     const tester = (armor?: string, shield?: boolean) => evaluate(character({ armor, shield })).built;
     // 10 + Dex +2, and no +2 for the Shield (SRD p92).
     expect(tester(undefined, true).armorClass).toBe(12);
-    expect(tester("leather-armor").armorWithoutTraining).toBe(false);
+    expect(tester("srd52:leather-armor").armorWithoutTraining).toBe(false);
     // Chain Mail still gives 16, with Disadvantage on Strength and Dexterity D20 Tests (SRD p92).
-    expect(tester("chain-mail")).toMatchObject({ armorClass: 16, armorWithoutTraining: true });
+    expect(tester("srd52:chain-mail")).toMatchObject({ armorClass: 16, armorWithoutTraining: true });
   });
 });
 

@@ -1,14 +1,19 @@
-// The Fighter, levels 1 to 5, with the Champion subclass (SRD 5.2.1 p47 to
-// p49).
+// The Fighter of the spike, levels 1 to 5, with the Champion subclass (SRD
+// 5.2.1 p47 to p49). Its feat choices take the feat records of the content,
+// and its starting equipment is the one of the `srd52:fighter` record.
+// ORC-230 replaces it with the rules of `srd52:fighter`.
 
 import type { OptionModifier, Reader } from "../../core/modifiers.ts";
 import { type Option, option, type Selection, selection } from "../../core/template.ts";
+import { referenceTo, SRD_PACK } from "../../format/keys.ts";
 import { type Built2024, feature, m, type Skill, type Uses } from "../built.ts";
 import { classLevelModifiers } from "../class-frame.ts";
-import { featSelection } from "./feats.ts";
-import { WEAPONS } from "./weapons.ts";
+import { type Content, findRecord } from "../content.ts";
+import { startingEquipmentSelection, weaponMasterySelection } from "../equipment.ts";
+import { featSelection } from "../records.ts";
 
-const CLASS = "fighter";
+// The class key is the reference of the record, so that the features have the keys that feat prerequisites name.
+const CLASS = referenceTo(SRD_PACK, "fighter");
 const HIT_DIE = 10;
 
 const SKILL_NAMES: Partial<Record<Skill, string>> = {
@@ -28,23 +33,6 @@ function classFeature(level: number, name: string, summary: string, uses?: (figh
   const granted = feature(CLASS, name, summary, { level });
   if (!uses) return m.push("features", granted);
   return m.push("features", (q: Reader<Built2024>) => ({ ...granted, uses: uses(q("classLevels")[CLASS] ?? 0) }), { deps: ["classLevels"] });
-}
-
-/**
- * The Weapon Mastery choices. Every occurrence stores its choices at the
- * same ref, so the counts of the levels add up to one pool: 3 kinds at
- * level 1 and 4 at level 4 (SRD 5.2.1 p47 to p48).
- */
-function weaponMasterySelection(count: number): Selection<Built2024> {
-  return selection({
-    name: "Weapon Mastery",
-    ref: ["weapon-mastery"],
-    min: count,
-    max: count,
-    multiselect: true,
-    tags: ["weapon-mastery"],
-    options: WEAPONS.map((weapon) => option({ key: weapon.key, name: weapon.name, modifiers: [m.push("weaponMasteries", weapon.key)] })),
-  });
 }
 
 const CHAMPION = option<Built2024>({
@@ -70,7 +58,7 @@ function level(n: number, { modifiers = [], selections = [] }: LevelConfig): Opt
   return option({ name: `Level ${n}`, modifiers: [...classLevelModifiers(CLASS, HIT_DIE, n), ...modifiers], selections });
 }
 
-const LEVELS: Option<Built2024>[] = [
+const levels = (content: Content): Option<Built2024>[] => [
   level(1, {
     modifiers: [
       classFeature(
@@ -96,7 +84,7 @@ const LEVELS: Option<Built2024>[] = [
         "You can use the mastery properties of the kinds of weapons you chose. You can change one choice when you finish a Long Rest.",
       ),
     ],
-    selections: [featSelection("Fighting Style", ["fighting-style"]), weaponMasterySelection(3)],
+    selections: [featSelection(content, "Fighting Style", ["fighting-style"]), weaponMasterySelection(content, 3)],
   }),
   level(2, {
     modifiers: [
@@ -112,7 +100,7 @@ const LEVELS: Option<Built2024>[] = [
     ],
   }),
   level(3, { selections: [selection({ name: "Fighter Subclass", key: "subclass", options: [CHAMPION] })] }),
-  level(4, { selections: [featSelection("Ability Score Improvement"), weaponMasterySelection(1)] }),
+  level(4, { selections: [featSelection(content, "Ability Score Improvement"), weaponMasterySelection(content, 1)] }),
   level(5, {
     modifiers: [
       m.set("attacksPerAction", 2, { name: "Extra Attack" }),
@@ -126,25 +114,30 @@ const LEVELS: Option<Built2024>[] = [
   }),
 ];
 
-export const FIGHTER = option<Built2024>({
-  name: "Fighter",
-  modifiers: [
-    m.push("classes", CLASS),
-    m.put("hitDice", CLASS, HIT_DIE),
-    m.push("savingThrowProficiencies", "str"),
-    m.push("savingThrowProficiencies", "con"),
-    ...["simple", "martial"].map((category) => m.push("weaponProficiencies", category)),
-    ...["light", "medium", "heavy", "shield"].map((category) => m.push("armorTraining", category)),
-  ],
-  selections: [
-    selection({
-      name: "Skill Proficiencies",
-      min: 2,
-      max: 2,
-      options: (Object.keys(SKILL_NAMES) as Skill[]).map((skill) =>
-        option({ key: skill, name: SKILL_NAMES[skill] ?? skill, modifiers: [m.push("skillProficiencies", skill)] }),
-      ),
-    }),
-    selection({ name: "Levels", min: 1, max: null, multiselect: true, sequential: true, options: LEVELS }),
-  ],
-});
+/** The Fighter of the spike, with the feats and the starting equipment of `content`. */
+export const fighterOption = (content: Content): Option<Built2024> => {
+  const startingEquipment = findRecord(content, "classes", CLASS)?.startingEquipment ?? [];
+  return option<Built2024>({
+    name: "Fighter",
+    modifiers: [
+      m.push("classes", CLASS),
+      m.put("hitDice", CLASS, HIT_DIE),
+      m.push("savingThrowProficiencies", "str"),
+      m.push("savingThrowProficiencies", "con"),
+      ...["simple", "martial"].map((category) => m.push("weaponProficiencies", category)),
+      ...["light", "medium", "heavy", "shield"].map((category) => m.push("armorTraining", category)),
+    ],
+    selections: [
+      selection({
+        name: "Skill Proficiencies",
+        min: 2,
+        max: 2,
+        options: (Object.keys(SKILL_NAMES) as Skill[]).map((skill) =>
+          option({ key: skill, name: SKILL_NAMES[skill] ?? skill, modifiers: [m.push("skillProficiencies", skill)] }),
+        ),
+      }),
+      ...(startingEquipment.length ? [startingEquipmentSelection(content, CLASS, startingEquipment, { firstClass: true })] : []),
+      selection({ name: "Levels", min: 1, max: null, multiselect: true, sequential: true, options: levels(content) }),
+    ],
+  });
+};

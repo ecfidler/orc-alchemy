@@ -1,21 +1,21 @@
-// The converter from records to core options. The Soldier and Alert of the
-// example pack must build the same sheet values as the TypeScript content
-// of the spike. The species of the template are records since ORC-226.
+// The converter from records to core options, on the example pack and on
+// small homebrew packs. The built-in pack has its own tests: species.test.ts,
+// feats.test.ts and backgrounds.test.ts.
 
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { build, findProblems } from "../core/build.ts";
-import type { StrictEntity, StrictSelection } from "../core/entity.ts";
+import type { StrictEntity } from "../core/entity.ts";
 import { option, selection, type Template } from "../core/template.ts";
 import examplePack from "../format/fixtures/example-pack.json" with { type: "json" };
 import { loadPack } from "../format/load.ts";
 import type { Effect, Pack } from "../format/schema.ts";
 import { type Built2024, m } from "./built.ts";
-import { featSelection } from "./content/feats.ts";
+import { type Content, findRecord } from "./content.ts";
 import { defineHook, registry } from "./hooks/index.ts";
-import { backgroundOption, type Content, featOption, findRecord, RecordError, subclassOption } from "./records.ts";
+import { backgroundOption, featOption, RecordError, subclassOption } from "./records.ts";
 import { template2024 } from "./template.ts";
-import { fighterCharacter, testPackEnvelope } from "./testing.ts";
+import { testPackEnvelope } from "./testing.ts";
 
 /** A pack that loads with no issue. Without `hooks`, the loader does not check the hook names, so the converter must. */
 function loaded(input: unknown, hooks?: ReadonlySet<string>): Pack {
@@ -32,86 +32,7 @@ const record = <T extends "species" | "backgrounds" | "feats">(type: T, referenc
   return found;
 };
 
-/** The spike template with one more selection: an Origin feat, so that Alert has a place. */
-const spikeTemplate: Template<Built2024> = { ...template2024, selections: [...template2024.selections, featSelection("Extra Feat", ["origin"])] };
-
-/** The same template with the Soldier and the feats from their records. */
-const recordTemplate: Template<Built2024> = {
-  ...template2024,
-  selections: [
-    ...template2024.selections.map((s) => {
-      if (s.key === "background") return { ...s, options: [backgroundOption(content, "srd52:soldier", record("backgrounds", "srd52:soldier"))] };
-      return s;
-    }),
-    selection({
-      name: "Extra Feat",
-      options: ["srd52:alert", "srd52:savage-attacker"].map((ref) => featOption(content, ref, record("feats", ref))),
-    }),
-  ],
-};
-
-/** The spike entity with the record keys: references for the records, and the tool choice of the Soldier record. */
-function asRecordEntity(entity: StrictEntity<Pick<Built2024, "name">>): StrictEntity<Pick<Built2024, "name">> {
-  const swap = (s: StrictSelection): StrictSelection => {
-    if (s.key === "extra-feat") return { key: "extra-feat", option: { key: `srd52:${s.option?.key}` } };
-    if (s.key !== "background" || !s.option) return s;
-    const selections = (s.option.selections ?? []).map((inner) =>
-      inner.key === "gaming-set" ? { key: "tool", option: { key: `srd52:${inner.option?.key}` } } : inner,
-    );
-    return { key: "background", option: { key: "srd52:soldier", selections } };
-  };
-  return { ...entity, selections: entity.selections.map(swap) };
-}
-
-/**
- * The built values with the pack prefix removed, so that a reference and a
- * spike key compare equal. The record of Alert adds a feature for a trait
- * that the spike shows in another way: Initiative Proficiency (the
- * `initiative` value).
- */
-function comparable(built: Built2024) {
-  const plain = JSON.parse(JSON.stringify(built).replaceAll("srd52:", "")) as Built2024;
-  return { ...plain, features: plain.features.filter((f) => f.key !== "alert/initiative-proficiency") };
-}
-
-describe("records build the values of the spike content", () => {
-  const withFeat = (level: number, feat: string) => ({
-    ...fighterCharacter({ level }),
-    selections: [...fighterCharacter({ level }).selections, { key: "extra-feat", option: { key: feat } }],
-  });
-
-  for (const level of [1, 3, 5]) {
-    it(`gives the same sheet at level ${level}`, () => {
-      const spike = withFeat(level, "alert");
-      const fromRecords = asRecordEntity(spike);
-      expect(findProblems(spike, build(spike, spikeTemplate), spikeTemplate)).toEqual([]);
-      expect(findProblems(fromRecords, build(fromRecords, recordTemplate), recordTemplate)).toEqual([]);
-      expect(comparable(build(fromRecords, recordTemplate))).toEqual(comparable(build(spike, spikeTemplate)));
-    });
-  }
-
-  it("gives the same problem for Savage Attacker taken a second time", () => {
-    // The Soldier grants it, and it is not repeatable.
-    const spike = withFeat(1, "savage-attacker");
-    const fromRecords = asRecordEntity(spike);
-    const reasons = (problems: { reason: string }[]) => problems.map((p) => p.reason);
-    expect(reasons(findProblems(fromRecords, build(fromRecords, recordTemplate), recordTemplate))).toEqual(
-      reasons(findProblems(spike, build(spike, spikeTemplate), spikeTemplate)),
-    );
-    expect(reasons(findProblems(spike, build(spike, spikeTemplate), spikeTemplate))).toEqual(['"Savage Attacker" needs: Not taken already']);
-  });
-
-  it("uses the references of the records on the sheet", () => {
-    const built = build(asRecordEntity(withFeat(1, "alert")), recordTemplate);
-    expect(built.species).toBe("srd52:dwarf");
-    expect(built.background).toBe("srd52:soldier");
-    expect(built.toolProficiencies).toEqual(["srd52:dice"]);
-    expect(built.feats.map((f) => f.key)).toEqual(["defense", "srd52:savage-attacker", "srd52:alert"]);
-    // Alert: Dex +1 and the Proficiency Bonus +2.
-    expect(built.initiative).toBe(3);
-    expect(built.features.find((f) => f.key === "srd52:dwarf/stonecunning")?.uses).toEqual({ amount: 2, recover: [{ on: "long-rest", amount: "all" }] });
-  });
-
+describe("backgrounds", () => {
   it("offers the gaming sets of the equipment as the tool choice of the Soldier", () => {
     const soldier = backgroundOption(content, "srd52:soldier", record("backgrounds", "srd52:soldier"));
     expect(soldier.selections.find((s) => s.key === "tool")?.options.map((o) => o.key)).toEqual([

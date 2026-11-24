@@ -1,7 +1,8 @@
 // A test for each hook of the engine.
 
 import { describe, expect, it } from "vitest";
-import { buildWithContributions } from "../../core/build.ts";
+import { availableSelections, buildWithContributions } from "../../core/build.ts";
+import { SRD52 } from "../built-in.ts";
 import type { Entity2024 } from "../evaluate.ts";
 import { loadContentPack } from "../packs.ts";
 import { createTemplate } from "../template.ts";
@@ -19,7 +20,8 @@ describe("armor-class", () => {
     unarmoredClass("sage", { name: "Calm Defense", base: 10, abilities: ["dex", "wis"], shield: false }),
   ]);
   if (!loaded.pack) throw new Error("the test pack does not load");
-  const template = createTemplate({ packs: [loaded.pack] });
+  // The SRD pack gives the armor and the Shield.
+  const template = createTemplate({ packs: [SRD52, loaded.pack] });
 
   // Dex 14: +2. Con 16: +3. Wis 12: +1.
   const build = (classKey: string, { armor, shield }: { armor?: string; shield?: boolean } = {}) => {
@@ -28,7 +30,7 @@ describe("armor-class", () => {
         { key: "ability-scores", option: { key: "manual", value: { str: 10, dex: 14, con: 16, int: 10, wis: 12, cha: 10 } } },
         { key: "class", options: [{ key: classKey, selections: [{ key: "levels", options: [{ key: "level-1" }] }] }] },
         ...(armor ? [{ key: "armor", option: { key: armor } }] : []),
-        ...(shield ? [{ key: "shield", option: { key: "shield" } }] : []),
+        ...(shield ? [{ key: "shield", option: { key: "srd52:shield" } }] : []),
       ],
     };
     return buildWithContributions(entity, template);
@@ -55,7 +57,7 @@ describe("armor-class", () => {
 
   it("does not apply with armor", () => {
     // Leather Armor: 11 + Dex +2.
-    const { built } = build("test:brute", { armor: "leather-armor" });
+    const { built } = build("test:brute", { armor: "srd52:leather-armor" });
     expect(built.armorClass).toBe(13);
     expect(built.armorClassFormula).toBe("armor");
   });
@@ -172,5 +174,150 @@ describe("saving-throw-attack", () => {
 
   it("refuses dice that do not start at level 1", () => {
     expect(speciesWith({ hook: "saving-throw-attack", args: { ...args, dice: [[5, 2]] } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});
+
+describe("ability-score-increase", () => {
+  it("increases each ability of the list when the count is the whole list", () => {
+    const { issues, build } = speciesWith({ hook: "ability-score-increase", args: { abilities: ["str", "con"], choose: 2, amount: 2, max: 30 } });
+    expect(issues).toEqual([]);
+    expect(build(1)?.abilityIncreases).toEqual([
+      { ability: "str", amount: 2, max: 30, source: "test:thing" },
+      { ability: "con", amount: 2, max: 30, source: "test:thing" },
+    ]);
+  });
+
+  it("opens a choice of the abilities otherwise", () => {
+    const { build } = speciesWith({ hook: "ability-score-increase", args: { abilities: ["str", "dex", "con"], choose: 2 } });
+    expect(build(1)?.abilityIncreases).toEqual([]);
+    // Con 14 + 1 = 15.
+    expect(build(1, [{ key: "abilities", options: [{ key: "dex" }, { key: "con" }] }])?.abilities).toMatchObject({ dex: 11, con: 15 });
+  });
+
+  it("refuses a count above the number of abilities, and a cap above 30", () => {
+    expect(speciesWith({ hook: "ability-score-increase", args: { abilities: ["str"], choose: 2 } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+    expect(speciesWith({ hook: "ability-score-increase", args: { max: 31 } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});
+
+describe("feat-choice", () => {
+  const feats = [
+    { key: "keen", name: "Keen", category: "origin", repeatable: false },
+    { key: "tough", name: "Tough", category: "general", repeatable: false },
+  ];
+  const withFeats = (args: unknown) =>
+    loadContentPack(
+      testPackFile({
+        classes: [testClass("plain")],
+        feats,
+        species: [{ key: "thing", name: "Thing", creatureType: "humanoid", size: "medium", speed: 30, effects: [{ hook: "feat-choice", args }] }],
+      }),
+    );
+
+  it("offers the feats of the categories in the content", () => {
+    const loaded = withFeats({ name: "Gift", categories: ["origin"] });
+    expect(loaded.issues).toEqual([]);
+    if (!loaded.pack) throw new Error("the test pack does not load");
+    const thing = createTemplate({ packs: [loaded.pack] }).selections.find((s) => s.key === "species")?.options[0];
+    expect(thing?.selections.map((s) => [s.key, s.options.map((o) => o.key)])).toEqual([["gift", ["test:keen"]]]);
+  });
+
+  it("refuses a feat that offers a choice of its own category, so the pack still loads", () => {
+    const loaded = loadContentPack(
+      testPackFile({
+        classes: [testClass("plain")],
+        feats: [
+          ...feats,
+          {
+            key: "gifted",
+            name: "Gifted",
+            category: "origin",
+            repeatable: false,
+            effects: [{ hook: "feat-choice", args: { name: "Gift", categories: ["origin"] } }],
+          },
+        ],
+      }),
+    );
+    expect(loaded.issues).toEqual([
+      {
+        path: ["feats", 2, "effects", 0, "args"],
+        message: "the feats offer each other in a loop: test:gifted > test:gifted, so the record loads without its effects",
+        dropped: "effects",
+      },
+    ]);
+  });
+
+  it("refuses a category that does not exist", () => {
+    expect(withFeats({ name: "Gift", categories: ["heroic"] }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});
+
+// feats.test.ts has the choices of the hook through the Magic Initiate feat, and backgrounds.test.ts the list that a background fixes.
+describe("magic-initiate", () => {
+  it("refuses an empty list of spell lists", () => {
+    expect(speciesWith({ hook: "magic-initiate", args: { lists: [] } }).issues.map((i) => i.dropped)).toEqual(["effects"]);
+  });
+});
+
+describe("weapon-mastery", () => {
+  const boomerang = {
+    key: "boomerang",
+    name: "Boomerang",
+    category: "weapon",
+    weapon: { category: "simple", ranged: true, damage: { count: 1, die: 4, type: "bludgeoning" }, properties: ["thrown"], mastery: "slow", range: [60, 120] },
+  };
+  const loaded = loadContentPack(
+    testPackFile({
+      classes: [
+        testClass("duelist", {
+          weaponProficiencies: ["simple"],
+          levels: [
+            { level: 1, effects: [{ hook: "weapon-mastery", args: { count: 2 } }] },
+            { level: 2, effects: [{ hook: "weapon-mastery", args: { count: 1 } }] },
+          ],
+        }),
+      ],
+      equipment: [boomerang],
+    }),
+  );
+  if (!loaded.pack) throw new Error("the test pack does not load");
+  const template = createTemplate({ packs: [SRD52, loaded.pack] });
+  const build = (levels: number, masteries: string[]) => {
+    const entity: Entity2024 = {
+      selections: [
+        { key: "ability-scores", option: { key: "manual", value: { str: 10, dex: 14, con: 10, int: 10, wis: 10, cha: 10 } } },
+        {
+          key: "class",
+          options: [{ key: "test:duelist", selections: [{ key: "levels", options: Array.from({ length: levels }, (_, i) => ({ key: `level-${i + 1}` })) }] }],
+        },
+        { key: "weapon-mastery", options: masteries.map((key) => ({ key })) },
+        { key: "weapons", options: [{ key: "test:boomerang" }] },
+      ],
+    };
+    const { built } = buildWithContributions(entity, template);
+    return { built, pool: availableSelections(entity, built, template).find((s) => s.key === "weapon-mastery") };
+  };
+
+  it("adds the count of each call to one pool of the weapons of every pack", () => {
+    expect(loaded.issues).toEqual([]);
+    expect(build(1, ["srd52:dagger"]).pool).toMatchObject({ min: 2, max: 2 });
+    const { pool, built } = build(2, ["test:boomerang", "srd52:dagger", "srd52:sling"]);
+    expect(pool).toMatchObject({ min: 3, max: 3 });
+    expect(built.weaponMasteries).toEqual(["test:boomerang", "srd52:dagger", "srd52:sling"]);
+    expect(pool?.options).toHaveLength(39);
+    // Boomerang, Ranged: Dex +2 + PB 2 = +4, and 1d4 + 2. The mastery is chosen.
+    expect(built.weaponAttacks).toEqual([
+      {
+        weapon: "test:boomerang",
+        name: "Boomerang",
+        attackBonus: 4,
+        damage: "1d4+2",
+        damageType: "srd52:bludgeoning",
+        properties: ["thrown"],
+        range: [60, 120],
+        mastery: "slow",
+        disadvantage: false,
+      },
+    ]);
   });
 });

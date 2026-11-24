@@ -7,10 +7,16 @@
 import type { z } from "zod";
 import { type Base, type Modifier, modifiersFor } from "../core/modifiers.ts";
 import { nameToKey } from "../core/template.ts";
-import { referenceTo, SRD_PACK } from "../format/keys.ts";
-import { ABILITY_KEYS, type FEAT_CATEGORIES, type Recovery as RecoverySchema, Size as SizeSchema } from "../format/schema.ts";
-import { ARMOR } from "./content/armor.ts";
-import { WEAPONS, type WeaponMastery } from "./content/weapons.ts";
+import { parseReference, referenceTo, SRD_PACK } from "../format/keys.ts";
+import {
+  ABILITY_KEYS,
+  type Armor,
+  type FEAT_CATEGORIES,
+  type Recovery as RecoverySchema,
+  Size as SizeSchema,
+  type WEAPON_MASTERIES,
+  type Weapon,
+} from "../format/schema.ts";
 
 // The words that the content format also uses come from its schema, so that the two cannot differ.
 
@@ -124,6 +130,8 @@ export interface GrantedSpell {
   spell: string;
   /** The reference of the record that gives it. */
   source: string;
+  /** The class whose spell list the spell came from, when the record lets the player choose a list (Magic Initiate). */
+  list?: string;
   ability: Ability;
   /** The casts without a spell slot, when the trait gives some. */
   uses?: Uses;
@@ -142,15 +150,46 @@ export interface SavingThrowAttack {
   damageType: string;
 }
 
+/** A row of the armor table, for the armor that the character wears (SRD 5.2.1 p92). `key` is the reference of the record. */
+export type ArmorStats = z.infer<typeof Armor> & { key: string; name: string };
+
+/**
+ * A row of the weapons table, for a weapon that the character uses (SRD
+ * 5.2.1 p90 to p91). `key` is the reference of the record, and `damageType`
+ * is the reference of the damage type record.
+ */
+export type WeaponStats = z.infer<typeof Weapon> & { key: string; name: string; damageType: string };
+
+export type WeaponMastery = (typeof WEAPON_MASTERIES)[number];
+
+/** An item that the character carries. `source` is the record whose starting equipment gave it. */
+export interface InventoryItem {
+  /** The reference of the equipment record. */
+  item: string;
+  quantity: number;
+  source?: string;
+}
+
+/** The attack line of a weapon that the character uses (SRD 5.2.1 p90). */
 export interface WeaponAttack {
+  /** The reference of the weapon record. */
   weapon: string;
   name: string;
   attackBonus: number;
   /** For example "2d6+3". */
   damage: string;
+  /** The damage with two hands, for a Versatile weapon. */
+  versatileDamage?: string;
+  /** A damage type reference, for example `srd52:slashing`. */
   damageType: string;
-  /** The mastery property, when the character can use it. */
+  /** Property keys, for example "finesse". */
+  properties: readonly string[];
+  /** Feet: the normal range and the long range, for a Ranged or Thrown weapon. */
+  range?: readonly [number, number];
+  /** The mastery property, when the character has the mastery of the weapon. */
   mastery: WeaponMastery | null;
+  /** True for a Heavy weapon without Strength 13 (Melee) or Dexterity 13 (Ranged): Disadvantage on the attack rolls (SRD 5.2.1 p89). */
+  disadvantage: boolean;
 }
 
 /** The built 2024 character: every value that `evaluate` computes from the choices. */
@@ -217,8 +256,15 @@ export interface Built2024 {
   feats: readonly FeatTaken[];
   features: readonly Feature[];
   spells: readonly GrantedSpell[];
+  /** The spellcasting ability that the player chose for the spells of a record, by a key of that record. */
+  spellcastingAbilities: Readonly<Record<string, Ability>>;
 
+  /** The reference of the worn armor. */
   wornArmor: string | null;
+  /** The armor table row of the worn armor. */
+  wornArmorStats: ArmorStats | null;
+  /** True when the worn armor gives Disadvantage on Dexterity (Stealth) checks (SRD 5.2.1 p92). */
+  stealthDisadvantage: boolean;
   shield: boolean;
   /**
    * True when the character wears Light, Medium or Heavy armor without
@@ -243,10 +289,10 @@ export interface Built2024 {
   armorClass: number;
   initiative: number;
 
-  /** Weapon keys. */
+  /** The references of the weapons whose mastery properties the character can use. */
   weaponMasteries: readonly string[];
-  /** Carried weapon keys. */
-  weapons: readonly string[];
+  /** The weapons that the character uses. */
+  weapons: readonly WeaponStats[];
   /** Added to attack rolls with Ranged weapons. */
   rangedAttackBonus: number;
   attacksPerAction: number;
@@ -254,6 +300,13 @@ export interface Built2024 {
   criticalHitMinimum: number;
   weaponAttacks: readonly WeaponAttack[];
   savingThrowAttacks: readonly SavingThrowAttack[];
+
+  /** The items that the character carries. */
+  inventory: readonly InventoryItem[];
+  /** Gold pieces. */
+  gold: number;
+  /** The tools that the player chose in the typed tool field of a record, by the reference of the record. Starting equipment reads them. */
+  chosenTools: Readonly<Record<string, readonly string[]>>;
 }
 
 /** The modifier constructors for the built 2024 character. */
@@ -300,6 +353,49 @@ function signed(bonus: number): string {
   return bonus === 0 ? "" : bonus > 0 ? `+${bonus}` : `${bonus}`;
 }
 
+/** Whether the character has proficiency with a weapon: by its category, or by the weapon itself, as the Rogue has with the Rapier. */
+export function isProficient(weapon: Pick<WeaponStats, "key" | "category">, proficiencies: readonly string[]): boolean {
+  return proficiencies.includes(weapon.category) || proficiencies.includes(weapon.key) || proficiencies.includes(parseReference(weapon.key).key);
+}
+
+function dice({ count, die }: { count: number; die: number }): string {
+  return die === 1 ? `${count}` : `${count}d${die}`;
+}
+
+/** The score that a Heavy weapon needs: Strength for a Melee weapon, Dexterity for a Ranged weapon (SRD 5.2.1 p89). */
+const HEAVY_MINIMUM = 13;
+
+/**
+ * The attack line of a weapon (SRD 5.2.1 p89, p90, p177). A Finesse weapon
+ * uses the better of Strength and Dexterity, a Ranged weapon Dexterity,
+ * and any other weapon Strength. The Dart is Ranged and Finesse, so Finesse
+ * comes first. The ability modifier adds to the attack roll and to the
+ * damage, and the Proficiency Bonus adds to the attack roll only.
+ */
+export function weaponAttack(
+  weapon: WeaponStats,
+  scores: AbilityScores,
+  proficiency: number,
+  { rangedBonus, mastery }: { rangedBonus: number; mastery: boolean },
+): WeaponAttack {
+  const str = abilityModifier(scores.str);
+  const dex = abilityModifier(scores.dex);
+  const ability = weapon.properties.includes("finesse") ? Math.max(str, dex) : weapon.ranged ? dex : str;
+  const heavyScore = weapon.ranged ? scores.dex : scores.str;
+  return {
+    weapon: weapon.key,
+    name: weapon.name,
+    attackBonus: ability + proficiency + (weapon.ranged ? rangedBonus : 0),
+    damage: `${dice(weapon.damage)}${signed(ability)}`,
+    ...(weapon.versatile ? { versatileDamage: `${dice(weapon.versatile)}${signed(ability)}` } : {}),
+    damageType: weapon.damageType,
+    properties: weapon.properties,
+    ...(weapon.range ? { range: weapon.range } : {}),
+    mastery: mastery ? weapon.mastery : null,
+    disadvantage: weapon.properties.includes("heavy") && heavyScore < HEAVY_MINIMUM,
+  };
+}
+
 export const base: Base<Built2024> = {
   name: "",
   species: null,
@@ -312,10 +408,12 @@ export const base: Base<Built2024> = {
 
   baseAbilities: forEachAbility(() => 10),
   abilityIncreases: [],
-  // Increases apply in the order of the choices. Each stops at its own maximum (SRD 5.2.1 p21, p87).
+  // Each increase stops at its own maximum (SRD 5.2.1 p21, p87). The increases with the lower maximum apply first,
+  // so an Epic Boon (maximum 30) counts after the increases of character creation and of the other feats, whatever the
+  // order of the choices.
   abilities: m.derived(["baseAbilities", "abilityIncreases"], (q) => {
     const scores = { ...q("baseAbilities") };
-    for (const { ability, amount, max } of q("abilityIncreases")) {
+    for (const { ability, amount, max } of q("abilityIncreases").toSorted((a, b) => a.max - b.max)) {
       scores[ability] = Math.max(scores[ability], Math.min(max, scores[ability] + amount));
     }
     return scores;
@@ -369,12 +467,15 @@ export const base: Base<Built2024> = {
   feats: [],
   features: [],
   spells: [],
+  spellcastingAbilities: {},
 
   wornArmor: null,
+  wornArmorStats: null,
+  stealthDisadvantage: m.derived(["wornArmorStats"], (q) => q("wornArmorStats")?.stealthDisadvantage === true),
   shield: false,
-  armorWithoutTraining: m.derived(["wornArmor", "armorTraining"], (q) => {
-    const armor = ARMOR.find((a) => a.key === q("wornArmor"));
-    return armor !== undefined && !q("armorTraining").includes(armor.category);
+  armorWithoutTraining: m.derived(["wornArmorStats", "armorTraining"], (q) => {
+    const armor = q("wornArmorStats");
+    return armor !== null && !q("armorTraining").includes(armor.category);
   }),
   armorClassFormulas: [],
   // A character uses one base calculation (SRD 5.2.1 p177). Worn armor gives its own. Without armor, the engine
@@ -395,27 +496,19 @@ export const base: Base<Built2024> = {
   rangedAttackBonus: 0,
   attacksPerAction: 1,
   criticalHitMinimum: 20,
-  weaponAttacks: m.derived(["weapons", "abilityModifiers", "proficiencyBonus", "weaponProficiencies", "weaponMasteries", "rangedAttackBonus"], (q) =>
-    q("weapons").flatMap((key) => {
-      const weapon = WEAPONS.find((w) => w.key === key);
-      if (!weapon) return [];
-      const { str, dex } = q("abilityModifiers");
-      const ability = weapon.ranged ? dex : weapon.properties.includes("finesse") ? Math.max(str, dex) : str;
-      const proficiency = q("weaponProficiencies").includes(weapon.category) ? q("proficiencyBonus") : 0;
-      const dice = weapon.damage.die === 1 ? `${weapon.damage.count}` : `${weapon.damage.count}d${weapon.damage.die}`;
-      return [
-        {
-          weapon: weapon.key,
-          name: weapon.name,
-          attackBonus: ability + proficiency + (weapon.ranged ? q("rangedAttackBonus") : 0),
-          damage: `${dice}${signed(ability)}`,
-          damageType: weapon.damageType,
-          mastery: q("weaponMasteries").includes(weapon.key) ? weapon.mastery : null,
-        },
-      ];
-    }),
+  weaponAttacks: m.derived(["weapons", "abilities", "proficiencyBonus", "weaponProficiencies", "weaponMasteries", "rangedAttackBonus"], (q) =>
+    q("weapons").map((weapon) =>
+      weaponAttack(weapon, q("abilities"), isProficient(weapon, q("weaponProficiencies")) ? q("proficiencyBonus") : 0, {
+        rangedBonus: q("rangedAttackBonus"),
+        mastery: q("weaponMasteries").includes(weapon.key),
+      }),
+    ),
   ),
   savingThrowAttacks: [],
+
+  inventory: [],
+  gold: 0,
+  chosenTools: {},
 };
 
 /** Adds the Proficiency Bonus once to each entry of `keys` that `scores` has. */
