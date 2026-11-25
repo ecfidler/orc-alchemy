@@ -251,7 +251,9 @@ homebrew forms. They have no game words: the app gives the lists.
   ask the owner to close it, so the owner can ask first. A ListModal, an
   AlertDialog or another Dialog that the body opens shows above it. Esc
   and a click outside then close only the top one, and the focus comes
-  back into the Dialog. With `size="wide"` it is up to 1100px wide, for
+  back into the Dialog. With `size="narrow"` it is up to 520px wide, for
+  a short form or list such as the rest dialogs (ORC-319). With
+  `size="wide"` it is up to 1100px wide, for
   the Spells panel (ORC-270). The owner can then give its own header in
   place of the title row; the title still names the dialog for a screen
   reader. The footer is optional. A wide Dialog with no footer closes
@@ -323,7 +325,7 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | `sparkles` | A control for spellcasting: All spells and Prepare spells. The Cast button of a spell also takes it, when the Sheet interactivity spec is built. |
 | `external` | A link that opens a page of another site: Send feedback. |
 | `download` | A control that writes a file to the device: each Export button. |
-| `moon` | Only the Rest button of the character sheet. The button is not built: it comes with the Sheet interactivity spec (ORC-306). |
+| `moon` | Only the Rest button of the character sheet (ORC-318). |
 | `left` | A control that goes back: Back to List and each "Back to" link. |
 | `plus` | A control that makes a new record or adds to a list: New character, the "New" links of My Content, each "Add" button, and a button that increases a number. |
 | `minus` | A button that decreases a number. |
@@ -600,7 +602,9 @@ same row.
 * The page actions come after Save. On the sheet, they are a Rest button
   with the moon icon, a solid Edit (to the builder) and a ghost Export.
   Rest opens a menu with Short rest, Long rest and Dawn. Narrower than
-  720px, Rest shows its label only. See the
+  720px, the buttons after the save status (Save, Rest, Edit and Export)
+  show their labels only, so that the row stays on one line at 390px
+  (ORC-318). See the
   [Sheet interactivity spec](sheet-interactivity.md#rests). In the
   builder, there is a solid Done (to the sheet).
 * Back to List, Edit and Done are links with the look of buttons

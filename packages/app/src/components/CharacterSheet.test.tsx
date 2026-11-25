@@ -56,6 +56,8 @@ const sheet: Sheet = {
   currentHitPoints: null,
   tempHitPoints: 0,
   deathSaves: { successes: 0, failures: 0 },
+  exhaustion: 0,
+  concentration: null,
   hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
   darkvision: 60,

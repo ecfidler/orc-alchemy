@@ -322,6 +322,30 @@ test("a wide dialog with fill is marked for the full height, and a wide dialog w
   expect((await screen.findByRole("dialog", { name: "Plain" })).hasAttribute("data-fill")).toBe(false);
 });
 
+test("a narrow dialog has the narrow size and the title row, Cancel and the actions of a normal dialog; a normal dialog has no size mark", async () => {
+  render(
+    <Dialog open onOpenChange={() => {}} size="narrow" title="Small" actions={<Button>Finish</Button>}>
+      <input aria-label="Count" />
+    </Dialog>,
+  );
+  const dialog = await screen.findByRole("dialog", { name: "Small" });
+  expect(dialog.dataset.size).toBe("narrow");
+  expect(within(dialog).getByRole("heading", { name: "Small" })).toBeTruthy();
+  expect(
+    within(dialog.querySelector<HTMLElement>(".ui-modal-foot")!)
+      .getAllByRole("button")
+      .map((b) => b.textContent),
+  ).toEqual(["Cancel", "Finish"]);
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole("textbox", { name: "Count" })));
+  cleanup();
+  render(
+    <Dialog open onOpenChange={() => {}} title="Normal">
+      {null}
+    </Dialog>,
+  );
+  expect((await screen.findByRole("dialog", { name: "Normal" })).hasAttribute("data-size")).toBe(false);
+});
+
 test("the types: a wide dialog with no footer takes no actions, and a normal dialog takes no header", () => {
   const close = () => {};
   // @ts-expect-error: no footer, so no actions.
@@ -329,6 +353,8 @@ test("the types: a wide dialog with no footer takes no actions, and a normal dia
   // @ts-expect-error: a header only with the wide size.
   void (<Dialog open={false} onOpenChange={close} title="T" header={<h2>T</h2>} children={null} />);
   void (<Dialog open={false} onOpenChange={close} size="wide" title="T" actions={<button>Save</button>} children={null} />);
+  // @ts-expect-error: a header only with the wide size, not the narrow one.
+  void (<Dialog open={false} onOpenChange={close} size="narrow" title="T" header={<h2>T</h2>} children={null} />);
   // @ts-expect-error: fill only with the wide size.
   void (<Dialog open={false} onOpenChange={close} title="T" fill children={null} />);
 });

@@ -15,6 +15,7 @@ import { useAskOnBlock } from "../components/leave-guard.tsx";
 import { MyContent } from "../components/MyContent.tsx";
 import { NotFound } from "../components/NotFound.tsx";
 import { Preferences } from "../components/Preferences.tsx";
+import { RestButton } from "../components/RestButton.tsx";
 import { ReviewUses } from "../components/ReviewUses.tsx";
 import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
@@ -26,6 +27,8 @@ import type { HitPointAction } from "../engine/hit-points.ts";
 import { applyHitPoints } from "../engine/hit-points-apply.ts";
 import type { FeatureUsesKey } from "../engine/play.ts";
 import { type DeathSaves, setDeathSaves, setFeatureUsesSpent } from "../engine/play.ts";
+import type { RestAction } from "../engine/rest.ts";
+import { applyRest } from "../engine/rest-apply.ts";
 import type { Sheet, SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -37,10 +40,10 @@ import { useStorage } from "../storage/characters.ts";
  * open and built, under one row of buttons: Back to List on the left; on the
  * right, the save status, Save while it has unsaved changes to show (a sheet
  * change on its way to the record is not one), then the page's
- * `actions`. A note under the row says when unsaved changes were recovered
- * from a draft on open.
+ * `actions`, which get the sheet. A note under the row says when unsaved
+ * changes were recovered from a draft on open.
  */
-function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNode; children: (sheet: Sheet) => ReactNode }) {
+function OpenCharacter({ actions, children }: { actions: (id: string, sheet: Sheet) => ReactNode; children: (sheet: Sheet) => ReactNode }) {
   const { id } = useParams() as { id: string };
   const openId = useCharacter((state) => state.id);
   const { sheet, dirty, unsaved } = useOpenCharacter();
@@ -104,7 +107,8 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
           <ButtonLink icon="left" render={<Link to="/characters" aria-label="Back to List" />}>
             Back<span className="@max-[719px]:hidden"> to List</span>
           </ButtonLink>
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+          {/* Narrower than 720px, the buttons show their labels only (the icons are additions), so the row stays on one line at 390px. */}
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-3 @max-[719px]:[&_.ui-button>.ui-icon]:hidden">
             <span role="status" aria-label="Save status" className="text-sm text-ink-muted">
               {unsaved ? (
                 <>
@@ -119,7 +123,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string) => ReactNo
                 Save
               </Button>
             )}
-            {actions(id)}
+            {actions(id, sheet)}
           </div>
         </div>
       </div>
@@ -178,6 +182,21 @@ function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
   return status;
 }
 
+/**
+ * Applies a rest that the user finished in its dialog as one sheet change,
+ * which writes all its changes together (ORC-318). Returns the text of the
+ * status line.
+ */
+function rest(sheet: Sheet, action: RestAction): string {
+  let status = "";
+  useCharacter.getState().sheetChange((entity) => {
+    const result = applyRest(engine(), entity, sheet, action);
+    status = result.status;
+    return result.entity;
+  });
+  return status;
+}
+
 /** Writes the death save counts as a sheet change: it saves at once (ORC-315). */
 function changeDeathSaves(saves: DeathSaves) {
   useCharacter.getState().sheetChange((entity) => setDeathSaves(engine(), entity, saves));
@@ -203,8 +222,9 @@ function SheetPage() {
   const say = (text: string) => setStatus((last) => ({ id: openId, text, key: last.key + 1 }));
   return (
     <OpenCharacter
-      actions={(id) => (
+      actions={(id, sheet) => (
         <>
+          <RestButton sheet={sheet} onRest={(action) => say(rest(sheet, action))} />
           <ButtonLink variant="solid" icon="pencil" render={<Link to={`/build/${id}`} />}>
             Edit
           </ButtonLink>

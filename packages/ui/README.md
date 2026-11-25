@@ -173,7 +173,9 @@ bun run test       # vitest
     `finalFocus` (a ref, or a function that runs at the close), or else
     back to where it was before it opened. `initialFocus` (a ref, or a
     function that runs at the open) gives the focus to another element at
-    the open. With `size="wide"` it is up to 1100px wide. The owner can
+    the open. With `size="narrow"` it is up to 520px wide, for a short
+    form or list; at 600px and less it fills the screen too. With
+    `size="wide"` it is up to 1100px wide. The owner can
     then give a `header` in place of the title row: the `title` does not
     show, and it still names the dialog. `footer={false}` removes the
     footer and does not take `actions`, and an X named "Close" at the end
@@ -214,7 +216,10 @@ bun run test       # vitest
     type any other text. It is controlled by `value` and
     `onValueChange`.
   - `Menu`: Base UI Menu, a ghost button named `label` that opens a list
-    of actions. A pick of one of its `items` calls `onPick`.
+    of actions. A pick of one of its `items` calls `onPick`. `icon` shows
+    a pixel icon before the label, as on `Button`. `buttonRef` gives a ref
+    to the button, for example to give the focus back to it when a dialog
+    that an item opened closes.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`. Menu takes `className` for its button.
   - `ListModal`: Base UI Dialog with a title, a close X and one list of

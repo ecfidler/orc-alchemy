@@ -1,5 +1,7 @@
 import { Menu as BaseMenu } from "@base-ui/react/menu";
+import type { Ref } from "react";
 import { Button, type ButtonSize } from "./Button.tsx";
+import type { PixelIconName } from "./Icon.tsx";
 import type { SelectOption } from "./Select.tsx";
 
 export type MenuProps<T> = {
@@ -9,6 +11,10 @@ export type MenuProps<T> = {
   /** Gets the value of the item the user picks. */
   onPick: (value: T) => void;
   size?: ButtonSize;
+  /** A pixel icon before the label, as on Button. */
+  icon?: PixelIconName;
+  /** A ref to the button, for example to give the focus back to it after a dialog that an item opens. */
+  buttonRef?: Ref<HTMLButtonElement>;
   /** Layout classes for the button, as on Button. */
   className?: string;
 };
@@ -17,10 +23,10 @@ export type MenuProps<T> = {
  * A button that opens a list of actions, with Base UI Menu inside. The
  * button has the ghost look. A pick calls `onPick` and closes the menu.
  */
-export function Menu<T>({ label, items, onPick, size = "small", className }: MenuProps<T>) {
+export function Menu<T>({ label, items, onPick, size = "small", icon, buttonRef, className }: MenuProps<T>) {
   return (
     <BaseMenu.Root>
-      <BaseMenu.Trigger render={<Button size={size} className={className} />}>{label}</BaseMenu.Trigger>
+      <BaseMenu.Trigger render={<Button ref={buttonRef} size={size} icon={icon} className={className} />}>{label}</BaseMenu.Trigger>
       <BaseMenu.Portal>
         <BaseMenu.Positioner sideOffset={2} align="start" className="ui-select-positioner">
           <BaseMenu.Popup className="ui-select-popup">

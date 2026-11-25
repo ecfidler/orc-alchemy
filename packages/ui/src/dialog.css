@@ -49,6 +49,10 @@
   .ui-modal:where([data-size="wide"]) {
     width: min(1100px, calc(100vw - 32px));
   }
+  /* The narrow dialog, for a short form or list. */
+  .ui-modal:where([data-size="narrow"]) {
+    width: min(520px, calc(100vw - 32px));
+  }
   /* A wide dialog with fill: the height of the window less the margin. Its body is laid out by the owner (below). */
   .ui-modal:where([data-fill]) {
     height: calc(100dvh - 32px);

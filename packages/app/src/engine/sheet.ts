@@ -7,7 +7,17 @@ import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdo
 import { unqualify, untag } from "./content.ts";
 import { type HitDiceAction, type HitDie, hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
 import type { HitPointAction } from "./hit-points.ts";
-import { currentHitPoints, type DeathSaves, deathSaves, type FeatureUsesKey, featureUsesSpent, hitDiceSpent, tempHitPoints } from "./play.ts";
+import {
+  concentration,
+  currentHitPoints,
+  type DeathSaves,
+  deathSaves,
+  exhaustion,
+  type FeatureUsesKey,
+  featureUsesSpent,
+  hitDiceSpent,
+  tempHitPoints,
+} from "./play.ts";
 import { preparedSpells, type SlotGroup, type SpentSlotGroups, slotLayout, spentSlotGroups } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -213,6 +223,10 @@ export interface Sheet {
   tempHitPoints: number;
   /** The death save counts (play state). */
   deathSaves: DeathSaves;
+  /** The exhaustion level, from 0 to 6 (play state). The sheet does not apply its effects yet (ORC-323). */
+  exhaustion: number;
+  /** The spell key of the concentration mark, or null (play state). */
+  concentration: string | null;
   /**
    * The hit dice by die size, the largest die first, with the dice left
    * (play state). Two classes with the same die size share one entry.
@@ -757,6 +771,8 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     currentHitPoints: currentHitPoints(entity, built["max-hit-points"]),
     tempHitPoints: tempHitPoints(entity),
     deathSaves: deathSaves(entity),
+    exhaustion: exhaustion(entity),
+    concentration: concentration(entity),
     hitDice: hitDiceLeft(hitDice, hitDiceSpent(entity, hitDice)),
     speeds: toSpeeds(built),
     darkvision: built.darkvision ?? 0,
