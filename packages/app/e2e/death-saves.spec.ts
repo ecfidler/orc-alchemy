@@ -42,7 +42,7 @@ async function setGroup(page: Page, group: "successes" | "failures", to: number)
 /** The place and size of the vitals panel and of each part in it, also the parts that are hidden. */
 const layout = (page: Page) =>
   vitals(page).evaluate((panel) =>
-    [panel, ...panel.querySelectorAll(".ui-framed-box, .ui-label, .ui-slot-circles, button, [role=status], [data-concentration-note]")].map((element) => {
+    [panel, ...panel.querySelectorAll(".ui-framed-box, .ui-label, .ui-slot-circles, button")].map((element) => {
       const { x, y, width, height } = element.getBoundingClientRect();
       return [x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
     }),
@@ -95,7 +95,7 @@ test("the circles change at any hit points; three successes do not change the hi
   await expect(failures(page)).toHaveAttribute("aria-valuetext", "2 of 3");
   await failures(page).locator(".ui-slot-circle").nth(1).click();
   await expect(failures(page)).toHaveAttribute("aria-valuetext", "1 of 3");
-  // A circle click leaves the status line as it was.
+  // A circle click leaves the status text as it was.
   await expect(statusLine(page)).toHaveText("");
   await page.reload();
   await expect(successes(page)).toHaveAttribute("aria-valuetext", "3 of 3");

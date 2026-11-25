@@ -40,27 +40,41 @@ export const storedValues = (page: Page) =>
 /** The vitals panel of the sheet: the shaded panel with the Hit points box. */
 export const vitals = (page: Page) => page.locator(".ui-panel").filter({ has: page.getByRole("button", { name: /^Hit points, / }) });
 
-/** The status line of the vitals panel. The concentration note under it is a status too, so this takes the line by its element. */
-export const statusLine = (page: Page) => vitals(page).getByRole("status").and(page.locator("p"));
-
-/** The space of the concentration note under the status line (ORC-322). */
-export const concentrationNote = (page: Page) => vitals(page).getByRole("status", { name: "Concentration note" });
+/** The toast of the sheet page at the bottom of the screen (ORC-326). */
+export const toast = (page: Page) => page.locator(".ui-toast");
 
 /**
- * The place and size of the vitals panel and of each part in it, but for the parts in the box and in the note, which can
- * move (ORC-322). The captions under the speed and the hit points, and the circles are parts too (ORC-323).
+ * The status text of the toast: what the last action did. It is a live region that is always there, and it is empty
+ * when the text hides after its time. The concentration note is a status too, so this takes the status by its mark.
+ */
+export const statusLine = (page: Page) => toast(page).locator("[data-toast-status]");
+
+/**
+ * Pauses the clock of the page just after now, so that the test moves the time from here. The status text hides after
+ * its time on the real clock, so a test that checks it after slow steps pauses the clock first. The test must call
+ * `page.clock.install()` before the page opens.
+ */
+export async function pauseClock(page: Page) {
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 50);
+}
+
+/** The concentration note of the toast (ORC-322): a status that is always there, and empty without a note. */
+export const concentrationNote = (page: Page) => toast(page).getByRole("status", { name: "Concentration note" });
+
+/**
+ * The place and size of the vitals panel and of each part in it, but for the parts in the box, which can move
+ * (ORC-322). The captions under the speed and the hit points, and the circles are parts too (ORC-323).
  */
 export const layout = (page: Page) =>
   vitals(page).evaluate((panel) =>
     [
       panel,
       ...panel.querySelectorAll(
-        "[data-conditions-box], .ui-framed-box, [role=group], [role=status], [role=slider], button, .ui-label, [data-speed-caption], [data-hp-caption]",
+        "[data-conditions-box], .ui-framed-box, [role=group], [role=slider], button, .ui-label, [data-speed-caption], [data-hp-caption]",
       ),
     ]
-      .filter(
-        (element) => element === panel || element.matches("[data-conditions-box]") || !element.closest("[data-conditions-box], [data-concentration-note] *"),
-      )
+      .filter((element) => element === panel || element.matches("[data-conditions-box]") || !element.closest("[data-conditions-box]"))
       .map((element) => {
         const { x, y, width, height } = element.getBoundingClientRect();
         return `${element.matches("[data-conditions-box]") ? "BOX" : element.tagName} ${[x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;

@@ -90,6 +90,7 @@ const playOf = (
   onConditions: vi.fn(),
   onInspiration: vi.fn(),
   onAcPick: vi.fn(),
+  onDismissNote: vi.fn(),
 });
 
 const hitPointsButton = () => screen.getByRole("button", { name: /^Hit points, / });
@@ -130,7 +131,7 @@ test("without play, as in the builder preview, the box has no buttons and shows 
   expect(screen.queryByRole("button", { name: /hit points/i })).toBeNull();
   expect(screen.getByLabelText("Hit Points").textContent).toBe("12 / 44");
   expect(screen.getByLabelText("Temporary").textContent).toBe("5");
-  // No status line.
+  // No status toast.
   expect(screen.queryByRole("status")).toBeNull();
 });
 
@@ -229,16 +230,15 @@ test("Escape closes a popup, and the focus goes back to its button", async () =>
   await waitFor(() => expect(document.activeElement).toBe(hitPointsButton()));
 });
 
-test("the status line is a polite live region that starts empty and shows the text of the last action", () => {
-  // The concentration note under the line is a status too (ORC-322): the line is the first one.
-  const line = () => screen.getAllByRole("status")[0]!;
+test("the status text is a polite live region in the toast that starts empty and shows the text of the last action (ORC-326)", () => {
+  // The concentration note of the toast is a status too (ORC-322): the text is the status with its mark.
+  const line = () => document.querySelector<HTMLElement>("[data-toast-status]")!;
   render(<CharacterSheet sheet={sheet} play={playOf()} />);
   expect(line().textContent).toBe("");
   cleanup();
   render(<CharacterSheet sheet={sheet} play={playOf("12 damage (5 from the temporary hit points).")} />);
   expect(line().textContent).toBe("12 damage (5 from the temporary hit points).");
-  // role="status" is a polite live region.
-  expect(line().tagName).toBe("P");
+  expect([line().getAttribute("role"), line().getAttribute("aria-live")]).toEqual(["status", "polite"]);
 });
 
 test("on the sheet, the Death saves box shows the stored counts and writes a change with play.onDeathSaves (ORC-315)", () => {

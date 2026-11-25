@@ -19,7 +19,7 @@ export interface HitDie {
 /** An action of the Hit dice popup. `roll` is the number on the die, a whole number from 1 to the die size. */
 export type HitDiceAction = { kind: "spend"; die: number; roll: number } | { kind: "regain"; die: number };
 
-/** What an action changes, and the text of the status line. */
+/** What an action changes, and the status text. */
 export interface HitDiceChange {
   /** The die size of the action. */
   die: number;
@@ -27,7 +27,7 @@ export interface HitDiceChange {
   spent: number;
   /** The hit points that Spend heals by the Heal rule: 0 or more. null for Regain, which does not change the hit points. */
   heal: number | null;
-  /** What changed, for the status line: "Hit die d10: 7 + 2 = 9 healed." */
+  /** What changed, for the status text: "Hit die d10: 7 + 2 = 9 healed." */
   status: string;
 }
 

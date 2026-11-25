@@ -1,13 +1,14 @@
 // The Cast control of the spell view in the Spells panel (ORC-320,
 // docs/design/sheet-interactivity.md "Casting a spell"): Cast at the spell
 // level, the menu "Cast at a higher level" with the calculated amounts, the
-// hint and the status lines, the concentration mark with its question, the
+// hint line, the text of a cast in the status toast of the sheet (ORC-326),
+// the concentration mark with its question, the
 // Concentrate button, and the pact slots of a warlock. ORC-321: the spells
 // with their own uses, Mystic Arcanum and the invocation spells.
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { openWithValues, storedValues } from "./play-helpers.ts";
+import { openWithValues, statusLine, storedValues } from "./play-helpers.ts";
 import { showSpellView } from "./spell-view-page.ts";
 
 /** Life cleric 9: 4 1st-, 3 2nd-, 3 3rd-, 3 4th- and 1 5th-level slots; Bless, Shield of Faith and Guidance need concentration. */
@@ -36,7 +37,10 @@ const castGroup = (page: Page, name: string) => view(page).getByRole("group", { 
 const castButton = (page: Page, name: string) => castGroup(page, name).getByRole("button").first();
 const arrow = (page: Page) => view(page).getByRole("button", { name: "Cast at a higher level" });
 const menu = (page: Page) => page.getByRole("menu", { name: "Cast at a higher level" });
-const status = (page: Page) => control(page).getByRole("status");
+/** What the last cast did: the status text of the toast of the sheet page, over the panel (ORC-326). */
+const status = statusLine;
+/** The hint line under the control. It is the one line of the control. */
+const hint = (page: Page) => control(page).locator(":scope > p");
 /** The cells of each entry of the open menu. */
 const entries = (page: Page) =>
   menu(page)
@@ -77,7 +81,7 @@ const layout = (page: Page) =>
 /** Takes the focus off the focused element, so that a screenshot shows no focus ring. */
 const blur = (page: Page) => page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
-test("Cast beside the name spends a slot of the spell level; the hint and the status lines say it, and nothing moves", async ({ page }) => {
+test("Cast beside the name spends a slot of the spell level; the hint and the toast say it, and nothing moves", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openWithValues(page, CLERIC);
   await openSpell(page, "Cure Wounds");
@@ -102,7 +106,7 @@ test("Cast beside the name spends a slot of the spell level; the hint and the st
   await page.reload();
   await openSpell(page, "Cure Wounds");
   await expect(castButton(page, "Cure Wounds")).toHaveAccessibleDescription("1st-level slot · 3 left");
-  // The status line starts empty.
+  // The toast starts empty.
   await expect(status(page)).toHaveText("");
 });
 
@@ -213,7 +217,9 @@ test("a cast that needs concentration sets the mark; a second one asks first, an
   await expect(ask.getByRole("button", { name: "Cast and end Bless" })).toBeFocused();
   await ask.getByRole("button", { name: "Cancel" }).click();
   await expect(ask).toBeHidden();
-  await expect(status(page)).toHaveText("");
+  // Cancel casts nothing, so the toast has no text of a new cast. The text of the last cast can hide with the time.
+  await expect(status(page)).not.toContainText("Shield of Faith");
+  await expect.poll(async () => (await storedValues(page))[CONCENTRATION]).toBe("~:bless");
   await expect(castButton(page, "Shield of Faith")).toBeFocused();
   await castButton(page, "Shield of Faith").click();
   await ask.getByRole("button", { name: "Cast and end Bless" }).click();
@@ -283,7 +289,7 @@ test("on a phone the control is under the name, the menu has the full width of t
   const viewBox = (await view(page).boundingBox())!;
   expect(Math.abs(menuBox.x - viewBox.x)).toBeLessThan(1.5);
   expect(Math.abs(menuBox.width - viewBox.width)).toBeLessThan(1.5);
-  // The menu opens just under the button, over the hint and the status lines.
+  // The menu opens just under the button, over the hint line.
   expect(menuBox.y).toBeGreaterThanOrEqual(group.y + group.height);
   expect(menuBox.y).toBeLessThan(group.y + group.height + 8);
   await menu(page)
@@ -337,8 +343,9 @@ test("an invocation spell spends a pact slot and the use of its invocation; then
   await expect(status(page)).toHaveText("Cast Bane at 5th level. Thief of Five Fates −1 (0 left), Pact slots −1 (3 left).");
   await expect(castButton(page, "Bane")).toBeDisabled();
   await expect(castButton(page, "Bane")).toHaveAccessibleDescription("Thief of Five Fates has no use left.");
-  // The focus stays in the panel, on the status line.
-  await expect(status(page)).toBeFocused();
+  // The focus stays in the control, on the hint line, which says why Cast is disabled (ORC-326).
+  await expect(hint(page)).toBeFocused();
+  await expect(hint(page)).toHaveText("Thief of Five Fates has no use left.");
   expect(await layout(page)).toEqual(before);
   await expect
     .poll(async () => {

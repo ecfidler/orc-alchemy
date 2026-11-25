@@ -112,7 +112,7 @@ test("a pick changes only the number and the marks of the table; the record chan
   expect(await tableRows(page)).toEqual(WORN);
 });
 
-test("a pick takes the text of the status line away: after Damage, the line says the damage, and after the pick it is empty", async ({ page }) => {
+test("a pick takes the status text away: after Damage, the status toast says the damage, and after the pick it is empty", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openSheet(page);
   await page.getByRole("button", { name: /^Hit points, / }).click();

@@ -250,7 +250,7 @@ export type CastAction =
       kind: "slot";
       /** The spell key, for the concentration mark. */
       key: string;
-      /** The name that shows, for the status line. */
+      /** The name that shows, for the status text. */
       name: string;
       /** The spell level. */
       level: number;
@@ -265,7 +265,7 @@ export type CastAction =
       level: number;
       /** The feature whose use the cast spends. */
       feature: FeatureUsesKey;
-      /** The name of the feature for the status line: "Thief of Five Fates". */
+      /** The name of the feature for the status text: "Thief of Five Fates". */
       label: string;
       /** True when the cast also spends a pact slot: an invocation spell. */
       pact: boolean;
@@ -295,7 +295,7 @@ export function concentrationQuestion(action: CastAction, current: string): Conc
 }
 
 /**
- * The status line after a cast: "Cast Magic Missile at 2nd level. 2nd-level
+ * The status text after a cast: "Cast Magic Missile at 2nd level. 2nd-level
  * slots −1 (1 left)." A cast at the spell level has no level. A cast with a
  * use: "Cast Bane at 5th level. Thief of Five Fates −1 (0 left), Pact slots
  * −1 (3 left)." After the Concentrate button: "Concentrating on Bless."

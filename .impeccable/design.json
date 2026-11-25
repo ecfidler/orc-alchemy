@@ -658,6 +658,16 @@
         "name": "potion-swirl",
         "value": "2.4s steps, 12 frames",
         "purpose": "The liquid of the logo. Off under prefers-reduced-motion."
+      },
+      {
+        "name": "toast-in",
+        "value": "0.16s ease-out",
+        "purpose": "A text of the toast fades in from 8px below. Off under prefers-reduced-motion."
+      },
+      {
+        "name": "toast-out",
+        "value": "0.2s ease-in",
+        "purpose": "The status text of the toast fades out and moves 8px down. Off under prefers-reduced-motion."
       }
     ],
     "breakpoints": [
@@ -787,6 +797,14 @@
       "description": "Spell slots that the user changes: 17px circles in 28px tap areas, filled from the left, then Pact Magic diamonds.",
       "html": "<span class=\"ds-slots\" role=\"slider\" tabindex=\"0\" aria-label=\"1st-level slots\" aria-valuenow=\"1\"><span class=\"ds-slot ds-on\"></span><span class=\"ds-slot\"></span><span class=\"ds-slot\"></span><span class=\"ds-slot ds-diamond\"></span></span>",
       "css": ".ds-slots { display: inline-flex; flex-wrap: wrap; border-radius: 6px; cursor: pointer; user-select: none; } .ds-slots:focus-visible { outline: 2px solid var(--info); outline-offset: -2px; } .ds-slot { display: grid; place-items: center; width: 28px; height: 28px; } .ds-slot::before { content: ''; box-sizing: border-box; width: 17px; height: 17px; border: 1.5px solid var(--ink); border-radius: 50%; } .ds-slot.ds-on::before { background: var(--ink); } .ds-slot:not(.ds-on):hover::before { background: color-mix(in srgb, var(--ink) 30%, transparent); } .ds-slot.ds-diamond::before { width: 13px; height: 13px; border-radius: 0; transform: rotate(45deg); }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "A status text and a note at the bottom centre of the screen. It takes no space in the page. The status text hides after 6 seconds; the note stays until its action.",
+      "html": "<div class=\"ds-toast\"><div class=\"ds-toast-note\"><div class=\"ds-toast-note-paper\"><p class=\"ds-toast-note-text\">Concentration on Bless can end.</p><button class=\"ds-toast-action\">Dismiss</button></div></div><p class=\"ds-toast-status\">Hit points: 12 to 7.</p></div>",
+      "css": ".ds-toast { display: grid; justify-items: center; width: max-content; max-width: min(36rem, 100%); font-family: var(--font-sans, 'Inter Variable', system-ui, sans-serif); } .ds-toast-note { margin-bottom: 8px; filter: drop-shadow(0 3px 3px var(--note-shadow)) drop-shadow(0 1px 0 var(--note-edge)); } .ds-toast-note-paper { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; padding: 8px 14px 10px; font-size: 13.5px; font-weight: 500; line-height: 1.4; color: var(--note-ink); background: var(--note); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%); } .ds-toast-note-paper::after { content: ''; position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; background: linear-gradient(135deg, var(--note-edge) 50%, transparent 50%); } .ds-toast-note-text { flex: 1 1 20ch; min-width: 0; margin: 0; } .ds-toast-action { font: inherit; font-size: 13px; font-weight: 600; color: var(--note-ink); background: transparent; border: 1.5px solid var(--note-ink); border-radius: 4px; padding: 0 5px; cursor: pointer; } .ds-toast-action:focus-visible { outline: 2px solid var(--note-ink); outline-offset: 2px; } .ds-toast-status { margin: 0; padding: 8px 14px; font-size: 13.5px; line-height: 1.4; text-align: center; color: var(--ink); background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--note-shadow); }"
     }
   ],
   "narrative": {

@@ -154,7 +154,7 @@ function prepareSpell(spell: SpellRef, prepared: boolean) {
   useCharacter.getState().sheetChange((entity) => setPrepared(engine(), entity, spell.source, spell.key, prepared));
 }
 
-/** What an action gives the vitals panel: the text of the status line, and the concentration note after Damage. */
+/** What an action gives the status toast: its text, and the concentration note after Damage. */
 interface Said {
   status: string;
   note?: ConcentrationNote;
@@ -162,7 +162,7 @@ interface Said {
 
 /**
  * Applies `apply` as one sheet change: it saves at once. Returns the text of
- * the status line that `apply` gives, and its concentration note.
+ * the status toast that `apply` gives, and its concentration note.
  */
 function changeWithStatus(apply: (entity: StrictEntity) => { entity: StrictEntity } & Said): Said {
   let said: Said = { status: "" };
@@ -179,7 +179,7 @@ function changeWithStatus(apply: (entity: StrictEntity) => { entity: StrictEntit
  * writes the hit points, the temporary hit points and the death saves
  * together (ORC-314). The rules read the play state of the record as it is
  * now, with the maximum of the engine, which exhaustion can halve. Returns
- * the text of the status line.
+ * the text of the status toast.
  */
 function changeHitPoints(sheet: Sheet, action: HitPointAction): Said {
   return changeWithStatus((entity) => applyHitPoints(engine(), entity, sheet.baseMaxHitPoints, action));
@@ -188,7 +188,7 @@ function changeHitPoints(sheet: Sheet, action: HitPointAction): Said {
 /**
  * Applies an action of the Hit dice popup as one sheet change, which writes
  * the spent hit dice and, for Spend, the hit points and the death saves
- * together (ORC-317). Returns the text of the status line.
+ * together (ORC-317). Returns the text of the status toast.
  */
 function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
   return changeWithStatus((entity) => applyHitDice(engine(), entity, sheet, action)).status;
@@ -197,7 +197,7 @@ function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
 /**
  * Applies an action of the Conditions and statuses box as one sheet change
  * (ORC-322). An exhaustion level of 4 can also write the hit points down
- * (ORC-323). Returns the text of the status line.
+ * (ORC-323). Returns the text of the status toast.
  */
 function changeConditions(sheet: Sheet, action: ConditionAction): string {
   return changeWithStatus((entity) => applyConditions(engine(), entity, sheet.baseMaxHitPoints, action)).status;
@@ -206,7 +206,7 @@ function changeConditions(sheet: Sheet, action: ConditionAction): string {
 /**
  * Applies a rest that the user finished in its dialog as one sheet change,
  * which writes all its changes together (ORC-318). Returns the text of the
- * status line.
+ * status toast.
  */
 function rest(sheet: Sheet, action: RestAction): string {
   return changeWithStatus((entity) => applyRest(engine(), entity, sheet, action)).status;
@@ -215,7 +215,7 @@ function rest(sheet: Sheet, action: RestAction): string {
 /**
  * Casts a spell from the Spells panel as one sheet change, which spends the
  * slot and sets the concentration mark together (ORC-320). Returns the text
- * of the status line of the Cast control.
+ * of the status toast.
  */
 function castSpell(sheet: Sheet, action: CastAction): string {
   return changeWithStatus((entity) => applyCast(engine(), entity, sheet, action)).status;
@@ -249,13 +249,14 @@ function SheetPage() {
   // The Spells panel (ORC-285): open or not, and the spell it opened at. It is not in the URL, so a reload shows the sheet.
   // The spell stays while the panel closes, so the panel does not change during its close.
   const [spells, setSpells] = useState<{ open: boolean; at?: SpellRef }>({ open: false });
-  // The status line of the vitals panel: what the last action changed. It starts empty, and it belongs to its character.
-  // Each action gives the line a new key, so that a screen reader also reads a text that is the same as the last one.
-  // The concentration note comes with Damage; the next action, or its Dismiss button, removes it (ORC-322).
+  // The status toast of the sheet (ORC-326): what the last action changed, also a cast in the Spells panel. It starts
+  // empty, and it belongs to its character. Each action gives the text a new key, so that the toast shows a text that
+  // is the same as the last one again, and a screen reader reads it again. The concentration note comes with Damage;
+  // the next action, or its Dismiss button, removes it (ORC-322).
   const [status, setStatus] = useState<{ id: string | undefined; text: string; key: number; note?: ConcentrationNote }>({ id: undefined, text: "", key: 0 });
   const statusText = status.id === openId ? status.text : "";
   const say = (text: string, note?: ConcentrationNote) => setStatus((last) => ({ id: openId, text, key: last.key + 1, note }));
-  // An action outside the vitals panel (a cast, a change of the spent slots) keeps the text of the line, but it is the next action, so it takes the note away.
+  // A change of the spent slots keeps the text of the toast, but it is the next action, so it takes the note away.
   const dropNote = () => setStatus((last) => ({ ...last, note: undefined }));
   const spend = (sheet: Sheet, group: SlotGroup, spent: number) => {
     spendSlots(sheet, group, spent);
@@ -306,7 +307,7 @@ function SheetPage() {
                 changeInspiration(on);
                 say("");
               },
-              // The number in the box is the result, so the status line says nothing (sheet-interactivity.md, "Text of a change").
+              // The number in the box is the result, so the toast says nothing (sheet-interactivity.md, "Text of a change").
               onAcPick: (pick) => {
                 changeAcPick(pick);
                 say("");
@@ -324,10 +325,7 @@ function SheetPage() {
               onSpendSlots={(group, spent) => spend(sheet, group, spent)}
               onPrepare={prepareSpell}
               concentration={sheet.concentration}
-              onCast={(action) => {
-                dropNote();
-                return castSpell(sheet, action);
-              }}
+              onCast={(action) => say(castSpell(sheet, action))}
               uses={featureUses(sheet)}
             />
           )}

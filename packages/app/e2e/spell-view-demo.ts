@@ -46,8 +46,6 @@ function castControl(record: SpellRecordResult["record"], name: string, castNote
     concentration: null,
     concentrationName: null,
     onCast: () => {},
-    status: "",
-    statusKey: 0,
     phone: window.matchMedia("(max-width: 600px)").matches,
   });
 }

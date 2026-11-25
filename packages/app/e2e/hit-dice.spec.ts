@@ -40,7 +40,7 @@ async function act(page: Page, die: string, action: { roll: string } | "Roll for
 /** The place and size of the vitals panel and of each box and part in it. */
 const layout = (page: Page) =>
   vitals(page).evaluate((panel) =>
-    [panel, ...panel.querySelectorAll(".ui-framed-box, .ui-label, .ui-current-max, button, [role=status], [data-concentration-note]")].map((element) => {
+    [panel, ...panel.querySelectorAll(".ui-framed-box, .ui-label, .ui-current-max, button")].map((element) => {
       const { x, y, width, height } = element.getBoundingClientRect();
       return [x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
     }),
@@ -98,7 +98,7 @@ test("the box shows the dice left of each die size, the largest first; two class
   await expect(popup(page).getByRole("group")).toHaveText([/^d10/, /^d8/, /^d6/]);
 });
 
-test("Spend heals the roll and the Constitution modifier, spends one die, and the status line says so; the changes save", async ({ page }) => {
+test("Spend heals the roll and the Constitution modifier, spends one die, and the status toast says so; the changes save", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await open(page, FIGHTER);
   await expect(hitDice(page)).toHaveAccessibleName("Hit dice, 5 of 5 d10");

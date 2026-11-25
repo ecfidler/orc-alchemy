@@ -252,14 +252,14 @@ The theme spec sets these sizes only. Each component sets the other sizes that i
 
 ## Elevation & Depth
 
-The system is flat. Depth comes from borders, from Raised Paper on Paper, and from the shaded Panel. Only things that are on top of the page cast a shadow: the notes, the current flag tab, a modal, and a small popup or the menu of a split button. The backdrop of a Dialog and of a ListModal is a 40% Ink wash.
+The system is flat. Depth comes from borders, from Raised Paper on Paper, and from the shaded Panel. Only things that are on top of the page cast a shadow: the notes, the current flag tab, a modal, a small popup or the menu of a split button, and the toast. The backdrop of a Dialog and of a ListModal is a 40% Ink wash.
 
 ### Shadow Vocabulary
 
 - **Tab shadow** (`0 3px 6px -4px var(--note-shadow)`): the current flag tab.
 - **Note shadow** (`0 4px 8px -5px var(--note-shadow)`, and `0 2px 3px -1px var(--note-shadow)` for an inline note): alert notes and inline notes. `--note-shadow` is `rgba(60, 45, 0, 0.2)`, and `rgba(255, 255, 255, 0.1)` in the Dark theme.
 - **Modal shadow** (`0 22px 50px -18px var(--note-shadow)`): the Dialog and the ListModal.
-- **Stuck note:** a `drop-shadow` filter, because the folded corner is a `clip-path`.
+- **Stuck note:** a `drop-shadow` filter, because the folded corner is a `clip-path`. The note of the toast has the same filter.
 
 ### Named Rules
 
@@ -320,6 +320,14 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 - **Small popup:** a small panel under the box that opens it, with a title (600, 19px) and its controls, and no close button. It is 320px wide, or it has the width of another part. It is not modal. A second click on its trigger, Escape and a click outside close it. Hit points, hit dice and a pool use it.
 - **Surface:** the small popup and the menu of a split button have a Raised Paper fill, a 1px Ink border and a shadow in the `--note-shadow` color.
 
+### Toast
+
+- **Toast:** a region fixed at the bottom centre of the screen, 16px above the bottom edge and the safe area. It takes no space in the page, so a text that comes and goes moves nothing. It is 36rem wide at most, and on a phone it keeps a 16px gutter. It is above a modal dialog and under a small popup or a menu.
+- **Status text:** one text that says what the last action did, in Inter 13.5px, centred, with 8px 14px padding. It has the surface of the small popup. A long text wraps. It hides after 6 seconds, but not while the pointer or the focus is on the toast. A new status text replaces it.
+- **Note:** one note above the status text, 8px from it, in Note Yellow with Note Ink (Inter 500, 13.5px), a 12px folded corner and one small action button, for example "Dismiss". It is not tilted. It stays until its action, and it stays yellow in the Dark theme.
+- **Motion:** a text fades in from 8px below in 0.16s, and the status text fades out in 0.2s. Under `prefers-reduced-motion: reduce`, the toast does not fade or move.
+- **Live regions:** the status text and the note are polite status regions.
+
 ### List rows
 
 A ListRow is a row of a list as a button: the full width, flat, with a Rule hairline under it, and an optional part at its end. Hover and focus give it the Panel fill. The current row (`aria-current`) has an Ink fill and Paper text, and its focus ring is Paper, inside the row, as a current ghost button turns solid. The rows of the ListModal are ListRows.
@@ -330,7 +338,7 @@ A ListRow is a row of a list as a button: the full width, flat, with a Rule hair
 - **Alert note:** a flat note at the full width of the page column, above the content. Yellow means "you must act", red means "failed", and blue is information. Only a blue note has a dismiss button.
 - **Note line:** a flat yellow line in the flow of a form, with a link button at its end.
 - **Note space:** the space of the note of a form or a popup. It is a polite status line that keeps the height of one note line (33px), so a popup keeps its size when the note comes or goes.
-- **Status line:** on the sheet, a line with a reserved height under the vitals says what the last action changed.
+- **Status toast:** the sheet has no status line. The toast says what the last action changed and shows the concentration note. See Toast.
 
 ### Use bubble
 

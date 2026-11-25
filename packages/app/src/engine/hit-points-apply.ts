@@ -9,8 +9,8 @@ import { applyHitPointAction, type HitPointAction } from "./hit-points.ts";
 import { concentration, currentHitPoints, deathSaves, exhaustion, setCurrentHitPoints, setDeathSaves, setTempHitPoints, tempHitPoints } from "./play.ts";
 
 /**
- * The entity after an action of the two popups, and the text of the status
- * line. `max` is the hit point maximum of the engine. The rules use the
+ * The entity after an action of the two popups, and the status text.
+ * `max` is the hit point maximum of the engine. The rules use the
  * maximum that shows: from exhaustion level 4, the half of `max`. When the
  * action does not change the current hit points, the stored value stays as
  * it is, also a stored value above the maximum.

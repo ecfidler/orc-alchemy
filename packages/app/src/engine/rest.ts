@@ -458,5 +458,5 @@ export const longRestReserve = (rest: LongRest) =>
   longRestChangesNothing(rest, { ate: false, dawn: false, back: new Map() }) &&
   !longRestChangesNothing(rest, { ate: true, dawn: true, back: dawnStart(rest.dawn) });
 
-/** The text of the status line after a rest. */
+/** The status text after a rest. */
 export const restStatus = (kind: RestKind) => `${REST_NAMES[kind]} finished.`;

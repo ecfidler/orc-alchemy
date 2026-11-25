@@ -2,7 +2,7 @@
 // "Hit points"): Damage, Heal and Set HP of the Hit points popup, and Set
 // temp HP and Remove of the Temporary hit points popup. Each rule is a pure
 // function of the numbers of the play state and the amount. It gives the new
-// values to write and the text of the status line. No engine and no React:
+// values to write and the status text. No engine and no React:
 // applyHitPoints (hit-points-apply.ts) writes the values with the play state
 // writers (play.ts).
 import { DEATH_SAVE_LIMIT, type DeathSaves } from "./play.ts";
@@ -28,7 +28,7 @@ export interface HitPointState {
   deathSaves: DeathSaves;
 }
 
-/** The new values after an action, and the text of the status line. */
+/** The new values after an action, and the status text. */
 export interface HitPointChange {
   /**
    * The current hit points to write: null at the maximum of the engine (`full`), which is full hit points.
@@ -39,7 +39,7 @@ export interface HitPointChange {
   /** The temporary hit points to write: 0 removes them. */
   temp: number;
   deathSaves: DeathSaves;
-  /** What changed, for the status line: "12 damage (5 from the temporary hit points)." */
+  /** What changed, for the status text: "12 damage (5 from the temporary hit points)." */
   status: string;
 }
 

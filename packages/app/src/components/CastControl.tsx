@@ -1,11 +1,12 @@
 // The Cast control of the spell view in the Spells panel (ORC-320,
 // docs/design/sheet-interactivity.md "Casting a spell"): the split button
 // with the menu "Cast at a higher level", or a plain Cast button, or the
-// Concentrate button, with the hint line and the status line under it. A
-// spell with its own uses has a plain Cast button that spends the use
-// (ORC-321), and a note that the app cannot link has only its line. Both
-// lines keep their space, so a cast moves nothing. The rules are in
-// engine/cast.ts; this file only renders them.
+// Concentrate button, with the hint line under it. A spell with its own uses
+// has a plain Cast button that spends the use (ORC-321), and a note that the
+// app cannot link has only its line. The hint line keeps its space, so a
+// cast moves nothing. What a cast did shows in the status toast of the
+// sheet page (ORC-326). The rules are in engine/cast.ts; this file only
+// renders them.
 import { Button, Dialog, SplitButton } from "@orc-alchemy/ui";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { asksFirst, type CastAction, type CastChoices, type CastSpell, concentrationQuestion, needsConcentration } from "../engine/cast.ts";
@@ -26,22 +27,17 @@ export interface CastControlProps {
   concentration: string | null;
   /** The name that shows for the spell of the concentration mark. */
   concentrationName: string | null;
-  /** Casts the spell, as one sheet change. */
+  /** Casts the spell, as one sheet change. The sheet page says what the cast did in its status toast. */
   onCast: (action: CastAction) => void;
-  /** The text of the status line: what the last cast of this spell did, or "". */
-  status: string;
-  /** Changes with each cast, so that the status line reads out a text that is the same as the last one. */
-  statusKey: number;
   /** True at 600px and less: the control is under the name, and the menu has the full width of the panel. */
   phone: boolean;
 }
 
 /**
- * The Cast choices. The column has a fixed width, and the hint and the
- * status lines keep their size, so the name block keeps its size when the
- * play state changes.
+ * The Cast choices. The column has a fixed width, and the hint line keeps
+ * its size, so the name block keeps its size when the play state changes.
  */
-export function CastControl({ spell, name, record, choices, concentration, concentrationName, onCast, status, statusKey, phone }: CastControlProps) {
+export function CastControl({ spell, name, record, choices, concentration, concentrationName, onCast, phone }: CastControlProps) {
   const hintId = useId();
   const column = useRef<HTMLDivElement>(null);
   // The row of the button, the full width of the column: on a phone the menu opens under it, with its width.
@@ -51,16 +47,16 @@ export function CastControl({ spell, name, record, choices, concentration, conce
   const [question, setQuestion] = useState({ title: "", text: "", action: "" });
   const casting = useRef(false);
   const confirm = useRef<HTMLButtonElement>(null);
-  const statusLine = useRef<HTMLParagraphElement>(null);
+  const hint = useRef<HTMLParagraphElement>(null);
   // A cast can disable the button that has the focus, for example Cast after the last slot of its level. The focus
-  // then goes to the first control of the column that is not disabled, or else to the status line, so it stays in
-  // the panel.
+  // then goes to the first control of the column that is not disabled, or else to the hint line, which says why the
+  // control is disabled. So the focus stays in the control.
   useLayoutEffect(() => {
     if (!casting.current) return;
     casting.current = false;
     const active = document.activeElement;
     if (active === null || active === document.body || (active instanceof HTMLButtonElement && active.disabled)) {
-      (column.current?.querySelector<HTMLElement>("button:not([disabled])") ?? statusLine.current)?.focus();
+      (column.current?.querySelector<HTMLElement>("button:not([disabled])") ?? hint.current)?.focus();
     }
   });
 
@@ -138,15 +134,12 @@ export function CastControl({ spell, name, record, choices, concentration, conce
       )}
       {/* The hint of a cast with a use keeps two lines: "Spends Thief of Five Fates (1 left) and a pact slot (5th, 4 left)." wraps, and the hint after the cast does not. */}
       <p
+        ref={hint}
         id={hintId}
+        tabIndex={-1}
         className={`${choices.kind === "uses" ? "min-h-[38px]" : "min-h-[19px]"} self-stretch font-sans text-[12.5px] leading-[19px] text-ink-muted`}
       >
         {choices.hint}
-      </p>
-      {/* The status line keeps the height of two lines. A no-break space on every second cast makes the same text a new message. */}
-      <p ref={statusLine} role="status" tabIndex={-1} className="min-h-[38px] self-stretch font-sans text-[13px] leading-[19px]">
-        {status}
-        {status && statusKey % 2 === 0 && " "}
       </p>
       <Dialog
         open={ask !== null}

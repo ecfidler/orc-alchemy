@@ -1,0 +1,123 @@
+/* The toast (docs/design/theme.md, "Controls"): a status text and a note at the bottom centre of the screen. */
+
+@layer components {
+  /*
+   * Fixed, so it takes no space in the page. Above a modal dialog, which has
+   * no z-index, and under a small popup or a menu (20), which the user opened
+   * after the text came. 16px from the sides on a phone, and above the safe
+   * area at the bottom.
+   */
+  .ui-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 15;
+    display: grid;
+    justify-items: center;
+    width: max-content;
+    max-width: min(36rem, calc(100vw - 32px));
+    transform: translateX(-50%);
+    /* The empty parts take no clicks; the status and the note do. */
+    pointer-events: none;
+    font-family: var(--font-sans);
+  }
+  /* An empty region has no height. */
+  .ui-toast-region {
+    display: grid;
+    justify-items: center;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* The status: the surface of the small popup and the menu (dialog.css). A long text wraps. */
+  .ui-toast-status {
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 0;
+    padding: 8px 14px;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--note-shadow);
+    font-size: 13.5px;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+    pointer-events: auto;
+    animation: ui-toast-in 0.16s ease-out;
+  }
+  /* The time of the fade must be the same as FADE_OUT_MS in Toast.tsx. */
+  .ui-toast-status:where([data-leaving]) {
+    animation: ui-toast-out 0.2s ease-in forwards;
+  }
+
+  /*
+   * The note: the note yellow, with a folded corner, as a stuck note, above
+   * the status. It stays yellow in dark mode. The outer part casts the
+   * shadow; the inner part is clipped for the corner, which would clip a
+   * shadow too.
+   */
+  .ui-toast-note {
+    max-width: 100%;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 3px 3px var(--note-shadow)) drop-shadow(0 1px 0 var(--note-edge));
+    pointer-events: auto;
+    animation: ui-toast-in 0.16s ease-out;
+  }
+  .ui-toast-note-paper {
+    /* The button in the note takes the note's ink, also in dark mode. */
+    --ink: var(--note-ink);
+    --panel: color-mix(in srgb, var(--note-ink) 10%, var(--note));
+    --focus-ring: var(--note-ink);
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px 12px;
+    box-sizing: border-box;
+    padding: 8px 14px 10px;
+    color: var(--note-ink);
+    background: var(--note);
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  }
+  .ui-toast-note-paper::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, var(--note-edge) 50%, transparent 50%);
+  }
+  .ui-toast-note-text {
+    flex: 1 1 20ch;
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ui-toast-status,
+    .ui-toast-status:where([data-leaving]),
+    .ui-toast-note {
+      animation: none;
+    }
+  }
+
+  @keyframes ui-toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes ui-toast-out {
+    to {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}

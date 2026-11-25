@@ -4,7 +4,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { CONDITION_TEXTS } from "../engine/condition-texts.ts";
 import type { ConditionAction } from "../engine/conditions.ts";
 import { CONDITION_KEYS } from "../engine/play.ts";
-import { ConcentrationNoteSpace, ConditionsBox, type ConditionsBoxProps } from "./ConditionsBox.tsx";
+import { ConditionsBox, type ConditionsBoxProps } from "./ConditionsBox.tsx";
 
 afterEach(cleanup);
 
@@ -181,16 +181,4 @@ test("a read-only sheet shows the Exhaustion token with its level and no X", () 
   const token = screen.getByRole("group", { name: "Exhaustion" });
   expect(within(token).getByRole("img", { name: "Exhaustion: 3 of 6" })).toBeTruthy();
   expect(within(token).queryByRole("button", { name: "Remove Exhaustion" })).toBeNull();
-});
-
-test("the concentration note: the DC with Dismiss, in a status space that is there also without a note", () => {
-  const dismiss = vi.fn();
-  render(<ConcentrationNoteSpace note={null} onDismiss={dismiss} />);
-  expect(screen.getByRole("status", { name: "Concentration note" }).textContent).toBe("");
-  cleanup();
-  render(<ConcentrationNoteSpace note={{ spell: "bless", dc: 11 }} onDismiss={dismiss} />);
-  const note = screen.getByRole("status", { name: "Concentration note" });
-  expect(note.textContent).toBe("Concentration on Bless: Constitution save, DC 11. Dismiss");
-  fireEvent.click(within(note).getByRole("button", { name: "Dismiss the concentration note" }));
-  expect(dismiss).toHaveBeenCalledOnce();
 });
