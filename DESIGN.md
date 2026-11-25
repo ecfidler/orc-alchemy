@@ -377,6 +377,7 @@ Each icon has one use:
 - **save:** the Save button of the action row, which writes the character and closes nothing.
 - **lock:** a value that cannot change, for example an always-prepared spell. `LockIcon` draws it with no space after it.
 - **up** and **down:** no use at this time. They are for a control that moves or sorts.
+- **Class icons:** `barbarian`, `bard`, `cleric`, `druid`, `fighter`, `monk`, `paladin`, `ranger`, `rogue`, `sorcerer`, `warlock` and `wizard`. A class icon goes only with the name of its class, in the Class step of the builder, which is not built.
 
 A confirm dialog shows the check and the x only when its cancel text is "Cancel". A control with no entry in this list has no icon. The full rules are in `docs/design/theme.md`, "Icons".
 

@@ -95,9 +95,9 @@ bun run test       # vitest
   - `PixelIcon`: a pixel icon, 16px, drawn as an SVG in the text color,
     for the start of the text of a button or a link. `name` is "pencil",
     "x", "check", "download", "moon", "sparkles", "external", "left",
-    "plus", "minus", "trash", "import", "dice", "save", "lock", "up" or
-    "down"
-    (`PixelIconName`). It has `aria-hidden`. `docs/design/theme.md`,
+    "plus", "minus", "trash", "import", "dice", "save", "lock", "up",
+    "down", or the name of an SRD class in small letters, for example
+    "wizard" (`PixelIconName`). It has `aria-hidden`. `docs/design/theme.md`,
     "Icons", gives the one use of each icon. In a `Button` or a
     `ButtonLink`, use `icon`. Styles: `src/button.css`.
     `className` is for layout.

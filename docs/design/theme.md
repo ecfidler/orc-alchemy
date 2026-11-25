@@ -371,6 +371,26 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | `lock` | A value that cannot change. `LockIcon` draws it with no space after it. |
 | `up`, `down` | No use at this time. They are for a control that moves or sorts. |
 
+**Class icons** (ORC-337). Each SRD class has a pixel icon with the name of
+the class in small letters. A class icon goes only with the name of its
+class, in the Class step of the builder. The step is not built: it comes
+with the character builder spec (ORC-334).
+
+| Icon | Drawing |
+| --- | --- |
+| `barbarian` | An anger mark. |
+| `bard` | A music note. |
+| `cleric` | A sun with its beams. |
+| `druid` | A leaf. |
+| `fighter` | A helmet. |
+| `monk` | A seated figure. |
+| `paladin` | A shield. |
+| `ranger` | An arrow. |
+| `rogue` | A dagger. |
+| `sorcerer` | A spiral. |
+| `warlock` | A chain link. |
+| `wizard` | An open book. |
+
 A confirm dialog shows the check and the x only when its cancel text is
 "Cancel". With another text, for example "Stay", the action can be the one
 that drops the changes, so the two buttons have no icon.
