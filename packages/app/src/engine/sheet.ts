@@ -4,11 +4,14 @@
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
+import { type ConcentrationNote, type ConditionAction, conditionsOf, shownSpeeds } from "./conditions.ts";
 import { unqualify, untag } from "./content.ts";
 import { type HitDiceAction, type HitDie, hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
 import type { HitPointAction } from "./hit-points.ts";
 import {
+  type Condition,
   concentration,
+  conditions,
   currentHitPoints,
   type DeathSaves,
   deathSaves,
@@ -176,6 +179,14 @@ export interface SheetPlay {
    * change (ORC-316). Two features with the same name and unit share the count.
    */
   onUses: (feature: FeatureUsesKey, spent: number) => void;
+  /** Applies an action of the Conditions and statuses box: add or remove a condition, or end the concentration mark (ORC-322). */
+  onConditions: (action: ConditionAction) => void;
+  /**
+   * The concentration note after Damage with a concentration mark, or null (ORC-322). The next action removes it,
+   * and so does its Dismiss button, which calls `onDismissNote`.
+   */
+  concentrationNote?: ConcentrationNote | null;
+  onDismissNote?: () => void;
 }
 
 export interface Spellcasting extends SpentSlotGroups {
@@ -227,12 +238,19 @@ export interface Sheet {
   exhaustion: number;
   /** The spell key of the concentration mark, or null (play state). */
   concentration: string | null;
+  /** The conditions that are set, in the order of the Add condition menu (play state). */
+  conditions: Condition[];
+  /** The conditions that the character is immune to with no qualifier, such as "poisoned". */
+  conditionImmune: Condition[];
   /**
    * The hit dice by die size, the largest die first, with the dice left
    * (play state). Two classes with the same die size share one entry.
    */
   hitDice: HitDie[];
+  /** The speeds that show: a condition can set each to 0 (ORC-322), and exhaustion can halve them (ORC-323). */
   speeds: Speed[];
+  /** The cause of a change of the speeds, for the caption under the speed, such as "Restrained"; null for none. */
+  speedCause: string | null;
   darkvision: number;
 
   numberOfAttacks: number;
@@ -727,6 +745,13 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     };
   });
   const hitDice = hitDiceTotals(classes);
+  const play = {
+    conditions: [...conditions(entity)],
+    currentHitPoints: currentHitPoints(entity, built["max-hit-points"]),
+    deathSaves: deathSaves(entity),
+  };
+  const speeds = shownSpeeds(toSpeeds(built), play);
+  const immunities = (built["condition-immunities"] as Resistance[] | null | undefined) ?? [];
 
   return {
     name: blankToNull(built["character-name"]),
@@ -768,13 +793,16 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
       ac,
     })),
     maxHitPoints: built["max-hit-points"],
-    currentHitPoints: currentHitPoints(entity, built["max-hit-points"]),
+    currentHitPoints: play.currentHitPoints,
     tempHitPoints: tempHitPoints(entity),
-    deathSaves: deathSaves(entity),
+    deathSaves: play.deathSaves,
     exhaustion: exhaustion(entity),
     concentration: concentration(entity),
+    conditions: play.conditions,
+    conditionImmune: conditionsOf(immunities.filter((immunity) => !immunity.qualifier).map((immunity) => immunity.value)),
     hitDice: hitDiceLeft(hitDice, hitDiceSpent(entity, hitDice)),
-    speeds: toSpeeds(built),
+    speeds: speeds.speeds,
+    speedCause: speeds.cause,
     darkvision: built.darkvision ?? 0,
 
     numberOfAttacks: built["number-of-attacks"],

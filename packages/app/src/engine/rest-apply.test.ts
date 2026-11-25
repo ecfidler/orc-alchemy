@@ -126,6 +126,13 @@ test("a rest that changes nothing keeps the record as it is", () => {
   expect(shortRest(entity, [{ die: 10, roll: 5 }])).toEqual({ entity, status: "Short rest finished." });
 });
 
+test("a short rest keeps the conditions, Unconscious among them, and the concentration mark (ORC-322)", () => {
+  const e = engine();
+  const start = setConcentration(e, setConditions(e, multiclass(), ["unconscious", "poisoned", "restrained"]), "bless");
+  const result = shortRest(start, []);
+  expect(result).toEqual({ entity: start, status: "Short rest finished." });
+});
+
 const DAY = "orcpub.dnd.e5.units/day";
 
 /** The play state that no rest changes: inspiration, the conditions, and the uses of the groups round, minute and hour. */

@@ -17,13 +17,16 @@ export type MenuProps<T> = {
   buttonRef?: Ref<HTMLButtonElement>;
   /** Layout classes for the button, as on Button. */
   className?: string;
+  /** A short note for an item, in small muted type at the end of its line, for example "new". It is a part of the item's name. */
+  note?: (value: T) => string | undefined;
 };
 
 /**
  * A button that opens a list of actions, with Base UI Menu inside. The
  * button has the ghost look. A pick calls `onPick` and closes the menu.
+ * `note` adds a muted note at the end of an item.
  */
-export function Menu<T>({ label, items, onPick, size = "small", icon, buttonRef, className }: MenuProps<T>) {
+export function Menu<T>({ label, items, onPick, size = "small", icon, buttonRef, className, note }: MenuProps<T>) {
   return (
     <BaseMenu.Root>
       <BaseMenu.Trigger render={<Button ref={buttonRef} size={size} icon={icon} className={className} />}>{label}</BaseMenu.Trigger>
@@ -33,6 +36,7 @@ export function Menu<T>({ label, items, onPick, size = "small", icon, buttonRef,
             {items.map(([value, text], i) => (
               <BaseMenu.Item key={i} onClick={() => onPick(value)} className="ui-select-item">
                 {text}
+                {note?.(value) && <span className="ui-menu-note">{note(value)}</span>}
               </BaseMenu.Item>
             ))}
           </BaseMenu.Popup>

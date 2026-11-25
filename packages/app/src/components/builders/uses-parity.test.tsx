@@ -124,7 +124,10 @@ test("the preview draws each feature as the sheet draws it, under the same headi
     <>
       <section aria-label="Sheet">
         {/* With play, the bubbles take clicks, as in the preview. */}
-        <CharacterSheet sheet={sheet} play={{ status: "", onHitPoints: vi.fn(), onHitDice: vi.fn(), onDeathSaves: vi.fn(), onUses: vi.fn() }} />
+        <CharacterSheet
+          sheet={sheet}
+          play={{ status: "", onHitPoints: vi.fn(), onHitDice: vi.fn(), onDeathSaves: vi.fn(), onUses: vi.fn(), onConditions: vi.fn() }}
+        />
       </section>
       <section aria-label="Form">
         <Form />

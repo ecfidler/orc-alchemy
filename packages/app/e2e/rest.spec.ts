@@ -4,7 +4,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { openWithValues, storedValues } from "./play-helpers.ts";
+import { openWithValues, statusLine, storedValues } from "./play-helpers.ts";
 
 /** Cleric 6 / paladin 3 / rogue 1 / wizard 1: 3 d10, 7 d8 and 1 d6, Constitution +1, 91 hit points; Channel Divinity (rest); wizard 1, so Arcane Recovery gives back 1 slot level. */
 const MULTICLASS = join(import.meta.dirname, "cleric-6-paladin-3-rogue-1-wizard-1.strict.json");
@@ -43,11 +43,7 @@ const restButton = (page: Page) => page.getByRole("button", { name: "Rest", exac
 const dialog = (page: Page, name = "Short rest") => page.getByRole("dialog", { name });
 const row = (page: Page, die: string) => dialog(page).getByRole("group", { name: die, exact: true });
 const changes = (page: Page) => dialog(page).getByRole("region", { name: "This rest will change" }).getByRole("listitem");
-const status = (page: Page) =>
-  page
-    .locator(".ui-panel")
-    .filter({ has: page.getByRole("button", { name: /^Hit points, / }) })
-    .getByRole("status");
+const status = (page: Page) => statusLine(page);
 
 async function openShortRest(page: Page) {
   await restButton(page).click();

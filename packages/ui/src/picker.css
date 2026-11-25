@@ -267,6 +267,44 @@
     margin-left: -12px;
     padding-left: 12px;
   }
+  /* A token that the app adds by itself: a dashed border. A token in the use bubble fill: the bubble fill and border. */
+  .ui-token:where([data-look="dashed"]) {
+    border-style: dashed;
+  }
+  .ui-token:where([data-look="bubble"]) {
+    background: var(--bubble);
+    border-color: var(--info);
+  }
+  .ui-token:where([data-look="bubble"]) > .ui-token-open:hover {
+    background: var(--paper-raised);
+  }
+  /* A small token: 13px semibold sans text, for a row of status tokens in a box. */
+  .ui-token:where([data-size="small"]) {
+    min-height: 28px;
+    padding: 0 2px 0 8px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  /* The text line of a small token's button sits in the middle of the button. */
+  .ui-token:where([data-size="small"]) > .ui-token-open {
+    flex-wrap: wrap;
+    align-content: center;
+    min-height: 26px;
+    margin-left: -8px;
+    padding-left: 8px;
+  }
+  .ui-token:where([data-size="small"]) > .ui-token-note {
+    font-weight: 400;
+  }
+  /* A short note after the text of a token, in small muted type. */
+  .ui-token-note {
+    padding-right: 7px;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
   .ui-token > .ui-segmented {
     flex: none;
     margin-left: 6px;

@@ -84,3 +84,38 @@ test("when a click on an X takes the X away and the token stays, the focus goes 
   expect(screen.queryByRole("button", { name: "Put back Pears" })).toBeNull();
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change Pears" }));
 });
+
+test("with popup the text is a button that opens a small popup under the token; the focus goes back to it at the close", async () => {
+  function Fruit() {
+    const [open, setOpen] = useState(false);
+    return <Token label="Plums" onRemove={() => {}} popup={{ open, onOpenChange: setOpen, title: "Plums", children: <p>Sweet and dark.</p> }} />;
+  }
+  render(<Fruit />);
+  const button = screen.getByRole("button", { name: "Plums" });
+  expect(button.classList.contains("ui-token-open")).toBe(true);
+  fireEvent.click(button);
+  const popup = await screen.findByRole("dialog", { name: "Plums" });
+  expect(popup.textContent).toContain("Sweet and dark.");
+  fireEvent.keyDown(popup, { key: "Escape" });
+  await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await vi.waitFor(() => expect(document.activeElement).toBe(button));
+});
+
+test("note, look and groupName: a muted note after the text, a dashed or a bubble look, and a group with its name", () => {
+  render(
+    <Tokens>
+      <Token label="Pears" note="from the tree" look="dashed" groupName="Pears, from the tree" />
+      <Token label="Figs" look="bubble" onRemove={() => {}} />
+      <Token label="Plums" look="plain" />
+    </Tokens>,
+  );
+  const pears = screen.getByRole("group", { name: "Pears, from the tree" });
+  expect([pears.dataset.look, pears.querySelector(".ui-token-note")?.textContent, pears.querySelector("button")]).toEqual(["dashed", "from the tree", null]);
+  const [, figs, plums] = [...document.querySelectorAll<HTMLElement>(".ui-token")];
+  expect([figs?.dataset.look, figs?.getAttribute("role"), plums?.dataset.look]).toEqual(["bubble", null, undefined]);
+});
+
+test("size small marks the token for its small look", () => {
+  render(<Token label="Figs" size="small" />);
+  expect(document.querySelector<HTMLElement>(".ui-token")!.dataset.size).toBe("small");
+});

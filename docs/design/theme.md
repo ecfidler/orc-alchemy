@@ -266,7 +266,11 @@ homebrew forms. They have no game words: the app gives the lists.
   apart (ORC-285).
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
-  wraps inside its token. A token can hold a small control.
+  wraps inside its token. A token can hold a small control. A token can
+  have a short muted note after its name, a dashed border (a token that
+  the app adds by itself) or the `--bubble` fill with an `--info` border.
+  Its name can be a button that opens a small popup under it. A small
+  token has 13px semibold Inter text (ORC-322).
 * **Token for a slot** (ORC-138): the name is a button with a small muted
   "Change" after it, and opens a list for a new value. A marked token has
   a 1.5px border, a 4px `--note` bar on its left and semibold text. Its X
@@ -284,6 +288,8 @@ homebrew forms. They have no game words: the app gives the lists.
 * **NumberToggle:** a SegmentedToggle of numbers, for example
   None / 1 / 2 / 3. The numbers are a prop.
 * **Chips:** number chips with an X, and a "+ Add" Menu. `AddChip` is the same dashed "+" button alone, for an empty slot.
+* **Menu:** an item can have a short note in small muted type at the end
+  of its line, for example "immune" (ORC-322).
 * **SplitButton** (ORC-320): a Button and an arrow part that touch, in a
   group. The main part does the usual action and can show a pixel icon.
   The arrow part has a down mark, a 1px line of the paper color on its

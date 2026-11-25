@@ -58,8 +58,11 @@ const sheet: Sheet = {
   deathSaves: { successes: 0, failures: 0 },
   exhaustion: 0,
   concentration: null,
+  conditions: [],
+  conditionImmune: [],
   hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
+  speedCause: null,
   darkvision: 60,
   numberOfAttacks: 1,
   weaponAttacks: [
@@ -546,7 +549,7 @@ test("a limited-use feature sits in a use bubble, with circles, a pool for more 
 
 test("with play, the circles and the pool write the spent uses with play.onUses by the unit and name (ORC-316)", () => {
   const onUses = vi.fn();
-  const play = { status: "", onHitPoints: vi.fn(), onHitDice: vi.fn(), onDeathSaves: vi.fn(), onUses };
+  const play = { status: "", onHitPoints: vi.fn(), onHitDice: vi.fn(), onDeathSaves: vi.fn(), onUses, onConditions: vi.fn() };
   render(<CharacterSheet sheet={{ ...sheet, features: usesFeatures({ wind: 1, hands: 5 }) }} play={play} />);
   const wind = bubbleOf("Second Wind").getByRole("slider", { name: "Second Wind" });
   expect(wind.getAttribute("aria-valuetext")).toBe("1 of 2 spent");

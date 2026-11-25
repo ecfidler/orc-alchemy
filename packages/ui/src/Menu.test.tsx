@@ -49,3 +49,22 @@ test("a menu button can show an icon before its label and gives a ref to the but
   expect(button.dataset.size).toBe("normal");
   expect(button.querySelector("svg")?.dataset.icon).toBe("moon");
 });
+
+test("note adds a muted note at the end of an item, as a part of its name", async () => {
+  render(
+    <Menu
+      label="Add a fruit"
+      items={[
+        ["fig", "Fig"],
+        ["plum", "Plum"],
+      ]}
+      onPick={() => {}}
+      note={(value) => (value === "plum" ? "ripe" : undefined)}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Add a fruit" }));
+  const items = await screen.findAllByRole("menuitem");
+  expect(items.map((i) => i.textContent)).toEqual(["Fig", "Plumripe"]);
+  expect(items[1]?.querySelector(".ui-menu-note")?.textContent).toBe("ripe");
+  expect(items[0]?.querySelector(".ui-menu-note")).toBeNull();
+});

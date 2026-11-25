@@ -3,6 +3,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { statusLine } from "./play-helpers.ts";
 
 /** fighter-5: 5 d10, Constitution +3, 54 hit points, 40 of them stored as current. */
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
@@ -21,7 +22,7 @@ async function open(page: Page, file: string) {
 const hitDice = (page: Page) => page.getByRole("button", { name: /^Hit dice, / });
 const hitPoints = (page: Page) => page.getByRole("button", { name: /^Hit points, / });
 const vitals = (page: Page) => page.locator(".ui-panel").filter({ has: hitPoints(page) });
-const status = (page: Page) => vitals(page).getByRole("status");
+const status = (page: Page) => statusLine(page);
 const popup = (page: Page) => page.getByRole("dialog", { name: "Hit dice" });
 const row = (page: Page, die: string) => popup(page).getByRole("group", { name: die, exact: true });
 

@@ -1,0 +1,306 @@
+// The Conditions and statuses box of the vitals panel (ORC-322,
+// docs/design/sheet-interactivity.md "Conditions and statuses" and
+// "Concentration"): add and remove a condition, the rule popup, speed 0 with
+// its caption, the Unconscious token at 0 hit points, the token of the
+// concentration mark, and the concentration note after Damage.
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { expect, type Page, test } from "@playwright/test";
+import { concentrationNote, openWithValues, statusLine, storedValues, vitals } from "./play-helpers.ts";
+
+/** Life cleric 9: Bless needs concentration. The record has no race, so its speed is 0. */
+const CLERIC = join(import.meta.dirname, "life-cleric-9.strict.json");
+/** fighter-5: 54 hit points, 40 of them stored as current; a speed of 30 feet. */
+const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
+
+const CONDITIONS = "~:orc-alchemy.play/conditions";
+const CONCENTRATION = "~:orc-alchemy.play/concentration";
+const CURRENT = "~:orcpub.dnd.e5.character/current-hit-points";
+
+const box = (page: Page) => page.getByRole("group", { name: "Conditions and statuses" });
+const addButton = (page: Page) => box(page).getByRole("button", { name: "Add condition" });
+const menu = (page: Page) => page.getByRole("menu");
+const speed = (page: Page) => page.getByRole("group", { name: "Speed", exact: true });
+const tokenNames = (page: Page) =>
+  box(page)
+    .locator(".ui-token")
+    .evaluateAll((tokens) => tokens.map((token) => token.getAttribute("aria-label")));
+const hitPoints = (page: Page) => page.getByRole("button", { name: /^Hit points, / });
+
+/** Picks a condition from the Add condition menu; the menu closes. */
+async function add(page: Page, entry: string) {
+  await addButton(page).click();
+  await menu(page).getByRole("menuitem", { name: entry }).click();
+  await expect(menu(page)).toHaveCount(0);
+  await page.mouse.move(0, 0);
+}
+
+/** Types an amount in the Hit points popup and clicks one of its buttons; the popup closes. */
+async function hitPointsAct(page: Page, amount: string, button: "Damage" | "Heal" | "Set HP") {
+  await hitPoints(page).click();
+  const popup = page.getByRole("dialog", { name: "Hit points" });
+  await popup.getByRole("textbox", { name: "Amount" }).fill(amount);
+  await popup.getByRole("button", { name: button, exact: true }).click();
+  await expect(popup).toHaveCount(0);
+  await page.mouse.move(0, 0);
+}
+
+/** The place and size of the vitals panel and of each part in it, but for the parts in the box and in the note, which can move. */
+const layout = (page: Page) =>
+  vitals(page).evaluate((panel) =>
+    [panel, ...panel.querySelectorAll("[data-conditions-box], .ui-framed-box, [role=group], [role=status], button, .ui-label, [data-speed-caption]")]
+      .filter(
+        (element) => element === panel || element.matches("[data-conditions-box]") || !element.closest("[data-conditions-box], [data-concentration-note] *"),
+      )
+      .map((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return `${element.matches("[data-conditions-box]") ? "BOX" : element.tagName} ${[x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
+      }),
+  );
+
+/** The parts of a layout that are above the box, and the left edge, top and width of the box: they never move. */
+const aboveBox = (lines: string[]) => {
+  const at = lines.findIndex((line) => line.startsWith("BOX"));
+  return [...lines.slice(1, at), lines[at]?.split(" ").slice(0, 4).join(" ")];
+};
+
+/** Opens the sheet of a character, which is on the Stats tab of a phone. */
+async function openSheet(page: Page, file = FIGHTER, values: Record<string, unknown> = {}) {
+  await openWithValues(page, file, values);
+  if ((page.viewportSize()?.width ?? 1280) < 720) await expect(page.getByRole("tab", { name: "Stats" })).toHaveAttribute("aria-selected", "true");
+  await expect(box(page)).toBeVisible();
+}
+
+test("add and remove a condition; the menu lists only the conditions that are not set; the record keeps them after a reload", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openSheet(page);
+  await expect.poll(() => tokenNames(page)).toEqual([]);
+  await addButton(page).click();
+  const entries = menu(page).getByRole("menuitem");
+  await expect(entries).toHaveCount(14);
+  await expect(entries.filter({ hasText: "speed 0" })).toHaveText([/^Grappled/, /^Paralyzed/, /^Petrified/, /^Restrained/, /^Stunned/, /^Unconscious/]);
+  await page.keyboard.press("Escape");
+  await add(page, "Poisoned");
+  await expect(statusLine(page)).toHaveText("Poisoned added.");
+  await add(page, "Blinded");
+  await expect.poll(() => tokenNames(page)).toEqual(["Blinded", "Poisoned"]);
+  await addButton(page).click();
+  await expect(entries).toHaveCount(12);
+  await expect(menu(page).getByRole("menuitem", { name: /^(Blinded|Poisoned)/ })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect.poll(async () => (await storedValues(page))[CONDITIONS]).toEqual({ "~#set": ["~:blinded", "~:poisoned"] });
+  await page.reload();
+  await expect.poll(() => tokenNames(page)).toEqual(["Blinded", "Poisoned"]);
+  // The status line starts empty after the reload.
+  await expect(statusLine(page)).toHaveText("");
+  await box(page).getByRole("button", { name: "Remove Blinded" }).click();
+  await expect(statusLine(page)).toHaveText("Blinded removed.");
+  // The focus goes to the X of the next token.
+  await expect(box(page).getByRole("button", { name: "Remove Poisoned" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => tokenNames(page)).toEqual([]);
+  await expect(addButton(page)).toBeFocused();
+  // The engine removes the empty set: the record has no key.
+  await expect.poll(async () => CONDITIONS in (await storedValues(page))).toBe(false);
+});
+
+test("the keyboard: Enter opens the menu, the arrow keys move, Enter adds; the name of a token opens its rule text", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openSheet(page);
+  await addButton(page).focus();
+  await page.keyboard.press("Enter");
+  await expect(menu(page).getByRole("menuitem").first()).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(menu(page).getByRole("menuitem", { name: "Charmed" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(statusLine(page)).toHaveText("Charmed added.");
+  await expect(addButton(page)).toBeFocused();
+  const name = box(page).getByRole("button", { name: "Charmed", exact: true });
+  await name.focus();
+  await page.keyboard.press("Enter");
+  const popup = page.getByRole("dialog", { name: "Charmed" });
+  await expect(popup).toBeVisible();
+  await expect(popup.getByRole("listitem").first()).toContainText("charmer");
+  // The popup opens under the box.
+  const under = (await box(page).locator(".ui-token").first().boundingBox())!;
+  expect((await popup.boundingBox())!.y).toBeGreaterThan(under.y + under.height);
+  await page.keyboard.press("Escape");
+  await expect(popup).toHaveCount(0);
+  await expect(name).toBeFocused();
+});
+
+for (const [width, height] of [
+  [1280, 900],
+  [390, 844],
+] as const) {
+  test(`at ${width}px a condition moves nothing outside the box; speed 0 shows with its caption in the space that it keeps`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await openSheet(page);
+    const before = await layout(page);
+    const feet = await speed(page).locator("span").first().textContent();
+    expect(feet).not.toMatch(/^0 ft\./);
+    await add(page, "Restrained");
+    await expect(speed(page)).toContainText(/^0 ft\.\s*Restrained/);
+    const caption = speed(page).locator("[data-speed-caption]");
+    await expect(caption).toHaveText("Restrained");
+    await expect(caption).toHaveCSS("text-transform", "uppercase");
+    expect(await layout(page), "after Restrained").toEqual(before);
+    await add(page, "Poisoned");
+    await add(page, "Prone");
+    // More tokens can give the box one more line, which only moves what is under it.
+    expect(aboveBox(await layout(page)), "after three conditions").toEqual(aboveBox(before));
+    await box(page).getByRole("button", { name: "Remove Restrained" }).click();
+    await expect(caption).toHaveText("");
+    await expect(speed(page)).toContainText(feet ?? "");
+    expect(aboveBox(await layout(page)), "after Remove Restrained").toEqual(aboveBox(before));
+  });
+}
+
+test("at 0 hit points the app shows Unconscious: dashed, the note 0 hit points, no X, not in the record; a hand-set one replaces it", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openSheet(page);
+  await add(page, "Prone");
+  const before = await layout(page);
+  await hitPointsAct(page, "0", "Set HP");
+  const auto = box(page).getByRole("group", { name: "Unconscious, 0 hit points" });
+  await expect(auto).toHaveAttribute("data-look", "dashed");
+  await expect(auto).toHaveText("Unconscious0 hit points");
+  await expect(auto).toHaveCSS("border-top-style", "dashed");
+  await expect(auto.getByRole("button")).toHaveText(["Unconscious"]);
+  await expect.poll(() => tokenNames(page)).toEqual(["Prone", "Unconscious, 0 hit points"]);
+  await expect(speed(page).locator("[data-speed-caption]")).toHaveText("Unconscious");
+  expect(aboveBox(await layout(page))).toEqual(aboveBox(before));
+  await expect.poll(async () => (await storedValues(page))[CONDITIONS]).toEqual({ "~#set": ["~:prone"] });
+  // The menu still has Unconscious; the token from the record has an X, in the place of the one that the app adds.
+  await add(page, "Unconscious");
+  await expect.poll(() => tokenNames(page)).toEqual(["Prone", "Unconscious"]);
+  await box(page).getByRole("button", { name: "Remove Unconscious" }).click();
+  await expect.poll(() => tokenNames(page)).toEqual(["Prone", "Unconscious, 0 hit points"]);
+  // A dead character has no Unconscious token.
+  await hitPointsAct(page, "100", "Damage");
+  await expect(page.getByRole("button", { name: "Dead", exact: true })).toBeVisible();
+  await expect.poll(() => tokenNames(page)).toEqual(["Prone"]);
+  await hitPointsAct(page, "5", "Heal");
+  await expect.poll(() => tokenNames(page)).toEqual(["Prone"]);
+  await expect.poll(async () => (await storedValues(page))[CURRENT]).toBe(5);
+});
+
+/** Casts Bless from the Spells panel at its level and closes the panel. */
+async function castBless(page: Page) {
+  await page.getByRole("button", { name: "All spells" }).click();
+  const panel = page.getByRole("dialog", { name: "Spells" });
+  await panel
+    .locator("[data-spell-row]")
+    .filter({ hasText: /^Bless/ })
+    .first()
+    .click();
+  await panel.getByRole("group", { name: "Cast Bless" }).getByRole("button").first().click();
+  await expect(panel.locator("[data-cast-control]").getByRole("status")).toHaveText("Cast Bless. 1st-level slots −1 (3 left).");
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+}
+
+test("a cast that needs concentration shows the mark as the first token; its X ends it, and the record has no mark", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openSheet(page, CLERIC, { [CONDITIONS]: { "~#set": ["~:poisoned"] } });
+  await castBless(page);
+  await expect.poll(() => tokenNames(page)).toEqual(["Concentrating on Bless", "Poisoned"]);
+  const mark = box(page).getByRole("group", { name: "Concentrating on Bless" });
+  await expect(mark).toHaveAttribute("data-look", "bubble");
+  await expect.poll(async () => (await storedValues(page))[CONCENTRATION]).toBe("~:bless");
+  await page.reload();
+  await expect.poll(() => tokenNames(page)).toEqual(["Concentrating on Bless", "Poisoned"]);
+  await mark.getByRole("button", { name: "Stop concentrating on Bless" }).click();
+  await expect(statusLine(page)).toHaveText("Concentration on Bless ended.");
+  await expect(box(page).getByRole("button", { name: "Remove Poisoned" })).toBeFocused();
+  await expect.poll(() => tokenNames(page)).toEqual(["Poisoned"]);
+  await expect.poll(async () => CONCENTRATION in (await storedValues(page))).toBe(false);
+});
+
+test("after Damage with a mark, the yellow note gives the DC in the space that the panel keeps; Dismiss and the next action remove it", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
+  const before = await layout(page);
+  await expect(concentrationNote(page)).toHaveText("");
+  await hitPointsAct(page, "24", "Damage");
+  await expect(statusLine(page)).toHaveText("24 damage.");
+  await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 12. Dismiss");
+  expect(await layout(page)).toEqual(before);
+  await concentrationNote(page).getByRole("button", { name: "Dismiss the concentration note" }).click();
+  await expect(concentrationNote(page)).toHaveText("");
+  await expect(statusLine(page)).toHaveText("24 damage.");
+  // Damage does not end the concentration. A small hit gives DC 10; the next action takes the note away.
+  await hitPointsAct(page, "3", "Damage");
+  await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 10. Dismiss");
+  await hitPointsAct(page, "3", "Heal");
+  await expect(concentrationNote(page)).toHaveText("");
+  await expect.poll(async () => (await storedValues(page))[CONCENTRATION]).toBe("~:bless");
+  expect(await layout(page)).toEqual(before);
+});
+
+test("on a phone the box is on the Stats tab, under the hit points, and a rule popup has the width of the vitals panel", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openSheet(page, FIGHTER, { [CONDITIONS]: { "~#set": ["~:grappled"] } });
+  await expect(page.getByRole("tabpanel", { name: "Stats" }).getByRole("group", { name: "Conditions and statuses" })).toBeVisible();
+  const hp = (await hitPoints(page).boundingBox())!;
+  expect((await box(page).boundingBox())!.y).toBeGreaterThan(hp.y + hp.height);
+  await box(page).getByRole("button", { name: "Grappled", exact: true }).click();
+  const popup = page.getByRole("dialog", { name: "Grappled" });
+  await expect(popup).toBeVisible();
+  const panel = (await vitals(page).boundingBox())!;
+  const shown = (await popup.boundingBox())!;
+  expect([Math.round(shown.x), Math.round(shown.width)]).toEqual([Math.round(panel.x), Math.round(panel.width)]);
+  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: "Features" }).click();
+  await expect(box(page)).toBeHidden();
+});
+
+// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- conditions.spec.ts -g orc-322
+test.describe("screenshots", () => {
+  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
+  test.use({ deviceScaleFactor: 2 });
+  const dir = join(import.meta.dirname, "../../../pr-screenshots");
+  for (const theme of ["light", "dark"] as const) {
+    test(`orc-322 Conditions and statuses, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-322-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      for (const [size, width, height] of [
+        ["desktop", 1280, 900],
+        ["phone", 390, 844],
+      ] as const) {
+        await page.setViewportSize({ width, height });
+        await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
+        const panel = vitals(page);
+        await box(page).getByRole("button", { name: "Stop concentrating on Bless" }).click();
+        await page.mouse.move(0, 0);
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await panel.screenshot({ path: shot(`${size}-empty`) });
+        await addButton(page).click();
+        await expect(menu(page)).toBeVisible();
+        await page.screenshot({ path: shot(`${size}-menu`) });
+        await page.keyboard.press("Escape");
+        await page.reload();
+        await expect(box(page)).toBeVisible();
+        await page.evaluate(() => document.fonts.ready);
+        await add(page, "Restrained");
+        await panel.screenshot({ path: shot(`${size}-speed-0`) });
+        await add(page, "Poisoned");
+        await add(page, "Prone");
+        await openWithValues(page, FIGHTER, { [CONCENTRATION]: "~:bless", [CONDITIONS]: { "~#set": ["~:poisoned", "~:prone", "~:restrained"] } });
+        await expect(box(page)).toBeVisible();
+        await panel.screenshot({ path: shot(`${size}-tokens`) });
+        await box(page).getByRole("button", { name: "Restrained", exact: true }).click();
+        await expect(page.getByRole("dialog", { name: "Restrained" })).toBeVisible();
+        await page.screenshot({ path: shot(`${size}-rule`) });
+        await page.keyboard.press("Escape");
+        await hitPointsAct(page, "24", "Damage");
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await panel.screenshot({ path: shot(`${size}-note`) });
+        await hitPointsAct(page, "0", "Set HP");
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await panel.screenshot({ path: shot(`${size}-zero`) });
+      }
+    });
+  }
+});

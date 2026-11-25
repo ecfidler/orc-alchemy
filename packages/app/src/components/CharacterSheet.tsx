@@ -24,6 +24,7 @@ import {
 import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
 import { slotGroupsOf, spentText } from "../engine/spell-slots.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
+import { ConcentrationNoteSpace, ConditionsBox } from "./ConditionsBox.tsx";
 import { DeathSavesBox } from "./DeathSavesBox.tsx";
 import { HitDiceBox } from "./HitDiceBox.tsx";
 import { HitPointsBox } from "./HitPointsBox.tsx";
@@ -47,7 +48,8 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * `play`: the play controls (docs/design/sheet-interactivity.md): the handlers that change the play state, one for each
  * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, the Hit dice
  * box is a button with its popup, the vitals panel has the status line and the space for the concentration note under
- * it, and the use bubbles of "Features & traits" change the spent uses. Without it, as in the builder preview and the
+ * it, the Conditions and statuses box has its X buttons and its Add condition menu, and the use bubbles of
+ * "Features & traits" change the spent uses. Without it, as in the builder preview and the
  * 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a handler of
  * SheetPlay, not as a new prop.
  */
@@ -150,20 +152,32 @@ export function CharacterSheet({
           </RowBox>
           <RowBox label="Initiative">{modStr(sheet.initiative)}</RowBox>
           <RowBox label="Speed">
-            {/* Only the first speed's number is large. Its qualifier and the other speeds are small lines under it. */}
-            {sheet.speeds.map((speed, i) => (
-              <span key={i} className={i === 0 ? "block" : "block font-sans text-[11px] leading-snug text-ink-muted"}>
-                {speed.feet} ft.
-                {speed.label && (
-                  <>
-                    {" "}
-                    <span className={i === 0 ? "block font-sans text-[9.5px] leading-tight font-medium tracking-[0.08em] text-ink-muted uppercase" : undefined}>
-                      {speed.label}
-                    </span>
-                  </>
-                )}
-              </span>
-            ))}
+            {/* Only the first speed's number is large. Its qualifier and the other speeds are small lines under it. When a
+              condition changes the speed, a caption in red caps gives the cause in the place of the qualifier (ORC-322).
+              On the sheet with play controls, the first speed keeps the line of the caption, so a cause moves nothing. */}
+            {sheet.speeds.map((speed, i) => {
+              const caption = i === 0 ? (sheet.speedCause ?? speed.label) : speed.label;
+              return (
+                <span key={i} className={i === 0 ? "block" : "block font-sans text-[11px] leading-snug text-ink-muted"}>
+                  {speed.feet} ft.
+                  {(caption || (i === 0 && play)) && (
+                    <>
+                      {" "}
+                      <span
+                        data-speed-caption={i === 0 ? "" : undefined}
+                        className={
+                          i === 0
+                            ? `block min-h-[1lh] font-sans text-[9.5px] leading-tight tracking-[0.08em] uppercase ${sheet.speedCause ? "font-semibold text-danger" : "font-medium text-ink-muted"}`
+                            : undefined
+                        }
+                      >
+                        {caption}
+                      </span>
+                    </>
+                  )}
+                </span>
+              );
+            })}
           </RowBox>
         </div>
         {/* The three boxes share a row only when the panel is wide enough for the death save circles. In a row, the Death
@@ -187,6 +201,7 @@ export function CharacterSheet({
           <HitDiceBox dice={sheet.hitDice} onAction={play?.onHitDice} popupWidthOf={narrow ? vitals : null} />
           {!preview && <DeathSavesBox saves={sheet.deathSaves} onChange={play?.onDeathSaves} />}
         </div>
+        <ConditionsBox sheet={sheet} onAction={play?.onConditions} popupWidthOf={narrow ? vitals : null} />
         {play && (
           <>
             {/* The status line keeps the height of one line; a long text is cut, and a screen reader reads all of it.
@@ -194,8 +209,8 @@ export function CharacterSheet({
             <p role="status" title={play.status || undefined} className="h-5 truncate text-center font-sans text-[13px] leading-5 text-ink-muted">
               <span key={play.statusKey}>{play.status}</span>
             </p>
-            {/* The space of one note line for the concentration note (ORC-322), so that the note moves nothing. */}
-            <div data-concentration-note className="h-[33px]" />
+            {/* The space of one note line for the concentration note, so that the note moves nothing (ORC-322). */}
+            <ConcentrationNoteSpace note={play.concentrationNote} onDismiss={play.onDismissNote} />
           </>
         )}
       </ShadedPanel>

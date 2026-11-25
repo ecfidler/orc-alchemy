@@ -251,8 +251,12 @@ after Damage. It gives the DC of the Constitution save: 10, or half the
 damage if that is higher, rounded down. Example: "Concentration on
 Bless: Constitution save, DC 10." The note has a Dismiss button. It is
 under the status line, in the space that the panel keeps for it, so it
-moves nothing. The next action removes it. The app does not roll the
-save and does not end the concentration.
+moves nothing. In a vitals panel narrower than 480px, the note needs two
+lines, so the panel keeps the height of two. The next action removes it.
+The app does not roll the save and does not end the concentration.
+
+* The DC comes from the full damage, also the part that the temporary
+  hit points take. Damage of 0 shows no note.
 
 ## The hit point maximum
 
@@ -655,7 +659,9 @@ place. The box holds tokens in this order:
 4. The Exhaustion token.
 5. The button **+ Add condition**.
 
-The box always shows, also when it has only the button.
+The box always shows, also when it has only the button. A read-only
+sheet, such as the builder preview, shows the tokens with no X and no
+button, and shows the box only when it has a token.
 
 ## Conditions
 
@@ -666,14 +672,17 @@ The box always shows, also when it has only the button.
 * "+ Add condition" opens a menu of the conditions that are not set,
   with Exhaustion as its last entry.
 * An entry has the note "immune" when the character is immune to the
-  condition. The user can add it anyway.
+  condition with no qualifier. An immunity with a qualifier, such as
+  "by elementals or fey", gives no note. The user can add it anyway.
 * An entry has the note "speed 0" when the condition sets the speed
   to 0.
 * A condition is a token with an X. The X removes it.
 * A click on the name of a token opens a small popup with the rule text
-  of the condition from the SRD.
+  of the condition from the SRD, as a short list of rule points.
 * **Speed 0.** Grappled, Restrained, Paralyzed, Petrified, Stunned and
-  Unconscious set each speed of the sheet to 0.
+  Unconscious set each speed of the sheet to 0. The Unconscious token
+  that the app adds at 0 hit points does too. With two such conditions,
+  the caption names the first in the order of the menu.
 * **Unconscious at 0 hit points.** When the hit points are 0 and the
   character is not dead, the app shows an Unconscious token by itself.
   It has a dashed border and the note "0 hit points". It has no X, and
@@ -682,6 +691,8 @@ The box always shows, also when it has only the button.
   it. The token from the record then shows, with its X, in place of the
   token that the app adds.
 * No rest changes the conditions.
+* **The status line** after each action: "Poisoned added.", "Poisoned
+  removed.", "Concentration on Bless ended."
 
 ## Exhaustion
 

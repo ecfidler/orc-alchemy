@@ -3,6 +3,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { statusLine } from "./play-helpers.ts";
 
 /** fighter-5: 54 hit points, 40 of them stored as current. */
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
@@ -96,7 +97,7 @@ test("the circles change at any hit points; three successes do not change the hi
   await failures(page).locator(".ui-slot-circle").nth(1).click();
   await expect(failures(page)).toHaveAttribute("aria-valuetext", "1 of 3");
   // A circle click leaves the status line as it was.
-  await expect(vitals(page).getByRole("status")).toHaveText("");
+  await expect(statusLine(page)).toHaveText("");
   await page.reload();
   await expect(successes(page)).toHaveAttribute("aria-valuetext", "3 of 3");
   await expect(failures(page)).toHaveAttribute("aria-valuetext", "1 of 3");
@@ -130,7 +131,7 @@ test("instant death shows Dead; each click on Dead clears one failure; Heal clea
   await openFighter(page);
   await setGroup(page, "successes", 2);
   await act(page, "200", "Damage");
-  await expect(vitals(page).getByRole("status")).toHaveText("200 damage: instant death.");
+  await expect(statusLine(page)).toHaveText("200 damage: instant death.");
   await expect(dead(page)).toBeVisible();
   await expect(failures(page)).toHaveCount(0);
   await expect(successes(page)).toHaveAttribute("aria-valuetext", "0 of 3");
@@ -143,7 +144,7 @@ test("instant death shows Dead; each click on Dead clears one failure; Heal clea
   await expect(failures(page)).toHaveAttribute("aria-valuetext", "2 of 3");
   await expect(failures(page)).toBeFocused();
   // A change of the circles is the next action: the text of the last one goes.
-  await expect(vitals(page).getByRole("status")).toHaveText("");
+  await expect(statusLine(page)).toHaveText("");
   await failures(page).locator(".ui-slot-circle").nth(1).click();
   await expect(failures(page)).toHaveAttribute("aria-valuetext", "1 of 3");
   await failures(page).locator(".ui-slot-circle").nth(0).click();

@@ -35,8 +35,11 @@ const sheet: Sheet = {
   deathSaves: { successes: 0, failures: 0 },
   exhaustion: 0,
   concentration: null,
+  conditions: [],
+  conditionImmune: [],
   hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
+  speedCause: null,
   darkvision: 0,
   numberOfAttacks: 1,
   weaponAttacks: [],
@@ -80,6 +83,7 @@ const playOf = (
   onHitDice: vi.fn(),
   onDeathSaves: vi.fn<(saves: DeathSaves) => void>(),
   onUses: vi.fn(),
+  onConditions: vi.fn(),
 });
 
 const hitPointsButton = () => screen.getByRole("button", { name: /^Hit points, / });
@@ -220,14 +224,15 @@ test("Escape closes a popup, and the focus goes back to its button", async () =>
 });
 
 test("the status line is a polite live region that starts empty and shows the text of the last action", () => {
+  // The concentration note under the line is a status too (ORC-322): the line is the first one.
+  const line = () => screen.getAllByRole("status")[0]!;
   render(<CharacterSheet sheet={sheet} play={playOf()} />);
-  const line = screen.getByRole("status");
-  expect(line.textContent).toBe("");
+  expect(line().textContent).toBe("");
   cleanup();
   render(<CharacterSheet sheet={sheet} play={playOf("12 damage (5 from the temporary hit points).")} />);
-  expect(screen.getByRole("status").textContent).toBe("12 damage (5 from the temporary hit points).");
+  expect(line().textContent).toBe("12 damage (5 from the temporary hit points).");
   // role="status" is a polite live region.
-  expect(screen.getByRole("status").tagName).toBe("P");
+  expect(line().tagName).toBe("P");
 });
 
 test("on the sheet, the Death saves box shows the stored counts and writes a change with play.onDeathSaves (ORC-315)", () => {

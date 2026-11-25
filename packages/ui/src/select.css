@@ -69,6 +69,21 @@
   .ui-select-item:where([data-selected]) {
     font-weight: 600;
   }
+  /* An item with a note: the note in small muted type at the end of the line. */
+  .ui-select-item:where(:has(> .ui-menu-note)) {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 18px;
+  }
+  .ui-menu-note {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-muted);
+  }
+  .ui-select-item:where([data-highlighted]) > .ui-menu-note {
+    color: inherit;
+  }
   .ui-select-empty:where(:not(:empty)) {
     padding: 1px 8px;
     color: var(--ink-muted);

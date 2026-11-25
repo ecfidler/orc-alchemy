@@ -219,7 +219,8 @@ bun run test       # vitest
     of actions. A pick of one of its `items` calls `onPick`. `icon` shows
     a pixel icon before the label, as on `Button`. `buttonRef` gives a ref
     to the button, for example to give the focus back to it when a dialog
-    that an item opened closes.
+    that an item opened closes. `note` gives an item a short note in small
+    muted type at the end of its line; the note is a part of its name.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`. Menu takes `className` for its button.
   - `SplitButton`: a `Button` with an arrow part that opens a Base UI
@@ -268,7 +269,16 @@ bun run test       # vitest
     such as "Change", for a slot that holds one value: the button opens a
     list for a new value. `marked` gives a thicker border, a note-yellow
     bar on the left and semibold text, for example for a changed value;
-    say so in a name too.
+    say so in a name too. With `popup` (the props of a `SmallPopup` but
+    the trigger and the anchor), the label is a button named `openName`
+    (or the label) that opens a SmallPopup under the token; the owner
+    controls `open`. `note` is a short muted text after the label, a part
+    of the token's text. `look` is "plain" (the default), "dashed" (a
+    dashed border, for a token that the app adds by itself) or "bubble"
+    (the `--bubble` fill and an `--info` border). With `groupName`, the
+    token is a group with that name. `size="small"` gives 13px semibold
+    sans text and the height of the Chips add button, for a row of status
+    tokens in a box.
   - `Tokens`: tokens on one line that wraps. After an X removes its token,
     the focus goes to the next X, or else to the first button after the
     tokens. When the X goes and its token stays, the focus goes to the

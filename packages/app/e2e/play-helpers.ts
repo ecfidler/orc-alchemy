@@ -36,3 +36,12 @@ export const storedValues = (page: Page) =>
         };
       }),
   );
+
+/** The vitals panel of the sheet: the shaded panel with the Hit points box. */
+export const vitals = (page: Page) => page.locator(".ui-panel").filter({ has: page.getByRole("button", { name: /^Hit points, / }) });
+
+/** The status line of the vitals panel. The concentration note under it is a status too, so this takes the line by its element. */
+export const statusLine = (page: Page) => vitals(page).getByRole("status").and(page.locator("p"));
+
+/** The space of the concentration note under the status line (ORC-322). */
+export const concentrationNote = (page: Page) => vitals(page).getByRole("status", { name: "Concentration note" });
