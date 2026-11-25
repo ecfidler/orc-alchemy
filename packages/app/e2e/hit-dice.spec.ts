@@ -3,6 +3,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { statusLine, vitals } from "./play-helpers.ts";
 
 /** fighter-5: 5 d10, Constitution +3, 54 hit points, 40 of them stored as current. */
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
@@ -20,8 +21,6 @@ async function open(page: Page, file: string) {
 
 const hitDice = (page: Page) => page.getByRole("button", { name: /^Hit dice, / });
 const hitPoints = (page: Page) => page.getByRole("button", { name: /^Hit points, / });
-const vitals = (page: Page) => page.locator(".ui-panel").filter({ has: hitPoints(page) });
-const status = (page: Page) => vitals(page).getByRole("status");
 const popup = (page: Page) => page.getByRole("dialog", { name: "Hit dice" });
 const row = (page: Page, die: string) => popup(page).getByRole("group", { name: die, exact: true });
 
@@ -105,18 +104,18 @@ test("Spend heals the roll and the Constitution modifier, spends one die, and th
   await expect(hitDice(page)).toHaveAccessibleName("Hit dice, 5 of 5 d10");
   await expect(hitDice(page)).toHaveText("5 / 5d10");
   await act(page, "d10", { roll: "7" });
-  await expect(status(page)).toHaveText("Hit die d10: 7 + 3 = 10 healed.");
+  await expect(statusLine(page)).toHaveText("Hit die d10: 7 + 3 = 10 healed.");
   await expect(hitPoints(page)).toHaveAccessibleName("Hit points, 50 of 54");
   await expect(hitDice(page)).toHaveAccessibleName("Hit dice, 4 of 5 d10");
   // The heal stops at the maximum. The user can spend a die at full hit points.
   await act(page, "d10", { roll: "10" });
   await expect(hitPoints(page)).toHaveAccessibleName("Hit points, 54 of 54");
   await act(page, "d10", { roll: "1" });
-  await expect(status(page)).toHaveText("Hit die d10: 1 + 3 = 4 healed.");
+  await expect(statusLine(page)).toHaveText("Hit die d10: 1 + 3 = 4 healed.");
   await expect(hitDice(page)).toHaveAccessibleName("Hit dice, 2 of 5 d10");
   // Regain gives one die back and does not change the hit points.
   await act(page, "d10", "Regain");
-  await expect(status(page)).toHaveText("Hit die d10 regained.");
+  await expect(statusLine(page)).toHaveText("Hit die d10 regained.");
   await expect(hitDice(page)).toHaveAccessibleName("Hit dice, 3 of 5 d10");
   await expect(hitPoints(page)).toHaveAccessibleName("Hit points, 54 of 54");
   await page.reload();
@@ -131,7 +130,7 @@ test("Roll for me rolls the die and spends it", async ({ page }) => {
   });
   await open(page, FIGHTER);
   await act(page, "d10", "Roll for me");
-  await expect(status(page)).toHaveText("Hit die d10: 3 + 3 = 6 healed.");
+  await expect(statusLine(page)).toHaveText("Hit die d10: 3 + 3 = 6 healed.");
   await expect(hitPoints(page)).toHaveAccessibleName("Hit points, 46 of 54");
   await expect(hitDice(page)).toHaveAccessibleName("Hit dice, 4 of 5 d10");
 });
@@ -179,7 +178,7 @@ test("keyboard: the box opens the popup with the focus in the first field; Enter
   await page.keyboard.type("5");
   await page.keyboard.press("Enter");
   await expect(popup(page)).toHaveCount(0);
-  await expect(status(page)).toHaveText("Hit die d8: 5 + 1 = 6 healed.");
+  await expect(statusLine(page)).toHaveText("Hit die d8: 5 + 1 = 6 healed.");
   await expect(hitDice(page)).toBeFocused();
   // Enter with an empty field shows the note and keeps the popup open. The popup moves the
   // focus to the first field after it opens; until then a second Enter goes to the box and closes it.

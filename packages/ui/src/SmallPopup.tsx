@@ -3,8 +3,13 @@ import { type ReactElement, type ReactNode, type RefObject, useRef } from "react
 
 export type SmallPopupProps = {
   open: boolean;
-  /** Gets true from a click on the trigger, and false from a second click on it, Escape and a click outside. */
-  onOpenChange: (open: boolean) => void;
+  /**
+   * Gets true from a click on the trigger, and false from a second click on
+   * it, Escape and a click outside. `reason` says why, as the Base UI
+   * Popover says it: "trigger-press", "escape-key", "outside-press" and
+   * others.
+   */
+  onOpenChange: (open: boolean, reason?: BasePopover.Root.ChangeEventReason) => void;
   /** The title at the top. It names the popup. */
   title: string;
   /**
@@ -23,6 +28,11 @@ export type SmallPopupProps = {
   widthOf?: RefObject<HTMLElement | null> | null;
   /** The controls. The first field (else the first control) gets the focus at the open. */
   children: ReactNode;
+  /**
+   * False: the open moves no focus, and the close does not move it back, for
+   * a popup that a mouse over its box opens. True by default.
+   */
+  takeFocus?: boolean;
 };
 
 /** The first field of the popup, else its first control. */
@@ -36,7 +46,7 @@ const FIRST = ["input:not([type='hidden']):not([disabled])", "textarea:not([disa
  * trigger. It is not modal: the page stays live. The owner closes it after
  * an action by setting `open` to false.
  */
-export function SmallPopup({ open, onOpenChange, title, trigger, anchor, widthOf, children }: SmallPopupProps) {
+export function SmallPopup({ open, onOpenChange, title, trigger, anchor, widthOf, children, takeFocus = true }: SmallPopupProps) {
   const popup = useRef<HTMLDivElement>(null);
   // With widthOf, a virtual anchor: the bottom of the anchor, and the left edge and width of widthOf.
   const positionAnchor = widthOf
@@ -55,7 +65,7 @@ export function SmallPopup({ open, onOpenChange, title, trigger, anchor, widthOf
       }
     : anchor;
   return (
-    <BasePopover.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
+    <BasePopover.Root open={open} onOpenChange={(next, details) => onOpenChange(next, details.reason)}>
       <BasePopover.Trigger render={trigger} />
       <BasePopover.Portal>
         <BasePopover.Positioner side="bottom" align="start" sideOffset={6} anchor={positionAnchor} collisionPadding={8} className="ui-popup-positioner">
@@ -64,13 +74,14 @@ export function SmallPopup({ open, onOpenChange, title, trigger, anchor, widthOf
             className="ui-popup"
             data-fill={widthOf ? "" : undefined}
             initialFocus={(type) => {
+              if (!takeFocus) return false;
               for (const selector of FIRST) {
                 const first = popup.current?.querySelector<HTMLElement>(selector);
                 if (first) return first;
               }
               return type === "touch" ? true : null;
             }}
-            finalFocus
+            finalFocus={takeFocus}
           >
             <BasePopover.Title className="ui-popup-title">{title}</BasePopover.Title>
             {children}

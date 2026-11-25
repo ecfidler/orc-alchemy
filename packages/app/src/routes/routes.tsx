@@ -21,6 +21,8 @@ import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import type { CastAction } from "../engine/cast.ts";
 import { applyCast } from "../engine/cast-apply.ts";
+import type { ConcentrationNote, ConditionAction } from "../engine/conditions.ts";
+import { applyConditions } from "../engine/conditions-apply.ts";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine, type StrictEntity } from "../engine/engine.ts";
 import type { HitDiceAction } from "../engine/hit-dice.ts";
@@ -152,29 +154,35 @@ function prepareSpell(spell: SpellRef, prepared: boolean) {
   useCharacter.getState().sheetChange((entity) => setPrepared(engine(), entity, spell.source, spell.key, prepared));
 }
 
+/** What an action gives the vitals panel: the text of the status line, and the concentration note after Damage. */
+interface Said {
+  status: string;
+  note?: ConcentrationNote;
+}
+
 /**
  * Applies `apply` as one sheet change: it saves at once. Returns the text of
- * the status line that `apply` gives.
+ * the status line that `apply` gives, and its concentration note.
  */
-function changeWithStatus(apply: (entity: StrictEntity) => { entity: StrictEntity; status: string }): string {
-  let status = "";
+function changeWithStatus(apply: (entity: StrictEntity) => { entity: StrictEntity } & Said): Said {
+  let said: Said = { status: "" };
   useCharacter.getState().sheetChange((entity) => {
-    const result = apply(entity);
-    status = result.status;
-    return result.entity;
+    const { entity: next, ...rest } = apply(entity);
+    said = rest;
+    return next;
   });
-  return status;
+  return said;
 }
 
 /**
  * Applies an action of the Hit points popups as one sheet change, which
  * writes the hit points, the temporary hit points and the death saves
  * together (ORC-314). The rules read the play state of the record as it is
- * now, with the maximum that the sheet shows. Returns the text of the status
- * line.
+ * now, with the maximum of the engine, which exhaustion can halve. Returns
+ * the text of the status line.
  */
-function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
-  return changeWithStatus((entity) => applyHitPoints(engine(), entity, sheet.maxHitPoints, action));
+function changeHitPoints(sheet: Sheet, action: HitPointAction): Said {
+  return changeWithStatus((entity) => applyHitPoints(engine(), entity, sheet.baseMaxHitPoints, action));
 }
 
 /**
@@ -183,7 +191,16 @@ function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
  * together (ORC-317). Returns the text of the status line.
  */
 function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
-  return changeWithStatus((entity) => applyHitDice(engine(), entity, sheet, action));
+  return changeWithStatus((entity) => applyHitDice(engine(), entity, sheet, action)).status;
+}
+
+/**
+ * Applies an action of the Conditions and statuses box as one sheet change
+ * (ORC-322). An exhaustion level of 4 can also write the hit points down
+ * (ORC-323). Returns the text of the status line.
+ */
+function changeConditions(sheet: Sheet, action: ConditionAction): string {
+  return changeWithStatus((entity) => applyConditions(engine(), entity, sheet.baseMaxHitPoints, action)).status;
 }
 
 /**
@@ -192,7 +209,7 @@ function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
  * status line.
  */
 function rest(sheet: Sheet, action: RestAction): string {
-  return changeWithStatus((entity) => applyRest(engine(), entity, sheet, action));
+  return changeWithStatus((entity) => applyRest(engine(), entity, sheet, action)).status;
 }
 
 /**
@@ -201,7 +218,7 @@ function rest(sheet: Sheet, action: RestAction): string {
  * of the status line of the Cast control.
  */
 function castSpell(sheet: Sheet, action: CastAction): string {
-  return changeWithStatus((entity) => applyCast(engine(), entity, sheet, action));
+  return changeWithStatus((entity) => applyCast(engine(), entity, sheet, action)).status;
 }
 
 /** Writes the death save counts as a sheet change: it saves at once (ORC-315). */
@@ -224,9 +241,16 @@ function SheetPage() {
   const [spells, setSpells] = useState<{ open: boolean; at?: SpellRef }>({ open: false });
   // The status line of the vitals panel: what the last action changed. It starts empty, and it belongs to its character.
   // Each action gives the line a new key, so that a screen reader also reads a text that is the same as the last one.
-  const [status, setStatus] = useState<{ id: string | undefined; text: string; key: number }>({ id: undefined, text: "", key: 0 });
+  // The concentration note comes with Damage; the next action, or its Dismiss button, removes it (ORC-322).
+  const [status, setStatus] = useState<{ id: string | undefined; text: string; key: number; note?: ConcentrationNote }>({ id: undefined, text: "", key: 0 });
   const statusText = status.id === openId ? status.text : "";
-  const say = (text: string) => setStatus((last) => ({ id: openId, text, key: last.key + 1 }));
+  const say = (text: string, note?: ConcentrationNote) => setStatus((last) => ({ id: openId, text, key: last.key + 1, note }));
+  // An action outside the vitals panel (a cast, a change of the spent slots) keeps the text of the line, but it is the next action, so it takes the note away.
+  const dropNote = () => setStatus((last) => ({ ...last, note: undefined }));
+  const spend = (sheet: Sheet, group: SlotGroup, spent: number) => {
+    spendSlots(sheet, group, spent);
+    dropNote();
+  };
   return (
     <OpenCharacter
       actions={(id, sheet) => (
@@ -246,12 +270,17 @@ function SheetPage() {
           {/* The sheet and the Spells panel change the spent slots with the same handler, so they show the same state (ORC-286). */}
           <CharacterSheet
             sheet={sheet}
-            onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
+            onSpendSlots={(group, spent) => spend(sheet, group, spent)}
             onOpenSpells={(at) => setSpells({ open: true, at })}
             play={{
               status: statusText,
               statusKey: status.key,
-              onHitPoints: (action) => say(changeHitPoints(sheet, action)),
+              concentrationNote: status.id === openId ? status.note : undefined,
+              onDismissNote: dropNote,
+              onHitPoints: (action) => {
+                const { status: text, note } = changeHitPoints(sheet, action);
+                say(text, note);
+              },
               onHitDice: (action) => say(changeHitDice(sheet, action)),
               // A change of the circles is the next action, so it takes the text of the last one away.
               onDeathSaves: (saves) => {
@@ -262,6 +291,7 @@ function SheetPage() {
                 changeUses(feature, spent);
                 say("");
               },
+              onConditions: (action) => say(changeConditions(sheet, action)),
             }}
           />
           {sheet.spellcasting && (
@@ -272,10 +302,13 @@ function SheetPage() {
               classes={sheet.classes}
               at={spells.at}
               builderHref={`/build/${openId}?step=${SPELLS_STEP}`}
-              onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
+              onSpendSlots={(group, spent) => spend(sheet, group, spent)}
               onPrepare={prepareSpell}
               concentration={sheet.concentration}
-              onCast={(action) => castSpell(sheet, action)}
+              onCast={(action) => {
+                dropNote();
+                return castSpell(sheet, action);
+              }}
               uses={featureUses(sheet)}
             />
           )}

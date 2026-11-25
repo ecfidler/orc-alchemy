@@ -122,8 +122,9 @@ The vitals panel has one status line with a reserved height. It shows
 the text of the last action, for example "12 damage (5 from the
 temporary hit points)." It is a polite live region. The next action
 replaces the text. The line starts empty when the sheet opens. Under it,
-the panel keeps the height of one note line for
-[the concentration note](#the-concentration-note).
+the panel keeps the space of
+[the concentration note](#the-concentration-note): the height of one
+note line, or of two lines in a vitals panel narrower than 480px.
 
 # The record
 
@@ -251,14 +252,22 @@ after Damage. It gives the DC of the Constitution save: 10, or half the
 damage if that is higher, rounded down. Example: "Concentration on
 Bless: Constitution save, DC 10." The note has a Dismiss button. It is
 under the status line, in the space that the panel keeps for it, so it
-moves nothing. The next action removes it. The app does not roll the
-save and does not end the concentration.
+moves nothing. In a vitals panel narrower than 480px, the note needs two
+lines, so the panel keeps the height of two. The next action removes it.
+The app does not roll the save and does not end the concentration.
+
+* The DC comes from the full damage, also the part that the temporary
+  hit points take. Damage of 0 shows no note.
 
 ## The hit point maximum
 
 The maximum is the engine value. Exhaustion level 4 halves it (see
 [Exhaustion](#exhaustion)). Each rule of this section uses the maximum
 that shows.
+
+* The app writes `null` (full) only at the engine value. At a halved
+  maximum, Heal, Set HP and a rest write the number, so that the hit
+  points do not come back when the level goes down.[^orc-323]
 
 # Death saves
 
@@ -422,7 +431,10 @@ The dialog is one page with three sections.
 
 The dialog lists these changes.
 
-* Hit points go to full (the app writes `null`).
+* Hit points go to the maximum that applies after the rest. The app
+  writes `null` only at the engine value. From exhaustion level 4, it
+  writes the halved number. See
+  [The hit point maximum](#the-hit-point-maximum).
 * Temporary hit points go to 0.
 * All spell slots come back, Pact Magic slots also.
 * Each spent use of the groups `short-rest`, `rest` and `long-rest`
@@ -436,7 +448,9 @@ Two checkboxes can show, and each is on at the start.
 
 * **Ate and drank** shows when the exhaustion level is above 0. When it
   is on, the level goes down by 1. The hit points then go to the
-  maximum that applies after that change.
+  maximum that applies after that change. The "Hit points" row shows
+  that maximum. When the checkbox changes it, the row stays and says "No
+  change" in the state that does not heal.[^orc-323]
 * **Dawn came during the rest** shows when the character has Dawn uses.
   The dialog then has the Dawn list (see [Dawn](#dawn)). When the
   checkbox is off, the list stays in its place and its fields are
@@ -655,7 +669,9 @@ place. The box holds tokens in this order:
 4. The Exhaustion token.
 5. The button **+ Add condition**.
 
-The box always shows, also when it has only the button.
+The box always shows, also when it has only the button. A read-only
+sheet, such as the builder preview, shows the tokens with no X and no
+button, and shows the box only when it has a token.
 
 ## Conditions
 
@@ -666,14 +682,17 @@ The box always shows, also when it has only the button.
 * "+ Add condition" opens a menu of the conditions that are not set,
   with Exhaustion as its last entry.
 * An entry has the note "immune" when the character is immune to the
-  condition. The user can add it anyway.
+  condition with no qualifier. An immunity with a qualifier, such as
+  "by elementals or fey", gives no note. The user can add it anyway.
 * An entry has the note "speed 0" when the condition sets the speed
   to 0.
 * A condition is a token with an X. The X removes it.
 * A click on the name of a token opens a small popup with the rule text
-  of the condition from the SRD.
+  of the condition from the SRD, as a short list of rule points.
 * **Speed 0.** Grappled, Restrained, Paralyzed, Petrified, Stunned and
-  Unconscious set each speed of the sheet to 0.
+  Unconscious set each speed of the sheet to 0. The Unconscious token
+  that the app adds at 0 hit points does too. With two such conditions,
+  the caption names the first in the order of the menu.
 * **Unconscious at 0 hit points.** When the hit points are 0 and the
   character is not dead, the app shows an Unconscious token by itself.
   It has a dashed border and the note "0 hit points". It has no X, and
@@ -682,6 +701,8 @@ The box always shows, also when it has only the button.
   it. The token from the record then shows, with its X, in place of the
   token that the app adds.
 * No rest changes the conditions.
+* **The status line** after each action: "Poisoned added.", "Poisoned
+  removed.", "Concentration on Bless ended."
 
 ## Exhaustion
 
@@ -713,6 +734,14 @@ The app applies these effects. It rounds down to a whole number, with no
   back when the level goes down.
 * **Level 6.** The hit points and the death save circles do not change.
   A lower level removes the "Dead" label.
+* The popup that a hover opens closes when the mouse leaves the token,
+  unless a click opened it. It does not take the focus. A screen reader
+  reads "(applies)" after each level that applies.[^orc-323]
+* When the circles take the level to 0 with the focus on them, the focus
+  goes to "+ Add condition".
+* **The status line** after each change: "Exhaustion added.",
+  "Exhaustion removed.", "Exhaustion 1 → 2.". When level 4 writes the
+  hit points down: "Exhaustion 3 → 4, hit points 30 → 22."
 
 ## Marks on the sheet
 
@@ -722,7 +751,9 @@ The app applies these effects. It rounds down to a whole number, with no
   shows, with the cause of that result. The caption takes the place of
   the qualifier of the speed, for example "UNARMORED".
 * **Hit point maximum.** The caption under the Hit points box is
-  "MAXIMUM HALVED · EXHAUSTION". The box keeps the space for it.
+  "MAXIMUM HALVED · EXHAUSTION". It is one line at each width, centred
+  on the hit points part, and it can run a few pixels past that part.
+  The box keeps the space of one line for it.
 
 # Inspiration
 
@@ -898,3 +929,4 @@ test for the rule [No layout shift](#no-layout-shift).
 [^orc-309]: Prototype the Rest button and the rest dialogs, <https://linear.app/orc-alchemy/issue/ORC-309/prototype-the-rest-button-and-the-rest-dialogs>
 [^orc-311]: Prototype the Cast button and the level menu in the Spells panel, <https://linear.app/orc-alchemy/issue/ORC-311/prototype-the-cast-button-and-the-level-menu-in-the-spells-panel>
 [^orc-312]: Prototype the sheet layout for the new play controls, <https://linear.app/orc-alchemy/issue/ORC-312/prototype-the-sheet-layout-for-the-new-play-controls>
+[^orc-323]: Exhaustion: the token and its effects on speed, hit points and death, <https://linear.app/orc-alchemy/issue/ORC-323/exhaustion-the-token-and-its-effects-on-speed-hit-points-and-death>

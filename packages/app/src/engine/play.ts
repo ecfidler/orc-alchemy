@@ -61,8 +61,9 @@ export function currentHitPoints(entity: StrictEntity, max?: number): number | n
 /**
  * Writes the current hit points. null means full hit points and removes the
  * key. A number below 0 is written as 0, and a fraction is cut to an
- * integer. The caller gives null at the maximum: with exhaustion level 4, the
- * stored value at the halved maximum stays as it is (spec, "Exhaustion").
+ * integer. The caller gives null at the maximum of the engine. At the
+ * maximum that exhaustion level 4 halves, it gives the number, so that the
+ * hit points do not come back when the level goes down (spec, "Exhaustion").
  */
 export function setCurrentHitPoints(e: Engine, entity: StrictEntity, hitPoints: number | null) {
   return e.setValue(entity, CURRENT_HIT_POINTS, hitPoints === null || Number.isNaN(hitPoints) ? null : Math.max(0, Math.trunc(hitPoints)));

@@ -4,6 +4,7 @@
 // rule is a pure function of the sheet and of the picks of the dialog. No
 // engine and no React: applyRest (rest-apply.ts) writes the changes with
 // play.ts and spells.ts.
+import { shownMaxHitPoints } from "./conditions.ts";
 import { unqualify } from "./content.ts";
 import { dieName, type HitDie, hitDieHealing, validRoll } from "./hit-dice.ts";
 import { type FeatureUsesKey, rechargeGroup } from "./play.ts";
@@ -316,9 +317,10 @@ export function hitDiceBack(dice: readonly HitDie[]): DiceBack[] {
 
 /** What a Long rest can change, read from the sheet when the dialog opens. */
 export interface LongRest {
-  /** The hit points before the rest, as the sheet shows them, and the maximum. */
+  /** The hit points before the rest, as the sheet shows them. */
   current: number;
-  max: number;
+  /** The hit point maximum of the engine, before exhaustion. */
+  baseMax: number;
   temp: number;
   /** The spent slots of each level that are not pact slots, the lowest level first. Only levels with a spent slot. */
   slots: { level: number; spent: number }[];
@@ -340,14 +342,23 @@ export interface LongRest {
 
 type LongRestSheet = Pick<
   Sheet,
-  "currentHitPoints" | "maxHitPoints" | "tempHitPoints" | "spellcasting" | "features" | "hitDice" | "deathSaves" | "concentration" | "exhaustion"
+  | "currentHitPoints"
+  | "maxHitPoints"
+  | "baseMaxHitPoints"
+  | "tempHitPoints"
+  | "spellcasting"
+  | "features"
+  | "hitDice"
+  | "deathSaves"
+  | "concentration"
+  | "exhaustion"
 >;
 
 /** What a Long rest can change for a sheet. */
 export function longRest(sheet: LongRestSheet): LongRest {
   return {
     current: sheet.currentHitPoints ?? sheet.maxHitPoints,
-    max: sheet.maxHitPoints,
+    baseMax: sheet.baseMaxHitPoints,
     temp: sheet.tempHitPoints,
     slots: (sheet.spellcasting?.slots ?? []).filter(({ spent }) => spent > 0).map(({ level, spent }) => ({ level, spent })),
     pactSpent: sheet.spellcasting?.pact?.spent ?? 0,
@@ -397,18 +408,27 @@ export function validBack(uses: readonly RestUse[], back: DawnBack): Map<string,
   return kept;
 }
 
+/** The exhaustion level after a Long rest: "Ate and drank" takes 1 off a level above 0. */
+export const exhaustionAfter = (rest: Pick<LongRest, "exhaustion">, ate: boolean) => (ate && rest.exhaustion > 0 ? rest.exhaustion - 1 : rest.exhaustion);
+
+/** The hit point maximum after a Long rest: the maximum of the exhaustion level after the rest. The hit points go to it. */
+export const maxAfter = (rest: Pick<LongRest, "baseMax" | "exhaustion">, ate: boolean) => shownMaxHitPoints(rest.baseMax, exhaustionAfter(rest, ate));
+
 /**
  * The rows of the list "This rest will change" of a Long rest, in the order
- * of the spec. The set of rows comes from the rest alone. With "Ate and
- * drank" (exhaustion above 0), the row "Exhaustion" shows; it says "No
- * change" when the checkbox is off. The Dawn list has its own fields, so it
- * has no rows here.
+ * of the spec. The set of rows comes from the rest alone. The row "Hit
+ * points" goes to the maximum after the rest, from the exhaustion level
+ * after it; it shows when one of the two states of "Ate and drank" heals,
+ * and says "No change" in the other. With "Ate and drank" (exhaustion above
+ * 0), the row "Exhaustion" shows; it says "No change" when the checkbox is
+ * off. The Dawn list has its own fields, so it has no rows here.
  */
 export function longRestRows(rest: LongRest, action: Pick<Extract<RestAction, { kind: "long" }>, "ate">): RestRow[] {
   const rows: RestRow[] = [];
-  // rest.max is sheet.maxHitPoints before the rest. ORC-323 (exhaustion halves the maximum) must compute this row from the
-  // exhaustion level after the rest, as "Ate and drank" can change it.
-  if (rest.current < rest.max) rows.push({ key: "hit points", label: "Hit points", change: `${arrow(rest.current, rest.max)} / ${rest.max}` });
+  // "Ate and drank" can only raise the maximum, so the row shows when the rest with it on heals.
+  const after = maxAfter(rest, action.ate);
+  if (rest.current < maxAfter(rest, true))
+    rows.push({ key: "hit points", label: "Hit points", change: rest.current < after ? `${arrow(rest.current, after)} / ${after}` : null });
   if (rest.temp > 0) rows.push({ key: "temp hit points", label: "Temporary hit points", change: arrow(rest.temp, 0) });
   for (const { level, spent } of rest.slots) rows.push(slotsRow(level, signed(spent)));
   if (rest.pactSpent > 0) rows.push(pactRow(rest.pactSpent));
@@ -416,7 +436,8 @@ export function longRestRows(rest: LongRest, action: Pick<Extract<RestAction, { 
   for (const { die, back } of rest.dice) rows.push(hitDiceRow(die, signed(back)));
   if (rest.deathSaves) rows.push({ key: "death saves", label: "Death saves", change: "cleared" });
   if (rest.concentration) rows.push({ key: "concentration", label: "Concentration", change: "cleared" });
-  if (rest.exhaustion > 0) rows.push({ key: "exhaustion", label: "Exhaustion", change: action.ate ? arrow(rest.exhaustion, rest.exhaustion - 1) : null });
+  if (rest.exhaustion > 0)
+    rows.push({ key: "exhaustion", label: "Exhaustion", change: action.ate ? arrow(rest.exhaustion, exhaustionAfter(rest, true)) : null });
   return rows;
 }
 

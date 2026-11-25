@@ -126,6 +126,13 @@ test("a rest that changes nothing keeps the record as it is", () => {
   expect(shortRest(entity, [{ die: 10, roll: 5 }])).toEqual({ entity, status: "Short rest finished." });
 });
 
+test("a short rest keeps the conditions, Unconscious among them, and the concentration mark (ORC-322)", () => {
+  const e = engine();
+  const start = setConcentration(e, setConditions(e, multiclass(), ["unconscious", "poisoned", "restrained"]), "bless");
+  const result = shortRest(start, []);
+  expect(result).toEqual({ entity: start, status: "Short rest finished." });
+});
+
 const DAY = "orcpub.dnd.e5.units/day";
 
 /** The play state that no rest changes: inspiration, the conditions, and the uses of the groups round, minute and hour. */
@@ -224,4 +231,14 @@ test("a long rest and a Dawn that change nothing keep the record as it is", () =
   const entity = untouched(setCurrentHitPoints(engine(), wizardWarlock(), null));
   expect(longRest(entity, true, true)).toEqual({ entity, status: "Long rest finished." });
   expect(applyRest(engine(), entity, sheetOf(entity), { kind: "dawn", back: new Map() })).toEqual({ entity, status: "Dawn finished." });
+});
+
+test("a long rest at exhaustion level 4: with 'Ate and drank' the hit points go to full; without it, to the halved maximum as a number (ORC-323)", () => {
+  const e = engine();
+  const half = Math.floor(sheetOf(wizardWarlock()).maxHitPoints / 2);
+  const start = setCurrentHitPoints(e, setExhaustion(e, wizardWarlock(), 4), 3);
+  expect(longRest(start, true, false).entity).toEqual(setExhaustion(e, wizardWarlock(), 3));
+  expect(longRest(start, false, false).entity).toEqual(setCurrentHitPoints(e, setExhaustion(e, wizardWarlock(), 4), half));
+  // The halved maximum is a number in the record: it does not come back when the level goes down.
+  expect(sheetOf(setExhaustion(e, longRest(start, false, false).entity, 3)).currentHitPoints).toBe(half);
 });

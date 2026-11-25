@@ -3,6 +3,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { statusLine, vitals } from "./play-helpers.ts";
 
 /** fighter-5: 54 hit points, 40 of them stored as current. */
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
@@ -16,8 +17,6 @@ async function openFighter(page: Page) {
 
 const hitPoints = (page: Page) => page.getByRole("button", { name: /^Hit points, / });
 const temporary = (page: Page) => page.getByRole("button", { name: /^Temporary hit points, / });
-const vitals = (page: Page) => page.locator(".ui-panel").filter({ has: hitPoints(page) });
-const statusLine = (page: Page) => vitals(page).getByRole("status");
 
 /** Types an amount in the open popup and clicks one of its buttons; the popup closes. */
 async function act(page: Page, opener: "hit-points" | "temporary", amount: string | null, button: string) {
@@ -35,10 +34,13 @@ async function act(page: Page, opener: "hit-points" | "temporary", amount: strin
 /** The place and size of the vitals panel and of each box, line and space in it. */
 const layout = (page: Page) =>
   vitals(page).evaluate((panel) =>
-    [panel, ...panel.querySelectorAll(".ui-framed-box, [role=status], [data-concentration-note], button, .ui-label")].map((element) => {
-      const { x, y, width, height } = element.getBoundingClientRect();
-      return [x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
-    }),
+    // The tokens in the Conditions and statuses box can change: at 0 hit points the app adds Unconscious (ORC-322).
+    [panel, ...panel.querySelectorAll(".ui-framed-box, [role=status], [data-concentration-note], button, .ui-label")]
+      .filter((element) => !element.closest("[data-conditions-box] .ui-tokens"))
+      .map((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return [x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
+      }),
   );
 
 for (const [width, height] of [

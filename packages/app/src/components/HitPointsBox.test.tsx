@@ -30,13 +30,17 @@ const sheet: Sheet = {
   armorClass: 16,
   armorClassOptions: [],
   maxHitPoints: 44,
+  baseMaxHitPoints: 44,
   currentHitPoints: 12,
   tempHitPoints: 5,
   deathSaves: { successes: 0, failures: 0 },
   exhaustion: 0,
   concentration: null,
+  conditions: [],
+  conditionImmune: [],
   hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
+  speedCause: null,
   darkvision: 0,
   numberOfAttacks: 1,
   weaponAttacks: [],
@@ -80,6 +84,7 @@ const playOf = (
   onHitDice: vi.fn(),
   onDeathSaves: vi.fn<(saves: DeathSaves) => void>(),
   onUses: vi.fn(),
+  onConditions: vi.fn(),
 });
 
 const hitPointsButton = () => screen.getByRole("button", { name: /^Hit points, / });
@@ -220,14 +225,15 @@ test("Escape closes a popup, and the focus goes back to its button", async () =>
 });
 
 test("the status line is a polite live region that starts empty and shows the text of the last action", () => {
+  // The concentration note under the line is a status too (ORC-322): the line is the first one.
+  const line = () => screen.getAllByRole("status")[0]!;
   render(<CharacterSheet sheet={sheet} play={playOf()} />);
-  const line = screen.getByRole("status");
-  expect(line.textContent).toBe("");
+  expect(line().textContent).toBe("");
   cleanup();
   render(<CharacterSheet sheet={sheet} play={playOf("12 damage (5 from the temporary hit points).")} />);
-  expect(screen.getByRole("status").textContent).toBe("12 damage (5 from the temporary hit points).");
+  expect(line().textContent).toBe("12 damage (5 from the temporary hit points).");
   // role="status" is a polite live region.
-  expect(screen.getByRole("status").tagName).toBe("P");
+  expect(line().tagName).toBe("P");
 });
 
 test("on the sheet, the Death saves box shows the stored counts and writes a change with play.onDeathSaves (ORC-315)", () => {
@@ -242,4 +248,17 @@ test("HitPointsBox alone: without onAction it is read-only", () => {
   render(<HitPointsBox current={3} max={10} temp={0} temporary={false} />);
   expect(screen.queryByRole("button")).toBeNull();
   expect(screen.getByLabelText("Hit Points").textContent).toBe("3 / 10");
+});
+
+test("exhaustion level 4: the caption 'Maximum halved · Exhaustion' under current / max, also in the name of the part", () => {
+  render(<CharacterSheet sheet={{ ...sheet, maxHitPoints: 22, baseMaxHitPoints: 44, exhaustion: 4 }} play={playOf()} />);
+  expect(hitPointsButton().getAttribute("aria-label")).toBe("Hit points, 12 of 22. Maximum halved\u00a0· Exhaustion");
+  const caption = hitPointsButton().querySelector<HTMLElement>("[data-hp-caption]")!;
+  expect([caption.textContent, caption.className.includes("uppercase")]).toEqual(["Maximum halved\u00a0· Exhaustion", true]);
+  // One line at each width: it does not wrap, and the box keeps the height of one line for it.
+  expect(caption.className.split(" ").filter((name) => /whitespace|min-h|lh\]/.test(name))).toEqual(["min-h-[1lh]", "whitespace-nowrap"]);
+  cleanup();
+  // Below level 4 the line of the caption is there, empty, so a caption that comes moves nothing.
+  render(<CharacterSheet sheet={{ ...sheet, exhaustion: 3 }} play={playOf()} />);
+  expect(hitPointsButton().querySelector("[data-hp-caption]")?.textContent).toBe("");
 });

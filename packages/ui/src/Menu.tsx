@@ -2,12 +2,18 @@ import { Menu as BaseMenu } from "@base-ui/react/menu";
 import type { Ref } from "react";
 import { Button, type ButtonSize } from "./Button.tsx";
 import type { PixelIconName } from "./Icon.tsx";
-import type { SelectOption } from "./Select.tsx";
+
+/**
+ * An item of a Menu: its value, its text, and an optional short note in
+ * small muted type at the end of its line, for example "new". The note is a
+ * part of the item's name.
+ */
+export type MenuItem<T> = readonly [value: T, text: string, note?: string];
 
 export type MenuProps<T> = {
   /** The text of the button that opens the menu. It names the menu. */
   label: string;
-  items: readonly SelectOption<T>[];
+  items: readonly MenuItem<T>[];
   /** Gets the value of the item the user picks. */
   onPick: (value: T) => void;
   size?: ButtonSize;
@@ -22,6 +28,7 @@ export type MenuProps<T> = {
 /**
  * A button that opens a list of actions, with Base UI Menu inside. The
  * button has the ghost look. A pick calls `onPick` and closes the menu.
+ * The third element of an item adds a muted note at the end of its line.
  */
 export function Menu<T>({ label, items, onPick, size = "small", icon, buttonRef, className }: MenuProps<T>) {
   return (
@@ -30,9 +37,10 @@ export function Menu<T>({ label, items, onPick, size = "small", icon, buttonRef,
       <BaseMenu.Portal>
         <BaseMenu.Positioner sideOffset={2} align="start" className="ui-select-positioner">
           <BaseMenu.Popup className="ui-select-popup">
-            {items.map(([value, text], i) => (
+            {items.map(([value, text, note], i) => (
               <BaseMenu.Item key={i} onClick={() => onPick(value)} className="ui-select-item">
                 {text}
+                {note && <span className="ui-menu-note">{note}</span>}
               </BaseMenu.Item>
             ))}
           </BaseMenu.Popup>

@@ -16,6 +16,13 @@ export interface HitPointState {
    * point maximum"). Exhaustion level 4 halves it (ORC-323).
    */
   max: number;
+  /**
+   * The hit point maximum of the engine, before exhaustion. The rules write
+   * null (full hit points) only at it. At a halved maximum they write the
+   * number, so that the hit points do not come back when the exhaustion
+   * level goes down.
+   */
+  full: number;
   /** The temporary hit points, 0 when there are none. */
   temp: number;
   deathSaves: DeathSaves;
@@ -24,7 +31,7 @@ export interface HitPointState {
 /** The new values after an action, and the text of the status line. */
 export interface HitPointChange {
   /**
-   * The current hit points to write: null at `max`, which is full hit points.
+   * The current hit points to write: null at the maximum of the engine (`full`), which is full hit points.
    * Not given when the action does not change them, so that the stored value
    * stays as it is, also a stored value above the maximum.
    */
@@ -48,8 +55,8 @@ const NO_SAVES: DeathSaves = { successes: 0, failures: 0 };
 /** An amount as a whole number of 0 or more. */
 const whole = (amount: number) => (Number.isFinite(amount) ? Math.max(0, Math.trunc(amount)) : 0);
 
-/** The current hit points to write: null at the maximum or above. */
-const toStored = (current: number, max: number) => (current >= max ? null : Math.max(0, current));
+/** The current hit points to write: null at the maximum of the engine or above. */
+const toStored = (current: number, state: HitPointState) => (current >= state.full ? null : Math.max(0, current));
 
 /**
  * Damage (spec, "Damage"). The damage takes the temporary hit points first.
@@ -69,7 +76,7 @@ export function damage(state: HitPointState, amount: number): HitPointChange {
   const over = left - state.current;
   const text = `${hit} damage${fromTemp > 0 ? ` (${fromTemp} from the temporary hit points)` : ""}`;
   const change = (deathSaves: DeathSaves, result = ""): HitPointChange => ({
-    ...(left > 0 && { current: toStored(current, state.max) }),
+    ...(left > 0 && { current: toStored(current, state) }),
     temp,
     deathSaves,
     status: `${text}${result}.`,
@@ -90,7 +97,7 @@ export function damage(state: HitPointState, amount: number): HitPointChange {
  */
 export function heal(state: HitPointState, amount: number): HitPointChange {
   const healed = whole(amount);
-  return { current: toStored(Math.min(state.max, state.current + healed), state.max), temp: state.temp, deathSaves: NO_SAVES, status: `${healed} healed.` };
+  return { current: toStored(Math.min(state.max, state.current + healed), state), temp: state.temp, deathSaves: NO_SAVES, status: `${healed} healed.` };
 }
 
 /**
@@ -101,7 +108,7 @@ export function heal(state: HitPointState, amount: number): HitPointChange {
 export function setHitPoints(state: HitPointState, amount: number): HitPointChange {
   const current = Math.min(state.max, whole(amount));
   return {
-    current: toStored(current, state.max),
+    current: toStored(current, state),
     temp: state.temp,
     deathSaves: current > 0 ? NO_SAVES : state.deathSaves,
     status: `Hit points set to ${current}.`,

@@ -84,3 +84,106 @@ test("when a click on an X takes the X away and the token stays, the focus goes 
   expect(screen.queryByRole("button", { name: "Put back Pears" })).toBeNull();
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change Pears" }));
 });
+
+test("with popup the text is a button that opens a small popup under the token; the focus goes back to it at the close", async () => {
+  function Fruit() {
+    const [open, setOpen] = useState(false);
+    return <Token label="Plums" onRemove={() => {}} popup={{ open, onOpenChange: setOpen, title: "Plums", children: <p>Sweet and dark.</p> }} />;
+  }
+  render(<Fruit />);
+  const button = screen.getByRole("button", { name: "Plums" });
+  expect(button.classList.contains("ui-token-open")).toBe(true);
+  fireEvent.click(button);
+  const popup = await screen.findByRole("dialog", { name: "Plums" });
+  expect(popup.textContent).toContain("Sweet and dark.");
+  fireEvent.keyDown(popup, { key: "Escape" });
+  await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await vi.waitFor(() => expect(document.activeElement).toBe(button));
+});
+
+test("with popupOnHover a mouse over the token opens the popup with no focus move; leaving closes it; a click keeps it open", async () => {
+  function Fruit() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <Token label="Plums" popupOnHover popup={{ open, onOpenChange: setOpen, title: "Plums", children: <p>Sweet and dark.</p> }} />
+        <span data-testid="open">{String(open)}</span>
+      </>
+    );
+  }
+  render(<Fruit />);
+  const token = document.querySelector<HTMLElement>(".ui-token")!;
+  const button = screen.getByRole("button", { name: "Plums" });
+  fireEvent.pointerOver(token, { pointerType: "mouse" });
+  await screen.findByRole("dialog", { name: "Plums" });
+  expect(screen.getByTestId("open").textContent).toBe("false");
+  expect(document.activeElement).toBe(document.body);
+  fireEvent.pointerOut(token, { pointerType: "mouse" });
+  await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  // A click while the mouse holds it open makes it an open by the click: leaving the token does not close it.
+  fireEvent.pointerOver(token, { pointerType: "mouse" });
+  await screen.findByRole("dialog", { name: "Plums" });
+  fireEvent.click(button);
+  await vi.waitFor(() => expect(screen.getByTestId("open").textContent).toBe("true"));
+  fireEvent.pointerOut(token, { pointerType: "mouse" });
+  expect(screen.getByRole("dialog", { name: "Plums" })).toBeTruthy();
+});
+
+test("with popupOnHover a press on another control of the token keeps the popup that the mouse opened", async () => {
+  const pick = vi.fn();
+  render(
+    <Token label="Plums" popupOnHover popup={{ open: false, onOpenChange: () => {}, title: "Plums", children: <p>Sweet and dark.</p> }}>
+      <button type="button" onClick={pick}>
+        More
+      </button>
+    </Token>,
+  );
+  fireEvent.pointerOver(document.querySelector<HTMLElement>(".ui-token")!, { pointerType: "mouse" });
+  await screen.findByRole("dialog", { name: "Plums" });
+  const more = screen.getByRole("button", { name: "More" });
+  fireEvent.pointerDown(more, { pointerType: "mouse" });
+  fireEvent.mouseDown(more);
+  fireEvent.click(more);
+  expect(pick).toHaveBeenCalledOnce();
+  expect(screen.getByRole("dialog", { name: "Plums" })).toBeTruthy();
+});
+
+test("with popupOnHover a touch does not open the popup", () => {
+  render(<Token label="Plums" popupOnHover popup={{ open: false, onOpenChange: () => {}, title: "Plums", children: <p>Sweet and dark.</p> }} />);
+  fireEvent.pointerOver(document.querySelector<HTMLElement>(".ui-token")!, { pointerType: "touch" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("note, look and groupName: a muted note after the text, a dashed or a bubble look, and a group with its name", () => {
+  render(
+    <Tokens>
+      <Token label="Pears" note="from the tree" look="dashed" groupName="Pears, from the tree" />
+      <Token label="Figs" look="bubble" onRemove={() => {}} />
+      <Token label="Plums" look="plain" />
+    </Tokens>,
+  );
+  const pears = screen.getByRole("group", { name: "Pears, from the tree" });
+  expect([pears.dataset.look, pears.querySelector(".ui-token-note")?.textContent, pears.querySelector("button")]).toEqual(["dashed", "from the tree", null]);
+  const [, figs, plums] = [...document.querySelectorAll<HTMLElement>(".ui-token")];
+  expect([figs?.dataset.look, figs?.getAttribute("role"), plums?.dataset.look]).toEqual(["bubble", null, undefined]);
+});
+
+test("size small marks the token for its small look", () => {
+  render(<Token label="Figs" size="small" />);
+  expect(document.querySelector<HTMLElement>(".ui-token")!.dataset.size).toBe("small");
+});
+
+test("the three label modes do not mix: props of two modes together are a type error", () => {
+  const popup = { open: false, onOpenChange: () => {}, title: "Plums", children: "Sweet and dark." };
+  const wrong = [
+    // @ts-expect-error onOpen and popup are two modes.
+    <Token key="open-popup" label="Plums" onOpen={() => {}} popup={popup} />,
+    // @ts-expect-error openHint belongs to onOpen, not to popup.
+    <Token key="hint-popup" label="Plums" openHint="Change" popup={popup} />,
+    // @ts-expect-error popupOnHover needs popup.
+    <Token key="hover-plain" label="Plums" popupOnHover />,
+    // @ts-expect-error openName needs a button: onOpen or popup.
+    <Token key="name-plain" label="Plums" openName="Change Plums" />,
+  ];
+  expect(wrong).toHaveLength(4);
+});

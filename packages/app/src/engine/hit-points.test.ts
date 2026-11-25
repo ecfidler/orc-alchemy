@@ -4,6 +4,7 @@ import { applyHitPointAction, damage, type HitPointState, heal, removeTempHitPoi
 const state = (over: Partial<HitPointState> = {}): HitPointState => ({
   current: 26,
   max: 44,
+  full: 44,
   temp: 0,
   deathSaves: { successes: 0, failures: 0 },
   ...over,

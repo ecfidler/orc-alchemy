@@ -266,7 +266,14 @@ homebrew forms. They have no game words: the app gives the lists.
   apart (ORC-285).
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
-  wraps inside its token. A token can hold a small control.
+  wraps inside its token. A token can hold a small control. A token can
+  have a short muted note after its name, a dashed border (a token that
+  the app adds by itself) or the `--bubble` fill with an `--info` border.
+  Its name can be a button that opens a small popup under it. A small
+  token has 13px semibold Inter text (ORC-322). The popup can also open
+  when a mouse is over the token, with no focus move, and it closes when
+  the mouse leaves, unless a click opened it. Slot circles in a token are
+  15px, with a 24px tap area (ORC-323).
 * **Token for a slot** (ORC-138): the name is a button with a small muted
   "Change" after it, and opens a list for a new value. A marked token has
   a 1.5px border, a 4px `--note` bar on its left and semibold text. Its X
@@ -284,6 +291,8 @@ homebrew forms. They have no game words: the app gives the lists.
 * **NumberToggle:** a SegmentedToggle of numbers, for example
   None / 1 / 2 / 3. The numbers are a prop.
 * **Chips:** number chips with an X, and a "+ Add" Menu. `AddChip` is the same dashed "+" button alone, for an empty slot.
+* **Menu:** an item can have a short note in small muted type at the end
+  of its line, for example "immune" (ORC-322).
 * **SplitButton** (ORC-320): a Button and an arrow part that touch, in a
   group. The main part does the usual action and can show a pixel icon.
   The arrow part has a down mark, a 1px line of the paper color on its
@@ -683,7 +692,10 @@ the ability highlight, inspiration and the AC pick.
   part is a button that opens a popup. When the record has no current HP,
   show the max as the current value. At 0, the current number is
   `--caution`. The caption "MAXIMUM HALVED · EXHAUSTION" shows under the
-  box at exhaustion level 4, in a space that the box keeps.
+  box at exhaustion level 4, in a space of one line that the box keeps.
+  The caption does not wrap. Where the part is narrow, it runs into the
+  padding on both sides, and in a vitals panel narrower than 330px its
+  letter spacing is 0.03em.
 * Hit dice: a button with the dice left for each die size ("3 / 5" and
   "d10") and the "Hit dice" label. It opens a popup.
 * Death saves: two rows of three slot circles, successes `--success` and
