@@ -4,7 +4,7 @@
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
-import { type ConcentrationNote, type ConditionAction, conditionsOf, shownSpeeds } from "./conditions.ts";
+import { type ConcentrationNote, type ConditionAction, conditionsOf, shownMaxHitPoints, shownSpeeds } from "./conditions.ts";
 import { unqualify, untag } from "./content.ts";
 import { type HitDiceAction, type HitDie, hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
 import type { HitPointAction } from "./hit-points.ts";
@@ -224,17 +224,21 @@ export interface Sheet {
   /** The worn armor and wielded shield's AC; with neither, or no match, the best combination. */
   armorClass: number;
   armorClassOptions: ArmorClassOption[];
+  /** The hit point maximum that shows: the engine value, halved from exhaustion level 4 (ORC-323). */
   maxHitPoints: number;
+  /** The hit point maximum of the engine, before exhaustion. The hit point rules write null (full) only at it. */
+  baseMaxHitPoints: number;
   /**
    * The current hit points that show: the lower of the stored value and the
-   * maximum (ORC-119). null is full hit points: the record has no value.
+   * maximum that shows (ORC-119). null is full hit points: the record has no
+   * value.
    */
   currentHitPoints: number | null;
   /** The temporary hit points, 0 when there are none (play state). */
   tempHitPoints: number;
   /** The death save counts (play state). */
   deathSaves: DeathSaves;
-  /** The exhaustion level, from 0 to 6 (play state). The sheet does not apply its effects yet (ORC-323). */
+  /** The exhaustion level, from 0 to 6 (play state). Its effects are in the speeds, the maximum and the death saves (ORC-323). */
   exhaustion: number;
   /** The spell key of the concentration mark, or null (play state). */
   concentration: string | null;
@@ -745,10 +749,13 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     };
   });
   const hitDice = hitDiceTotals(classes);
+  const level = exhaustion(entity);
+  const maxHitPoints = shownMaxHitPoints(built["max-hit-points"], level);
   const play = {
     conditions: [...conditions(entity)],
-    currentHitPoints: currentHitPoints(entity, built["max-hit-points"]),
+    currentHitPoints: currentHitPoints(entity, maxHitPoints),
     deathSaves: deathSaves(entity),
+    exhaustion: level,
   };
   const speeds = shownSpeeds(toSpeeds(built), play);
   const immunities = (built["condition-immunities"] as Resistance[] | null | undefined) ?? [];
@@ -792,11 +799,12 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
       shield: shield === null ? null : named(shield),
       ac,
     })),
-    maxHitPoints: built["max-hit-points"],
+    maxHitPoints,
+    baseMaxHitPoints: built["max-hit-points"],
     currentHitPoints: play.currentHitPoints,
     tempHitPoints: tempHitPoints(entity),
     deathSaves: play.deathSaves,
-    exhaustion: exhaustion(entity),
+    exhaustion: level,
     concentration: concentration(entity),
     conditions: play.conditions,
     conditionImmune: conditionsOf(immunities.filter((immunity) => !immunity.qualifier).map((immunity) => immunity.value)),

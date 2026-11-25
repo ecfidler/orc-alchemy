@@ -30,6 +30,7 @@ const sheet: Sheet = {
   armorClass: 16,
   armorClassOptions: [],
   maxHitPoints: 44,
+  baseMaxHitPoints: 44,
   currentHitPoints: 12,
   tempHitPoints: 5,
   deathSaves: { successes: 0, failures: 0 },
@@ -247,4 +248,15 @@ test("HitPointsBox alone: without onAction it is read-only", () => {
   render(<HitPointsBox current={3} max={10} temp={0} temporary={false} />);
   expect(screen.queryByRole("button")).toBeNull();
   expect(screen.getByLabelText("Hit Points").textContent).toBe("3 / 10");
+});
+
+test("exhaustion level 4: the caption 'Maximum halved · Exhaustion' under current / max, also in the name of the part", () => {
+  render(<CharacterSheet sheet={{ ...sheet, maxHitPoints: 22, baseMaxHitPoints: 44, exhaustion: 4 }} play={playOf()} />);
+  expect(hitPointsButton().getAttribute("aria-label")).toBe("Hit points, 12 of 22. Maximum halved\u00a0· Exhaustion");
+  const caption = hitPointsButton().querySelector<HTMLElement>("[data-hp-caption]")!;
+  expect([caption.textContent, caption.className.includes("uppercase")]).toEqual(["Maximum halved\u00a0· Exhaustion", true]);
+  cleanup();
+  // Below level 4 the line of the caption is there, empty, so a caption that comes moves nothing.
+  render(<CharacterSheet sheet={{ ...sheet, exhaustion: 3 }} play={playOf()} />);
+  expect(hitPointsButton().querySelector("[data-hp-caption]")?.textContent).toBe("");
 });

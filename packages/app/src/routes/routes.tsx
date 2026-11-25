@@ -178,11 +178,11 @@ function changeWithStatus(apply: (entity: StrictEntity) => { entity: StrictEntit
  * Applies an action of the Hit points popups as one sheet change, which
  * writes the hit points, the temporary hit points and the death saves
  * together (ORC-314). The rules read the play state of the record as it is
- * now, with the maximum that the sheet shows. Returns the text of the status
- * line.
+ * now, with the maximum of the engine, which exhaustion can halve. Returns
+ * the text of the status line.
  */
 function changeHitPoints(sheet: Sheet, action: HitPointAction): Said {
-  return changeWithStatus((entity) => applyHitPoints(engine(), entity, sheet.maxHitPoints, action));
+  return changeWithStatus((entity) => applyHitPoints(engine(), entity, sheet.baseMaxHitPoints, action));
 }
 
 /**
@@ -194,9 +194,13 @@ function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
   return changeWithStatus((entity) => applyHitDice(engine(), entity, sheet, action)).status;
 }
 
-/** Applies an action of the Conditions and statuses box as one sheet change (ORC-322). Returns the text of the status line. */
-function changeConditions(action: ConditionAction): string {
-  return changeWithStatus((entity) => applyConditions(engine(), entity, action)).status;
+/**
+ * Applies an action of the Conditions and statuses box as one sheet change
+ * (ORC-322). An exhaustion level of 4 can also write the hit points down
+ * (ORC-323). Returns the text of the status line.
+ */
+function changeConditions(sheet: Sheet, action: ConditionAction): string {
+  return changeWithStatus((entity) => applyConditions(engine(), entity, action, sheet.baseMaxHitPoints)).status;
 }
 
 /**
@@ -281,7 +285,7 @@ function SheetPage() {
                 changeUses(feature, spent);
                 say("");
               },
-              onConditions: (action) => say(changeConditions(action)),
+              onConditions: (action) => say(changeConditions(sheet, action)),
             }}
           />
           {sheet.spellcasting && (

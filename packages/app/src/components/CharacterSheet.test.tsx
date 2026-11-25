@@ -53,6 +53,7 @@ const sheet: Sheet = {
     { armor: null, shield: null, ac: 10 },
   ],
   maxHitPoints: 28,
+  baseMaxHitPoints: 28,
   currentHitPoints: null,
   tempHitPoints: 0,
   deathSaves: { successes: 0, failures: 0 },

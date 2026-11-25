@@ -14,6 +14,7 @@ const sheet = (patch: Partial<ConditionsBoxProps["sheet"]> = {}): ConditionsBoxP
   conditionImmune: [],
   currentHitPoints: null,
   deathSaves: { successes: 0, failures: 0 },
+  exhaustion: 0,
   ...patch,
 });
 
@@ -43,9 +44,10 @@ test("the menu lists the conditions that are not set, with the notes immune and 
     stunned: "speed 0",
     unconscious: "speed 0",
   };
-  expect(names).toEqual(
-    CONDITION_KEYS.filter((key) => key !== "blinded" && key !== "prone").map((key) => `${key.charAt(0).toUpperCase()}${key.slice(1)}${notes[key] ?? ""}`),
-  );
+  expect(names).toEqual([
+    ...CONDITION_KEYS.filter((key) => key !== "blinded" && key !== "prone").map((key) => `${key.charAt(0).toUpperCase()}${key.slice(1)}${notes[key] ?? ""}`),
+    "Exhaustion",
+  ]);
   await pickOption(add, "Charmedimmune");
   expect(onAction.mock.calls).toEqual([[{ kind: "add", condition: "charmed" }]]);
 });
@@ -110,6 +112,73 @@ test("a read-only sheet shows the tokens with no X and no menu, and no box witho
   cleanup();
   render(<ConditionsBox sheet={sheet()} />);
   expect(screen.queryByRole("group", { name: "Conditions and statuses" })).toBeNull();
+});
+
+// Exhaustion (ORC-323).
+
+test("the menu entry Exhaustion adds the token at level 1; at a level above 0 the menu has no Exhaustion entry", async () => {
+  const onAction = vi.fn<(action: ConditionAction) => void>();
+  render(<ConditionsBox sheet={sheet()} onAction={onAction} />);
+  await pickOption(screen.getByRole("button", { name: "Add condition" }), "Exhaustion");
+  expect(onAction.mock.calls).toEqual([[{ kind: "exhaustion", level: 1 }]]);
+  cleanup();
+  render(<ConditionsBox sheet={sheet({ exhaustion: 2 })} onAction={vi.fn()} />);
+  expect(await optionNames(screen.getByRole("button", { name: "Add condition" }))).not.toContain("Exhaustion");
+});
+
+test("the Exhaustion token: its name, six circles as one slider and an X, after the other tokens, with no Level label", () => {
+  const onAction = vi.fn<(action: ConditionAction) => void>();
+  render(<ConditionsBox sheet={sheet({ conditions: ["prone"], currentHitPoints: 0, exhaustion: 2 })} onAction={onAction} />);
+  expect(tokenNames()).toEqual(["Prone", "Unconscious, 0 hit points", "Exhaustion"]);
+  const token = screen.getByRole("group", { name: "Exhaustion" });
+  expect(token.textContent).not.toMatch(/level/i);
+  const circles = within(token).getByRole("slider", { name: "Exhaustion" });
+  expect([circles.getAttribute("aria-valuetext"), circles.getAttribute("aria-valuenow"), circles.tabIndex]).toEqual(["level 2 of 6", "2", 0]);
+  // One Tab stop: the circles are one element in the Tab order.
+  expect(token.querySelectorAll(".ui-slot-circle[tabindex]").length).toBe(0);
+  expect(token.querySelectorAll(".ui-slot-circle").length).toBe(6);
+  fireEvent.keyDown(circles, { key: "ArrowRight" });
+  fireEvent.keyDown(circles, { key: "ArrowLeft" });
+  fireEvent.click(token.querySelectorAll(".ui-slot-circle")[1]!);
+  fireEvent.click(within(token).getByRole("button", { name: "Remove Exhaustion" }));
+  expect(onAction.mock.calls).toEqual([
+    [{ kind: "exhaustion", level: 3 }],
+    [{ kind: "exhaustion", level: 1 }],
+    [{ kind: "exhaustion", level: 1 }],
+    [{ kind: "exhaustion", level: 0 }],
+  ]);
+});
+
+test("a click on the name of the Exhaustion token opens the effects of the six levels, with the levels that apply in bold", async () => {
+  render(<ConditionsBox sheet={sheet({ exhaustion: 2 })} onAction={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: "Exhaustion" }));
+  const popup = await screen.findByRole("dialog", { name: "Exhaustion" });
+  const items = within(popup).getAllByRole("listitem");
+  expect(items.map((item) => item.textContent)).toEqual([
+    "1Disadvantage on ability checks (applies)",
+    "2Speed halved (applies)",
+    "3Disadvantage on attack rolls and saving throws",
+    "4Hit point maximum halved",
+    "5Speed reduced to 0",
+    "6Death",
+  ]);
+  expect(items.map((item) => item.classList.contains("font-semibold"))).toEqual([true, true, false, false, false, false]);
+});
+
+test("a mouse over the Exhaustion token opens the effects, and leaving it closes them", async () => {
+  render(<ConditionsBox sheet={sheet({ exhaustion: 1 })} onAction={vi.fn()} />);
+  const token = screen.getByRole("group", { name: "Exhaustion" });
+  fireEvent.pointerOver(token, { pointerType: "mouse" });
+  expect(await screen.findByRole("dialog", { name: "Exhaustion" })).toBeTruthy();
+  fireEvent.pointerOut(token, { pointerType: "mouse" });
+  await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+test("a read-only sheet shows the Exhaustion token with its level and no X", () => {
+  render(<ConditionsBox sheet={sheet({ exhaustion: 3 })} />);
+  const token = screen.getByRole("group", { name: "Exhaustion" });
+  expect(within(token).getByRole("img", { name: "Exhaustion: 3 of 6" })).toBeTruthy();
+  expect(within(token).queryByRole("button", { name: "Remove Exhaustion" })).toBeNull();
 });
 
 test("the concentration note: the DC with Dismiss, in a status space that is there also without a note", () => {

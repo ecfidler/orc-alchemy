@@ -264,6 +264,10 @@ The maximum is the engine value. Exhaustion level 4 halves it (see
 [Exhaustion](#exhaustion)). Each rule of this section uses the maximum
 that shows.
 
+* The app writes `null` (full) only at the engine value. At a halved
+  maximum, Heal, Set HP and a rest write the number, so that the hit
+  points do not come back when the level goes down.[^orc-323]
+
 # Death saves
 
 * The Death saves box has two groups of three slot circles, successes
@@ -440,7 +444,9 @@ Two checkboxes can show, and each is on at the start.
 
 * **Ate and drank** shows when the exhaustion level is above 0. When it
   is on, the level goes down by 1. The hit points then go to the
-  maximum that applies after that change.
+  maximum that applies after that change. The "Hit points" row shows
+  that maximum. When the checkbox changes it, the row stays and says "No
+  change" in the state that does not heal.[^orc-323]
 * **Dawn came during the rest** shows when the character has Dawn uses.
   The dialog then has the Dawn list (see [Dawn](#dawn)). When the
   checkbox is off, the list stays in its place and its fields are
@@ -724,6 +730,14 @@ The app applies these effects. It rounds down to a whole number, with no
   back when the level goes down.
 * **Level 6.** The hit points and the death save circles do not change.
   A lower level removes the "Dead" label.
+* The popup that a hover opens closes when the mouse leaves the token,
+  unless a click opened it. It does not take the focus. A screen reader
+  reads "(applies)" after each level that applies.[^orc-323]
+* When the circles take the level to 0 with the focus on them, the focus
+  goes to "+ Add condition".
+* **The status line** after each change: "Exhaustion added.",
+  "Exhaustion removed.", "Exhaustion 1 → 2.". When level 4 writes the
+  hit points down: "Exhaustion 3 → 4, hit points 30 → 22."
 
 ## Marks on the sheet
 
@@ -909,3 +923,4 @@ test for the rule [No layout shift](#no-layout-shift).
 [^orc-309]: Prototype the Rest button and the rest dialogs, <https://linear.app/orc-alchemy/issue/ORC-309/prototype-the-rest-button-and-the-rest-dialogs>
 [^orc-311]: Prototype the Cast button and the level menu in the Spells panel, <https://linear.app/orc-alchemy/issue/ORC-311/prototype-the-cast-button-and-the-level-menu-in-the-spells-panel>
 [^orc-312]: Prototype the sheet layout for the new play controls, <https://linear.app/orc-alchemy/issue/ORC-312/prototype-the-sheet-layout-for-the-new-play-controls>
+[^orc-323]: Exhaustion: the token and its effects on speed, hit points and death, <https://linear.app/orc-alchemy/issue/ORC-323/exhaustion-the-token-and-its-effects-on-speed-hit-points-and-death>

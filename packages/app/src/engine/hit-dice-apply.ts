@@ -19,14 +19,14 @@ import type { Sheet } from "./sheet.ts";
 export function applyHitDice(
   e: Engine,
   entity: StrictEntity,
-  sheet: Pick<Sheet, "hitDice" | "maxHitPoints" | "abilities">,
+  sheet: Pick<Sheet, "hitDice" | "baseMaxHitPoints" | "abilities">,
   action: HitDiceAction,
 ): { entity: StrictEntity; status: string } {
   const totals = new Map(sheet.hitDice.map(({ die, total }) => [die, total]));
   const conModifier = sheet.abilities.find((a) => a.ability === "con")?.modifier ?? 0;
   const change = applyHitDiceAction(hitDiceLeft(totals, hitDiceSpent(entity, totals)), conModifier, action);
   if (change === null) return { entity, status: "" };
-  const healed = change.heal === null ? entity : applyHitPoints(e, entity, sheet.maxHitPoints, { kind: "heal", amount: change.heal }).entity;
+  const healed = change.heal === null ? entity : applyHitPoints(e, entity, sheet.baseMaxHitPoints, { kind: "heal", amount: change.heal }).entity;
   // Only the die of the action changes. A stored die that the character no longer has keeps its entry.
   const spent = new Map(hitDiceSpent(entity));
   spent.set(change.die, change.spent);

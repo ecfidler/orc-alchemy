@@ -309,6 +309,14 @@
     flex: none;
     margin-left: 6px;
   }
+  /* Slot circles that change, in a token: 15px circles with a 24px tap area, so the row fits the token's height. */
+  .ui-token > .ui-slot-circles:where([data-changes]) {
+    --circle-size: 15px;
+    --circle-tap: 24px;
+    flex: none;
+    flex-wrap: nowrap;
+    margin-inline: 0 2px;
+  }
 
   /* The picker: its tokens above its add button. */
   .ui-picker {

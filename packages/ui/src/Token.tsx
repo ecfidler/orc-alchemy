@@ -1,4 +1,4 @@
-import { type ReactNode, useLayoutEffect, useRef } from "react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { Button, XButton } from "./Button.tsx";
 import { useRefocus } from "./refocus.ts";
 import { SmallPopup, type SmallPopupProps } from "./SmallPopup.tsx";
@@ -25,7 +25,15 @@ export type TokenProps = {
    * With it, the text is a button that opens a SmallPopup under the token, with this title and these controls or this
    * text. The owner controls `open`. The button is named `openName`, or the label.
    */
-  popup?: Omit<SmallPopupProps, "trigger" | "anchor">;
+  popup?: Omit<SmallPopupProps, "trigger" | "anchor" | "takeFocus">;
+  /**
+   * With `popup`: a mouse over the token opens the popup too, and the mouse
+   * leaving the token closes it, unless a click opened it. A click on the
+   * text while the mouse holds it open keeps it open, and so does a press on
+   * another control of the token. The popup that the mouse opens takes no
+   * focus. A touch does not open it.
+   */
+  popupOnHover?: boolean;
   /** A short note after the text, in small muted type, for example "added by the app". It is a part of the token's text. */
   note?: string;
   /** "dashed": a dashed border. "bubble": the use bubble fill and border. */
@@ -59,6 +67,7 @@ export function Token({
   openName,
   openHint,
   popup,
+  popupOnHover,
   note,
   look,
   groupName,
@@ -68,9 +77,24 @@ export function Token({
   className,
 }: TokenProps) {
   const token = useRef<HTMLSpanElement>(null);
+  const [hovered, setHovered] = useState(false);
+  const hover = Boolean(popup && popupOnHover);
+  const hoverOnly = hover && hovered && !popup?.open;
+  const onOpenChange = (next: boolean, reason?: string) => {
+    if (!next && hoverOnly) {
+      // A click on the text makes the popup that the mouse opened an open by the click.
+      if (reason === "trigger-press") return popup?.onOpenChange(true, reason);
+      // A press in the token, for example on its circles, is outside the popup: the popup stays while the mouse is there.
+      if (reason === "outside-press") return;
+    }
+    if (!next) setHovered(false);
+    popup?.onOpenChange(next, reason);
+  };
   return (
     <span
       ref={token}
+      onPointerEnter={hover ? (event) => event.pointerType !== "touch" && setHovered(true) : undefined}
+      onPointerLeave={hover ? () => setHovered(false) : undefined}
       className={className ? `ui-token ${className}` : "ui-token"}
       data-marked={marked ? "" : undefined}
       data-look={look === "plain" ? undefined : look}
@@ -81,6 +105,9 @@ export function Token({
       {popup ? (
         <SmallPopup
           {...popup}
+          open={popup.open || hoverOnly}
+          onOpenChange={onOpenChange}
+          takeFocus={!hoverOnly}
           anchor={token}
           trigger={
             <Button variant="bare" className="ui-token-label ui-token-open" aria-label={openName}>

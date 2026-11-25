@@ -127,6 +127,7 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
       },
     ],
     maxHitPoints: built.maxHitPoints,
+    baseMaxHitPoints: built.maxHitPoints,
     currentHitPoints: null,
     // A 2024 character has no play state (sheet-interactivity.md, "Scope").
     tempHitPoints: 0,

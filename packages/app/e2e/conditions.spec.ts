@@ -6,7 +6,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { concentrationNote, openWithValues, statusLine, storedValues, vitals } from "./play-helpers.ts";
+import { aboveBox, concentrationNote, layout, openWithValues, statusLine, storedValues, vitals } from "./play-helpers.ts";
 
 /** Life cleric 9: Bless needs concentration. The record has no race, so its speed is 0. */
 const CLERIC = join(import.meta.dirname, "life-cleric-9.strict.json");
@@ -45,25 +45,6 @@ async function hitPointsAct(page: Page, amount: string, button: "Damage" | "Heal
   await page.mouse.move(0, 0);
 }
 
-/** The place and size of the vitals panel and of each part in it, but for the parts in the box and in the note, which can move. */
-const layout = (page: Page) =>
-  vitals(page).evaluate((panel) =>
-    [panel, ...panel.querySelectorAll("[data-conditions-box], .ui-framed-box, [role=group], [role=status], button, .ui-label, [data-speed-caption]")]
-      .filter(
-        (element) => element === panel || element.matches("[data-conditions-box]") || !element.closest("[data-conditions-box], [data-concentration-note] *"),
-      )
-      .map((element) => {
-        const { x, y, width, height } = element.getBoundingClientRect();
-        return `${element.matches("[data-conditions-box]") ? "BOX" : element.tagName} ${[x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
-      }),
-  );
-
-/** The parts of a layout that are above the box, and the left edge, top and width of the box: they never move. */
-const aboveBox = (lines: string[]) => {
-  const at = lines.findIndex((line) => line.startsWith("BOX"));
-  return [...lines.slice(1, at), lines[at]?.split(" ").slice(0, 4).join(" ")];
-};
-
 /** Opens the sheet of a character, which is on the Stats tab of a phone. */
 async function openSheet(page: Page, file = FIGHTER, values: Record<string, unknown> = {}) {
   await openWithValues(page, file, values);
@@ -77,7 +58,8 @@ test("add and remove a condition; the menu lists only the conditions that are no
   await expect.poll(() => tokenNames(page)).toEqual([]);
   await addButton(page).click();
   const entries = menu(page).getByRole("menuitem");
-  await expect(entries).toHaveCount(14);
+  // The 14 conditions, then Exhaustion (ORC-323).
+  await expect(entries).toHaveCount(15);
   await expect(entries.filter({ hasText: "speed 0" })).toHaveText([/^Grappled/, /^Paralyzed/, /^Petrified/, /^Restrained/, /^Stunned/, /^Unconscious/]);
   await page.keyboard.press("Escape");
   await add(page, "Poisoned");
@@ -85,7 +67,7 @@ test("add and remove a condition; the menu lists only the conditions that are no
   await add(page, "Blinded");
   await expect.poll(() => tokenNames(page)).toEqual(["Blinded", "Poisoned"]);
   await addButton(page).click();
-  await expect(entries).toHaveCount(12);
+  await expect(entries).toHaveCount(13);
   await expect(menu(page).getByRole("menuitem", { name: /^(Blinded|Poisoned)/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect.poll(async () => (await storedValues(page))[CONDITIONS]).toEqual({ "~#set": ["~:blinded", "~:poisoned"] });

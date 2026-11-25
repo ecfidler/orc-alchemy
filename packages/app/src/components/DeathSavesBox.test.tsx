@@ -109,3 +109,23 @@ test("a change from outside the box does not take the focus", () => {
   rerender(<DeathSavesBox saves={{ successes: 0, failures: 3 }} onChange={() => {}} />);
   expect(document.activeElement).toBe(successes());
 });
+
+test("at exhaustion level 6 the label Dead takes the place of the failure circles, as a text and not a button; the counts stay", () => {
+  const onChange = vi.fn();
+  render(<DeathSavesBox saves={{ successes: 1, failures: 1 }} exhausted onChange={onChange} />);
+  expect(screen.getByRole("group", { name: "Death saves Dead" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Dead" })).toBeNull();
+  expect(screen.queryByRole("slider", { name: "Death save failures" })).toBeNull();
+  const label = document.querySelector<HTMLElement>("[data-dead-text]")!;
+  expect(label.textContent).toBe("Dead");
+  fireEvent.click(label);
+  expect(onChange).not.toHaveBeenCalled();
+  // The successes can still change.
+  expect(screen.getByRole("slider", { name: "Death save successes" }).getAttribute("aria-valuetext")).toBe("1 of 3");
+});
+
+test("with three failures and exhaustion level 6, the label is not a button either", () => {
+  render(<DeathSavesBox saves={{ successes: 0, failures: 3 }} exhausted onChange={() => {}} />);
+  expect(screen.queryByRole("button", { name: "Dead" })).toBeNull();
+  expect(screen.getByRole("group", { name: "Death saves Dead" })).toBeTruthy();
+});

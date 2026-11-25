@@ -49,3 +49,13 @@ export const CONDITION_TEXTS: Record<Condition, readonly string[]> = {
     "A hit from within 5 feet is a critical hit.",
   ],
 };
+
+/** The rule text of each exhaustion level, from level 1 to level 6, after the SRD 5.1 appendix "Conditions". */
+export const EXHAUSTION_TEXTS: readonly string[] = [
+  "Disadvantage on ability checks",
+  "Speed halved",
+  "Disadvantage on attack rolls and saving throws",
+  "Hit point maximum halved",
+  "Speed reduced to 0",
+  "Death",
+];

@@ -482,3 +482,21 @@ test("a rest that changes nothing says so: a rested long rest, one with its chec
     shortRestPicks(shortRest(sheetOf(setFeatureUsesSpent(e, setCurrentHitPoints(e, multiclass(), 10), "orcpub.dnd.e5.units/rest", "Channel Divinity", 1)))),
   ).toBe(false);
 });
+
+test("the Long rest row Hit points goes to the maximum after the rest: 'Ate and drank' from level 4 to 3 shows the full maximum (ORC-323)", () => {
+  const e = engine();
+  const full = sheetOf(wizard5()).maxHitPoints;
+  const half = Math.floor(full / 2);
+  const row = (rest: ReturnType<typeof longRest>, ate: boolean) => longRestRows(rest, { ate }).find((r) => r.key === "hit points")?.change;
+  // At level 4 with full hit points, the sheet shows the halved maximum.
+  const four = longRest(sheetOf(setExhaustion(e, wizard5(), 4)));
+  expect(four).toMatchObject({ current: half, max: half, baseMax: full, exhaustion: 4 });
+  expect(row(four, true)).toBe(`${half} → ${full} / ${full}`);
+  // "Ate and drank" off: the row stays, with no change.
+  expect(row(four, false)).toBeNull();
+  expect(longRestRows(four, { ate: false }).map((r) => r.key)).toEqual(longRestRows(four, { ate: true }).map((r) => r.key));
+  // From level 5 to 4, the maximum stays halved.
+  const five = longRest(sheetOf(setCurrentHitPoints(e, setExhaustion(e, wizard5(), 5), 3)));
+  expect(row(five, true)).toBe(`3 → ${half} / ${half}`);
+  expect(row(five, false)).toBe(`3 → ${half} / ${half}`);
+});

@@ -270,7 +270,10 @@ homebrew forms. They have no game words: the app gives the lists.
   have a short muted note after its name, a dashed border (a token that
   the app adds by itself) or the `--bubble` fill with an `--info` border.
   Its name can be a button that opens a small popup under it. A small
-  token has 13px semibold Inter text (ORC-322).
+  token has 13px semibold Inter text (ORC-322). The popup can also open
+  when a mouse is over the token, with no focus move, and it closes when
+  the mouse leaves, unless a click opened it. Slot circles in a token are
+  15px, with a 24px tap area (ORC-323).
 * **Token for a slot** (ORC-138): the name is a button with a small muted
   "Change" after it, and opens a list for a new value. A marked token has
   a 1.5px border, a 4px `--note` bar on its left and semibold text. Its X

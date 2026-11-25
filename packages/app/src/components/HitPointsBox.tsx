@@ -9,6 +9,12 @@ export interface HitPointsBoxProps {
   /** The current hit points that show: from 0 to `max`. */
   current: number;
   max: number;
+  /**
+   * The caption under current / max in red caps, for example "Maximum halved
+   * · Exhaustion" (ORC-323); null for none. With `onAction`, the box keeps
+   * its space.
+   */
+  caption?: string | null;
   /** The temporary hit points, 0 when there are none. */
   temp: number;
   /** False: no Temporary part, as in the builder preview. */
@@ -21,6 +27,9 @@ export interface HitPointsBoxProps {
   className?: string;
 }
 
+/** The look of the caption under current / max: red caps, as the caption under the speed. */
+const CAPTION = "font-sans text-[9.5px] leading-[1.1] font-semibold tracking-[0.08em] text-danger uppercase";
+
 /** The look of a number of the box under a mouse or the focus on its part. */
 const UNDERLINE = "decoration-[1.5px] underline-offset-[5px]";
 
@@ -32,7 +41,7 @@ const UNDERLINE = "decoration-[1.5px] underline-offset-[5px]";
  * under it. The box keeps its size when a number changes or the temporary
  * hit points come or go.
  */
-export function HitPointsBox({ current, max, temp, temporary, onAction, popupWidthOf, className }: HitPointsBoxProps) {
+export function HitPointsBox({ current, max, caption = null, temp, temporary, onAction, popupWidthOf, className }: HitPointsBoxProps) {
   const id = useId();
   const temporaryId = useId();
   const box = useRef<HTMLDivElement>(null);
@@ -54,6 +63,7 @@ export function HitPointsBox({ current, max, temp, temporary, onAction, popupWid
           )}
           <span role="group" aria-labelledby={id} className="self-center text-center text-[34px] leading-[1.1] tabular-nums">
             {currentMax}
+            {caption && <span className={`${CAPTION} block`}>{caption}</span>}
           </span>
         </div>
       </FramedBox>
@@ -94,9 +104,14 @@ export function HitPointsBox({ current, max, temp, temporary, onAction, popupWid
           {popup(
             "hit-points",
             "Hit points",
-            <Button variant="bare" data-hp-part aria-label={`Hit points, ${current} of ${max}`} className={`${part} pt-3`}>
+            <Button variant="bare" data-hp-part aria-label={`Hit points, ${current} of ${max}${caption ? `. ${caption}` : ""}`} className={`${part} pt-0.5`}>
               <span className={`text-[34px] leading-[1.1] tabular-nums group-hover/part:underline group-focus-visible/part:underline ${UNDERLINE}`}>
                 {currentMax}
+              </span>
+              {/* The space of the caption is always there, so a caption that comes moves nothing. It needs two lines where the
+                part is narrow: in a row of three boxes, and in a very narrow panel. */}
+              <span data-hp-caption="" className={`${CAPTION} min-h-[1lh] text-balance @max-[329px]/vitals:min-h-[2lh] @min-[600px]/vitals:min-h-[2lh]`}>
+                {caption}
               </span>
             </Button>,
             <HitPointsForm onAction={act} />,

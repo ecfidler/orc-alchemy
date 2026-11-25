@@ -45,3 +45,30 @@ export const statusLine = (page: Page) => vitals(page).getByRole("status").and(p
 
 /** The space of the concentration note under the status line (ORC-322). */
 export const concentrationNote = (page: Page) => vitals(page).getByRole("status", { name: "Concentration note" });
+
+/**
+ * The place and size of the vitals panel and of each part in it, but for the parts in the box and in the note, which can
+ * move (ORC-322). The captions under the speed and the hit points, and the circles are parts too (ORC-323).
+ */
+export const layout = (page: Page) =>
+  vitals(page).evaluate((panel) =>
+    [
+      panel,
+      ...panel.querySelectorAll(
+        "[data-conditions-box], .ui-framed-box, [role=group], [role=status], [role=slider], button, .ui-label, [data-speed-caption], [data-hp-caption]",
+      ),
+    ]
+      .filter(
+        (element) => element === panel || element.matches("[data-conditions-box]") || !element.closest("[data-conditions-box], [data-concentration-note] *"),
+      )
+      .map((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return `${element.matches("[data-conditions-box]") ? "BOX" : element.tagName} ${[x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
+      }),
+  );
+
+/** The parts of a layout that are above the box, and the left edge, top and width of the box: they never move. */
+export const aboveBox = (lines: string[]) => {
+  const at = lines.findIndex((line) => line.startsWith("BOX"));
+  return [...lines.slice(1, at), lines[at]?.split(" ").slice(0, 4).join(" ")];
+};

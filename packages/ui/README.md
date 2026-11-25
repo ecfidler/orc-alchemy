@@ -200,7 +200,9 @@ bun run test       # vitest
     trigger, for example under the box that holds two triggers. With
     `widthOf`, it has the width and the left edge of that element, for
     example the panel that holds the box on a narrow page. It is 320px
-    wide by default. It is not modal. Styles: `src/dialog.css`.
+    wide by default. It is not modal. With `takeFocus={false}`, the open
+    and the close move no focus, for a popup that a mouse over its box
+    opens. Styles: `src/dialog.css`.
   - `Select`: Base UI Select, a pick of one value from a list. Its role is
     combobox, and its text is the picked option. It is controlled by
     `value` (null while nothing is picked) and `onValueChange`. Each of
@@ -272,13 +274,17 @@ bun run test       # vitest
     say so in a name too. With `popup` (the props of a `SmallPopup` but
     the trigger and the anchor), the label is a button named `openName`
     (or the label) that opens a SmallPopup under the token; the owner
-    controls `open`. `note` is a short muted text after the label, a part
-    of the token's text. `look` is "plain" (the default), "dashed" (a
+    controls `open`. With `popupOnHover` too, a mouse over the token opens
+    that popup with no focus move, and the mouse leaving the token closes
+    it, unless a click opened it. A press on the token's other controls
+    keeps it open; a touch does not open it. `note` is a
+    short muted text after the label, a part of the token's text. `look` is "plain" (the default), "dashed" (a
     dashed border, for a token that the app adds by itself) or "bubble"
     (the `--bubble` fill and an `--info` border). With `groupName`, the
     token is a group with that name. `size="small"` gives 13px semibold
     sans text and the height of the Chips add button, for a row of status
-    tokens in a box.
+    tokens in a box. SlotCircles that change, as a child, draw 15px
+    circles with a 24px tap area, so the row fits in the token.
   - `Tokens`: tokens on one line that wraps. After an X removes its token,
     the focus goes to the next X, or else to the first button after the
     tokens. When the X goes and its token stays, the focus goes to the

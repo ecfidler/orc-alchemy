@@ -4,6 +4,7 @@
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
 import { Button, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
+import { deadOfExhaustion, maxCaption } from "../engine/conditions.ts";
 import {
   ABILITY_NAMES,
   type Ability,
@@ -192,6 +193,7 @@ export function CharacterSheet({
           <HitPointsBox
             current={sheet.currentHitPoints ?? sheet.maxHitPoints}
             max={sheet.maxHitPoints}
+            caption={maxCaption(sheet.exhaustion)}
             temp={sheet.tempHitPoints}
             temporary={!preview}
             onAction={play?.onHitPoints}
@@ -199,7 +201,7 @@ export function CharacterSheet({
             className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
           />
           <HitDiceBox dice={sheet.hitDice} onAction={play?.onHitDice} popupWidthOf={narrow ? vitals : null} />
-          {!preview && <DeathSavesBox saves={sheet.deathSaves} onChange={play?.onDeathSaves} />}
+          {!preview && <DeathSavesBox saves={sheet.deathSaves} exhausted={deadOfExhaustion(sheet.exhaustion)} onChange={play?.onDeathSaves} />}
         </div>
         <ConditionsBox sheet={sheet} onAction={play?.onConditions} popupWidthOf={narrow ? vitals : null} />
         {play && (

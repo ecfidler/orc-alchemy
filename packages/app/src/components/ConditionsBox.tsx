@@ -2,9 +2,9 @@
 // docs/design/sheet-interactivity.md "Conditions and statuses"), and the
 // concentration note under the status line. The rules are in
 // engine/conditions.ts; the sheet page applies an action as one sheet change.
-// Exhaustion (ORC-323) adds its token after the condition tokens.
-import { FramedBox, Menu, NoteLine, Token, Tokens } from "@orc-alchemy/ui";
-import { type RefObject, useState } from "react";
+// The Exhaustion token (ORC-323) comes after the condition tokens.
+import { FramedBox, Menu, NoteLine, SlotCircles, Token, Tokens } from "@orc-alchemy/ui";
+import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { CONDITION_TEXTS } from "../engine/condition-texts.ts";
 import {
   type ConcentrationNote,
@@ -13,9 +13,13 @@ import {
   concentrationNoteText,
   conditionMenu,
   conditionName,
+  EXHAUSTION,
+  EXHAUSTION_NAME,
+  exhaustionEffects,
+  exhaustionValueText,
   statusTokens,
 } from "../engine/conditions.ts";
-import type { Condition } from "../engine/play.ts";
+import { type Condition, EXHAUSTION_LIMIT } from "../engine/play.ts";
 import { keyToName, type Sheet } from "../engine/sheet.ts";
 import { spellName } from "../engine/spell-records.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
@@ -27,7 +31,7 @@ function useMarkName(key: string) {
 }
 
 export interface ConditionsBoxProps {
-  sheet: Pick<Sheet, "concentration" | "conditions" | "conditionImmune" | "currentHitPoints" | "deathSaves">;
+  sheet: Pick<Sheet, "concentration" | "conditions" | "conditionImmune" | "currentHitPoints" | "deathSaves" | "exhaustion">;
   /** Applies an action of the box. Without it, as on a read-only sheet, the tokens have no X and there is no Add condition menu. */
   onAction?: (action: ConditionAction) => void;
   /** On a narrow sheet, the panel that gives a rule popup its width. */
@@ -37,23 +41,43 @@ export interface ConditionsBoxProps {
 /**
  * The box "Conditions and statuses": the token of the concentration mark,
  * the condition tokens in the order of the menu, the Unconscious token that
- * the app adds at 0 hit points, then "+ Add condition". A click on the name
- * of a condition opens its rule text. On a read-only sheet the box shows
- * only when it has a token.
+ * the app adds at 0 hit points, the Exhaustion token, then "+ Add
+ * condition". A click on the name of a condition opens its rule text. On a
+ * read-only sheet the box shows only when it has a token.
  */
 export function ConditionsBox({ sheet, onAction, popupWidthOf }: ConditionsBoxProps) {
-  const [rule, setRule] = useState<Condition | null>(null);
+  const [rule, setRule] = useState<Condition | typeof EXHAUSTION | null>(null);
+  const box = useRef<HTMLDivElement>(null);
   const tokens = statusTokens(sheet);
-  const menu = conditionMenu(sheet.conditions, sheet.conditionImmune);
+  const menu = conditionMenu(sheet.conditions, sheet.conditionImmune, sheet.exhaustion);
+  // When the circles take the level to 0, the token goes with the focus on it: the focus goes to "+ Add condition".
+  const level = useRef(sheet.exhaustion);
+  useLayoutEffect(() => {
+    const from = level.current;
+    level.current = sheet.exhaustion;
+    if (from === 0 || sheet.exhaustion > 0) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && active.isConnected) return;
+    box.current?.querySelector<HTMLElement>(".ui-chip-add")?.focus();
+  }, [sheet.exhaustion]);
   if (!onAction && tokens.length === 0) return null;
   return (
     // The wrapper marks the box, so that a layout test can measure the panel without the tokens.
-    <div data-conditions-box className="grid">
+    <div ref={box} data-conditions-box className="grid">
       <FramedBox label="Conditions and statuses">
         <Tokens className="min-h-7">
           {tokens.map((token) =>
             token.kind === "concentration" ? (
               <ConcentrationToken key="concentration" spell={token.spell} onAction={onAction} />
+            ) : token.kind === "exhaustion" ? (
+              <ExhaustionToken
+                key="exhaustion"
+                level={token.level}
+                open={rule === EXHAUSTION}
+                onOpenChange={(open) => setRule(open ? EXHAUSTION : null)}
+                popupWidthOf={popupWidthOf}
+                onAction={onAction}
+              />
             ) : (
               <Token
                 key={`${token.condition}${token.auto ? "-auto" : ""}`}
@@ -85,12 +109,70 @@ export function ConditionsBox({ sheet, onAction, popupWidthOf }: ConditionsBoxPr
               className="ui-chip-add"
               items={menu.map((entry) => [entry.condition, entry.name] as const)}
               note={(condition) => menu.find((entry) => entry.condition === condition)?.note || undefined}
-              onPick={(condition) => onAction({ kind: "add", condition })}
+              onPick={(condition) => onAction(condition === EXHAUSTION ? { kind: "exhaustion", level: 1 } : { kind: "add", condition })}
             />
           )}
         </Tokens>
       </FramedBox>
     </div>
+  );
+}
+
+interface ExhaustionTokenProps {
+  level: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  popupWidthOf?: RefObject<HTMLElement | null> | null;
+  onAction?: (action: ConditionAction) => void;
+}
+
+/**
+ * The Exhaustion token: its name, six circles and an X. The circles show the
+ * level, with the rule "one more, one less"; a screen reader reads
+ * "Exhaustion, level 2 of 6". The X sets the level to 0. A mouse over the
+ * token, or a click on its name, opens the effects of the six levels, with
+ * the levels that apply in bold. It has no "Level n" label.
+ */
+function ExhaustionToken({ level, open, onOpenChange, popupWidthOf, onAction }: ExhaustionTokenProps) {
+  return (
+    <Token
+      label={EXHAUSTION_NAME}
+      groupName={EXHAUSTION_NAME}
+      size="small"
+      popupOnHover
+      popup={{
+        open,
+        onOpenChange,
+        title: EXHAUSTION_NAME,
+        widthOf: popupWidthOf,
+        children: (
+          <ol className="grid gap-0.5 font-sans text-[13px] leading-snug" aria-label="Effects of each level">
+            {exhaustionEffects(level).map((effect) => (
+              <li
+                key={effect.level}
+                data-applies={effect.applies ? "" : undefined}
+                className={`grid grid-cols-[18px_1fr] ${effect.applies ? "font-semibold text-ink" : "text-ink-muted"}`}
+              >
+                <span>{effect.level}</span>
+                <span>
+                  {effect.text}
+                  {effect.applies && <span className="sr-only"> (applies)</span>}
+                </span>
+              </li>
+            ))}
+          </ol>
+        ),
+      }}
+      onRemove={onAction ? () => onAction({ kind: "exhaustion", level: 0 }) : undefined}
+    >
+      <SlotCircles
+        label={EXHAUSTION_NAME}
+        count={EXHAUSTION_LIMIT}
+        marked={level}
+        valueText={exhaustionValueText}
+        onChange={onAction ? (next) => onAction({ kind: "exhaustion", level: next }) : undefined}
+      />
+    </Token>
   );
 }
 
