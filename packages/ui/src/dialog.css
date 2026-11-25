@@ -110,4 +110,33 @@
     padding: 10px 20px;
     border-top: 1.5px solid var(--ink);
   }
+
+  /* The small popup (SmallPopup): a panel under the box that opens it, with a title and its controls (ORC-314). */
+  .ui-popup-positioner {
+    z-index: 20;
+    outline: 0;
+  }
+  .ui-popup {
+    display: grid;
+    gap: 10px;
+    box-sizing: border-box;
+    width: min(320px, calc(100vw - 32px));
+    padding: 12px;
+    color: var(--ink);
+    text-align: left;
+    background: var(--paper-raised);
+    border: 1px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--note-shadow);
+    outline: 0;
+  }
+  /* With widthOf: the width of that element. */
+  .ui-popup:where([data-fill]) {
+    width: var(--anchor-width);
+  }
+  .ui-popup-title {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
 }

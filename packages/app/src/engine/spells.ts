@@ -4,19 +4,13 @@
 // slots apart (ORC-283), read from and written to the strict entity. Only
 // this file knows their Transit keys.
 import { useEffect, useState } from "react";
-import { asSet, setItems, tag, untag } from "./content.ts";
+import { asSet, setItems, strictValues, tag, untag } from "./content.ts";
 import type { Built2014, Engine, StrictEntity } from "./engine.ts";
 import type { SpellRecord } from "./spell-records.ts";
 
 const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
 const CLASS_NAME = "~:orcpub.dnd.e5.character/class-name";
 const PREPARED = "~:orcpub.dnd.e5.character/prepared-spells";
-
-/** The values map of a strict entity, from its object or its JSON text; {} without one. */
-function strictValues(entity: StrictEntity): Record<string, unknown> {
-  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as { "~:orcpub.entity.strict/values"?: Record<string, unknown> };
-  return strict["~:orcpub.entity.strict/values"] ?? {};
-}
 
 /** The SRD spells, as spell key to record. */
 export type SpellContent = ReadonlyMap<string, SpellRecord>;

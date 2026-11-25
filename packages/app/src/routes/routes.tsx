@@ -20,6 +20,9 @@ import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
+import type { HitPointAction } from "../engine/hit-points.ts";
+import { applyHitPoints } from "../engine/hit-points-apply.ts";
+import { type DeathSaves, setDeathSaves } from "../engine/play.ts";
 import type { Sheet, SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -140,6 +143,28 @@ function prepareSpell(spell: SpellRef, prepared: boolean) {
   useCharacter.getState().sheetChange((entity) => setPrepared(engine(), entity, spell.source, spell.key, prepared));
 }
 
+/**
+ * Applies an action of the Hit points popups as one sheet change, which
+ * writes the hit points, the temporary hit points and the death saves
+ * together (ORC-314). The rules read the play state of the record as it is
+ * now, with the maximum that the sheet shows. Returns the text of the status
+ * line.
+ */
+function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
+  let status = "";
+  useCharacter.getState().sheetChange((entity) => {
+    const result = applyHitPoints(engine(), entity, sheet.maxHitPoints, action);
+    status = result.status;
+    return result.entity;
+  });
+  return status;
+}
+
+/** Writes the death save counts as a sheet change: it saves at once (ORC-315). */
+function changeDeathSaves(saves: DeathSaves) {
+  useCharacter.getState().sheetChange((entity) => setDeathSaves(engine(), entity, saves));
+}
+
 function SheetPage() {
   // Why an export failed shows under the action row, so the row keeps its one line. It belongs to the character it came from.
   const { id: openId } = useParams();
@@ -148,6 +173,11 @@ function SheetPage() {
   // The Spells panel (ORC-285): open or not, and the spell it opened at. It is not in the URL, so a reload shows the sheet.
   // The spell stays while the panel closes, so the panel does not change during its close.
   const [spells, setSpells] = useState<{ open: boolean; at?: SpellRef }>({ open: false });
+  // The status line of the vitals panel: what the last action changed. It starts empty, and it belongs to its character.
+  // Each action gives the line a new key, so that a screen reader also reads a text that is the same as the last one.
+  const [status, setStatus] = useState<{ id: string | undefined; text: string; key: number }>({ id: undefined, text: "", key: 0 });
+  const statusText = status.id === openId ? status.text : "";
+  const say = (text: string) => setStatus((last) => ({ id: openId, text, key: last.key + 1 }));
   return (
     <OpenCharacter
       actions={(id) => (
@@ -164,7 +194,21 @@ function SheetPage() {
           <ExportMessageLine message={exportMessage} className="mb-4" />
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
           {/* The sheet and the Spells panel change the spent slots with the same handler, so they show the same state (ORC-286). */}
-          <CharacterSheet sheet={sheet} onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)} onOpenSpells={(at) => setSpells({ open: true, at })} />
+          <CharacterSheet
+            sheet={sheet}
+            onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
+            onOpenSpells={(at) => setSpells({ open: true, at })}
+            play={{
+              status: statusText,
+              statusKey: status.key,
+              onHitPoints: (action) => say(changeHitPoints(sheet, action)),
+              // A change of the circles is the next action, so it takes the text of the last one away.
+              onDeathSaves: (saves) => {
+                changeDeathSaves(saves);
+                say("");
+              },
+            }}
+          />
           {sheet.spellcasting && (
             <SpellsPanel
               open={spells.open}

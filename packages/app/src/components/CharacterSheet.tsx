@@ -2,7 +2,7 @@
 // "Character sheet"), two columns that become one in a narrow container. Under 720px
 // the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
-import { Button, CurrentMax, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
+import { Button, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   ABILITY_NAMES,
@@ -16,6 +16,7 @@ import {
   type Sheet,
   type SheetFeature,
   type SheetItem,
+  type SheetPlay,
   type Spellcasting,
   type SpendSlots,
   usesDisplay,
@@ -23,6 +24,8 @@ import {
 import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
 import { slotGroupsOf, spentText } from "../engine/spell-slots.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
+import { DeathSavesBox } from "./DeathSavesBox.tsx";
+import { HitPointsBox } from "./HitPointsBox.tsx";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
 const paragraphs = (text: string) => text.split("\n").map((line, i) => <p key={i}>{line}</p>);
@@ -40,20 +43,28 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * `onOpenSpells`: the user opens the Spells panel, at the top of its list, or at a spell (ORC-285). With it, the
  * Spellcasting section has an "All spells" button and each spell name is a button. Without it, as in the builder
  * preview, there is no button and the names are plain text.
+ * `play`: the play controls (docs/design/sheet-interactivity.md): the handlers that change the play state, one for each
+ * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, and the vitals
+ * panel has the status line and the space for the concentration note under it. Without it, as in the builder preview
+ * and the 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a
+ * handler of SheetPlay, not as a new prop.
  */
 export function CharacterSheet({
   sheet,
   preview = false,
   onSpendSlots,
   onOpenSpells,
+  play,
 }: {
   sheet: Sheet;
   preview?: boolean;
   onSpendSlots?: SpendSlots;
   onOpenSpells?: OpenSpells;
+  play?: SheetPlay;
 }) {
   const { spellcasting, features, equipment, details } = sheet;
   const article = useRef<HTMLElement>(null);
+  const vitals = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
   // Measured before paint, so a phone never shows layout F first. A narrow sheet goes in tabs, but the builder
   // preview keeps one long column. A width of 0 is a sheet that is not laid out (hidden, or in jsdom); it is not narrow.
@@ -129,68 +140,67 @@ export function CharacterSheet({
     </>
   );
   const vitalsSection = (
-    <ShadedPanel className="@container/vitals">
-      <div className="flex justify-evenly gap-2">
-        <RowBox label="Armor Class" shield>
-          {sheet.armorClass}
-        </RowBox>
-        <RowBox label="Initiative">{modStr(sheet.initiative)}</RowBox>
-        <RowBox label="Speed">
-          {/* Only the first speed's number is large. Its qualifier and the other speeds are small lines under it. */}
-          {sheet.speeds.map((speed, i) => (
-            <span key={i} className={i === 0 ? "block" : "block font-sans text-[11px] leading-snug text-ink-muted"}>
-              {speed.feet} ft.
-              {speed.label && (
-                <>
-                  {" "}
-                  <span className={i === 0 ? "block font-sans text-[9.5px] leading-tight font-medium tracking-[0.08em] text-ink-muted uppercase" : undefined}>
-                    {speed.label}
-                  </span>
-                </>
-              )}
-            </span>
-          ))}
-        </RowBox>
-      </div>
-      {/* The three boxes share a row only when the panel is wide enough for the death save circles. */}
-      <div
-        className={
-          preview
-            ? "grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2"
-            : "grid grid-cols-[minmax(0,4fr)_minmax(0,5fr)] gap-2 @min-[600px]/vitals:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)]"
-        }
-      >
-        <HitPoints
-          current={sheet.currentHitPoints ?? sheet.maxHitPoints}
-          max={sheet.maxHitPoints}
-          temporary={!preview}
-          className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
-        />
-        <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
-          <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
-        </FramedBox>
-        {!preview && (
-          <FramedBox label="Death saves" className="grid-rows-[1fr_auto]">
-            {/* The app records no death saves, so the circles are empty. */}
-            <div className="grid content-evenly gap-1.5">
-              <div className="flex items-center justify-between gap-1.5">
-                {/* The circles say "Successes", so the visible label is not read twice. */}
-                <span aria-hidden>
-                  <Label>Successes</Label>
-                </span>
-                <SlotCircles label="Successes" count={3} color="success" />
-              </div>
-              <div className="flex items-center justify-between gap-1.5">
-                <span aria-hidden>
-                  <Label>Failures</Label>
-                </span>
-                <SlotCircles label="Failures" count={3} color="caution" />
-              </div>
-            </div>
+    // The wrapper gives the panel's width to a popup of the Hit points box on a narrow sheet.
+    <div ref={vitals} className="grid">
+      <ShadedPanel className="@container/vitals">
+        <div className="flex justify-evenly gap-2">
+          <RowBox label="Armor Class" shield>
+            {sheet.armorClass}
+          </RowBox>
+          <RowBox label="Initiative">{modStr(sheet.initiative)}</RowBox>
+          <RowBox label="Speed">
+            {/* Only the first speed's number is large. Its qualifier and the other speeds are small lines under it. */}
+            {sheet.speeds.map((speed, i) => (
+              <span key={i} className={i === 0 ? "block" : "block font-sans text-[11px] leading-snug text-ink-muted"}>
+                {speed.feet} ft.
+                {speed.label && (
+                  <>
+                    {" "}
+                    <span className={i === 0 ? "block font-sans text-[9.5px] leading-tight font-medium tracking-[0.08em] text-ink-muted uppercase" : undefined}>
+                      {speed.label}
+                    </span>
+                  </>
+                )}
+              </span>
+            ))}
+          </RowBox>
+        </div>
+        {/* The three boxes share a row only when the panel is wide enough for the death save circles. In a row, the Death
+          saves box is never narrower than its content, so a row of circles does not wrap (ORC-315). */}
+        <div
+          className={
+            preview
+              ? "grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2"
+              : "grid grid-cols-[minmax(0,4fr)_minmax(0,5fr)] gap-2 @min-[600px]/vitals:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(max-content,1.1fr)]"
+          }
+        >
+          <HitPointsBox
+            current={sheet.currentHitPoints ?? sheet.maxHitPoints}
+            max={sheet.maxHitPoints}
+            temp={sheet.tempHitPoints}
+            temporary={!preview}
+            onAction={play?.onHitPoints}
+            popupWidthOf={narrow ? vitals : null}
+            className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
+          />
+          <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
+            <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
           </FramedBox>
+          {!preview && <DeathSavesBox saves={sheet.deathSaves} onChange={play?.onDeathSaves} />}
+        </div>
+        {play && (
+          <>
+            {/* The status line keeps the height of one line; a long text is cut, and a screen reader reads all of it.
+              The next action replaces the text. */}
+            <p role="status" title={play.status || undefined} className="h-5 truncate text-center font-sans text-[13px] leading-5 text-ink-muted">
+              <span key={play.statusKey}>{play.status}</span>
+            </p>
+            {/* The space of one note line for the concentration note (ORC-322), so that the note moves nothing. */}
+            <div data-concentration-note className="h-[33px]" />
+          </>
         )}
-      </div>
-    </ShadedPanel>
+      </ShadedPanel>
+    </div>
   );
   // A 2024 attack has its damage dice; a 2014 attack has only the modifier.
   const withDice = sheet.weaponAttacks.length > 0 && sheet.weaponAttacks.every((weapon) => weapon.damage !== undefined);
@@ -840,27 +850,6 @@ function CasterRow({ group, named, marks }: { group: CasterGroup; named: boolean
 /** A source name on a caster row label, with its symbol as the key to the marks in the table. */
 function withSymbol(name: string, mark: Mark | undefined) {
   return mark?.kind === "symbol" ? `${name} ${mark.symbol}` : name;
-}
-
-/** Hit points: temporary on the left (the sheet has none, so it is empty), then current / max. */
-function HitPoints({ current, max, temporary, className }: { current: number; max: number; temporary: boolean; className?: string }) {
-  const id = useId();
-  const temporaryId = useId();
-  return (
-    <FramedBox label="Hit Points" labelId={id} className={className}>
-      <div className={temporary ? "grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-end gap-2" : "grid"}>
-        {temporary && (
-          <div className="grid border-r border-rule text-center">
-            <span role="group" aria-labelledby={temporaryId} className="min-h-9 text-2xl leading-normal" />
-            <Label id={temporaryId}>Temporary</Label>
-          </div>
-        )}
-        <span role="group" aria-labelledby={id} className="self-center text-center text-[34px] leading-[1.1] tabular-nums">
-          <CurrentMax current={current} max={max} />
-        </span>
-      </div>
-    </FramedBox>
-  );
 }
 
 /** Equipment: the Gold box in the top-right corner, and the gear lines wrap beside it, then run the full width under it. */

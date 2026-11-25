@@ -43,7 +43,7 @@ test("importing fighter-1 opens its sheet", async ({ page }) => {
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
   await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText("19");
-  await expect(page.getByLabel("Hit Points", { exact: true })).toHaveText("12 / 12");
+  await expect(page.getByRole("button", { name: "Hit points, 12 of 12" })).toHaveText("12 / 12");
 });
 
 test("an imported character survives reload", async ({ page }) => {
@@ -69,7 +69,9 @@ for (const name of srdGolden) {
     await expect(page.getByRole("heading", { level: 1, name: built["character-name"] })).toBeVisible();
     await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText(String(worn.ac));
     const hp = built["max-hit-points"];
-    await expect(page.getByLabel("Hit Points", { exact: true })).toHaveText(`${built["current-hit-points"] ?? hp} / ${hp}`);
+    // The sheet shows the lower of the stored hit points and the maximum (ORC-119).
+    const current = Math.min(built["current-hit-points"] ?? hp, hp);
+    await expect(page.getByRole("button", { name: `Hit points, ${current} of ${hp}` })).toHaveText(`${current} / ${hp}`);
   });
 }
 

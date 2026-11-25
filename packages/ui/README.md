@@ -34,21 +34,24 @@ bun run test       # vitest
   (`src/button.css`), the fieldset and field styles (`src/field.css`), the
   flash (`src/flash.css`), the checkbox and radio styles
   (`src/check.css`), the number field styles (`src/number-field.css`), the
-  alert dialog and modal dialog styles (`src/dialog.css`),
+  alert dialog, modal dialog and small popup styles (`src/dialog.css`),
   the select, combobox, autocomplete and menu styles (`src/select.css`),
   the list modal, token, picker, number toggle, segmented toggle and chips styles
   (`src/picker.css`),
   the paper pattern, stuck note, note line and use bubble styles
   (`src/paper.css`), and the tabs styles (`src/tabs.css`).
 - `.`: the components and hooks.
-  - `Button`: Base UI Button with `variant` ("ghost", "solid", "link" or
-    "plain"),
+  - `Button`: Base UI Button with `variant` ("ghost", "solid", "link",
+    "plain" or "bare"),
     `size` ("small", "normal" or "large") and `type` ("button" or
     "submit"). A ghost button with `aria-current` shows as solid. For a
     button that is on or off, use `Toggle`. A plain button has the look of
     the text around it, with a line under a mouse, for example a name in a
-    list that opens more; like a link button it has no size. `className` is
-    for layout and spacing; colors and borders come from the variant.
+    list that opens more; like a link button it has no size. A bare button
+    has no look of its own and no size: its `className` draws it all, for
+    example a part of a box that opens a popup. For the other variants,
+    `className` is for layout and spacing; colors and borders come from the
+    variant. It gives a ref.
     `icon` is the name of a pixel icon to show before the text. A button
     with an icon and no text needs an `aria-label`.
     Styles: `src/button.css`.
@@ -166,6 +169,18 @@ bun run test       # vitest
     the body is a flex column, and the owner lays out its parts and sets
     which of them scroll, for example two panes that scroll apart.
     Styles: `src/dialog.css`.
+  - `SmallPopup`: Base UI Popover, a small panel under a box, with a
+    `title` and its controls (`children`), and no close button. The owner
+    gives the opener as `trigger`, a `Button` element whose name says
+    what it opens, and controls `open` and `onOpenChange`. A click on the
+    trigger opens it; a second click, Escape and a click outside close it.
+    At the open, the focus goes to the first field of the popup (else its
+    first control); at the close, it goes back to the trigger. The owner
+    closes it after an action. It opens under `anchor`, by default the
+    trigger, for example under the box that holds two triggers. With
+    `widthOf`, it has the width and the left edge of that element, for
+    example the panel that holds the box on a narrow page. It is 320px
+    wide by default. It is not modal. Styles: `src/dialog.css`.
   - `Select`: Base UI Select, a pick of one value from a list. Its role is
     combobox, and its text is the picked option. It is controlled by
     `value` (null while nothing is picked) and `onValueChange`. Each of

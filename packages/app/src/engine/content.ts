@@ -1,7 +1,7 @@
 // The content of one homebrew pack, as the old My Content page lists it
 // (views.cljs my-content-item): one list per content type, in its order.
 import type { ContentType } from "@pubdoor/dmv";
-import type { Engine } from "./engine.ts";
+import type { Engine, StrictEntity } from "./engine.ts";
 
 /** The old page's lists, in its order, with the name for one item and for more, and the validator of an item. */
 export const CONTENT_TYPES: { type: ContentType; one: string; many: string; validator: keyof Engine["validate"] }[] = [
@@ -212,4 +212,10 @@ export function sameRecord(a: unknown, b: unknown): boolean {
   const left = filled(a);
   const right = new Map(filled(b));
   return left.length === right.size && left.every(([key, value]) => right.has(key) && sameRecord(value, right.get(key)));
+}
+
+/** The values map of a strict entity, from its object or its JSON text; {} without one. */
+export function strictValues(entity: StrictEntity): Record<string, unknown> {
+  const strict = (typeof entity === "string" ? JSON.parse(entity) : entity) as { "~:orcpub.entity.strict/values"?: Record<string, unknown> };
+  return strict["~:orcpub.entity.strict/values"] ?? {};
 }
