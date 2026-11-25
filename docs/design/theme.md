@@ -675,7 +675,7 @@ The left column is at least 320px wide.
 * **Defenses** (resistances and immunities), shown only when the character
   has any.
 * **AC by armor**, a table of the AC with each armor the character has. The
-  row whose AC shows in the Armor Class box has a dot and bold text, and
+  row whose AC shows in the Armor Class box has an "E" in a box and bold text, and
   the worn pair has the tag "worn".
 
 The [Sheet interactivity spec](sheet-interactivity.md) has the rules for

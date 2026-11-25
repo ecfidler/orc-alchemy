@@ -19,7 +19,7 @@ const menu = (page: Page) => page.getByRole("menu", { name: "Armor class shows" 
 /** A menu entry by its text and AC. The AC is a part of its name, after a space. */
 const entry = (page: Page, text: string, ac: number) => menu(page).getByRole("menuitemradio", { name: `${text} ${ac}`, exact: true });
 const table = (page: Page) => page.getByRole("table", { name: "Armor class options" });
-/** The rows of the table as "● Plate + Shield WORN 20 bold", from the text that shows. */
+/** The rows of the table as "E Plate + Shield WORN 20 bold", from the text that shows. */
 const tableRows = (page: Page) =>
   table(page)
     .locator("tbody tr")
@@ -32,7 +32,7 @@ const tableRows = (page: Page) =>
         return [cells[0]?.textContent ?? "", shown(cells[1]), tag, shown(cells[2]), bold ? "bold" : ""].filter(Boolean).join(" ");
       }),
     );
-/** The layout of the table. The dot is not a part: it comes and goes. */
+/** The layout of the table. The mark is not a part: it comes and goes. */
 const tableLayout = (page: Page) => layoutOf(table(page), "[role=img]");
 
 const phone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 720;
@@ -55,7 +55,7 @@ async function pick(page: Page, from: number, text: string, ac: number) {
   await expect(menu(page)).toHaveCount(0);
 }
 
-const WORN = ["Chain Mail + Shield 18", "Chain Mail 16", "● Plate + Shield worn 20 bold", "Plate 18", "Unarmored + Shield 15", "Unarmored 13"];
+const WORN = ["Chain Mail + Shield 18", "Chain Mail 16", "E Plate + Shield worn 20 bold", "Plate 18", "Unarmored + Shield 15", "Unarmored 13"];
 
 test("the box opens the menu Armor class shows: Worn armor, then each row of the table with its AC", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -93,7 +93,7 @@ test("a pick changes only the number and the marks of the table; the record chan
   await expect(statusLine(page)).toHaveText("");
   await expect
     .poll(() => tableRows(page))
-    .toEqual(["Chain Mail + Shield 18", "● Chain Mail 16 bold", "Plate + Shield worn 20", "Plate 18", "Unarmored + Shield 15", "Unarmored 13"]);
+    .toEqual(["Chain Mail + Shield 18", "E Chain Mail 16 bold", "Plate + Shield worn 20", "Plate 18", "Unarmored + Shield 15", "Unarmored 13"]);
   // The whole record: only the pick is new. The worn armor and the shield stay.
   await expect.poll(() => storedValues(page)).toEqual({ ...before, [AC_PICK]: { "~:armor": "~:chain-mail", "~:shield": null } });
 
@@ -157,7 +157,7 @@ test("a pick of the worn row is stored as a pick, and the menu checks that row, 
   await expect(entry(page, "Worn armor", 20)).toHaveAttribute("aria-checked", "false");
 });
 
-test("the table marks: the dot is an image with a name, the worn tag, and the bold row", async ({ page }) => {
+test("the table marks: the mark E is an image with a name, the worn tag, and the bold row", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openSheet(page, { [AC_PICK]: { "~:armor": "~:plate", "~:shield": null } });
   await expect(acBox(page, 18)).toBeVisible();
@@ -168,7 +168,7 @@ test("the table marks: the dot is an image with a name, the worn tag, and the bo
     "Chain Mail + Shield 18",
     "Chain Mail 16",
     "Plate + Shield worn 20",
-    "● Plate 18 bold",
+    "E Plate 18 bold",
     "Unarmored + Shield 15",
     "Unarmored 13",
   ]);
@@ -187,7 +187,7 @@ test("the pick stays in an export and shows after an import", async ({ page }) =
   await page.getByLabel("Import character file").setInputFiles(await (await downloading).path());
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(acBox(page, 18)).toBeVisible();
-  expect(await tableRows(page)).toContain("● Plate 18 bold");
+  expect(await tableRows(page)).toContain("E Plate 18 bold");
 });
 
 test("the keyboard: Enter opens the menu, the arrow keys move, Enter picks, and the focus goes back to the box", async ({ page }) => {
@@ -237,7 +237,7 @@ for (const width of [1280, 390]) {
     await page.mouse.move(0, 0);
     expect(await vitalsLayout(page), "the vitals panel").toEqual(vitals);
     await tab(page, "More");
-    await expect.poll(() => tableRows(page)).toContain("● Unarmored 13 bold");
+    await expect.poll(() => tableRows(page)).toContain("E Unarmored 13 bold");
     expect(await tableLayout(page), "the table").toEqual(rows);
   });
 }

@@ -1009,7 +1009,7 @@ test("a pick changes only the number in the box, checks its row in the menu, and
   expect(box.textContent).toBe("16Armor Class");
   expect(acTable()).toEqual([
     ["", "Chain Mail + Shield", "", "18", false],
-    ["●", "Chain Mail", "", "16", true],
+    ["E", "Chain Mail", "", "16", true],
     ["", "Plate + Shield", "worn", "20", false],
     ["", "Plate", "", "18", false],
     ["", "Unarmored + Shield", "", "15", false],
@@ -1029,7 +1029,7 @@ test("a pick changes only the number in the box, checks its row in the menu, and
 test("a pick of a pair that is not in the table is ignored: the worn AC shows, and Worn armor is checked (ORC-325)", async () => {
   render(<CharacterSheet sheet={pickedSheet({ "~:armor": "~:leather", "~:shield": null })} play={playMocks()} />);
   const box = screen.getByRole("button", { name: "Armor class, 20" });
-  expect(acTable().filter(([dot]) => dot === "●")).toEqual([["●", "Plate + Shield", "worn", "20", true]]);
+  expect(acTable().filter(([dot]) => dot === "E")).toEqual([["E", "Plate + Shield", "worn", "20", true]]);
   fireEvent.click(box);
   const menu = await screen.findByRole("menu", { name: "Armor class shows" });
   expect(
@@ -1043,8 +1043,8 @@ test("without play, the Armor Class box is not a button; the table shows the sam
   render(<CharacterSheet sheet={pickedSheet({ "~:armor": "~:plate", "~:shield": null })} />);
   expect(screen.queryByRole("button", { name: /^Armor class/ })).toBeNull();
   expect(screen.getByLabelText("Armor Class").textContent).toBe("18");
-  expect(acTable().filter(([dot, , tag]) => dot === "●" || tag === "worn")).toEqual([
+  expect(acTable().filter(([dot, , tag]) => dot === "E" || tag === "worn")).toEqual([
     ["", "Plate + Shield", "worn", "20", false],
-    ["●", "Plate", "", "18", true],
+    ["E", "Plate", "", "18", true],
   ]);
 });

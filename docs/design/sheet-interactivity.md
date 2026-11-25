@@ -781,12 +781,12 @@ The decisions are in ORC-304, and the look is in ORC-312.[^orc-304] [^orc-312]
 * A pick changes only the number in the Armor Class box. The app never
   writes `worn-armor` or `wielded-shield` from the sheet.
 * The Armor Class box has no caption for the pick.
-* In the table "AC by armor", the row whose AC shows has a dot and bold
+* In the table "AC by armor", the row whose AC shows has an "E" in a box and bold
   text. The worn pair has the tag "worn".
 * When the pick names a pair that is not in the table, the app ignores
   it, with no message. The AC of the worn armor shows.
-* Without a pick, the dot is on the worn row. When no row is worn, the
-  box shows the best AC, as the old app does, and the dot is on the first
+* Without a pick, the mark is on the worn row. When no row is worn, the
+  box shows the best AC, as the old app does, and the mark is on the first
   row with that AC.
 * In the menu, each entry shows its AC at the end of its line, and the
   entry that shows is checked. "Worn armor" is checked when there is no

@@ -325,15 +325,19 @@ export function CharacterSheet({
   );
   const armorOptionsSection = sheet.armorClassOptions.length > 0 && (
     <FramedBox label="AC by armor">
-      {/* The row whose AC the Armor Class box shows has a dot and bold text, and the worn pair has the tag "worn" (ORC-325).
-          The column of the dot and the width of the bold text are kept, so a pick moves no text. */}
+      {/* The row whose AC the Armor Class box shows has an "E" in a box and bold text, and the worn pair has the tag "worn" (ORC-325).
+          The column of the mark and the width of the bold text are kept, so a pick moves no text. */}
       <Table caption="Armor class options" headers={[<span className="sr-only">Shows</span>, "Armor", "AC"]}>
         {sheet.armorClassOptions.map((option, i) => (
           <tr key={i} data-ac-shown={option.shown ? "" : undefined} className={option.shown ? "font-semibold" : undefined}>
-            <Td className="w-4 text-center">
+            <Td className="w-6 text-center">
               {option.shown && (
-                <span role="img" aria-label="Shows in the Armor Class box">
-                  ●
+                <span
+                  role="img"
+                  aria-label="Shows in the Armor Class box"
+                  className="inline-flex size-[15px] items-center justify-center border-[1.5px] border-ink font-sans text-[10px] leading-none font-bold"
+                >
+                  E
                 </span>
               )}
             </Td>
