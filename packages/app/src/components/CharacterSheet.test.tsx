@@ -582,6 +582,7 @@ const playMocks = () => ({
   onConditions: vi.fn(),
   onInspiration: vi.fn(),
   onAcPick: vi.fn(),
+  onDismissNote: vi.fn(),
 });
 
 test("with play, the Inspiration box is a button: a click sets inspiration, and a second click removes it (ORC-324)", () => {

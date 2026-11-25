@@ -198,7 +198,8 @@ export interface SheetPlay {
    * The next action removes it, and so does its Dismiss button, which calls `onDismissNote`.
    */
   concentrationNote?: ConcentrationNote | null;
-  onDismissNote?: () => void;
+  /** Takes the concentration note away after a click on its Dismiss button (ORC-326). */
+  onDismissNote: () => void;
 }
 
 export interface Spellcasting extends SpentSlotGroups {

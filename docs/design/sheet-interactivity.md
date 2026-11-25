@@ -280,7 +280,7 @@ Bless: Constitution save, DC 10." The note has a Dismiss button.
 * The note does not hide with the time. It stays until Dismiss, or until
   the next action. Each action that ends the mark, for example the X of
   the mark or a long rest, is a next action.
-* After Dismiss from the keyboard, the focus goes back to where it was
+* After Dismiss, the focus goes back to where it was
   before it went into the toast.
 * The app does not roll the save and does not end the concentration.
 

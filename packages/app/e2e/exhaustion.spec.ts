@@ -204,13 +204,13 @@ for (const [width, height] of [
     await expect(hpCaption).toHaveText("");
     expect(await layout(page), "level 3").toEqual(one);
     await oneMore(page, 4);
+    await expect(statusLine(page)).toHaveText("Exhaustion 3 → 4, hit points 40 → 27.");
     // Level 4 halves the maximum and writes the current hit points down to it.
     await expect(hitPoints(page)).toHaveAttribute("aria-label", "Hit points, 27 of 27. Maximum halved\u00a0· Exhaustion");
     await expect(hpCaption).toHaveText("Maximum halved\u00a0· Exhaustion");
     await expect(hpCaption).toHaveCSS("text-transform", "uppercase");
     // The caption is one line in the box, clear of the Temporary part.
     await expectCaptionInBox(page);
-    await expect(statusLine(page)).toHaveText("Exhaustion 3 → 4, hit points 40 → 27.");
     await expect.poll(async () => (await storedValues(page))[CURRENT]).toBe(27);
     expect(await layout(page), "level 4").toEqual(one);
     await oneMore(page, 5);

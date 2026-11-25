@@ -63,7 +63,7 @@ test("without a cast handler the spell view has no control, and its name block i
   expect(document.querySelector("[data-name-block]")).toBeNull();
 });
 
-test("Cast is beside the name with the sparkles icon and its hint; it casts at the spell level, and the control has no status line", async () => {
+test("Cast is beside the name with the sparkles icon and its hint; it casts at the spell level, and the control has no status text of its own", async () => {
   const onCast = vi.fn();
   const view = await renderPanel(BLESS, onCast);
   const group = view.getByRole("group", { name: "Cast Bless" });

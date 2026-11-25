@@ -16,7 +16,7 @@ import {
 } from "./play.ts";
 
 /**
- * The entity after an action of the box, and the text of the status line.
+ * The entity after an action of the box, and the status text.
  * `max` is the hit point maximum of the engine, before exhaustion. Add and
  * remove read the conditions of the record as it is now. An action that
  * changes nothing (a condition that is set already, or not set, no mark to

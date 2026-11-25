@@ -5,7 +5,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { concentrationNote, layoutOf, openWithValues, statusLine, toast, vitals } from "./play-helpers.ts";
+import { concentrationNote, layoutOf, openWithValues, pauseClock, statusLine, toast, vitals } from "./play-helpers.ts";
 
 /** fighter-5: 54 hit points, 40 of them stored as current. */
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
@@ -62,12 +62,6 @@ async function inViewport(page: Page, locator: ReturnType<typeof toast>) {
   expect(box.y).toBeGreaterThanOrEqual(0);
   expect(box.y + box.height).toBeLessThanOrEqual(height - 16 + 0.5);
   return box;
-}
-
-/** Pauses the clock of the page just after now, so that the test moves the time from here. */
-async function pauseNow(page: Page) {
-  const now = await page.evaluate(() => Date.now());
-  await page.clock.pauseAt(now + 50);
 }
 
 for (const [size, width, height] of SIZES) {
@@ -127,13 +121,13 @@ test("the status hides after about 6 seconds, a new text starts the time again, 
   await openSheet(page);
   await hitPointsAct(page, "2", "Damage");
   await expect(statusLine(page)).toHaveText("2 damage.");
-  await pauseNow(page);
+  await pauseClock(page);
   await page.clock.runFor(4500);
   await expect(statusLine(page)).toHaveText("2 damage.");
   // The same text again: it shows again, with a new time.
   await page.clock.resume();
   await hitPointsAct(page, "2", "Damage");
-  await pauseNow(page);
+  await pauseClock(page);
   await page.clock.runFor(4500);
   await expect(statusLine(page)).toHaveText("2 damage.");
   await page.clock.runFor(2500);
@@ -148,7 +142,7 @@ test("the status does not hide while the pointer is on the toast; it hides after
   await hitPointsAct(page, "3", "Damage");
   await expect(statusLine(page)).toHaveText("3 damage.");
   await statusLine(page).locator("> *").hover();
-  await pauseNow(page);
+  await pauseClock(page);
   await page.clock.runFor(20_000);
   await expect(statusLine(page)).toHaveText("3 damage.");
   await page.mouse.move(0, 0);
@@ -180,6 +174,78 @@ test("Dismiss is reachable with Tab after the sheet, and Enter takes the note aw
   await page.keyboard.press("Enter");
   await expect(concentrationNote(page)).toHaveText("");
   await expect(last).toBeFocused();
+});
+
+test("after a click on Dismiss, the next status text hides after its time, also when the pointer does not move", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.clock.install();
+  await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
+  await hitPointsAct(page, "24", "Damage");
+  // The click takes away the note under the pointer, and the pointer stays where the note was.
+  await concentrationNote(page).getByRole("button", { name: "Dismiss the concentration note" }).click();
+  await expect(concentrationNote(page)).toHaveText("");
+  // A new status text from the keyboard, so that the pointer does not move.
+  await conditionsBox(page).getByRole("button", { name: "Add condition" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menu").getByRole("menuitem").first()).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(statusLine(page)).toHaveText("Charmed added.");
+  await pauseClock(page);
+  await page.clock.runFor(6500);
+  await expect(statusLine(page)).toHaveText("");
+});
+
+test("with prefers-reduced-motion: reduce, the status and the note do not move or fade", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
+  await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
+  await hitPointsAct(page, "24", "Damage");
+  await expect(statusLine(page)).toHaveText("24 damage.");
+  await expect(concentrationNote(page)).not.toHaveText("");
+  const animations = () => toast(page).evaluate((element) => element.getAnimations({ subtree: true }).length);
+  // No fade in.
+  expect(await animations()).toBe(0);
+  // At the end of the time the text stays for the time of the fade, with no fade, then it goes.
+  await pauseClock(page);
+  await page.clock.runFor(6050);
+  await expect(statusLine(page).locator("> [data-leaving]")).toHaveCount(1);
+  expect(await animations()).toBe(0);
+  await expect(statusLine(page).locator("> *")).toHaveCSS("opacity", "1");
+  await page.clock.runFor(300);
+  await expect(statusLine(page)).toHaveText("");
+});
+
+test("a menu that the user opens after the text is over the toast", async ({ page }) => {
+  // On a phone the note is about as wide as the screen, and the Add condition button can be near the bottom.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
+  await hitPointsAct(page, "24", "Damage");
+  await expect(concentrationNote(page)).not.toHaveText("");
+  const note = concentrationNote(page).locator("> *");
+  await expect.poll(() => note.evaluate((element) => element.getAnimations().length)).toBe(0);
+  // The button goes to the bottom of the screen, so that the menu opens up, over the toast.
+  const add = conditionsBox(page).getByRole("button", { name: "Add condition" });
+  await add.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    window.scrollBy(0, box.bottom - (window.innerHeight - 40));
+  });
+  await add.click();
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  await expect.poll(() => menu.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(0);
+  const a = (await menu.boundingBox())!;
+  const b = (await note.boundingBox())!;
+  const left = Math.max(a.x, b.x);
+  const right = Math.min(a.x + a.width, b.x + b.width);
+  const top = Math.max(a.y, b.y);
+  const bottom = Math.min(a.y + a.height, b.y + b.height);
+  // The menu and the note have a part in common, at least 8px on each side, so that the test has a point to look at.
+  expect(right - left).toBeGreaterThan(8);
+  expect(bottom - top).toBeGreaterThan(8);
+  const onTop = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("[role=menu]") !== null, [(left + right) / 2, (top + bottom) / 2]);
+  expect(onTop).toBe(true);
 });
 
 // Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/status-toast.spec.ts -g orc-326 --trace off

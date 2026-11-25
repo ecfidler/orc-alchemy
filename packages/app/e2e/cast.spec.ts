@@ -217,8 +217,9 @@ test("a cast that needs concentration sets the mark; a second one asks first, an
   await expect(ask.getByRole("button", { name: "Cast and end Bless" })).toBeFocused();
   await ask.getByRole("button", { name: "Cancel" }).click();
   await expect(ask).toBeHidden();
-  // Cancel casts nothing, so the toast still has the text of the last cast.
-  await expect(status(page)).toHaveText("Cast Bless. 1st-level slots −1 (2 left).");
+  // Cancel casts nothing, so the toast has no text of a new cast. The text of the last cast can hide with the time.
+  await expect(status(page)).not.toContainText("Shield of Faith");
+  await expect.poll(async () => (await storedValues(page))[CONCENTRATION]).toBe("~:bless");
   await expect(castButton(page, "Shield of Faith")).toBeFocused();
   await castButton(page, "Shield of Faith").click();
   await ask.getByRole("button", { name: "Cast and end Bless" }).click();

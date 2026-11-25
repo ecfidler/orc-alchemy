@@ -6,21 +6,21 @@
 import { Toast } from "@orc-alchemy/ui";
 import { concentrationNoteText } from "../engine/conditions.ts";
 import type { SheetPlay } from "../engine/sheet.ts";
-import { useMarkName } from "./ConditionsBox.tsx";
+import { useMarkName } from "../state/spell-records.ts";
 
 export function StatusToast({ play }: { play: Pick<SheetPlay, "status" | "statusKey" | "concentrationNote" | "onDismissNote"> }) {
   const note = play.concentrationNote ?? null;
   const name = useMarkName(note?.spell ?? "");
-  const onDismiss = play.onDismissNote;
   return (
     <Toast
       status={play.status}
       statusKey={play.statusKey ?? 0}
       noteName="Concentration note"
       note={
-        note && onDismiss
-          ? { text: concentrationNoteText(name, note.dc), action: { label: "Dismiss", name: "Dismiss the concentration note", onClick: onDismiss } }
-          : null
+        note && {
+          text: concentrationNoteText(name, note.dc),
+          action: { label: "Dismiss", name: "Dismiss the concentration note", onClick: play.onDismissNote },
+        }
       }
     />
   );

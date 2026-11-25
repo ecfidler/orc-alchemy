@@ -49,6 +49,16 @@ export const toast = (page: Page) => page.locator(".ui-toast");
  */
 export const statusLine = (page: Page) => toast(page).locator("[data-toast-status]");
 
+/**
+ * Pauses the clock of the page just after now, so that the test moves the time from here. The status text hides after
+ * its time on the real clock, so a test that checks it after slow steps pauses the clock first. The test must call
+ * `page.clock.install()` before the page opens.
+ */
+export async function pauseClock(page: Page) {
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 50);
+}
+
 /** The concentration note of the toast (ORC-322): a status that is always there, and empty without a note. */
 export const concentrationNote = (page: Page) => toast(page).getByRole("status", { name: "Concentration note" });
 

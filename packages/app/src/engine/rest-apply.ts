@@ -72,7 +72,7 @@ function giveBackDawn(uses: Map<string, Map<string, number>>, dawn: readonly Res
 }
 
 /**
- * The entity after a Short rest, and the text of the status line.
+ * The entity after a Short rest, and the status text.
  *
  * - Each spent die becomes spent, and the dice heal by the Heal rule: the
  *   hit points stop at the maximum, and the death save counts clear.
@@ -150,7 +150,7 @@ function applyLongRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest: 
 }
 
 /**
- * The entity after a rest, and the text of the status line. The rules read
+ * The entity after a rest, and the status text. The rules read
  * what the rest can change from the sheet that shows, as the dialog did,
  * and write all the changes together, so that the caller makes them one
  * sheet change.

@@ -6,7 +6,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { aboveBox, concentrationNote, layout, layoutOf, openWithValues, statusLine, storedValues, vitals } from "./play-helpers.ts";
+import { aboveBox, concentrationNote, layout, layoutOf, openWithValues, pauseClock, statusLine, storedValues, vitals } from "./play-helpers.ts";
 
 /** Life cleric 9: Bless needs concentration. The record has no race, so its speed is 0. */
 const CLERIC = join(import.meta.dirname, "life-cleric-9.strict.json");
@@ -75,7 +75,7 @@ test("add and remove a condition; the menu lists only the conditions that are no
   await expect.poll(async () => (await storedValues(page))[CONDITIONS]).toEqual({ "~#set": ["~:blinded", "~:poisoned"] });
   await page.reload();
   await expect.poll(() => tokenNames(page)).toEqual(["Blinded", "Poisoned"]);
-  // The status line starts empty after the reload.
+  // The status toast starts empty after the reload.
   await expect(statusLine(page)).toHaveText("");
   await box(page).getByRole("button", { name: "Remove Blinded" }).click();
   await expect(statusLine(page)).toHaveText("Blinded removed.");
@@ -204,6 +204,7 @@ test("a cast that needs concentration shows the mark as the first token; its X e
 
 test("after Damage with a mark, the yellow note in the toast gives the DC and moves nothing; Dismiss and the next action remove it", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
+  await page.clock.install();
   await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
   const before = await layout(page);
   await expect(concentrationNote(page)).toHaveText("");
@@ -211,9 +212,12 @@ test("after Damage with a mark, the yellow note in the toast gives the DC and mo
   await expect(statusLine(page)).toHaveText("24 damage.");
   await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 12. Dismiss");
   expect(await layout(page)).toEqual(before);
+  // The clock stops, so that the status text does not hide with the time before the check after Dismiss.
+  await pauseClock(page);
   await concentrationNote(page).getByRole("button", { name: "Dismiss the concentration note" }).click();
   await expect(concentrationNote(page)).toHaveText("");
   await expect(statusLine(page)).toHaveText("24 damage.");
+  await page.clock.resume();
   // Damage does not end the concentration. A small hit gives DC 10; the next action takes the note away.
   await hitPointsAct(page, "3", "Damage");
   await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 10. Dismiss");
@@ -280,6 +284,7 @@ test("a cast and a change of the spent slots are the next action: they take the 
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
+  await page.clock.install();
   await openSheet(page, CLERIC, { [CONCENTRATION]: "~:bless" });
   await hitPointsAct(page, "3", "Damage");
   await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 10. Dismiss");
@@ -288,6 +293,8 @@ test("a cast and a change of the spent slots are the next action: they take the 
   await expect(statusLine(page)).toHaveText("Cast Bless. 1st-level slots −1 (3 left).");
   await hitPointsAct(page, "3", "Damage");
   await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 10. Dismiss");
+  // The clock stops, so that the status text does not hide with the time before the last check.
+  await pauseClock(page);
   await page.getByRole("slider", { name: "1st-level slots" }).locator(".ui-slot-circle").first().click();
   await expect(concentrationNote(page)).toHaveText("");
   await expect(statusLine(page)).toHaveText("3 damage.");

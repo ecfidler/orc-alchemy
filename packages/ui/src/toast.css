@@ -46,6 +46,7 @@
     pointer-events: auto;
     animation: ui-toast-in 0.16s ease-out;
   }
+  /* The time of the fade must be the same as FADE_OUT_MS in Toast.tsx. */
   .ui-toast-status:where([data-leaving]) {
     animation: ui-toast-out 0.2s ease-in forwards;
   }

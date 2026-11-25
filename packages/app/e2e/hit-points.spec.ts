@@ -1,4 +1,4 @@
-// The Hit points box, its two popups and the status line (ORC-314,
+// The Hit points box, its two popups and the status toast (ORC-314,
 // docs/design/sheet-interactivity.md "Hit points").
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -87,7 +87,7 @@ test("damage at 0 and instant death write the death saves; Heal clears them; the
   await expect(hitPoints(page)).toHaveAccessibleName("Hit points, 0 of 54");
   await expect(temporary(page)).toHaveAccessibleName("Temporary hit points, 6");
   await expect(page.getByRole("button", { name: "Dead", exact: true })).toBeVisible();
-  // The status line starts empty when the sheet opens.
+  // The status toast starts empty when the sheet opens.
   await expect(statusLine(page)).toHaveText("");
   await act(page, "hit-points", "5", "Heal");
   await expect(page.getByRole("slider", { name: "Death save failures" })).toHaveAttribute("aria-valuetext", "0 of 3");

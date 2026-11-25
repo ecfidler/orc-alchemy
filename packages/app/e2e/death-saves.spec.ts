@@ -95,7 +95,7 @@ test("the circles change at any hit points; three successes do not change the hi
   await expect(failures(page)).toHaveAttribute("aria-valuetext", "2 of 3");
   await failures(page).locator(".ui-slot-circle").nth(1).click();
   await expect(failures(page)).toHaveAttribute("aria-valuetext", "1 of 3");
-  // A circle click leaves the status line as it was.
+  // A circle click leaves the status text as it was.
   await expect(statusLine(page)).toHaveText("");
   await page.reload();
   await expect(successes(page)).toHaveAttribute("aria-valuetext", "3 of 3");

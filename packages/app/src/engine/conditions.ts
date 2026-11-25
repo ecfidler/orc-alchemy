@@ -207,14 +207,14 @@ export type ConditionAction =
   | { kind: "end-concentration"; name: string }
   | { kind: "exhaustion"; level: number };
 
-/** The status line after an action: "Poisoned added.", "Poisoned removed.", "Concentration on Bless ended." */
+/** The status text after an action: "Poisoned added.", "Poisoned removed.", "Concentration on Bless ended." */
 export function conditionStatus(action: Exclude<ConditionAction, { kind: "exhaustion" }>): string {
   if (action.kind === "end-concentration") return `Concentration on ${action.name} ended.`;
   return `${conditionName(action.condition)} ${action.kind === "add" ? "added" : "removed"}.`;
 }
 
 /**
- * The status line after a change of the exhaustion level: "Exhaustion
+ * The status text after a change of the exhaustion level: "Exhaustion
  * added.", "Exhaustion removed.", "Exhaustion 1 → 2." With `hitPoints`, the
  * current hit points that level 4 wrote down: "Exhaustion 3 → 4, hit points
  * 30 → 22."

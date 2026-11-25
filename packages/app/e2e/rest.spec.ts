@@ -150,7 +150,7 @@ test("the list says what the rest will change, with signed counts and an arrow f
   ]);
 });
 
-test("Finish writes all the changes at once and the status line says so; Cancel changes nothing", async ({ page }) => {
+test("Finish writes all the changes at once and the status toast says so; Cancel changes nothing", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openWithValues(page, MULTICLASS, PLAY);
   const before = await storedValues(page);

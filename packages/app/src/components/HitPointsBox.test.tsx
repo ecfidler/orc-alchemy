@@ -90,6 +90,7 @@ const playOf = (
   onConditions: vi.fn(),
   onInspiration: vi.fn(),
   onAcPick: vi.fn(),
+  onDismissNote: vi.fn(),
 });
 
 const hitPointsButton = () => screen.getByRole("button", { name: /^Hit points, / });
@@ -130,7 +131,7 @@ test("without play, as in the builder preview, the box has no buttons and shows 
   expect(screen.queryByRole("button", { name: /hit points/i })).toBeNull();
   expect(screen.getByLabelText("Hit Points").textContent).toBe("12 / 44");
   expect(screen.getByLabelText("Temporary").textContent).toBe("5");
-  // No status line.
+  // No status toast.
   expect(screen.queryByRole("status")).toBeNull();
 });
 

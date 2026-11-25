@@ -1,11 +1,14 @@
-import { type FocusEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type FocusEvent, type PointerEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./Button.tsx";
 
 /** The time in ms that a status text shows, when the pointer and the focus are not on the toast. */
 export const TOAST_DURATION = 6000;
-/** The time in ms of the fade at the end. With `prefers-reduced-motion: reduce` there is no fade, and the text stays for this time. */
-const LEAVE = 200;
+/**
+ * The time in ms of the fade at the end. With `prefers-reduced-motion: reduce` there is no fade, and the text stays for
+ * this time. It must be the same as the time of the `ui-toast-out` animation in toast.css.
+ */
+const FADE_OUT_MS = 200;
 
 /** A note of the toast: its text and its one action, for example "Dismiss". */
 export interface ToastNote {
@@ -52,7 +55,7 @@ export function Toast({ status, statusKey, note = null, noteName = "Note", durat
   }, [phase, held, statusKey, duration]);
   useEffect(() => {
     if (phase !== "leaving") return;
-    const timer = setTimeout(() => setHidden({ key: statusKey, phase: "closed" }), LEAVE);
+    const timer = setTimeout(() => setHidden({ key: statusKey, phase: "closed" }), FADE_OUT_MS);
     return () => clearTimeout(timer);
   }, [phase, statusKey]);
 
@@ -67,8 +70,23 @@ export function Toast({ status, statusKey, note = null, noteName = "Note", durat
     if ((active === null || active === document.body) && cameFrom.current?.isConnected) cameFrom.current.focus();
     if (!root.current?.contains(document.activeElement)) setFocus(false);
   }, [note]);
+  // A click on the note's action takes away the element under the pointer, and the browser can then send no
+  // pointerleave. When the note goes away, the toast is held only if the pointer is still on it. The test is a hit
+  // test at the last point of the pointer, because `:hover` can stay on the parent of the removed element.
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  useLayoutEffect(() => {
+    if (note !== null) return;
+    const at = pointer.current;
+    // jsdom has no elementFromPoint.
+    const under = at && document.elementFromPoint?.(at.x, at.y);
+    if (!(under && root.current?.contains(under))) setHover(false);
+  }, [note]);
 
-  const hold = () => {
+  const track = (event: PointerEvent) => {
+    pointer.current = { x: event.clientX, y: event.clientY };
+  };
+  const hold = (event: PointerEvent) => {
+    track(event);
     setHover(true);
     // A pointer that comes back during the fade keeps the text.
     setHidden((last) => (last?.phase === "leaving" ? null : last));
@@ -82,7 +100,16 @@ export function Toast({ status, statusKey, note = null, noteName = "Note", durat
   };
 
   return createPortal(
-    <div ref={root} className="ui-toast" onPointerEnter={hold} onPointerLeave={() => setHover(false)} onFocus={onFocus} onBlur={onBlur}>
+    <div
+      ref={root}
+      className="ui-toast"
+      onPointerEnter={hold}
+      onPointerMove={track}
+      onPointerDown={track}
+      onPointerLeave={() => setHover(false)}
+      onFocus={onFocus}
+      onBlur={onBlur}
+    >
       {/* aria-live too: a modal dialog hides the rest of the page from a screen reader, but not a live region. */}
       <div role="status" aria-live="polite" aria-label={noteName} data-toast-note="" className="ui-toast-region">
         {note && (

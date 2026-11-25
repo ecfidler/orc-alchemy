@@ -108,6 +108,21 @@ test("the status does not hide while the pointer is on the toast", () => {
   expect(toast.isConnected).toBe(true);
 });
 
+test("a click on the note's action that sends no pointerleave does not hold the next status", () => {
+  render(<Page withNote />);
+  fireEvent.click(screen.getByRole("button", { name: "Act" }));
+  const dismiss = within(note()).getByRole("button", { name: "Dismiss the test note" });
+  fireEvent.pointerOver(dismiss);
+  // The click takes the note away from under the pointer, and no pointerleave comes.
+  fireEvent.click(dismiss);
+  expect(note().textContent).toBe("");
+  fireEvent.click(screen.getByRole("button", { name: "Other" }));
+  expect(status().textContent).toBe("Other text.");
+  wait(TOAST_DURATION);
+  wait(200);
+  expect(status().textContent).toBe("");
+});
+
 test("the status does not hide while the focus is on the toast", () => {
   render(<Page withNote />);
   fireEvent.click(screen.getByRole("button", { name: "Act" }));

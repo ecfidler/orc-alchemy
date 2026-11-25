@@ -17,15 +17,8 @@ import {
   statusTokens,
 } from "../engine/conditions.ts";
 import { type Condition, EXHAUSTION_LIMIT } from "../engine/play.ts";
-import { keyToName, type Sheet } from "../engine/sheet.ts";
-import { spellName } from "../engine/spell-records.ts";
-import { useSpellLookup } from "../state/spell-records.ts";
-
-/** The name of the spell of the concentration mark that shows: the name of its record, or the name that the app makes from the key. */
-export function useMarkName(key: string) {
-  const lookup = useSpellLookup();
-  return lookup === null ? keyToName(key) : spellName(lookup, key, keyToName(key));
-}
+import type { Sheet } from "../engine/sheet.ts";
+import { useMarkName } from "../state/spell-records.ts";
 
 export interface ConditionsBoxProps {
   sheet: Pick<Sheet, "concentration" | "conditions" | "conditionImmune" | "currentHitPoints" | "deathSaves" | "exhaustion">;

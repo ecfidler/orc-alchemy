@@ -135,6 +135,7 @@ test("the preview draws each feature as the sheet draws it, under the same headi
             onConditions: vi.fn(),
             onInspiration: vi.fn(),
             onAcPick: vi.fn(),
+            onDismissNote: vi.fn(),
           }}
         />
       </section>

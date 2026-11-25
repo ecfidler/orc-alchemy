@@ -98,7 +98,7 @@ test("the box shows the dice left of each die size, the largest first; two class
   await expect(popup(page).getByRole("group")).toHaveText([/^d10/, /^d8/, /^d6/]);
 });
 
-test("Spend heals the roll and the Constitution modifier, spends one die, and the status line says so; the changes save", async ({ page }) => {
+test("Spend heals the roll and the Constitution modifier, spends one die, and the status toast says so; the changes save", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await open(page, FIGHTER);
   await expect(hitDice(page)).toHaveAccessibleName("Hit dice, 5 of 5 d10");

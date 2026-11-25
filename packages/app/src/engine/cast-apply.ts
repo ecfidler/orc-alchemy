@@ -11,7 +11,7 @@ import { featureUses, type Sheet } from "./sheet.ts";
 import { type SlotGroup, setSpentSlots, spentSlotGroups } from "./spells.ts";
 
 /**
- * The entity after a cast, and the text of the status line.
+ * The entity after a cast, and the status text.
  *
  * - A cast with a slot spends one slot of its group, read from the record as
  *   it is now. A group that cannot cast the spell, or that has no slot

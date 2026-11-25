@@ -8,9 +8,8 @@ import { hitDiceSpent, setHitDiceSpent } from "./play.ts";
 import type { Sheet } from "./sheet.ts";
 
 /**
- * The entity after an action of the Hit dice popup, and the text of the
- * status line. The rules read the spent dice of the record as it is now,
- * with the dice, the hit point maximum and the Constitution modifier that
+ * The entity after an action of the Hit dice popup, and the status text.
+ * The rules read the spent dice of the record as it is now, with the dice, the hit point maximum and the Constitution modifier that
  * the sheet shows. Spend heals by the Heal rule: it clears the death save
  * counts, stops at the maximum and writes no value at full hit points.
  * Regain does not change the hit points. An action that cannot be done
