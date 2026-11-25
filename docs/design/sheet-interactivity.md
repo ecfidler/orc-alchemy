@@ -784,6 +784,15 @@ The decisions are in ORC-304, and the look is in ORC-312.[^orc-304] [^orc-312]
   text. The worn pair has the tag "worn".
 * When the pick names a pair that is not in the table, the app ignores
   it, with no message. The AC of the worn armor shows.
+* Without a pick, the dot is on the worn row. When no row is worn, the
+  box shows the best AC, as the old app does, and the dot is on the first
+  row with that AC.
+* In the menu, each entry shows its AC at the end of its line, and the
+  entry that shows is checked. "Worn armor" is checked when there is no
+  pick. A pick closes the menu. The status line becomes empty, because
+  the number in the box shows the change.
+* On a sheet with no play controls, for example the builder preview, the
+  box is not a button. The table shows the same marks.
 * There is no control for a shield in the off hand. The parity test
   keeps `off-hand-weapon: shield` as a known gap.
 

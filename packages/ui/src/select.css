@@ -69,6 +69,16 @@
   .ui-select-item:where([data-selected]) {
     font-weight: 600;
   }
+  /* The checked item of a menu with radio items. */
+  .ui-select-item:where([role="menuitemradio"][data-checked]) {
+    font-weight: 600;
+  }
+  /* The title of a menu, over its items. */
+  .ui-menu-title {
+    padding: 6px 8px 4px;
+    font-size: 13px;
+    font-weight: 700;
+  }
   /* An item with a note: the note in small muted type at the end of the line. */
   .ui-select-item:where(:has(> .ui-menu-note)) {
     display: flex;

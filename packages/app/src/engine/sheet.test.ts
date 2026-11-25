@@ -33,7 +33,13 @@ test("fighter-20", () => {
     armor: { key: "chain-mail", name: "Chain Mail" },
     shield: null,
     ac: 16,
+    worn: false,
+    shown: false,
   });
+  expect(sheet.armorClassOptions.filter((o) => o.worn || o.shown)).toEqual([
+    { armor: { key: "plate", name: "Plate" }, shield: { key: "shield", name: "Shield" }, ac: 20, worn: true, shown: true },
+  ]);
+  expect([sheet.wornArmorClass, sheet.acPick]).toEqual([20, null]);
   expect(sheet.maxHitPoints).toBe(built["max-hit-points"]);
   expect(sheet.proficiencyBonus).toBe(built["proficiency-bonus"]);
   expect(sheet.initiative).toBe(built.initiative);
@@ -172,6 +178,23 @@ test("inspiration shows only for a stored true (ORC-324)", () => {
   const values = (play: Record<string, unknown>) => ({ "~:orcpub.entity.strict/values": play });
   const shown = (value: unknown) => toSheet(builtOf("fighter-1"), values({ "~:orc-alchemy.play/inspiration": value })).inspiration;
   expect([toSheet(builtOf("fighter-1"), {}).inspiration, shown(true), shown(false), shown("true")]).toEqual([false, true, false, false]);
+});
+
+test("the AC pick shows the AC of its row and marks the row; a pair that is not in the table is ignored (ORC-325)", () => {
+  const withPick = (pick: unknown) => toSheet(builtOf("fighter-20"), { "~:orcpub.entity.strict/values": { "~:orc-alchemy.play/ac-pick": pick } });
+  const marks = (sheet: ReturnType<typeof toSheet>) => sheet.armorClassOptions.flatMap((o, i) => (o.worn || o.shown ? [[i, o.worn, o.shown]] : []));
+  const picked = withPick({ "~:armor": "~:chain-mail", "~:shield": null });
+  expect([picked.armorClass, picked.wornArmorClass, picked.acPick]).toEqual([16, 20, { armor: "chain-mail", shield: null }]);
+  expect(marks(picked)).toEqual([
+    [1, false, true],
+    [2, true, false],
+  ]);
+  const unarmored = withPick({ "~:armor": null, "~:shield": null });
+  expect([unarmored.armorClass, unarmored.acPick]).toEqual([13, { armor: null, shield: null }]);
+  for (const pick of [{ "~:armor": "~:leather", "~:shield": null }, { "~:armor": "~:plate", "~:shield": "~:buckler" }, "~:plate"]) {
+    const ignored = withPick(pick);
+    expect([ignored.armorClass, ignored.wornArmorClass, ignored.acPick, marks(ignored)], JSON.stringify(pick)).toEqual([20, 20, null, [[2, true, true]]]);
+  }
 });
 
 test("resistances and immunities become display strings", () => {

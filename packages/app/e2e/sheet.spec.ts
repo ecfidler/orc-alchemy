@@ -42,7 +42,7 @@ test("importing fighter-1 opens its sheet", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
-  await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText("19");
+  await expect(page.getByRole("button", { name: "Armor class, 19", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Hit points, 12 of 12" })).toHaveText("12 / 12");
 });
 
@@ -53,7 +53,7 @@ test("an imported character survives reload", async ({ page }) => {
 
   await page.reload();
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
-  await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText("19");
+  await expect(page.getByRole("button", { name: "Armor class, 19", exact: true })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
@@ -67,7 +67,7 @@ for (const name of srdGolden) {
     await importGolden(page, name);
 
     await expect(page.getByRole("heading", { level: 1, name: built["character-name"] })).toBeVisible();
-    await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText(String(worn.ac));
+    await expect(page.getByRole("button", { name: `Armor class, ${worn.ac}`, exact: true })).toBeVisible();
     const hp = built["max-hit-points"];
     // The sheet shows the lower of the stored hit points and the maximum (ORC-119).
     const current = Math.min(built["current-hit-points"] ?? hp, hp);

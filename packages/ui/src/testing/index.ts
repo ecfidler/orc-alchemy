@@ -21,7 +21,8 @@ export async function answerConfirmDialog(answer: string): Promise<string> {
 /** The option or menu item named `name` in `list`, once it shows. */
 async function findChoice(list: HTMLElement, name: string | RegExp): Promise<HTMLElement> {
   return waitFor(() => {
-    const choice = within(list).queryByRole("option", { name }) ?? within(list).queryByRole("menuitem", { name });
+    const choice =
+      within(list).queryByRole("option", { name }) ?? within(list).queryByRole("menuitem", { name }) ?? within(list).queryByRole("menuitemradio", { name });
     if (!choice) throw new Error(`No option or menu item ${String(name)} shows.`);
     return choice;
   });
@@ -70,9 +71,10 @@ export async function pickOption(control: HTMLElement, name: string | RegExp): P
  */
 export async function optionNames(control: HTMLElement): Promise<string[]> {
   const list = await openList(control);
-  const names = within(list)
-    .queryAllByRole(control.getAttribute("aria-haspopup") === "menu" ? "menuitem" : "option")
-    .map((choice) => choice.textContent ?? "");
+  const menu = control.getAttribute("aria-haspopup") === "menu";
+  // A menu's items are menu items or radio items, in the order of the list.
+  const choices = menu ? [...list.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')] : within(list).queryAllByRole("option");
+  const names = choices.map((choice) => choice.textContent ?? "");
   fireEvent.keyDown(list, { key: "Escape" });
   await listClosed(control, list);
   return names;

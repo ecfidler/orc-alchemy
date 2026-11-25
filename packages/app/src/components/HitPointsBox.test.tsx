@@ -28,6 +28,8 @@ const sheet: Sheet = {
   passivePerception: 10,
   skills: [],
   armorClass: 16,
+  wornArmorClass: 16,
+  acPick: null,
   armorClassOptions: [],
   maxHitPoints: 44,
   baseMaxHitPoints: 44,
@@ -87,6 +89,7 @@ const playOf = (
   onUses: vi.fn(),
   onConditions: vi.fn(),
   onInspiration: vi.fn(),
+  onAcPick: vi.fn(),
 });
 
 const hitPointsButton = () => screen.getByRole("button", { name: /^Hit points, / });

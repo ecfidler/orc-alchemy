@@ -20,6 +20,7 @@ export async function pickOption(control: Locator, name: string | RegExp): Promi
   await list
     .getByRole("option", { name, exact: true })
     .or(list.getByRole("menuitem", { name, exact: true }))
+    .or(list.getByRole("menuitemradio", { name, exact: true }))
     .click();
   await list.waitFor({ state: "hidden" });
 }

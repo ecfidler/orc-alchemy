@@ -225,7 +225,13 @@ bun run test       # vitest
     to the button, for example to give the focus back to it when a dialog
     that an item opened closes. An item (`MenuItem`) is
     `[value, text, note?]`: the note is short, in small muted type at the
-    end of its line, and a part of the item's name.
+    end of its line, and a part of the item's name. `title` shows a bold
+    title over the items and names the list. With `checked` (the value of
+    one item), the items are radio items (`menuitemradio`): the checked
+    item is bold and has `aria-checked`. `variant="bare"` gives a button
+    with no look of its own: its `className` draws it all, and `children`
+    is its content, for example a box of the page that opens the menu.
+    Then `label` is its name only.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`. Menu takes `className` for its button.
   - `SplitButton`: a `Button` with an arrow part that opens a Base UI
@@ -444,12 +450,12 @@ bun run test       # vitest
   - `answerConfirmDialog(answer)`: waits for the confirm dialog, clicks
     the button named `answer` (the action, or "Cancel"), waits for the
     dialog to close, and returns its question.
-  - `pickOption(control, name)`: picks the option or menu item `name` (a
+  - `pickOption(control, name)`: picks the option, menu item or radio item `name` (a
     string or a RegExp) in a Select, Combobox, Autocomplete or Menu.
     `control` is the combobox or the menu button. In a text field it types
     a string name first, so that the list filters to it.
   - `optionNames(control)`: opens the list, returns the names of its
-    options or menu items, and closes it.
+    options, menu items or radio items, and closes it.
   - `pickFromPicker(button, names)`: clicks `button`, picks each of
     `names` (one name or a list, strings or RegExps) in the ListModal that
     opens, then clicks Done if the modal is still open, and waits for it

@@ -4,11 +4,14 @@
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
+import { acShown } from "./ac-pick.ts";
 import { type ConcentrationNote, type ConditionAction, conditionsOf, shownMaxHitPoints, shownSpeeds } from "./conditions.ts";
 import { unqualify, untag } from "./content.ts";
 import { type HitDiceAction, type HitDie, hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
 import type { HitPointAction } from "./hit-points.ts";
 import {
+  type AcPick,
+  acPick,
   type Condition,
   concentration,
   conditions,
@@ -57,6 +60,10 @@ export interface ArmorClassOption {
   armor: Named | null;
   shield: Named | null;
   ac: number;
+  /** The worn pair: the row has the tag "worn" (ORC-325). */
+  worn: boolean;
+  /** The row whose AC the Armor Class box shows: it has the dot and bold text (ORC-325). */
+  shown: boolean;
 }
 
 export interface Speed {
@@ -184,6 +191,8 @@ export interface SheetPlay {
   onConditions: (action: ConditionAction) => void;
   /** Sets inspiration (true) or removes it (false) after a click on the Inspiration box, as one sheet change (ORC-324). */
   onInspiration: (on: boolean) => void;
+  /** Writes the AC pick after a pick in the menu of the Armor Class box, as one sheet change; null is "Worn armor" (ORC-325). */
+  onAcPick: (pick: AcPick | null) => void;
   /**
    * The concentration note after Damage with a concentration mark, or null (ORC-322). The next action removes it,
    * and so does its Dismiss button, which calls `onDismissNote`.
@@ -224,8 +233,12 @@ export interface Sheet {
   /** All 18 skills, sorted by name. */
   skills: SheetSkill[];
 
-  /** The worn armor and wielded shield's AC; with neither, or no match, the best combination. */
+  /** The AC that the Armor Class box shows: the AC of the AC pick, or else `wornArmorClass` (ORC-325). */
   armorClass: number;
+  /** The worn armor and wielded shield's AC; with neither, or no match, the best combination. */
+  wornArmorClass: number;
+  /** The AC pick when it names a row of `armorClassOptions`; null without one, or for a pair that is not in the table (play state). */
+  acPick: AcPick | null;
   armorClassOptions: ArmorClassOption[];
   /** The hit point maximum that shows: the engine value, halved from exhaustion level 4 (ORC-323). */
   maxHitPoints: number;
@@ -734,14 +747,15 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
   const acOptions = built["armor-class-with-armor"] ?? [];
   const wornArmor = (built["worn-armor"] as string | null | undefined) ?? null;
   const wieldedShield = (built["wielded-shield"] as string | null | undefined) ?? null;
-  const bestAc = Math.max(built["armor-class"], ...acOptions.map((option) => option.ac));
-  // As the old app: with nothing worn or wielded, the best combination; otherwise the worn one.
-  // "none", which the builder's <none> stores, is no armor or no shield.
+  // As the old app: with nothing worn or wielded, the best combination; otherwise the worn one. The AC pick can show
+  // another row (ORC-325). "none", which the builder's <none> stores, is no armor or no shield.
   const noneToNull = (key: string | null) => (key === "none" ? null : key);
-  const worn =
-    wornArmor === null && wieldedShield === null
-      ? undefined
-      : acOptions.find((option) => option.armor === noneToNull(wornArmor) && option.shield === noneToNull(wieldedShield));
+  const ac = acShown(
+    acOptions,
+    wornArmor === null && wieldedShield === null ? null : { armor: noneToNull(wornArmor), shield: noneToNull(wieldedShield) },
+    built["armor-class"],
+    acPick(entity),
+  );
   const text = (key: string) => blankToNull(built[key]);
   const classes = built.classes.map((key) => {
     const levels = built.levels[key];
@@ -798,11 +812,15 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
       expertise: expertise.includes(key),
     })),
 
-    armorClass: worn?.ac ?? bestAc,
-    armorClassOptions: acOptions.map(({ armor, shield, ac }) => ({
+    armorClass: ac.ac,
+    wornArmorClass: ac.wornAc,
+    acPick: ac.pick,
+    armorClassOptions: acOptions.map(({ armor, shield, ac: value }, i) => ({
       armor: armor === null ? null : named(armor),
       shield: shield === null ? null : named(shield),
-      ac,
+      ac: value,
+      worn: i === ac.wornRow,
+      shown: i === ac.shownRow,
     })),
     maxHitPoints,
     baseMaxHitPoints: built["max-hit-points"],

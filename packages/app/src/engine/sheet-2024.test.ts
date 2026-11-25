@@ -36,7 +36,8 @@ describe("toSheet2024, the golden Fighter at level 20", () => {
     expect(sheet.proficiencyBonus).toBe(6);
     expect(sheet.maxHitPoints).toBe(244);
     expect(sheet.armorClass).toBe(17);
-    expect(sheet.armorClassOptions).toEqual([{ armor: { key: "srd52:chain-mail", name: "Chain Mail" }, shield: null, ac: 17 }]);
+    expect(sheet.armorClassOptions).toEqual([{ armor: { key: "srd52:chain-mail", name: "Chain Mail" }, shield: null, ac: 17, worn: true, shown: true }]);
+    expect([sheet.wornArmorClass, sheet.acPick]).toEqual([17, null]);
     expect(sheet.passivePerception).toBe(18);
     expect(sheet.skills.find((s) => s.key === "athletics")).toMatchObject({ bonus: 11, proficient: true, expertise: false });
     expect(sheet.numberOfAttacks).toBe(4);

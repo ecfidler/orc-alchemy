@@ -2,8 +2,23 @@
 // "Character sheet"), two columns that become one in a narrow container. Under 720px
 // the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
-import { type BoxToggleProps, Button, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
+import {
+  type BoxToggleProps,
+  Button,
+  FramedBox,
+  Label,
+  Menu,
+  type MenuItem,
+  ShadedPanel,
+  SlotCircles,
+  SmallBox,
+  StatBox,
+  type Tab,
+  Tabs,
+  UseBubble,
+} from "@orc-alchemy/ui";
 import { Fragment, type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
+import { AC_MENU_TITLE, acBoxName, acMenu, acRowName } from "../engine/ac-pick.ts";
 import { deadOfExhaustion, maxCaption } from "../engine/conditions.ts";
 import {
   ABILITY_NAMES,
@@ -49,7 +64,8 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * `play`: the play controls (docs/design/sheet-interactivity.md): the handlers that change the play state, one for each
  * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, the Hit dice
  * box is a button with its popup, the vitals panel has the status line and the space for the concentration note under
- * it, the Conditions and statuses box has its X buttons and its Add condition menu, and the use bubbles of
+ * it, the Conditions and statuses box has its X buttons and its Add condition menu, the Armor Class box opens the menu
+ * of the AC pick, and the use bubbles of
  * "Features & traits" change the spent uses. Without it, as in the builder preview and the
  * 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a handler of
  * SheetPlay, not as a new prop.
@@ -165,7 +181,8 @@ export function CharacterSheet({
     <div ref={vitals} className="grid">
       <ShadedPanel className="@container/vitals">
         <div className="flex justify-evenly gap-2">
-          <RowBox label="Armor Class" shield>
+          {/* With play, the box is a button that opens the menu "Armor class shows" (ORC-325). A pick changes only the number. */}
+          <RowBox label="Armor Class" shield menu={play ? armorClassMenu(sheet, play) : undefined}>
             {sheet.armorClass}
           </RowBox>
           <RowBox label="Initiative">{modStr(sheet.initiative)}</RowBox>
@@ -308,15 +325,31 @@ export function CharacterSheet({
   );
   const armorOptionsSection = sheet.armorClassOptions.length > 0 && (
     <FramedBox label="AC by armor">
-      <Table caption="Armor class options" headers={["Armor", "AC"]}>
+      {/* The row whose AC the Armor Class box shows has a dot and bold text, and the worn pair has the tag "worn" (ORC-325).
+          The column of the dot and the width of the bold text are kept, so a pick moves no text. */}
+      <Table caption="Armor class options" headers={[<span className="sr-only">Shows</span>, "Armor", "AC"]}>
         {sheet.armorClassOptions.map((option, i) => (
-          <tr key={i}>
-            <Td>
-              {option.armor
-                ? `${option.armor.name}${option.shield ? ` + ${option.shield.name}` : ""}`
-                : `Unarmored${option.shield ? ` + ${option.shield.name}` : ""}`}
+          <tr key={i} data-ac-shown={option.shown ? "" : undefined} className={option.shown ? "font-semibold" : undefined}>
+            <Td className="w-4 text-center">
+              {option.shown && (
+                <span role="img" aria-label="Shows in the Armor Class box">
+                  ●
+                </span>
+              )}
             </Td>
-            <Td>{option.ac}</Td>
+            <Td>
+              <BoldSpace>{acRowName(option)}</BoldSpace>
+              {/* The space is not bold either, so the tag stays in its place. */}
+              {option.worn && (
+                <span className="font-normal">
+                  {" "}
+                  <Tag>worn</Tag>
+                </span>
+              )}
+            </Td>
+            <Td>
+              <BoldSpace>{option.ac}</BoldSpace>
+            </Td>
           </tr>
         ))}
       </Table>
@@ -556,7 +589,43 @@ function useAbilityHighlight() {
 
 /** Small Inter caps text after a line's text. */
 function Tag({ children }: { children: ReactNode }) {
-  return <span className="ml-1 font-sans text-[9.5px] tracking-[0.04em] text-ink-muted uppercase">{children}</span>;
+  return <span className="ml-1 font-sans text-[9.5px] font-normal tracking-[0.04em] text-ink-muted uppercase">{children}</span>;
+}
+
+/**
+ * Text that keeps the width of its bold form, so that it moves nothing when it becomes bold. A hidden bold copy under
+ * it gives the width.
+ */
+function BoldSpace({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-grid">
+      <span className="[grid-area:1/1]">{children}</span>
+      <span aria-hidden className="invisible h-0 font-semibold [grid-area:1/1]">
+        {children}
+      </span>
+    </span>
+  );
+}
+
+/** The menu of the Armor Class box: "Worn armor", then each row of the table "AC by armor" (ORC-325). */
+function armorClassMenu(sheet: Sheet, play: SheetPlay): RowBoxMenu {
+  const { entries, checked } = acMenu(sheet.armorClassOptions, sheet.wornArmorClass, sheet.acPick !== null);
+  return {
+    name: acBoxName(sheet.armorClass),
+    title: AC_MENU_TITLE,
+    items: entries.map((entry) => [entry.value, entry.text, entry.note] as const),
+    checked,
+    onPick: (value) => play.onAcPick(entries.find((entry) => entry.value === value)?.pick ?? null),
+  };
+}
+
+/** A menu that a RowBox opens: the box is its button, named `name`. */
+interface RowBoxMenu {
+  name: string;
+  title: string;
+  items: readonly MenuItem<string>[];
+  checked: string;
+  onPick: (value: string) => void;
 }
 
 /**
@@ -565,21 +634,52 @@ function Tag({ children }: { children: ReactNode }) {
  * least 96px. On a narrow sheet the boxes share the width, up to 112px each,
  * and `shortLabel` replaces a label too long for that width.
  */
-function RowBox({ label, shortLabel, shield = false, children }: { label: string; shortLabel?: string; shield?: boolean; children: ReactNode }) {
+function RowBox({
+  label,
+  shortLabel,
+  shield = false,
+  menu,
+  children,
+}: {
+  label: string;
+  shortLabel?: string;
+  shield?: boolean;
+  /** With it, the box is a bare button that opens the menu. On a hover, the focus or while the menu is open, it gets an inset ring. */
+  menu?: RowBoxMenu;
+  children: ReactNode;
+}) {
+  const box = `grid min-w-24 flex-[0_0_auto] grid-rows-[1fr_auto] border-[1.5px] border-rule-strong bg-paper-raised px-3.5 py-2 text-center @max-[719px]:max-w-28 @max-[719px]:min-w-0 @max-[719px]:flex-[1_1_0] @max-[719px]:px-1.5 ${
+    shield ? "rounded-[8px_8px_50%_50%/8px_8px_34%_34%] pb-3.5" : "rounded-md"
+  }`;
+  const value = "self-center text-[26px] leading-[1.1] font-medium tabular-nums";
+  // The wrapper is a grid, so a label on two lines keeps the line height of the label.
+  const boxLabel = (
+    <span aria-hidden className="grid">
+      <Label>{shortLabel ? <ShortWhenNarrow text={label} short={shortLabel} /> : label}</Label>
+    </span>
+  );
+  if (menu)
+    return (
+      <Menu
+        variant="bare"
+        label={menu.name}
+        title={menu.title}
+        items={menu.items}
+        checked={menu.checked}
+        onPick={menu.onPick}
+        className={`${box} cursor-pointer hover:shadow-[inset_0_0_0_2px_var(--ink)] data-[popup-open]:shadow-[inset_0_0_0_2px_var(--ink)]`}
+      >
+        <span className={value}>{children}</span>
+        {boxLabel}
+      </Menu>
+    );
   return (
-    <div
-      className={`grid min-w-24 flex-[0_0_auto] grid-rows-[1fr_auto] border-[1.5px] border-rule-strong bg-paper-raised px-3.5 py-2 text-center @max-[719px]:max-w-28 @max-[719px]:min-w-0 @max-[719px]:flex-[1_1_0] @max-[719px]:px-1.5 ${
-        shield ? "rounded-[8px_8px_50%_50%/8px_8px_34%_34%] pb-3.5" : "rounded-md"
-      }`}
-    >
-      <span role="group" aria-label={label} className="self-center text-[26px] leading-[1.1] font-medium tabular-nums">
+    <div className={box}>
+      {/* The group has the label as its name, so the visible label is not read twice. */}
+      <span role="group" aria-label={label} className={value}>
         {children}
       </span>
-      {/* The group has the label as its name, so the visible label is not read twice. The wrapper is a grid, so a
-          label on two lines keeps the line height of the label. */}
-      <span aria-hidden className="grid">
-        <Label>{shortLabel ? <ShortWhenNarrow text={label} short={shortLabel} /> : label}</Label>
-      </span>
+      {boxLabel}
     </div>
   );
 }
