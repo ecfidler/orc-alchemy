@@ -28,6 +28,8 @@ const sheet: Sheet = {
   passivePerception: 10,
   skills: [],
   armorClass: 16,
+  wornArmorClass: 16,
+  acPick: null,
   armorClassOptions: [],
   maxHitPoints: 44,
   baseMaxHitPoints: 44,
@@ -38,6 +40,7 @@ const sheet: Sheet = {
   concentration: null,
   conditions: [],
   conditionImmune: [],
+  inspiration: false,
   hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
   speedCause: null,
@@ -85,6 +88,8 @@ const playOf = (
   onDeathSaves: vi.fn<(saves: DeathSaves) => void>(),
   onUses: vi.fn(),
   onConditions: vi.fn(),
+  onInspiration: vi.fn(),
+  onAcPick: vi.fn(),
 });
 
 const hitPointsButton = () => screen.getByRole("button", { name: /^Hit points, / });

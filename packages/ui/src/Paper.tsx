@@ -1,4 +1,11 @@
 import { type MouseEvent, type ReactNode, useId } from "react";
+import { Toggle, type ToggleProps } from "./Toggle.tsx";
+
+/**
+ * The props of a box that is a toggle: `pressed`, `onPressedChange`, a name, and the pointer and focus events, as on
+ * Toggle. The box draws the button, so it takes no `variant`, `className` or `children`.
+ */
+export type BoxToggleProps = Omit<ToggleProps, "variant" | "className" | "children" | "value">;
 
 /** A label in the label style: Inter caps, small, muted. */
 export function Label({ children, id }: { children: ReactNode; id?: string }) {
@@ -48,9 +55,21 @@ export function FramedBox({
   );
 }
 
-/** A small value in a cell, with its label beside it. The value is a group named by the label. */
-export function SmallBox({ label, value }: { label: ReactNode; value: ReactNode }) {
+/**
+ * A small value in a cell, with its label beside it. The value is a group named by the label. With `toggle`, the whole
+ * box is a bare Toggle: an inset ring shows under a mouse, and the value shows whether it is pressed.
+ */
+export function SmallBox({ label, value, toggle }: { label: ReactNode; value: ReactNode; toggle?: BoxToggleProps }) {
   const id = useId();
+  // As a toggle, the box is the button, named by its label. The value shows the state; give it `aria-hidden` when
+  // `aria-pressed` says it all, for example a mark.
+  if (toggle)
+    return (
+      <Toggle aria-labelledby={toggle["aria-label"] === undefined ? id : undefined} {...toggle} variant="bare" className="ui-small-box ui-box-toggle">
+        <span className="ui-small-box-value">{value}</span>
+        <Label id={id}>{label}</Label>
+      </Toggle>
+    );
   return (
     <div className="ui-small-box">
       <span role="group" aria-labelledby={id} className="ui-small-box-value">
@@ -65,10 +84,31 @@ export function SmallBox({ label, value }: { label: ReactNode; value: ReactNode 
  * A box with its label, a large value and a hanging oval for a second
  * value. The two values are one group named by the label, the oval first: for
  * example a score, then its modifier. `name` names them instead when the
- * label is short, for example an abbreviation.
+ * label is short, for example an abbreviation. With `toggle`, the whole box is a
+ * bare Toggle: an inset ring shows under a mouse and while it is pressed, and
+ * the label is ink while it is pressed.
  */
-export function StatBox({ label, value, oval, name }: { label: ReactNode; value: ReactNode; oval: ReactNode; name?: string }) {
+export function StatBox({ label, value, oval, name, toggle }: { label: ReactNode; value: ReactNode; oval: ReactNode; name?: string; toggle?: BoxToggleProps }) {
   const id = useId();
+  const valuesId = useId();
+  // As a toggle, the box is the button. `aria-label` names what it does; without it, `name` or the label names it.
+  // The oval and the value describe it, with a space between them.
+  if (toggle)
+    return (
+      <Toggle
+        aria-label={name}
+        aria-labelledby={toggle["aria-label"] === undefined && name === undefined ? id : undefined}
+        aria-describedby={valuesId}
+        {...toggle}
+        variant="bare"
+        className="ui-stat-box ui-box-toggle"
+      >
+        <Label id={id}>{label}</Label>
+        <span id={valuesId} className="ui-stat-box-values">
+          <span className="ui-stat-box-oval">{oval}</span> <span className="ui-stat-box-value">{value}</span>
+        </span>
+      </Toggle>
+    );
   return (
     <div className="ui-stat-box">
       <Label id={id}>{label}</Label>

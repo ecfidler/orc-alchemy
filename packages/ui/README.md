@@ -69,7 +69,9 @@ bun run test       # vitest
   - `Toggle`: Base UI Toggle, a button that is on or off. It has the
     ghost button look and is solid while it is pressed. On its own it
     takes `pressed` and `onPressedChange`. It takes `className` as
-    `Button` does. Styles: `src/button.css`.
+    `Button` does. `variant="bare"` has no look of its own, pressed or
+    not, as a bare `Button`: its `className` draws it all. Styles:
+    `src/button.css`.
   - `ToggleGroup`: Base UI ToggleGroup, a group of toggles. Name it with
     `aria-label` or `aria-labelledby`. Its `value` lists the pressed
     toggles by each toggle's `value`; the owner changes it from each
@@ -223,7 +225,17 @@ bun run test       # vitest
     to the button, for example to give the focus back to it when a dialog
     that an item opened closes. An item (`MenuItem`) is
     `[value, text, note?]`: the note is short, in small muted type at the
-    end of its line, and a part of the item's name.
+    end of its line, and a part of the item's name. A space separates the
+    text and the note in the name, for example "Chain Mail 16". `title`
+    shows a bold title over the items and names the list. With `checked`
+    (the value of one item), the items are radio items (`menuitemradio`):
+    the checked item is bold and has `aria-checked`. `variant="bare"`
+    gives a button with no look of its own: its `className` draws it all,
+    and `children` is its content, for example a box of the page that
+    opens the menu. Then `label` is its name only. The props are a union:
+    a ghost button takes `size` and `icon` and no `children`, and a bare
+    button needs `children` and takes no `size` or `icon`. A prop of the
+    other variant is a type error.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`. Menu takes `className` for its button.
   - `SplitButton`: a `Button` with an arrow part that opens a Base UI
@@ -335,6 +347,15 @@ bun run test       # vitest
     - `StatBox`: a box with its label, a large `value` and an `oval` that
       hangs from the bottom edge. The label names the oval and the value
       together, the oval first. `name` names them when the label is short.
+    - `toggle` (`BoxToggleProps`) on `SmallBox` or `StatBox` makes the
+      whole box one bare `Toggle`, with the props of a Toggle:
+      `pressed`, `onPressedChange`, `aria-label`, and the pointer and
+      focus events. The box keeps its look and its size. Under a mouse it
+      has an inset ring. A small box is named by its label, and its value
+      shows the state, so give a mark in the value `aria-hidden`. A stat
+      box is named by `aria-label`, else by `name` or the label. The oval
+      and the value describe it. A pressed stat box has the inset ring and
+      an ink label.
     - `ShadedPanel`: a shaded area that groups boxes.
     - `SectionRule`: a section title on a rule, a heading of `level` 2
       (or 3 or 4).
@@ -433,12 +454,13 @@ bun run test       # vitest
   - `answerConfirmDialog(answer)`: waits for the confirm dialog, clicks
     the button named `answer` (the action, or "Cancel"), waits for the
     dialog to close, and returns its question.
-  - `pickOption(control, name)`: picks the option or menu item `name` (a
-    string or a RegExp) in a Select, Combobox, Autocomplete or Menu.
+  - `pickOption(control, name)`: picks the option, menu item or radio
+    item `name` (a string or a RegExp) in a Select, Combobox,
+    Autocomplete or Menu.
     `control` is the combobox or the menu button. In a text field it types
     a string name first, so that the list filters to it.
   - `optionNames(control)`: opens the list, returns the names of its
-    options or menu items, and closes it.
+    options, menu items or radio items, and closes it.
   - `pickFromPicker(button, names)`: clicks `button`, picks each of
     `names` (one name or a list, strings or RegExps) in the ListModal that
     opens, then clicks Done if the modal is still open, and waits for it

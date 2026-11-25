@@ -11,6 +11,19 @@
 }
 
 /*
+ * The ability highlight of a skill line on the sheet (ORC-324): the note color, 3px past the line, which takes no
+ * space. The note keeps its yellow in the dark theme, so the line takes the note ink.
+ */
+.skill-highlight {
+  --ink: var(--note-ink);
+  --ink-muted: var(--note-ink-muted);
+  color: var(--ink);
+  background: var(--note);
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px var(--note);
+}
+
+/*
  * The potion logo. The swirl is a sheet of twelve 16px frames in a row, and
  * the animation shows one whole frame at a time, so the pixels stay sharp.
  */

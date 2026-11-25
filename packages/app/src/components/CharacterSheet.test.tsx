@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { optionNames, pickOption } from "@orc-alchemy/ui/testing";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
@@ -48,9 +49,11 @@ const sheet: Sheet = {
     { key: "history", name: "History", ability: "int", bonus: -1, proficient: false, expertise: false },
   ],
   armorClass: 19,
+  wornArmorClass: 19,
+  acPick: null,
   armorClassOptions: [
-    { armor: { key: "chain-mail", name: "Chain Mail" }, shield: { key: "shield", name: "Shield" }, ac: 19 },
-    { armor: null, shield: null, ac: 10 },
+    { armor: { key: "chain-mail", name: "Chain Mail" }, shield: { key: "shield", name: "Shield" }, ac: 19, worn: true, shown: true },
+    { armor: null, shield: null, ac: 10, worn: false, shown: false },
   ],
   maxHitPoints: 28,
   baseMaxHitPoints: 28,
@@ -61,6 +64,7 @@ const sheet: Sheet = {
   concentration: null,
   conditions: [],
   conditionImmune: [],
+  inspiration: false,
   hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
   speedCause: null,
@@ -203,7 +207,10 @@ test.each(["fighter-20", "wizard-20"])("%s shows its expected.json values", (nam
   const acRows = within(screen.getByRole("table", { name: "Armor class options" }))
     .getAllByRole("row")
     .slice(1);
-  expect(acRows.map((row) => Number(row.lastElementChild?.textContent))).toEqual(built["armor-class-with-armor"].map((o: { ac: number }) => o.ac));
+  // The AC cell keeps the width of its bold form with a hidden copy, so read the text that shows.
+  expect(acRows.map((row) => Number(row.lastElementChild?.querySelector("span > span:not([aria-hidden])")?.textContent))).toEqual(
+    built["armor-class-with-armor"].map((o: { ac: number }) => o.ac),
+  );
 });
 
 test("one source that prepares: one row of boxes, slots once for each level, and only prepared spells", () => {
@@ -550,7 +557,7 @@ test("a limited-use feature sits in a use bubble, with circles, a pool for more 
 
 test("with play, the circles and the pool write the spent uses with play.onUses by the unit and name (ORC-316)", () => {
   const onUses = vi.fn();
-  const play = { status: "", onHitPoints: vi.fn(), onHitDice: vi.fn(), onDeathSaves: vi.fn(), onUses, onConditions: vi.fn() };
+  const play = { ...playMocks(), onUses };
   render(<CharacterSheet sheet={{ ...sheet, features: usesFeatures({ wind: 1, hands: 5 }) }} play={play} />);
   const wind = bubbleOf("Second Wind").getByRole("slider", { name: "Second Wind" });
   expect(wind.getAttribute("aria-valuetext")).toBe("1 of 2 spent");
@@ -563,6 +570,88 @@ test("with play, the circles and the pool write the spent uses with play.onUses 
   expect(bubbleOf("Lay on Hands").getByRole("button", { name: "Lay on Hands, 20 of 25 left" })).toBeTruthy();
   // Uses each turn have no circles, also with play.
   expect(bubbleOf("Sneak Attack").queryByRole("slider")).toBeNull();
+});
+
+/** The play handlers of the sheet page, as mocks. */
+const playMocks = () => ({
+  status: "",
+  onHitPoints: vi.fn(),
+  onHitDice: vi.fn(),
+  onDeathSaves: vi.fn(),
+  onUses: vi.fn(),
+  onConditions: vi.fn(),
+  onInspiration: vi.fn(),
+  onAcPick: vi.fn(),
+});
+
+test("with play, the Inspiration box is a button: a click sets inspiration, and a second click removes it (ORC-324)", () => {
+  const play = playMocks();
+  const { rerender } = render(<CharacterSheet sheet={sheet} play={play} />);
+  const box = screen.getByRole("button", { name: "Inspiration" });
+  expect([box.getAttribute("aria-pressed"), box.textContent]).toEqual(["false", "Inspiration"]);
+  fireEvent.click(box);
+  expect(play.onInspiration).toHaveBeenLastCalledWith(true);
+  rerender(<CharacterSheet sheet={{ ...sheet, inspiration: true }} play={play} />);
+  // The mark is hidden from a screen reader: aria-pressed says it.
+  expect([box.getAttribute("aria-pressed"), box.textContent]).toEqual(["true", "Inspiration"]);
+  expect(box.querySelector('[data-inspiration-mark] svg[data-icon="check"]')?.getAttribute("aria-hidden")).toBe("true");
+  fireEvent.click(box);
+  expect(play.onInspiration).toHaveBeenLastCalledWith(false);
+});
+
+test("without play, the Inspiration box shows the mark and is not a button; the ability boxes are not buttons", () => {
+  render(<CharacterSheet sheet={{ ...sheet, inspiration: true }} />);
+  expect(screen.queryByRole("button", { name: "Inspiration" })).toBeNull();
+  expect(
+    within(screen.getByRole("group", { name: "Inspiration" }))
+      .getByRole("img", { name: "Has inspiration" })
+      .querySelector('svg[data-icon="check"]'),
+  ).not.toBeNull();
+  expect(screen.queryByRole("button", { name: /highlight the skills/ })).toBeNull();
+  expect(screen.getByLabelText("STR").textContent).toBe("16+3");
+});
+
+/** The names of the skill lines with the ability highlight. */
+const highlighted = () => [...document.querySelectorAll("li[data-highlight]")].map((line) => line.textContent);
+
+test("with play, each ability box is a button that highlights the skills of its ability, and nothing else (ORC-324)", () => {
+  render(<CharacterSheet sheet={sheet} play={playMocks()} />);
+  const str = screen.getByRole("button", { name: "Strength: highlight the skills" });
+  const int = screen.getByRole("button", { name: "Intelligence: highlight the skills" });
+  const con = screen.getByRole("button", { name: "Constitution: highlight the skills" });
+  expect(document.getElementById(str.getAttribute("aria-describedby") ?? "")?.textContent).toBe("16 +3");
+  expect([str, int, con].map((box) => box.getAttribute("aria-pressed"))).toEqual(["false", "false", "false"]);
+  expect(highlighted()).toEqual([]);
+  // A hover shows the skills; the saving throw has no highlight.
+  fireEvent.mouseEnter(str);
+  expect(highlighted()).toEqual(["+5 Athletics STR"]);
+  fireEvent.mouseLeave(str);
+  expect(highlighted()).toEqual([]);
+  // A focus that is not a keyboard focus shows nothing. jsdom does not match :focus-visible, so e2e
+  // (inspiration.spec.ts) checks the keyboard focus with Tab.
+  act(() => int.focus());
+  expect(highlighted()).toEqual([]);
+  act(() => int.blur());
+  // A click keeps them; a click on another ability moves them; a second click removes them.
+  fireEvent.click(str);
+  fireEvent.mouseLeave(str);
+  expect([highlighted(), str.getAttribute("aria-pressed")]).toEqual([["+5 Athletics STR"], "true"]);
+  fireEvent.click(int);
+  expect([highlighted(), str.getAttribute("aria-pressed"), int.getAttribute("aria-pressed")]).toEqual([["-1 History INT"], "false", "true"]);
+  fireEvent.click(int);
+  expect([highlighted(), int.getAttribute("aria-pressed")]).toEqual([[], "false"]);
+  // Constitution has no skill, so it shows nothing.
+  fireEvent.click(con);
+  expect([highlighted(), con.getAttribute("aria-pressed")]).toEqual([[], "true"]);
+  // A second click hides the skills at once, while the mouse is still on the box and the box has the focus.
+  fireEvent.mouseEnter(str);
+  act(() => str.focus());
+  fireEvent.click(str);
+  expect(highlighted()).toEqual(["+5 Athletics STR"]);
+  fireEvent.click(str);
+  expect([highlighted(), document.activeElement]).toEqual([[], str]);
+  fireEvent.mouseLeave(str);
+  expect(highlighted()).toEqual([]);
 });
 
 // ORC-203: a typed homebrew feature draws the same bubble as an engine entry. sheet.test.ts and e2e check the sections.
@@ -869,4 +958,98 @@ test("without onOpenSpells, as in the builder preview, there is no All spells bu
   const section = screen.getByRole("group", { name: "Spellcasting" });
   expect(within(section).queryAllByRole("button")).toEqual([]);
   expect(spellNames("1st")).toEqual(["Alarm", "Burning Hands", "Charm Person", "Color Spray"]);
+});
+
+/** A sheet with the rows of fighter-20, plate and a shield worn, and the AC pick `pick` (ORC-325). */
+const pickedSheet = (pick: unknown = undefined) =>
+  toSheet(expectedOf("fighter-20"), pick === undefined ? {} : { "~:orcpub.entity.strict/values": { "~:orc-alchemy.play/ac-pick": pick } });
+/** The rows of the table "AC by armor" as [dot, armor, tag, AC, bold], from the text that shows. */
+const acTable = () =>
+  within(screen.getByRole("table", { name: "Armor class options" }))
+    .getAllByRole("row")
+    .slice(1)
+    .map((row) => {
+      const [dot, armor, ac] = [...row.querySelectorAll("td")];
+      const shown = (cell: Element | undefined) => cell?.querySelector("span > span:not([aria-hidden])")?.textContent;
+      return [dot?.textContent, shown(armor), armor?.querySelector(".uppercase")?.textContent ?? "", shown(ac), row.className.includes("font-semibold")];
+    });
+
+test("with play, the Armor Class box is a button that opens the menu Armor class shows; a pick calls play.onAcPick (ORC-325)", async () => {
+  const play = playMocks();
+  render(<CharacterSheet sheet={pickedSheet()} play={play} />);
+  const box = screen.getByRole("button", { name: "Armor class, 20" });
+  expect([box.getAttribute("aria-haspopup"), box.textContent]).toEqual(["menu", "20Armor Class"]);
+  // The box is not a group in play: the button names it.
+  expect(screen.queryByRole("group", { name: "Armor Class" })).toBeNull();
+  expect(await optionNames(box)).toEqual([
+    "Worn armor 20",
+    "Chain Mail + Shield 18",
+    "Chain Mail 16",
+    "Plate + Shield 20",
+    "Plate 18",
+    "Unarmored + Shield 15",
+    "Unarmored 13",
+  ]);
+  fireEvent.click(box);
+  const menu = await screen.findByRole("menu", { name: "Armor class shows" });
+  // Without a pick, Worn armor is checked.
+  expect(
+    within(menu)
+      .getByRole("menuitemradio", { name: /^Worn armor/ })
+      .getAttribute("aria-checked"),
+  ).toBe("true");
+  fireEvent.keyDown(menu, { key: "Escape" });
+  await pickOption(box, "Chain Mail 16");
+  expect(play.onAcPick).toHaveBeenLastCalledWith({ armor: "chain-mail", shield: null });
+  await pickOption(box, "Unarmored 13");
+  expect(play.onAcPick).toHaveBeenLastCalledWith({ armor: null, shield: null });
+  await pickOption(box, "Worn armor 20");
+  expect(play.onAcPick).toHaveBeenLastCalledWith(null);
+  expect(play.onAcPick).toHaveBeenCalledTimes(3);
+});
+
+test("a pick changes only the number in the box, checks its row in the menu, and marks its row in the table; the worn row keeps its tag (ORC-325)", async () => {
+  render(<CharacterSheet sheet={pickedSheet({ "~:armor": "~:chain-mail", "~:shield": null })} play={playMocks()} />);
+  const box = screen.getByRole("button", { name: "Armor class, 16" });
+  expect(box.textContent).toBe("16Armor Class");
+  expect(acTable()).toEqual([
+    ["", "Chain Mail + Shield", "", "18", false],
+    ["E", "Chain Mail", "", "16", true],
+    ["", "Plate + Shield", "worn", "20", false],
+    ["", "Plate", "", "18", false],
+    ["", "Unarmored + Shield", "", "15", false],
+    ["", "Unarmored", "", "13", false],
+  ]);
+  expect(screen.getAllByRole("img", { name: "Shows in the Armor Class box" })).toHaveLength(1);
+  fireEvent.click(box);
+  const menu = await screen.findByRole("menu", { name: "Armor class shows" });
+  expect(
+    within(menu)
+      .getAllByRole("menuitemradio")
+      .filter((item) => item.getAttribute("aria-checked") === "true")
+      .map((item) => item.textContent),
+  ).toEqual(["Chain Mail 16"]);
+});
+
+test("a pick of a pair that is not in the table is ignored: the worn AC shows, and Worn armor is checked (ORC-325)", async () => {
+  render(<CharacterSheet sheet={pickedSheet({ "~:armor": "~:leather", "~:shield": null })} play={playMocks()} />);
+  const box = screen.getByRole("button", { name: "Armor class, 20" });
+  expect(acTable().filter(([dot]) => dot === "E")).toEqual([["E", "Plate + Shield", "worn", "20", true]]);
+  fireEvent.click(box);
+  const menu = await screen.findByRole("menu", { name: "Armor class shows" });
+  expect(
+    within(menu)
+      .getByRole("menuitemradio", { name: /^Worn armor/ })
+      .getAttribute("aria-checked"),
+  ).toBe("true");
+});
+
+test("without play, the Armor Class box is not a button; the table shows the same marks (ORC-325)", () => {
+  render(<CharacterSheet sheet={pickedSheet({ "~:armor": "~:plate", "~:shield": null })} />);
+  expect(screen.queryByRole("button", { name: /^Armor class/ })).toBeNull();
+  expect(screen.getByLabelText("Armor Class").textContent).toBe("18");
+  expect(acTable().filter(([dot, , tag]) => dot === "E" || tag === "worn")).toEqual([
+    ["", "Plate + Shield", "worn", "20", false],
+    ["E", "Plate", "", "18", true],
+  ]);
 });

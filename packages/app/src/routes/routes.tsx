@@ -30,7 +30,7 @@ import { applyHitDice } from "../engine/hit-dice-apply.ts";
 import type { HitPointAction } from "../engine/hit-points.ts";
 import { applyHitPoints } from "../engine/hit-points-apply.ts";
 import type { FeatureUsesKey } from "../engine/play.ts";
-import { type DeathSaves, setDeathSaves, setFeatureUsesSpent } from "../engine/play.ts";
+import { type AcPick, type DeathSaves, setAcPick, setDeathSaves, setFeatureUsesSpent, setInspiration } from "../engine/play.ts";
 import type { RestAction } from "../engine/rest.ts";
 import { applyRest } from "../engine/rest-apply.ts";
 import { featureUses, type Sheet, type SpellRef } from "../engine/sheet.ts";
@@ -226,6 +226,16 @@ function changeDeathSaves(saves: DeathSaves) {
   useCharacter.getState().sheetChange((entity) => setDeathSaves(engine(), entity, saves));
 }
 
+/** Sets inspiration or removes it as a sheet change: it saves at once (ORC-324). */
+function changeInspiration(on: boolean) {
+  useCharacter.getState().sheetChange((entity) => setInspiration(engine(), entity, on));
+}
+
+/** Writes the AC pick, or removes it for null, as a sheet change: it saves at once (ORC-325). It never writes the worn armor or shield. */
+function changeAcPick(pick: AcPick | null) {
+  useCharacter.getState().sheetChange((entity) => setAcPick(engine(), entity, pick));
+}
+
 /** Writes the spent uses of a feature as a sheet change: it saves at once (ORC-316). Features of one name and unit share it. */
 function changeUses(feature: FeatureUsesKey, spent: number) {
   useCharacter.getState().sheetChange((entity) => setFeatureUsesSpent(engine(), entity, feature.units, feature.name, spent));
@@ -292,6 +302,15 @@ function SheetPage() {
                 say("");
               },
               onConditions: (action) => say(changeConditions(sheet, action)),
+              onInspiration: (on) => {
+                changeInspiration(on);
+                say("");
+              },
+              // The number in the box is the result, so the status line says nothing (sheet-interactivity.md, "Text of a change").
+              onAcPick: (pick) => {
+                changeAcPick(pick);
+                say("");
+              },
             }}
           />
           {sheet.spellcasting && (

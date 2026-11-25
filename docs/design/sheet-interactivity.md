@@ -72,7 +72,8 @@ at the top of the right column of the sheet.
 * This document is for a 2014 character, which the engine `@pubdoor/dmv`
   builds. A 2024 character keeps the sheet of today.
 * The builder preview shows the play state, but its controls cannot
-  change. The preview has no Rest button.
+  change. The preview has no Rest button. Its Hit points box has no
+  Temporary part, and it has no Death saves box (ORC-245).
 * The engine does not change. Four engine gaps are in ORC-307, and this
   document names each place that waits for it.
 
@@ -759,10 +760,15 @@ The app applies these effects. It rounds down to a whole number, with no
 
 * The Inspiration box in the left column is a button. A click sets
   inspiration, and a second click removes it.[^orc-303]
-* With inspiration, the box shows a mark. The box does not change its
+* With inspiration, the box shows a mark. The mark is the `check` icon,
+  until inspiration has an icon of its own. The box does not change its
   size.
 * No rest changes inspiration.
-* The button has `aria-pressed`.
+* The button has `aria-pressed`. Its accessible name is "Inspiration".
+  The mark is hidden from a screen reader, because `aria-pressed` gives
+  the state.
+* On a sheet with no play controls, for example the builder preview, the
+  box shows the mark and is not a button.
 
 # AC pick
 
@@ -776,23 +782,42 @@ The decisions are in ORC-304, and the look is in ORC-312.[^orc-304] [^orc-312]
 * A pick changes only the number in the Armor Class box. The app never
   writes `worn-armor` or `wielded-shield` from the sheet.
 * The Armor Class box has no caption for the pick.
-* In the table "AC by armor", the row whose AC shows has a dot and bold
+* In the table "AC by armor", the row whose AC shows has an "E" in a box and bold
   text. The worn pair has the tag "worn".
 * When the pick names a pair that is not in the table, the app ignores
   it, with no message. The AC of the worn armor shows.
+* Without a pick, the mark is on the worn row. When no row is worn, the
+  box shows the best AC, as the old app does, and the mark is on the first
+  row with that AC.
+* In the menu, each entry shows its AC at the end of its line, and the
+  entry that shows is checked. "Worn armor" is checked when there is no
+  pick. A pick closes the menu. The status line becomes empty, because
+  the number in the box shows the change.
+* A pick of the row of the worn pair is a pick too. The app stores it,
+  so the box keeps that pair when the worn armor changes later. The menu
+  then checks that row, not "Worn armor".
+* On a sheet with no play controls, for example the builder preview, the
+  box is not a button. The table shows the same marks.
 * There is no control for a shield in the off hand. The parity test
   keeps `off-hand-weapon: shield` as a known gap.
 
 # Ability highlight
 
 * Each ability box in the left column is a button.[^orc-304]
-* On hover and on focus, the skills of that ability get a highlight in
-  the note color. The saving throw does not, and no other part of the
-  sheet does. Constitution has no skill, so it shows nothing.
+* On hover and on keyboard focus, the skills of that ability get a
+  highlight in the note color. The saving throw does not, and no other
+  part of the sheet does. Constitution has no skill, so it shows nothing.
 * A click or a tap keeps the highlight. A second click on the same
-  ability, or a click on another ability, removes it.
+  ability, or a click on another ability, removes it. The highlight goes
+  at the second click, also while the pointer is on the box. The focus
+  that a click gives does not show the highlight. Only a focus that the
+  browser shows as a keyboard focus (`:focus-visible`) shows it.
 * The highlight is not play state. The app does not save it.
-* The highlight changes only a background color, so no text moves.
+* The highlight changes only colors, so no text moves. The line gets the
+  note color as its background, 3px past its edges. The text on it is
+  in the note ink, because the note stays yellow in the dark theme.
+* Only the sheet with play controls has the highlight. In the builder
+  preview, the ability boxes are not buttons.
 * The button has `aria-pressed`. Its accessible name says what it does:
   "Strength: highlight the skills".
 

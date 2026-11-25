@@ -3,18 +3,31 @@ import { ToggleGroup as BaseToggleGroup } from "@base-ui/react/toggle-group";
 import type { ComponentProps } from "react";
 
 export type ToggleProps = Omit<ComponentProps<typeof BaseToggle<string>>, "className" | "render" | "nativeButton"> & {
-  /** Layout and spacing classes, as on Button. */
+  /**
+   * "ghost" (the default) has the ghost button look, and is solid while it is pressed. "bare" has no look of its own,
+   * pressed or not: the owner draws it all with `className`, as on a bare Button.
+   */
+  variant?: "ghost" | "bare";
+  /** Layout and spacing classes, as on Button. With "bare", the classes that draw it. */
   className?: string;
 };
 
 /**
- * A button that is on or off, with Base UI Toggle inside. It has the ghost
- * button look, and is solid while it is pressed. On its own it takes
+ * A button that is on or off, with Base UI Toggle inside. By default it has
+ * the ghost button look, and is solid while it is pressed. With
+ * `variant="bare"` it has no look of its own. On its own it takes
  * `pressed` and `onPressedChange`. In a ToggleGroup, give it a `value`; the
  * group's `value` then sets whether it is pressed.
  */
-export function Toggle({ className, ...props }: ToggleProps) {
-  return <BaseToggle {...props} data-variant="ghost" data-size="normal" className={className ? `ui-button ${className}` : "ui-button"} />;
+export function Toggle({ variant = "ghost", className, ...props }: ToggleProps) {
+  return (
+    <BaseToggle
+      {...props}
+      data-variant={variant}
+      data-size={variant === "bare" ? undefined : "normal"}
+      className={className ? `ui-button ${className}` : "ui-button"}
+    />
+  );
 }
 
 export type ToggleGroupProps = Omit<

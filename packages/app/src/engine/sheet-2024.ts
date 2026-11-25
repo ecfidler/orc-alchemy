@@ -119,11 +119,16 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
     })),
 
     armorClass: built.armorClass,
+    wornArmorClass: built.armorClass,
+    // The 2024 sheet has no play state, so no AC pick: its one row is the worn pair, and its AC shows.
+    acPick: null,
     armorClassOptions: [
       {
         armor: built.wornArmor === null ? null : named("equipment")(built.wornArmor),
         shield: built.shield ? named("equipment")(SHIELD) : null,
         ac: built.armorClass,
+        worn: built.wornArmor !== null || built.shield,
+        shown: true,
       },
     ],
     maxHitPoints: built.maxHitPoints,
@@ -134,6 +139,7 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
     deathSaves: { successes: 0, failures: 0 },
     exhaustion: 0,
     concentration: null,
+    inspiration: false,
     conditions: [],
     conditionImmune: [],
     hitDice: hitDiceLeft(hitDiceTotals(classes), new Map()),

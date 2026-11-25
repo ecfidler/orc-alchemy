@@ -73,6 +73,7 @@
   --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
   --bubble: color-mix(in srgb, var(--info) 12%, var(--paper-raised));
   --note-edge: color-mix(in srgb, var(--note) 70%, #000);
+  --note-ink-muted: color-mix(in srgb, var(--note-ink) 72%, var(--note));
   --grain-opacity: 0.05;
 }
 
@@ -149,6 +150,7 @@
   --color-note-red: var(--note-red);
   --color-note-blue: var(--note-blue);
   --color-note-ink: var(--note-ink);
+  --color-note-ink-muted: var(--note-ink-muted);
   --color-note-shadow: var(--note-shadow);
   --color-note-edge: var(--note-edge);
   --color-margin-rule: var(--margin-rule);

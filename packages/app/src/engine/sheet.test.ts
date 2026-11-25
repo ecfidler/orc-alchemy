@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Amount, Built2014 } from "@pubdoor/dmv";
 import { expect, test } from "vitest";
+import { conditionMenu } from "./conditions.ts";
 import { sectionOf, toSheet, UNNAMED_FEATURE, usesDisplay } from "./sheet.ts";
 
 // expected.json is evaluate(strict).built, so these tests need no engine.
@@ -33,7 +34,13 @@ test("fighter-20", () => {
     armor: { key: "chain-mail", name: "Chain Mail" },
     shield: null,
     ac: 16,
+    worn: false,
+    shown: false,
   });
+  expect(sheet.armorClassOptions.filter((o) => o.worn || o.shown)).toEqual([
+    { armor: { key: "plate", name: "Plate" }, shield: { key: "shield", name: "Shield" }, ac: 20, worn: true, shown: true },
+  ]);
+  expect([sheet.wornArmorClass, sheet.acPick]).toEqual([20, null]);
   expect(sheet.maxHitPoints).toBe(built["max-hit-points"]);
   expect(sheet.proficiencyBonus).toBe(built["proficiency-bonus"]);
   expect(sheet.initiative).toBe(built.initiative);
@@ -166,6 +173,29 @@ test("the play state: the hit points show at most the maximum, with the temporar
   expect([hurt.currentHitPoints, hurt.tempHitPoints, hurt.deathSaves]).toEqual([5, 4, { successes: 1, failures: 2 }]);
   // A stored value above the maximum of 12, for example after a level goes, shows as the maximum. The record keeps it.
   expect(toSheet(builtOf("fighter-1"), values({ "~:orcpub.dnd.e5.character/current-hit-points": 30 })).currentHitPoints).toBe(12);
+});
+
+test("inspiration shows only for a stored true (ORC-324)", () => {
+  const values = (play: Record<string, unknown>) => ({ "~:orcpub.entity.strict/values": play });
+  const shown = (value: unknown) => toSheet(builtOf("fighter-1"), values({ "~:orc-alchemy.play/inspiration": value })).inspiration;
+  expect([toSheet(builtOf("fighter-1"), {}).inspiration, shown(true), shown(false), shown("true")]).toEqual([false, true, false, false]);
+});
+
+test("the AC pick shows the AC of its row and marks the row; a pair that is not in the table is ignored (ORC-325)", () => {
+  const withPick = (pick: unknown) => toSheet(builtOf("fighter-20"), { "~:orcpub.entity.strict/values": { "~:orc-alchemy.play/ac-pick": pick } });
+  const marks = (sheet: ReturnType<typeof toSheet>) => sheet.armorClassOptions.flatMap((o, i) => (o.worn || o.shown ? [[i, o.worn, o.shown]] : []));
+  const picked = withPick({ "~:armor": "~:chain-mail", "~:shield": null });
+  expect([picked.armorClass, picked.wornArmorClass, picked.acPick]).toEqual([16, 20, { armor: "chain-mail", shield: null }]);
+  expect(marks(picked)).toEqual([
+    [1, false, true],
+    [2, true, false],
+  ]);
+  const unarmored = withPick({ "~:armor": null, "~:shield": null });
+  expect([unarmored.armorClass, unarmored.acPick]).toEqual([13, { armor: null, shield: null }]);
+  for (const pick of [{ "~:armor": "~:leather", "~:shield": null }, { "~:armor": "~:plate", "~:shield": "~:buckler" }, "~:plate"]) {
+    const ignored = withPick(pick);
+    expect([ignored.armorClass, ignored.wornArmorClass, ignored.acPick, marks(ignored)], JSON.stringify(pick)).toEqual([20, 20, null, [[2, true, true]]]);
+  }
 });
 
 test("resistances and immunities become display strings", () => {
@@ -427,4 +457,19 @@ test("a turn says how many and has no circles; day is Dawn; round, minute, hour 
   expect([uses("Glow").recharge, uses("Glow").units]).toEqual(["Dawn", unit("day")]);
   expect([uses("Watch").recharge, usesDisplay(uses("Watch")).kind]).toEqual(["Each round", "circles"]);
   expect([uses("Gust").recharge, usesDisplay(uses("Gust")).kind]).toEqual(["Each hour", "circles"]);
+});
+
+// ORC-322 (sheet-interactivity.md, "Conditions and statuses"): only an immunity with no qualifier gives the note "immune".
+test("conditionImmune holds the condition immunities with no qualifier; a qualified immunity is left out, and the list of immunities keeps it", () => {
+  const built = {
+    ...builtOf("fighter-1"),
+    "condition-immunities": [{ value: "poisoned", qualifier: null }, { value: "charmed", qualifier: "by elementals or fey" }, { value: "frightened" }],
+  } as unknown as Built2014;
+  const sheet = toSheet(built, {});
+  expect(sheet.conditionImmune).toEqual(["frightened", "poisoned"]);
+  // The Add condition menu: "immune" only on the entries with no qualifier. Charmed is in the menu, so the user can add it.
+  const notes = Object.fromEntries(conditionMenu([], sheet.conditionImmune, 0).map((entry) => [entry.condition, entry.note]));
+  expect([notes.poisoned, notes.frightened, notes.charmed]).toEqual(["immune", "immune", ""]);
+  // The defenses part of the sheet keeps the qualified immunity.
+  expect(sheet.conditionImmunities).toContain("Charmed (by elementals or fey)");
 });

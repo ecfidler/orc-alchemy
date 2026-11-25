@@ -76,6 +76,7 @@ test("My Content disables an item, and a pack's export loads back in an empty br
 
 const fixturesDir = join(import.meta.dirname, "../../../fixtures");
 const readJson = (file: string) => JSON.parse(readFileSync(join(fixturesDir, file), "utf8"));
+const ABILITY_NAMES = { str: "Strength", dex: "Dexterity", con: "Constitution", int: "Intelligence", wis: "Wisdom", cha: "Charisma" };
 const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
 // ORC-54: a character whose content is all in its pack opens its sheet, which shows the oracle's values.
@@ -92,12 +93,15 @@ test("a homebrew golden character, imported after its pack, shows its expected.j
   await expect(page.getByRole("button", { name: `Hit points, ${hp} of ${hp}` })).toHaveText(`${hp} / ${hp}`);
   await expect(page.getByLabel("Proficiency Bonus")).toHaveText(bonusStr(built["proficiency-bonus"]));
   await expect(page.getByLabel("Passive Perception")).toHaveText(String(built["passive-perception"]));
-  for (const ability of ["str", "dex", "con", "int", "wis", "cha"]) {
+  for (const ability of ["str", "dex", "con", "int", "wis", "cha"] as const) {
     const key = `orcpub.dnd.e5.character/${ability}`;
-    await expect(page.getByLabel(ability.toUpperCase(), { exact: true })).toHaveText(`${built.abilities[key]}${bonusStr(built["ability-bonuses"][key])}`);
+    // The ability box is a button that names what it does; the score and the modifier describe it (ORC-324).
+    await expect(page.getByRole("button", { name: `${ABILITY_NAMES[ability]}: highlight the skills` })).toHaveAccessibleDescription(
+      `${built.abilities[key]} ${bonusStr(built["ability-bonuses"][key])}`,
+    );
   }
   const worn = built["armor-class-with-armor"].find((o: { armor: string | null }) => o.armor === built["worn-armor"]);
-  await expect(page.getByLabel("Armor Class")).toHaveText(String(worn.ac));
+  await expect(page.getByRole("button", { name: `Armor class, ${worn.ac}`, exact: true })).toBeVisible();
 });
 
 test("Export everything writes the packs, and its bundle restores them and the characters in an empty browser", async ({ page, browser }) => {

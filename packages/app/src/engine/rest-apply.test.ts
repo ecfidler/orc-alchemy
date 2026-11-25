@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import {
+  inspiration,
   setConcentration,
   setConditions,
   setCurrentHitPoints,
@@ -241,4 +242,18 @@ test("a long rest at exhaustion level 4: with 'Ate and drank' the hit points go 
   expect(longRest(start, false, false).entity).toEqual(setCurrentHitPoints(e, setExhaustion(e, wizardWarlock(), 4), half));
   // The halved maximum is a number in the record: it does not come back when the level goes down.
   expect(sheetOf(setExhaustion(e, longRest(start, false, false).entity, 3)).currentHitPoints).toBe(half);
+});
+
+test("no rest changes inspiration: a short rest, a long rest and a Dawn keep it set, and keep it off (ORC-324)", () => {
+  const e = engine();
+  for (const on of [true, false]) {
+    const start = setInspiration(e, tired(), on);
+    const sheet = sheetOf(start);
+    const rests = [
+      applyRest(e, start, sheet, { kind: "short", dice: [{ die: 8, roll: 5 }], arcaneRecovery: new Map() }),
+      longRest(start, true, true),
+      applyRest(e, start, sheet, { kind: "dawn", back: dawnStart(dawnUses(sheet)) }),
+    ];
+    expect(rests.map((rest) => inspiration(rest.entity))).toEqual([on, on, on]);
+  }
 });

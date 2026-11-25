@@ -29,6 +29,21 @@ test("a pressed toggle is marked for the solid look", () => {
   expect([toggle.getAttribute("aria-pressed"), toggle.hasAttribute("data-pressed")]).toEqual(["true", true]);
 });
 
+test("a bare toggle has no look of its own and no size, pressed or not", () => {
+  render(
+    <Toggle variant="bare" pressed className="box">
+      Mark
+    </Toggle>,
+  );
+  const toggle = screen.getByRole("button", { name: "Mark" });
+  expect([toggle.getAttribute("aria-pressed"), toggle.dataset.variant, toggle.dataset.size, toggle.className]).toEqual([
+    "true",
+    "bare",
+    undefined,
+    "ui-button box",
+  ]);
+});
+
 function Align({ onPress }: { onPress?: (key: string, pressed: boolean) => void }) {
   const [value, setValue] = useState(["center"]);
   return (

@@ -2,8 +2,24 @@
 // "Character sheet"), two columns that become one in a narrow container. Under 720px
 // the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
-import { Button, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
+import {
+  type BoxToggleProps,
+  Button,
+  FramedBox,
+  Label,
+  Menu,
+  type MenuProps,
+  PixelIcon,
+  ShadedPanel,
+  SlotCircles,
+  SmallBox,
+  StatBox,
+  type Tab,
+  Tabs,
+  UseBubble,
+} from "@orc-alchemy/ui";
 import { Fragment, type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
+import { AC_MENU_TITLE, acBoxName, acMenu, acRowName } from "../engine/ac-pick.ts";
 import { deadOfExhaustion, maxCaption } from "../engine/conditions.ts";
 import {
   ABILITY_NAMES,
@@ -49,7 +65,8 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * `play`: the play controls (docs/design/sheet-interactivity.md): the handlers that change the play state, one for each
  * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, the Hit dice
  * box is a button with its popup, the vitals panel has the status line and the space for the concentration note under
- * it, the Conditions and statuses box has its X buttons and its Add condition menu, and the use bubbles of
+ * it, the Conditions and statuses box has its X buttons and its Add condition menu, the Armor Class box opens the menu
+ * of the AC pick, and the use bubbles of
  * "Features & traits" change the spent uses. Without it, as in the builder preview and the
  * 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a handler of
  * SheetPlay, not as a new prop.
@@ -83,6 +100,7 @@ export function CharacterSheet({
     return () => observer.disconnect();
   }, []);
   const tabbed = narrow && !preview;
+  const highlight = useAbilityHighlight();
   const race = sheet.subrace ? `${sheet.race} (${sheet.subrace})` : sheet.race;
   const classes = sheet.classes.map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ""}`).join(" / ");
   const defenses: [string, string[]][] = [
@@ -113,12 +131,28 @@ export function CharacterSheet({
     <>
       <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2.5 @max-[719px]:grid-cols-1">
         <ShadedPanel className="content-start gap-4 px-1.5 pt-2 pb-[18px] @max-[719px]:grid-cols-3 @max-[719px]:gap-x-2.5 @max-[719px]:gap-y-5">
+          {/* With play, each ability box is a button that highlights the skills of its ability (ORC-324). */}
           {sheet.abilities.map((a) => (
-            <StatBox key={a.ability} label={abbr(a.ability)} value={bonusStr(a.modifier)} oval={a.score} />
+            <StatBox
+              key={a.ability}
+              label={abbr(a.ability)}
+              value={bonusStr(a.modifier)}
+              oval={a.score}
+              toggle={play ? highlight.toggle(a.ability) : undefined}
+            />
           ))}
         </ShadedPanel>
         <div className="grid min-w-0 content-start gap-2.5">
-          <SmallBox label="Inspiration" value="" />
+          {/* With play, the box is a button that sets inspiration or removes it (ORC-324). The mark keeps the box's size. */}
+          {play ? (
+            <SmallBox
+              label="Inspiration"
+              value={sheet.inspiration && <InspirationMark />}
+              toggle={{ pressed: sheet.inspiration, onPressedChange: (on) => play.onInspiration(on) }}
+            />
+          ) : (
+            <SmallBox label="Inspiration" value={sheet.inspiration && <InspirationMark label="Has inspiration" />} />
+          )}
           <SmallBox label="Proficiency Bonus" value={bonusStr(sheet.proficiencyBonus)} />
           <FramedBox label="Saving Throws">
             <ul className="grid gap-0.5">
@@ -132,7 +166,7 @@ export function CharacterSheet({
           <FramedBox label="Skills">
             <ul className="grid gap-0.5">
               {sheet.skills.map((skill) => (
-                <Line key={skill.key} proficient={skill.proficient} expertise={skill.expertise}>
+                <Line key={skill.key} proficient={skill.proficient} expertise={skill.expertise} highlight={highlight.shown === skill.ability}>
                   {bonusStr(skill.bonus)} {skill.name} <Tag>{abbr(skill.ability)}</Tag>
                 </Line>
               ))}
@@ -148,7 +182,8 @@ export function CharacterSheet({
     <div ref={vitals} className="grid">
       <ShadedPanel className="@container/vitals">
         <div className="flex justify-evenly gap-2">
-          <RowBox label="Armor Class" shield>
+          {/* With play, the box is a button that opens the menu "Armor class shows" (ORC-325). A pick changes only the number. */}
+          <RowBox label="Armor Class" shield menu={play ? armorClassMenu(sheet, play) : undefined}>
             {sheet.armorClass}
           </RowBox>
           <RowBox label="Initiative">{modStr(sheet.initiative)}</RowBox>
@@ -291,15 +326,35 @@ export function CharacterSheet({
   );
   const armorOptionsSection = sheet.armorClassOptions.length > 0 && (
     <FramedBox label="AC by armor">
-      <Table caption="Armor class options" headers={["Armor", "AC"]}>
+      {/* The row whose AC the Armor Class box shows has an "E" in a box and bold text, and the worn pair has the tag "worn" (ORC-325).
+          The column of the mark and the width of the bold text are kept, so a pick moves no text. */}
+      <Table caption="Armor class options" headers={[<span className="sr-only">Shows</span>, "Armor", "AC"]}>
         {sheet.armorClassOptions.map((option, i) => (
-          <tr key={i}>
-            <Td>
-              {option.armor
-                ? `${option.armor.name}${option.shield ? ` + ${option.shield.name}` : ""}`
-                : `Unarmored${option.shield ? ` + ${option.shield.name}` : ""}`}
+          <tr key={i} data-ac-shown={option.shown ? "" : undefined} className={option.shown ? "font-semibold" : undefined}>
+            <Td className="w-6 text-center">
+              {option.shown && (
+                <span
+                  role="img"
+                  aria-label="Shows in the Armor Class box"
+                  className="inline-flex size-[15px] items-center justify-center border-[1.5px] border-ink font-sans text-[10px] leading-none font-bold"
+                >
+                  E
+                </span>
+              )}
             </Td>
-            <Td>{option.ac}</Td>
+            <Td>
+              <BoldSpace>{acRowName(option)}</BoldSpace>
+              {/* The space is not bold either, so the tag stays in its place. */}
+              {option.worn && (
+                <span className="font-normal">
+                  {" "}
+                  <Tag>worn</Tag>
+                </span>
+              )}
+            </Td>
+            <Td>
+              <BoldSpace>{option.ac}</BoldSpace>
+            </Td>
           </tr>
         ))}
       </Table>
@@ -459,9 +514,23 @@ const MARK = "ml-[3px] size-2.5 border-[1.5px]";
  * not proficient. Expertise is a ring around the filled square, as on the
  * paper sheet.
  */
-function Line({ proficient, expertise = false, children }: { proficient: boolean; expertise?: boolean; children: ReactNode }) {
+function Line({
+  proficient,
+  expertise = false,
+  highlight = false,
+  children,
+}: {
+  proficient: boolean;
+  expertise?: boolean;
+  /** The ability highlight: the note color behind the line (ORC-324). It changes only colors, so no text moves. */
+  highlight?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <li className="grid grid-cols-[16px_minmax(0,1fr)] items-baseline gap-1 text-[14.5px]">
+    <li
+      data-highlight={highlight ? "" : undefined}
+      className={`grid grid-cols-[16px_minmax(0,1fr)] items-baseline gap-1 text-[14.5px] ${highlight ? "skill-highlight" : ""}`}
+    >
       {expertise ? (
         <span role="img" aria-label="Expertise" className={`${MARK} border-ink bg-ink outline-[1.5px] outline-offset-[1.5px] outline-ink outline-solid`} />
       ) : proficient ? (
@@ -474,10 +543,86 @@ function Line({ proficient, expertise = false, children }: { proficient: boolean
   );
 }
 
+/**
+ * The mark of the Inspiration box: the check icon, until inspiration has an icon of its own. With `label`, it is an
+ * image with that name; else it is hidden, as the pressed state of the box says it.
+ */
+function InspirationMark({ label }: { label?: string }) {
+  const icon = <PixelIcon name="check" />;
+  return label ? (
+    <span role="img" aria-label={label} data-inspiration-mark="">
+      {icon}
+    </span>
+  ) : (
+    <span data-inspiration-mark="">{icon}</span>
+  );
+}
+
+/**
+ * The ability highlight (ORC-324, docs/design/sheet-interactivity.md "Ability highlight"). It is local state, not play
+ * state: the app does not save it. A hover or the keyboard focus on an ability box shows its skills. A click keeps
+ * them; a second click on the same box, or a click on another box, removes the kept one. A click that removes it also
+ * hides the hover, so the change shows at once: the pointer stays on the box, so no new hover shows it again until the
+ * pointer leaves. `shown` is the ability whose skills have the highlight, or null.
+ */
+function useAbilityHighlight() {
+  const [kept, setKept] = useState<Ability | null>(null);
+  const [pointed, setPointed] = useState<Ability | null>(null);
+  const leave = (ability: Ability) => setPointed((current) => (current === ability ? null : current));
+  return {
+    shown: pointed ?? kept,
+    toggle: (ability: Ability): BoxToggleProps => ({
+      "aria-label": `${ABILITY_NAMES[ability]}: highlight the skills`,
+      pressed: kept === ability,
+      onPressedChange: (pressed: boolean) => {
+        setKept(pressed ? ability : null);
+        setPointed(pressed ? ability : null);
+      },
+      onMouseEnter: () => setPointed(ability),
+      onMouseLeave: () => leave(ability),
+      // Only a focus from the keyboard shows the highlight. A click also focuses the box, and that focus must not keep it.
+      onFocus: (event) => {
+        if (event.currentTarget.matches(":focus-visible")) setPointed(ability);
+      },
+      onBlur: () => leave(ability),
+    }),
+  };
+}
+
 /** Small Inter caps text after a line's text. */
 function Tag({ children }: { children: ReactNode }) {
-  return <span className="ml-1 font-sans text-[9.5px] tracking-[0.04em] text-ink-muted uppercase">{children}</span>;
+  return <span className="ml-1 font-sans text-[9.5px] font-normal tracking-[0.04em] text-ink-muted uppercase">{children}</span>;
 }
+
+/**
+ * Text that keeps the width of its bold form, so that it moves nothing when it becomes bold. A hidden bold copy under
+ * it gives the width.
+ */
+function BoldSpace({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-grid">
+      <span className="[grid-area:1/1]">{children}</span>
+      <span aria-hidden className="invisible h-0 font-semibold [grid-area:1/1]">
+        {children}
+      </span>
+    </span>
+  );
+}
+
+/** The menu of the Armor Class box: "Worn armor", then each row of the table "AC by armor" (ORC-325). */
+function armorClassMenu(sheet: Sheet, play: SheetPlay): RowBoxMenu {
+  const { entries, checked, pickOf } = acMenu(sheet.armorClassOptions, sheet.wornArmorClass, sheet.acPick !== null);
+  return {
+    name: acBoxName(sheet.armorClass),
+    title: AC_MENU_TITLE,
+    items: entries.map((entry) => [entry.value, entry.text, entry.note] as const),
+    checked,
+    onPick: (value) => play.onAcPick(pickOf(value)),
+  };
+}
+
+/** A menu that a RowBox opens: the box is its button, named `name`. */
+type RowBoxMenu = Pick<MenuProps<string>, "title" | "items" | "checked" | "onPick"> & { name: string };
 
 /**
  * A box in the AC row: a large value, its label at the bottom, so a taller
@@ -485,21 +630,55 @@ function Tag({ children }: { children: ReactNode }) {
  * least 96px. On a narrow sheet the boxes share the width, up to 112px each,
  * and `shortLabel` replaces a label too long for that width.
  */
-function RowBox({ label, shortLabel, shield = false, children }: { label: string; shortLabel?: string; shield?: boolean; children: ReactNode }) {
+function RowBox({
+  label,
+  shortLabel,
+  shield = false,
+  menu,
+  children,
+}: {
+  label: string;
+  shortLabel?: string;
+  shield?: boolean;
+  /**
+   * With it, the box is a bare button that opens the menu. On a hover, on the keyboard focus or while the menu is open,
+   * it gets an inset ring. The ring is in place of the focus outline, as on the Hit points and Hit dice boxes.
+   */
+  menu?: RowBoxMenu;
+  children: ReactNode;
+}) {
+  const box = `grid min-w-24 flex-[0_0_auto] grid-rows-[1fr_auto] border-[1.5px] border-rule-strong bg-paper-raised px-3.5 py-2 text-center @max-[719px]:max-w-28 @max-[719px]:min-w-0 @max-[719px]:flex-[1_1_0] @max-[719px]:px-1.5 ${
+    shield ? "rounded-[8px_8px_50%_50%/8px_8px_34%_34%] pb-3.5" : "rounded-md"
+  }`;
+  const value = "self-center text-[26px] leading-[1.1] font-medium tabular-nums";
+  // The wrapper is a grid, so a label on two lines keeps the line height of the label.
+  const boxLabel = (
+    <span aria-hidden className="grid">
+      <Label>{shortLabel ? <ShortWhenNarrow text={label} short={shortLabel} /> : label}</Label>
+    </span>
+  );
+  if (menu)
+    return (
+      <Menu
+        variant="bare"
+        label={menu.name}
+        title={menu.title}
+        items={menu.items}
+        checked={menu.checked}
+        onPick={menu.onPick}
+        className={`${box} cursor-pointer outline-none hover:shadow-[inset_0_0_0_2px_var(--ink)] focus-visible:shadow-[inset_0_0_0_2px_var(--ink)] data-[popup-open]:shadow-[inset_0_0_0_2px_var(--ink)]`}
+      >
+        <span className={value}>{children}</span>
+        {boxLabel}
+      </Menu>
+    );
   return (
-    <div
-      className={`grid min-w-24 flex-[0_0_auto] grid-rows-[1fr_auto] border-[1.5px] border-rule-strong bg-paper-raised px-3.5 py-2 text-center @max-[719px]:max-w-28 @max-[719px]:min-w-0 @max-[719px]:flex-[1_1_0] @max-[719px]:px-1.5 ${
-        shield ? "rounded-[8px_8px_50%_50%/8px_8px_34%_34%] pb-3.5" : "rounded-md"
-      }`}
-    >
-      <span role="group" aria-label={label} className="self-center text-[26px] leading-[1.1] font-medium tabular-nums">
+    <div className={box}>
+      {/* The group has the label as its name, so the visible label is not read twice. */}
+      <span role="group" aria-label={label} className={value}>
         {children}
       </span>
-      {/* The group has the label as its name, so the visible label is not read twice. The wrapper is a grid, so a
-          label on two lines keeps the line height of the label. */}
-      <span aria-hidden className="grid">
-        <Label>{shortLabel ? <ShortWhenNarrow text={label} short={shortLabel} /> : label}</Label>
-      </span>
+      {boxLabel}
     </div>
   );
 }

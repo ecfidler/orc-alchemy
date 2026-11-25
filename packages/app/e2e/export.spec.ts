@@ -25,7 +25,7 @@ test("a character exports as a dmv-character file that imports back", async ({ p
   await page.goto("/import");
   await page.getByLabel("Import character file").setInputFiles(await download.path());
   await expect(page.getByRole("heading", { level: 1, name: "Brannor Ironfist" })).toBeVisible();
-  await expect(page.getByLabel("Armor Class", { exact: true })).toHaveText("19");
+  await expect(page.getByRole("button", { name: "Armor class, 19", exact: true })).toBeVisible();
   expect(page.url()).not.toBe(firstUrl);
 });
 

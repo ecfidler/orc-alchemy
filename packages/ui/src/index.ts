@@ -15,7 +15,7 @@ export { Menu, type MenuItem, type MenuProps } from "./Menu.tsx";
 export { NoteLine } from "./NoteLine.tsx";
 export { NumberField, type NumberFieldProps } from "./NumberField.tsx";
 export { NumberToggle, type NumberToggleProps } from "./NumberToggle.tsx";
-export { type CircleColor, CurrentMax, FramedBox, Label, SectionRule, ShadedPanel, SlotCircles, SmallBox, StatBox } from "./Paper.tsx";
+export { type BoxToggleProps, type CircleColor, CurrentMax, FramedBox, Label, SectionRule, ShadedPanel, SlotCircles, SmallBox, StatBox } from "./Paper.tsx";
 export { AddButton, type AddButtonProps, Picker, type PickerProps } from "./Picker.tsx";
 export { Radio, RadioGroup, type RadioGroupProps } from "./Radio.tsx";
 export { SegmentedToggle, type SegmentedToggleProps } from "./SegmentedToggle.tsx";

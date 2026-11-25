@@ -500,3 +500,21 @@ test("the Long rest row Hit points goes to the maximum after the rest: 'Ate and 
   expect(row(five, true)).toBe(`3 → ${half} / ${half}`);
   expect(row(five, false)).toBe(`3 → ${half} / ${half}`);
 });
+
+test("at 0 hit points a long rest has no note and no block: the usual rows, and the rest heals to the maximum and clears the death saves", () => {
+  const e = engine();
+  const max = sheetOf(fighter()).maxHitPoints;
+  for (const failures of [2, 3]) {
+    const rest = longRest(sheetOf(setDeathSaves(e, setCurrentHitPoints(e, fighter(), 0), { successes: 1, failures })));
+    // The same set of rows as a rest at 1 hit point with the same death saves: 0 hit points add no row.
+    const atOne = longRest(sheetOf(setDeathSaves(e, setCurrentHitPoints(e, fighter(), 1), { successes: 1, failures })));
+    expect(longRestRows(rest, { ate: true }).map((row) => row.key)).toEqual(longRestRows(atOne, { ate: true }).map((row) => row.key));
+    expect(plain(longRestRows(rest, { ate: true }))).toEqual([
+      { label: "Hit points", change: `0 → ${max} / ${max}` },
+      { label: "Death saves", change: "cleared" },
+    ]);
+    // Nothing stops the rest: it changes something, with no checkbox to pick.
+    expect(longRestChangesNothing(rest, { ate: true, dawn: true, back: new Map() })).toBe(false);
+    expect([longRestPicks(rest), longRestReserve(rest)]).toEqual([false, false]);
+  }
+});

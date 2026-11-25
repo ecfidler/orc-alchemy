@@ -18,11 +18,12 @@ export async function answerConfirmDialog(answer: string): Promise<string> {
   return question;
 }
 
-/** The option or menu item named `name` in `list`, once it shows. */
+/** The option, menu item or radio item named `name` in `list`, once it shows. */
 async function findChoice(list: HTMLElement, name: string | RegExp): Promise<HTMLElement> {
   return waitFor(() => {
-    const choice = within(list).queryByRole("option", { name }) ?? within(list).queryByRole("menuitem", { name });
-    if (!choice) throw new Error(`No option or menu item ${String(name)} shows.`);
+    const choice =
+      within(list).queryByRole("option", { name }) ?? within(list).queryByRole("menuitem", { name }) ?? within(list).queryByRole("menuitemradio", { name });
+    if (!choice) throw new Error(`No option, menu item or radio item ${String(name)} shows.`);
     return choice;
   });
 }
@@ -50,7 +51,7 @@ function listClosed(control: HTMLElement, list: HTMLElement): Promise<void> {
 
 /**
  * Picks the option named `name` in a Select, Combobox, Autocomplete or
- * Menu: `control` is its combobox or its menu button. In a text field it
+ * Menu, also a radio item: `control` is its combobox or its menu button. In a text field it
  * types the name first, when it is a string, so the list filters to it.
  * Resolves once the list has closed.
  */
@@ -66,13 +67,14 @@ export async function pickOption(control: HTMLElement, name: string | RegExp): P
 
 /**
  * Opens a Select, Combobox, Autocomplete or Menu, reads the names of its
- * options or menu items, and closes it again.
+ * options, menu items or radio items, and closes it again.
  */
 export async function optionNames(control: HTMLElement): Promise<string[]> {
   const list = await openList(control);
-  const names = within(list)
-    .queryAllByRole(control.getAttribute("aria-haspopup") === "menu" ? "menuitem" : "option")
-    .map((choice) => choice.textContent ?? "");
+  const menu = control.getAttribute("aria-haspopup") === "menu";
+  // A menu's items are menu items or radio items, in the order of the list.
+  const choices = menu ? [...list.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')] : within(list).queryAllByRole("option");
+  const names = choices.map((choice) => choice.textContent ?? "");
   fireEvent.keyDown(list, { key: "Escape" });
   await listClosed(control, list);
   return names;

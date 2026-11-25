@@ -6,12 +6,14 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { aboveBox, concentrationNote, layout, openWithValues, statusLine, storedValues, vitals } from "./play-helpers.ts";
+import { aboveBox, concentrationNote, layout, layoutOf, openWithValues, statusLine, storedValues, vitals } from "./play-helpers.ts";
 
 /** Life cleric 9: Bless needs concentration. The record has no race, so its speed is 0. */
 const CLERIC = join(import.meta.dirname, "life-cleric-9.strict.json");
 /** fighter-5: 54 hit points, 40 of them stored as current; a speed of 30 feet. */
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
+/** barbarian-5: Fast Movement gives the first speed the qualifier "unarmored". */
+const BARBARIAN = join(import.meta.dirname, "../../../fixtures/characters/barbarian-5.strict.json");
 
 const CONDITIONS = "~:orc-alchemy.play/conditions";
 const CONCENTRATION = "~:orc-alchemy.play/concentration";
@@ -217,6 +219,64 @@ test("after Damage with a mark, the yellow note gives the DC in the space that t
   await hitPointsAct(page, "3", "Heal");
   await expect(concentrationNote(page)).toHaveText("");
   await expect.poll(async () => (await storedValues(page))[CONCENTRATION]).toBe("~:bless");
+  expect(await layout(page)).toEqual(before);
+});
+
+test("at 390px the vitals panel is narrower than 480px: the note takes two lines in the two lines that the space keeps, and moves nothing", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
+  expect((await vitals(page).boundingBox())!.width).toBeLessThan(480);
+  // A click can scroll the page on a phone, so the layout is from the top left corner of the panel. The texts in the note
+  // and in the status line are not parts, and a hidden element has no place.
+  const panelLayout = () => layoutOf(vitals(page), "[role=status] *, [hidden]");
+  const before = await panelLayout();
+  // Two note lines: 52px, not the 33px of one line.
+  expect(Math.round((await concentrationNote(page).boundingBox())!.height)).toBe(52);
+  await hitPointsAct(page, "24", "Damage");
+  await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 12. Dismiss");
+  await expect(concentrationNote(page).locator("> *")).toBeVisible();
+  // The note wraps to a second line, and stays in its space.
+  const space = (await concentrationNote(page).boundingBox())!;
+  const note = (await concentrationNote(page).locator("> *").boundingBox())!;
+  expect(note.height).toBeGreaterThan(33);
+  expect(note.y + note.height).toBeLessThanOrEqual(space.y + space.height + 0.5);
+  expect(await panelLayout()).toEqual(before);
+  await concentrationNote(page).getByRole("button", { name: "Dismiss the concentration note" }).click();
+  await expect(concentrationNote(page)).toHaveText("");
+  expect(await panelLayout()).toEqual(before);
+});
+
+test("a condition that changes the speed shows its caption in red in the place of the qualifier UNARMORED; its removal gives the qualifier back", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  // barbarian-5: Fast Movement, so the first speed has the qualifier "unarmored".
+  await openSheet(page, BARBARIAN);
+  const caption = speed(page).locator("[data-speed-caption]");
+  await expect(caption).toHaveText("unarmored");
+  await expect(caption).toHaveCSS("text-transform", "uppercase");
+  const qualifier = await caption.evaluate((element) => getComputedStyle(element).color);
+  const before = await layout(page);
+  await add(page, "Grappled");
+  await expect(speed(page)).toContainText(/^0 ft\.\s*Grappled0 ft\./);
+  await expect(caption).toHaveText("Grappled");
+  await expect(speed(page).getByText("unarmored")).toHaveCount(0);
+  const colors = await caption.evaluate((element) => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--danger)";
+    document.body.append(probe);
+    const danger = getComputedStyle(probe).color;
+    probe.remove();
+    return [getComputedStyle(element).color, danger];
+  });
+  expect(colors[0]).toBe(colors[1]);
+  expect(colors[0]).not.toBe(qualifier);
+  expect(await layout(page)).toEqual(before);
+  await box(page).getByRole("button", { name: "Remove Grappled" }).click();
+  await expect(caption).toHaveText("unarmored");
+  await expect(caption).toHaveCSS("color", qualifier);
   expect(await layout(page)).toEqual(before);
 });
 
