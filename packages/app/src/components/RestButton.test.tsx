@@ -57,6 +57,13 @@ test("the menu lists Short rest and Long rest, and Dawn only with Dawn uses", as
   expect((await screen.findAllByRole("menuitem")).map((item) => item.textContent)).toEqual(["Short rest", "Long rest"]);
 });
 
+test("the Rest button has the moon icon, hidden from a screen reader", () => {
+  render(<RestButton sheet={sheet()} onRest={vi.fn()} />);
+  const icon = screen.getByRole("button", { name: "Rest" }).querySelector("svg.ui-icon");
+  expect(icon?.getAttribute("data-icon")).toBe("moon");
+  expect(icon?.getAttribute("aria-hidden")).toBe("true");
+});
+
 test("Finish gives the picks of the dialog once; Cancel gives nothing", async () => {
   const onRest = vi.fn();
   render(<RestButton sheet={sheet()} onRest={onRest} random={() => 0.5} />);

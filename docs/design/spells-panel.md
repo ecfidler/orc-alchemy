@@ -755,10 +755,6 @@ the phone views adds screenshots at a phone width.
 
 * Changes to the spells that the character knows: the known spells of a
   sorcerer, the spellbook of a wizard, cantrips. The builder does these.
-* A Cast button that spends a slot for a spell, rests, hit points and
-  other feature uses on the sheet. The
-  [Sheet interactivity spec](sheet-interactivity.md) now covers them,
-  with the save rule of this document.
 * Equipment on the sheet. This is a later project.
 * Filters in the list other than the search by name.
 * A Browse page for spells (ORC-87). This project only makes the spell

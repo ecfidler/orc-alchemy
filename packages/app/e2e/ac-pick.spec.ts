@@ -112,6 +112,28 @@ test("a pick changes only the number and the marks of the table; the record chan
   expect(await tableRows(page)).toEqual(WORN);
 });
 
+test("a pick takes the text of the status line away: after Damage, the line says the damage, and after the pick it is empty", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openSheet(page);
+  await page.getByRole("button", { name: /^Hit points, / }).click();
+  const popup = page.getByRole("dialog", { name: "Hit points" });
+  await popup.getByRole("textbox", { name: "Amount" }).fill("5");
+  await popup.getByRole("button", { name: "Damage", exact: true }).click();
+  await expect(popup).toHaveCount(0);
+  await expect(statusLine(page)).toHaveText("5 damage.");
+  await pick(page, 20, "Chain Mail", 16);
+  await expect(acBox(page, 16)).toBeVisible();
+  await expect(statusLine(page)).toHaveText("");
+  // Worn armor is a pick too.
+  await page.getByRole("button", { name: /^Hit points, / }).click();
+  await popup.getByRole("textbox", { name: "Amount" }).fill("2");
+  await popup.getByRole("button", { name: "Heal", exact: true }).click();
+  await expect(statusLine(page)).toHaveText("2 healed.");
+  await pick(page, 16, "Worn armor", 20);
+  await expect(acBox(page, 20)).toBeVisible();
+  await expect(statusLine(page)).toHaveText("");
+});
+
 test("a pick of a pair that is not in the table is ignored with no message: the worn AC shows", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openSheet(page, { [AC_PICK]: { "~:armor": "~:leather", "~:shield": null } });

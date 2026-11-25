@@ -129,6 +129,52 @@ test("the keyboard: Enter opens a popup with the focus in its field, Enter in th
   await expect(statusLine(page)).toHaveText("Temporary hit points set to 7.");
 });
 
+test("a hover or the keyboard focus on a part gives the box an inset ring and the number of that part a line under it", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openFighter(page);
+  await act(page, "temporary", "5", "Set temp HP");
+  const frame = vitals(page)
+    .locator(".ui-framed-box")
+    .filter({ has: hitPoints(page) });
+  /** The box shadow of the box, and the text decoration of the number of each part: Temporary, then current / max. */
+  const looks = () =>
+    frame.evaluate((box) => [
+      getComputedStyle(box).boxShadow,
+      ...[...box.querySelectorAll("[data-hp-part] > span:first-child")].map((number) => getComputedStyle(number).textDecorationLine),
+    ]);
+  // Tailwind puts empty shadows before the ring, so the ring is the last shadow.
+  const ring = expect.stringMatching(/rgb\(.+\) 0px 0px 0px 2px inset$/);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  expect(await looks()).toEqual(["none", "none", "none"]);
+  await hitPoints(page).hover();
+  await expect.poll(looks).toEqual([ring, "none", "underline"]);
+  await temporary(page).hover();
+  await expect.poll(looks).toEqual([ring, "underline", "none"]);
+  await page.mouse.move(0, 0);
+  await expect.poll(looks).toEqual(["none", "none", "none"]);
+  // The keyboard focus: Tab from Temporary to the hit points.
+  await temporary(page).focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(temporary(page)).toBeFocused();
+  await expect.poll(looks).toEqual([ring, "underline", "none"]);
+  await page.keyboard.press("Tab");
+  await expect(hitPoints(page)).toBeFocused();
+  await expect.poll(looks).toEqual([ring, "none", "underline"]);
+  // The ring is in the ink color.
+  const ink = await frame.evaluate((box) => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--ink)";
+    box.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  });
+  expect((await looks())[0]?.endsWith(`, ${ink} 0px 0px 0px 2px inset`)).toBe(true);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await expect.poll(looks).toEqual(["none", "none", "none"]);
+});
+
 test("a popup opens under the box; on a phone it has the width of the vitals panel", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openFighter(page);

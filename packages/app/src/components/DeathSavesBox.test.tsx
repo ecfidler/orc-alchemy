@@ -139,3 +139,19 @@ test("with three failures and exhaustion level 6, the label is not a button eith
   expect(screen.queryByRole("button", { name: "Dead" })).toBeNull();
   expect(screen.getByRole("group", { name: "Death saves Dead" })).toBeTruthy();
 });
+
+test("the tag Stable is green and the label Dead is red: the tokens --success and --danger, with the paper color for the text", () => {
+  const { rerender } = render(<DeathSavesBox saves={{ successes: 3, failures: 0 }} onChange={() => {}} />);
+  const stable = screen.getByText("Stable");
+  expect(stable.className.split(" ")).toEqual(expect.arrayContaining(["bg-success", "text-paper"]));
+  expect(stable.className).not.toContain("danger");
+  rerender(<DeathSavesBox saves={{ successes: 0, failures: 3 }} onChange={() => {}} />);
+  const label = dead().firstElementChild!;
+  expect(label.textContent).toBe("Dead");
+  expect(label.className.split(" ")).toEqual(expect.arrayContaining(["bg-danger", "text-paper"]));
+  // The Dead text at exhaustion level 6, and on a read-only box, is red too.
+  rerender(<DeathSavesBox saves={{ successes: 0, failures: 0 }} deadOfExhaustion onChange={() => {}} />);
+  expect(document.querySelector("[data-dead-text]")!.className.split(" ")).toEqual(expect.arrayContaining(["bg-danger", "text-paper"]));
+  rerender(<DeathSavesBox saves={{ successes: 0, failures: 3 }} />);
+  expect(document.querySelector("[data-dead-text]")!.className.split(" ")).toEqual(expect.arrayContaining(["bg-danger", "text-paper"]));
+});

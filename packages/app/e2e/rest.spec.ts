@@ -250,6 +250,42 @@ test("keyboard: the menu opens the dialog with the focus on the first field; the
   await expect(restButton(page)).toBeFocused();
 });
 
+test("keyboard: Long rest and Dawn open with the focus on their first control, and give the focus back to Rest at the close", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openWithValues(page, WIZARD, TIRED);
+  for (const [name, first] of [
+    ["Long rest", dialog(page, "Long rest").getByRole("checkbox", { name: "Ate and drank" })],
+    ["Dawn", dialog(page, "Dawn").getByRole("textbox", { name: "Arcane Recovery" })],
+  ] as const) {
+    await restButton(page).focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("menuitem", { name }).focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog(page, name)).toBeVisible();
+    await expect(first, name).toBeFocused();
+    // The first control in the order of the dialog: no control comes before it.
+    const index = await dialog(page, name).evaluate((element) =>
+      [...element.querySelectorAll<HTMLElement>("button, input, [tabindex]")]
+        .filter((control) => control.tabIndex >= 0 && !control.matches(":disabled") && control.offsetParent !== null)
+        .indexOf(document.activeElement as HTMLElement),
+    );
+    expect(index, name).toBe(0);
+    await page.keyboard.press("Escape");
+    await expect(dialog(page, name)).toHaveCount(0);
+    await expect(restButton(page)).toBeFocused();
+  }
+});
+
+for (const name of ["Short rest", "Long rest", "Dawn"]) {
+  test(`at 390px the ${name} dialog fills the screen`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openWithValues(page, WIZARD, TIRED);
+    await openRest(page, name);
+    const box = (await dialog(page, name).boundingBox())!;
+    expect([box.x, box.y, box.width, box.height].map(Math.round)).toEqual([0, 0, 390, 844]);
+  });
+}
+
 test("at 390px the action row stays on one line, and the buttons show their labels without the icons", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openWithValues(page, MULTICLASS, PLAY);

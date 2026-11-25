@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Amount, Built2014 } from "@pubdoor/dmv";
 import { expect, test } from "vitest";
+import { conditionMenu } from "./conditions.ts";
 import { sectionOf, toSheet, UNNAMED_FEATURE, usesDisplay } from "./sheet.ts";
 
 // expected.json is evaluate(strict).built, so these tests need no engine.
@@ -456,4 +457,19 @@ test("a turn says how many and has no circles; day is Dawn; round, minute, hour 
   expect([uses("Glow").recharge, uses("Glow").units]).toEqual(["Dawn", unit("day")]);
   expect([uses("Watch").recharge, usesDisplay(uses("Watch")).kind]).toEqual(["Each round", "circles"]);
   expect([uses("Gust").recharge, usesDisplay(uses("Gust")).kind]).toEqual(["Each hour", "circles"]);
+});
+
+// ORC-322 (sheet-interactivity.md, "Conditions and statuses"): only an immunity with no qualifier gives the note "immune".
+test("conditionImmune holds the condition immunities with no qualifier; a qualified immunity is left out, and the list of immunities keeps it", () => {
+  const built = {
+    ...builtOf("fighter-1"),
+    "condition-immunities": [{ value: "poisoned", qualifier: null }, { value: "charmed", qualifier: "by elementals or fey" }, { value: "frightened" }],
+  } as unknown as Built2014;
+  const sheet = toSheet(built, {});
+  expect(sheet.conditionImmune).toEqual(["frightened", "poisoned"]);
+  // The Add condition menu: "immune" only on the entries with no qualifier. Charmed is in the menu, so the user can add it.
+  const notes = Object.fromEntries(conditionMenu([], sheet.conditionImmune, 0).map((entry) => [entry.condition, entry.note]));
+  expect([notes.poisoned, notes.frightened, notes.charmed]).toEqual(["immune", "immune", ""]);
+  // The defenses part of the sheet keeps the qualified immunity.
+  expect(sheet.conditionImmunities).toContain("Charmed (by elementals or fey)");
 });

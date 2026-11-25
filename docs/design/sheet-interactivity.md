@@ -72,7 +72,8 @@ at the top of the right column of the sheet.
 * This document is for a 2014 character, which the engine `@pubdoor/dmv`
   builds. A 2024 character keeps the sheet of today.
 * The builder preview shows the play state, but its controls cannot
-  change. The preview has no Rest button.
+  change. The preview has no Rest button. Its Hit points box has no
+  Temporary part, and it has no Death saves box (ORC-245).
 * The engine does not change. Four engine gaps are in ORC-307, and this
   document names each place that waits for it.
 

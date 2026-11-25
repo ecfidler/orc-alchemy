@@ -125,6 +125,43 @@ test("a hover or the focus on an ability box highlights only the skills of its a
   expect(await highlighted(page)).toEqual([]);
 });
 
+for (const theme of ["light", "dark"] as const) {
+  test(`in the ${theme} theme the text of a highlighted line is in the note ink, and the note color goes 3px past the edges of the line`, async ({ page }) => {
+    await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openSheet(page);
+    await ability(page, "Wisdom").hover();
+    await expect.poll(() => highlighted(page)).toEqual(["Animal Handling", "Insight", "Medicine", "Perception", "Survival"]);
+    const [line, want] = await page
+      .locator("li[data-highlight]")
+      .first()
+      .evaluate((line) => {
+        /** A color of the page, from a token, as the browser gives it back. */
+        const color = (token: string) => {
+          const probe = document.createElement("span");
+          probe.style.color = `var(${token})`;
+          document.body.append(probe);
+          const value = getComputedStyle(probe).color;
+          probe.remove();
+          return value;
+        };
+        // The name of the skill, which has no muted color of its own on a proficient line.
+        const name = line.querySelector("span.truncate")!;
+        const style = getComputedStyle(line);
+        return [
+          { color: style.color, name: getComputedStyle(name).color, background: style.backgroundColor, shadow: style.boxShadow },
+          { ink: color("--note-ink"), muted: color("--note-ink-muted"), note: color("--note"), paperInk: color("--ink") },
+        ];
+      });
+    expect(line.color).toBe(want.ink);
+    expect([want.ink, want.muted]).toContain(line.name);
+    expect(line.background).toBe(want.note);
+    expect(line.shadow).toBe(`${want.note} 0px 0px 0px 3px`);
+    // In the dark theme, the ink of the page is light, and the note ink stays dark on the yellow note.
+    if (theme === "dark") expect(want.ink).not.toBe(want.paperInk);
+  });
+}
+
 test("a click keeps the highlight; a second click on the same ability removes it; a click on another ability moves it; nothing saves it", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openSheet(page);
