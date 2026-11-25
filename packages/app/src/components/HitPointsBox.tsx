@@ -28,7 +28,7 @@ export interface HitPointsBoxProps {
 }
 
 /** The look of the caption under current / max: red caps, as the caption under the speed. */
-const CAPTION = "font-sans text-[9.5px] leading-[1.1] font-semibold tracking-[0.08em] text-danger uppercase";
+const CAPTION = "font-sans text-[9.5px] leading-[1.1] font-semibold tracking-[0.04em] text-danger uppercase";
 
 /** The look of a number of the box under a mouse or the focus on its part. */
 const UNDERLINE = "decoration-[1.5px] underline-offset-[5px]";
