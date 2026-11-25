@@ -179,7 +179,8 @@ async function castBless(page: Page) {
     .first()
     .click();
   await panel.getByRole("group", { name: "Cast Bless" }).getByRole("button").first().click();
-  await expect(panel.locator("[data-cast-control]").getByRole("status")).toHaveText("Cast Bless. 1st-level slots −1 (3 left).");
+  // What the cast did shows in the toast, over the panel (ORC-326).
+  await expect(statusLine(page)).toHaveText("Cast Bless. 1st-level slots −1 (3 left).");
   await page.keyboard.press("Escape");
   await expect(panel).toHaveCount(0);
 }
@@ -201,7 +202,7 @@ test("a cast that needs concentration shows the mark as the first token; its X e
   await expect.poll(async () => CONCENTRATION in (await storedValues(page))).toBe(false);
 });
 
-test("after Damage with a mark, the yellow note gives the DC in the space that the panel keeps; Dismiss and the next action remove it", async ({ page }) => {
+test("after Damage with a mark, the yellow note in the toast gives the DC and moves nothing; Dismiss and the next action remove it", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
   const before = await layout(page);
@@ -222,26 +223,21 @@ test("after Damage with a mark, the yellow note gives the DC in the space that t
   expect(await layout(page)).toEqual(before);
 });
 
-test("at 390px the vitals panel is narrower than 480px: the note takes two lines in the two lines that the space keeps, and moves nothing", async ({
-  page,
-}) => {
+test("at 390px the note in the toast wraps inside the screen, with a 16px gutter, and moves nothing in the vitals panel", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
-  expect((await vitals(page).boundingBox())!.width).toBeLessThan(480);
-  // A click can scroll the page on a phone, so the layout is from the top left corner of the panel. The texts in the note
-  // and in the status line are not parts, and a hidden element has no place.
-  const panelLayout = () => layoutOf(vitals(page), "[role=status] *, [hidden]");
+  // A click can scroll the page on a phone, so the layout is from the top left corner of the panel. A hidden element
+  // has no place.
+  const panelLayout = () => layoutOf(vitals(page), "[hidden]");
   const before = await panelLayout();
-  // Two note lines: 52px, not the 33px of one line.
-  expect(Math.round((await concentrationNote(page).boundingBox())!.height)).toBe(52);
   await hitPointsAct(page, "24", "Damage");
   await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 12. Dismiss");
   await expect(concentrationNote(page).locator("> *")).toBeVisible();
-  // The note wraps to a second line, and stays in its space.
-  const space = (await concentrationNote(page).boundingBox())!;
+  // The note wraps to a second line, and stays in the screen.
   const note = (await concentrationNote(page).locator("> *").boundingBox())!;
-  expect(note.height).toBeGreaterThan(33);
-  expect(note.y + note.height).toBeLessThanOrEqual(space.y + space.height + 0.5);
+  expect(note.height).toBeGreaterThan(40);
+  expect(note.x).toBeGreaterThanOrEqual(16 - 0.5);
+  expect(note.x + note.width).toBeLessThanOrEqual(390 - 16 + 0.5);
   expect(await panelLayout()).toEqual(before);
   await concentrationNote(page).getByRole("button", { name: "Dismiss the concentration note" }).click();
   await expect(concentrationNote(page)).toHaveText("");
@@ -280,14 +276,16 @@ test("a condition that changes the speed shows its caption in red in the place o
   expect(await layout(page)).toEqual(before);
 });
 
-test("a cast and a change of the spent slots are the next action: they take the note away and keep the text of the line", async ({ page }) => {
+test("a cast and a change of the spent slots are the next action: they take the note away; a cast says what it did, and the slots keep the text", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openSheet(page, CLERIC, { [CONCENTRATION]: "~:bless" });
   await hitPointsAct(page, "3", "Damage");
   await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 10. Dismiss");
   await castBless(page);
   await expect(concentrationNote(page)).toHaveText("");
-  await expect(statusLine(page)).toHaveText("3 damage.");
+  await expect(statusLine(page)).toHaveText("Cast Bless. 1st-level slots −1 (3 left).");
   await hitPointsAct(page, "3", "Damage");
   await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 10. Dismiss");
   await page.getByRole("slider", { name: "1st-level slots" }).locator(".ui-slot-circle").first().click();

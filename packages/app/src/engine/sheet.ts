@@ -166,15 +166,15 @@ export type OpenSpells = (spell?: SpellRef) => void;
 
 /**
  * The play controls of the sheet (docs/design/sheet-interactivity.md): the
- * handlers that change the play state, and the text of the status line. The
+ * handlers that change the play state, and the text of the status toast. The
  * sheet page gives it; without it, as in the builder preview, the sheet
  * shows the play state and cannot change it. Later tickets add a handler
  * for each new control.
  */
 export interface SheetPlay {
-  /** The text of the last action for the status line of the vitals panel: "" when the sheet opens. */
+  /** The text of the last action for the status toast of the sheet (ORC-326): "" when the sheet opens. */
   status: string;
-  /** Changes with each action, so that the status line also reads out a text that is the same as the last one. */
+  /** Changes with each action, so that the toast also shows and reads out a text that is the same as the last one. */
   statusKey?: number;
   /** Applies an action of the Hit points popup or the Temporary hit points popup, as one sheet change (ORC-314). */
   onHitPoints: (action: HitPointAction) => void;
@@ -194,8 +194,8 @@ export interface SheetPlay {
   /** Writes the AC pick after a pick in the menu of the Armor Class box, as one sheet change; null is "Worn armor" (ORC-325). */
   onAcPick: (pick: AcPick | null) => void;
   /**
-   * The concentration note after Damage with a concentration mark, or null (ORC-322). The next action removes it,
-   * and so does its Dismiss button, which calls `onDismissNote`.
+   * The concentration note after Damage with a concentration mark, or null (ORC-322). It shows in the status toast.
+   * The next action removes it, and so does its Dismiss button, which calls `onDismissNote`.
    */
   concentrationNote?: ConcentrationNote | null;
   onDismissNote?: () => void;

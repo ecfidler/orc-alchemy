@@ -39,7 +39,8 @@ bun run test       # vitest
   the list modal, token, picker, number toggle, segmented toggle and chips styles
   (`src/picker.css`),
   the paper pattern, stuck note, note line and use bubble styles
-  (`src/paper.css`), and the tabs styles (`src/tabs.css`).
+  (`src/paper.css`), the tabs styles (`src/tabs.css`), and the toast
+  styles (`src/toast.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid", "link",
     "plain" or "bare"),
@@ -435,6 +436,27 @@ bun run test       # vitest
     Left and Right, Home and End move between the tabs. Styles:
     `src/tabs.css`.
   - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
+  - `Toast`: a region fixed at the bottom centre of the screen, 16px
+    above the bottom edge and the safe area, in a portal at the end of the
+    body. It takes no space in the page, so a text that comes and goes
+    moves nothing. It shows one `status` text on the small popup surface,
+    and above it one `note` (`ToastNote`: `text` and an `action` with
+    `label`, an optional `name` and `onClick`) in the note yellow, with a
+    small ghost `Button` for the action. Give a new `statusKey` with each
+    text, also the same text: the toast shows it again and starts the
+    time again. The text hides after `duration` (`TOAST_DURATION`, 6000
+    ms), with a short fade; "" hides it at once. It does not hide while
+    the pointer or the focus is on the toast; the time starts again when
+    they leave. The note stays until the owner takes it away. After the
+    note's action, the focus goes back to where it was before it went
+    into the toast. The status and the note are polite live regions
+    (`role="status"` with `aria-live`, so a modal dialog does not hide
+    them from a screen reader) that are always in the page; `noteName`
+    names the note region. On a phone it keeps a 16px gutter and a long
+    text wraps. It is above a modal dialog and under a small popup or a
+    menu. With `prefers-reduced-motion: reduce` it does not fade or move.
+    Tests find the status by `[data-toast-status]`. Styles:
+    `src/toast.css`.
   - `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
     The preference is a stored value (below).
   - `storedValue(key, { parse, serialize, fallback })`: a value of this

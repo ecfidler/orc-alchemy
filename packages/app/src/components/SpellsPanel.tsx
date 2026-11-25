@@ -18,7 +18,8 @@
 //
 // The spell view of a spell that the character can cast has the Cast control
 // beside its name (ORC-320, docs/design/sheet-interactivity.md "Casting a
-// spell"), with the status line of the last cast.
+// spell"). What a cast did shows in the status toast of the sheet page
+// (ORC-326).
 //
 // A failed save (ORC-290, "A failed save") shows the alert note of the shell
 // under the header, with a "Try again" button. The sheet behind the panel
@@ -67,10 +68,10 @@ export interface SpellsPanelProps {
   /** The spell key of the concentration mark, or null (play state). */
   concentration?: string | null;
   /**
-   * Casts a spell as one sheet change, and gives the text of the status line (ORC-320). Without it, as outside the
-   * sheet page, the spell view has no Cast control.
+   * Casts a spell as one sheet change; the sheet page says what it did in its status toast (ORC-320, ORC-326). Without
+   * it, as outside the sheet page, the spell view has no Cast control.
    */
-  onCast?: (action: CastAction) => string;
+  onCast?: (action: CastAction) => void;
   /** The uses of the features of the sheet (featureUses): a spell with its own uses casts with one of them (ORC-321). */
   uses?: readonly FeatureUses[];
 }
@@ -323,7 +324,7 @@ function PanelBody({
   onSpendSlots: SpendSlots;
   onPrepare: PrepareSpell;
   concentration: string | null;
-  onCast: ((action: CastAction) => string) | undefined;
+  onCast: ((action: CastAction) => void) | undefined;
   uses: readonly FeatureUses[];
 }) {
   const lookup = useSpellLookup();
@@ -361,8 +362,6 @@ function PanelBody({
   // The live region. `count` changes with each new message, so the same name is said again.
   const [announce, setAnnounce] = useState({ text: "", count: 0 });
   const say = (text: string) => setAnnounce((last) => ({ text, count: last.count + 1 }));
-  // The status line of the Cast control: what the last cast did. It belongs to the spell that was cast.
-  const [castStatus, setCastStatus] = useState<{ id: string | null; text: string; key: number }>({ id: null, text: "", key: 0 });
   // A change of a prepare count goes in the live region, with the class name: "Cleric: 9 of 8 prepared. Remove 1 spell."
   const countTexts = counts.map((count) => prepareCountText(count, true));
   const lastCounts = useRef(countTexts);
@@ -607,12 +606,7 @@ function PanelBody({
                     choices={choices}
                     concentration={concentration}
                     concentrationName={concentration && spellName(lookup, concentration, keyToName(concentration))}
-                    onCast={(action) => {
-                      const text = onCast(action);
-                      setCastStatus((last) => ({ id: selectedId, text, key: last.key + 1 }));
-                    }}
-                    status={castStatus.id === selectedId ? castStatus.text : ""}
-                    statusKey={castStatus.key}
+                    onCast={onCast}
                     phone={phone}
                   />
                 )

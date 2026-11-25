@@ -35,7 +35,7 @@ async function act(page: Page, opener: "hit-points" | "temporary", amount: strin
 const layout = (page: Page) =>
   vitals(page).evaluate((panel) =>
     // The tokens in the Conditions and statuses box can change: at 0 hit points the app adds Unconscious (ORC-322).
-    [panel, ...panel.querySelectorAll(".ui-framed-box, [role=status], [data-concentration-note], button, .ui-label")]
+    [panel, ...panel.querySelectorAll(".ui-framed-box, button, .ui-label")]
       .filter((element) => !element.closest("[data-conditions-box] .ui-tokens"))
       .map((element) => {
         const { x, y, width, height } = element.getBoundingClientRect();

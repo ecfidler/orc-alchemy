@@ -1,16 +1,13 @@
 // The Conditions and statuses box of the vitals panel (ORC-322,
-// docs/design/sheet-interactivity.md "Conditions and statuses"), and the
-// concentration note under the status line. The rules are in
+// docs/design/sheet-interactivity.md "Conditions and statuses"). The rules are in
 // engine/conditions.ts; the sheet page applies an action as one sheet change.
 // The Exhaustion token (ORC-323) comes after the condition tokens.
-import { FramedBox, Menu, NoteLine, SlotCircles, Token, Tokens } from "@orc-alchemy/ui";
+import { FramedBox, Menu, SlotCircles, Token, Tokens } from "@orc-alchemy/ui";
 import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { CONDITION_TEXTS } from "../engine/condition-texts.ts";
 import {
-  type ConcentrationNote,
   type ConditionAction,
   concentrationLabel,
-  concentrationNoteText,
   conditionMenu,
   conditionName,
   EXHAUSTION,
@@ -25,7 +22,7 @@ import { spellName } from "../engine/spell-records.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 
 /** The name of the spell of the concentration mark that shows: the name of its record, or the name that the app makes from the key. */
-function useMarkName(key: string) {
+export function useMarkName(key: string) {
   const lookup = useSpellLookup();
   return lookup === null ? keyToName(key) : spellName(lookup, key, keyToName(key));
 }
@@ -188,30 +185,5 @@ function ConcentrationToken({ spell, onAction }: { spell: string; onAction?: (ac
       removeName={`Stop concentrating on ${name}`}
       onRemove={onAction ? () => onAction({ kind: "end-concentration", name }) : undefined}
     />
-  );
-}
-
-/**
- * The space of the concentration note under the status line, with the note
- * after Damage with a concentration mark: "Concentration on Bless:
- * Constitution save, DC 10." and Dismiss. The space keeps the height of the
- * note, so the note moves nothing: one line, or two in a narrow panel. It
- * has the status role.
- */
-export function ConcentrationNoteSpace({ note, onDismiss }: { note: ConcentrationNote | null | undefined; onDismiss?: () => void }) {
-  return (
-    // One note line is 33px. In a vitals panel narrower than 480px, the note needs two lines, so the space keeps two.
-    <div role="status" aria-label="Concentration note" data-concentration-note className="h-[33px] @max-[479px]/vitals:h-[52px]">
-      {note && <ConcentrationNoteLine note={note} onDismiss={onDismiss} />}
-    </div>
-  );
-}
-
-function ConcentrationNoteLine({ note, onDismiss }: { note: ConcentrationNote; onDismiss?: () => void }) {
-  const name = useMarkName(note.spell);
-  return (
-    <NoteLine action={onDismiss && { label: "Dismiss", name: "Dismiss the concentration note", onClick: onDismiss }}>
-      {concentrationNoteText(name, note.dc)}
-    </NoteLine>
   );
 }

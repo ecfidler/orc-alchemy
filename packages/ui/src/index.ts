@@ -27,6 +27,7 @@ export { InlineNote, NoteCount, StuckNote } from "./StuckNote.tsx";
 export { type StoredValue, type StoredValueOptions, storedValue, useStoredValue } from "./stored-value.ts";
 export { type Tab, Tabs } from "./Tabs.tsx";
 export { TextArea, type TextAreaProps, TextInput, type TextInputProps } from "./TextInput.tsx";
+export { TOAST_DURATION, Toast, type ToastNote, type ToastProps } from "./Toast.tsx";
 export { Toggle, ToggleGroup, type ToggleGroupProps, type ToggleProps } from "./Toggle.tsx";
 export { Token, type TokenProps, Tokens } from "./Token.tsx";
 export { THEME_STORAGE_KEY, type ThemePreference, themeHeadScript, useThemePreference } from "./theme-preference.ts";

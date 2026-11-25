@@ -227,6 +227,15 @@ The homebrew forms (ORC-195) add these parts. The
   stays on the title row.
 * **Flash (`ui-flash`):** a part that the user just added flashes once in
   the note yellow (`--note`), 10px past its edges, with rounded corners.
+* **Toast** (ORC-326): a region fixed at the bottom centre of the screen,
+  16px above the bottom edge and the safe area. It takes no space in the
+  page. It shows one status text on the surface of the small popup
+  (`--paper-raised`, an ink border, the `--note-shadow` offset shadow),
+  and above it one note in the note yellow with a folded corner and one
+  action button. The text hides after 6 seconds, but not while the
+  pointer or the focus is on the toast; the note stays. On a phone it
+  keeps a 16px gutter, and a long text wraps. It is above a modal dialog
+  and under a small popup or a menu.
 
 The picker controls (ORC-196) replace the groups of checkboxes on the
 homebrew forms. They have no game words: the app gives the lists.
@@ -711,9 +720,11 @@ the ability highlight, inspiration and the AC pick.
 * **Conditions and statuses**, a box in a row under the hit points. It holds
   tokens for the concentration mark, the conditions and exhaustion, and
   the button "+ Add condition".
-* A status line with a reserved height says what the last action changed.
-  The [Sheet interactivity spec](sheet-interactivity.md) has the rules for
-  each control of this panel.
+* The panel has no status line. A **status toast** at the bottom centre
+  of the screen says what the last action changed, and shows the
+  concentration note (ORC-326). It takes no space in the sheet. The
+  [Sheet interactivity spec](sheet-interactivity.md) has the rules for
+  each control of this panel and for the toast.
 * **Attacks**, as a table. Attack cantrips such as Sacred Flame stay in it.
   The numbers do not wrap. A 2024 attack shows its damage dice and damage
   type ("2d6+5 Slashing") in a "Damage" column, and its mastery property
@@ -853,6 +864,8 @@ The phone layout of the character sheet is ORC-173. These rules apply:
   Logo).
 * Under `prefers-reduced-motion: reduce`, an added section does not flash
   (`ui-flash`).
+* Under `prefers-reduced-motion: reduce`, the toast does not fade or
+  move.
 
 # Build order
 

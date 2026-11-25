@@ -92,6 +92,10 @@ change the size of a dialog.[^orc-309] [^orc-312]
 * A control that cannot be used stays in its place, disabled.
 * The Conditions and statuses box is the one exception. It can get one
   more line when its tokens do not fit on the lines that it has.
+* A text that comes and goes, for example what the last action did,
+  shows in [the status toast](#the-status-toast). The toast is over the
+  page and takes no space in it.[^orc-326] Reserved space is only for a
+  mark, a caption, a tag or a hint that belongs to its box.
 
 Each build ticket checks this with a test that measures the box or the
 dialog before and after the change.
@@ -114,18 +118,35 @@ dialog before and after the change.
   back to the control that opened the popup.
 * When the sheet is narrower than 720px, the popup has the width of the
   vitals panel.
-* After an action, the popup closes. The status line then says what
+* After an action, the popup closes. The status toast then says what
   changed.
 
-## The status line
+## The status toast
 
-The vitals panel has one status line with a reserved height. It shows
-the text of the last action, for example "12 damage (5 from the
-temporary hit points)." It is a polite live region. The next action
-replaces the text. The line starts empty when the sheet opens. Under it,
-the panel keeps the space of
-[the concentration note](#the-concentration-note): the height of one
-note line, or of two lines in a vitals panel narrower than 480px.
+The sheet page has one status toast.[^orc-326] It shows the text of the
+last action, for example "12 damage (5 from the temporary hit points)."
+A cast in the Spells panel uses the same toast.
+
+* The toast is at the bottom centre of the screen, 16px above the bottom
+  edge and above the safe area of a phone. It is over the page and takes
+  no space in it, so a text that comes and goes moves nothing. The
+  vitals panel has no status line and no reserved space for one.
+* The text is on a plain surface: the paper, an ink border and the
+  shadow of the small popup. A long text wraps. On a phone the toast
+  keeps a 16px gutter on each side.
+* The text hides after 6 seconds. It does not hide while the pointer or
+  the focus is on the toast. The time starts again when they leave.
+* The next action replaces the text and starts the time again. The same
+  text twice also shows again.
+* An action with nothing to say, for example a change of the death save
+  circles, hides the text.
+* The toast is empty when the sheet opens. A read-only sheet, for
+  example the builder preview, has no toast.
+* The toast is above the Spells panel and the rest dialogs, and under a
+  small popup or a menu.
+* It fades in and out. With `prefers-reduced-motion: reduce` it does
+  not move or fade.
+* The text is a polite live region that is always in the page.
 
 # The record
 
@@ -230,7 +251,7 @@ resistance or vulnerability. The app does not apply them.
 the maximum writes `null`. An amount above 0 clears the death save
 counts. Set HP does not change the temporary hit points.
 
-**The status line** after each action:
+**The status toast** after each action:
 
 * "12 damage (5 from the temporary hit points)."
 * "8 healed."
@@ -251,11 +272,17 @@ has one field and the buttons **Set temp HP** and **Remove**.
 When the character has a concentration mark, a yellow note line shows
 after Damage. It gives the DC of the Constitution save: 10, or half the
 damage if that is higher, rounded down. Example: "Concentration on
-Bless: Constitution save, DC 10." The note has a Dismiss button. It is
-under the status line, in the space that the panel keeps for it, so it
-moves nothing. In a vitals panel narrower than 480px, the note needs two
-lines, so the panel keeps the height of two. The next action removes it.
-The app does not roll the save and does not end the concentration.
+Bless: Constitution save, DC 10." The note has a Dismiss button.
+
+* The note shows in [the status toast](#the-status-toast), above the
+  text of the action.[^orc-326] It is a yellow sticky note with a folded
+  corner. It takes no space in the sheet, so it moves nothing.
+* The note does not hide with the time. It stays until Dismiss, or until
+  the next action. Each action that ends the mark, for example the X of
+  the mark or a long rest, is a next action.
+* After Dismiss from the keyboard, the focus goes back to where it was
+  before it went into the toast.
+* The app does not roll the save and does not end the concentration.
 
 * The DC comes from the full damage, also the part that the temporary
   hit points take. Damage of 0 shows no note.
@@ -311,7 +338,7 @@ The decisions are in ORC-300 and ORC-312.[^orc-300] [^orc-312]
 * **Regain** gives one spent die back. It does not change the hit points.
 * Spend and Roll for me are disabled when no die of that size is left.
   The user can spend a die at full hit points.
-* The status line says "Hit die d10: 7 + 2 = 9 healed."
+* The status toast says "Hit die d10: 7 + 2 = 9 healed."
 
 # Feature uses
 
@@ -384,7 +411,7 @@ The decisions are in ORC-301, and the look is in ORC-309.[^orc-301] [^orc-309]
 * The dialog does not change its size while the user works in it.
 * Each dialog is up to 520px wide (the narrow Dialog). At 600px and less
   it fills the screen.
-* After Finish, the status line says "Short rest finished.", "Long rest
+* After Finish, the status toast says "Short rest finished.", "Long rest
   finished." or "Dawn finished."
 
 ## Short rest
@@ -499,7 +526,8 @@ gives the prepare line.
 * The Cast button has the sparkles icon of the pixel icon set, before
   its label. The icon is an addition to the label.
 * A hint line is under the control. It is always there, so the name
-  block keeps its height.
+  block keeps its height. It is the one line of the control: what a
+  cast did shows in [the status toast](#the-status-toast).[^orc-326]
 * A spell that the character cannot cast now has no control. An
   unprepared spell of a class that prepares is such a spell.
 * A cantrip, a spell with the cast note "at will", and a ritual cast
@@ -566,16 +594,16 @@ rules of [The record](spells-panel.md#the-record) of the Spells panel
 spec. A click on the slot circle gives the slot back. There is no other
 undo.
 
-**The status line** of the spell view says what the cast did: "Cast
-Magic Missile at 2nd level. 2nd-level slots −1 (1 left)." A cast at the
-spell level names no level: "Cast Magic Missile. 1st-level slots −1 (3
-left)." The status line is under the hint. It keeps the height of two
-lines, so a cast moves nothing. It is a polite live region.
+**The status toast** says what the cast did: "Cast Magic Missile at 2nd
+level. 2nd-level slots −1 (1 left)." A cast at the spell level names no
+level: "Cast Magic Missile. 1st-level slots −1 (3 left)." The toast is
+over the Spells panel, so a cast moves nothing in the name block.[^orc-326]
 
 **The focus after a cast.** A cast can disable the button that has the
 focus, for example Cast after the last slot of its level. The focus
 then goes to the first button of the control that is not disabled. If
-all its buttons are disabled, the focus goes to the status line.
+all its buttons are disabled, the focus goes to the hint line, which
+says why. The focus stays in the control.
 
 **On a phone.** The menu has the full width of the panel, under the name
 block.
@@ -621,7 +649,7 @@ Some spells come from a feature that has uses. The cast note names it.
   ORC-307.
 
 A cast that spends a use changes the same count that the use bubble on
-the sheet shows. The status line names the use with the uses left, as
+the sheet shows. The status toast names the use with the uses left, as
 it names a slot: "Cast Circle of Death. Mystic Arcanum −1 (3 left)."
 For an invocation spell it also names the pact slot: "Cast Bane at 5th
 level. Thief of Five Fates −1 (0 left), Pact slots −1 (3 left)."
@@ -640,7 +668,7 @@ level. Thief of Five Fates −1 (0 left), Pact slots −1 (3 left)."
   mark and spends nothing."
 * While the mark is set for this spell, the Concentrate button is
   disabled. The hint then says "You concentrate on this spell."
-* After the Concentrate button, the status line says "Concentrating on
+* After the Concentrate button, the status toast says "Concentrating on
   Guidance."
 * If the mark is set for another spell, the Concentrate button also asks
   first. The dialog has the title "Concentrate on Guidance?" and the
@@ -702,7 +730,7 @@ button, and shows the box only when it has a token.
   it. The token from the record then shows, with its X, in place of the
   token that the app adds.
 * No rest changes the conditions.
-* **The status line** after each action: "Poisoned added.", "Poisoned
+* **The status toast** after each action: "Poisoned added.", "Poisoned
   removed.", "Concentration on Bless ended."
 
 ## Exhaustion
@@ -740,7 +768,7 @@ The app applies these effects. It rounds down to a whole number, with no
   reads "(applies)" after each level that applies.[^orc-323]
 * When the circles take the level to 0 with the focus on them, the focus
   goes to "+ Add condition".
-* **The status line** after each change: "Exhaustion added.",
+* **The status toast** after each change: "Exhaustion added.",
   "Exhaustion removed.", "Exhaustion 1 → 2.". When level 4 writes the
   hit points down: "Exhaustion 3 → 4, hit points 30 → 22."
 
@@ -791,7 +819,7 @@ The decisions are in ORC-304, and the look is in ORC-312.[^orc-304] [^orc-312]
   row with that AC.
 * In the menu, each entry shows its AC at the end of its line, and the
   entry that shows is checked. "Worn armor" is checked when there is no
-  pick. A pick closes the menu. The status line becomes empty, because
+  pick. A pick closes the menu. The status toast hides its text, because
   the number in the box shows the change.
 * A pick of the row of the worn pair is a pick too. The app stores it,
   so the box keeps that pair when the worn armor changes later. The menu
@@ -844,8 +872,13 @@ circles apply to each group of circles here.
 * Enter in the Amount field of the Hit points popup does nothing,
   because the popup has three actions. Enter in the Temporary hit
   points popup does Set temp HP.
-* The status lines are polite live regions. The concentration note has
-  the status role.
+* The text of the status toast is a polite live region. It is always in
+  the page, also while the Spells panel is open, so a screen reader
+  reads each new text, also a text that is the same as the last one.
+* The concentration note has the status role and the name
+  "Concentration note". Its Dismiss button is a Tab stop. The toast is
+  at the end of the page, so Dismiss comes after the last control of the
+  sheet.
 * The Stable tag and the Dead label are in the name of the Death saves
   box.
 * The Cast control is two buttons in a group. The arrow part has the
@@ -869,7 +902,8 @@ The changes are in the same pull request as this document.
 * **Right column:** the Armor Class box is a button. The speed and the
   hit points get captions. The Hit points box has two parts. The Hit
   dice box is a button. The death save circles change. The vitals panel
-  gets the Conditions and statuses box and the status line.
+  gets the Conditions and statuses box. The sheet page gets the status
+  toast at the bottom of the screen (ORC-326).
 * **Use bubble:** the "Look only" rule goes. The app records uses. A
   pool gets its minus and plus buttons. The unit `day` shows as "Dawn".
 * **Paper patterns:** the rule "No layout shift" for play state.
@@ -898,6 +932,7 @@ and Linear disagree, Linear wins.
 1. The play state module: readers and writers for the new keys
    (ORC-313).
 2. Hit points: the box, the two popups and the status line (ORC-314).
+   ORC-326 later moved the status line to the status toast.
    This closes ORC-119 and ORC-123.
 3. Death saves: circles that change, the Stable tag, the Dead label and
    instant death (ORC-315).
@@ -955,3 +990,4 @@ test for the rule [No layout shift](#no-layout-shift).
 [^orc-311]: Prototype the Cast button and the level menu in the Spells panel, <https://linear.app/orc-alchemy/issue/ORC-311/prototype-the-cast-button-and-the-level-menu-in-the-spells-panel>
 [^orc-312]: Prototype the sheet layout for the new play controls, <https://linear.app/orc-alchemy/issue/ORC-312/prototype-the-sheet-layout-for-the-new-play-controls>
 [^orc-323]: Exhaustion: the token and its effects on speed, hit points and death, <https://linear.app/orc-alchemy/issue/ORC-323/exhaustion-the-token-and-its-effects-on-speed-hit-points-and-death>
+[^orc-326]: Status toast: move the status line and the concentration note out of the vitals panel, <https://linear.app/orc-alchemy/issue/ORC-326>

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import type { CastAction } from "../engine/cast.ts";
@@ -25,7 +26,7 @@ const sheetOf = (file: string): Sheet => {
 const cleric = () => sheetOf("life-cleric-9.strict.json");
 
 /** Renders the open panel at a spell, as the sheet page does; `onCast` undefined is a panel with no Cast control. */
-async function renderPanel(at: SpellRef, onCast?: (action: CastAction) => string, concentration: string | null = null, sheet = cleric()) {
+async function renderPanel(at: SpellRef, onCast?: (action: CastAction) => void, concentration: string | null = null, sheet = cleric()) {
   const router = createMemoryRouter(
     [
       {
@@ -62,8 +63,8 @@ test("without a cast handler the spell view has no control, and its name block i
   expect(document.querySelector("[data-name-block]")).toBeNull();
 });
 
-test("Cast is beside the name with the sparkles icon and its hint; it casts at the spell level, and the status line says what it did", async () => {
-  const onCast = vi.fn(() => "Cast Bless. 1st-level slots −1 (3 left).");
+test("Cast is beside the name with the sparkles icon and its hint; it casts at the spell level, and the control has no status line", async () => {
+  const onCast = vi.fn();
   const view = await renderPanel(BLESS, onCast);
   const group = view.getByRole("group", { name: "Cast Bless" });
   expect(group.closest("[data-name-block]")).toBeTruthy();
@@ -73,11 +74,13 @@ test("Cast is beside the name with the sparkles icon and its hint; it casts at t
   expect(hint?.textContent).toBe("1st-level slot · 4 left");
   fireEvent.click(cast);
   expect(onCast).toHaveBeenCalledWith({ kind: "slot", key: "bless", name: "Bless", level: 1, group: 1, concentration: true });
-  expect(view.getByRole("status").textContent).toBe("Cast Bless. 1st-level slots −1 (3 left).");
+  // The sheet page says what the cast did in its status toast (ORC-326); the name block keeps only the hint line.
+  expect(view.queryByRole("status")).toBeNull();
+  expect(hint?.closest("[data-cast-control]")?.querySelectorAll("p").length).toBe(1);
 });
 
 test("the arrow part opens the menu 'Cast at a higher level' with the levels, the amounts and the slots left", async () => {
-  const onCast = vi.fn(() => "");
+  const onCast = vi.fn();
   const view = await renderPanel(BLESS, onCast);
   fireEvent.click(view.getByRole("button", { name: "Cast at a higher level" }));
   const menu = await screen.findByRole("menu", { name: "Cast at a higher level" });
@@ -93,7 +96,7 @@ test("the arrow part opens the menu 'Cast at a higher level' with the levels, th
 });
 
 test("a second concentration spell asks first; Cancel casts nothing, and the action casts", async () => {
-  const onCast = vi.fn(() => "");
+  const onCast = vi.fn();
   const view = await renderPanel(BLESS, onCast, "shield-of-faith");
   fireEvent.click(view.getByRole("button", { name: "Cast" }));
   let ask = await screen.findByRole("dialog", { name: "Cast Bless?" });
@@ -108,7 +111,7 @@ test("a second concentration spell asks first; Cancel casts nothing, and the act
 });
 
 test("a cantrip that needs concentration has the Concentrate button; a cantrip without it has no control", async () => {
-  const onCast = vi.fn(() => "Concentrating on Guidance.");
+  const onCast = vi.fn();
   const view = await renderPanel({ key: "guidance", source: "Cleric" }, onCast);
   fireEvent.click(view.getByRole("button", { name: "Concentrate" }));
   expect(onCast).toHaveBeenCalledWith({ kind: "concentrate", key: "guidance", name: "Guidance" });
@@ -117,8 +120,40 @@ test("a cantrip that needs concentration has the Concentrate button; a cantrip w
   expect(flame.queryByRole("button", { name: /Cast|Concentrate/ })).toBeNull();
 });
 
+test("a cast that disables each button of the control gives the focus to the hint line, which says why (ORC-326)", async () => {
+  const sheet = cleric();
+  // The Concentrate button sets the mark, and then it is disabled.
+  function Page() {
+    const [mark, setMark] = useState<string | null>(null);
+    return (
+      <SpellsPanel
+        open
+        onOpenChange={() => {}}
+        spellcasting={sheet.spellcasting!}
+        classes={sheet.classes}
+        at={{ key: "guidance", source: "Cleric" }}
+        builderHref="/build/abc?step=Spells"
+        onSpendSlots={() => {}}
+        onPrepare={() => {}}
+        concentration={mark}
+        onCast={(action) => setMark(action.key)}
+        uses={featureUses(sheet)}
+      />
+    );
+  }
+  render(<RouterProvider router={createMemoryRouter([{ path: "/", element: <Page /> }], { initialEntries: ["/"] })} />);
+  const dialog = await screen.findByRole("dialog", { name: "Spells" });
+  const concentrate = await within(dialog).findByRole("button", { name: "Concentrate" });
+  act(() => concentrate.focus());
+  fireEvent.click(concentrate);
+  await waitFor(() => expect((concentrate as HTMLButtonElement).disabled).toBe(true));
+  const hint = document.getElementById(concentrate.getAttribute("aria-describedby")!)!;
+  expect(hint.textContent).toBe("You concentrate on this spell.");
+  expect(document.activeElement).toBe(hint);
+});
+
 test("a Mystic Arcanum spell has a plain Cast button that spends the use, with its hint (ORC-321)", async () => {
-  const onCast = vi.fn(() => "Cast Mass Suggestion. Mystic Arcanum −1 (3 left).");
+  const onCast = vi.fn();
   const view = await renderPanel({ key: "mass-suggestion", source: "Warlock" }, onCast, null, sheetOf("warlock-20.strict.json"));
   const group = view.getByRole("group", { name: "Cast Mass Suggestion" });
   expect(
@@ -139,7 +174,7 @@ test("a Mystic Arcanum spell has a plain Cast button that spends the use, with i
     pact: false,
     concentration: false,
   });
-  expect(view.getByRole("status").textContent).toBe("Cast Mass Suggestion. Mystic Arcanum −1 (3 left).");
+  expect(view.queryByRole("status")).toBeNull();
 });
 
 test("a cast note with uses that the app cannot link has no Cast button, only the line (ORC-321)", async () => {

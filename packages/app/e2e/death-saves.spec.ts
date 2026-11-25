@@ -42,7 +42,7 @@ async function setGroup(page: Page, group: "successes" | "failures", to: number)
 /** The place and size of the vitals panel and of each part in it, also the parts that are hidden. */
 const layout = (page: Page) =>
   vitals(page).evaluate((panel) =>
-    [panel, ...panel.querySelectorAll(".ui-framed-box, .ui-label, .ui-slot-circles, button, [role=status], [data-concentration-note]")].map((element) => {
+    [panel, ...panel.querySelectorAll(".ui-framed-box, .ui-label, .ui-slot-circles, button")].map((element) => {
       const { x, y, width, height } = element.getBoundingClientRect();
       return [x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
     }),

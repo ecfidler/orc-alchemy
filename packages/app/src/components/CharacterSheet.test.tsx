@@ -1053,3 +1053,23 @@ test("without play, the Armor Class box is not a button; the table shows the sam
     ["E", "Plate", "", "18", true],
   ]);
 });
+
+test("with play, the status text and the concentration note show in the toast, not in the vitals panel (ORC-326)", () => {
+  const onDismissNote = vi.fn();
+  const play = { ...playMocks(), status: "24 damage.", statusKey: 1, concentrationNote: { spell: "bless", dc: 12 }, onDismissNote };
+  render(<CharacterSheet sheet={{ ...sheet, concentration: "bless" }} play={play} />);
+  const toast = document.querySelector(".ui-toast")!;
+  // The toast is out of the sheet, at the end of the body, so it takes no space in the vitals panel.
+  expect(toast.parentElement).toBe(document.body);
+  expect(screen.getByRole("article").querySelector("[role=status]")).toBeNull();
+  expect(toast.querySelector("[data-toast-status]")?.textContent).toBe("24 damage.");
+  const note = screen.getByRole("status", { name: "Concentration note" });
+  expect(note.textContent).toBe("Concentration on Bless: Constitution save, DC 12. Dismiss");
+  fireEvent.click(within(note).getByRole("button", { name: "Dismiss the concentration note" }));
+  expect(onDismissNote).toHaveBeenCalledOnce();
+});
+
+test("without play, as a read-only sheet, there is no toast (ORC-326)", () => {
+  render(<CharacterSheet sheet={sheet} />);
+  expect(document.querySelector(".ui-toast")).toBeNull();
+});

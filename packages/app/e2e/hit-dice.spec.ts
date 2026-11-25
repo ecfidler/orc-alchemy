@@ -40,7 +40,7 @@ async function act(page: Page, die: string, action: { roll: string } | "Roll for
 /** The place and size of the vitals panel and of each box and part in it. */
 const layout = (page: Page) =>
   vitals(page).evaluate((panel) =>
-    [panel, ...panel.querySelectorAll(".ui-framed-box, .ui-label, .ui-current-max, button, [role=status], [data-concentration-note]")].map((element) => {
+    [panel, ...panel.querySelectorAll(".ui-framed-box, .ui-label, .ui-current-max, button")].map((element) => {
       const { x, y, width, height } = element.getBoundingClientRect();
       return [x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
     }),
