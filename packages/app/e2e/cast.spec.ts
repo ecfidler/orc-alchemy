@@ -4,10 +4,11 @@
 // hint and the status lines, the concentration mark with its question, the
 // Concentrate button, and the pact slots of a warlock. ORC-321: the spells
 // with their own uses, Mystic Arcanum and the invocation spells.
-import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { openWithValues, storedValues } from "./play-helpers.ts";
+import { showSpellView } from "./spell-view-page.ts";
 
 /** Life cleric 9: 4 1st-, 3 2nd-, 3 3rd-, 3 4th- and 1 5th-level slots; Bless, Shield of Faith and Guidance need concentration. */
 const CLERIC = join(import.meta.dirname, "life-cleric-9.strict.json");
@@ -19,43 +20,12 @@ const WIZARD_WARLOCK = join(import.meta.dirname, "wizard-3-warlock-2.strict.json
  */
 const WARLOCK = join(import.meta.dirname, "warlock-20.strict.json");
 
-const VALUES = "~:orcpub.entity.strict/values";
 const SLOTS_USED = "~:orcpub.dnd.e5.spells/slots-used";
 const CONCENTRATION = "~:orc-alchemy.play/concentration";
 const USES_SPENT = "~:orc-alchemy.play/uses-spent";
 const LONG_REST = "~:orcpub.dnd.e5.units/long-rest";
 /** The stored spent pact slots of the warlock 20: the first `n` of the 5th level. */
 const pactSpent = (n: number) => ({ "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [...Array(n).keys()] } });
-
-/** Imports a character file with more values in its record, and opens its sheet. */
-async function open(page: Page, file: string, values: Record<string, unknown> = {}) {
-  const entity = JSON.parse(readFileSync(file, "utf8"));
-  entity[VALUES] = { ...entity[VALUES], ...values };
-  await page.goto("/import");
-  await page
-    .getByLabel("Import character file")
-    .setInputFiles({ name: "cast.strict.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(entity)) });
-  await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
-  await page.evaluate(() => document.fonts.ready);
-}
-
-/** The values of the one stored character, read from IndexedDB. */
-const storedValues = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise<Record<string, unknown>>((resolve, reject) => {
-        const open = indexedDB.open("alchemy-5e");
-        open.onerror = () => reject(open.error);
-        open.onsuccess = () => {
-          const all = open.result.transaction("characters").objectStore("characters").getAll();
-          all.onerror = () => reject(all.error);
-          all.onsuccess = () => {
-            open.result.close();
-            resolve(all.result[0]?.entity?.["~:orcpub.entity.strict/values"] ?? {});
-          };
-        };
-      }),
-  );
 
 const panel = (page: Page) => page.getByRole("dialog", { name: "Spells" });
 const spellPane = (page: Page) => panel(page).locator("[data-pane=spell]");
@@ -109,7 +79,7 @@ const blur = (page: Page) => page.evaluate(() => (document.activeElement as HTML
 
 test("Cast beside the name spends a slot of the spell level; the hint and the status lines say it, and nothing moves", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, CLERIC);
+  await openWithValues(page, CLERIC);
   await openSpell(page, "Cure Wounds");
   // The control is in the name block, on the right of the name.
   const heading = (await view(page).getByRole("heading", { level: 3 }).boundingBox())!;
@@ -139,7 +109,7 @@ test("Cast beside the name spends a slot of the spell level; the hint and the st
 test("the menu lists each higher level with its calculated amount and the slots left, and a pick spends that level", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   // No 2nd-level slot left.
-  await open(page, CLERIC, { [SLOTS_USED]: { "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1, 2] } } });
+  await openWithValues(page, CLERIC, { [SLOTS_USED]: { "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1, 2] } } });
   await openSpell(page, "Cure Wounds");
   const before = await layout(page);
   await arrow(page).click();
@@ -172,7 +142,7 @@ test("the menu lists each higher level with its calculated amount and the slots 
 
 test("the keyboard opens the menu from the arrow part and casts at a higher level; the focus goes back to the arrow part", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, CLERIC);
+  await openWithValues(page, CLERIC);
   await openSpell(page, "Cure Wounds");
   await arrow(page).focus();
   await expect(arrow(page)).toBeFocused();
@@ -192,7 +162,7 @@ test("with no slot of the spell level left, Cast is disabled with its hint, and 
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, CLERIC, { [SLOTS_USED]: { "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0, 1, 2, 3] } } });
+  await openWithValues(page, CLERIC, { [SLOTS_USED]: { "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0, 1, 2, 3] } } });
   await openSpell(page, "Cure Wounds");
   await expect(castButton(page, "Cure Wounds")).toBeDisabled();
   await expect(castButton(page, "Cure Wounds")).toHaveAccessibleDescription("No 1st-level slot left. Pick a higher level.");
@@ -209,7 +179,7 @@ test("with no slot of the spell level left, Cast is disabled with its hint, and 
 
 test("a spell with other words shows its text at the bottom of the menu, with no amount column", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, CLERIC);
+  await openWithValues(page, CLERIC);
   await openSpell(page, "Spiritual Weapon");
   await arrow(page).click();
   expect(await entries(page)).toEqual([
@@ -226,7 +196,7 @@ test("a spell with other words shows its text at the bottom of the menu, with no
 
 test("a cast that needs concentration sets the mark; a second one asks first, and Cancel casts nothing", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, CLERIC);
+  await openWithValues(page, CLERIC);
   await openSpell(page, "Bless");
   await castButton(page, "Bless").click();
   await expect(status(page)).toHaveText("Cast Bless. 1st-level slots −1 (3 left).");
@@ -256,7 +226,7 @@ test("a cast that needs concentration sets the mark; a second one asks first, an
 
 test("a cantrip that needs concentration has the Concentrate button; a cantrip without it has no control", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, CLERIC, { [CONCENTRATION]: "~:bless" });
+  await openWithValues(page, CLERIC, { [CONCENTRATION]: "~:bless" });
   await openSpell(page, "Guidance");
   const concentrate = view(page).getByRole("button", { name: "Concentrate" });
   await expect(concentrate).toHaveAccessibleDescription("This sets the concentration mark and spends nothing.");
@@ -275,7 +245,7 @@ test("a cantrip that needs concentration has the Concentrate button; a cantrip w
 
 test("pact slots and other slots: Cast spends an other slot, and the menu has the pact entry", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WIZARD_WARLOCK);
+  await openWithValues(page, WIZARD_WARLOCK);
   await openSpell(page, "Hellish Rebuke");
   await expect(castButton(page, "Hellish Rebuke")).toHaveAccessibleDescription("1st-level slot · 4 left");
   await arrow(page).click();
@@ -290,7 +260,7 @@ test("pact slots and other slots: Cast spends an other slot, and the menu has th
 
 test("a warlock with only pact slots has a plain Cast button with the amount at the pact level in its hint", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WARLOCK);
+  await openWithValues(page, WARLOCK);
   await openSpell(page, "Vampiric Touch");
   await expect(arrow(page)).toHaveCount(0);
   await expect(castButton(page, "Vampiric Touch")).toHaveAccessibleDescription("Pact slot (5th) · 4 left · +2d6 at 5th level");
@@ -301,7 +271,7 @@ test("a warlock with only pact slots has a plain Cast button with the amount at 
 
 test("on a phone the control is under the name, the menu has the full width of the panel, and nothing moves at a cast", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await open(page, CLERIC);
+  await openWithValues(page, CLERIC);
   await openSpell(page, "Cure Wounds");
   const heading = (await view(page).getByRole("heading", { level: 3 }).boundingBox())!;
   const group = (await castGroup(page, "Cure Wounds").boundingBox())!;
@@ -338,7 +308,7 @@ async function closePanel(page: Page) {
 
 test("a Mystic Arcanum spell spends one use, and the use bubble on the sheet shows it after the panel closes; nothing moves", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WARLOCK);
+  await openWithValues(page, WARLOCK);
   await openSpell(page, "Mass Suggestion");
   await expect(arrow(page)).toHaveCount(0);
   await expect(castButton(page, "Mass Suggestion")).toHaveAccessibleDescription("Spends Mystic Arcanum (4 of 4 left).");
@@ -358,7 +328,7 @@ test("a Mystic Arcanum spell spends one use, and the use bubble on the sheet sho
 
 test("an invocation spell spends a pact slot and the use of its invocation; then Cast is disabled with its hint", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WARLOCK);
+  await openWithValues(page, WARLOCK);
   await openSpell(page, "Bane");
   await expect(arrow(page)).toHaveCount(0);
   await expect(castButton(page, "Bane")).toHaveAccessibleDescription("Spends Thief of Five Fates (1 left) and a pact slot (5th, 4 left).");
@@ -384,7 +354,7 @@ test("an invocation spell spends a pact slot and the use of its invocation; then
 
 test("Cast is disabled when the use or the pact slot is not there", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WARLOCK, { [USES_SPENT]: { [LONG_REST]: { "Mystic Arcanum": 4 } }, [SLOTS_USED]: pactSpent(4) });
+  await openWithValues(page, WARLOCK, { [USES_SPENT]: { [LONG_REST]: { "Mystic Arcanum": 4 } }, [SLOTS_USED]: pactSpent(4) });
   await openSpell(page, "Glibness");
   await expect(castButton(page, "Glibness")).toBeDisabled();
   await expect(castButton(page, "Glibness")).toHaveAccessibleDescription("Mystic Arcanum has no use left.");
@@ -393,31 +363,9 @@ test("Cast is disabled when the use or the pact slot is not there", async ({ pag
   await expect(castButton(page, "Bestow Curse")).toHaveAccessibleDescription("No pact slot left.");
 });
 
-/** The page script of the spell view with a cast note that the app cannot link, bundled by Bun once. */
-let demoScript: string | undefined;
-const demo = () =>
-  (demoScript ??= execFileSync(
-    "bun",
-    [
-      "--eval",
-      `
-    const result = await Bun.build({ entrypoints: ["./cast-demo.ts"], define: { "process.env.NODE_ENV": '"development"' } });
-    if (!result.success) throw new AggregateError(result.logs);
-    process.stdout.write(await result.outputs[0].text());`,
-    ],
-    { cwd: import.meta.dirname, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
-  ));
-
-/** Shows the spell view of Misty Step with the cast note "uses Fey Step", with the styles of the app. */
+/** Shows the spell view of Misty Step with the cast note "uses Fey Step", with the styles of the app (e2e/spell-view-page.ts). */
 async function showUnlinked(page: Page, theme: "light" | "dark" = "light") {
-  await page.goto("/");
-  const styles = await page.evaluate(() => [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map((link) => link.href));
-  const links = styles.map((href) => `<link rel="stylesheet" href="${href}">`).join("");
-  await page.setContent(`<!doctype html><html data-theme="${theme}"><head>${links}</head><body><div id="root"></div></body></html>`);
-  await page.addScriptTag({ content: demo() });
-  await page.evaluate(async () => await window.mountCast("misty-step", "Misty Step", "uses Fey Step"));
-  await page.evaluate(() => document.fonts.ready);
-  const dialog = page.getByRole("dialog", { name: "Spells" });
+  const { dialog } = await showSpellView(page, "misty-step", "Misty Step", { theme, castNote: "uses Fey Step" });
   await expect(dialog.getByRole("heading", { level: 3 })).toHaveText("Misty Step");
   return dialog;
 }
@@ -444,7 +392,7 @@ test.describe("screenshots", () => {
         ["phone", 390, 844],
       ] as const) {
         await page.setViewportSize({ width, height });
-        await open(page, CLERIC, { [CONCENTRATION]: "~:bless" });
+        await openWithValues(page, CLERIC, { [CONCENTRATION]: "~:bless" });
         await openSpell(page, "Cure Wounds");
         await blur(page);
         await page.screenshot({ path: shot(`${size}-cast-control`) });
@@ -470,7 +418,7 @@ test.describe("screenshots", () => {
         await page.screenshot({ path: shot(`${size}-concentration-dialog`) });
         await ask.getByRole("button", { name: "Cancel" }).click();
         await expect(ask).toBeHidden();
-        await open(page, WARLOCK);
+        await openWithValues(page, WARLOCK);
         await openSpell(page, "Vampiric Touch");
         await blur(page);
         await page.screenshot({ path: shot(`${size}-warlock`) });
@@ -494,7 +442,7 @@ test.describe("screenshots of the spells with their own uses", () => {
         ["phone", 390, 844],
       ] as const) {
         await page.setViewportSize({ width, height });
-        await open(page, WARLOCK);
+        await openWithValues(page, WARLOCK);
         await openSpell(page, "Mass Suggestion");
         await blur(page);
         await page.screenshot({ path: shot(`${size}-mystic-arcanum`) });

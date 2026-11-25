@@ -15,7 +15,32 @@ export type SplitButtonItem<T> = {
   disabled?: boolean;
 };
 
-export type SplitButtonProps<T> = {
+/**
+ * The props of the menu. With `items` (an array, or null or undefined when the menu has no items now), `menuLabel` is
+ * required. Without `items`, the control is a plain Button, and it takes no menu props.
+ */
+export type SplitButtonMenuProps<T> =
+  | {
+      /** The name of the arrow part. It is also the title and the name of the menu. */
+      menuLabel: string;
+      /** The items of the menu. With null or none, there is no arrow part: the control is a plain Button. */
+      items: readonly SplitButtonItem<T>[] | null | undefined;
+      /** Gets the value of the item the user picks. The menu then closes. */
+      onPick?: (value: T) => void;
+      /** Disables the arrow part. */
+      menuDisabled?: boolean;
+      /** A text at the bottom of the menu, under the items. It also describes the menu. */
+      menuNote?: ReactNode;
+      /**
+       * When set, the menu has the width and the left edge of this element, and
+       * opens under it, for example the column that holds the control on a narrow
+       * page. By default the menu opens under the control, at its end.
+       */
+      widthOf?: RefObject<HTMLElement | null> | null;
+    }
+  | { menuLabel?: undefined; items?: undefined; onPick?: undefined; menuDisabled?: undefined; menuNote?: undefined; widthOf?: undefined };
+
+export type SplitButtonProps<T> = SplitButtonMenuProps<T> & {
   /** The text of the main part. It names the main button. */
   children: ReactNode;
   /** A pixel icon before the text of the main part, as on Button. */
@@ -31,22 +56,6 @@ export type SplitButtonProps<T> = {
   "aria-describedby"?: string;
   /** The name of the group of the two parts. */
   "aria-label"?: string;
-  /** The name of the arrow part. It is also the title and the name of the menu. */
-  menuLabel: string;
-  /** The items of the menu. With null or none, there is no arrow part: the control is a plain Button. */
-  items?: readonly SplitButtonItem<T>[] | null;
-  /** Gets the value of the item the user picks. The menu then closes. */
-  onPick?: (value: T) => void;
-  /** Disables the arrow part. */
-  menuDisabled?: boolean;
-  /** A text at the bottom of the menu, under the items. It also describes the menu. */
-  menuNote?: ReactNode;
-  /**
-   * When set, the menu has the width and the left edge of this element, and
-   * opens under it, for example the column that holds the control on a narrow
-   * page. By default the menu opens under the control, at its end.
-   */
-  widthOf?: RefObject<HTMLElement | null> | null;
   /** Layout classes for the group, as on Button. */
   className?: string;
 };

@@ -351,7 +351,7 @@ function PanelBody({
   const selectedKind = selected && prepareKind(selected, spellcasting.casters);
   const selectedRecord = selected && lookup ? lookup(selected.key) : undefined;
   // What the selected spell can do now. Without a cast handler, or for a spell with no control, the spell view has no control.
-  const choices = onCast && selected ? castChoices(selected, selectedRecord?.record, spellcasting, concentration, uses) : null;
+  const choices = onCast && selected ? castChoices(selected, selectedRecord?.record, { slots: spellcasting, concentration, uses }) : null;
   const [focused, setFocused] = useState<string | null>(null);
   const isShown = (id: string | null) => id !== null && shown.some((spell) => spellId(spell) === id);
   const tabStop = isShown(focused) ? focused : isShown(selectedId) ? selectedId : shown[0] ? spellId(shown[0]) : null;

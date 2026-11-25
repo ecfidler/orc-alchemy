@@ -98,6 +98,20 @@ test("with no items it is a plain button in its group, with no arrow part", () =
   expect(screen.getAllByRole("button").map((b) => [b.textContent, b.dataset.variant])).toEqual([["Pour", "ghost"]]);
 });
 
+test("without items it takes no menu label, and it is a plain button in its group", () => {
+  const click = vi.fn();
+  render(
+    <SplitButton aria-label="Pour" onClick={click}>
+      Pour
+    </SplitButton>,
+  );
+  expect(screen.getByRole("group", { name: "Pour" })).toBeTruthy();
+  const [only, ...more] = screen.getAllByRole("button");
+  expect([only.textContent, more]).toEqual(["Pour", []]);
+  fireEvent.click(only);
+  expect(click).toHaveBeenCalledTimes(1);
+});
+
 test("with widthOf the menu fills that element", async () => {
   function Wide() {
     const column = useRef<HTMLDivElement>(null);

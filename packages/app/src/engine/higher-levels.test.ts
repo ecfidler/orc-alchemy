@@ -18,11 +18,12 @@ function read(record: SpellRecord): string {
 /**
  * Each SRD spell whose "At Higher Levels" text says "for each slot level
  * above", with the amount at 1 and 2 levels above. "text": the sentence has
- * no amount or more than one, so the menu shows the text.
+ * no amount, more than one, or a number with no unit that the app can show,
+ * so the menu shows the text. 65 spells show an amount and 5 show the text.
  */
 const EXPECTED: Record<string, string> = {
   "acid-arrow": "+1d4 | +2d4",
-  aid: "+5 | +10",
+  aid: "+5 hit points | +10 hit points",
   "animal-friendship": "+1 beast | +2 beasts",
   "animal-messenger": "+48 hours | +96 hours",
   "animate-dead": "+2 undead creatures | +4 undead creatures",
@@ -44,8 +45,8 @@ const EXPECTED: Record<string, string> = {
   command: "+1 creature | +2 creatures",
   "cone-of-cold": "+1d8 | +2d8",
   confusion: "+5 feet | +10 feet",
-  "conjure-elemental": "+1 | +2",
-  "conjure-fey": "+1 | +2",
+  "conjure-elemental": "+1 challenge rating | +2 challenge rating",
+  "conjure-fey": "+1 challenge rating | +2 challenge rating",
   // "10 additional gallons of water, or the size of the cube increases by 5 feet": two amounts.
   "create-or-destroy-water": "text",
   creation: "+5 feet | +10 feet",
@@ -66,7 +67,7 @@ const EXPECTED: Record<string, string> = {
   "globe-of-invulnerability": "text",
   "glyph-of-warding": "+1d8 | +2d8",
   "guiding-bolt": "+1d6 | +2d6",
-  heal: "+10 | +20",
+  heal: "+10 hit points | +20 hit points",
   "healing-word": "+1d4 | +2d4",
   "heat-metal": "+1d8 | +2d8",
   "hellish-rebuke": "+1d10 | +2d10",
@@ -138,9 +139,34 @@ test("a pack spell with the same words gets the same rule; a sentence the app ca
     kind: "dice",
     count: 2,
     die: 12,
+    above: 2,
   });
-  expect(readHigherAmount("You create one more beam for each slot level above 1st.")).toEqual({ kind: "count", count: 1, one: "beam", many: "beams" });
-  expect(readHigherAmount("The range increases by 10 feet for each slot level above 1st.")).toEqual({ kind: "count", count: 10, one: "foot", many: "feet" });
+  expect(readHigherAmount("You create one more beam for each slot level above 1st.")).toEqual({
+    kind: "count",
+    count: 1,
+    one: "beam",
+    many: "beams",
+    above: 1,
+  });
+  expect(readHigherAmount("The range increases by 10 feet for each slot level above 1st.")).toEqual({
+    kind: "count",
+    count: 10,
+    one: "foot",
+    many: "feet",
+    above: 1,
+  });
+  // A number with no unit takes the unit of its subject: hit points, or challenge rating.
+  expect(readHigherAmount("The healing increases by 4 for each slot level above 3rd.")).toEqual({
+    kind: "count",
+    count: 4,
+    one: "hit point",
+    many: "hit points",
+    above: 3,
+  });
+  // A number with no unit and no subject that the app knows: no amount, so the menu shows the text.
+  expect(readHigherAmount("The bonus increases by 1 for each slot level above 1st.")).toBeNull();
+  // With no ordinal after "above", the text names no base level.
+  expect(readHigherAmount("The damage increases by 1d6 for each slot level above.")).toMatchObject({ above: null });
   expect(readHigherAmount("The damage grows for each slot level above 1st.")).toBeNull();
   expect(readHigherAmount("The damage increases by 1d6 and the healing by 1d4 for each slot level above 1st.")).toBeNull();
   expect(readHigherAmount("The damage increases by 1d6 when you cast it at a higher level.")).toBeNull();

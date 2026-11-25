@@ -175,9 +175,6 @@
     border-top-color: currentColor;
     border-bottom-width: 0;
   }
-  .ui-split > .ui-split-arrow:where([data-popup-open]:not([data-variant="ghost"])) {
-    background: color-mix(in srgb, var(--ink) 82%, var(--paper));
-  }
   .ui-split > .ui-split-arrow:where([data-variant="ghost"][data-popup-open]) {
     background: var(--panel);
   }
@@ -195,11 +192,7 @@
     overflow-y: auto;
     font-family: var(--font-sans);
     font-size: 14px;
-    color: var(--ink);
-    background: var(--paper-raised);
-    border: 1px solid var(--ink);
-    box-shadow: 4px 4px 0 var(--note-shadow);
-    outline: 0;
+    /* The fill, border and shadow are the popup surface of dialog.css. */
   }
   .ui-split-menu:where([data-details]) {
     grid-template-columns: 1fr auto auto;

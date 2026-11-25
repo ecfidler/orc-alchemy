@@ -234,7 +234,9 @@ bun run test       # vitest
     pick calls `onPick` with the value. `menuNote` shows at the bottom of
     the menu and describes it. The menu opens under the control, at its
     end; with `widthOf`, it opens under that element with its width. With
-    no items it is a plain Button. `variant` is "solid" (the default) or
+    no items it is a plain Button. `menuLabel` is required when the owner
+    gives `items`, also null; without `items` the control takes no menu
+    props. `variant` is "solid" (the default) or
     "ghost". Styles: `src/button.css`.
   - `ListModal`: Base UI Dialog with a title, a close X and one list of
     `items` that scrolls. Each item is `{ value, label, example?, group? }`.

@@ -1,9 +1,10 @@
 // The Rest button, the Short rest dialog with Arcane Recovery (ORC-318), and
 // the Long rest and Dawn dialogs (ORC-319, docs/design/sheet-interactivity.md
 // "Rests").
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { openWithValues, storedValues } from "./play-helpers.ts";
 
 /** Cleric 6 / paladin 3 / rogue 1 / wizard 1: 3 d10, 7 d8 and 1 d6, Constitution +1, 91 hit points; Channel Divinity (rest); wizard 1, so Arcane Recovery gives back 1 slot level. */
 const MULTICLASS = join(import.meta.dirname, "cleric-6-paladin-3-rogue-1-wizard-1.strict.json");
@@ -30,8 +31,6 @@ const TIRED = {
   "~:orcpub.dnd.e5.spells/slots-used": { "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0, 1] }, "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0] } },
 };
 
-const VALUES = "~:orcpub.entity.strict/values";
-
 /** The play state of a test: hit points, spent hit dice, spent uses and spent slots, in the keys of the record. */
 const PLAY = {
   "~:orcpub.dnd.e5.character/current-hit-points": 50,
@@ -39,36 +38,6 @@ const PLAY = {
   "~:orc-alchemy.play/uses-spent": { "~:orcpub.dnd.e5.units/rest": { "Channel Divinity": 1 } },
   "~:orcpub.dnd.e5.spells/slots-used": { "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0, 1] } },
 };
-
-/** Imports a character file with more values in its record, and opens its sheet. */
-async function open(page: Page, file: string, values: Record<string, unknown> = {}) {
-  const entity = JSON.parse(readFileSync(file, "utf8"));
-  entity[VALUES] = { ...entity[VALUES], ...values };
-  await page.goto("/import");
-  await page
-    .getByLabel("Import character file")
-    .setInputFiles({ name: "rest.strict.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(entity)) });
-  await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
-  await page.evaluate(() => document.fonts.ready);
-}
-
-/** The values of the one stored character, read from IndexedDB. */
-const storedValues = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise<Record<string, unknown>>((resolve, reject) => {
-        const open = indexedDB.open("alchemy-5e");
-        open.onerror = () => reject(open.error);
-        open.onsuccess = () => {
-          const all = open.result.transaction("characters").objectStore("characters").getAll();
-          all.onerror = () => reject(all.error);
-          all.onsuccess = () => {
-            open.result.close();
-            resolve(all.result[0]?.entity?.["~:orcpub.entity.strict/values"] ?? {});
-          };
-        };
-      }),
-  );
 
 const restButton = (page: Page) => page.getByRole("button", { name: "Rest", exact: true });
 const dialog = (page: Page, name = "Short rest") => page.getByRole("dialog", { name });
@@ -118,7 +87,7 @@ for (const [width, height] of [
 ] as const) {
   test(`at ${width}px the dialog keeps its size and its parts keep their places while the user spends dice and picks slots`, async ({ page }) => {
     await page.setViewportSize({ width, height });
-    await open(page, MULTICLASS, PLAY);
+    await openWithValues(page, MULTICLASS, PLAY);
     await openShortRest(page);
     const before = await layout(page);
     const labels = () => changes(page).evaluateAll((items) => items.map((item) => item.firstElementChild?.textContent));
@@ -149,7 +118,7 @@ test("the list says what the rest will change, with signed counts and an arrow f
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, MULTICLASS, PLAY);
+  await openWithValues(page, MULTICLASS, PLAY);
   await openShortRest(page);
   await expect(changes(page)).toHaveText([
     "Hit pointsNo change",
@@ -188,7 +157,7 @@ test("the list says what the rest will change, with signed counts and an arrow f
 
 test("Finish writes all the changes at once and the status line says so; Cancel changes nothing", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, MULTICLASS, PLAY);
+  await openWithValues(page, MULTICLASS, PLAY);
   const before = await storedValues(page);
   await openShortRest(page);
   await spend(page, "d10", "7");
@@ -231,7 +200,7 @@ test("Finish writes all the changes at once and the status line says so; Cancel 
 
 test("the pact slots come back; with full hit points the dice controls stay in place, disabled; a rest that changes nothing says so", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WIZARD_WARLOCK, { "~:orcpub.dnd.e5.spells/slots-used": { "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [4, 5] } } });
+  await openWithValues(page, WIZARD_WARLOCK, { "~:orcpub.dnd.e5.spells/slots-used": { "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [4, 5] } } });
   await openShortRest(page);
   await expect(row(page, "d8").getByRole("button", { name: "Spend", exact: true })).toBeDisabled();
   await expect(row(page, "d8").getByRole("textbox", { name: "Roll" })).toBeDisabled();
@@ -243,7 +212,7 @@ test("the pact slots come back; with full hit points the dice controls stay in p
   await openShortRest(page);
   await expect(changes(page)).toHaveText(["Arcane RecoveryNo change"]);
   // A fighter with no die left and no spent use: the list says that nothing will change, and Finish works.
-  await open(page, FIGHTER, { "~:orc-alchemy.play/hit-dice-spent": { "~i10": 5 } });
+  await openWithValues(page, FIGHTER, { "~:orc-alchemy.play/hit-dice-spent": { "~i10": 5 } });
   await openShortRest(page);
   await expect(dialog(page).getByRole("region", { name: "This rest will change" })).toHaveText("This rest will changeNothing will change.");
   await expect(row(page, "d10").getByRole("button", { name: "Roll for me" })).toBeDisabled();
@@ -255,7 +224,7 @@ test("keyboard: the menu opens the dialog with the focus on the first field; the
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, MULTICLASS, PLAY);
+  await openWithValues(page, MULTICLASS, PLAY);
   await restButton(page).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menuitem", { name: "Short rest" })).toBeFocused();
@@ -288,7 +257,7 @@ test("keyboard: the menu opens the dialog with the focus on the first field; the
 
 test("at 390px the action row stays on one line, and the buttons show their labels without the icons", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await open(page, MULTICLASS, PLAY);
+  await openWithValues(page, MULTICLASS, PLAY);
   const row = page.getByRole("link", { name: "Back to List" }).locator("..");
   // The middle of each part, so the save status, which is text, counts as on the line of the buttons.
   const middles = await row.evaluate((element) =>
@@ -311,7 +280,7 @@ test("at 390px the action row stays on one line, and the buttons show their labe
 
 test("the builder has no Rest button", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, MULTICLASS);
+  await openWithValues(page, MULTICLASS);
   await page.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(page.getByRole("link", { name: "Done" })).toBeVisible();
   await expect(restButton(page)).toHaveCount(0);
@@ -319,11 +288,11 @@ test("the builder has no Rest button", async ({ page }) => {
 
 test("the menu has Dawn only when the character has a feature with Dawn uses", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, FIGHTER);
+  await openWithValues(page, FIGHTER);
   await restButton(page).click();
   await expect(page.getByRole("menuitem")).toHaveText(["Short rest", "Long rest"]);
   await page.keyboard.press("Escape");
-  await open(page, WIZARD);
+  await openWithValues(page, WIZARD);
   await restButton(page).click();
   await expect(page.getByRole("menuitem")).toHaveText(["Short rest", "Long rest", "Dawn"]);
 });
@@ -332,7 +301,7 @@ const longChanges = (page: Page) => dialog(page, "Long rest").getByRole("region"
 
 test("Long rest lists its changes, writes them at once, and keeps inspiration and the conditions after a reload", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WIZARD, TIRED);
+  await openWithValues(page, WIZARD, TIRED);
   const before = await storedValues(page);
   await openRest(page, "Long rest");
   await expect(longChanges(page)).toHaveText([
@@ -371,7 +340,7 @@ test("Long rest lists its changes, writes them at once, and keeps inspiration an
 
 test("Long rest with both checkboxes off keeps the exhaustion level and the Dawn uses; the Dawn list stays in its place, disabled", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WIZARD, TIRED);
+  await openWithValues(page, WIZARD, TIRED);
   const before = await storedValues(page);
   await openRest(page, "Long rest");
   await dialog(page, "Long rest").getByRole("checkbox", { name: "Ate and drank" }).click();
@@ -405,7 +374,7 @@ for (const [width, height] of [
 ] as const) {
   test(`at ${width}px the Long rest dialog keeps its size and its parts keep their places when the checkboxes go off and on`, async ({ page }) => {
     await page.setViewportSize({ width, height });
-    await open(page, WIZARD, TIRED);
+    await openWithValues(page, WIZARD, TIRED);
     await openRest(page, "Long rest");
     const before = await layout(page, "Long rest");
     const dawn = dialog(page, "Long rest").getByRole("checkbox", { name: "Dawn came during the rest" });
@@ -427,7 +396,7 @@ for (const [width, height] of [
 
 test("Dawn gives back the number in each field, and a field at 0 says that nothing will change; the record keeps it after a reload", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, WIZARD, TIRED);
+  await openWithValues(page, WIZARD, TIRED);
   const before = await storedValues(page);
   await openRest(page, "Dawn");
   const field = dialog(page, "Dawn").getByRole("textbox", { name: "Arcane Recovery" });
@@ -466,7 +435,7 @@ test.describe("screenshots", () => {
         ["phone", 390, 844],
       ] as const) {
         await page.setViewportSize({ width, height });
-        await open(page, MULTICLASS, PLAY);
+        await openWithValues(page, MULTICLASS, PLAY);
         // The action row with the menu open.
         await restButton(page).click();
         const menu = page.getByRole("menu");
@@ -514,7 +483,7 @@ test.describe("screenshots of ORC-319", () => {
         ["phone", 390, 844],
       ] as const) {
         await page.setViewportSize({ width, height });
-        await open(page, WIZARD, TIRED);
+        await openWithValues(page, WIZARD, TIRED);
         // The action row with the menu of three entries.
         await restButton(page).click();
         const menu = page.getByRole("menu");
@@ -547,7 +516,7 @@ test.describe("screenshots of ORC-319", () => {
         await page.screenshot({ path: shot(`${size}-dawn`) });
         await page.keyboard.press("Escape");
         // A rested fighter: the Long rest changes nothing.
-        await open(page, FIGHTER, { "~:orcpub.dnd.e5.character/current-hit-points": null });
+        await openWithValues(page, FIGHTER, { "~:orcpub.dnd.e5.character/current-hit-points": null });
         await openRest(page, "Long rest");
         await blur(page);
         await page.screenshot({ path: shot(`${size}-nothing`) });

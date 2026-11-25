@@ -12,6 +12,9 @@ import { asksFirst, type CastAction, type CastChoices, type CastSpell, concentra
 import type { SpellRecord } from "../engine/spell-records.ts";
 import type { SlotGroup } from "../engine/spells.ts";
 
+/** The column of the control: a fixed width at the end of the name block, or the full width under the name on a phone. */
+const COLUMN = "flex w-[20rem] max-w-full flex-col items-end text-right max-[600px]:w-full max-[600px]:items-start max-[600px]:text-left";
+
 export interface CastControlProps {
   spell: CastSpell;
   /** The name that shows. */
@@ -34,11 +37,11 @@ export interface CastControlProps {
 }
 
 /**
- * The Cast control. The column has a fixed width, and the hint and the
+ * The Cast choices. The column has a fixed width, and the hint and the
  * status lines keep their size, so the name block keeps its size when the
  * play state changes.
  */
-export function CastControl({ spell, name, record, choices: control, concentration, concentrationName, onCast, status, statusKey, phone }: CastControlProps) {
+export function CastControl({ spell, name, record, choices, concentration, concentrationName, onCast, status, statusKey, phone }: CastControlProps) {
   const hintId = useId();
   const column = useRef<HTMLDivElement>(null);
   // The row of the button, the full width of the column: on a phone the menu opens under it, with its width.
@@ -73,39 +76,31 @@ export function CastControl({ spell, name, record, choices: control, concentrati
   const slotCast = (group: SlotGroup) => cast({ kind: "slot", key: spell.key, name, level: spell.level, group, concentration: needsConcentration(record) });
 
   // A cast note that the app cannot link: no Cast button, only the line.
-  if (control.kind === "unlinked") {
+  if (choices.kind === "unlinked") {
     return (
-      <div
-        data-cast-control
-        className="flex w-[20rem] max-w-full flex-col items-end text-right max-[600px]:w-full max-[600px]:items-start max-[600px]:text-left"
-      >
-        <p className="self-stretch font-sans text-[12.5px] leading-[19px] text-ink-muted">{control.text}</p>
+      <div data-cast-control className={COLUMN}>
+        <p className="self-stretch font-sans text-[12.5px] leading-[19px] text-ink-muted">{choices.text}</p>
       </div>
     );
   }
 
   return (
-    <div
-      ref={column}
-      data-cast-control
-      className="flex w-[20rem] max-w-full flex-col items-end gap-1 text-right max-[600px]:w-full max-[600px]:items-start max-[600px]:text-left"
-    >
-      {control.kind === "concentrate" ? (
-        <Button aria-describedby={hintId} disabled={control.active} onClick={() => cast({ kind: "concentrate", key: spell.key, name })}>
+    <div ref={column} data-cast-control className={`${COLUMN} gap-1`}>
+      {choices.kind === "concentrate" ? (
+        <Button aria-describedby={hintId} disabled={choices.active} onClick={() => cast({ kind: "concentrate", key: spell.key, name })}>
           Concentrate
         </Button>
-      ) : control.kind === "uses" ? (
+      ) : choices.kind === "uses" ? (
         <div className="flex self-stretch justify-end max-[600px]:justify-start">
           <SplitButton
             aria-label={`Cast ${name}`}
             icon="sparkles"
             onClick={() => {
-              const { feature, label, pact } = control;
+              const { feature, label, pact } = choices;
               cast({ kind: "uses", key: spell.key, name, level: spell.level, feature, label, pact, concentration: needsConcentration(record) });
             }}
-            disabled={control.disabled}
+            disabled={choices.disabled}
             aria-describedby={hintId}
-            menuLabel="Cast at a higher level"
           >
             Cast
           </SplitButton>
@@ -115,11 +110,11 @@ export function CastControl({ spell, name, record, choices: control, concentrati
           <SplitButton
             aria-label={`Cast ${name}`}
             icon="sparkles"
-            onClick={() => control.main && slotCast(control.main.group)}
-            disabled={control.none || !control.main || control.main.left === 0}
+            onClick={() => choices.main && slotCast(choices.main.group)}
+            disabled={choices.none || !choices.main || choices.main.left === 0}
             aria-describedby={hintId}
             menuLabel="Cast at a higher level"
-            items={control.menu?.map((entry) => ({
+            items={choices.menu?.map((entry) => ({
               value: entry.group,
               label: entry.label,
               detail: entry.amount || undefined,
@@ -127,26 +122,26 @@ export function CastControl({ spell, name, record, choices: control, concentrati
               disabled: entry.left === 0,
             }))}
             onPick={slotCast}
-            menuDisabled={control.none}
+            menuDisabled={choices.none}
             menuNote={
-              control.menuText && (
+              choices.menuText && (
                 <>
-                  <b className="font-semibold">At Higher Levels.</b> {control.menuText}
+                  <b className="font-semibold">At Higher Levels.</b> {choices.menuText}
                 </>
               )
             }
             widthOf={phone ? buttonRow : null}
           >
-            {control.none ? "No slots left" : "Cast"}
+            {choices.none ? "No slots left" : "Cast"}
           </SplitButton>
         </div>
       )}
       {/* The hint of a cast with a use keeps two lines: "Spends Thief of Five Fates (1 left) and a pact slot (5th, 4 left)." wraps, and the hint after the cast does not. */}
       <p
         id={hintId}
-        className={`${control.kind === "uses" ? "min-h-[38px]" : "min-h-[19px]"} self-stretch font-sans text-[12.5px] leading-[19px] text-ink-muted`}
+        className={`${choices.kind === "uses" ? "min-h-[38px]" : "min-h-[19px]"} self-stretch font-sans text-[12.5px] leading-[19px] text-ink-muted`}
       >
-        {control.hint}
+        {choices.hint}
       </p>
       {/* The status line keeps the height of two lines. A no-break space on every second cast makes the same text a new message. */}
       <p ref={statusLine} role="status" tabIndex={-1} className="min-h-[38px] self-stretch font-sans text-[13px] leading-[19px]">

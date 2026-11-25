@@ -120,18 +120,22 @@
     z-index: 20;
     outline: 0;
   }
+  /* The popup surface: the small popup and the menu of a split button (button.css) share it. */
+  .ui-popup,
+  .ui-split-menu {
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--note-shadow);
+    outline: 0;
+  }
   .ui-popup {
     display: grid;
     gap: 10px;
     box-sizing: border-box;
     width: min(320px, calc(100vw - 32px));
     padding: 12px;
-    color: var(--ink);
     text-align: left;
-    background: var(--paper-raised);
-    border: 1px solid var(--ink);
-    box-shadow: 4px 4px 0 var(--note-shadow);
-    outline: 0;
   }
   /* With widthOf: the width of that element. */
   .ui-popup:where([data-fill]) {

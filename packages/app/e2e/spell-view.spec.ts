@@ -1,38 +1,11 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { showSpellView as show } from "./spell-view-page.ts";
 
 // The spell view (docs/design/spells-panel.md, "The spell view") in a wide Dialog of @orc-alchemy/ui, in a real browser, with the app's CSS.
 // The Spells panel (ORC-285, e2e/spells-panel.spec.ts) shows them on the sheet; this page tests the view alone, as e2e/picker.spec.ts does.
-// Bun bundles the page's script, e2e/spell-view-demo.ts, once for all tests. See e2e/picker.spec.ts for the reasons.
-const script: string = execFileSync(
-  "bun",
-  [
-    "--eval",
-    `
-    const result = await Bun.build({ entrypoints: ["./spell-view-demo.ts"], define: { "process.env.NODE_ENV": '"development"' } });
-    if (!result.success) throw new AggregateError(result.logs);
-    process.stdout.write(await result.outputs[0].text());`,
-  ],
-  { cwd: import.meta.dirname, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
-);
-
-/** Shows the page with the spell of `key`, and opens the dialog from its button. */
-async function show(page: Page, key: string, name: string, theme: "light" | "dark" = "light") {
-  await page.goto("/");
-  const styles = await page.evaluate(() => [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map((link) => link.href));
-  const links = styles.map((href) => `<link rel="stylesheet" href="${href}">`).join("");
-  await page.setContent(`<!doctype html><html data-theme="${theme}"><head>${links}</head><body><div id="root"></div></body></html>`);
-  await page.addScriptTag({ content: script });
-  await page.evaluate(async ([key, name]) => await window.mountSpell(key!, name!), [key, name]);
-  await page.evaluate(() => document.fonts.ready);
-  const open = page.getByRole("button", { name: "Open the spell" });
-  await open.click();
-  const dialog = page.getByRole("dialog", { name: "Spells" });
-  await expect(dialog).toBeVisible();
-  return { open, dialog };
-}
+// e2e/spell-view-page.ts shows the page.
 
 test("a wide dialog holds the focus, closes with the X and with Escape, and gives the focus back", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -92,7 +65,7 @@ test.describe("screenshots", () => {
     test(`orc-284 the spell view in a wide dialog, ${theme}`, async ({ page }) => {
       mkdirSync(dir, { recursive: true });
       const shot = async (key: string, name: string, what: string) => {
-        await show(page, key, name, theme);
+        await show(page, key, name, { theme });
         await page.screenshot({ path: join(dir, `orc-284-${what}-${theme}.png`) });
       };
       await page.setViewportSize({ width: 1280, height: 900 });
