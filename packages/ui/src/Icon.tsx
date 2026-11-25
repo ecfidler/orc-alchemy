@@ -313,8 +313,8 @@ const PIXEL_ICONS = {
     ".##############.",
     ".oooooooooooooo.",
   ],
-  // The class icons, one for each SRD class, for the Class step of the builder (ORC-337).
-  barbarian: [
+  // Icons that go with the name of a thing, not with an action (ORC-337). The app gives each one its use.
+  anger: [
     ".....++..++.....",
     ".....##..##.....",
     ".....##..##.....",
@@ -332,7 +332,7 @@ const PIXEL_ICONS = {
     ".....##..##.....",
     ".....oo..oo.....",
   ],
-  bard: [
+  note: [
     ".....++++++++++.",
     ".....##########.",
     ".....##########.",
@@ -350,7 +350,7 @@ const PIXEL_ICONS = {
     ".####....####...",
     ".oooo....oooo...",
   ],
-  cleric: [
+  sun: [
     ".......++.......",
     ".......##.......",
     "...++..##..++...",
@@ -368,7 +368,7 @@ const PIXEL_ICONS = {
     ".......##.......",
     ".......oo.......",
   ],
-  druid: [
+  leaf: [
     ".........++++++.",
     ".........######.",
     ".....++++######.",
@@ -386,7 +386,7 @@ const PIXEL_ICONS = {
     ".##.............",
     ".oo.............",
   ],
-  fighter: [
+  helmet: [
     "...++++++++++...",
     "...##########...",
     ".++##########++.",
@@ -404,7 +404,7 @@ const PIXEL_ICONS = {
     "...####..####...",
     "...oooo..oooo...",
   ],
-  monk: [
+  figure: [
     ".....++++++.....",
     ".....######.....",
     ".....######.....",
@@ -422,7 +422,7 @@ const PIXEL_ICONS = {
     "................",
     "................",
   ],
-  paladin: [
+  shield: [
     ".++++++++++++++.",
     ".##############.",
     ".##############.",
@@ -440,7 +440,7 @@ const PIXEL_ICONS = {
     ".......##.......",
     ".......oo.......",
   ],
-  ranger: [
+  arrow: [
     ".........++++++.",
     ".........######.",
     ".........######.",
@@ -458,7 +458,7 @@ const PIXEL_ICONS = {
     ".##..##.........",
     ".oo..oo.........",
   ],
-  rogue: [
+  dagger: [
     "...........++++.",
     "...........####.",
     ".........++####.",
@@ -476,7 +476,7 @@ const PIXEL_ICONS = {
     ".##.............",
     ".oo.............",
   ],
-  sorcerer: [
+  spiral: [
     "...++++++++++...",
     "...##########...",
     ".++##########++.",
@@ -494,7 +494,7 @@ const PIXEL_ICONS = {
     "................",
     "................",
   ],
-  warlock: [
+  chain: [
     ".......++++++++.",
     ".......########.",
     ".......########.",
@@ -512,7 +512,7 @@ const PIXEL_ICONS = {
     ".########.......",
     ".oooooooo.......",
   ],
-  wizard: [
+  book: [
     ".++++......++++.",
     ".####......####.",
     ".####++..++####.",
@@ -548,7 +548,7 @@ function tonePath(rows: readonly string[], runs: RegExp): string {
 
 /**
  * A pixel icon, 16px, in the text color, for the start of the text of a
- * button or a link. Its edge and its shadow are lighter tones of the same
+ * button, a link or a label. Its edge and its shadow are lighter tones of the same
  * color. It is hidden from a screen reader: the text names the control.
  * `className` is for layout.
  */

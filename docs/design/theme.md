@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-24T23:53:55Z }
+generated: { by: claude-code/agent, at: 2026-11-25T21:20:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -371,26 +371,6 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | `lock` | A value that cannot change. `LockIcon` draws it with no space after it. |
 | `up`, `down` | No use at this time. They are for a control that moves or sorts. |
 
-**Class icons** (ORC-337). Each SRD class has a pixel icon with the name of
-the class in small letters. A class icon goes only with the name of its
-class, in the Class step of the builder. The step is not built: it comes
-with the character builder spec (ORC-334).
-
-| Icon | Drawing |
-| --- | --- |
-| `barbarian` | An anger mark. |
-| `bard` | A music note. |
-| `cleric` | A sun with its beams. |
-| `druid` | A leaf. |
-| `fighter` | A helmet. |
-| `monk` | A seated figure. |
-| `paladin` | A shield. |
-| `ranger` | An arrow. |
-| `rogue` | A dagger. |
-| `sorcerer` | A spiral. |
-| `warlock` | A chain link. |
-| `wizard` | An open book. |
-
 A confirm dialog shows the check and the x only when its cancel text is
 "Cancel". With another text, for example "Stay", the action can be the one
 that drops the changes, so the two buttons have no icon.
@@ -400,6 +380,27 @@ beside a level, has an `aria-label`.
 
 Do not use an icon for a second meaning. A control without a row in this
 table has no icon.
+
+**Class icons** (ORC-337). Each SRD class has one pixel icon. A class icon
+goes only with the name of its class, in the Class step of the builder.
+The step is not built: it comes with the character builder spec (ORC-334).
+The package has no 5e words, so the name of an icon is the name of its
+drawing, and the app holds the list of the icon of each class.
+
+| Class | Icon | Drawing |
+| --- | --- | --- |
+| Barbarian | `anger` | An anger mark. |
+| Bard | `note` | A music note. |
+| Cleric | `sun` | A sun with its beams. |
+| Druid | `leaf` | A leaf. |
+| Fighter | `helmet` | A helmet. |
+| Monk | `figure` | A seated figure. |
+| Paladin | `shield` | A shield. |
+| Ranger | `arrow` | An arrow. |
+| Rogue | `dagger` | A dagger. |
+| Sorcerer | `spiral` | A spiral. |
+| Warlock | `chain` | A chain link. |
+| Wizard | `book` | An open book. |
 
 **Split button and popup.** The
 [Sheet interactivity spec](sheet-interactivity.md) adds two parts. A split

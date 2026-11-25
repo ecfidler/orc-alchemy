@@ -31,9 +31,9 @@ test("a pixel icon is a 16px SVG in the text color, hidden from a screen reader,
   expect(svg.children[0].getAttribute("d")).toMatch(/^M1 1h2v1h-2z/);
 });
 
-test("each SRD class has a pixel icon", () => {
-  const classes = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"] as const;
-  for (const name of classes) {
+test("each icon that goes with a name has the three tones", () => {
+  const names = ["anger", "note", "sun", "leaf", "helmet", "figure", "shield", "arrow", "dagger", "spiral", "chain", "book"] as const;
+  for (const name of names) {
     const { container } = render(<PixelIcon name={name} />);
     const svg = container.querySelector(`svg[data-icon="${name}"]`)!;
     // Each tone has pixels: a shape, an edge above it and a shadow below it.
