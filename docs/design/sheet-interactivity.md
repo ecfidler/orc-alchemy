@@ -760,7 +760,8 @@ The app applies these effects. It rounds down to a whole number, with no
 
 * The Inspiration box in the left column is a button. A click sets
   inspiration, and a second click removes it.[^orc-303]
-* With inspiration, the box shows a mark. The box does not change its
+* With inspiration, the box shows a mark. The mark is the `check` icon,
+  until inspiration has an icon of its own. The box does not change its
   size.
 * No rest changes inspiration.
 * The button has `aria-pressed`. Its accessible name is "Inspiration".

@@ -593,7 +593,8 @@ test("with play, the Inspiration box is a button: a click sets inspiration, and 
   expect(play.onInspiration).toHaveBeenLastCalledWith(true);
   rerender(<CharacterSheet sheet={{ ...sheet, inspiration: true }} play={play} />);
   // The mark is hidden from a screen reader: aria-pressed says it.
-  expect([box.getAttribute("aria-pressed"), box.textContent, box.querySelector("[aria-hidden]")?.textContent]).toEqual(["true", "✦Inspiration", "✦"]);
+  expect([box.getAttribute("aria-pressed"), box.textContent]).toEqual(["true", "Inspiration"]);
+  expect(box.querySelector('[data-inspiration-mark] svg[data-icon="check"]')?.getAttribute("aria-hidden")).toBe("true");
   fireEvent.click(box);
   expect(play.onInspiration).toHaveBeenLastCalledWith(false);
 });
@@ -601,7 +602,11 @@ test("with play, the Inspiration box is a button: a click sets inspiration, and 
 test("without play, the Inspiration box shows the mark and is not a button; the ability boxes are not buttons", () => {
   render(<CharacterSheet sheet={{ ...sheet, inspiration: true }} />);
   expect(screen.queryByRole("button", { name: "Inspiration" })).toBeNull();
-  expect(within(screen.getByRole("group", { name: "Inspiration" })).getByRole("img", { name: "Has inspiration" }).textContent).toBe("✦");
+  expect(
+    within(screen.getByRole("group", { name: "Inspiration" }))
+      .getByRole("img", { name: "Has inspiration" })
+      .querySelector('svg[data-icon="check"]'),
+  ).not.toBeNull();
   expect(screen.queryByRole("button", { name: /highlight the skills/ })).toBeNull();
   expect(screen.getByLabelText("STR").textContent).toBe("16+3");
 });

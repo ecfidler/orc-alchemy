@@ -9,6 +9,7 @@ import {
   Label,
   Menu,
   type MenuProps,
+  PixelIcon,
   ShadedPanel,
   SlotCircles,
   SmallBox,
@@ -542,14 +543,18 @@ function Line({
   );
 }
 
-/** The mark of the Inspiration box. With `label`, it is an image with that name; else it is hidden, as the pressed state of the box says it. */
+/**
+ * The mark of the Inspiration box: the check icon, until inspiration has an icon of its own. With `label`, it is an
+ * image with that name; else it is hidden, as the pressed state of the box says it.
+ */
 function InspirationMark({ label }: { label?: string }) {
+  const icon = <PixelIcon name="check" />;
   return label ? (
-    <span role="img" aria-label={label}>
-      ✦
+    <span role="img" aria-label={label} data-inspiration-mark="">
+      {icon}
     </span>
   ) : (
-    <span aria-hidden>✦</span>
+    <span data-inspiration-mark="">{icon}</span>
   );
 }
 

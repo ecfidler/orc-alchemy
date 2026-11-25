@@ -346,7 +346,7 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | Icon | Use |
 | --- | --- |
 | `pencil` | A control that opens the builder, a Customize dialog, or a homebrew form: a place where content changes. |
-| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. |
+| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. Also the mark of the Inspiration box, until inspiration has an icon of its own (ORC-324). |
 | `x` | A control that closes and does not keep the changes: Cancel. |
 | `sparkles` | A control for spellcasting: All spells, Prepare spells, and the Cast button of a spell (ORC-320). |
 | `external` | A link that opens a page of another site: Send feedback. |

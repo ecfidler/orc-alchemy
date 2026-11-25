@@ -25,7 +25,7 @@ const leftColumn = (page: Page) =>
     .filter({ has: ability(page, "Strength") })
     .locator("..");
 /** The layout of the left column. The mark in the Inspiration box is not a part: it comes and goes. */
-const layout = (page: Page) => layoutOf(leftColumn(page), ".ui-small-box-value > *");
+const layout = (page: Page) => layoutOf(leftColumn(page), ".ui-small-box-value *");
 
 /** Opens the sheet; on a phone, the Stats tab shows the left column. */
 async function openSheet(page: Page, values: Record<string, unknown> = {}) {
@@ -45,11 +45,13 @@ test("a click on the Inspiration box sets inspiration and shows the mark; a seco
   await openSheet(page);
   await expect(inspiration(page)).toHaveAttribute("aria-pressed", "false");
   await expect(inspiration(page)).toHaveText("Inspiration");
+  await expect(inspiration(page).locator("svg")).toHaveCount(0);
   const before = await storedValues(page);
   expect(before[INSPIRATION]).toBeUndefined();
   await inspiration(page).click();
   await expect(inspiration(page)).toHaveAttribute("aria-pressed", "true");
-  await expect(inspiration(page)).toHaveText("✦Inspiration");
+  await expect(inspiration(page)).toHaveText("Inspiration");
+  await expect(inspiration(page).locator('svg[data-icon="check"]')).toBeVisible();
   // The whole record: the click adds only inspiration.
   await expect.poll(() => storedValues(page)).toEqual({ ...before, [INSPIRATION]: true });
   await page.reload();
