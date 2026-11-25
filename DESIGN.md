@@ -158,7 +158,7 @@ The app shell is a binder. A margin rail on the left holds the logo and the navi
 
 The Dark theme is not dark paper. It is OLED black and white: a pure black page, white text, and accents that shift to suit black. The notes and the flag tabs stay bright in the Dark theme, with black text.
 
-The authority for each value and rule in this file is `docs/design/theme.md`. When this file and `theme.md` disagree, `theme.md` wins. The homebrew forms are in `docs/design/homebrew-forms.md`, and the Spells panel is in `docs/design/spells-panel.md`.
+The authority for each value and rule in this file is `docs/design/theme.md`. When this file and `theme.md` disagree, `theme.md` wins. The homebrew forms are in `docs/design/homebrew-forms.md`, the Spells panel is in `docs/design/spells-panel.md`, and the play controls of the sheet are in `docs/design/sheet-interactivity.md`.
 
 **Key Characteristics:**
 
@@ -179,12 +179,12 @@ The palette is paper and ink, with marker accents. The frontmatter has the Light
 
 ### Secondary
 
-- **Note Yellow** (#ffe45c in the two themes): the fill of a stuck note, a yellow alert note, a note line, and the flash of a part that the user added. It means "you must act".
+- **Note Yellow** (#ffe45c in the two themes): the fill of a stuck note, a yellow alert note, a note line, and the flash of a part that the user added. It means "you must act". The ability highlight of a skill line on the sheet has the same fill, with Note Ink text.
 - **Info Blue** (#1e5fb4, Dark #5ea2ff): the outline of a use bubble and the focus ring. The bubble fill is 12% of this color on Raised Paper (18% in the Dark theme).
 
 ### Tertiary
 
-- **Danger Red** (#c2271d, Dark #ff5c52): errors and "failed". The margin rule of the shell has the same values.
+- **Danger Red** (#c2271d, Dark #ff5c52): errors and "failed". The margin rule of the shell has the same values. On the sheet, the caption under the speed and the caption under the hit points are small Danger Red caps. They give the cause of a penalty.
 - **Success Green** (#1f7a3a, Dark #4ed07a): "Saved" and death-save successes.
 - **Warning Yellow** (#7f6200, Dark #ffd93d): warning text that needs no action.
 - **Caution Orange** (#b85a00, Dark #ff9a3d): a bad mark that is not an error, for example death-save failures.
@@ -200,6 +200,7 @@ The palette is paper and ink, with marker accents. The frontmatter has the Light
 - **Strong Rule** (#8a8578, Dark #6b6b6b): box borders, section rules and the border of a disabled field.
 - **Panel**: 6% Ink on Paper (`color-mix`). The shaded panel that groups related boxes, and the hover fill of a button.
 - **Note Ink** (#222222, Dark #000000) and **Flag Ink** (#222222, Dark #000000): text on a note and on a flag tab.
+- **Muted Note Ink**: 72% Note Ink on Note Yellow (`color-mix`, `--note-ink-muted`). Muted text on a note, for example a skill with no proficiency in the ability highlight. Its contrast on Note Yellow is 5.60 : 1, and 8.19 : 1 in the Dark theme.
 
 ### Named Rules
 
@@ -239,15 +240,19 @@ The theme spec sets these sizes only. Each component sets the other sizes that i
 ## Layout
 
 - **Shell:** a 200px left rail holds the logo and the flag tabs. A double margin rule (1.5px, then 1px at 45%) separates the rail from the page. At 680px and less, the rail is a strip at the top, with the rule along its bottom and the tabs in a row on the rule. A beta build with a feedback form shows a "Send feedback" link after the logo: Inter 12px, weight 600, `--ink-muted`, with an underline. It opens the form in a new tab. In the rail it sits under the logo. In the strip it sits at the right end of the logo row. A build without a form has no link.
-- **Character sheet:** two columns at about 1 : 2, with a maximum width of 960px. The left column is 320px wide or more. Under 720px, the sections go in four tabs (Stats, Spells, Features, More) and the tab row sticks to the top.
+- **Character sheet:** two columns at about 1 : 2, with a maximum width of 960px. The left column is 320px wide or more. Under 720px, the sections go in four tabs (Stats, Spells, Features, More) and the tab row sticks to the top. The action row above the sheet has the save status, Save, a Rest button with the moon icon, a solid Edit and a ghost Export. Rest opens a menu with Short rest, Long rest and Dawn. Narrower than 720px, these buttons show their labels only, so that the row stays on one line at 390px.
 - **Home:** one column: the title row, the tagline, the buttons, three facts, the beta note, then Recent characters.
-- **Dialogs:** a Dialog is 720px wide at most. A wide Dialog (`size="wide"`, for the Spells panel) is 1100px wide at most. With `fill`, a wide Dialog is the height of the window less its 16px margins, and the owner lays out its body, for example as two panes that scroll apart. At 600px and less, a Dialog and a ListModal fill the screen.
+- **Dialogs:** a Dialog is 720px wide at most. A narrow Dialog (`size="narrow"`, for a short form or list such as the rest dialogs) is 520px wide at most. A wide Dialog (`size="wide"`, for the Spells panel) is 1100px wide at most. With `fill`, a wide Dialog is the height of the window less its 16px margins, and the owner lays out its body, for example as two panes that scroll apart. At 600px and less, a Dialog and a ListModal fill the screen.
 - **Density:** the sheet is dense, as a paper sheet is. Boxes are sized to their content. Forms are one column of labelled fields, with the label above the control.
 - The page never scrolls sideways. Long values truncate with an ellipsis or wrap.
 
+### Named Rules
+
+**The No Layout Shift Rule.** A change to the play state does not move the other parts of the sheet or change the size of a dialog. A box keeps the space for a mark, a caption or a tag before it shows. A control that cannot be used stays in its place, disabled. The Conditions and statuses box is the one exception: it can get one more line of tokens. The full rules are in `docs/design/sheet-interactivity.md`, "No layout shift".
+
 ## Elevation & Depth
 
-The system is flat. Depth comes from borders, from Raised Paper on Paper, and from the shaded Panel. Only things that are on top of the page cast a shadow: the notes, the current flag tab and a modal. The backdrop of a Dialog and of a ListModal is a 40% Ink wash.
+The system is flat. Depth comes from borders, from Raised Paper on Paper, and from the shaded Panel. Only things that are on top of the page cast a shadow: the notes, the current flag tab, a modal, and a small popup or the menu of a split button. The backdrop of a Dialog and of a ListModal is a 40% Ink wash.
 
 ### Shadow Vocabulary
 
@@ -275,6 +280,8 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 - **Solid:** an Ink fill and Paper text. A pressed Toggle and a current ghost button have the same look.
 - **Link:** the text of its line, with an underline.
 - **Plain:** the look of the text around it: its font and color, no box. Hover underlines the text. Use it for a name in a list that opens more, for example a spell name on the sheet.
+- **Bare:** no look of its own and no size. Its owner draws it all, for example a part of a box that opens a popup. A bare Toggle and a bare Menu trigger are the same.
+- **Split button:** a Button and an arrow part that touch, in a group. The main part does the usual action and can show a pixel icon. The arrow part has a down mark and a 1px line of the paper color on its left, and it opens a menu. The two parts disable apart. With no items it is a plain Button. The Cast control of the Spells panel uses it.
 - **Disabled:** Muted Ink text and a Strong Rule border.
 - **Wide:** the full width of its column, with the text on the left. The AddButton is a wide button with the plus icon before the text and a count on the right.
 - **Icon:** `icon` puts one pixel icon before the text, 16px, in the color of the text. The Icons section gives the use of each icon.
@@ -282,13 +289,15 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 
 ### Chips
 
-- **Token:** one pick on a form, as a small box with its name and an X.
+- **Token:** one pick on a form, as a small box with its name and an X. Its label has one of three modes: a plain text, a button that opens a list for a new value, or a button that opens a small popup under the token. The popup can also open when a mouse is over the token, with no focus move. A token can have a short muted note after its name. It can have a dashed border, for a token that the app adds by itself, or the Bubble fill with an Info Blue border. A small token has Inter 600, 13px text, for a row of status tokens in a box. Slot circles that change in a token are 15px, with a 24px tap area.
 - **Chips:** number chips with an X, and a dashed "+ Add" button.
 
 ### Cards / Containers
 
 - **Framed box:** a value in a box with its label under it, in Label type. A small control can be at the end of the label row, on its rule, for example a button that opens more.
 - **Stat box:** a large value with a hanging oval for a second value, on Raised Paper.
+- **Box button:** a small box or a stat box can be one toggle button. The box keeps its look and its size. Hover gives it an inset 2px Ink ring. A pressed stat box has the ring and an Ink label. On the sheet, each ability box is a toggle that highlights the skills of its ability, and the Inspiration box is a toggle that shows a mark. A part of a box can also be a bare button: each part of the Hit points box and the Hit dice box open a small popup, and the Armor Class box opens the menu "Armor class shows".
+- **Current / max:** the pair can keep the width of its largest value, so that it does not move when the value changes.
 - **Shaded panel:** a Panel area that groups related boxes.
 - **Shadow Strategy:** none. See Elevation & Depth.
 
@@ -296,13 +305,20 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 
 - **Style:** each TextInput, TextArea, Select, Combobox and NumberField is boxed: a 1px Ink border on Raised Paper, radius 0, padding 3px 8px. The label is above the control, in Label type.
 - **Focus:** a 2px Info Blue outline with a 2px offset on `:focus-visible`. On a note, the outline is Note Ink. On a flag tab, it is Ink.
-- **Error / Disabled:** error text is Danger Red. A disabled field has a Strong Rule border.
+- **Error / Disabled:** error text is Danger Red. A disabled field has a Strong Rule border. A disabled NumberField also has Muted Ink text.
 - **Checkbox out of the Tab order:** a Checkbox can take `tabIndex={-1}` when a key on another control changes it, for example Space on a row of a list that is one Tab stop. A mouse and a screen reader still reach it.
 
 ### Navigation
 
 - **Flag tabs:** Inter 600, 13.5px, uppercase, in Flag Ink. A tab has a pale body (55% of its color on white) and a solid end at the rule. The current tab sticks out further, is solid and has a small shadow. Hover moves a tab out a little, but not under `prefers-reduced-motion: reduce`.
 - **Home** has no tab. The logo in the rail links to it.
+
+### Menu and small popup
+
+- **Menu:** a ghost button or a bare button opens a list of actions. An optional bold title (Inter 700, 13px) is over the items and names the list. An item can have a short note in small Muted Ink type at the end of its line, for example "immune". A menu that picks one of its items has radio items, and the checked item is bold.
+- **Menu of a split button:** a bold title, then items in up to three columns that line up: the label, a bold value, and a Muted Ink note at the end. A Rule hairline separates the items. A disabled item is Muted Ink. An optional note in small Muted Ink text is at the bottom. The menu opens under the control, at its end, or with the width of another part, for example the full width of the panel on a phone.
+- **Small popup:** a small panel under the box that opens it, with a title (600, 19px) and its controls, and no close button. It is 320px wide, or it has the width of another part. It is not modal. A second click on its trigger, Escape and a click outside close it. Hit points, hit dice and a pool use it.
+- **Surface:** the small popup and the menu of a split button have a Raised Paper fill, a 1px Ink border and a shadow in the `--note-shadow` color.
 
 ### List rows
 
@@ -313,14 +329,16 @@ A ListRow is a row of a list as a button: the full width, flat, with a Rule hair
 - **Stuck note:** a tilted Note Yellow note above the box that it marks. It takes its own space and overlaps only the top border of the box. It goes only where the user must act.
 - **Alert note:** a flat note at the full width of the page column, above the content. Yellow means "you must act", red means "failed", and blue is information. Only a blue note has a dismiss button.
 - **Note line:** a flat yellow line in the flow of a form, with a link button at its end.
+- **Note space:** the space of the note of a form or a popup. It is a polite status line that keeps the height of one note line (33px), so a popup keeps its size when the note comes or goes.
+- **Status line:** on the sheet, a line with a reserved height under the vitals says what the last action changed.
 
 ### Use bubble
 
-The frame around a feature with limited uses: an Info Blue outline, a Bubble fill and an 18px radius. One circle for each use, and a spent circle gets an ink slash. The rest type is in small caps in the top right. When all uses are spent, the outline becomes dashed Muted Ink.
+The frame around a feature with limited uses: an Info Blue outline, a Bubble fill and an 18px radius. One circle for each use, and a spent circle gets an ink slash. The rest type is in small caps in the top right. When all uses are spent, the outline becomes dashed Muted Ink. The app records the spent uses, and a click on a circle is a sheet change. A pool shows its number large as current / max, with a minus button and a plus button beside it, and a click on the number opens a small popup.
 
 ### Slot circles and square marks
 
-A row of plain circles, and a marked circle fills solid. The color is a prop: Ink for spell slots, Success Green for death-save successes, Caution Orange for failures. A filled square means "has it", for example a proficiency.
+A row of plain circles, and a marked circle fills solid. The color is a prop: Ink for spell slots, Success Green for death-save successes, Caution Orange for failures, Info Blue in a use bubble. With the slash mark, a marked circle stays empty, with a Muted Ink outline and an Ink slash across it, as a spent use. A filled square means "has it", for example a proficiency.
 
 - **A group that changes:** with a change handler, a click on an empty circle fills the first empty circle from the left, and a click on a filled circle clears the last filled one. The filled circles are always together on the left. A circle that can change has a 17px drawing and a tap area of 28px or more. A circle that cannot change has a 15px drawing, and the small size has 12px circles for a narrow column. The group is one Tab stop, and the arrow keys change it. Under a mouse, the circle that a click changes shows a light fill.
 - **Diamond form:** each circle is a diamond, for Pact Magic slots. The diamonds are in the row of their slot level, after the circles, with no "Pact" label.
@@ -341,8 +359,8 @@ Each icon has one use:
 - **x:** a control that closes and does not keep the changes: Cancel.
 - **download:** a control that writes a file to the device: each Export button.
 - **import:** a control that reads a file or pasted text into the app.
-- **sparkles:** a control for spellcasting: All spells, Prepare spells, and later the Cast button of a spell.
-- **moon:** only the Rest button of the character sheet, which is not built.
+- **sparkles:** a control for spellcasting: All spells, Prepare spells, and the Cast button of a spell.
+- **moon:** only the Rest button of the character sheet.
 - **external:** a link that opens a page of another site.
 - **left:** a control that goes back: Back to List and each "Back to" link.
 - **plus** and **minus:** plus is for a control that makes a new record, adds to a list or increases a number. Minus is for a button that decreases a number.
@@ -368,6 +386,7 @@ The potion bottle, 16 × 16 pixel art. Show it only at a whole power-of-two scal
 - **Do** make each page work in the Light theme and the Dark theme, and at 390px wide.
 - **Do** show a current / max pair as the current value at full size, then `/ max` in Muted Ink.
 - **Do** obey `prefers-reduced-motion: reduce` for each motion.
+- **Do** keep the space for a mark, a caption or a tag before it shows, so that a change to the play state moves nothing.
 
 ### Don't:
 
