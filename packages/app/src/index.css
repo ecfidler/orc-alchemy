@@ -16,7 +16,7 @@
  */
 .skill-highlight {
   --ink: var(--note-ink);
-  --ink-muted: color-mix(in srgb, var(--note-ink) 72%, var(--note));
+  --ink-muted: var(--note-ink-muted);
   color: var(--ink);
   background: var(--note);
   border-radius: 2px;

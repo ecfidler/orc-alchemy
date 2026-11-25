@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 // The helpers that the e2e specs of the play state on the sheet share: import a character with play values, and
 // read the values of the stored record.
@@ -66,6 +66,22 @@ export const layout = (page: Page) =>
         return `${element.matches("[data-conditions-box]") ? "BOX" : element.tagName} ${[x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
       }),
   );
+
+/**
+ * The size of the element of `locator`, and the place and size of each element in it, from its top left corner (a click
+ * can scroll the page), to the tenth of a pixel. `skip` is a selector of the elements to leave out, for example a mark
+ * that comes and goes.
+ */
+export const layoutOf = (locator: Locator, skip?: string) =>
+  locator.evaluate((root, skip) => {
+    const origin = root.getBoundingClientRect();
+    return [root, ...root.querySelectorAll("*")]
+      .filter((element) => !skip || !element.matches(skip))
+      .map((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return `${element.tagName} ${[x - origin.x, y - origin.y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
+      });
+  }, skip);
 
 /** The parts of a layout that are above the box, and the left edge, top and width of the box: they never move. */
 export const aboveBox = (lines: string[]) => {

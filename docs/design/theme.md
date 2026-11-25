@@ -104,6 +104,7 @@ never a tab color, so red always means "failed".
 | `--panel` | `color-mix(in srgb, var(--ink) 6%, var(--paper))` (the shaded panel) |
 | `--bubble` | `color-mix(in srgb, var(--info) 12%, var(--paper-raised))`; dark 18% |
 | `--note-edge` | `color-mix(in srgb, var(--note) 70%, #000)`; dark 75% (the folded corner) |
+| `--note-ink-muted` | `color-mix(in srgb, var(--note-ink) 72%, var(--note))` (muted text on a note, for example a skill with no proficiency in the ability highlight); 5.60 / 8.19 on `--note` |
 | `--grain-opacity` | .05; dark .07 |
 
 ## Contrast test
@@ -292,7 +293,11 @@ homebrew forms. They have no game words: the app gives the lists.
   None / 1 / 2 / 3. The numbers are a prop.
 * **Chips:** number chips with an X, and a "+ Add" Menu. `AddChip` is the same dashed "+" button alone, for an empty slot.
 * **Menu:** an item can have a short note in small muted type at the end
-  of its line, for example "immune" (ORC-322).
+  of its line, for example "immune" (ORC-322). An optional title in bold
+  goes over the items and names the list. A menu that picks one of its
+  items has radio items, and the checked item is bold. The trigger is a
+  ghost button, or a bare button that has no look of its own, for
+  example the Armor Class box of the sheet (ORC-325).
 * **SplitButton** (ORC-320): a Button and an arrow part that touch, in a
   group. The main part does the usual action and can show a pixel icon.
   The arrow part has a down mark, a 1px line of the paper color on its

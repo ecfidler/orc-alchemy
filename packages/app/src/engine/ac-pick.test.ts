@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { AC_MENU_TITLE, acBoxName, acMenu, acRowName, acShown, WORN_ARMOR } from "./ac-pick.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { characterFile, exportBundle, readCharacterFile } from "./import.ts";
-import { setAcPick } from "./play.ts";
+import { acPick, setAcPick } from "./play.ts";
 import { toSheet } from "./sheet.ts";
 
 // The rows of fighter-20: plate and a shield worn.
@@ -86,7 +86,29 @@ test("the menu: Worn armor with the worn AC first, then each row with its AC; th
 
 test("without a pick, Worn armor is checked, also when a row shows", () => {
   expect(acMenu(NAMED, 16, false).checked).toBe(WORN_ARMOR);
-  expect(acMenu([], 12, false)).toEqual({ entries: [{ value: WORN_ARMOR, text: "Worn armor", note: "12", pick: null }], checked: WORN_ARMOR });
+  expect(acMenu([], 12, false)).toMatchObject({ entries: [{ value: WORN_ARMOR, text: "Worn armor", note: "12", pick: null }], checked: WORN_ARMOR });
+});
+
+test("pickOf gives the pick of an entry: null for Worn armor and for a value that is not in the menu", () => {
+  const { entries, pickOf } = acMenu(NAMED, 20, false);
+  expect(entries.map((entry) => pickOf(entry.value))).toEqual(entries.map((entry) => entry.pick));
+  expect(pickOf(WORN_ARMOR)).toBeNull();
+  expect(pickOf("leather/")).toBeNull();
+});
+
+test("a pick of the worn row is a pick: the box keeps that pair when the worn armor changes, and the menu checks that row", () => {
+  // The pick names the worn pair, so the AC is the same as without a pick, but the pick stays.
+  expect(acShown(ROWS, PLATE_SHIELD, 13, PLATE_SHIELD)).toEqual({ ac: 20, wornAc: 20, wornRow: 2, shownRow: 2, pick: PLATE_SHIELD });
+  // Later the character wears chain mail and a shield: the box still shows plate and a shield.
+  expect(acShown(ROWS, { armor: "chain-mail", shield: "shield" }, 13, PLATE_SHIELD)).toEqual({
+    ac: 20,
+    wornAc: 18,
+    wornRow: 0,
+    shownRow: 2,
+    pick: PLATE_SHIELD,
+  });
+  const rows = NAMED.map((row, i) => ({ ...row, shown: i === 0 }));
+  expect(acMenu(rows, 20, true).checked).toBe("plate/shield");
 });
 
 test("the name of the box and the title of the menu", () => {
@@ -120,5 +142,26 @@ describe("with the engine", () => {
     entity = setAcPick(e, entity, null);
     expect(valuesOf(entity)).toEqual(record);
     expect(toSheet(e.evaluate(entity).built, entity).armorClass).toBe(20);
+  });
+
+  test("a pick of the worn row is stored, and the menu checks that row, not Worn armor", () => {
+    const e = engine();
+    const entity = setAcPick(e, fighter(), PLATE_SHIELD);
+    expect(valuesOf(entity)["~:orc-alchemy.play/ac-pick"]).toEqual({ "~:armor": "~:plate", "~:shield": "~:shield" });
+    expect(acPick(entity)).toEqual(PLATE_SHIELD);
+    const sheet = toSheet(e.evaluate(entity).built, entity);
+    expect([sheet.armorClass, sheet.acPick]).toEqual([20, PLATE_SHIELD]);
+    expect(acMenu(sheet.armorClassOptions, sheet.wornArmorClass, sheet.acPick !== null).checked).toBe("plate/shield");
+  });
+
+  test("an unarmored pick is kept and read back: it is a pick, not the removal of the pick", () => {
+    const e = engine();
+    const unarmored = { armor: null, shield: null };
+    const entity = setAcPick(e, fighter(), unarmored);
+    expect(valuesOf(entity)["~:orc-alchemy.play/ac-pick"]).toEqual({ "~:armor": null, "~:shield": null });
+    expect(acPick(entity)).toEqual(unarmored);
+    const sheet = toSheet(e.evaluate(entity).built, entity);
+    expect([sheet.armorClass, sheet.acPick]).toEqual([13, unarmored]);
+    expect(acMenu(sheet.armorClassOptions, sheet.wornArmorClass, true).checked).toBe("/");
   });
 });

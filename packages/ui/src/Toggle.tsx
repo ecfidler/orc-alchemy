@@ -13,8 +13,9 @@ export type ToggleProps = Omit<ComponentProps<typeof BaseToggle<string>>, "class
 };
 
 /**
- * A button that is on or off, with Base UI Toggle inside. It has the ghost
- * button look, and is solid while it is pressed. On its own it takes
+ * A button that is on or off, with Base UI Toggle inside. By default it has
+ * the ghost button look, and is solid while it is pressed. With
+ * `variant="bare"` it has no look of its own. On its own it takes
  * `pressed` and `onPressedChange`. In a ToggleGroup, give it a `value`; the
  * group's `value` then sets whether it is pressed.
  */

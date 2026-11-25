@@ -6,7 +6,7 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { openWithValues, statusLine, storedValues, layout as vitalsLayout } from "./play-helpers.ts";
+import { layoutOf, openWithValues, statusLine, storedValues, layout as vitalsLayout } from "./play-helpers.ts";
 
 /** fighter-20: plate and a shield worn (AC 20), and six rows in the table "AC by armor". */
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-20.strict.json");
@@ -16,8 +16,8 @@ const AC_PICK = "~:orc-alchemy.play/ac-pick";
 const acBox = (page: Page, ac: number) => page.getByRole("button", { name: `Armor class, ${ac}`, exact: true });
 const anyAcBox = (page: Page) => page.getByRole("button", { name: /^Armor class, \d+$/ });
 const menu = (page: Page) => page.getByRole("menu", { name: "Armor class shows" });
-/** A menu entry by its text and AC. The AC is a part of its name. */
-const entry = (page: Page, text: string, ac: number) => menu(page).getByRole("menuitemradio", { name: new RegExp(`^${text.replace(/\+/g, "\\+")} ?${ac}$`) });
+/** A menu entry by its text and AC. The AC is a part of its name, after a space. */
+const entry = (page: Page, text: string, ac: number) => menu(page).getByRole("menuitemradio", { name: `${text} ${ac}`, exact: true });
 const table = (page: Page) => page.getByRole("table", { name: "Armor class options" });
 /** The rows of the table as "● Plate + Shield WORN 20 bold", from the text that shows. */
 const tableRows = (page: Page) =>
@@ -32,17 +32,8 @@ const tableRows = (page: Page) =>
         return [cells[0]?.textContent ?? "", shown(cells[1]), tag, shown(cells[2]), bold ? "bold" : ""].filter(Boolean).join(" ");
       }),
     );
-/** The place and size of the table and of each element in it, from its top left corner, to the tenth of a pixel. The dot comes and goes. */
-const tableLayout = (page: Page) =>
-  table(page).evaluate((element) => {
-    const origin = element.getBoundingClientRect();
-    return [element, ...element.querySelectorAll("*")]
-      .filter((part) => !part.matches("[role=img]"))
-      .map((part) => {
-        const { x, y, width, height } = part.getBoundingClientRect();
-        return `${part.tagName} ${[x - origin.x, y - origin.y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
-      });
-  });
+/** The layout of the table. The dot is not a part: it comes and goes. */
+const tableLayout = (page: Page) => layoutOf(table(page), "[role=img]");
 
 const phone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 720;
 /** On a phone, opens the tab of the vitals panel (Stats) or of the table (More). */
@@ -72,13 +63,13 @@ test("the box opens the menu Armor class shows: Worn armor, then each row of the
   await acBox(page, 20).click();
   await expect(menu(page)).toBeVisible();
   await expect(menu(page).getByRole("menuitemradio")).toHaveText([
-    "Worn armor20",
-    "Chain Mail + Shield18",
-    "Chain Mail16",
-    "Plate + Shield20",
-    "Plate18",
-    "Unarmored + Shield15",
-    "Unarmored13",
+    "Worn armor 20",
+    "Chain Mail + Shield 18",
+    "Chain Mail 16",
+    "Plate + Shield 20",
+    "Plate 18",
+    "Unarmored + Shield 15",
+    "Unarmored 13",
   ]);
   // Without a pick, Worn armor is checked, and it is bold.
   await expect(entry(page, "Worn armor", 20)).toHaveAttribute("aria-checked", "true");
@@ -132,6 +123,18 @@ test("a pick of a pair that is not in the table is ignored with no message: the 
   await expect(entry(page, "Worn armor", 20)).toHaveAttribute("aria-checked", "true");
 });
 
+test("a pick of the worn row is stored as a pick, and the menu checks that row, not Worn armor", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openSheet(page);
+  const before = await storedValues(page);
+  await pick(page, 20, "Plate + Shield", 20);
+  await expect.poll(() => storedValues(page)).toEqual({ ...before, [AC_PICK]: { "~:armor": "~:plate", "~:shield": "~:shield" } });
+  expect(await tableRows(page)).toEqual(WORN);
+  await acBox(page, 20).click();
+  await expect(entry(page, "Plate + Shield", 20)).toHaveAttribute("aria-checked", "true");
+  await expect(entry(page, "Worn armor", 20)).toHaveAttribute("aria-checked", "false");
+});
+
 test("the table marks: the dot is an image with a name, the worn tag, and the bold row", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openSheet(page, { [AC_PICK]: { "~:armor": "~:plate", "~:shield": null } });
@@ -180,6 +183,15 @@ test("the keyboard: Enter opens the menu, the arrow keys move, Enter picks, and 
   await expect(menu(page)).toHaveCount(0);
   await expect(acBox(page, 16)).toBeFocused();
   await expect.poll(async () => (await storedValues(page))[AC_PICK]).toEqual({ "~:armor": "~:chain-mail", "~:shield": null });
+  // The keyboard focus shows the inset ring of the box, as on the Hit dice box, in place of the focus outline.
+  await page.mouse.move(0, 0);
+  expect(
+    await acBox(page, 16).evaluate((box) => [
+      box.matches(":focus-visible"),
+      getComputedStyle(box).boxShadow.includes("inset"),
+      getComputedStyle(box).outlineStyle,
+    ]),
+  ).toEqual([true, true, "none"]);
 });
 
 for (const width of [1280, 390]) {

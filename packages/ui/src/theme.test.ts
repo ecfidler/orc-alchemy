@@ -74,6 +74,7 @@ const pairs: [string, string, number][] = [
   ["--ink", "--bubble", TEXT],
   ["--ink-muted", "--bubble", TEXT],
   ["--note-ink", "--note", TEXT],
+  ["--note-ink-muted", "--note", TEXT],
   ["--note-ink", "--note-red", TEXT],
   ["--note-ink", "--note-blue", TEXT],
   ...["--flag-yellow", "--flag-blue", "--flag-green", "--flag-orange"].map((flag): [string, string, number] => ["--flag-ink", flag, TEXT]),

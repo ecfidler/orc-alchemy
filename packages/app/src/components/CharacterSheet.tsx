@@ -8,7 +8,7 @@ import {
   FramedBox,
   Label,
   Menu,
-  type MenuItem,
+  type MenuProps,
   ShadedPanel,
   SlotCircles,
   SmallBox,
@@ -553,13 +553,12 @@ function InspirationMark({ label }: { label?: string }) {
  * The ability highlight (ORC-324, docs/design/sheet-interactivity.md "Ability highlight"). It is local state, not play
  * state: the app does not save it. A hover or the keyboard focus on an ability box shows its skills. A click keeps
  * them; a second click on the same box, or a click on another box, removes the kept one. A click that removes it also
- * hides the hover, so the change shows at once. `shown` is the ability whose skills have the highlight, or null.
+ * hides the hover, so the change shows at once: the pointer stays on the box, so no new hover shows it again until the
+ * pointer leaves. `shown` is the ability whose skills have the highlight, or null.
  */
 function useAbilityHighlight() {
   const [kept, setKept] = useState<Ability | null>(null);
   const [pointed, setPointed] = useState<Ability | null>(null);
-  // True from a press of a mouse, a pen or a finger to its click: the focus that the press gives shows nothing.
-  const pressing = useRef(false);
   const leave = (ability: Ability) => setPointed((current) => (current === ability ? null : current));
   return {
     shown: pointed ?? kept,
@@ -570,17 +569,11 @@ function useAbilityHighlight() {
         setKept(pressed ? ability : null);
         setPointed(pressed ? ability : null);
       },
-      onPointerDown: () => {
-        pressing.current = true;
-      },
-      onClick: () => {
-        pressing.current = false;
-      },
       onMouseEnter: () => setPointed(ability),
       onMouseLeave: () => leave(ability),
       // Only a focus from the keyboard shows the highlight. A click also focuses the box, and that focus must not keep it.
-      onFocus: () => {
-        if (!pressing.current) setPointed(ability);
+      onFocus: (event) => {
+        if (event.currentTarget.matches(":focus-visible")) setPointed(ability);
       },
       onBlur: () => leave(ability),
     }),
@@ -609,24 +602,18 @@ function BoldSpace({ children }: { children: ReactNode }) {
 
 /** The menu of the Armor Class box: "Worn armor", then each row of the table "AC by armor" (ORC-325). */
 function armorClassMenu(sheet: Sheet, play: SheetPlay): RowBoxMenu {
-  const { entries, checked } = acMenu(sheet.armorClassOptions, sheet.wornArmorClass, sheet.acPick !== null);
+  const { entries, checked, pickOf } = acMenu(sheet.armorClassOptions, sheet.wornArmorClass, sheet.acPick !== null);
   return {
     name: acBoxName(sheet.armorClass),
     title: AC_MENU_TITLE,
     items: entries.map((entry) => [entry.value, entry.text, entry.note] as const),
     checked,
-    onPick: (value) => play.onAcPick(entries.find((entry) => entry.value === value)?.pick ?? null),
+    onPick: (value) => play.onAcPick(pickOf(value)),
   };
 }
 
 /** A menu that a RowBox opens: the box is its button, named `name`. */
-interface RowBoxMenu {
-  name: string;
-  title: string;
-  items: readonly MenuItem<string>[];
-  checked: string;
-  onPick: (value: string) => void;
-}
+type RowBoxMenu = Pick<MenuProps<string>, "title" | "items" | "checked" | "onPick"> & { name: string };
 
 /**
  * A box in the AC row: a large value, its label at the bottom, so a taller
@@ -644,7 +631,10 @@ function RowBox({
   label: string;
   shortLabel?: string;
   shield?: boolean;
-  /** With it, the box is a bare button that opens the menu. On a hover, the focus or while the menu is open, it gets an inset ring. */
+  /**
+   * With it, the box is a bare button that opens the menu. On a hover, on the keyboard focus or while the menu is open,
+   * it gets an inset ring. The ring is in place of the focus outline, as on the Hit points and Hit dice boxes.
+   */
   menu?: RowBoxMenu;
   children: ReactNode;
 }) {
@@ -667,7 +657,7 @@ function RowBox({
         items={menu.items}
         checked={menu.checked}
         onPick={menu.onPick}
-        className={`${box} cursor-pointer hover:shadow-[inset_0_0_0_2px_var(--ink)] data-[popup-open]:shadow-[inset_0_0_0_2px_var(--ink)]`}
+        className={`${box} cursor-pointer outline-none hover:shadow-[inset_0_0_0_2px_var(--ink)] focus-visible:shadow-[inset_0_0_0_2px_var(--ink)] data-[popup-open]:shadow-[inset_0_0_0_2px_var(--ink)]`}
       >
         <span className={value}>{children}</span>
         {boxLabel}

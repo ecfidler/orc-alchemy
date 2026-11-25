@@ -50,7 +50,7 @@ test("a menu button can show an icon before its label and gives a ref to the but
   expect(button.querySelector("svg")?.dataset.icon).toBe("moon");
 });
 
-test("the third element of an item adds a muted note at the end of the item, as a part of its name", async () => {
+test("the third element of an item adds a muted note at the end of the item, as a part of its name after a space", async () => {
   render(
     <Menu
       label="Add a fruit"
@@ -63,7 +63,8 @@ test("the third element of an item adds a muted note at the end of the item, as 
   );
   fireEvent.click(screen.getByRole("button", { name: "Add a fruit" }));
   const items = await screen.findAllByRole("menuitem");
-  expect(items.map((i) => i.textContent)).toEqual(["Fig", "Plumripe"]);
+  expect(items.map((i) => i.textContent)).toEqual(["Fig", "Plum ripe"]);
+  expect(screen.getByRole("menuitem", { name: "Plum ripe" })).toBe(items[1]);
   expect(items[1]?.querySelector(".ui-menu-note")?.textContent).toBe("ripe");
   expect(items[0]?.querySelector(".ui-menu-note")).toBeNull();
 });
@@ -95,11 +96,11 @@ test("with checked, the items are radio items: the checked one has aria-checked,
   const items = await screen.findAllByRole("menuitemradio");
   expect(items.map((i) => [i.textContent, i.getAttribute("aria-checked")])).toEqual([
     ["Small", "false"],
-    ["Mediumdefault", "true"],
+    ["Medium default", "true"],
   ]);
   expect(screen.queryByRole("menuitem")).toBeNull();
   fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
-  expect(await optionNames(button)).toEqual(["Small", "Mediumdefault"]);
+  expect(await optionNames(button)).toEqual(["Small", "Medium default"]);
   await pickOption(button, "Small");
   expect(pick).toHaveBeenCalledWith("s");
   expect(button.getAttribute("aria-expanded")).toBe("false");
@@ -114,4 +115,24 @@ test("a bare menu button shows its children, has no look of its own, and the lab
   const button = screen.getByRole("button", { name: "Score, 18" });
   expect([button.className, button.dataset.variant, button.dataset.size, button.textContent]).toEqual(["ui-button box", "bare", undefined, "18"]);
   expect(button.getAttribute("aria-haspopup")).toBe("menu");
+});
+
+test("the props of the two variants do not mix: a prop of the other variant is a type error", () => {
+  const wrong = [
+    // @ts-expect-error A ghost button shows its label, so it has no children.
+    <Menu key="ghost-children" label="Sort" items={[[1, "One"]]} onPick={() => {}}>
+      <span>18</span>
+    </Menu>,
+    // @ts-expect-error A bare button has no size: its className draws it.
+    <Menu key="bare-size" label="Score" variant="bare" size="normal" items={[[1, "One"]]} onPick={() => {}}>
+      <span>18</span>
+    </Menu>,
+    // @ts-expect-error A bare button has no icon.
+    <Menu key="bare-icon" label="Score" variant="bare" icon="moon" items={[[1, "One"]]} onPick={() => {}}>
+      <span>18</span>
+    </Menu>,
+    // @ts-expect-error A bare button needs children.
+    <Menu key="bare-empty" label="Score" variant="bare" items={[[1, "One"]]} onPick={() => {}} />,
+  ];
+  expect(wrong).toHaveLength(4);
 });

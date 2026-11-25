@@ -5,14 +5,8 @@
 // the sheet.
 import type { AcPick } from "./play.ts";
 
-/** An armor and a shield as item keys; null for none. */
-export interface AcPair {
-  armor: string | null;
-  shield: string | null;
-}
-
 /** A row of the table "AC by armor": a pair and its AC. */
-export interface AcRow extends AcPair {
+export interface AcRow extends AcPick {
   ac: number;
 }
 
@@ -30,7 +24,7 @@ export interface AcShown {
   pick: AcPick | null;
 }
 
-const samePair = (a: AcPair, b: AcPair) => a.armor === b.armor && a.shield === b.shield;
+const samePair = (a: AcPick, b: AcPick) => a.armor === b.armor && a.shield === b.shield;
 
 /**
  * The AC that shows and the marks of the table. `worn` is the worn armor and
@@ -41,7 +35,7 @@ const samePair = (a: AcPair, b: AcPair) => a.armor === b.armor && a.shield === b
  * Without a pick, the row whose AC shows is the worn row, or else the first
  * row with that AC.
  */
-export function acShown(rows: readonly AcRow[], worn: AcPair | null, baseAc: number, pick: AcPick | null): AcShown {
+export function acShown(rows: readonly AcRow[], worn: AcPick | null, baseAc: number, pick: AcPick | null): AcShown {
   const best = Math.max(baseAc, ...rows.map((row) => row.ac));
   const wornIndex = worn === null ? -1 : rows.findIndex((row) => samePair(row, worn));
   const wornAc = wornIndex < 0 ? best : rows[wornIndex]!.ac;
@@ -81,20 +75,32 @@ export interface AcMenuEntry {
   pick: AcPick | null;
 }
 
+/** The menu "Armor class shows", as the Armor Class box gives it to its Menu. */
+export interface AcMenu {
+  entries: AcMenuEntry[];
+  /** The value of the entry that is checked. */
+  checked: string;
+  /** The pick that the entry with this value writes: null for "Worn armor", or for a value that is not in the menu. */
+  pickOf: (value: string) => AcPick | null;
+}
+
 /**
  * The menu "Armor class shows": first "Worn armor", with the AC of the worn
  * armor, then one entry for each row of the table, with its AC. `checked` is
  * the value of the entry that shows: with a pick (`picked`), the row whose
- * AC shows; without one, "Worn armor".
+ * AC shows; without one, "Worn armor". A pick of the worn row is a pick, so
+ * that row is checked, not "Worn armor".
  */
-export function acMenu(rows: readonly (NamedAcRow & { shown: boolean })[], wornAc: number, picked: boolean): { entries: AcMenuEntry[]; checked: string } {
-  const entries = rows.map((row): AcMenuEntry & { shown: boolean } => {
+export function acMenu(rows: readonly (NamedAcRow & { shown: boolean })[], wornAc: number, picked: boolean): AcMenu {
+  const entries = rows.map((row): AcMenuEntry => {
     const pick = { armor: row.armor?.key ?? null, shield: row.shield?.key ?? null };
-    return { value: `${pick.armor ?? ""}/${pick.shield ?? ""}`, text: acRowName(row), note: String(row.ac), pick, shown: row.shown };
+    return { value: `${pick.armor ?? ""}/${pick.shield ?? ""}`, text: acRowName(row), note: String(row.ac), pick };
   });
-  const checked = (picked && entries.find((entry) => entry.shown)?.value) || WORN_ARMOR;
+  const shownIndex = picked ? rows.findIndex((row) => row.shown) : -1;
+  const all = [{ value: WORN_ARMOR, text: "Worn armor", note: String(wornAc), pick: null }, ...entries];
   return {
-    entries: [{ value: WORN_ARMOR, text: "Worn armor", note: String(wornAc), pick: null }, ...entries.map(({ shown: _, ...entry }) => entry)],
-    checked,
+    entries: all,
+    checked: shownIndex < 0 ? WORN_ARMOR : entries[shownIndex]!.value,
+    pickOf: (value) => all.find((entry) => entry.value === value)?.pick ?? null,
   };
 }

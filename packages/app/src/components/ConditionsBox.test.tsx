@@ -45,10 +45,12 @@ test("the menu lists the conditions that are not set, with the notes immune and 
     unconscious: "speed 0",
   };
   expect(names).toEqual([
-    ...CONDITION_KEYS.filter((key) => key !== "blinded" && key !== "prone").map((key) => `${key.charAt(0).toUpperCase()}${key.slice(1)}${notes[key] ?? ""}`),
+    ...CONDITION_KEYS.filter((key) => key !== "blinded" && key !== "prone").map(
+      (key) => `${key.charAt(0).toUpperCase()}${key.slice(1)}${notes[key] ? ` ${notes[key]}` : ""}`,
+    ),
     "Exhaustion",
   ]);
-  await pickOption(add, "Charmedimmune");
+  await pickOption(add, "Charmed immune");
   expect(onAction.mock.calls).toEqual([[{ kind: "add", condition: "charmed" }]]);
 });
 
@@ -74,7 +76,7 @@ test("at 0 hit points the app adds the Unconscious token: dashed, with the note 
       .getAllByRole("button")
       .map((button) => button.textContent),
   ).toEqual(["Unconscious"]);
-  expect(await optionNames(screen.getByRole("button", { name: "Add condition" }))).toContain("Unconsciousspeed 0");
+  expect(await optionNames(screen.getByRole("button", { name: "Add condition" }))).toContain("Unconscious speed 0");
 });
 
 test("Unconscious from the record shows with its X in the place of the token that the app adds; a dead character has no token", () => {

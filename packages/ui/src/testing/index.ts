@@ -18,12 +18,12 @@ export async function answerConfirmDialog(answer: string): Promise<string> {
   return question;
 }
 
-/** The option or menu item named `name` in `list`, once it shows. */
+/** The option, menu item or radio item named `name` in `list`, once it shows. */
 async function findChoice(list: HTMLElement, name: string | RegExp): Promise<HTMLElement> {
   return waitFor(() => {
     const choice =
       within(list).queryByRole("option", { name }) ?? within(list).queryByRole("menuitem", { name }) ?? within(list).queryByRole("menuitemradio", { name });
-    if (!choice) throw new Error(`No option or menu item ${String(name)} shows.`);
+    if (!choice) throw new Error(`No option, menu item or radio item ${String(name)} shows.`);
     return choice;
   });
 }
@@ -51,7 +51,7 @@ function listClosed(control: HTMLElement, list: HTMLElement): Promise<void> {
 
 /**
  * Picks the option named `name` in a Select, Combobox, Autocomplete or
- * Menu: `control` is its combobox or its menu button. In a text field it
+ * Menu, also a radio item: `control` is its combobox or its menu button. In a text field it
  * types the name first, when it is a string, so the list filters to it.
  * Resolves once the list has closed.
  */
@@ -67,7 +67,7 @@ export async function pickOption(control: HTMLElement, name: string | RegExp): P
 
 /**
  * Opens a Select, Combobox, Autocomplete or Menu, reads the names of its
- * options or menu items, and closes it again.
+ * options, menu items or radio items, and closes it again.
  */
 export async function optionNames(control: HTMLElement): Promise<string[]> {
   const list = await openList(control);

@@ -791,6 +791,9 @@ The decisions are in ORC-304, and the look is in ORC-312.[^orc-304] [^orc-312]
   entry that shows is checked. "Worn armor" is checked when there is no
   pick. A pick closes the menu. The status line becomes empty, because
   the number in the box shows the change.
+* A pick of the row of the worn pair is a pick too. The app stores it,
+  so the box keeps that pair when the worn armor changes later. The menu
+  then checks that row, not "Worn armor".
 * On a sheet with no play controls, for example the builder preview, the
   box is not a button. The table shows the same marks.
 * There is no control for a shield in the off hand. The parity test
@@ -805,7 +808,8 @@ The decisions are in ORC-304, and the look is in ORC-312.[^orc-304] [^orc-312]
 * A click or a tap keeps the highlight. A second click on the same
   ability, or a click on another ability, removes it. The highlight goes
   at the second click, also while the pointer is on the box. The focus
-  that a click gives does not show the highlight.
+  that a click gives does not show the highlight. Only a focus that the
+  browser shows as a keyboard focus (`:focus-visible`) shows it.
 * The highlight is not play state. The app does not save it.
 * The highlight changes only colors, so no text moves. The line gets the
   note color as its background, 3px past its edges. The text on it is

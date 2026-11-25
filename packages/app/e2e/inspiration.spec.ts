@@ -6,7 +6,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { openWithValues, storedValues } from "./play-helpers.ts";
+import { layoutOf, openWithValues, storedValues } from "./play-helpers.ts";
 
 /** wizard-5: 5 d6, 32 hit points; Arcane Recovery (Dawn), so the Rest menu has Dawn. */
 const WIZARD = join(import.meta.dirname, "../../../fixtures/characters/wizard-5.strict.json");
@@ -24,20 +24,8 @@ const leftColumn = (page: Page) =>
     .locator(".ui-panel")
     .filter({ has: ability(page, "Strength") })
     .locator("..");
-/**
- * The size of the left column, and the place and size of each element in it, from the top left corner of the column
- * (a click can scroll the page), to the tenth of a pixel. The mark in the Inspiration box is not a part: it comes and goes.
- */
-const layout = (page: Page) =>
-  leftColumn(page).evaluate((column) => {
-    const origin = column.getBoundingClientRect();
-    return [column, ...column.querySelectorAll("*")]
-      .filter((element) => !element.matches(".ui-small-box-value > *"))
-      .map((element) => {
-        const { x, y, width, height } = element.getBoundingClientRect();
-        return `${element.tagName} ${[x - origin.x, y - origin.y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
-      });
-  });
+/** The layout of the left column. The mark in the Inspiration box is not a part: it comes and goes. */
+const layout = (page: Page) => layoutOf(leftColumn(page), ".ui-small-box-value > *");
 
 /** Opens the sheet; on a phone, the Stats tab shows the left column. */
 async function openSheet(page: Page, values: Record<string, unknown> = {}) {
@@ -116,8 +104,14 @@ test("a hover or the focus on an ability box highlights only the skills of its a
   expect(colors[0]).toBe(colors[1]);
   await page.mouse.move(0, 0);
   await expect.poll(() => highlighted(page)).toEqual([]);
-  // The keyboard focus shows the skills; the focus that moves on takes them.
-  await ability(page, "Strength").focus();
+  // The keyboard focus shows the skills; the focus that moves on takes them. Two clicks on Dexterity give it the focus
+  // with no highlight, then Shift+Tab moves the focus to Strength, as a focus from the keyboard.
+  await ability(page, "Dexterity").click();
+  await ability(page, "Dexterity").click();
+  await page.mouse.move(0, 0);
+  await expect(ability(page, "Dexterity")).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(() => highlighted(page)).toEqual([]);
+  await page.keyboard.press("Shift+Tab");
   await expect(ability(page, "Strength")).toBeFocused();
   await expect.poll(() => highlighted(page)).toEqual(["Athletics"]);
   await page.keyboard.press("Tab");
@@ -151,9 +145,14 @@ test("a click keeps the highlight; a second click on the same ability removes it
   await expect(ability(page, "Intelligence")).toBeFocused();
   await page.mouse.move(0, 0);
   expect(await highlighted(page)).toEqual([]);
-  // Space keeps it too, and a second Space removes it.
-  await ability(page, "Charisma").focus();
+  // The focus that a click gives shows nothing: the box keeps the focus, and the highlight stays off.
+  await page.waitForTimeout(100);
+  expect(await highlighted(page)).toEqual([]);
+  // Space keeps it too.
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
   await expect(ability(page, "Charisma")).toBeFocused();
+  await expect.poll(() => highlighted(page)).toEqual(["Deception", "Intimidation", "Performance", "Persuasion"]);
   await page.keyboard.press("Space");
   await expect(ability(page, "Charisma")).toHaveAttribute("aria-pressed", "true");
   await away(page);

@@ -622,11 +622,11 @@ test("with play, each ability box is a button that highlights the skills of its 
   expect(highlighted()).toEqual(["+5 Athletics STR"]);
   fireEvent.mouseLeave(str);
   expect(highlighted()).toEqual([]);
-  // The focus from the keyboard shows them too.
+  // A focus that is not a keyboard focus shows nothing. jsdom does not match :focus-visible, so e2e
+  // (inspiration.spec.ts) checks the keyboard focus with Tab.
   act(() => int.focus());
-  expect(highlighted()).toEqual(["-1 History INT"]);
-  act(() => int.blur());
   expect(highlighted()).toEqual([]);
+  act(() => int.blur());
   // A click keeps them; a click on another ability moves them; a second click removes them.
   fireEvent.click(str);
   fireEvent.mouseLeave(str);
@@ -638,15 +638,15 @@ test("with play, each ability box is a button that highlights the skills of its 
   // Constitution has no skill, so it shows nothing.
   fireEvent.click(con);
   expect([highlighted(), con.getAttribute("aria-pressed")]).toEqual([[], "true"]);
-  // The focus that a press gives does not show the skills: after a second click, they go when the mouse leaves.
-  fireEvent.pointerDown(str);
+  // A second click hides the skills at once, while the mouse is still on the box and the box has the focus.
+  fireEvent.mouseEnter(str);
   act(() => str.focus());
   fireEvent.click(str);
   expect(highlighted()).toEqual(["+5 Athletics STR"]);
-  fireEvent.pointerDown(str);
   fireEvent.click(str);
-  fireEvent.mouseLeave(str);
   expect([highlighted(), document.activeElement]).toEqual([[], str]);
+  fireEvent.mouseLeave(str);
+  expect(highlighted()).toEqual([]);
 });
 
 // ORC-203: a typed homebrew feature draws the same bubble as an engine entry. sheet.test.ts and e2e check the sections.
@@ -977,13 +977,13 @@ test("with play, the Armor Class box is a button that opens the menu Armor class
   // The box is not a group in play: the button names it.
   expect(screen.queryByRole("group", { name: "Armor Class" })).toBeNull();
   expect(await optionNames(box)).toEqual([
-    "Worn armor20",
-    "Chain Mail + Shield18",
-    "Chain Mail16",
-    "Plate + Shield20",
-    "Plate18",
-    "Unarmored + Shield15",
-    "Unarmored13",
+    "Worn armor 20",
+    "Chain Mail + Shield 18",
+    "Chain Mail 16",
+    "Plate + Shield 20",
+    "Plate 18",
+    "Unarmored + Shield 15",
+    "Unarmored 13",
   ]);
   fireEvent.click(box);
   const menu = await screen.findByRole("menu", { name: "Armor class shows" });
@@ -994,11 +994,11 @@ test("with play, the Armor Class box is a button that opens the menu Armor class
       .getAttribute("aria-checked"),
   ).toBe("true");
   fireEvent.keyDown(menu, { key: "Escape" });
-  await pickOption(box, /^Chain Mail16/);
+  await pickOption(box, "Chain Mail 16");
   expect(play.onAcPick).toHaveBeenLastCalledWith({ armor: "chain-mail", shield: null });
-  await pickOption(box, /^Unarmored13/);
+  await pickOption(box, "Unarmored 13");
   expect(play.onAcPick).toHaveBeenLastCalledWith({ armor: null, shield: null });
-  await pickOption(box, /^Worn armor/);
+  await pickOption(box, "Worn armor 20");
   expect(play.onAcPick).toHaveBeenLastCalledWith(null);
   expect(play.onAcPick).toHaveBeenCalledTimes(3);
 });
@@ -1023,7 +1023,7 @@ test("a pick changes only the number in the box, checks its row in the menu, and
       .getAllByRole("menuitemradio")
       .filter((item) => item.getAttribute("aria-checked") === "true")
       .map((item) => item.textContent),
-  ).toEqual(["Chain Mail16"]);
+  ).toEqual(["Chain Mail 16"]);
 });
 
 test("a pick of a pair that is not in the table is ignored: the worn AC shows, and Worn armor is checked (ORC-325)", async () => {
