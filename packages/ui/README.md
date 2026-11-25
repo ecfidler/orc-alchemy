@@ -30,8 +30,8 @@ bun run test       # vitest
 
 - `./theme.css`: the role tokens in light and dark, the `dark` variant, the
   fonts, the grain, the body defaults, the focus ring, the shell, flag
-  tab and alert note styles (`src/shell.css`), the button and toggle styles
-  (`src/button.css`), the fieldset and field styles (`src/field.css`), the
+  tab and alert note styles (`src/shell.css`), the button, split button and
+  toggle styles (`src/button.css`), the fieldset and field styles (`src/field.css`), the
   flash (`src/flash.css`), the checkbox and radio styles
   (`src/check.css`), the number field styles (`src/number-field.css`), the
   alert dialog, modal dialog and small popup styles (`src/dialog.css`),
@@ -222,6 +222,20 @@ bun run test       # vitest
     that an item opened closes.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`. Menu takes `className` for its button.
+  - `SplitButton`: a `Button` with an arrow part that opens a Base UI
+    Menu. The two parts are buttons in a group (`aria-label` names it).
+    The main part shows `children` (and `icon`), calls `onClick`, and
+    takes `disabled` and `aria-describedby`, for example a hint under the
+    control. The arrow part is named `menuLabel`, which is also the title
+    and the name of the menu, and takes `menuDisabled`. Each of its
+    `items` is `{ value, label, detail?, aside?, disabled? }`, in up to
+    three columns that line up: the label, the detail in bold (the column
+    shows only when an item has one), and the aside, muted, at the end. A
+    pick calls `onPick` with the value. `menuNote` shows at the bottom of
+    the menu and describes it. The menu opens under the control, at its
+    end; with `widthOf`, it opens under that element with its width. With
+    no items it is a plain Button. `variant` is "solid" (the default) or
+    "ghost". Styles: `src/button.css`.
   - `ListModal`: Base UI Dialog with a title, a close X and one list of
     `items` that scrolls. Each item is `{ value, label, example?, group? }`.
     Each row is a button named by its `label` and described by its

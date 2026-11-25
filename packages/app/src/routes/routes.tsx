@@ -19,6 +19,8 @@ import { RestButton } from "../components/RestButton.tsx";
 import { ReviewUses } from "../components/ReviewUses.tsx";
 import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
+import type { CastAction } from "../engine/cast.ts";
+import { applyCast } from "../engine/cast-apply.ts";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
 import type { HitDiceAction } from "../engine/hit-dice.ts";
@@ -197,6 +199,21 @@ function rest(sheet: Sheet, action: RestAction): string {
   return status;
 }
 
+/**
+ * Casts a spell from the Spells panel as one sheet change, which spends the
+ * slot and sets the concentration mark together (ORC-320). Returns the text
+ * of the status line of the Cast control.
+ */
+function castSpell(sheet: Sheet, action: CastAction): string {
+  let status = "";
+  useCharacter.getState().sheetChange((entity) => {
+    const result = applyCast(engine(), entity, sheet, action);
+    status = result.status;
+    return result.entity;
+  });
+  return status;
+}
+
 /** Writes the death save counts as a sheet change: it saves at once (ORC-315). */
 function changeDeathSaves(saves: DeathSaves) {
   useCharacter.getState().sheetChange((entity) => setDeathSaves(engine(), entity, saves));
@@ -267,6 +284,8 @@ function SheetPage() {
               builderHref={`/build/${openId}?step=${SPELLS_STEP}`}
               onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
               onPrepare={prepareSpell}
+              concentration={sheet.concentration}
+              onCast={(action) => castSpell(sheet, action)}
             />
           )}
         </>
