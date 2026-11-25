@@ -31,7 +31,7 @@ import type { FeatureUsesKey } from "../engine/play.ts";
 import { type DeathSaves, setDeathSaves, setFeatureUsesSpent } from "../engine/play.ts";
 import type { RestAction } from "../engine/rest.ts";
 import { applyRest } from "../engine/rest-apply.ts";
-import type { Sheet, SpellRef } from "../engine/sheet.ts";
+import { featureUses, type Sheet, type SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
@@ -286,6 +286,7 @@ function SheetPage() {
               onPrepare={prepareSpell}
               concentration={sheet.concentration}
               onCast={(action) => castSpell(sheet, action)}
+              uses={featureUses(sheet)}
             />
           )}
         </>

@@ -2,7 +2,9 @@
 // docs/design/sheet-interactivity.md "Casting a spell"): Cast at the spell
 // level, the menu "Cast at a higher level" with the calculated amounts, the
 // hint and the status lines, the concentration mark with its question, the
-// Concentrate button, and the pact slots of a warlock.
+// Concentrate button, and the pact slots of a warlock. ORC-321: the spells
+// with their own uses, Mystic Arcanum and the invocation spells.
+import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
@@ -11,12 +13,19 @@ import { expect, type Page, test } from "@playwright/test";
 const CLERIC = join(import.meta.dirname, "life-cleric-9.strict.json");
 /** Wizard 3 / warlock 2: 4 1st- and 2 2nd-level slots, and 2 pact slots of the 1st level. */
 const WIZARD_WARLOCK = join(import.meta.dirname, "wizard-3-warlock-2.strict.json");
-/** Warlock 20: only pact slots, 4 of the 5th level. */
+/**
+ * Warlock 20: only pact slots, 4 of the 5th level; Mystic Arcanum with 4 uses (Mass Suggestion, Etherealness,
+ * Glibness, Imprisonment); Thief of Five Fates (Bane) and Sign of Ill Omen (Bestow Curse).
+ */
 const WARLOCK = join(import.meta.dirname, "warlock-20.strict.json");
 
 const VALUES = "~:orcpub.entity.strict/values";
 const SLOTS_USED = "~:orcpub.dnd.e5.spells/slots-used";
 const CONCENTRATION = "~:orc-alchemy.play/concentration";
+const USES_SPENT = "~:orc-alchemy.play/uses-spent";
+const LONG_REST = "~:orcpub.dnd.e5.units/long-rest";
+/** The stored spent pact slots of the warlock 20: the first `n` of the 5th level. */
+const pactSpent = (n: number) => ({ "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [...Array(n).keys()] } });
 
 /** Imports a character file with more values in its record, and opens its sheet. */
 async function open(page: Page, file: string, values: Record<string, unknown> = {}) {
@@ -315,6 +324,111 @@ test("on a phone the control is under the name, the menu has the full width of t
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
+// A spell with its own uses (ORC-321).
+
+/** The use bubble of a feature on the sheet, and its circles. */
+const useCircles = (page: Page, name: string) =>
+  page.getByRole("group", { name: "Features & traits" }).getByRole("group", { name, exact: true }).getByRole("slider", { name });
+
+/** Closes the Spells panel with Escape. */
+async function closePanel(page: Page) {
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+}
+
+test("a Mystic Arcanum spell spends one use, and the use bubble on the sheet shows it after the panel closes; nothing moves", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, WARLOCK);
+  await openSpell(page, "Mass Suggestion");
+  await expect(arrow(page)).toHaveCount(0);
+  await expect(castButton(page, "Mass Suggestion")).toHaveAccessibleDescription("Spends Mystic Arcanum (4 of 4 left).");
+  const before = await layout(page);
+  await castButton(page, "Mass Suggestion").click();
+  await expect(status(page)).toHaveText("Cast Mass Suggestion. Mystic Arcanum −1 (3 left).");
+  await expect(castButton(page, "Mass Suggestion")).toHaveAccessibleDescription("Spends Mystic Arcanum (3 of 4 left).");
+  expect(await layout(page)).toEqual(before);
+  // Another Mystic Arcanum spell spends the same count.
+  await openSpell(page, "Imprisonment");
+  await expect(castButton(page, "Imprisonment")).toHaveAccessibleDescription("Spends Mystic Arcanum (3 of 4 left).");
+  await expect.poll(async () => (await storedValues(page))[USES_SPENT]).toEqual({ [LONG_REST]: { "Mystic Arcanum": 1 } });
+  await expect.poll(async () => (await storedValues(page))[SLOTS_USED]).toBeUndefined();
+  await closePanel(page);
+  await expect(useCircles(page, "Mystic Arcanum")).toHaveAttribute("aria-valuetext", "1 of 4 spent");
+});
+
+test("an invocation spell spends a pact slot and the use of its invocation; then Cast is disabled with its hint", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, WARLOCK);
+  await openSpell(page, "Bane");
+  await expect(arrow(page)).toHaveCount(0);
+  await expect(castButton(page, "Bane")).toHaveAccessibleDescription("Spends Thief of Five Fates (1 left) and a pact slot (5th, 4 left).");
+  const before = await layout(page);
+  await castButton(page, "Bane").click();
+  await expect(status(page)).toHaveText("Cast Bane at 5th level. Thief of Five Fates −1 (0 left), Pact slots −1 (3 left).");
+  await expect(castButton(page, "Bane")).toBeDisabled();
+  await expect(castButton(page, "Bane")).toHaveAccessibleDescription("Thief of Five Fates has no use left.");
+  // The focus stays in the panel, on the status line.
+  await expect(status(page)).toBeFocused();
+  expect(await layout(page)).toEqual(before);
+  await expect
+    .poll(async () => {
+      const values = await storedValues(page);
+      return [values[USES_SPENT], values[SLOTS_USED], values[CONCENTRATION]];
+    })
+    .toEqual([{ [LONG_REST]: { "Eldritch Invocation: Thief of Five Fates": 1 } }, pactSpent(1), "~:bane"]);
+  // The slot block of the panel shows the spent pact slot.
+  await expect(panel(page).getByRole("slider", { name: "Pact slots" })).toHaveAttribute("aria-valuetext", "1 of 4 spent");
+  await closePanel(page);
+  await expect(useCircles(page, "Eldritch Invocation: Thief of Five Fates")).toHaveAttribute("aria-valuetext", "1 of 1 spent");
+});
+
+test("Cast is disabled when the use or the pact slot is not there", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, WARLOCK, { [USES_SPENT]: { [LONG_REST]: { "Mystic Arcanum": 4 } }, [SLOTS_USED]: pactSpent(4) });
+  await openSpell(page, "Glibness");
+  await expect(castButton(page, "Glibness")).toBeDisabled();
+  await expect(castButton(page, "Glibness")).toHaveAccessibleDescription("Mystic Arcanum has no use left.");
+  await openSpell(page, "Bestow Curse");
+  await expect(castButton(page, "Bestow Curse")).toBeDisabled();
+  await expect(castButton(page, "Bestow Curse")).toHaveAccessibleDescription("No pact slot left.");
+});
+
+/** The page script of the spell view with a cast note that the app cannot link, bundled by Bun once. */
+let demoScript: string | undefined;
+const demo = () =>
+  (demoScript ??= execFileSync(
+    "bun",
+    [
+      "--eval",
+      `
+    const result = await Bun.build({ entrypoints: ["./cast-demo.ts"], define: { "process.env.NODE_ENV": '"development"' } });
+    if (!result.success) throw new AggregateError(result.logs);
+    process.stdout.write(await result.outputs[0].text());`,
+    ],
+    { cwd: import.meta.dirname, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
+  ));
+
+/** Shows the spell view of Misty Step with the cast note "uses Fey Step", with the styles of the app. */
+async function showUnlinked(page: Page, theme: "light" | "dark" = "light") {
+  await page.goto("/");
+  const styles = await page.evaluate(() => [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map((link) => link.href));
+  const links = styles.map((href) => `<link rel="stylesheet" href="${href}">`).join("");
+  await page.setContent(`<!doctype html><html data-theme="${theme}"><head>${links}</head><body><div id="root"></div></body></html>`);
+  await page.addScriptTag({ content: demo() });
+  await page.evaluate(async () => await window.mountCast("misty-step", "Misty Step", "uses Fey Step"));
+  await page.evaluate(() => document.fonts.ready);
+  const dialog = page.getByRole("dialog", { name: "Spells" });
+  await expect(dialog.getByRole("heading", { level: 3 })).toHaveText("Misty Step");
+  return dialog;
+}
+
+test("a cast note with uses that the app cannot link has no Cast button, only the line", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const dialog = await showUnlinked(page);
+  await expect(dialog.locator("[data-cast-control]")).toHaveText("This spell has its own uses (Fey Step). Spend the use on the sheet.");
+  await expect(dialog.getByRole("button", { name: /Cast/ })).toHaveCount(0);
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/cast.spec.ts -g orc-320
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -360,6 +474,44 @@ test.describe("screenshots", () => {
         await openSpell(page, "Vampiric Touch");
         await blur(page);
         await page.screenshot({ path: shot(`${size}-warlock`) });
+      }
+    });
+  }
+});
+
+// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/cast.spec.ts -g orc-321
+test.describe("screenshots of the spells with their own uses", () => {
+  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
+  test.use({ deviceScaleFactor: 2 });
+  const dir = join(import.meta.dirname, "../../../pr-screenshots");
+  for (const theme of ["light", "dark"] as const) {
+    test(`orc-321 own uses, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      const shot = (what: string) => join(dir, `orc-321-${what}-${theme}.png`);
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      for (const [size, width, height] of [
+        ["desktop", 1280, 900],
+        ["phone", 390, 844],
+      ] as const) {
+        await page.setViewportSize({ width, height });
+        await open(page, WARLOCK);
+        await openSpell(page, "Mass Suggestion");
+        await blur(page);
+        await page.screenshot({ path: shot(`${size}-mystic-arcanum`) });
+        await openSpell(page, "Bane");
+        await blur(page);
+        await page.screenshot({ path: shot(`${size}-invocation`) });
+        await castButton(page, "Bane").click();
+        await expect(castButton(page, "Bane")).toBeDisabled();
+        await blur(page);
+        await page.screenshot({ path: shot(`${size}-spent`) });
+        await closePanel(page);
+        if (size === "phone") await page.getByRole("tab", { name: "Features" }).click();
+        await useCircles(page, "Eldritch Invocation: Thief of Five Fates").scrollIntoViewIfNeeded();
+        await page.screenshot({ path: shot(`${size}-sheet-bubble`) });
+        await showUnlinked(page, theme);
+        await blur(page);
+        await page.screenshot({ path: shot(`${size}-unlinked`) });
       }
     });
   }

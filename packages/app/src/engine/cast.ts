@@ -4,10 +4,13 @@
 // amounts, the hint, the status text and the concentration rule. The
 // component only renders what this file gives. cast-apply.ts writes a cast.
 //
-// ORC-321 adds the spells with their own uses (Mystic Arcanum, the invocation
-// spells): it adds a kind to CastChoices, and a kind to CastAction.
+// A spell with its own uses (ORC-321, "A spell with its own uses"): a spell
+// with the cast note "uses Mystic Arcanum" spends a use of Mystic Arcanum, and
+// an invocation spell spends a pact slot and a use of its invocation. A cast
+// note that names uses the app cannot link gives a line and no Cast button.
 import { amountAt, type HigherLevels, higherLevels } from "./higher-levels.ts";
-import { type KnownSpell, ordinal, type Spellcasting } from "./sheet.ts";
+import type { FeatureUsesKey } from "./play.ts";
+import { type KnownSpell, ordinal, type SheetFeature, type Spellcasting } from "./sheet.ts";
 import type { SpellRecord } from "./spell-records.ts";
 import { durationParts } from "./spell-text.ts";
 import type { SlotGroup } from "./spells.ts";
@@ -34,8 +37,15 @@ export interface CastEntry extends CastSlot {
 
 /** The control of a spell in the spell view. */
 export type CastChoices =
-  /** No control: a cantrip or an at-will spell without concentration, a ritual cast, an unprepared spell, a spell with its own uses (ORC-321), or no slot of its level or higher. */
+  /** No control: a cantrip or an at-will spell without concentration, a ritual cast, an unprepared spell, or no slot of its level or higher. */
   | { kind: "none" }
+  /**
+   * A spell with its own uses: a plain Cast button that spends one use of `feature`, and with `pact` also one pact
+   * slot. `disabled` is true when the use or the pact slot is not there.
+   */
+  | { kind: "uses"; feature: FeatureUsesKey; label: string; pact: boolean; disabled: boolean; hint: string }
+  /** A cast note that names uses that the app cannot link: no Cast button, only the line `text`. */
+  | { kind: "unlinked"; text: string }
   /** A cantrip or an at-will spell that needs concentration: the Concentrate button. It sets the mark and spends nothing. */
   | { kind: "concentrate"; active: boolean; hint: string }
   /**
@@ -60,6 +70,33 @@ export type CastSpell = Pick<KnownSpell, "key" | "source" | "prepared" | "castNo
 /** The slots and the casters of the character, as the sheet has them. */
 export type CastSlots = Pick<Spellcasting, "slots" | "pact" | "casters">;
 
+/** The uses of a feature as the sheet has them (SheetFeature.uses). */
+export type FeatureUses = NonNullable<SheetFeature["uses"]>;
+
+/**
+ * The invocation spells: the spell key to the name of the feature whose use
+ * the spell spends, with a pact slot. The table applies to a known spell
+ * with a cast note that starts with "once per". cast.test.ts checks each
+ * row against the engine.
+ */
+export const INVOCATION_SPELLS: Readonly<Record<string, string>> = {
+  compulsion: "Eldritch Invocation: Bewitching Whispers",
+  confusion: "Eldritch Invocation: Dreadful Word",
+  polymorph: "Eldritch Invocation: Sculptor of Flesh",
+  "bestow-curse": "Eldritch Invocation: Sign of Ill Omen",
+  bane: "Eldritch Invocation: Thief of Five Fates",
+  "conjure-elemental": "Eldritch Invocation: Minions of Chaos",
+};
+
+/** The feature of the cast note "uses Mystic Arcanum". */
+const MYSTIC_ARCANUM = "Mystic Arcanum";
+/** A cast note that names a feature: "uses Mystic Arcanum". */
+const USES_NOTE = /^uses\s+(.+)$/i;
+/** The cast note of an invocation spell: "once per long rest". */
+const ONCE_PER = /^once per\b/i;
+/** The name of a feature in a hint or a status: an invocation without "Eldritch Invocation: ". */
+const shortName = (name: string) => name.replace(/^Eldritch Invocation:\s*/, "");
+
 /** The cast note "at will". */
 const AT_WILL = /^at will$/i;
 /** A cast note of a ritual cast, such as "ritual only". */
@@ -68,6 +105,23 @@ const RITUAL = /\britual\b/i;
 /** True when the spell of this record needs concentration: its duration starts with "Concentration". */
 export const needsConcentration = (record: Pick<SpellRecord, "duration"> | undefined) =>
   record?.duration ? durationParts(record.duration).concentration : false;
+
+/**
+ * The feature whose use a spell with the cast note `note` spends, and whether it also spends a pact slot; or, for a
+ * note that names uses the app cannot link, the name for the line. The link is the cast note and the invocation
+ * table, never a list of the spells of a feature, so a pack spell with the note "uses Mystic Arcanum" works.
+ */
+function ownUses(key: string, note: string, uses: readonly FeatureUses[]): { feature: FeatureUses; pact: boolean } | { unlinked: string } {
+  const named = USES_NOTE.exec(note)?.[1]?.trim();
+  const link = (name: string, pact: boolean) => {
+    const feature = uses.find((u) => u.name === name);
+    return feature ? { feature, pact } : { unlinked: shortName(name) };
+  };
+  if (named !== undefined && named.toLowerCase() === MYSTIC_ARCANUM.toLowerCase()) return link(MYSTIC_ARCANUM, false);
+  const invocation = ONCE_PER.test(note) ? INVOCATION_SPELLS[key] : undefined;
+  if (invocation) return link(invocation, true);
+  return { unlinked: named ?? note };
+}
 
 const leftText = (left: number) => (left > 0 ? `${left} left` : "none left");
 
@@ -95,23 +149,33 @@ export function castSlots({ slots, pact }: Pick<CastSlots, "slots" | "pact">, le
  *
  * - A cantrip, or a spell with the cast note "at will", has no Cast button. With concentration it has the
  *   Concentrate button.
- * - A ritual cast, an unprepared spell of a class that prepares, and a spell with another cast note (its own
- *   uses, ORC-321) have no control.
+ * - A ritual cast and an unprepared spell of a class that prepares have no control.
+ * - A spell with its own uses (see ownUses) has a plain Cast button that spends one use, and for an invocation
+ *   spell also a pact slot. Another cast note gets only the line "This spell has its own uses (…). Spend the use
+ *   on the sheet."
  * - Cast spends a slot of the spell level: the other slots of that level, or else the pact slots of that level.
  *   The menu lists each other slot level above it, and the pact slots when their level is the spell level or
  *   higher. When only one slot group can cast the spell, the control is a plain Cast button that spends it.
  * - A spell with no slot group of its level or higher has no control.
  */
-export function castChoices(spell: CastSpell, record: SpellRecord | undefined, slots: CastSlots, concentration: string | null): CastChoices {
+export function castChoices(
+  spell: CastSpell,
+  record: SpellRecord | undefined,
+  slots: CastSlots,
+  concentration: string | null,
+  /** The uses of the features of the sheet (featureUses). */
+  uses: readonly FeatureUses[] = [],
+): CastChoices {
   const note = spell.castNote?.trim() ?? "";
   if (spell.level === 0 || AT_WILL.test(note)) {
     if (!needsConcentration(record)) return { kind: "none" };
     const active = concentration === spell.key;
     return { kind: "concentrate", active, hint: active ? "You concentrate on this spell." : "This sets the concentration mark and spends nothing." };
   }
-  if (RITUAL.test(note) || note !== "") return { kind: "none" };
+  if (RITUAL.test(note)) return { kind: "none" };
   const preparer = slots.casters.some((caster) => caster.name === spell.source && caster.prepares);
   if (preparer && !spell.prepared) return { kind: "none" };
+  if (note !== "") return ownUsesChoices(spell, note, slots, uses);
   const groups = castSlots(slots, spell.level);
   if (groups.length === 0) return { kind: "none" };
   const higher = higherLevels(record);
@@ -146,7 +210,29 @@ export function castChoices(spell: CastSpell, record: SpellRecord | undefined, s
   return { kind: "slots", main, menu, none, hint, menuText: higher.kind === "text" ? higher.text : null };
 }
 
-/** A cast: one slot of a group, or only the concentration mark (the Concentrate button). */
+/** The control of a spell with a cast note that is not "at will" or a ritual cast: see ownUses. */
+function ownUsesChoices(spell: CastSpell, note: string, slots: CastSlots, uses: readonly FeatureUses[]): CastChoices {
+  const own = ownUses(spell.key, note, uses);
+  if ("unlinked" in own) return { kind: "unlinked", text: `This spell has its own uses (${own.unlinked}). Spend the use on the sheet.` };
+  const { feature, pact } = own;
+  const label = shortName(feature.name);
+  const left = Math.max(0, feature.amount - feature.spent);
+  const key = { units: feature.units, name: feature.name };
+  if (!pact) {
+    const hint = left > 0 ? `Spends ${label} (${left} of ${feature.amount} left).` : `${label} has no use left.`;
+    return { kind: "uses", feature: key, label, pact, disabled: left === 0, hint };
+  }
+  const slot = castSlots(slots, spell.level).find((g) => g.group === "pact");
+  const hint =
+    left === 0
+      ? `${label} has no use left.`
+      : !slot || slot.left === 0
+        ? "No pact slot left."
+        : `Spends ${label} (${left} left) and a pact slot (${ordinal(slot.level)}, ${slot.left} left).`;
+  return { kind: "uses", feature: key, label, pact, disabled: left === 0 || !slot || slot.left === 0, hint };
+}
+
+/** A cast: one slot of a group, one use of a feature (with a pact slot or not), or only the concentration mark (the Concentrate button). */
 export type CastAction =
   | {
       kind: "slot";
@@ -158,6 +244,19 @@ export type CastAction =
       level: number;
       group: SlotGroup;
       /** True when the spell needs concentration: the cast sets the mark. */
+      concentration: boolean;
+    }
+  | {
+      kind: "uses";
+      key: string;
+      name: string;
+      level: number;
+      /** The feature whose use the cast spends. */
+      feature: FeatureUsesKey;
+      /** The name of the feature for the status line: "Thief of Five Fates". */
+      label: string;
+      /** True when the cast also spends a pact slot: an invocation spell. */
+      pact: boolean;
       concentration: boolean;
     }
   | { kind: "concentrate"; key: string; name: string };
@@ -185,12 +284,18 @@ export function concentrationQuestion(action: CastAction, current: string): Conc
 
 /**
  * The status line after a cast: "Cast Magic Missile at 2nd level. 2nd-level
- * slots −1 (1 left)." A cast at the spell level has no level. After the
- * Concentrate button: "Concentrating on Bless."
+ * slots −1 (1 left)." A cast at the spell level has no level. A cast with a
+ * use: "Cast Bane at 5th level. Thief of Five Fates −1 (0 left), Pact slots
+ * −1 (3 left)." After the Concentrate button: "Concentrating on Bless."
+ * `slot` is the slot that the cast spent, and `useLeft` the uses left after it.
  */
-export function castStatus(action: CastAction, slot?: { level: number; left: number }): string {
+export function castStatus(action: CastAction, slot?: { level: number; left: number }, useLeft = 0): string {
   if (action.kind === "concentrate") return `Concentrating on ${action.name}.`;
   const at = slot && slot.level > action.level ? ` at ${ordinal(slot.level)} level` : "";
-  const slots = action.group === "pact" ? "Pact slots" : `${ordinal(action.group)}-level slots`;
-  return `Cast ${action.name}${at}. ${slots} −1 (${slot?.left ?? 0} left).`;
+  const group = action.kind === "uses" ? (action.pact ? "pact" : null) : action.group;
+  const parts = [
+    action.kind === "uses" && `${action.label} −1 (${useLeft} left)`,
+    group !== null && `${group === "pact" ? "Pact slots" : `${ordinal(group)}-level slots`} −1 (${slot?.left ?? 0} left)`,
+  ];
+  return `Cast ${action.name}${at}. ${parts.filter(Boolean).join(", ")}.`;
 }

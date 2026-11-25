@@ -5,7 +5,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import type { CastAction } from "../engine/cast.ts";
 import { engine, loadEngine } from "../engine/engine.ts";
-import { type Sheet, type SpellRef, toSheet } from "../engine/sheet.ts";
+import { featureUses, type Sheet, type SpellRef, toSheet } from "../engine/sheet.ts";
 import { loadSpellContent } from "../engine/spells.ts";
 import { SpellsPanel } from "./SpellsPanel.tsx";
 
@@ -16,15 +16,16 @@ beforeAll(async () => {
 
 afterEach(cleanup);
 
-/** The Life cleric 9 of the e2e tests: slots of the 1st to the 5th level, none spent. */
-const cleric = (): Sheet => {
-  const entity = JSON.parse(readFileSync(join(import.meta.dirname, "../../e2e/life-cleric-9.strict.json"), "utf8"));
+/** The sheet of a character file of the e2e tests. */
+const sheetOf = (file: string): Sheet => {
+  const entity = JSON.parse(readFileSync(join(import.meta.dirname, "../../e2e", file), "utf8"));
   return toSheet(engine().evaluate(entity).built, entity);
 };
+/** The Life cleric 9 of the e2e tests: slots of the 1st to the 5th level, none spent. */
+const cleric = () => sheetOf("life-cleric-9.strict.json");
 
 /** Renders the open panel at a spell, as the sheet page does; `onCast` undefined is a panel with no Cast control. */
-async function renderPanel(at: SpellRef, onCast?: (action: CastAction) => string, concentration: string | null = null) {
-  const sheet = cleric();
+async function renderPanel(at: SpellRef, onCast?: (action: CastAction) => string, concentration: string | null = null, sheet = cleric()) {
   const router = createMemoryRouter(
     [
       {
@@ -41,6 +42,7 @@ async function renderPanel(at: SpellRef, onCast?: (action: CastAction) => string
             onPrepare={() => {}}
             concentration={concentration}
             onCast={onCast}
+            uses={featureUses(sheet)}
           />
         ),
       },
@@ -113,4 +115,41 @@ test("a cantrip that needs concentration has the Concentrate button; a cantrip w
   cleanup();
   const flame = await renderPanel({ key: "sacred-flame", source: "Cleric" }, onCast);
   expect(flame.queryByRole("button", { name: /Cast|Concentrate/ })).toBeNull();
+});
+
+test("a Mystic Arcanum spell has a plain Cast button that spends the use, with its hint (ORC-321)", async () => {
+  const onCast = vi.fn(() => "Cast Mass Suggestion. Mystic Arcanum −1 (3 left).");
+  const view = await renderPanel({ key: "mass-suggestion", source: "Warlock" }, onCast, null, sheetOf("warlock-20.strict.json"));
+  const group = view.getByRole("group", { name: "Cast Mass Suggestion" });
+  expect(
+    within(group)
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["Cast"]);
+  const cast = within(group).getByRole("button", { name: "Cast" });
+  expect(document.getElementById(cast.getAttribute("aria-describedby")!)?.textContent).toBe("Spends Mystic Arcanum (4 of 4 left).");
+  fireEvent.click(cast);
+  expect(onCast).toHaveBeenCalledWith({
+    kind: "uses",
+    key: "mass-suggestion",
+    name: "Mass Suggestion",
+    level: 6,
+    feature: { units: "orcpub.dnd.e5.units/long-rest", name: "Mystic Arcanum" },
+    label: "Mystic Arcanum",
+    pact: false,
+    concentration: false,
+  });
+  expect(view.getByRole("status").textContent).toBe("Cast Mass Suggestion. Mystic Arcanum −1 (3 left).");
+});
+
+test("a cast note with uses that the app cannot link has no Cast button, only the line (ORC-321)", async () => {
+  const sheet = sheetOf("warlock-20.strict.json");
+  const spellcasting = sheet.spellcasting!;
+  const byLevel = spellcasting.byLevel.map((level) => ({
+    ...level,
+    spells: level.spells.map((spell) => (spell.key === "bane" ? { ...spell, castNote: "uses Fey Step" } : spell)),
+  }));
+  const view = await renderPanel({ key: "bane", source: "Warlock" }, () => "", null, { ...sheet, spellcasting: { ...spellcasting, byLevel } });
+  expect(view.queryByRole("button", { name: /Cast/ })).toBeNull();
+  expect(view.getByText("This spell has its own uses (Fey Step). Spend the use on the sheet.")).toBeTruthy();
 });

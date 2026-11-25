@@ -1,7 +1,9 @@
 // The Cast control of the spell view in the Spells panel (ORC-320,
 // docs/design/sheet-interactivity.md "Casting a spell"): the split button
 // with the menu "Cast at a higher level", or a plain Cast button, or the
-// Concentrate button, with the hint line and the status line under it. Both
+// Concentrate button, with the hint line and the status line under it. A
+// spell with its own uses has a plain Cast button that spends the use
+// (ORC-321), and a note that the app cannot link has only its line. Both
 // lines keep their space, so a cast moves nothing. The rules are in
 // engine/cast.ts; this file only renders them.
 import { Button, Dialog, SplitButton } from "@orc-alchemy/ui";
@@ -70,6 +72,18 @@ export function CastControl({ spell, name, record, choices: control, concentrati
   };
   const slotCast = (group: SlotGroup) => cast({ kind: "slot", key: spell.key, name, level: spell.level, group, concentration: needsConcentration(record) });
 
+  // A cast note that the app cannot link: no Cast button, only the line.
+  if (control.kind === "unlinked") {
+    return (
+      <div
+        data-cast-control
+        className="flex w-[20rem] max-w-full flex-col items-end text-right max-[600px]:w-full max-[600px]:items-start max-[600px]:text-left"
+      >
+        <p className="self-stretch font-sans text-[12.5px] leading-[19px] text-ink-muted">{control.text}</p>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={column}
@@ -80,6 +94,22 @@ export function CastControl({ spell, name, record, choices: control, concentrati
         <Button aria-describedby={hintId} disabled={control.active} onClick={() => cast({ kind: "concentrate", key: spell.key, name })}>
           Concentrate
         </Button>
+      ) : control.kind === "uses" ? (
+        <div className="flex self-stretch justify-end max-[600px]:justify-start">
+          <SplitButton
+            aria-label={`Cast ${name}`}
+            icon="sparkles"
+            onClick={() => {
+              const { feature, label, pact } = control;
+              cast({ kind: "uses", key: spell.key, name, level: spell.level, feature, label, pact, concentration: needsConcentration(record) });
+            }}
+            disabled={control.disabled}
+            aria-describedby={hintId}
+            menuLabel="Cast at a higher level"
+          >
+            Cast
+          </SplitButton>
+        </div>
       ) : (
         <div ref={buttonRow} className="flex self-stretch justify-end max-[600px]:justify-start">
           <SplitButton
@@ -111,7 +141,11 @@ export function CastControl({ spell, name, record, choices: control, concentrati
           </SplitButton>
         </div>
       )}
-      <p id={hintId} className="min-h-[19px] self-stretch font-sans text-[12.5px] leading-[19px] text-ink-muted">
+      {/* The hint of a cast with a use keeps two lines: "Spends Thief of Five Fates (1 left) and a pact slot (5th, 4 left)." wraps, and the hint after the cast does not. */}
+      <p
+        id={hintId}
+        className={`${control.kind === "uses" ? "min-h-[38px]" : "min-h-[19px]"} self-stretch font-sans text-[12.5px] leading-[19px] text-ink-muted`}
+      >
         {control.hint}
       </p>
       {/* The status line keeps the height of two lines. A no-break space on every second cast makes the same text a new message. */}

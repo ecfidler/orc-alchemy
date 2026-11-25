@@ -1,5 +1,20 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
-import { asksFirst, type CastAction, type CastSlots, type CastSpell, castChoices, castSlots, castStatus, concentrationQuestion } from "./cast.ts";
+import {
+  asksFirst,
+  type CastAction,
+  type CastSlots,
+  type CastSpell,
+  castChoices,
+  castSlots,
+  castStatus,
+  concentrationQuestion,
+  type FeatureUses,
+  INVOCATION_SPELLS,
+} from "./cast.ts";
+import { loadEngine, type StrictEntity } from "./engine.ts";
+import { featureUses, toSheet } from "./sheet.ts";
 import type { SpellRecord } from "./spell-records.ts";
 import { loadSpellContent, type SpellContent } from "./spells.ts";
 
@@ -149,9 +164,8 @@ test("a cantrip, an at-will spell and an unprepared spell of a class that prepar
   expect(castChoices(known("mage-armor", 1, { castNote: "at will" }), record("mage-armor"), slots, null)).toEqual({ kind: "none" });
   expect(castChoices(known("shield", 1, { source: "Wizard", prepared: false }), record("shield"), slots, null)).toEqual({ kind: "none" });
   expect(castChoices(known("shield", 1, { source: "Wizard", prepared: true }), record("shield"), slots, null).kind).toBe("slots");
-  // A ritual cast, and a spell with its own uses (ORC-321), have no control yet.
+  // A ritual cast has no control.
   expect(castChoices(known("alarm", 1, { castNote: "ritual only" }), record("alarm"), slots, null)).toEqual({ kind: "none" });
-  expect(castChoices(known("misty-step", 2, { castNote: "once per long rest" }), record("misty-step"), slots, null)).toEqual({ kind: "none" });
   // A spell with no slot of its level or higher.
   expect(castChoices(known("cone-of-cold", 5), record("cone-of-cold"), slots, null)).toEqual({ kind: "none" });
 });
@@ -192,4 +206,121 @@ test("the status says what the cast did, with the level only for a higher level"
   expect(castStatus({ ...missile, group: 1 }, { level: 1, left: 3 })).toBe("Cast Magic Missile. 1st-level slots −1 (3 left).");
   expect(castStatus({ ...missile, group: "pact" }, { level: 5, left: 0 })).toBe("Cast Magic Missile at 5th level. Pact slots −1 (0 left).");
   expect(castStatus({ kind: "concentrate", key: "guidance", name: "Guidance" })).toBe("Concentrating on Guidance.");
+});
+
+// A spell with its own uses (ORC-321).
+
+const LONG_REST = "orcpub.dnd.e5.units/long-rest";
+const arcanum = (spent = 0, amount = 1): FeatureUses => ({ amount, recharge: "Long rest", units: LONG_REST, name: "Mystic Arcanum", spent });
+const fates = (spent = 0): FeatureUses => ({ amount: 1, recharge: "Long rest", units: LONG_REST, name: "Eldritch Invocation: Thief of Five Fates", spent });
+const ARCANUM_KEY = { units: LONG_REST, name: "Mystic Arcanum" };
+const FATES_KEY = { units: LONG_REST, name: "Eldritch Invocation: Thief of Five Fates" };
+
+const KEY = "~:orcpub.entity.strict/key";
+type Node = Record<string, unknown>;
+/** The options of the first selection with the key `key` in the strict entity, found at any depth, or null. */
+function selectionOptions(node: unknown, key: string): Node[] | null {
+  if (!node || typeof node !== "object") return null;
+  const n = node as Node;
+  if (n[KEY] === key && Array.isArray(n["~:orcpub.entity.strict/options"])) return n["~:orcpub.entity.strict/options"] as Node[];
+  for (const value of Object.values(n)) {
+    const found = selectionOptions(value, key);
+    if (found) return found;
+  }
+  return null;
+}
+
+test("each row of the invocation table is a spell of the engine with a 'once per' cast note, and the name of a feature with uses", async () => {
+  const e = await loadEngine();
+  // Warlock 20 with the six invocations that give a spell.
+  const entity: StrictEntity = JSON.parse(readFileSync(join(import.meta.dirname, "../../e2e/warlock-20.strict.json"), "utf8"));
+  // The six invocation keys, from the feature names: "Eldritch Invocation: Sign of Ill Omen" is "sign-of-ill-omen".
+  const keys = Object.values(INVOCATION_SPELLS).map((name) => name.replace("Eldritch Invocation: ", "").toLowerCase().replaceAll(" ", "-"));
+  const options = selectionOptions(entity, "~:eldritch-invocations")!;
+  options.splice(0, options.length, ...keys.map((key) => ({ [KEY]: `~:${key}` })));
+  const sheet = toSheet(e.evaluate(entity).built, entity);
+  const spells = sheet.spellcasting!.byLevel.flatMap((level) => level.spells.map((spell) => ({ ...spell, level: level.level })));
+  const uses = featureUses(sheet);
+  expect(Object.keys(INVOCATION_SPELLS)).toHaveLength(6);
+  for (const [key, feature] of Object.entries(INVOCATION_SPELLS)) {
+    const spell = spells.find((s) => s.key === key && s.castNote !== null);
+    expect([key, spell?.castNote]).toEqual([key, expect.stringMatching(/^once per /)]);
+    expect(uses.find((u) => u.name === feature)).toMatchObject({ name: feature, amount: 1 });
+    const control = castChoices(spell!, record(key), sheet.spellcasting!, null, uses);
+    expect(control).toMatchObject({ kind: "uses", feature: { name: feature }, pact: true, disabled: false });
+  }
+});
+
+test("a spell with the cast note 'uses Mystic Arcanum' spends a use of Mystic Arcanum, a pack spell too; with no use left Cast is disabled", () => {
+  const slots = warlock();
+  const spell = known("circle-of-death", 6, { source: "Warlock", castNote: "uses Mystic Arcanum" });
+  expect(castChoices(spell, record("circle-of-death"), slots, null, [fates(), arcanum()])).toEqual({
+    kind: "uses",
+    feature: ARCANUM_KEY,
+    label: "Mystic Arcanum",
+    pact: false,
+    disabled: false,
+    hint: "Spends Mystic Arcanum (1 of 1 left).",
+  });
+  // A pack spell with the same note, and no record: the link is the cast note.
+  const pack = known("pack-spell", 7, { source: "Warlock", castNote: "uses Mystic Arcanum" });
+  expect(castChoices(pack, undefined, slots, null, [arcanum(1, 4)])).toMatchObject({
+    kind: "uses",
+    disabled: false,
+    hint: "Spends Mystic Arcanum (3 of 4 left).",
+  });
+  expect(castChoices(spell, record("circle-of-death"), slots, null, [arcanum(1)])).toMatchObject({
+    kind: "uses",
+    disabled: true,
+    hint: "Mystic Arcanum has no use left.",
+  });
+});
+
+test("an invocation spell spends a use of its invocation and a pact slot; Cast is disabled when the use or the slot is not there", () => {
+  const bane = known("bane", 1, { source: "Warlock", castNote: "once per long rest" });
+  expect(castChoices(bane, record("bane"), warlock(1), null, [arcanum(), fates()])).toEqual({
+    kind: "uses",
+    feature: FATES_KEY,
+    label: "Thief of Five Fates",
+    pact: true,
+    disabled: false,
+    hint: "Spends Thief of Five Fates (1 left) and a pact slot (5th, 2 left).",
+  });
+  expect(castChoices(bane, record("bane"), warlock(1), null, [fates(1)])).toMatchObject({ disabled: true, hint: "Thief of Five Fates has no use left." });
+  expect(castChoices(bane, record("bane"), warlock(3), null, [fates()])).toMatchObject({ disabled: true, hint: "No pact slot left." });
+  // A pact slot below the spell level cannot cast it; with no pact slots at all, the same.
+  const curse = known("bestow-curse", 3, { source: "Warlock", castNote: "once per long rest" });
+  expect(castChoices(curse, record("bestow-curse"), wizardWarlock(), null, [{ ...fates(), name: INVOCATION_SPELLS["bestow-curse"] }])).toMatchObject({
+    disabled: true,
+    hint: "No pact slot left.",
+  });
+  expect(castChoices(bane, record("bane"), sorcerer(), null, [fates()])).toMatchObject({ disabled: true, hint: "No pact slot left." });
+});
+
+test("a cast note with uses that the app cannot link has no Cast button, only the line", () => {
+  const slots = warlock();
+  const line = (name: string) => ({ kind: "unlinked", text: `This spell has its own uses (${name}). Spend the use on the sheet.` });
+  expect(castChoices(known("misty-step", 2, { castNote: "uses Fey Step" }), record("misty-step"), slots, null, [arcanum()])).toEqual(line("Fey Step"));
+  expect(castChoices(known("misty-step", 2, { castNote: "once per long rest" }), record("misty-step"), slots, null)).toEqual(line("once per long rest"));
+  // A note that the app can link, but the sheet has no uses of its feature.
+  expect(castChoices(known("bane", 1, { castNote: "once per long rest" }), record("bane"), slots, null, [arcanum()])).toEqual(line("Thief of Five Fates"));
+  expect(castChoices(known("circle-of-death", 6, { castNote: "uses Mystic Arcanum" }), record("circle-of-death"), slots, null)).toEqual(line("Mystic Arcanum"));
+  // A spell of the table with another note is not an invocation spell: the line has the note.
+  expect(castChoices(known("bane", 1, { castNote: "uses Fey Step" }), record("bane"), slots, null, [fates()])).toEqual(line("Fey Step"));
+});
+
+test("the status of a cast with a use names the feature, and the pact slot of an invocation spell", () => {
+  const use: CastAction = {
+    kind: "uses",
+    key: "bane",
+    name: "Bane",
+    level: 1,
+    feature: FATES_KEY,
+    label: "Thief of Five Fates",
+    pact: true,
+    concentration: true,
+  };
+  expect(castStatus(use, { level: 5, left: 3 }, 0)).toBe("Cast Bane at 5th level. Thief of Five Fates −1 (0 left), Pact slots −1 (3 left).");
+  const arcane: CastAction = { ...use, key: "circle-of-death", name: "Circle of Death", level: 6, feature: ARCANUM_KEY, label: "Mystic Arcanum", pact: false };
+  expect(castStatus(arcane, undefined, 3)).toBe("Cast Circle of Death. Mystic Arcanum −1 (3 left).");
 });

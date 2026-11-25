@@ -26,7 +26,7 @@
 import { Button, Checkbox, Dialog, FramedBox, Label, LockIcon, PixelIcon } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
-import { type CastAction, castChoices } from "../engine/cast.ts";
+import { type CastAction, castChoices, type FeatureUses } from "../engine/cast.ts";
 import { bonusStr, keyToName, type PrepareSpell, type Sheet, type Spellcasting, type SpellRef, type SpendSlots } from "../engine/sheet.ts";
 import {
   type ListedSpell,
@@ -71,6 +71,8 @@ export interface SpellsPanelProps {
    * sheet page, the spell view has no Cast control.
    */
   onCast?: (action: CastAction) => string;
+  /** The uses of the features of the sheet (featureUses): a spell with its own uses casts with one of them (ORC-321). */
+  uses?: readonly FeatureUses[];
 }
 
 /** The attribute that marks the "Back to the list" button of the spell view on a phone. */
@@ -113,6 +115,7 @@ export function SpellsPanel({
   onPrepare,
   concentration = null,
   onCast,
+  uses = [],
 }: SpellsPanelProps) {
   // The two panes, so the initial focus is found in this panel only.
   const panes = useRef<HTMLDivElement>(null);
@@ -140,6 +143,7 @@ export function SpellsPanel({
         onPrepare={onPrepare}
         concentration={concentration}
         onCast={onCast}
+        uses={uses}
       />
     </Dialog>
   );
@@ -307,6 +311,7 @@ function PanelBody({
   onPrepare,
   concentration,
   onCast,
+  uses,
 }: {
   spellcasting: Spellcasting;
   classes: Sheet["classes"];
@@ -319,6 +324,7 @@ function PanelBody({
   onPrepare: PrepareSpell;
   concentration: string | null;
   onCast: ((action: CastAction) => string) | undefined;
+  uses: readonly FeatureUses[];
 }) {
   const lookup = useSpellLookup();
   const loaded = lookup !== null;
@@ -345,7 +351,7 @@ function PanelBody({
   const selectedKind = selected && prepareKind(selected, spellcasting.casters);
   const selectedRecord = selected && lookup ? lookup(selected.key) : undefined;
   // What the selected spell can do now. Without a cast handler, or for a spell with no control, the spell view has no control.
-  const choices = onCast && selected ? castChoices(selected, selectedRecord?.record, spellcasting, concentration) : null;
+  const choices = onCast && selected ? castChoices(selected, selectedRecord?.record, spellcasting, concentration, uses) : null;
   const [focused, setFocused] = useState<string | null>(null);
   const isShown = (id: string | null) => id !== null && shown.some((spell) => spellId(spell) === id);
   const tabStop = isShown(focused) ? focused : isShown(selectedId) ? selectedId : shown[0] ? spellId(shown[0]) : null;
