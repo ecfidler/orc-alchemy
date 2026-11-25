@@ -168,6 +168,12 @@ test("the play state: the hit points show at most the maximum, with the temporar
   expect(toSheet(builtOf("fighter-1"), values({ "~:orcpub.dnd.e5.character/current-hit-points": 30 })).currentHitPoints).toBe(12);
 });
 
+test("inspiration shows only for a stored true (ORC-324)", () => {
+  const values = (play: Record<string, unknown>) => ({ "~:orcpub.entity.strict/values": play });
+  const shown = (value: unknown) => toSheet(builtOf("fighter-1"), values({ "~:orc-alchemy.play/inspiration": value })).inspiration;
+  expect([toSheet(builtOf("fighter-1"), {}).inspiration, shown(true), shown(false), shown("true")]).toEqual([false, true, false, false]);
+});
+
 test("resistances and immunities become display strings", () => {
   expect(toSheet(builtOf("fighter-5"), {}).resistances).toEqual(["Poison"]);
   expect(toSheet(builtOf("wizard-1"), {}).immunities).toEqual(["Magical Sleep"]);

@@ -71,6 +71,45 @@ test("a stat box's label names the oval and the large value together; name repla
   expect(within(screen.getByLabelText("Speed").parentElement!).getByText("SPD")).toBeTruthy();
 });
 
+/** The text of the element that describes `element`. */
+const description = (element: HTMLElement) => document.getElementById(element.getAttribute("aria-describedby") ?? "")?.textContent;
+
+test("a small box with toggle is one button, named by its label, that reports its pressed state and its press", () => {
+  const change = vi.fn();
+  render(<SmallBox label="Lucky" value={<span aria-hidden>*</span>} toggle={{ pressed: true, onPressedChange: change }} />);
+  const toggle = screen.getByRole("button", { name: "Lucky" });
+  expect([toggle.getAttribute("aria-pressed"), toggle.dataset.variant, toggle.className, toggle.textContent]).toEqual([
+    "true",
+    "bare",
+    "ui-button ui-small-box ui-box-toggle",
+    "*Lucky",
+  ]);
+  expect(screen.queryByRole("group")).toBeNull();
+  fireEvent.click(toggle);
+  expect(change).toHaveBeenCalledWith(false, expect.anything());
+});
+
+test("a stat box with toggle is one button: aria-label names it, and the oval and the value describe it", () => {
+  const change = vi.fn();
+  const enter = vi.fn();
+  render(
+    <>
+      <StatBox label="SPD" value="+3" oval="16" toggle={{ "aria-label": "Speed: show more", pressed: false, onPressedChange: change, onMouseEnter: enter }} />
+      <StatBox label="SPD" name="Speed" value="9" oval="2" toggle={{ pressed: true }} />
+      <StatBox label="Score" value="1" oval="2" toggle={{}} />
+    </>,
+  );
+  const toggle = screen.getByRole("button", { name: "Speed: show more" });
+  expect([toggle.getAttribute("aria-pressed"), toggle.className, toggle.textContent]).toEqual(["false", "ui-button ui-stat-box ui-box-toggle", "SPD16 +3"]);
+  expect(description(toggle)).toBe("16 +3");
+  fireEvent.click(toggle);
+  fireEvent.mouseEnter(toggle);
+  expect([change.mock.calls[0]?.[0], enter.mock.calls.length]).toEqual([true, 1]);
+  // Without aria-label, name names it, or else the label.
+  expect(screen.getByRole("button", { name: "Speed" }).getAttribute("aria-pressed")).toBe("true");
+  expect(description(screen.getByRole("button", { name: "Score" }))).toBe("2 1");
+});
+
 test("a shaded panel holds its boxes, and takes layout classes", () => {
   render(
     <ShadedPanel className="grid-cols-3">

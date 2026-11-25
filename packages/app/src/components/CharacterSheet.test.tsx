@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
@@ -61,6 +61,7 @@ const sheet: Sheet = {
   concentration: null,
   conditions: [],
   conditionImmune: [],
+  inspiration: false,
   hitDice: [{ die: 10, total: 3, left: 3 }],
   speeds: [{ feet: 25, label: null }],
   speedCause: null,
@@ -550,7 +551,7 @@ test("a limited-use feature sits in a use bubble, with circles, a pool for more 
 
 test("with play, the circles and the pool write the spent uses with play.onUses by the unit and name (ORC-316)", () => {
   const onUses = vi.fn();
-  const play = { status: "", onHitPoints: vi.fn(), onHitDice: vi.fn(), onDeathSaves: vi.fn(), onUses, onConditions: vi.fn() };
+  const play = { ...playMocks(), onUses };
   render(<CharacterSheet sheet={{ ...sheet, features: usesFeatures({ wind: 1, hands: 5 }) }} play={play} />);
   const wind = bubbleOf("Second Wind").getByRole("slider", { name: "Second Wind" });
   expect(wind.getAttribute("aria-valuetext")).toBe("1 of 2 spent");
@@ -563,6 +564,82 @@ test("with play, the circles and the pool write the spent uses with play.onUses 
   expect(bubbleOf("Lay on Hands").getByRole("button", { name: "Lay on Hands, 20 of 25 left" })).toBeTruthy();
   // Uses each turn have no circles, also with play.
   expect(bubbleOf("Sneak Attack").queryByRole("slider")).toBeNull();
+});
+
+/** The play handlers of the sheet page, as mocks. */
+const playMocks = () => ({
+  status: "",
+  onHitPoints: vi.fn(),
+  onHitDice: vi.fn(),
+  onDeathSaves: vi.fn(),
+  onUses: vi.fn(),
+  onConditions: vi.fn(),
+  onInspiration: vi.fn(),
+});
+
+test("with play, the Inspiration box is a button: a click sets inspiration, and a second click removes it (ORC-324)", () => {
+  const play = playMocks();
+  const { rerender } = render(<CharacterSheet sheet={sheet} play={play} />);
+  const box = screen.getByRole("button", { name: "Inspiration" });
+  expect([box.getAttribute("aria-pressed"), box.textContent]).toEqual(["false", "Inspiration"]);
+  fireEvent.click(box);
+  expect(play.onInspiration).toHaveBeenLastCalledWith(true);
+  rerender(<CharacterSheet sheet={{ ...sheet, inspiration: true }} play={play} />);
+  // The mark is hidden from a screen reader: aria-pressed says it.
+  expect([box.getAttribute("aria-pressed"), box.textContent, box.querySelector("[aria-hidden]")?.textContent]).toEqual(["true", "✦Inspiration", "✦"]);
+  fireEvent.click(box);
+  expect(play.onInspiration).toHaveBeenLastCalledWith(false);
+});
+
+test("without play, the Inspiration box shows the mark and is not a button; the ability boxes are not buttons", () => {
+  render(<CharacterSheet sheet={{ ...sheet, inspiration: true }} />);
+  expect(screen.queryByRole("button", { name: "Inspiration" })).toBeNull();
+  expect(within(screen.getByRole("group", { name: "Inspiration" })).getByRole("img", { name: "Has inspiration" }).textContent).toBe("✦");
+  expect(screen.queryByRole("button", { name: /highlight the skills/ })).toBeNull();
+  expect(screen.getByLabelText("STR").textContent).toBe("16+3");
+});
+
+/** The names of the skill lines with the ability highlight. */
+const highlighted = () => [...document.querySelectorAll("li[data-highlight]")].map((line) => line.textContent);
+
+test("with play, each ability box is a button that highlights the skills of its ability, and nothing else (ORC-324)", () => {
+  render(<CharacterSheet sheet={sheet} play={playMocks()} />);
+  const str = screen.getByRole("button", { name: "Strength: highlight the skills" });
+  const int = screen.getByRole("button", { name: "Intelligence: highlight the skills" });
+  const con = screen.getByRole("button", { name: "Constitution: highlight the skills" });
+  expect(document.getElementById(str.getAttribute("aria-describedby") ?? "")?.textContent).toBe("16 +3");
+  expect([str, int, con].map((box) => box.getAttribute("aria-pressed"))).toEqual(["false", "false", "false"]);
+  expect(highlighted()).toEqual([]);
+  // A hover shows the skills; the saving throw has no highlight.
+  fireEvent.mouseEnter(str);
+  expect(highlighted()).toEqual(["+5 Athletics STR"]);
+  fireEvent.mouseLeave(str);
+  expect(highlighted()).toEqual([]);
+  // The focus from the keyboard shows them too.
+  act(() => int.focus());
+  expect(highlighted()).toEqual(["-1 History INT"]);
+  act(() => int.blur());
+  expect(highlighted()).toEqual([]);
+  // A click keeps them; a click on another ability moves them; a second click removes them.
+  fireEvent.click(str);
+  fireEvent.mouseLeave(str);
+  expect([highlighted(), str.getAttribute("aria-pressed")]).toEqual([["+5 Athletics STR"], "true"]);
+  fireEvent.click(int);
+  expect([highlighted(), str.getAttribute("aria-pressed"), int.getAttribute("aria-pressed")]).toEqual([["-1 History INT"], "false", "true"]);
+  fireEvent.click(int);
+  expect([highlighted(), int.getAttribute("aria-pressed")]).toEqual([[], "false"]);
+  // Constitution has no skill, so it shows nothing.
+  fireEvent.click(con);
+  expect([highlighted(), con.getAttribute("aria-pressed")]).toEqual([[], "true"]);
+  // The focus that a press gives does not show the skills: after a second click, they go when the mouse leaves.
+  fireEvent.pointerDown(str);
+  act(() => str.focus());
+  fireEvent.click(str);
+  expect(highlighted()).toEqual(["+5 Athletics STR"]);
+  fireEvent.pointerDown(str);
+  fireEvent.click(str);
+  fireEvent.mouseLeave(str);
+  expect([highlighted(), document.activeElement]).toEqual([[], str]);
 });
 
 // ORC-203: a typed homebrew feature draws the same bubble as an engine entry. sheet.test.ts and e2e check the sections.

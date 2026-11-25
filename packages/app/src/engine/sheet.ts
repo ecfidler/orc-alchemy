@@ -19,6 +19,7 @@ import {
   type FeatureUsesKey,
   featureUsesSpent,
   hitDiceSpent,
+  inspiration,
   tempHitPoints,
 } from "./play.ts";
 import { preparedSpells, type SlotGroup, type SpentSlotGroups, slotLayout, spentSlotGroups } from "./spells.ts";
@@ -181,6 +182,8 @@ export interface SheetPlay {
   onUses: (feature: FeatureUsesKey, spent: number) => void;
   /** Applies an action of the Conditions and statuses box: add or remove a condition, or end the concentration mark (ORC-322). */
   onConditions: (action: ConditionAction) => void;
+  /** Sets inspiration (true) or removes it (false) after a click on the Inspiration box, as one sheet change (ORC-324). */
+  onInspiration: (on: boolean) => void;
   /**
    * The concentration note after Damage with a concentration mark, or null (ORC-322). The next action removes it,
    * and so does its Dismiss button, which calls `onDismissNote`.
@@ -242,6 +245,8 @@ export interface Sheet {
   exhaustion: number;
   /** The spell key of the concentration mark, or null (play state). */
   concentration: string | null;
+  /** True when the character has inspiration (play state). No rest changes it (ORC-324). */
+  inspiration: boolean;
   /** The conditions that are set, in the order of the Add condition menu (play state). */
   conditions: Condition[];
   /** The conditions that the character is immune to with no qualifier, such as "poisoned". */
@@ -806,6 +811,7 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     deathSaves: play.deathSaves,
     exhaustion: level,
     concentration: concentration(entity),
+    inspiration: inspiration(entity),
     conditions: play.conditions,
     conditionImmune: conditionsOf(immunities.filter((immunity) => !immunity.qualifier).map((immunity) => immunity.value)),
     hitDice: hitDiceLeft(hitDice, hitDiceSpent(entity, hitDice)),

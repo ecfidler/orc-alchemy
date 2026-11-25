@@ -69,7 +69,9 @@ bun run test       # vitest
   - `Toggle`: Base UI Toggle, a button that is on or off. It has the
     ghost button look and is solid while it is pressed. On its own it
     takes `pressed` and `onPressedChange`. It takes `className` as
-    `Button` does. Styles: `src/button.css`.
+    `Button` does. `variant="bare"` has no look of its own, pressed or
+    not, as a bare `Button`: its `className` draws it all. Styles:
+    `src/button.css`.
   - `ToggleGroup`: Base UI ToggleGroup, a group of toggles. Name it with
     `aria-label` or `aria-labelledby`. Its `value` lists the pressed
     toggles by each toggle's `value`; the owner changes it from each
@@ -335,6 +337,15 @@ bun run test       # vitest
     - `StatBox`: a box with its label, a large `value` and an `oval` that
       hangs from the bottom edge. The label names the oval and the value
       together, the oval first. `name` names them when the label is short.
+    - `toggle` (`BoxToggleProps`) on `SmallBox` or `StatBox` makes the
+      whole box one bare `Toggle`, with the props of a Toggle:
+      `pressed`, `onPressedChange`, `aria-label`, and the pointer and
+      focus events. The box keeps its look and its size. Under a mouse it
+      has an inset ring. A small box is named by its label, and its value
+      shows the state, so give a mark in the value `aria-hidden`. A stat
+      box is named by `aria-label`, else by `name` or the label. The oval
+      and the value describe it. A pressed stat box has the inset ring and
+      an ink label.
     - `ShadedPanel`: a shaded area that groups boxes.
     - `SectionRule`: a section title on a rule, a heading of `level` 2
       (or 3 or 4).

@@ -762,7 +762,11 @@ The app applies these effects. It rounds down to a whole number, with no
 * With inspiration, the box shows a mark. The box does not change its
   size.
 * No rest changes inspiration.
-* The button has `aria-pressed`.
+* The button has `aria-pressed`. Its accessible name is "Inspiration".
+  The mark is hidden from a screen reader, because `aria-pressed` gives
+  the state.
+* On a sheet with no play controls, for example the builder preview, the
+  box shows the mark and is not a button.
 
 # AC pick
 
@@ -786,13 +790,19 @@ The decisions are in ORC-304, and the look is in ORC-312.[^orc-304] [^orc-312]
 # Ability highlight
 
 * Each ability box in the left column is a button.[^orc-304]
-* On hover and on focus, the skills of that ability get a highlight in
-  the note color. The saving throw does not, and no other part of the
-  sheet does. Constitution has no skill, so it shows nothing.
+* On hover and on keyboard focus, the skills of that ability get a
+  highlight in the note color. The saving throw does not, and no other
+  part of the sheet does. Constitution has no skill, so it shows nothing.
 * A click or a tap keeps the highlight. A second click on the same
-  ability, or a click on another ability, removes it.
+  ability, or a click on another ability, removes it. The highlight goes
+  at the second click, also while the pointer is on the box. The focus
+  that a click gives does not show the highlight.
 * The highlight is not play state. The app does not save it.
-* The highlight changes only a background color, so no text moves.
+* The highlight changes only colors, so no text moves. The line gets the
+  note color as its background, 3px past its edges. The text on it is
+  in the note ink, because the note stays yellow in the dark theme.
+* Only the sheet with play controls has the highlight. In the builder
+  preview, the ability boxes are not buttons.
 * The button has `aria-pressed`. Its accessible name says what it does:
   "Strength: highlight the skills".
 

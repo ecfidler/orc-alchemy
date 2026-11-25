@@ -2,7 +2,7 @@
 // "Character sheet"), two columns that become one in a narrow container. Under 720px
 // the sections go in tabs ("Small screens and motion").
 // Each value is a group named by its label, so a screen reader and a test find it by its label.
-import { Button, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
+import { type BoxToggleProps, Button, FramedBox, Label, ShadedPanel, SlotCircles, SmallBox, StatBox, type Tab, Tabs, UseBubble } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import { deadOfExhaustion, maxCaption } from "../engine/conditions.ts";
 import {
@@ -83,6 +83,7 @@ export function CharacterSheet({
     return () => observer.disconnect();
   }, []);
   const tabbed = narrow && !preview;
+  const highlight = useAbilityHighlight();
   const race = sheet.subrace ? `${sheet.race} (${sheet.subrace})` : sheet.race;
   const classes = sheet.classes.map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ""}`).join(" / ");
   const defenses: [string, string[]][] = [
@@ -113,12 +114,28 @@ export function CharacterSheet({
     <>
       <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2.5 @max-[719px]:grid-cols-1">
         <ShadedPanel className="content-start gap-4 px-1.5 pt-2 pb-[18px] @max-[719px]:grid-cols-3 @max-[719px]:gap-x-2.5 @max-[719px]:gap-y-5">
+          {/* With play, each ability box is a button that highlights the skills of its ability (ORC-324). */}
           {sheet.abilities.map((a) => (
-            <StatBox key={a.ability} label={abbr(a.ability)} value={bonusStr(a.modifier)} oval={a.score} />
+            <StatBox
+              key={a.ability}
+              label={abbr(a.ability)}
+              value={bonusStr(a.modifier)}
+              oval={a.score}
+              toggle={play ? highlight.toggle(a.ability) : undefined}
+            />
           ))}
         </ShadedPanel>
         <div className="grid min-w-0 content-start gap-2.5">
-          <SmallBox label="Inspiration" value="" />
+          {/* With play, the box is a button that sets inspiration or removes it (ORC-324). The mark keeps the box's size. */}
+          {play ? (
+            <SmallBox
+              label="Inspiration"
+              value={sheet.inspiration && <InspirationMark />}
+              toggle={{ pressed: sheet.inspiration, onPressedChange: (on) => play.onInspiration(on) }}
+            />
+          ) : (
+            <SmallBox label="Inspiration" value={sheet.inspiration && <InspirationMark label="Has inspiration" />} />
+          )}
           <SmallBox label="Proficiency Bonus" value={bonusStr(sheet.proficiencyBonus)} />
           <FramedBox label="Saving Throws">
             <ul className="grid gap-0.5">
@@ -132,7 +149,7 @@ export function CharacterSheet({
           <FramedBox label="Skills">
             <ul className="grid gap-0.5">
               {sheet.skills.map((skill) => (
-                <Line key={skill.key} proficient={skill.proficient} expertise={skill.expertise}>
+                <Line key={skill.key} proficient={skill.proficient} expertise={skill.expertise} highlight={highlight.shown === skill.ability}>
                   {bonusStr(skill.bonus)} {skill.name} <Tag>{abbr(skill.ability)}</Tag>
                 </Line>
               ))}
@@ -459,9 +476,23 @@ const MARK = "ml-[3px] size-2.5 border-[1.5px]";
  * not proficient. Expertise is a ring around the filled square, as on the
  * paper sheet.
  */
-function Line({ proficient, expertise = false, children }: { proficient: boolean; expertise?: boolean; children: ReactNode }) {
+function Line({
+  proficient,
+  expertise = false,
+  highlight = false,
+  children,
+}: {
+  proficient: boolean;
+  expertise?: boolean;
+  /** The ability highlight: the note color behind the line (ORC-324). It changes only colors, so no text moves. */
+  highlight?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <li className="grid grid-cols-[16px_minmax(0,1fr)] items-baseline gap-1 text-[14.5px]">
+    <li
+      data-highlight={highlight ? "" : undefined}
+      className={`grid grid-cols-[16px_minmax(0,1fr)] items-baseline gap-1 text-[14.5px] ${highlight ? "skill-highlight" : ""}`}
+    >
       {expertise ? (
         <span role="img" aria-label="Expertise" className={`${MARK} border-ink bg-ink outline-[1.5px] outline-offset-[1.5px] outline-ink outline-solid`} />
       ) : proficient ? (
@@ -472,6 +503,55 @@ function Line({ proficient, expertise = false, children }: { proficient: boolean
       <span className={`truncate tabular-nums ${proficient ? "" : "text-ink-muted"}`}>{children}</span>
     </li>
   );
+}
+
+/** The mark of the Inspiration box. With `label`, it is an image with that name; else it is hidden, as the pressed state of the box says it. */
+function InspirationMark({ label }: { label?: string }) {
+  return label ? (
+    <span role="img" aria-label={label}>
+      ✦
+    </span>
+  ) : (
+    <span aria-hidden>✦</span>
+  );
+}
+
+/**
+ * The ability highlight (ORC-324, docs/design/sheet-interactivity.md "Ability highlight"). It is local state, not play
+ * state: the app does not save it. A hover or the keyboard focus on an ability box shows its skills. A click keeps
+ * them; a second click on the same box, or a click on another box, removes the kept one. A click that removes it also
+ * hides the hover, so the change shows at once. `shown` is the ability whose skills have the highlight, or null.
+ */
+function useAbilityHighlight() {
+  const [kept, setKept] = useState<Ability | null>(null);
+  const [pointed, setPointed] = useState<Ability | null>(null);
+  // True from a press of a mouse, a pen or a finger to its click: the focus that the press gives shows nothing.
+  const pressing = useRef(false);
+  const leave = (ability: Ability) => setPointed((current) => (current === ability ? null : current));
+  return {
+    shown: pointed ?? kept,
+    toggle: (ability: Ability): BoxToggleProps => ({
+      "aria-label": `${ABILITY_NAMES[ability]}: highlight the skills`,
+      pressed: kept === ability,
+      onPressedChange: (pressed: boolean) => {
+        setKept(pressed ? ability : null);
+        setPointed(pressed ? ability : null);
+      },
+      onPointerDown: () => {
+        pressing.current = true;
+      },
+      onClick: () => {
+        pressing.current = false;
+      },
+      onMouseEnter: () => setPointed(ability),
+      onMouseLeave: () => leave(ability),
+      // Only a focus from the keyboard shows the highlight. A click also focuses the box, and that focus must not keep it.
+      onFocus: () => {
+        if (!pressing.current) setPointed(ability);
+      },
+      onBlur: () => leave(ability),
+    }),
+  };
 }
 
 /** Small Inter caps text after a line's text. */

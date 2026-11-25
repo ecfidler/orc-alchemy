@@ -52,9 +52,9 @@
     border: 1.5px solid var(--rule-strong);
     border-radius: 6px;
   }
-  /* An empty value keeps the box's height. */
+  /* An empty value keeps the box's height: one line and the padding, as the box is border-box. */
   .ui-small-box-value {
-    min-height: 1.5em;
+    min-height: calc(1lh + 12px);
     padding: 8px 0 4px;
     font-size: 20px;
     text-align: center;
@@ -104,6 +104,36 @@
     background: var(--paper-raised);
     border: 1.5px solid var(--rule-strong);
     border-radius: 999px;
+  }
+
+  /*
+   * A box that is a toggle (SmallBox and StatBox with `toggle`). The two classes outweigh the bare button, so the box
+   * keeps its own look. The ring is inset, so the box does not change its size.
+   */
+  .ui-button.ui-box-toggle {
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    background: var(--paper-raised);
+    border: 1.5px solid var(--rule-strong);
+    cursor: pointer;
+  }
+  .ui-button.ui-small-box {
+    padding: 0;
+    text-align: left;
+    border-radius: 6px;
+  }
+  .ui-button.ui-stat-box {
+    padding: 8px 2px 14px;
+    text-align: center;
+    border-radius: 10px;
+  }
+  .ui-box-toggle:hover,
+  .ui-stat-box.ui-box-toggle[data-pressed] {
+    box-shadow: inset 0 0 0 2px var(--ink);
+  }
+  .ui-stat-box.ui-box-toggle[data-pressed] > .ui-label {
+    color: var(--ink);
   }
 
   .ui-panel {

@@ -134,6 +134,7 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
     deathSaves: { successes: 0, failures: 0 },
     exhaustion: 0,
     concentration: null,
+    inspiration: false,
     conditions: [],
     conditionImmune: [],
     hitDice: hitDiceLeft(hitDiceTotals(classes), new Map()),
