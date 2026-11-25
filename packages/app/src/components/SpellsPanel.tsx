@@ -16,13 +16,18 @@
 // has a line of numbers for each source, and each row has a source tag. A
 // spell that two sources give is two rows, and each row prepares apart.
 //
+// The spell view of a spell that the character can cast has the Cast control
+// beside its name (ORC-320, docs/design/sheet-interactivity.md "Casting a
+// spell"), with the status line of the last cast.
+//
 // A failed save (ORC-290, "A failed save") shows the alert note of the shell
 // under the header, with a "Try again" button. The sheet behind the panel
 // shows the same note.
 import { Button, Checkbox, Dialog, FramedBox, Label, LockIcon, PixelIcon } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
-import { bonusStr, type PrepareSpell, type Sheet, type Spellcasting, type SpellRef, type SpendSlots } from "../engine/sheet.ts";
+import { type CastAction, castChoices, type FeatureUses } from "../engine/cast.ts";
+import { bonusStr, keyToName, type PrepareSpell, type Sheet, type Spellcasting, type SpellRef, type SpendSlots } from "../engine/sheet.ts";
 import {
   type ListedSpell,
   type SourceNumbers,
@@ -34,9 +39,11 @@ import {
   spellSources,
 } from "../engine/spell-list.ts";
 import { hasPrepareBox, type PrepareCount, prepareCounts, prepareCountText, prepareKind } from "../engine/spell-prepare.ts";
+import { spellName } from "../engine/spell-records.ts";
 import { flushAutosave } from "../state/character.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { useSpellSlotsFolded } from "../state/spell-slots-fold.ts";
+import { CastControl } from "./CastControl.tsx";
 import { PrepareCountText } from "./PrepareCount.tsx";
 import { SaveFailedNote, useSaveFailed } from "./SaveFailedNote.tsx";
 import { HEADING, INITIAL_FOCUS, LEVEL, ROW, SpellList } from "./SpellList.tsx";
@@ -57,6 +64,15 @@ export interface SpellsPanelProps {
   onSpendSlots: SpendSlots;
   /** The user prepares a spell, or stops preparing it. The change saves as a sheet change, and the sheet shows it (ORC-287). */
   onPrepare: PrepareSpell;
+  /** The spell key of the concentration mark, or null (play state). */
+  concentration?: string | null;
+  /**
+   * Casts a spell as one sheet change, and gives the text of the status line (ORC-320). Without it, as outside the
+   * sheet page, the spell view has no Cast control.
+   */
+  onCast?: (action: CastAction) => string;
+  /** The uses of the features of the sheet (featureUses): a spell with its own uses casts with one of them (ORC-321). */
+  uses?: readonly FeatureUses[];
 }
 
 /** The attribute that marks the "Back to the list" button of the spell view on a phone. */
@@ -88,7 +104,19 @@ const usePhone = () => useSyncExternalStore(subscribePhone, () => window.matchMe
  * a phone, a panel opened at a spell shows its spell view, and the "Back to
  * the list" button has the focus. The panel is not in the URL.
  */
-export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, builderHref, onSpendSlots, onPrepare }: SpellsPanelProps) {
+export function SpellsPanel({
+  open,
+  onOpenChange,
+  spellcasting,
+  classes,
+  at,
+  builderHref,
+  onSpendSlots,
+  onPrepare,
+  concentration = null,
+  onCast,
+  uses = [],
+}: SpellsPanelProps) {
   // The two panes, so the initial focus is found in this panel only.
   const panes = useRef<HTMLDivElement>(null);
   // With two or more sources the header has a line of numbers for each, and each row has a source tag.
@@ -113,6 +141,9 @@ export function SpellsPanel({ open, onOpenChange, spellcasting, classes, at, bui
         panes={panes}
         onSpendSlots={onSpendSlots}
         onPrepare={onPrepare}
+        concentration={concentration}
+        onCast={onCast}
+        uses={uses}
       />
     </Dialog>
   );
@@ -278,6 +309,9 @@ function PanelBody({
   panes,
   onSpendSlots,
   onPrepare,
+  concentration,
+  onCast,
+  uses,
 }: {
   spellcasting: Spellcasting;
   classes: Sheet["classes"];
@@ -288,6 +322,9 @@ function PanelBody({
   panes: RefObject<HTMLDivElement>;
   onSpendSlots: SpendSlots;
   onPrepare: PrepareSpell;
+  concentration: string | null;
+  onCast: ((action: CastAction) => string) | undefined;
+  uses: readonly FeatureUses[];
 }) {
   const lookup = useSpellLookup();
   const loaded = lookup !== null;
@@ -312,6 +349,9 @@ function PanelBody({
   const selectedId = pickedId ?? atId ?? (spells[0] ? spellId(spells[0]) : null);
   const selected = selectable.find((spell) => spellId(spell) === selectedId) ?? null;
   const selectedKind = selected && prepareKind(selected, spellcasting.casters);
+  const selectedRecord = selected && lookup ? lookup(selected.key) : undefined;
+  // What the selected spell can do now. Without a cast handler, or for a spell with no control, the spell view has no control.
+  const choices = onCast && selected ? castChoices(selected, selectedRecord?.record, { slots: spellcasting, concentration, uses }) : null;
   const [focused, setFocused] = useState<string | null>(null);
   const isShown = (id: string | null) => id !== null && shown.some((spell) => spellId(spell) === id);
   const tabStop = isShown(focused) ? focused : isShown(selectedId) ? selectedId : shown[0] ? spellId(shown[0]) : null;
@@ -321,6 +361,8 @@ function PanelBody({
   // The live region. `count` changes with each new message, so the same name is said again.
   const [announce, setAnnounce] = useState({ text: "", count: 0 });
   const say = (text: string) => setAnnounce((last) => ({ text, count: last.count + 1 }));
+  // The status line of the Cast control: what the last cast did. It belongs to the spell that was cast.
+  const [castStatus, setCastStatus] = useState<{ id: string | null; text: string; key: number }>({ id: null, text: "", key: 0 });
   // A change of a prepare count goes in the live region, with the class name: "Cleric: 9 of 8 prepared. Remove 1 spell."
   const countTexts = counts.map((count) => prepareCountText(count, true));
   const lastCounts = useRef(countTexts);
@@ -548,7 +590,34 @@ function PanelBody({
           {!loaded ? (
             spellView && <p className="text-ink-muted">Loading spells…</p>
           ) : selected ? (
-            <SpellView name={selected.name} spell={lookup(selected.key)} castNote={selected.castNote}>
+            <SpellView
+              name={selected.name}
+              spell={selectedRecord}
+              castNote={selected.castNote}
+              control={
+                onCast &&
+                choices &&
+                choices.kind !== "none" && (
+                  <CastControl
+                    // A new spell has a new control, so a question of the last one does not stay.
+                    key={selectedId}
+                    spell={selected}
+                    name={selected.name}
+                    record={selectedRecord?.record}
+                    choices={choices}
+                    concentration={concentration}
+                    concentrationName={concentration && spellName(lookup, concentration, keyToName(concentration))}
+                    onCast={(action) => {
+                      const text = onCast(action);
+                      setCastStatus((last) => ({ id: selectedId, text, key: last.key + 1 }));
+                    }}
+                    status={castStatus.id === selectedId ? castStatus.text : ""}
+                    statusKey={castStatus.key}
+                    phone={phone}
+                  />
+                )
+              }
+            >
               {selectedKind && hasPrepareBox(selectedKind) && (
                 <PrepareLine
                   spell={selected}

@@ -1,7 +1,9 @@
 // The spell view (ORC-284, docs/design/spells-panel.md "The spell view"):
 // the text of one spell from its record. It knows nothing of the Spells
 // panel, so the Browse pages (ORC-87) can use it too. The owner gives a line
-// under the name block, for example the prepare line of the panel.
+// under the name block, for example the prepare line of the panel, and can
+// give a control beside the spell name, for example the Cast control of the
+// panel (ORC-320).
 import { Label } from "@orc-alchemy/ui";
 import { type ReactNode, useId } from "react";
 import type { SpellRecordResult } from "../engine/spell-records.ts";
@@ -17,6 +19,11 @@ export type SpellViewProps = {
   castNote?: string | null;
   /** The owner's line, under the name block and above the facts. */
   children?: ReactNode;
+  /**
+   * The owner's control, beside the name block on the right. When the name block is too narrow, it goes under the
+   * name. Without it, the name block is as it was.
+   */
+  control?: ReactNode;
 };
 
 /** A fact of the grid: its label in Inter caps above its value. */
@@ -41,7 +48,7 @@ const smallLine = "mt-1.5 font-sans text-[12.5px] text-ink-muted";
  * shows the name, the cast note, the owner's line and "The app has no text
  * for this spell." The view is a region named by the spell name.
  */
-export function SpellView({ name, spell, castNote, children }: SpellViewProps) {
+export function SpellView({ name, spell, castNote, children, control }: SpellViewProps) {
   const headingId = useId();
   const record = spell?.record;
   const components = componentsLine(record?.components);
@@ -49,8 +56,8 @@ export function SpellView({ name, spell, castNote, children }: SpellViewProps) {
   const text = record?.description ? descriptionParts(record.description) : null;
   const hasFacts = Boolean(record?.["casting-time"] || record?.range || duration || components);
   const note = castNoteLine(castNote);
-  return (
-    <section aria-labelledby={headingId} className="min-w-0">
+  const nameBlock = (
+    <>
       <h3 id={headingId} className="text-[26px] leading-[1.15] font-semibold text-balance break-words">
         {/* A pack record can have an empty name; the name from the owner then shows. */}
         {record?.name || name}
@@ -63,6 +70,19 @@ export function SpellView({ name, spell, castNote, children }: SpellViewProps) {
       )}
       {spell && spell.from !== "SRD" && <p className={smallLine}>From {spell.from.pack}</p>}
       {note && <p className={smallLine}>{note}</p>}
+    </>
+  );
+  return (
+    <section aria-labelledby={headingId} className="min-w-0">
+      {control ? (
+        // The name block and the control: the control is on the right, or under the name when the space is too narrow.
+        <div data-name-block className="flex flex-wrap items-start justify-between gap-x-[18px] gap-y-2.5">
+          <div className="min-w-[12rem] flex-1">{nameBlock}</div>
+          {control}
+        </div>
+      ) : (
+        nameBlock
+      )}
       {children && <div className="mt-2.5">{children}</div>}
       {record === undefined && <p className="mt-3">The app has no text for this spell.</p>}
       {hasFacts && (

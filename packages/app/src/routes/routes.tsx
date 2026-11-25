@@ -19,8 +19,10 @@ import { RestButton } from "../components/RestButton.tsx";
 import { ReviewUses } from "../components/ReviewUses.tsx";
 import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
+import type { CastAction } from "../engine/cast.ts";
+import { applyCast } from "../engine/cast-apply.ts";
 import { EngineGate } from "../engine/EngineGate.tsx";
-import { engine } from "../engine/engine.ts";
+import { engine, type StrictEntity } from "../engine/engine.ts";
 import type { HitDiceAction } from "../engine/hit-dice.ts";
 import { applyHitDice } from "../engine/hit-dice-apply.ts";
 import type { HitPointAction } from "../engine/hit-points.ts";
@@ -29,7 +31,7 @@ import type { FeatureUsesKey } from "../engine/play.ts";
 import { type DeathSaves, setDeathSaves, setFeatureUsesSpent } from "../engine/play.ts";
 import type { RestAction } from "../engine/rest.ts";
 import { applyRest } from "../engine/rest-apply.ts";
-import type { Sheet, SpellRef } from "../engine/sheet.ts";
+import { featureUses, type Sheet, type SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
 import { restorePacks } from "../state/homebrew.ts";
@@ -151,6 +153,20 @@ function prepareSpell(spell: SpellRef, prepared: boolean) {
 }
 
 /**
+ * Applies `apply` as one sheet change: it saves at once. Returns the text of
+ * the status line that `apply` gives.
+ */
+function changeWithStatus(apply: (entity: StrictEntity) => { entity: StrictEntity; status: string }): string {
+  let status = "";
+  useCharacter.getState().sheetChange((entity) => {
+    const result = apply(entity);
+    status = result.status;
+    return result.entity;
+  });
+  return status;
+}
+
+/**
  * Applies an action of the Hit points popups as one sheet change, which
  * writes the hit points, the temporary hit points and the death saves
  * together (ORC-314). The rules read the play state of the record as it is
@@ -158,13 +174,7 @@ function prepareSpell(spell: SpellRef, prepared: boolean) {
  * line.
  */
 function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
-  let status = "";
-  useCharacter.getState().sheetChange((entity) => {
-    const result = applyHitPoints(engine(), entity, sheet.maxHitPoints, action);
-    status = result.status;
-    return result.entity;
-  });
-  return status;
+  return changeWithStatus((entity) => applyHitPoints(engine(), entity, sheet.maxHitPoints, action));
 }
 
 /**
@@ -173,13 +183,7 @@ function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
  * together (ORC-317). Returns the text of the status line.
  */
 function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
-  let status = "";
-  useCharacter.getState().sheetChange((entity) => {
-    const result = applyHitDice(engine(), entity, sheet, action);
-    status = result.status;
-    return result.entity;
-  });
-  return status;
+  return changeWithStatus((entity) => applyHitDice(engine(), entity, sheet, action));
 }
 
 /**
@@ -188,13 +192,16 @@ function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
  * status line.
  */
 function rest(sheet: Sheet, action: RestAction): string {
-  let status = "";
-  useCharacter.getState().sheetChange((entity) => {
-    const result = applyRest(engine(), entity, sheet, action);
-    status = result.status;
-    return result.entity;
-  });
-  return status;
+  return changeWithStatus((entity) => applyRest(engine(), entity, sheet, action));
+}
+
+/**
+ * Casts a spell from the Spells panel as one sheet change, which spends the
+ * slot and sets the concentration mark together (ORC-320). Returns the text
+ * of the status line of the Cast control.
+ */
+function castSpell(sheet: Sheet, action: CastAction): string {
+  return changeWithStatus((entity) => applyCast(engine(), entity, sheet, action));
 }
 
 /** Writes the death save counts as a sheet change: it saves at once (ORC-315). */
@@ -267,6 +274,9 @@ function SheetPage() {
               builderHref={`/build/${openId}?step=${SPELLS_STEP}`}
               onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
               onPrepare={prepareSpell}
+              concentration={sheet.concentration}
+              onCast={(action) => castSpell(sheet, action)}
+              uses={featureUses(sheet)}
             />
           )}
         </>

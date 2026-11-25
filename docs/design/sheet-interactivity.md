@@ -4,7 +4,7 @@ title: Sheet interactivity spec
 description: The settled design of the play controls on the character sheet - hit points, temporary hit points and death saves, hit dice, recorded feature uses, the Rest button with Short rest, Long rest and Dawn, the Cast button of the spell view, the concentration mark, conditions, exhaustion, inspiration, the AC pick and the ability highlight - with the record of the play state and the run order of the build tickets.
 tags: [design, sheet, play-state]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-24T17:36:53Z }
+generated: { by: claude-code/agent, at: 2026-11-25T00:31:24Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-295/map-sheet-interactivity
 sources:
   - id: orc-295
@@ -501,6 +501,8 @@ gives the prepare line.
   level."
 * When no slot of the spell level or higher is left, the button says
   "No slots left" in place of "Cast", and its two parts are disabled.
+  With the menu, the hint says "Each slot that can cast this spell is
+  spent." With no menu, it says "3rd-level slot · none left".
 * The app never spends a slot of a higher level without a choice of the
   user.
 * When the character has only one slot level that can cast the spell,
@@ -523,13 +525,22 @@ A level that the character has no slots for is not in the menu.
 **The calculated amount.** The app reads the amount from the "At Higher
 Levels" text of the spell record when the text says "for each slot level
 above". The amount for a level is the amount of the text times the
-number of levels above the base level.
+number of levels above the base level. The base level is the ordinal
+after "above" in the text, for example 2 for "above 2nd". If the text
+has no ordinal there, the base level is the spell level.
 
 * Dice multiply by the count: "1d6 for each slot level above 1st" gives
   "+2d6" at 3rd level.
 * A count of things multiplies: "one more dart" gives "+2 darts".
+* A number with no unit takes its unit from the words before it. "Hit
+  points increase by an additional 5" and "the amount of healing
+  increases by 10" count hit points: "+5 hit points". "The challenge
+  rating increases by 1" gives "+1 challenge rating". If the words give
+  no unit that the app knows, the menu shows the text, not a bare number.
 * The SRD has 70 such spells. A pack spell with the same words gets the
   same rule.
+* Of the 70 SRD spells, 65 show an amount. 5 show the text, because
+  their sentence has no amount or more than one.
 * For a spell with other words (21 SRD spells), the menu has no amount
   column. The "At Higher Levels" text shows at the bottom of the menu.
 * A spell with no "At Higher Levels" text has entries with no amount.
@@ -541,8 +552,15 @@ spec. A click on the slot circle gives the slot back. There is no other
 undo.
 
 **The status line** of the spell view says what the cast did: "Cast
-Magic Missile at 2nd level. 2nd-level slots −1 (1 left)." It is under
-the hint, with a reserved height, and it is a polite live region.
+Magic Missile at 2nd level. 2nd-level slots −1 (1 left)." A cast at the
+spell level names no level: "Cast Magic Missile. 1st-level slots −1 (3
+left)." The status line is under the hint. It keeps the height of two
+lines, so a cast moves nothing. It is a polite live region.
+
+**The focus after a cast.** A cast can disable the button that has the
+focus, for example Cast after the last slot of its level. The focus
+then goes to the first button of the control that is not disabled. If
+all its buttons are disabled, the focus goes to the status line.
 
 **On a phone.** The menu has the full width of the panel, under the name
 block.
@@ -555,7 +573,8 @@ Some spells come from a feature that has uses. The cast note names it.
   casts with one use of the feature Mystic Arcanum. The link is the cast
   note, not a list of spell names, so a pack spell works. The app
   accepts two casts of the same spell. The hint says "Spends Mystic
-  Arcanum (1 of 1 left)." With no use left, Cast is disabled.
+  Arcanum (1 of 1 left)." With no use left, Cast is disabled, and the
+  hint says "Mystic Arcanum has no use left."
 * **Invocation spells.** Six spells cast with a pact slot and one use
   of an invocation. The app keeps a small table for them:
 
@@ -572,16 +591,25 @@ Some spells come from a feature that has uses. The cast note names it.
   with "once per". The ticket that builds this checks each key and name
   against the engine. The hint says "Spends Thief of Five Fates (1 left)
   and a pact slot (5th, 2 left)." Cast is disabled when the use or the
-  slot is not there.
-* **A note with no link.** A spell whose cast note names uses that the
-  app cannot link has no Cast button. A line says "This spell has its
-  own uses (Fey Step). Spend the use on the sheet."
+  slot is not there. With no use left, the hint says "Thief of Five
+  Fates has no use left." With no pact slot left, it says "No pact slot
+  left."
+* **A note with no link.** A spell with the cast note "uses …" or
+  "once per …" that the app cannot link has no Cast button. A line says
+  "This spell has its own uses (Fey Step). Spend the use on the sheet."
+  The line shows only for these two notes. A spell with another cast
+  note, not "at will" and not a ritual cast, has no control and no line.
+* **The hint** of a cast with a use keeps the height of two lines,
+  because the hint of an invocation spell wraps.
 * **Race spells (ORC-307).** The engine gives no cast note for the four
   race spells of the tiefling and the drow. They cast with a slot until
   ORC-307.
 
 A cast that spends a use changes the same count that the use bubble on
-the sheet shows.
+the sheet shows. The status line names the use with the uses left, as
+it names a slot: "Cast Circle of Death. Mystic Arcanum −1 (3 left)."
+For an invocation spell it also names the pact slot: "Cast Bane at 5th
+level. Thief of Five Fates −1 (0 left), Pact slots −1 (3 left)."
 
 ## Concentration
 
@@ -593,7 +621,16 @@ the sheet shows.
   The buttons are Cancel and "Cast and end Hold Person".
 * A cantrip or an at-will spell that needs concentration has an outline
   **Concentrate** button in the place of the Cast control. It sets the
-  mark and spends nothing.
+  mark and spends nothing. The hint says "This sets the concentration
+  mark and spends nothing."
+* While the mark is set for this spell, the Concentrate button is
+  disabled. The hint then says "You concentrate on this spell."
+* After the Concentrate button, the status line says "Concentrating on
+  Guidance."
+* If the mark is set for another spell, the Concentrate button also asks
+  first. The dialog has the title "Concentrate on Guidance?" and the
+  text "You concentrate on Bless. Guidance also needs concentration, so
+  Bless ends." The buttons are Cancel and "Concentrate and end Bless".
 * The mark shows in the Conditions and statuses box as "Concentrating on
   Bless", with an X that removes it.
 * A long rest clears the mark. Damage does not clear it (see
