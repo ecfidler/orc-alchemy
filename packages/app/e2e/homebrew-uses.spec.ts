@@ -28,7 +28,7 @@ test("a feature with fixed uses and one with scaled uses show their bubbles on t
   await pickOption(combobox(page, "Feature 2 n"), "10");
   await page.getByRole("group", { name: "Feature 2 Recharges" }).getByRole("button", { name: "Short rest" }).click();
   // The preview, for the example character of level 5.
-  await expect(page.getByRole("group", { name: "Feature 2 preview" }).getByRole("button", { name: "50 / 50 left. Spend 5" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Feature 2 preview" }).getByRole("button", { name: "Tidal Reserve, 50 of 50 left" })).toBeVisible();
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);
 
@@ -43,11 +43,11 @@ test("a feature with fixed uses and one with scaled uses show their bubbles on t
 
   const section = (title: string) => page.getByRole("heading", { level: 3, name: title, exact: true }).locator("..");
   const blessing = section("Actions").getByRole("group", { name: "Brine Blessing" });
-  await expect(blessing.getByRole("button", { name: /^Use / })).toHaveCount(3);
+  await expect(blessing.getByRole("slider", { name: "Brine Blessing" }).locator(".ui-slot-circle")).toHaveCount(3);
   await expect(blessing.getByText("Long rest")).toBeVisible();
   // A new character is level 1: 10 × 1 is a pool of 10.
   const reserve = section("Bonus Actions").getByRole("group", { name: "Tidal Reserve" });
-  await expect(reserve.getByRole("button", { name: "10 / 10 left. Spend 1" })).toBeVisible();
+  await expect(reserve.getByRole("button", { name: "Tidal Reserve, 10 of 10 left" })).toBeVisible();
   await expect(reserve.getByText("Short rest")).toBeVisible();
 });
 
@@ -79,7 +79,7 @@ test.describe("screenshots", () => {
       await page.getByRole("textbox", { name: "Feature 1 description" }).fill("You touch a creature and end one disease or poison on it.");
       await uses(page, 1).getByRole("button", { name: "Fixed" }).click();
       await pickOption(combobox(page, "Feature 1 amount"), "3");
-      await page.getByRole("group", { name: "Feature 1 preview" }).getByRole("button", { name: "Use 1" }).click();
+      await page.getByRole("group", { name: "Feature 1 preview" }).getByRole("slider", { name: "Brine Blessing" }).locator(".ui-slot-circle").first().click();
       await page.evaluate(() => document.fonts.ready);
       await shot(card(page, 1), "fixed");
 
@@ -96,10 +96,7 @@ test.describe("screenshots", () => {
         .fill("You have a pool of healing. As an action, you restore hit points from the pool.");
       await uses(page, 3).getByRole("button", { name: "Fixed" }).click();
       await pickOption(combobox(page, "Feature 3 amount"), "25");
-      await page
-        .getByRole("group", { name: "Feature 3 preview" })
-        .getByRole("button", { name: /^25 \/ 25 left/ })
-        .click();
+      await page.getByRole("group", { name: "Feature 3 preview" }).getByRole("button", { name: "Spend 1 Deep Reserves" }).click();
       await shot(card(page, 3), "pool");
 
       // The delete dialog.

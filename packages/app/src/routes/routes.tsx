@@ -20,9 +20,12 @@ import { SpellsPanel } from "../components/SpellsPanel.tsx";
 import { OpenCharacterGaps } from "../components/UnresolvedContent.tsx";
 import { EngineGate } from "../engine/EngineGate.tsx";
 import { engine } from "../engine/engine.ts";
+import type { HitDiceAction } from "../engine/hit-dice.ts";
+import { applyHitDice } from "../engine/hit-dice-apply.ts";
 import type { HitPointAction } from "../engine/hit-points.ts";
 import { applyHitPoints } from "../engine/hit-points-apply.ts";
-import { type DeathSaves, setDeathSaves } from "../engine/play.ts";
+import type { FeatureUsesKey } from "../engine/play.ts";
+import { type DeathSaves, setDeathSaves, setFeatureUsesSpent } from "../engine/play.ts";
 import type { Sheet, SpellRef } from "../engine/sheet.ts";
 import { type SlotGroup, setPrepared, setSpentSlots } from "../engine/spells.ts";
 import { flushAutosave, readCharacter, useCharacter, useOpenCharacter } from "../state/character.ts";
@@ -160,9 +163,29 @@ function changeHitPoints(sheet: Sheet, action: HitPointAction): string {
   return status;
 }
 
+/**
+ * Applies an action of the Hit dice popup as one sheet change, which writes
+ * the spent hit dice and, for Spend, the hit points and the death saves
+ * together (ORC-317). Returns the text of the status line.
+ */
+function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
+  let status = "";
+  useCharacter.getState().sheetChange((entity) => {
+    const result = applyHitDice(engine(), entity, sheet, action);
+    status = result.status;
+    return result.entity;
+  });
+  return status;
+}
+
 /** Writes the death save counts as a sheet change: it saves at once (ORC-315). */
 function changeDeathSaves(saves: DeathSaves) {
   useCharacter.getState().sheetChange((entity) => setDeathSaves(engine(), entity, saves));
+}
+
+/** Writes the spent uses of a feature as a sheet change: it saves at once (ORC-316). Features of one name and unit share it. */
+function changeUses(feature: FeatureUsesKey, spent: number) {
+  useCharacter.getState().sheetChange((entity) => setFeatureUsesSpent(engine(), entity, feature.units, feature.name, spent));
 }
 
 function SheetPage() {
@@ -202,9 +225,14 @@ function SheetPage() {
               status: statusText,
               statusKey: status.key,
               onHitPoints: (action) => say(changeHitPoints(sheet, action)),
+              onHitDice: (action) => say(changeHitDice(sheet, action)),
               // A change of the circles is the next action, so it takes the text of the last one away.
               onDeathSaves: (saves) => {
                 changeDeathSaves(saves);
+                say("");
+              },
+              onUses: (feature, spent) => {
+                changeUses(feature, spent);
                 say("");
               },
             }}

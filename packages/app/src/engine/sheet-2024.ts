@@ -5,6 +5,7 @@
 // content; the 2024 spells, slots and lists arrive with ORC-229.
 
 import { BUILT_IN, type Built2024, type Content, findRecord, isProficient, type RecordType, referenceTo, SRD_PACK } from "@orc-alchemy/engine";
+import { hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
 import { ABILITIES, byName, keyToName, type Named, type Sheet, type SheetFeature, type SheetItem, SKILLS } from "./sheet.ts";
 
 type Feature2024 = Built2024["features"][number];
@@ -36,7 +37,15 @@ function toFeature(feature: Feature2024, category: string | undefined): SheetFea
   const plain = recover.length === 1 && recover[0].amount === "all";
   return {
     ...sheetFeature,
-    uses: { amount: uses.amount, recharge: recover.length === 1 ? recover[0].rest : null, ...(plain || recover.length === 0 ? {} : { recover }) },
+    // The 2024 sheet has no play state (sheet-interactivity.md, "Scope"): nothing is spent.
+    uses: {
+      amount: uses.amount,
+      recharge: recover.length === 1 ? recover[0].rest : null,
+      units: null,
+      name: feature.name,
+      spent: 0,
+      ...(plain || recover.length === 0 ? {} : { recover }),
+    },
   };
 }
 
@@ -65,6 +74,16 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
     return feature.name === feat.name ? category : `${feat.name}, ${category}`;
   };
   const weaponOf = (reference: string) => built.weapons.find((weapon) => weapon.key === reference);
+  const classes = built.classes.map((key) => {
+    const subclass = built.subclasses[key];
+    return {
+      key,
+      name: name("classes")(key),
+      level: built.classLevels[key] ?? 0,
+      hitDie: built.hitDice[key] ?? 0,
+      subclass: subclass ? name("subclasses")(subclass) : null,
+    };
+  });
 
   return {
     name: built.name || null,
@@ -76,16 +95,7 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
     subrace: built.lineage === null ? null : keyToName(built.lineage),
     background: built.background === null ? null : name("backgrounds")(built.background),
     alignment: null,
-    classes: built.classes.map((key) => {
-      const subclass = built.subclasses[key];
-      return {
-        key,
-        name: name("classes")(key),
-        level: built.classLevels[key] ?? 0,
-        hitDie: built.hitDice[key] ?? 0,
-        subclass: subclass ? name("subclasses")(subclass) : null,
-      };
-    }),
+    classes,
     totalLevel: built.totalLevel,
     xp: null,
 
@@ -121,6 +131,7 @@ export function toSheet2024(built: Built2024, content: Content = BUILT_IN): Shee
     // A 2024 character has no play state (sheet-interactivity.md, "Scope").
     tempHitPoints: 0,
     deathSaves: { successes: 0, failures: 0 },
+    hitDice: hitDiceLeft(hitDiceTotals(classes), new Map()),
     speeds: [{ feet: built.speed, label: null }],
     darkvision: built.darkvision,
 

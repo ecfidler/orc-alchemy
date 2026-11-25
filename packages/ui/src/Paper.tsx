@@ -92,7 +92,7 @@ export function SectionRule({ children, level = 2 }: { children: ReactNode; leve
   return <Heading className="ui-section-rule">{children}</Heading>;
 }
 
-export type CircleColor = "ink" | "success" | "caution";
+export type CircleColor = "ink" | "success" | "caution" | "info";
 
 const defaultValueText = (marked: number, count: number) => `${marked} of ${count}`;
 
@@ -107,6 +107,12 @@ export interface SlotCirclesProps {
   size?: "normal" | "small";
   /** "diamond" draws each circle as a diamond of the same size, to set one group apart from others. */
   shape?: "circle" | "diamond";
+  /**
+   * How a marked circle shows: "fill" (the default) fills it solid in
+   * `color`; "slash" keeps it empty, with a muted outline and an ink slash
+   * across it.
+   */
+  mark?: "fill" | "slash";
   /**
    * Makes the group one that the user changes. It gets the new number of
    * marked circles, always one more or one less than `marked`.
@@ -128,6 +134,7 @@ export interface SlotCirclesProps {
  * A row of `count` plain circles, or diamonds with `shape="diamond"`. The
  * first `marked` circles fill solid in `color`. Without `onChange` it shows
  * a count and takes no clicks; its name is "{label}: {marked} of {count}".
+ * With `mark="slash"` a marked circle stays empty and gets a slash.
  *
  * With `onChange` the user changes it, by the rule "one more, one less": a
  * click on an empty circle marks one more, and a click on a marked circle
@@ -147,6 +154,7 @@ export function SlotCircles({
   color = "ink",
   size = "normal",
   shape = "circle",
+  mark = "fill",
   onChange,
   valueText = defaultValueText,
   orientation = "horizontal",
@@ -168,6 +176,7 @@ export function SlotCircles({
     "data-color": color,
     "data-size": size === "small" ? size : undefined,
     "data-shape": shape === "diamond" ? shape : undefined,
+    "data-mark": mark === "slash" ? mark : undefined,
     "data-orientation": orientation === "vertical" ? orientation : undefined,
   };
   if (!onChange) {
@@ -220,11 +229,23 @@ export function SlotCircles({
   );
 }
 
-/** A current value at full size, then "/ max" at the same size in the muted ink. It has no label. */
-export function CurrentMax({ current, max }: { current: ReactNode; max: ReactNode }) {
+/**
+ * A current value at full size, then "/ max" at the same size in the muted
+ * ink. It has no label. With `reserve`, the current value keeps the width of
+ * that text, for example its largest value, at its right end, so that the
+ * pair does not move when the value changes.
+ */
+export function CurrentMax({ current, max, reserve }: { current: ReactNode; max: ReactNode; reserve?: string | number }) {
   return (
     <span className="ui-current-max">
-      {current}
+      {reserve === undefined ? (
+        current
+      ) : (
+        // The reserve text, hidden, in the same cell as the value: it keeps the width.
+        <span className="ui-current-max-now" data-reserve={reserve}>
+          <span>{current}</span>
+        </span>
+      )}
       <span className="ui-current-max-of"> / {max}</span>
     </span>
   );

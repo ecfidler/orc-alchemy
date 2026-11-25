@@ -74,7 +74,11 @@ test("fighter-20", () => {
   expect(sheet.numberOfAttacks).toBe(4);
 
   expect(sheet.features.actions).toEqual([
-    { name: "Action Surge", text: "Take an extra action.", uses: { amount: 2, recharge: "Short rest" } },
+    {
+      name: "Action Surge",
+      text: "Take an extra action.",
+      uses: { amount: 2, recharge: "Short rest", units: "orcpub.dnd.e5.units/rest", name: "Action Surge", spent: 0 },
+    },
     { name: "Grappler", text: "Restrain a creature you are grappling." },
   ]);
   expect(sheet.features.bonusActions.map((f) => f.name)).toEqual(["Second Wind"]);
@@ -274,9 +278,10 @@ test("a limited-use feature has its uses and when they come back", () => {
     const { features } = toSheet(builtOf(name), {});
     return [...features.actions, ...features.bonusActions, ...features.reactions, ...features.traits].find((f) => f.name === feature)!.uses;
   };
-  expect(usesOf("barbarian-5", "Rage")).toEqual({ amount: 3, recharge: "Long rest" });
-  expect(usesOf("fighter-5", "Second Wind")).toEqual({ amount: 1, recharge: "Short rest" });
-  expect(usesOf("wizard-1", "Arcane Recovery")).toEqual({ amount: 1, recharge: "Each day" });
+  expect(usesOf("barbarian-5", "Rage")).toEqual({ amount: 3, recharge: "Long rest", units: "orcpub.dnd.e5.units/long-rest", name: "Rage", spent: 0 });
+  expect(usesOf("fighter-5", "Second Wind")).toEqual({ amount: 1, recharge: "Short rest", units: "orcpub.dnd.e5.units/rest", name: "Second Wind", spent: 0 });
+  // The unit day is "Dawn"; the unit stays day (ORC-316).
+  expect(usesOf("wizard-1", "Arcane Recovery")).toEqual({ amount: 1, recharge: "Dawn", units: "orcpub.dnd.e5.units/day", name: "Arcane Recovery", spent: 0 });
   expect(usesOf("fighter-5", "Dueling Fighting Style")).toBeUndefined();
 });
 
@@ -317,9 +322,12 @@ test("uses show as circles up to 8, a pool above 8, and plain text for none or 0
   expect(usesDisplay({})).toEqual({ kind: "circles", count: 1 });
   expect(usesDisplay({ amount: null })).toEqual({ kind: "circles", count: 1 });
   expect(usesDisplay({ amount: 8 })).toEqual({ kind: "circles", count: 8 });
-  expect(usesDisplay({ amount: 9 })).toEqual({ kind: "pool", max: 9, step: 1 });
-  expect(usesDisplay({ amount: 19 })).toEqual({ kind: "pool", max: 19, step: 1 });
-  expect(usesDisplay({ amount: 20 })).toEqual({ kind: "pool", max: 20, step: 5 });
+  expect(usesDisplay({ amount: 9 })).toEqual({ kind: "pool", max: 9 });
+  expect(usesDisplay({ amount: 20 })).toEqual({ kind: "pool", max: 20 });
+  // A turn has no circles, also with more than 8 uses (ORC-316).
+  expect(usesDisplay({ amount: 1, units: "orcpub.dnd.e5.units/turn" })).toEqual({ kind: "turn" });
+  expect(usesDisplay({ amount: 12, units: "~:orcpub.dnd.e5.units/turn" })).toEqual({ kind: "turn" });
+  expect(usesDisplay({ amount: 0, units: "orcpub.dnd.e5.units/turn" })).toEqual({ kind: "plain" });
 });
 
 test("toSheet: a feature with 0 uses or fewer is plain, and a unit with no amount is 1 use", () => {
@@ -334,7 +342,11 @@ test("toSheet: a feature with 0 uses or fewer is plain, and a unit with no amoun
   const { features } = toSheet(built, {});
   expect(features.actions.find((f) => f.name === "None Left")).toEqual({ name: "None Left", text: "Zero." });
   expect(features.traits.find((f) => f.name === "Below Zero")).toEqual({ name: "Below Zero", text: "Negative." });
-  expect(features.reactions).toContainEqual({ name: "Once", text: "No amount.", uses: { amount: 1, recharge: "Short rest" } });
+  expect(features.reactions).toContainEqual({
+    name: "Once",
+    text: "No amount.",
+    uses: { amount: 1, recharge: "Short rest", units: "orcpub.dnd.e5.units/short-rest", name: "Once", spent: 0 },
+  });
 });
 
 test("scaled-uses: each typed homebrew feature is in the section of its type, once, with its resolved uses", () => {
@@ -359,13 +371,16 @@ test("scaled-uses: each typed homebrew feature is in the section of its type, on
   expect(all).toHaveLength(built.traits.length + built.actions.length + built["bonus-actions"].length + (built.reactions ?? []).length);
   expect(new Set(names(all)).size).toBe(all.length);
 
-  const uses = (name: string) => all.find((f) => f.name === name)!.uses;
+  const uses = (name: string) => {
+    const found = all.find((f) => f.name === name)!.uses;
+    return found && { amount: found.amount, recharge: found.recharge };
+  };
   // A scaled amount is a number already: CHA 10 gives 0, which the minimum of 1 replaces.
   expect(uses("Brine Ward")).toEqual({ amount: 1, recharge: "Long rest" });
   // INT 8 gives -1 with no minimum: no bubble.
   expect(uses("Undertow")).toBeUndefined();
   expect(uses("Crashing Wave")).toEqual({ amount: 30, recharge: "Long rest" });
-  expect(uses("Deep Lungs")).toEqual({ amount: 15, recharge: "Each day" });
+  expect(uses("Deep Lungs")).toEqual({ amount: 15, recharge: "Dawn" });
   expect(uses("Tide Step")).toEqual({ amount: 2, recharge: "Short rest" });
   expect(uses("Sea Legs")).toBeUndefined();
 });
@@ -391,4 +406,25 @@ test("a known spell's qualifier is its cast note; the domain qualifier and no qu
   expect(toSheet(domain, {}).spellcasting!.byLevel[0]!.spells[0]).toMatchObject({ castNote: null });
   const blank = { ...built, "spells-known": { 1: { __entries: [[pair, { ...spell, qualifier: " " }]] } } } as unknown as Built2014;
   expect(toSheet(blank, {}).spellcasting!.byLevel[0]!.spells[0]!.castNote).toBeNull();
+});
+
+// ORC-316 (sheet-interactivity.md, "Feature uses"): the tag of a turn, of the unit day, and of round, minute and hour.
+test("a turn says how many and has no circles; day is Dawn; round, minute, hour and no unit keep their circles", () => {
+  const unit = (name: string) => `orcpub.dnd.e5.units/${name}`;
+  const built: Built2014 = {
+    ...builtOf("fighter-1"),
+    traits: [
+      { name: "Strike", description: "once", frequency: { amount: 1, units: unit("turn") } },
+      { name: "Flurry", description: "twice", frequency: { amount: 2, units: unit("turn") } },
+      { name: "Glow", description: "dawn", frequency: { amount: 3, units: unit("day") } },
+      { name: "Watch", description: "round", frequency: { amount: 2, units: unit("round") } },
+      { name: "Gust", description: "hour", frequency: { amount: 1, units: unit("hour") } },
+    ],
+  };
+  const uses = (name: string) => toSheet(built, {}).features.traits.find((f) => f.name === name)!.uses!;
+  expect([uses("Strike").recharge, usesDisplay(uses("Strike")).kind]).toEqual(["Once per turn", "turn"]);
+  expect([uses("Flurry").recharge, usesDisplay(uses("Flurry")).kind]).toEqual(["2 per turn", "turn"]);
+  expect([uses("Glow").recharge, uses("Glow").units]).toEqual(["Dawn", unit("day")]);
+  expect([uses("Watch").recharge, usesDisplay(uses("Watch")).kind]).toEqual(["Each round", "circles"]);
+  expect([uses("Gust").recharge, usesDisplay(uses("Gust")).kind]).toEqual(["Each hour", "circles"]);
 });

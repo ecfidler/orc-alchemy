@@ -43,6 +43,9 @@ export const tag = (name: string) => `~:${name}`;
 /** The name of a tagged keyword, without its "~:": the reverse of tag. A value that is not a string gives its text, or "" for none. */
 export const untag = (value: unknown) => String(value ?? "").replace(/^~:/, "");
 
+/** The name part of a keyword string: "orcpub.dnd.e5.units/long-rest" → "long-rest". */
+export const unqualify = (key: string) => key.slice(key.lastIndexOf("/") + 1);
+
 /** An integer map key as a stored pack has it: Transit encodes the key 3 as "~i3". */
 export const intKey = (n: number) => `~i${n}`;
 

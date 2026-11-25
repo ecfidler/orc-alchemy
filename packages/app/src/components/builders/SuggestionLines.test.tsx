@@ -52,7 +52,7 @@ test("the words of each suggestion", () => {
     "1 use, short rest",
     "Proficiency bonus uses, long rest",
     "Charisma modifier uses (minimum 1), long rest",
-    "2 uses, each day",
+    "2 uses, dawn",
     "3 uses, short rest",
   ]);
 });
@@ -122,7 +122,7 @@ test("Use this stores the same frequency as the control for the same choice", as
   const [day, dayByHand] = await byHand("Mist Walk", async () => {
     press("Feature 1 Uses", "Fixed");
     await pickOption(combobox("Feature 1 amount"), "2");
-    press("Feature 1 Recharges", "Day");
+    press("Feature 1 Recharges", "Dawn");
   });
   expect(day).toEqual(dayByHand);
 });

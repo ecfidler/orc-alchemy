@@ -104,7 +104,25 @@ bun run test       # vitest
     A typed number outside `min` and `max` still reaches `onValueChange`,
     so the app decides what to keep; the limits stop only the Up and Down
     arrow keys. It shows numbers with no grouping. Put it in a label, or
-    give it an `aria-label`. Styles: `src/number-field.css`.
+    give it an `aria-label`. With `disabled`, it takes no input and has the
+    look of a disabled button: muted text and a `--rule-strong` border.
+    Styles: `src/number-field.css`.
+  - `AmountField` and `useAmount()`: a NumberField for an amount of 0 or
+    more, with its state. `useAmount(initial)` gives the state: `value`,
+    `onValueChange`, `note`, and `submit(act)`, which gives the amount to
+    `act` when the field has a number of 0 or more and else sets `note` to
+    `AMOUNT_NOTE` ("Type a number of 0 or more."). A change removes the
+    note. `AmountField` takes the state as `amount`. Its `label`, "Amount"
+    by default, shows above the field; with `showLabel={false}` it is only
+    the name of the field. Its text is selected at the focus, so a typed
+    number replaces it. Styles: `src/number-field.css`.
+  - `NoteSpace`: the space of the note of a form, a polite status line
+    with one `NoteLine` for its `note`, or empty for null. It keeps the
+    height of a note line, so a popup keeps its size when the note comes
+    or goes. Styles: `src/paper.css`.
+  - `selectOnFocus`: an `onFocus` handler for an element around a field.
+    It selects the text of the field at the focus, so a typed number
+    replaces it. `AmountField` has it already.
   - `RadioGroup` and `Radio`: Base UI RadioGroup and Radio. The group has a
     name (`aria-label` or `aria-labelledby`), a controlled `value`, and
     `onValueChange`. Each `Radio` has a `value` and a visible `label`. The
@@ -278,28 +296,33 @@ bun run test       # vitest
     - `SectionRule`: a section title on a rule, a heading of `level` 2
       (or 3 or 4).
     - `SlotCircles`: `count` plain circles; the first `marked` fill solid
-      in `color` ("ink", "success" or "caution"). A `marked` above `count`
-      marks them all. `size="small"` draws 12px circles closer together.
-      `shape="diamond"` draws each circle as a diamond of the same size,
-      with the same rules, to set one group apart from others.
-      Without `onChange` it takes no clicks, and it is an image named
-      "{label}: {marked} of {count}". With `onChange(marked)`, the user
-      changes it by the rule "one more, one less": a click on an empty
-      circle gives `marked + 1`, and a click on a marked circle gives
-      `marked - 1`. The owner sets the new `marked`. Its circles are drawn
-      at 17px (15px without `onChange`), each with a 28px tap area, and
-      under a mouse the circle that a click changes shows a light fill. The
-      group is a slider and one Tab stop: Right and Up give one more, Left
-      and Down one less, and nothing goes past 0 or `count`. A screen
-      reader reads "{label}, {valueText}" and the new value after a change.
-      `valueText(marked, count)` gives the state, "{marked} of {count}" by
-      default; the app passes "2 of 4 spent". A click keeps the focus on the
-      group. `orientation="vertical"` puts the circles in a column, the
-      first at the top, with the same keys. With `onChange`,
-      `copy` makes a copy of a group that is a Tab stop in another place:
-      it is hidden from a screen reader and is not a Tab stop, and a click
-      changes it and does not move the focus.
-    - `CurrentMax`: `current`, then "/ `max`" in the muted ink.
+      in `color` ("ink", "success", "caution" or "info"). A `marked` above
+      `count` marks them all. `mark="slash"` keeps a marked circle empty,
+      with a muted outline and an ink slash across it. `size="small"`
+      draws 12px circles closer together. `shape="diamond"` draws each
+      circle as a diamond of the same size, with the same rules, to set
+      one group apart from others. Without `onChange` it takes no clicks,
+      and it is an image named "{label}: {marked} of {count}". With
+      `onChange(marked)`, the user changes it by the rule "one more, one
+      less": a click on an empty circle gives `marked + 1`, and a click on
+      a marked circle gives `marked - 1`. The owner sets the new `marked`.
+      Its circles are drawn at 17px (15px without `onChange`), each with a
+      28px tap area, and under a mouse the circle that a click changes
+      shows a light fill. The group is a slider and one Tab stop: Right
+      and Up give one more, Left and Down one less, and nothing goes past
+      0 or `count`. A screen reader reads "{label}, {valueText}" and the
+      new value after a change. `valueText(marked, count)` gives the
+      state, "{marked} of {count}" by default; the app passes "2 of 4
+      spent". A click keeps the focus on the group.
+      `orientation="vertical"` puts the circles in a column, the first at
+      the top, with the same keys. With `onChange`, `copy` makes a copy of
+      a group that is a Tab stop in another place: it is hidden from a
+      screen reader and is not a Tab stop, and a click changes it and does
+      not move the focus.
+    - `CurrentMax`: `current`, then "/ `max`" at the same size in the
+      muted ink. With `reserve`, for example the largest value, the current
+      value keeps the width of that text, at its right end, so the pair
+      does not move when the value changes.
   - `StuckNote`: a tilted yellow note above its box (`children`), for
     something the user must act on. A button or link in `note` is its
     action. The note overlaps only the box's top edge. It sets the box's top
@@ -322,11 +345,22 @@ bun run test       # vitest
     when the label alone does not say what it acts on) adds a link button
     at the end of the line. Styles: `src/paper.css`.
   - `UseBubble`: the outline around something with limited uses: a
-    `title`, its text, a `tag` in the top right, and one circle for each of
-    its `uses`, or a `pool` with a large current / max. It is a group named
-    by its title. A click spends a use on the page. Nothing is stored, so a
-    reload resets it. With every use spent, the outline is dashed and the
-    text is muted.
+    `title`, its text, a `tag` in the top right, and one circle for each
+    of its `uses`, or a `pool` with a large left / max. It is a group
+    named by its title. `spent` gives the spent uses; a count above the
+    uses reads as all spent. With every use spent, the outline is dashed
+    and the text is muted. Without `onSpentChange`, it shows the spent
+    uses and takes no clicks. With `onSpentChange(spent)`, the owner
+    stores the count and sets the new `spent`: the circles are
+    `SlotCircles` with the slash mark and the rule "one more, one less",
+    one Tab stop that a screen reader reads as "{title}, 2 of 3 spent"; a
+    pool gets a minus button ("Spend 1 {title}") and a plus button
+    ("Regain 1 {title}"), and a click on its number opens a `SmallPopup`
+    with an `AmountField` and Spend, Regain and Set. Spend and Regain stop
+    at 0 and at the maximum, and Set gives the uses left. The number is a
+    `CurrentMax` that keeps the width of its largest value, so the pool
+    keeps its size. With neither `uses` nor `pool`, the bubble has no
+    circles.
   - `Shell`, `FlagTabs` and `FlagTab`: the binder shell with its margin rail
     and flag tabs. `FlagTab` takes the link element as `render`, so the app
     gives it its router's link.

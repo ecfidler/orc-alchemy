@@ -25,6 +25,7 @@ import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
 import { slotGroupsOf, spentText } from "../engine/spell-slots.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { DeathSavesBox } from "./DeathSavesBox.tsx";
+import { HitDiceBox } from "./HitDiceBox.tsx";
 import { HitPointsBox } from "./HitPointsBox.tsx";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -44,10 +45,11 @@ const goldOf = (treasure: SheetItem[]) => Math.round(treasure.reduce((gp, item) 
  * Spellcasting section has an "All spells" button and each spell name is a button. Without it, as in the builder
  * preview, there is no button and the names are plain text.
  * `play`: the play controls (docs/design/sheet-interactivity.md): the handlers that change the play state, one for each
- * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, and the vitals
- * panel has the status line and the space for the concentration note under it. Without it, as in the builder preview
- * and the 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a
- * handler of SheetPlay, not as a new prop.
+ * control, and the text of the status line. With it, the Hit points box has its two buttons and popups, the Hit dice
+ * box is a button with its popup, the vitals panel has the status line and the space for the concentration note under
+ * it, and the use bubbles of "Features & traits" change the spent uses. Without it, as in the builder preview and the
+ * 2024 sheet, the sheet shows the play state and nothing changes it. A later ticket adds its control as a handler of
+ * SheetPlay, not as a new prop.
  */
 export function CharacterSheet({
   sheet,
@@ -80,7 +82,6 @@ export function CharacterSheet({
   const tabbed = narrow && !preview;
   const race = sheet.subrace ? `${sheet.race} (${sheet.subrace})` : sheet.race;
   const classes = sheet.classes.map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass})` : ""}`).join(" / ");
-  const hitDice = sheet.classes.map((c) => `${c.level}d${c.hitDie}`).join(" + ");
   const defenses: [string, string[]][] = [
     ["Resistances", sheet.resistances],
     ["Immunities", sheet.immunities],
@@ -183,9 +184,7 @@ export function CharacterSheet({
             popupWidthOf={narrow ? vitals : null}
             className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
           />
-          <FramedBox label="Hit dice" className="grid-rows-[1fr_auto] text-center">
-            <span className="self-center text-2xl leading-[1.1]">{hitDice}</span>
-          </FramedBox>
+          <HitDiceBox dice={sheet.hitDice} onAction={play?.onHitDice} popupWidthOf={narrow ? vitals : null} />
           {!preview && <DeathSavesBox saves={sheet.deathSaves} onChange={play?.onDeathSaves} />}
         </div>
         {play && (
@@ -259,7 +258,7 @@ export function CharacterSheet({
   const featuresSection = featureGroups.some(([, items]) => items.length > 0) && (
     <FramedBox label="Features & traits">
       <div className="grid gap-4">
-        {featureGroups.map(([section, items]) => items.length > 0 && <FeatureGroup key={section} section={section} items={items} />)}
+        {featureGroups.map(([section, items]) => items.length > 0 && <FeatureGroup key={section} section={section} items={items} onUses={play?.onUses} />)}
       </div>
     </FramedBox>
   );
@@ -917,34 +916,44 @@ export const FEATURE_SECTION_TITLES: Record<FeatureSection, string> = {
   traits: "Features, Traits, and Feats",
 };
 
+/** Writes the spent uses of a feature (SheetPlay.onUses). */
+type OnUses = SheetPlay["onUses"];
+
 /**
  * One section of "Features & traits": its heading, then its features. The
- * uses preview of the homebrew forms draws a feature with it too.
+ * uses preview of the homebrew forms draws a feature with it too. With
+ * `onUses`, the circles and pools of the use bubbles change the spent uses;
+ * without it, they show the spent uses and take no clicks.
  */
-export function FeatureGroup({ section, items }: { section: FeatureSection; items: SheetFeature[] }) {
+export function FeatureGroup({ section, items, onUses }: { section: FeatureSection; items: SheetFeature[]; onUses?: OnUses }) {
   return (
     <div className="grid gap-2.5">
       <h3 className="border-b border-rule font-sans text-[10.5px] font-medium tracking-[0.08em] text-ink-muted uppercase">{FEATURE_SECTION_TITLES[section]}</h3>
-      <Features items={items} />
+      <Features items={items} onUses={onUses} />
     </div>
   );
 }
 
-/** The UseBubble props for these uses: circles, or a pool for more than 8. */
-const bubbleUses = (uses: NonNullable<SheetFeature["uses"]>) => {
+/**
+ * The UseBubble props for these uses: circles, or a pool for more than 8,
+ * with the spent count. Uses each turn have no circles and no count. With
+ * `onUses`, the circles and the pool change the count.
+ */
+const bubbleUses = (uses: NonNullable<SheetFeature["uses"]>, onUses: OnUses | undefined) => {
   const display = usesDisplay(uses);
-  if (display.kind === "pool") return { pool: { max: display.max, step: display.step } };
+  const count = { spent: uses.spent, onSpentChange: onUses && ((spent: number) => onUses({ units: uses.units, name: uses.name }, spent)) };
+  if (display.kind === "pool") return { pool: display.max, ...count };
   // A sheet feature's uses are 1 or more, so "plain" does not occur here; it would draw no circles.
-  return display.kind === "circles" ? { uses: display.count } : {};
+  return display.kind === "circles" ? { uses: display.count, ...count } : {};
 };
 
 /** Each feature's name on its own line above its text. A limited-use feature sits in a use bubble. */
-function Features({ items }: { items: SheetFeature[] }) {
+function Features({ items, onUses }: { items: SheetFeature[]; onUses?: OnUses }) {
   return (
     <div className="grid gap-2.5 text-[14.5px]">
       {items.map((item, i) =>
         item.uses ? (
-          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={recoveryTag(item.uses)} {...bubbleUses(item.uses)}>
+          <UseBubble key={`${i}-${item.name}`} title={item.name} tag={recoveryTag(item.uses)} {...bubbleUses(item.uses, onUses)}>
             {item.category && <FeatCategory category={item.category} />}
             {item.text}
           </UseBubble>

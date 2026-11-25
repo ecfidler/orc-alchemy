@@ -1,5 +1,6 @@
 export { AlertDialog, type AlertDialogProps, type Confirm, useConfirm } from "./AlertDialog.tsx";
 export { AlertNote, AlertNotes } from "./AlertNote.tsx";
+export { AMOUNT_NOTE, type Amount, AmountField, type AmountFieldProps, NoteSpace, selectOnFocus, useAmount } from "./AmountField.tsx";
 export { Autocomplete, type AutocompleteProps } from "./Autocomplete.tsx";
 export { Button, ButtonLink, type ButtonProps, type ButtonSize, type ButtonVariant, XButton } from "./Button.tsx";
 export { Checkbox, type CheckboxProps } from "./Checkbox.tsx";

@@ -60,19 +60,16 @@ test("Fixed: 1 use on a long rest, then the Amount and the rest the user picks",
   expect(await optionNames(combobox("Feature 1 amount"))).toEqual([...Array.from({ length: 20 }, (_, i) => String(i + 1)), "25", "30", "40", "50", "100"]);
   await choose("Feature 1 amount", "3");
   expect(frequency()).toEqual({ "~:units": LONG, "~:amount": 3 });
-  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
+  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Dawn", "Turn"]);
   expect(pressedSegment("Feature 1 Recharges")).toBe("Long rest");
-  press("Feature 1 Recharges", "Day");
+  press("Feature 1 Recharges", "Dawn");
   expect(frequency()).toEqual({ "~:units": "~:orcpub.dnd.e5.units/day", "~:amount": 3 });
   // The preview: three circles in the Actions section, with the sheet's tag.
   expect(previewSection()).toBe("Actions");
   const bubble = within(preview()).getByRole("group", { name: "Brine Blessing" });
-  expect(
-    within(bubble)
-      .getAllByRole("button")
-      .map((b) => b.getAttribute("aria-label")),
-  ).toEqual(["Use 1", "Use 2", "Use 3"]);
-  expect(within(bubble).getByText("Each day")).toBeTruthy();
+  expect(within(bubble).getByRole("slider", { name: "Brine Blessing" }).querySelectorAll(".ui-slot-circle")).toHaveLength(3);
+  // The unit day is "Dawn" (ORC-316).
+  expect(within(bubble).getByText("Dawn")).toBeTruthy();
   expect(sentence()).toBeNull();
   press("Feature 1 Uses", "None");
   expect(trait()).toEqual({ "~:name": "Brine Blessing", "~:type": "~:action" });
@@ -113,7 +110,7 @@ test("Scaled: the proficiency bonus first; Equal to has the abilities and the ch
   expect(frequency()).toEqual({ "~:units": LONG, "~:amount": { "~:level": true, "~:times": 2, "~:plus": 2 } });
   expect(sentence()).toBe("Uses equal 2 × your character level + 2. A level 5 character gets 12.");
   // 12 uses are a pool.
-  expect(within(preview()).getByRole("button", { name: "12 / 12 left. Spend 1" })).toBeTruthy();
+  expect(within(preview()).getByRole("button", { name: /, 12 of 12 left$/ })).toBeTruthy();
 });
 
 test("in a class or subclass form the level is the class level, with its name", async () => {
@@ -125,10 +122,9 @@ test("in a class or subclass form the level is the class level, with its name", 
   expect(combobox("Feature 1 n").textContent).toBe("5");
   // A class or subclass feature has the level it is unlocked at.
   expect(combobox("Feature 1 level").textContent).toBe("-");
-  // 25 is a pool, and a click spends 5.
-  const pool = within(preview()).getByRole("button", { name: "25 / 25 left. Spend 5" });
-  fireEvent.click(pool);
-  expect(within(preview()).getByRole("button", { name: "20 / 25 left. Spend 5" })).toBeTruthy();
+  // 25 is a pool, and minus spends 1.
+  fireEvent.click(within(preview()).getByRole("button", { name: "Spend 1 Tidal Reserve" }));
+  expect(within(preview()).getByRole("button", { name: "Tidal Reserve, 24 of 25 left" })).toBeTruthy();
 });
 
 test("Recharges: a unit from an old pack is one more segment, and a short unit shows as its rest; neither writes until the user changes the uses", async () => {
@@ -137,10 +133,10 @@ test("Recharges: a unit from an old pack is one more segment, and a short unit s
     { "~:name": "Tide Step", "~:frequency": { "~:units": "~:short-rest", "~:amount": 2 } },
     { "~:name": "Each round", "~:frequency": { "~:units": "~:round", "~:amount": 1 } },
   ]);
-  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn", "Minute (from the pack)"]);
+  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Dawn", "Turn", "Minute (from the pack)"]);
   expect(pressedSegment("Feature 1 Recharges")).toBe("Minute (from the pack)");
   expect(within(preview(1)).getByText("Each minute")).toBeTruthy();
-  expect(segmentTexts("Feature 2 Recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
+  expect(segmentTexts("Feature 2 Recharges")).toEqual(["Short rest", "Long rest", "Dawn", "Turn"]);
   expect(pressedSegment("Feature 2 Recharges")).toBe("Short rest");
   expect(within(preview(2)).getByText("Short rest")).toBeTruthy();
   expect(pressedSegment("Feature 3 Recharges")).toBe("Round (from the pack)");
@@ -156,7 +152,7 @@ test("Recharges: a unit from an old pack is one more segment, and a short unit s
   // Another rest takes the pack's segment away.
   press("Feature 1 Recharges", "Long rest");
   expect(frequency(0)).toEqual({ "~:units": LONG, "~:amount": 2 });
-  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Day", "Turn"]);
+  expect(segmentTexts("Feature 1 Recharges")).toEqual(["Short rest", "Long rest", "Dawn", "Turn"]);
 });
 
 test("a stored value that is no option shows as it is", () => {
@@ -169,7 +165,7 @@ test("a stored value that is no option shows as it is", () => {
   expect([combobox("Feature 2 n").textContent, combobox("Feature 2 plus").textContent, combobox("Feature 2 minimum").textContent]).toEqual(["7", "+ 9", "8"]);
   // No amount is 1 use, as on the sheet.
   expect(combobox("Feature 3 amount").textContent).toBe("1");
-  expect(within(preview(3)).getAllByRole("button", { name: /^Use / })).toHaveLength(1);
+  expect(within(preview(3)).getByRole("slider").querySelectorAll(".ui-slot-circle")).toHaveLength(1);
 });
 
 test("the preview: circles and the pool take clicks and save nothing; 0 uses or fewer is a plain feature", () => {
@@ -179,11 +175,11 @@ test("the preview: circles and the pool take clicks and save nothing; 0 uses or 
     { "~:name": "Undertow", "~:type": "~:action", "~:frequency": { "~:units": LONG, "~:amount": { "~:ability": "~:int", "~:plus": -3 } } },
   ]);
   expect(previewSection(1)).toBe("Bonus Actions");
-  const use1 = within(preview(1)).getByRole("button", { name: "Use 1" });
-  fireEvent.click(use1);
-  expect(use1).toHaveAttribute("aria-pressed", "true");
-  fireEvent.click(within(preview(2)).getByRole("button", { name: "9 / 9 left. Spend 1" }));
-  expect(within(preview(2)).getByRole("button", { name: "8 / 9 left. Spend 1" })).toBeTruthy();
+  const circles = within(preview(1)).getByRole("slider", { name: "Brine Blessing" });
+  fireEvent.click(circles.querySelector(".ui-slot-circle")!);
+  expect(circles).toHaveAttribute("aria-valuetext", "1 of 2 spent");
+  fireEvent.click(within(preview(2)).getByRole("button", { name: "Spend 1 Deep Reserves" }));
+  expect(within(preview(2)).getByRole("button", { name: "Deep Reserves, 8 of 9 left" })).toBeTruthy();
   // INT 16 gives +3, and - 3 makes 0: no bubble.
   expect(previewSection(3)).toBe("Actions");
   expect(within(preview(3)).queryByRole("group", { name: "Undertow" })).toBeNull();
@@ -202,14 +198,14 @@ test("the example character: the level for any scaled amount, and the score only
   expect(combobox("Feature 2 example Wisdom score").textContent).toBe("16");
   expect(screen.queryByRole("combobox", { name: "Feature 3 example level" })).toBeNull();
   await choose("Feature 1 example level", "9");
-  expect(within(preview(1)).getAllByRole("button", { name: /^Use / })).toHaveLength(4);
+  expect(within(preview(1)).getByRole("slider").querySelectorAll(".ui-slot-circle")).toHaveLength(4);
   expect(screen.getByText(/^Uses equal your proficiency bonus/).textContent).toBe("Uses equal your proficiency bonus. A level 9 character gets 4.");
   await choose("Feature 2 example Wisdom score", "8");
   // -1 with the minimum of 1 is 1.
   expect(screen.getByText(/^Uses equal your Wisdom/).textContent).toBe(
     "Uses equal your Wisdom modifier (minimum 1). A level 5 character with 8 Wisdom gets 1.",
   );
-  expect(within(preview(2)).getAllByRole("button", { name: /^Use / })).toHaveLength(1);
+  expect(within(preview(2)).getByRole("slider").querySelectorAll(".ui-slot-circle")).toHaveLength(1);
 });
 
 test("delete: a feature with content asks first; Cancel keeps it; an empty feature goes at once", async () => {

@@ -1,7 +1,7 @@
 // The Hit points box of the vitals panel, with its two popups (ORC-314,
 // docs/design/sheet-interactivity.md "Hit points"). The rules are in
 // engine/hit-points.ts; the sheet page applies an action as one sheet change.
-import { Button, CurrentMax, FramedBox, Label, NoteLine, NumberField, SmallPopup } from "@orc-alchemy/ui";
+import { AmountField, Button, CurrentMax, FramedBox, Label, NoteSpace, SmallPopup, useAmount } from "@orc-alchemy/ui";
 import { type KeyboardEvent, type ReactElement, type ReactNode, type RefObject, useId, useRef, useState } from "react";
 import type { HitPointAction } from "../engine/hit-points.ts";
 
@@ -107,60 +107,22 @@ export function HitPointsBox({ current, max, temp, temporary, onAction, popupWid
   );
 }
 
-/** The text of the note when the field has no number. */
-export const NO_AMOUNT = "Type a number of 0 or more.";
-
-/** An amount of the field: a whole number of 0 or more, or null. */
-const valid = (amount: number | null) => (amount !== null && amount >= 0 ? amount : null);
-
 /**
- * The Amount field and the note under it. The note says when the field has
- * no number. Its space is kept, so the popup keeps its size when it shows.
+ * The Amount field of a popup and the note under it (AmountField and
+ * NoteSpace of the package). `submit` gives the amount to `act` when the
+ * field has a number of 0 or more. Without one, the note shows, and it goes
+ * away when the field changes. The space of the note is kept, so the popup
+ * keeps its size when it shows.
  */
-function AmountField({ amount, onChange, missing }: { amount: number | null; onChange: (amount: number | null) => void; missing: boolean }) {
-  return (
+function useAmountField(initial: number | null) {
+  const amount = useAmount(initial);
+  const field = (
     <>
-      {/* The text of the field is selected at the focus, so a typed number replaces it. */}
-      <label className="grid gap-[3px]" onFocus={(event) => event.target instanceof HTMLInputElement && event.target.select()}>
-        <Label>Amount</Label>
-        <NumberField
-          value={amount}
-          onValueChange={onChange}
-          min={0}
-          className="w-full border-[1.5px] px-2.5 py-1 text-center text-[26px] leading-[1.3] tabular-nums"
-        />
-      </label>
-      <div role="status" className="min-h-[33px]">
-        {missing && <NoteLine>{NO_AMOUNT}</NoteLine>}
-      </div>
+      <AmountField amount={amount} className="w-full border-[1.5px] px-2.5 py-1 text-center text-[26px] leading-[1.3] tabular-nums" />
+      <NoteSpace note={amount.note} />
     </>
   );
-}
-
-/**
- * The amount of a popup and its Amount field. `submit` gives the amount to
- * `act` when the field has a number. Without a number, it shows the note,
- * which goes away when the field changes.
- */
-function useAmount(initial: number | null) {
-  const [amount, setAmount] = useState<number | null>(initial);
-  const [missing, setMissing] = useState(false);
-  const submit = (act: (amount: number) => void) => {
-    const value = valid(amount);
-    if (value === null) setMissing(true);
-    else act(value);
-  };
-  const field = (
-    <AmountField
-      amount={amount}
-      onChange={(next) => {
-        setAmount(next);
-        setMissing(false);
-      }}
-      missing={missing}
-    />
-  );
-  return { field, submit };
+  return { field, submit: amount.submit };
 }
 
 /**
@@ -169,7 +131,7 @@ function useAmount(initial: number | null) {
  * number, the popup stays open and the note says so.
  */
 function HitPointsForm({ onAction }: { onAction: (action: HitPointAction) => void }) {
-  const { field, submit } = useAmount(null);
+  const { field, submit } = useAmountField(null);
   const run = (kind: "damage" | "heal" | "set") => submit((amount) => onAction({ kind, amount }));
   return (
     <>
@@ -191,7 +153,7 @@ function HitPointsForm({ onAction }: { onAction: (action: HitPointAction) => voi
  * disabled when there are none.
  */
 function TemporaryForm({ temp, onAction }: { temp: number; onAction: (action: HitPointAction) => void }) {
-  const { field, submit } = useAmount(temp > 0 ? temp : null);
+  const { field, submit } = useAmountField(temp > 0 ? temp : null);
   const set = () => submit((amount) => onAction({ kind: "set-temp", amount }));
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement)) return;

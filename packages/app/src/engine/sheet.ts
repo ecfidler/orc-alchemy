@@ -4,9 +4,10 @@
 // second sheet. Numbers stay numbers and components format them; only the
 // ready-to-print feature and attack text is formatted here.
 import type { Amount, Built2014, Feature, Inventory, StrictEntity } from "@pubdoor/dmv";
-import { untag } from "./content.ts";
+import { unqualify, untag } from "./content.ts";
+import { type HitDiceAction, type HitDie, hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
 import type { HitPointAction } from "./hit-points.ts";
-import { currentHitPoints, type DeathSaves, deathSaves, tempHitPoints } from "./play.ts";
+import { currentHitPoints, type DeathSaves, deathSaves, type FeatureUsesKey, featureUsesSpent, hitDiceSpent, tempHitPoints } from "./play.ts";
 import { preparedSpells, type SlotGroup, type SpentSlotGroups, slotLayout, spentSlotGroups } from "./spells.ts";
 
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -67,13 +68,22 @@ export interface SheetFeature {
   /** Summary or description, with the old sheet's usage parenthetical, sentence-cased. */
   text: string;
   /**
-   * For a limited-use feature: how many uses, and when they come back ("Short rest", "Long rest", "Each day"),
-   * or null for a frequency with no unit. The amount is 1 or more: toSheet gives a feature with 0 uses or fewer
-   * no `uses`, so it is a plain feature.
+   * For a limited-use feature: how many uses, and when they come back ("Short rest", "Long rest", "Dawn",
+   * "Once per turn"), or null for a frequency with no unit. The amount is 1 or more: toSheet gives a feature with
+   * 0 uses or fewer no `uses`, so it is a plain feature.
    */
   uses?: {
     amount: number;
     recharge: string | null;
+    /**
+     * The unit as built gives it, such as "orcpub.dnd.e5.units/long-rest", or null for none. With `name`, it is
+     * the key of the spent count in the record (play.ts featureUsesSpent).
+     */
+    units: string | null;
+    /** The feature name as built gives it: the other part of the key of the spent count. */
+    name: string;
+    /** The spent uses from the play state, from 0 to `amount`: a count above the amount reads as all spent. */
+    spent: number;
     /** 2024: each rest that gives uses back and how many, when a rest gives back fewer than all or two rests apply. */
     recover?: { rest: string; amount: number | "all" }[];
   };
@@ -147,8 +157,15 @@ export interface SheetPlay {
   statusKey?: number;
   /** Applies an action of the Hit points popup or the Temporary hit points popup, as one sheet change (ORC-314). */
   onHitPoints: (action: HitPointAction) => void;
+  /** Applies an action of the Hit dice popup: Spend (also Roll for me) or Regain, as one sheet change (ORC-317). */
+  onHitDice: (action: HitDiceAction) => void;
   /** Writes the death save counts after a click or an arrow key on the Death saves box, as one sheet change (ORC-315). */
   onDeathSaves: (saves: DeathSaves) => void;
+  /**
+   * Writes the spent uses of a feature, by its unit and name, after a change of its use bubble, as one sheet
+   * change (ORC-316). Two features with the same name and unit share the count.
+   */
+  onUses: (feature: FeatureUsesKey, spent: number) => void;
 }
 
 export interface Spellcasting extends SpentSlotGroups {
@@ -196,6 +213,11 @@ export interface Sheet {
   tempHitPoints: number;
   /** The death save counts (play state). */
   deathSaves: DeathSaves;
+  /**
+   * The hit dice by die size, the largest die first, with the dice left
+   * (play state). Two classes with the same die size share one entry.
+   */
+  hitDice: HitDie[];
   speeds: Speed[];
   darkvision: number;
 
@@ -293,9 +315,6 @@ export const SKILLS: [key: string, name: string, ability: Ability][] = [
 
 const EQUIPMENT_NS = "orcpub.dnd.e5.character.equipment/";
 
-/** The name part of a keyword string: "orcpub.dnd.e5.units/long-rest" → "long-rest". */
-export const unqualify = (key: string) => key.slice(key.lastIndexOf("/") + 1);
-
 /** The old app's capitalised kw-to-name: "crossbow-light" → "Crossbow Light". */
 export const keyToName = (key: string) =>
   unqualify(key)
@@ -339,15 +358,24 @@ const unitAmount = (value: Amount) => {
   return `${amount} ${plural ? unqualify(plural) : unit === "feet" ? unit : `${unit}s`}`;
 };
 
+/** The name of the unit `day` on the sheet and in the forms (sheet-interactivity.md, "Feature uses"). The stored unit stays `day`. */
+export const DAWN = "Dawn";
+
+/** Whether a unit, bare or qualified, is `turn`: a feature with uses each turn has no circles. */
+const isTurn = (units: string | null | undefined) => typeof units === "string" && unqualify(untag(units)) === "turn";
+
 /**
- * When a feature's uses come back. A DMV "rest" is a short or a long rest, so a short rest is enough. A frequency
- * with no unit, which a pack can have, gives null: the bubble has no tag.
+ * When a feature's uses come back. A DMV "rest" is a short or a long rest, so a short rest is enough. The unit
+ * `day` is "Dawn", and a turn says how many: "Once per turn", "2 per turn". A frequency with no unit, which a pack
+ * can have, gives null: the bubble has no tag.
  */
-const recharge = (units: string | undefined) => {
+const recharge = (units: string | undefined, amount: number) => {
   if (typeof units !== "string" || units === "") return null;
+  if (isTurn(units)) return amount === 1 ? "Once per turn" : `${amount} per turn`;
   const unit = unqualify(units).replace(/-/g, " ");
   if (unit === "rest" || unit === "short rest") return "Short rest";
   if (unit === "long rest") return "Long rest";
+  if (unit === "day") return DAWN;
   return `Each ${unit}`;
 };
 
@@ -356,9 +384,10 @@ export type FeatureSection = keyof Sheet["features"];
 
 /**
  * How a feature's uses show: in a use bubble with circles, in a use bubble
- * with a pool, or as plain text with no bubble.
+ * with a pool, in a use bubble with no circles for uses each turn, or as
+ * plain text with no bubble.
  */
-export type UsesDisplay = { kind: "circles"; count: number } | { kind: "pool"; max: number; step: number } | { kind: "plain" };
+export type UsesDisplay = { kind: "circles"; count: number } | { kind: "pool"; max: number } | { kind: "turn" } | { kind: "plain" };
 
 /** The section of each homebrew feature type. A type the sheet does not know, "other", or none, is a trait. */
 const SECTION_OF_TYPE: Record<string, FeatureSection> = {
@@ -371,16 +400,16 @@ const SECTION_OF_TYPE: Record<string, FeatureSection> = {
  * How the uses of a feature show (homebrew-forms.md, "On the sheet"). toSheet
  * calls it to drop uses that show as plain text, and the sheet calls it to
  * draw circles or a pool. No frequency is plain text. A frequency with no
- * amount is 1 use. An amount of 0 or fewer is plain text. 8 uses or fewer are
- * circles; more than 8 are a pool, such as Lay on Hands' 25 hit points. A
- * click on a pool of 20 or more spends 5, as in the prototype; on a smaller
- * pool it spends 1.
+ * amount is 1 use. An amount of 0 or fewer is plain text. The unit `turn` has
+ * no circles (sheet-interactivity.md, "Feature uses"). 8 uses or fewer are
+ * circles; more than 8 are a pool, such as Lay on Hands' 25 hit points.
  */
-export function usesDisplay(frequency: { amount?: number | null } | null | undefined): UsesDisplay {
+export function usesDisplay(frequency: { amount?: number | null; units?: string | null } | null | undefined): UsesDisplay {
   if (!frequency) return { kind: "plain" };
   const amount = frequency.amount ?? 1;
   if (amount <= 0) return { kind: "plain" };
-  if (amount > 8) return { kind: "pool", max: amount, step: amount >= 20 ? 5 : 1 };
+  if (isTurn(frequency.units)) return { kind: "turn" };
+  if (amount > 8) return { kind: "pool", max: amount };
   return { kind: "circles", count: amount };
 }
 
@@ -389,7 +418,7 @@ export function usesDisplay(frequency: { amount?: number | null } | null | undef
  * rules, each rest, and the number of uses it gives back when it is not all:
  * "Short rest (1), Long rest".
  */
-export function recoveryTag(uses: NonNullable<SheetFeature["uses"]>): string | undefined {
+export function recoveryTag(uses: Pick<NonNullable<SheetFeature["uses"]>, "recharge" | "recover">): string | undefined {
   if (!uses.recover?.length) return uses.recharge ?? undefined;
   return uses.recover.map(({ rest, amount }) => (amount === "all" ? rest : `${rest} (${amount})`)).join(", ");
 }
@@ -472,10 +501,12 @@ export function scaledAmount(amount: Record<string, unknown>, numbers: ScaleNumb
  * The old display's action-description: text, then "(qualifier, range …, lasts …)".
  * A limited-use feature gets its uses in `uses`, not in the text, because the
  * sheet shows them in a use bubble. A feature whose uses show as plain text
- * (an amount of 0 or fewer) gets no `uses`. The uses preview of the homebrew
- * forms calls it too, with the feature as the engine builds it (uses-preview.ts).
+ * (an amount of 0 or fewer) gets no `uses`. With the entity, the uses carry
+ * the spent count of the play state; without it, as in the uses preview of the
+ * homebrew forms, which calls it with the feature as the engine builds it
+ * (uses-preview.ts), none is spent.
  */
-export function toSheetFeature(feature: Feature): SheetFeature {
+export function toSheetFeature(feature: Feature, entity?: StrictEntity): SheetFeature {
   const { summary, description, frequency, duration } = feature;
   const name = nameOf(feature);
   const { range, qualifier } = feature as Feature & { range?: Amount; qualifier?: string | null };
@@ -485,12 +516,24 @@ export function toSheetFeature(feature: Feature): SheetFeature {
     const parts = [qualifier, range && `range ${unitAmount(range)}`, duration && `lasts ${concentration}${unitAmount(duration)}`];
     text += ` (${parts.filter(Boolean).join(", ")})`;
   }
-  if (frequency && usesDisplay(frequency).kind !== "plain")
-    return { name, text: sentence(text), uses: { amount: frequency.amount ?? 1, recharge: recharge(frequency.units) } };
+  if (frequency && usesDisplay(frequency).kind !== "plain") {
+    const amount = frequency.amount ?? 1;
+    const units = typeof frequency.units === "string" && frequency.units !== "" ? frequency.units : null;
+    // The record key is the name as built gives it; nameOf only fills a missing name.
+    const key = typeof feature.name === "string" ? feature.name : name;
+    const spent = entity ? featureUsesSpent(entity, units, key, amount) : 0;
+    return { name, text: sentence(text), uses: { amount, recharge: recharge(frequency.units, amount), units, name: key, spent } };
+  }
   return { name, text: sentence(text) };
 }
 
-const toFeatures = (features: Feature[]) => byName(features.map(toSheetFeature));
+const toFeatures = (features: Feature[], entity: StrictEntity) => byName(features.map((feature) => toSheetFeature(feature, entity)));
+
+/** The uses of each feature of the sheet that has them, in the order of the sheet. */
+export function featureUses(sheet: Pick<Sheet, "features">): NonNullable<SheetFeature["uses"]>[] {
+  const { actions, bonusActions, reactions, traits } = sheet.features;
+  return [...actions, ...bonusActions, ...reactions, ...traits].flatMap((feature) => (feature.uses ? [feature.uses] : []));
+}
 
 /**
  * The four feature lists, each sorted by name. The engine puts every homebrew
@@ -498,14 +541,14 @@ const toFeatures = (features: Feature[]) => byName(features.map(toSheetFeature))
  * that type. The engine's own actions, bonus actions and reactions keep their
  * list.
  */
-function toFeatureSections(built: Built2014): Sheet["features"] {
+function toFeatureSections(built: Built2014, entity: StrictEntity): Sheet["features"] {
   const traits = built.traits ?? [];
   const typed = (section: FeatureSection) => traits.filter((trait) => sectionOf(trait.type) === section);
   return {
-    actions: toFeatures([...(built.actions ?? []), ...typed("actions")]),
-    bonusActions: toFeatures([...(built["bonus-actions"] ?? []), ...typed("bonusActions")]),
-    reactions: toFeatures([...(built.reactions ?? []), ...typed("reactions")]),
-    traits: toFeatures(typed("traits")),
+    actions: toFeatures([...(built.actions ?? []), ...typed("actions")], entity),
+    bonusActions: toFeatures([...(built["bonus-actions"] ?? []), ...typed("bonusActions")], entity),
+    reactions: toFeatures([...(built.reactions ?? []), ...typed("reactions")], entity),
+    traits: toFeatures(typed("traits"), entity),
   };
 }
 
@@ -659,6 +702,17 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
       ? undefined
       : acOptions.find((option) => option.armor === noneToNull(wornArmor) && option.shield === noneToNull(wieldedShield));
   const text = (key: string) => blankToNull(built[key]);
+  const classes = built.classes.map((key) => {
+    const levels = built.levels[key];
+    return {
+      key,
+      name: levels?.["class-name"] ?? keyToName(key),
+      level: levels?.["class-level"] ?? 0,
+      hitDie: levels?.["hit-die"] ?? 0,
+      subclass: levels?.["subclass-name"] ?? (levels?.subclass ? keyToName(levels.subclass) : null),
+    };
+  });
+  const hitDice = hitDiceTotals(classes);
 
   return {
     name: blankToNull(built["character-name"]),
@@ -670,16 +724,7 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     subrace: built.subrace,
     background: built.background,
     alignment: text("alignment"),
-    classes: built.classes.map((key) => {
-      const levels = built.levels[key];
-      return {
-        key,
-        name: levels?.["class-name"] ?? keyToName(key),
-        level: levels?.["class-level"] ?? 0,
-        hitDie: levels?.["hit-die"] ?? 0,
-        subclass: levels?.["subclass-name"] ?? (levels?.subclass ? keyToName(levels.subclass) : null),
-      };
-    }),
+    classes,
     totalLevel: built["total-levels"],
     xp: (built.xps as number | null | undefined) ?? null,
 
@@ -712,6 +757,7 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
     currentHitPoints: currentHitPoints(entity, built["max-hit-points"]),
     tempHitPoints: tempHitPoints(entity),
     deathSaves: deathSaves(entity),
+    hitDice: hitDiceLeft(hitDice, hitDiceSpent(entity, hitDice)),
     speeds: toSpeeds(built),
     darkvision: built.darkvision ?? 0,
 
@@ -745,7 +791,7 @@ export function toSheet(built: Built2014, entity: StrictEntity): Sheet {
 
     spellcasting: toSpellcasting(built, entity),
 
-    features: toFeatureSections(built),
+    features: toFeatureSections(built, entity),
 
     equipment: {
       weapons: toItems(built.weapons),

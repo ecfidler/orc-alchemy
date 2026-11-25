@@ -202,7 +202,8 @@ test("Customize the SRD race: the note shows with no line of removed picks, and 
   const sheet = page.getByRole("region", { name: "Preview" });
   await expect(sheet.getByLabel("Race", { exact: true })).toHaveText("Human (Custom)");
   const bubble = sheet.getByRole("group", { name: "Second Wind of the Plains" });
-  await expect(bubble.getByRole("button", { name: /^Use / })).toHaveCount(2);
+  // The builder preview shows the uses and takes no clicks.
+  await expect(bubble.getByRole("img", { name: "Second Wind of the Plains uses spent: 0 of 2" }).locator(".ui-slot-circle")).toHaveCount(2);
   await expect(bubble.getByText("Long rest")).toBeVisible();
 });
 

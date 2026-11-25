@@ -13,8 +13,10 @@ import {
   exhaustion,
   featureUsesSpent,
   hitDiceSpent,
+  importOldUsesSpent,
   inspiration,
   NO_RECHARGE,
+  oldFeatureUsesSpent,
   rechargeGroup,
   setAcPick,
   setConcentration,
@@ -30,6 +32,7 @@ import {
   tempHitPoints,
   usesSpent,
 } from "./play.ts";
+import { featureUses, toSheet } from "./sheet.ts";
 
 beforeAll(() => loadEngine());
 
@@ -324,4 +327,114 @@ test("a reader gives the empty state for a value that is not valid, and a count 
 
 test("the condition keys are the 14 of the SRD", () => {
   expect(CONDITION_KEYS).toHaveLength(14);
+});
+
+// ORC-316: feature uses. The fixture is a cleric 6 / paladin 3 / rogue 1 / wizard 1: two Channel Divinity features
+// (2 uses and 1 use, both "rest"), Lay on Hands (a pool of 15), Divine Sense (3), Sneak Attack (each turn) and
+// Arcane Recovery (day).
+const MULTICLASS = join(import.meta.dirname, "../../e2e/cleric-6-paladin-3-rogue-1-wizard-1.strict.json");
+const REST = "orcpub.dnd.e5.units/rest";
+const FEATURES_USED = "orcpub.dnd.e5.character/features-used";
+const multiclass = (): StrictEntity => JSON.parse(readFileSync(MULTICLASS, "utf8"));
+/** Every feature of the sheet that has uses, with its name, amount, unit and spent count. */
+const sheetUses = (entity: StrictEntity) =>
+  featureUses(toSheet(engine().evaluate(entity).built, entity)).map(({ name, amount, units, spent, recharge }) => ({ name, amount, units, spent, recharge }));
+
+test("e2e/cleric-6-paladin-3-rogue-1-wizard-1.strict.json has the features of uses that the tests need", () => {
+  expect(sheetUses(multiclass()).sort((a, b) => a.name.localeCompare(b.name) || b.amount - a.amount)).toEqual([
+    { name: "Arcane Recovery", amount: 1, units: "orcpub.dnd.e5.units/day", spent: 0, recharge: "Dawn" },
+    { name: "Channel Divinity", amount: 2, units: REST, spent: 0, recharge: "Short rest" },
+    { name: "Channel Divinity", amount: 1, units: REST, spent: 0, recharge: "Short rest" },
+    { name: "Divine Sense", amount: 3, units: LONG_REST, spent: 0, recharge: "Long rest" },
+    { name: "Lay on Hands", amount: 15, units: LONG_REST, spent: 0, recharge: "Long rest" },
+    { name: "Sneak Attack", amount: 1, units: "orcpub.dnd.e5.units/turn", spent: 0, recharge: "Once per turn" },
+  ]);
+});
+
+test("Channel Divinity of a cleric and a paladin share one count; each bubble reads it against its own amount", () => {
+  const e = engine();
+  const channel = (entity: StrictEntity) =>
+    sheetUses(entity)
+      .filter((uses) => uses.name === "Channel Divinity")
+      .map(({ amount, spent }) => [amount, spent]);
+  let entity = setFeatureUsesSpent(e, multiclass(), REST, "Channel Divinity", 1);
+  expect(channel(entity)).toEqual([
+    [2, 1],
+    [1, 1],
+  ]);
+  entity = setFeatureUsesSpent(e, entity, REST, "Channel Divinity", 2);
+  expect(channel(entity)).toEqual([
+    [2, 2],
+    [1, 1],
+  ]);
+  // A count above the amount reads as all spent; the stored count stays.
+  entity = setFeatureUsesSpent(e, entity, REST, "Channel Divinity", 5);
+  expect(channel(entity)).toEqual([
+    [2, 2],
+    [1, 1],
+  ]);
+  expect(storedAt(entity, "orc-alchemy.play/uses-spent")).toEqual({ [`~:${REST}`]: { "Channel Divinity": 5 } });
+});
+
+test("the old record: fewer than 5 uses count the strings <name>-<i>; 5 or more hold the uses left", () => {
+  const set = (...items: string[]) => ({ "~#set": items });
+  const entity = withRaw(multiclass(), {
+    [FEATURES_USED]: {
+      [`~:${REST}`]: set("Channel Divinity-0", "Channel Divinity-1", "Channel Divinity-7"),
+      [`~:${LONG_REST}`]: set("Divine Sense-1", "Lay on Hands-10", "Lay on Hands Plus-2"),
+      "~:short-rest": ["Tide Step-0"],
+      "~:db/id": 17592186099999,
+    },
+  });
+  const spent = (units: string | null, name: string, amount: number) => oldFeatureUsesSpent(entity, { units, name, amount });
+  // Fewer than 5: one string for each spent circle, from 0; a circle past the amount does not count.
+  expect(spent(REST, "Channel Divinity", 2)).toBe(2);
+  expect(spent(REST, "Channel Divinity", 1)).toBe(1);
+  expect(spent(LONG_REST, "Divine Sense", 3)).toBe(1);
+  // The unit key matches with or without its namespace, and a vector is taken as a set.
+  expect(spent("orcpub.dnd.e5.units/short-rest", "Tide Step", 2)).toBe(1);
+  // 5 or more: the string holds the uses left, and only the exact name counts.
+  expect(spent(LONG_REST, "Lay on Hands", 15)).toBe(5);
+  expect(spent(LONG_REST, "Lay on Hands", 8)).toBe(0);
+  expect(spent(LONG_REST, "Lay on Hands Plus", 5)).toBe(3);
+  // With no string, all uses are left.
+  expect(spent(LONG_REST, "Rage", 6)).toBe(0);
+  expect(spent(REST, "Divine Sense", 3)).toBe(0);
+  // No unit, a turn, and no old key give 0.
+  expect(spent(null, "Channel Divinity", 2)).toBe(0);
+  expect(oldFeatureUsesSpent(multiclass(), { units: REST, name: "Channel Divinity", amount: 2 })).toBe(0);
+});
+
+test("an import makes the counts from the old record once: only with the old key and no uses-spent key", () => {
+  const e = engine();
+  const old = {
+    [FEATURES_USED]: {
+      [`~:${REST}`]: { "~#set": ["Channel Divinity-0"] },
+      [`~:${LONG_REST}`]: { "~#set": ["Lay on Hands-12", "Divine Sense-0", "Divine Sense-2"] },
+      "~:orcpub.dnd.e5.units/turn": { "~#set": ["Sneak Attack-0"] },
+    },
+  };
+  /** The entity as an import gives it, without the step that reads the old record. */
+  const importedAs = (input: StrictEntity) => e.importCharacter(JSON.parse(JSON.stringify(input))).entity;
+  const read = (input: StrictEntity) => readCharacterFile(JSON.stringify(input)).characters[0].entity;
+  // The counts are written, the turn gets none, and the old key stays as it was.
+  const expected = new Map([
+    [REST, new Map([["Channel Divinity", 1]])],
+    [
+      LONG_REST,
+      new Map([
+        ["Divine Sense", 2],
+        ["Lay on Hands", 3],
+      ]),
+    ],
+  ]);
+  expect(read(withRaw(multiclass(), old))).toEqual(setUsesSpent(e, importedAs(withRaw(multiclass(), old)), expected));
+  // A record that has the uses-spent key keeps its counts.
+  const kept = setFeatureUsesSpent(e, withRaw(multiclass(), old), LONG_REST, "Divine Sense", 3);
+  expect(read(kept)).toEqual(importedAs(kept));
+  // With no old key, nothing is written.
+  expect(read(multiclass())).toEqual(importedAs(multiclass()));
+  // importOldUsesSpent with no spent string gives the entity as it is.
+  const none = withRaw(multiclass(), { [FEATURES_USED]: { [`~:${REST}`]: { "~#set": ["Other-0"] } } });
+  expect(importOldUsesSpent(e, none, [{ units: REST, name: "Channel Divinity", amount: 2 }])).toBe(none);
 });

@@ -12,4 +12,15 @@
     padding: 3px 8px;
     font: inherit;
   }
+  /* An amount field: the label above the field, or the field alone. */
+  .ui-amount-field {
+    display: grid;
+    gap: 3px;
+  }
+  /* Disabled: the look of a disabled button or select. */
+  .ui-number-input:where([data-disabled]) {
+    color: var(--ink-muted);
+    border-color: var(--rule-strong);
+    cursor: default;
+  }
 }

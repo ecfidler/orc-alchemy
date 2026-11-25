@@ -135,14 +135,22 @@ test("a feat with 3 uses for each long rest shows one bubble, on the feat's own 
   const all = Object.values(sheet.features).flat();
   // The feat is an action with its uses; the features are where their types put them.
   expect(sheet.features.actions.filter((f) => f.name === "Stormcaller")).toEqual([
-    { name: "Stormcaller", text: "You call a gust of wind.", uses: { amount: 3, recharge: "Long rest" } },
+    {
+      name: "Stormcaller",
+      text: "You call a gust of wind.",
+      uses: { amount: 3, recharge: "Long rest", units: "orcpub.dnd.e5.units/long-rest", name: "Stormcaller", spent: 0 },
+    },
   ]);
   expect(sheet.features.traits.filter((f) => f.name === "Steady Footing")).toEqual([
     { name: "Steady Footing", text: "You have advantage on saving throws against being knocked prone." },
   ]);
   // A level amount on a feat counts the character level: 3.
   expect(sheet.features.bonusActions.filter((f) => f.name === "Rolling Gait")).toEqual([
-    { name: "Rolling Gait", text: "You take the Dash action.", uses: { amount: 3, recharge: "Short rest" } },
+    {
+      name: "Rolling Gait",
+      text: "You take the Dash action.",
+      uses: { amount: 3, recharge: "Short rest", units: "orcpub.dnd.e5.units/short-rest", name: "Rolling Gait", spent: 0 },
+    },
   ]);
   expect(all.filter((f) => ["Stormcaller", "Steady Footing", "Rolling Gait"].includes(f.name))).toHaveLength(3);
   // The preview of Uses of the feat gives the same section and entry as the sheet.
@@ -155,7 +163,7 @@ test("a feat with 3 uses for each long rest shows one bubble, on the feat's own 
   const features = within(screen.getByRole("group", { name: "Features & traits" }));
   const bubbles = features.getAllByRole("group", { name: "Stormcaller" });
   expect(bubbles).toHaveLength(1);
-  expect(within(bubbles[0]).getAllByRole("button", { name: /^Use / })).toHaveLength(3);
+  expect(within(bubbles[0]).getByRole("img", { name: "Stormcaller uses spent: 0 of 3" }).querySelectorAll(".ui-slot-circle")).toHaveLength(3);
   expect(within(bubbles[0]).getByText("Long rest")).toBeTruthy();
   expect(features.queryByRole("group", { name: "Steady Footing" })).toBeNull();
   expect(features.getByText("Steady Footing")).toBeTruthy();
@@ -185,7 +193,7 @@ test("a feat with no uses and two features shows the feat and its two features o
     section: "traits",
     feature: sheet.features.traits.find((f) => f.name === "Sea Legs"),
   });
-  expect(sheet.features.bonusActions.find((f) => f.name === "Rolling Gait")!.uses).toEqual({ amount: 5, recharge: "Short rest" });
+  expect(sheet.features.bonusActions.find((f) => f.name === "Rolling Gait")!.uses).toMatchObject({ amount: 5, recharge: "Short rest" });
 });
 
 test("the saved feat exports to .orcbrew and imports again with no change", async () => {
@@ -226,7 +234,7 @@ test("None removes :frequency; a feat with no type shows Other and stores no typ
   // The preview draws the feat as a trait with its bubble.
   const preview = within(screen.getByRole("group", { name: "Feat preview" }));
   expect(preview.getByRole("heading", { level: 3 }).textContent).toBe("Features, Traits, and Feats");
-  expect(preview.getAllByRole("button", { name: /^Use / })).toHaveLength(2);
+  expect(preview.getByRole("slider").querySelectorAll(".ui-slot-circle")).toHaveLength(2);
   press("Feat Uses", "None");
   await saveAndLeave(router);
   const { "~:frequency": _, ...rest } = item;

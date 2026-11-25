@@ -2,8 +2,9 @@
 // from and written to the strict entity, with the old character_builder.cljs
 // rules for point buy, rolls and swaps, and the increases built adds to them.
 import type { AvailableSelection, Built2014 } from "@pubdoor/dmv";
+import { unqualify } from "./content.ts";
 import { type Content, engine, type StrictEntity } from "./engine.ts";
-import { ABILITIES, type Ability, unqualify } from "./sheet.ts";
+import { ABILITIES, type Ability } from "./sheet.ts";
 
 export type Scores = Record<Ability, number>;
 

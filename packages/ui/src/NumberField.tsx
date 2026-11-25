@@ -9,6 +9,8 @@ export type NumberFieldProps = {
   min?: number;
   /** The upper limit of the arrow keys. A typed number above it still reaches onValueChange. */
   max?: number;
+  /** True: the field takes no input and no focus, and has the disabled look. */
+  disabled?: boolean;
   /** The name, when the field is not in a label. */
   "aria-label"?: string;
   /** Layout classes, for example a width. */
@@ -18,9 +20,10 @@ export type NumberFieldProps = {
 /**
  * A field for a whole number, with Base UI NumberField inside. Its role is
  * textbox. The Up and Down arrow keys change the number by 1. It shows the
- * number with no grouping, for example 1000, not 1,000.
+ * number with no grouping, for example 1000, not 1,000. A disabled field
+ * has the muted text and the border of a disabled control.
  */
-export function NumberField({ value, onValueChange, min, max, "aria-label": ariaLabel, className }: NumberFieldProps) {
+export function NumberField({ value, onValueChange, min, max, disabled = false, "aria-label": ariaLabel, className }: NumberFieldProps) {
   return (
     <BaseNumberField.Root
       value={value}
@@ -29,6 +32,7 @@ export function NumberField({ value, onValueChange, min, max, "aria-label": aria
       min={min}
       max={max}
       allowOutOfRange
+      disabled={disabled}
       format={{ useGrouping: false }}
       className="ui-number"
     >

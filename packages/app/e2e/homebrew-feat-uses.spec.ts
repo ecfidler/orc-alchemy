@@ -50,19 +50,19 @@ const section = (page: Page, title: string) => page.getByRole("heading", { level
 test("a feat with 3 uses for each long rest and two features shows its bubble and its features on the sheet", async ({ page }) => {
   await makeStormcaller(page);
   // The preview of the feat's own entry, for the example character.
-  await expect(group(page, "Feat preview").getByRole("button", { name: /^Use / })).toHaveCount(3);
+  await expect(group(page, "Feat preview").getByRole("slider", { name: "Stormcaller" }).locator(".ui-slot-circle")).toHaveCount(3);
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);
 
   await importWithFeat(page, "stormcaller");
   const feat = section(page, "Actions").getByRole("group", { name: "Stormcaller" });
-  await expect(feat.getByRole("button", { name: /^Use / })).toHaveCount(3);
+  await expect(feat.getByRole("slider", { name: "Stormcaller" }).locator(".ui-slot-circle")).toHaveCount(3);
   await expect(feat.getByText("Long rest")).toBeVisible();
   await expect(page.getByRole("group", { name: "Stormcaller" })).toHaveCount(1);
   await expect(section(page, "Features, Traits, and Feats").getByText("Steady Footing")).toBeVisible();
   // A level amount counts the character level: 1.
   const gait = section(page, "Bonus Actions").getByRole("group", { name: "Rolling Gait" });
-  await expect(gait.getByRole("button", { name: /^Use / })).toHaveCount(1);
+  await expect(gait.getByRole("slider", { name: "Rolling Gait" }).locator(".ui-slot-circle")).toHaveCount(1);
   await expect(gait.getByText("Short rest")).toBeVisible();
 });
 

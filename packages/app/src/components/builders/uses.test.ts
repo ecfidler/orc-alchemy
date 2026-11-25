@@ -13,14 +13,14 @@ test("the kind of the stored uses: none, fixed (also with no amount), or scaled"
 });
 
 test("the Recharges segments: the four rests, and a unit from the pack as one more", () => {
-  const rests = ["Short rest", "Long rest", "Day", "Turn"];
+  const rests = ["Short rest", "Long rest", "Dawn", "Turn"];
   expect(rechargeOptions(undefined).map(([, text]) => text)).toEqual(rests);
   expect(rechargeOptions({ "~:units": "~:short-rest", "~:amount": 1 }).map(([, text]) => text)).toEqual(rests);
   expect(unitName({ "~:units": "~:short-rest" })).toBe("short-rest");
   expect(rechargeOptions({ "~:units": "~:orcpub.dnd.e5.units/minute", "~:amount": 1 })).toEqual([
     ["short-rest", "Short rest"],
     ["long-rest", "Long rest"],
-    ["day", "Day"],
+    ["day", "Dawn"],
     ["turn", "Turn"],
     ["minute", "Minute (from the pack)"],
   ]);

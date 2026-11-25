@@ -294,4 +294,14 @@ test("current / max shows the max in the muted part", () => {
   const pair = screen.getByText("7", { exact: false });
   expect(pair.textContent).toBe("7 / 12");
   expect(pair.querySelector(".ui-current-max-of")!.textContent).toBe(" / 12");
+  expect(pair.querySelector(".ui-current-max-now")).toBeNull();
+});
+
+test("current / max with reserve keeps the width of the reserve text for the current value", () => {
+  const { container } = render(<CurrentMax current={7} max={12} reserve={12} />);
+  const now = container.querySelector(".ui-current-max-now")!;
+  // The CSS draws data-reserve, hidden, in the same grid cell as the value.
+  expect(now.getAttribute("data-reserve")).toBe("12");
+  expect(now.textContent).toBe("7");
+  expect(container.textContent).toBe("7 / 12");
 });

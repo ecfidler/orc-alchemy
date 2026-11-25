@@ -1,0 +1,422 @@
+{
+  "~:orcpub.entity.strict/selections": [
+    {
+      "~:orcpub.entity.strict/key": "~:ability-scores",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:standard-scores",
+        "~:orcpub.entity.strict/map-value": {
+          "~:orcpub.dnd.e5.character/str": 13,
+          "~:orcpub.dnd.e5.character/dex": 13,
+          "~:orcpub.dnd.e5.character/con": 12,
+          "~:orcpub.dnd.e5.character/int": 13,
+          "~:orcpub.dnd.e5.character/wis": 14,
+          "~:orcpub.dnd.e5.character/cha": 13
+        }
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:class",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:cleric",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:divine-domain",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:life-domain"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 6
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-3",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 7
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-4",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:asi-or-feat",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:ability-score-improvement",
+                        "~:orcpub.entity.strict/selections": [
+                          {
+                            "~:orcpub.entity.strict/key": "~:asi",
+                            "~:orcpub.entity.strict/options": [
+                              {
+                                "~:orcpub.entity.strict/key": "~:orcpub.dnd.e5.character/con"
+                              },
+                              {
+                                "~:orcpub.entity.strict/key": "~:orcpub.dnd.e5.character/dex"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 5
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-5",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-6",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 8
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:cleric-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:light"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:resistance"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:sacred-flame"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:thaumaturgy"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:skill-proficiency",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:medicine"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:insight"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:starting-equipment-additional-weapon",
+              "~:orcpub.entity.strict/option": {
+                "~:orcpub.entity.strict/key": "~:light-crossbow-and-20-bolts"
+              }
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:starting-equipment-armor",
+              "~:orcpub.entity.strict/option": {
+                "~:orcpub.entity.strict/key": "~:chain-mail"
+              }
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:starting-equipment-cleric-weapon",
+              "~:orcpub.entity.strict/option": {
+                "~:orcpub.entity.strict/key": "~:warhammer"
+              }
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:starting-equipment-equipment-pack",
+              "~:orcpub.entity.strict/option": {
+                "~:orcpub.entity.strict/key": "~:priests-pack"
+              }
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:starting-equipment-holy-symbol",
+              "~:orcpub.entity.strict/option": {
+                "~:orcpub.entity.strict/key": "~:emblem"
+              }
+            }
+          ]
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:paladin",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 10
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-2",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 6
+                      }
+                    }
+                  ]
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:level-3",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:sacred-oath",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:oath-of-devotion"
+                      }
+                    },
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 9
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:fighting-style",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:great-weapon-fighting"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:rogue",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 8
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:multiclass-skill-proficiency",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:stealth"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:expertise",
+              "~:orcpub.entity.strict/option": {
+                "~:orcpub.entity.strict/key": "~:two-skills"
+              }
+            }
+          ]
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:wizard",
+          "~:orcpub.entity.strict/selections": [
+            {
+              "~:orcpub.entity.strict/key": "~:levels",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:level-1",
+                  "~:orcpub.entity.strict/selections": [
+                    {
+                      "~:orcpub.entity.strict/key": "~:hit-points",
+                      "~:orcpub.entity.strict/option": {
+                        "~:orcpub.entity.strict/key": "~:roll",
+                        "~:orcpub.entity.strict/int-value": 5
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:wizard-cantrips-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:true-strike"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:mage-hand"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:prestidigitation"
+                }
+              ]
+            },
+            {
+              "~:orcpub.entity.strict/key": "~:wizard-spells-known",
+              "~:orcpub.entity.strict/options": [
+                {
+                  "~:orcpub.entity.strict/key": "~:comprehend-languages"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:expeditious-retreat"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:magic-missile"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:charm-person"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:burning-hands"
+                },
+                {
+                  "~:orcpub.entity.strict/key": "~:disguise-self"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:armor",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:shield",
+          "~:orcpub.entity.strict/map-value": {
+            "~:orcpub.dnd.e5.character.equipment/quantity": 1,
+            "~:orcpub.dnd.e5.character.equipment/equipped?": true,
+            "~:orcpub.dnd.e5.character.equipment/class-starting-equipment?": true
+          }
+        }
+      ]
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:race",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:halfling",
+        "~:orcpub.entity.strict/selections": [
+          {
+            "~:orcpub.entity.strict/key": "~:subrace",
+            "~:orcpub.entity.strict/option": {
+              "~:orcpub.entity.strict/key": "~:lightfoot"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:alignment",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:lawful-good"
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:background",
+      "~:orcpub.entity.strict/option": {
+        "~:orcpub.entity.strict/key": "~:acolyte",
+        "~:orcpub.entity.strict/selections": [
+          {
+            "~:orcpub.entity.strict/key": "~:skill-proficiency",
+            "~:orcpub.entity.strict/options": [
+              {
+                "~:orcpub.entity.strict/key": "~:investigation"
+              }
+            ]
+          },
+          {
+            "~:orcpub.entity.strict/key": "~:starting-equipment-holy-symbol",
+            "~:orcpub.entity.strict/option": {
+              "~:orcpub.entity.strict/key": "~:amulet"
+            }
+          },
+          {
+            "~:orcpub.entity.strict/key": "~:starting-equipment-prayer-book-wheel",
+            "~:orcpub.entity.strict/option": {
+              "~:orcpub.entity.strict/key": "~:prayer-wheel"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:skill-expertise",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:medicine"
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:investigation"
+        }
+      ]
+    },
+    {
+      "~:orcpub.entity.strict/key": "~:languages",
+      "~:orcpub.entity.strict/options": [
+        {
+          "~:orcpub.entity.strict/key": "~:draconic"
+        },
+        {
+          "~:orcpub.entity.strict/key": "~:gnomish"
+        }
+      ]
+    }
+  ],
+  "~:orcpub.entity.strict/values": {
+    "~:orcpub.dnd.e5.character/character-name": "Channel Test"
+  }
+}
