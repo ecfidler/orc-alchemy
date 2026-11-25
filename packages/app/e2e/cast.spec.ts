@@ -41,11 +41,13 @@ const menu = (page: Page) => page.getByRole("menu", { name: "Cast at a higher le
 const status = statusLine;
 /** The hint line under the control. It is the one line of the control. */
 const hint = (page: Page) => control(page).locator(":scope > p");
-/** The cells of each entry of the open menu. */
-const entries = (page: Page) =>
-  menu(page)
+/** The cells of each entry of the menu. It waits for the menu to open: a read before that gives no entries. */
+async function entries(page: Page) {
+  await expect(menu(page)).toBeVisible();
+  return menu(page)
     .getByRole("menuitem")
     .evaluateAll((items) => items.map((item) => [...item.children].map((cell) => cell.textContent ?? "")));
+}
 
 /** Opens the Spells panel, if it is not open, and shows a spell from its row in the list. */
 async function openSpell(page: Page, name: string) {
