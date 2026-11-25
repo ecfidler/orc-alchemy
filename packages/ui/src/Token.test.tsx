@@ -172,3 +172,18 @@ test("size small marks the token for its small look", () => {
   render(<Token label="Figs" size="small" />);
   expect(document.querySelector<HTMLElement>(".ui-token")!.dataset.size).toBe("small");
 });
+
+test("the three label modes do not mix: props of two modes together are a type error", () => {
+  const popup = { open: false, onOpenChange: () => {}, title: "Plums", children: "Sweet and dark." };
+  const wrong = [
+    // @ts-expect-error onOpen and popup are two modes.
+    <Token key="open-popup" label="Plums" onOpen={() => {}} popup={popup} />,
+    // @ts-expect-error openHint belongs to onOpen, not to popup.
+    <Token key="hint-popup" label="Plums" openHint="Change" popup={popup} />,
+    // @ts-expect-error popupOnHover needs popup.
+    <Token key="hover-plain" label="Plums" popupOnHover />,
+    // @ts-expect-error openName needs a button: onOpen or popup.
+    <Token key="name-plain" label="Plums" openName="Change Plums" />,
+  ];
+  expect(wrong).toHaveLength(4);
+});

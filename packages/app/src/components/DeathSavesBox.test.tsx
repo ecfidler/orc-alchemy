@@ -26,12 +26,22 @@ const failures = () => screen.getByRole("slider", { name: "Death save failures" 
 const dead = () => screen.getByRole("button", { name: "Dead" });
 
 test("without onChange the box shows the counts and takes no clicks, as before", () => {
-  render(<DeathSavesBox saves={{ successes: 3, failures: 3 }} />);
+  render(<DeathSavesBox saves={{ successes: 3, failures: 2 }} />);
   expect(screen.getByRole("img", { name: "Successes: 3 of 3" })).toBeTruthy();
-  expect(screen.getByRole("img", { name: "Failures: 3 of 3" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Failures: 2 of 3" })).toBeTruthy();
   expect(screen.queryByRole("slider")).toBeNull();
   expect(screen.queryByRole("button")).toBeNull();
   expect(screen.queryByText("Dead")).toBeNull();
+});
+
+test("without onChange, three failures or exhaustion level 6 show the text Dead in the place of the failure circles, as the play sheet", () => {
+  for (const props of [{ saves: { successes: 0, failures: 3 } }, { saves: { successes: 1, failures: 1 }, deadOfExhaustion: true }]) {
+    render(<DeathSavesBox {...props} />);
+    expect(document.querySelector("[data-dead-text]")?.textContent).toBe("Dead");
+    expect(screen.queryByRole("img", { name: /^Failures/ })).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    cleanup();
+  }
 });
 
 test("each group is a slider with its state; a click and the arrow keys change it by one", () => {
@@ -112,7 +122,7 @@ test("a change from outside the box does not take the focus", () => {
 
 test("at exhaustion level 6 the label Dead takes the place of the failure circles, as a text and not a button; the counts stay", () => {
   const onChange = vi.fn();
-  render(<DeathSavesBox saves={{ successes: 1, failures: 1 }} exhausted onChange={onChange} />);
+  render(<DeathSavesBox saves={{ successes: 1, failures: 1 }} deadOfExhaustion onChange={onChange} />);
   expect(screen.getByRole("group", { name: "Death saves Dead" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Dead" })).toBeNull();
   expect(screen.queryByRole("slider", { name: "Death save failures" })).toBeNull();
@@ -125,7 +135,7 @@ test("at exhaustion level 6 the label Dead takes the place of the failure circle
 });
 
 test("with three failures and exhaustion level 6, the label is not a button either", () => {
-  render(<DeathSavesBox saves={{ successes: 0, failures: 3 }} exhausted onChange={() => {}} />);
+  render(<DeathSavesBox saves={{ successes: 0, failures: 3 }} deadOfExhaustion onChange={() => {}} />);
   expect(screen.queryByRole("button", { name: "Dead" })).toBeNull();
   expect(screen.getByRole("group", { name: "Death saves Dead" })).toBeTruthy();
 });

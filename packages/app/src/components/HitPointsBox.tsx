@@ -108,9 +108,10 @@ export function HitPointsBox({ current, max, caption = null, temp, temporary, on
               <span className={`text-[34px] leading-[1.1] tabular-nums group-hover/part:underline group-focus-visible/part:underline ${UNDERLINE}`}>
                 {currentMax}
               </span>
-              {/* The space of the caption is always there, so a caption that comes moves nothing. It needs two lines where the
-                part is narrow: in a row of three boxes, and in a very narrow panel. */}
-              <span data-hp-caption="" className={`${CAPTION} min-h-[1lh] text-balance @max-[329px]/vitals:min-h-[2lh] @min-[600px]/vitals:min-h-[2lh]`}>
+              {/* The one line of the caption is always there, so a caption that comes moves nothing. The line does not wrap: where
+                the part is narrow, it runs into the padding on both sides by the same width. In a very narrow panel, its
+                letters are closer together, so that it stays in the box. */}
+              <span data-hp-caption="" className={`${CAPTION} flex min-h-[1lh] min-w-0 justify-center whitespace-nowrap @max-[329px]/vitals:tracking-[0.03em]`}>
                 {caption}
               </span>
             </Button>,

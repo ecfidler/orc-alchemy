@@ -200,7 +200,7 @@ function changeHitDice(sheet: Sheet, action: HitDiceAction): string {
  * (ORC-323). Returns the text of the status line.
  */
 function changeConditions(sheet: Sheet, action: ConditionAction): string {
-  return changeWithStatus((entity) => applyConditions(engine(), entity, action, sheet.baseMaxHitPoints)).status;
+  return changeWithStatus((entity) => applyConditions(engine(), entity, sheet.baseMaxHitPoints, action)).status;
 }
 
 /**
@@ -245,6 +245,12 @@ function SheetPage() {
   const [status, setStatus] = useState<{ id: string | undefined; text: string; key: number; note?: ConcentrationNote }>({ id: undefined, text: "", key: 0 });
   const statusText = status.id === openId ? status.text : "";
   const say = (text: string, note?: ConcentrationNote) => setStatus((last) => ({ id: openId, text, key: last.key + 1, note }));
+  // An action outside the vitals panel (a cast, a change of the spent slots) keeps the text of the line, but it is the next action, so it takes the note away.
+  const dropNote = () => setStatus((last) => ({ ...last, note: undefined }));
+  const spend = (sheet: Sheet, group: SlotGroup, spent: number) => {
+    spendSlots(sheet, group, spent);
+    dropNote();
+  };
   return (
     <OpenCharacter
       actions={(id, sheet) => (
@@ -264,13 +270,13 @@ function SheetPage() {
           {/* The sheet and the Spells panel change the spent slots with the same handler, so they show the same state (ORC-286). */}
           <CharacterSheet
             sheet={sheet}
-            onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
+            onSpendSlots={(group, spent) => spend(sheet, group, spent)}
             onOpenSpells={(at) => setSpells({ open: true, at })}
             play={{
               status: statusText,
               statusKey: status.key,
               concentrationNote: status.id === openId ? status.note : undefined,
-              onDismissNote: () => setStatus((last) => ({ ...last, note: undefined })),
+              onDismissNote: dropNote,
               onHitPoints: (action) => {
                 const { status: text, note } = changeHitPoints(sheet, action);
                 say(text, note);
@@ -296,10 +302,13 @@ function SheetPage() {
               classes={sheet.classes}
               at={spells.at}
               builderHref={`/build/${openId}?step=${SPELLS_STEP}`}
-              onSpendSlots={(group, spent) => spendSlots(sheet, group, spent)}
+              onSpendSlots={(group, spent) => spend(sheet, group, spent)}
               onPrepare={prepareSpell}
               concentration={sheet.concentration}
-              onCast={(action) => castSpell(sheet, action)}
+              onCast={(action) => {
+                dropNote();
+                return castSpell(sheet, action);
+              }}
               uses={featureUses(sheet)}
             />
           )}

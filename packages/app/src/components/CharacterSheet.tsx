@@ -201,7 +201,7 @@ export function CharacterSheet({
             className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
           />
           <HitDiceBox dice={sheet.hitDice} onAction={play?.onHitDice} popupWidthOf={narrow ? vitals : null} />
-          {!preview && <DeathSavesBox saves={sheet.deathSaves} exhausted={deadOfExhaustion(sheet.exhaustion)} onChange={play?.onDeathSaves} />}
+          {!preview && <DeathSavesBox saves={sheet.deathSaves} deadOfExhaustion={deadOfExhaustion(sheet.exhaustion)} onChange={play?.onDeathSaves} />}
         </div>
         <ConditionsBox sheet={sheet} onAction={play?.onConditions} popupWidthOf={narrow ? vitals : null} />
         {play && (

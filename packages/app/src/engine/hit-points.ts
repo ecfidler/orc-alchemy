@@ -17,12 +17,12 @@ export interface HitPointState {
    */
   max: number;
   /**
-   * The hit point maximum of the engine, before exhaustion; `max` when it is
-   * not given. The rules write null (full hit points) only at it. At a
-   * halved maximum they write the number, so that the hit points do not
-   * come back when the exhaustion level goes down.
+   * The hit point maximum of the engine, before exhaustion. The rules write
+   * null (full hit points) only at it. At a halved maximum they write the
+   * number, so that the hit points do not come back when the exhaustion
+   * level goes down.
    */
-  full?: number;
+  full: number;
   /** The temporary hit points, 0 when there are none. */
   temp: number;
   deathSaves: DeathSaves;
@@ -56,7 +56,7 @@ const NO_SAVES: DeathSaves = { successes: 0, failures: 0 };
 const whole = (amount: number) => (Number.isFinite(amount) ? Math.max(0, Math.trunc(amount)) : 0);
 
 /** The current hit points to write: null at the maximum of the engine or above. */
-const toStored = (current: number, state: HitPointState) => (current >= (state.full ?? state.max) ? null : Math.max(0, current));
+const toStored = (current: number, state: HitPointState) => (current >= state.full ? null : Math.max(0, current));
 
 /**
  * Damage (spec, "Damage"). The damage takes the temporary hit points first.

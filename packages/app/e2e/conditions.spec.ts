@@ -220,6 +220,21 @@ test("after Damage with a mark, the yellow note gives the DC in the space that t
   expect(await layout(page)).toEqual(before);
 });
 
+test("a cast and a change of the spent slots are the next action: they take the note away and keep the text of the line", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openSheet(page, CLERIC, { [CONCENTRATION]: "~:bless" });
+  await hitPointsAct(page, "3", "Damage");
+  await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 10. Dismiss");
+  await castBless(page);
+  await expect(concentrationNote(page)).toHaveText("");
+  await expect(statusLine(page)).toHaveText("3 damage.");
+  await hitPointsAct(page, "3", "Damage");
+  await expect(concentrationNote(page)).toHaveText("Concentration on Bless: Constitution save, DC 10. Dismiss");
+  await page.getByRole("slider", { name: "1st-level slots" }).locator(".ui-slot-circle").first().click();
+  await expect(concentrationNote(page)).toHaveText("");
+  await expect(statusLine(page)).toHaveText("3 damage.");
+});
+
 test("on a phone the box is on the Stats tab, under the hit points, and a rule popup has the width of the vitals panel", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openSheet(page, FIGHTER, { [CONDITIONS]: { "~#set": ["~:grappled"] } });

@@ -43,7 +43,6 @@ const restButton = (page: Page) => page.getByRole("button", { name: "Rest", exac
 const dialog = (page: Page, name = "Short rest") => page.getByRole("dialog", { name });
 const row = (page: Page, die: string) => dialog(page).getByRole("group", { name: die, exact: true });
 const changes = (page: Page) => dialog(page).getByRole("region", { name: "This rest will change" }).getByRole("listitem");
-const status = (page: Page) => statusLine(page);
 
 async function openShortRest(page: Page) {
   await restButton(page).click();
@@ -176,7 +175,7 @@ test("Finish writes all the changes at once and the status line says so; Cancel 
   await dialog(page).getByRole("button", { name: "One more 1st-level slot" }).click();
   await dialog(page).getByRole("button", { name: "Finish" }).click();
   await expect(dialog(page)).toHaveCount(0);
-  await expect(status(page)).toHaveText("Short rest finished.");
+  await expect(statusLine(page)).toHaveText("Short rest finished.");
   await expect(page.getByRole("button", { name: "Hit points, 62 of 91" })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Hit dice, / })).toHaveAccessibleName("Hit dice, 2 of 3 d10, 5 of 7 d8, 1 of 1 d6");
   // The whole stored record of the play state, after the save.
@@ -203,7 +202,7 @@ test("the pact slots come back; with full hit points the dice controls stay in p
   await expect(changes(page)).toHaveText(["Pact Magic slots+2", "Arcane RecoveryNo change"]);
   await expect(dialog(page).getByRole("region", { name: "Arcane Recovery" })).toContainText("No slot that it can give back is spent.");
   await dialog(page).getByRole("button", { name: "Finish" }).click();
-  await expect(status(page)).toHaveText("Short rest finished.");
+  await expect(statusLine(page)).toHaveText("Short rest finished.");
   await expect.poll(async () => (await storedValues(page))["~:orcpub.dnd.e5.spells/slots-used"]).toBeUndefined();
   await openShortRest(page);
   await expect(changes(page)).toHaveText(["Arcane RecoveryNo change"]);
@@ -213,7 +212,7 @@ test("the pact slots come back; with full hit points the dice controls stay in p
   await expect(dialog(page).getByRole("region", { name: "This rest will change" })).toHaveText("This rest will changeNothing will change.");
   await expect(row(page, "d10").getByRole("button", { name: "Roll for me" })).toBeDisabled();
   await dialog(page).getByRole("button", { name: "Finish" }).click();
-  await expect(status(page)).toHaveText("Short rest finished.");
+  await expect(statusLine(page)).toHaveText("Short rest finished.");
 });
 
 test("keyboard: the menu opens the dialog with the focus on the first field; the dialog holds the focus; the focus goes back to Rest at the close", async ({
@@ -315,7 +314,7 @@ test("Long rest lists its changes, writes them at once, and keeps inspiration an
   await expect(dialog(page, "Long rest").getByRole("textbox", { name: "Arcane Recovery" })).toHaveValue("1");
   await dialog(page, "Long rest").getByRole("button", { name: "Finish" }).click();
   await expect(dialog(page, "Long rest")).toHaveCount(0);
-  await expect(status(page)).toHaveText("Long rest finished.");
+  await expect(statusLine(page)).toHaveText("Long rest finished.");
   await expect(restButton(page)).toBeFocused();
   const expected: Record<string, unknown> = { ...before, "~:orc-alchemy.play/exhaustion": 1, "~:orc-alchemy.play/hit-dice-spent": { "~i6": 2 } };
   for (const key of [
@@ -344,7 +343,7 @@ test("Long rest with both checkboxes off keeps the exhaustion level and the Dawn
   await dialog(page, "Long rest").getByRole("checkbox", { name: "Dawn came during the rest" }).click();
   await expect(dialog(page, "Long rest").getByRole("textbox", { name: "Arcane Recovery" })).toBeDisabled();
   await dialog(page, "Long rest").getByRole("button", { name: "Finish" }).click();
-  await expect(status(page)).toHaveText("Long rest finished.");
+  await expect(statusLine(page)).toHaveText("Long rest finished.");
   await expect
     .poll(() => storedValues(page))
     .toEqual({
@@ -404,7 +403,7 @@ test("Dawn gives back the number in each field, and a field at 0 says that nothi
   expect(await layout(page, "Dawn")).toEqual(size);
   // Finish with nothing to change works, and changes nothing.
   await dialog(page, "Dawn").getByRole("button", { name: "Finish" }).click();
-  await expect(status(page)).toHaveText("Dawn finished.");
+  await expect(statusLine(page)).toHaveText("Dawn finished.");
   await page.waitForTimeout(800);
   expect(await storedValues(page)).toEqual(before);
   await openRest(page, "Dawn");

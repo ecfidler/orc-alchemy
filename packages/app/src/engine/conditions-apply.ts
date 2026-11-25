@@ -27,7 +27,7 @@ import {
  * written as a number, so they do not come back when the level goes down.
  * Level 6 changes no hit points and no death saves.
  */
-export function applyConditions(e: Engine, entity: StrictEntity, action: ConditionAction, max: number): { entity: StrictEntity; status: string } {
+export function applyConditions(e: Engine, entity: StrictEntity, max: number, action: ConditionAction): { entity: StrictEntity; status: string } {
   if (action.kind === "exhaustion") return applyExhaustion(e, entity, action.level, max);
   if (action.kind === "end-concentration") {
     if (concentration(entity) === null) return { entity, status: "" };

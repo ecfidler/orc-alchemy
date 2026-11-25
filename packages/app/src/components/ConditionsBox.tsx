@@ -107,8 +107,7 @@ export function ConditionsBox({ sheet, onAction, popupWidthOf }: ConditionsBoxPr
             <Menu
               label="Add condition"
               className="ui-chip-add"
-              items={menu.map((entry) => [entry.condition, entry.name] as const)}
-              note={(condition) => menu.find((entry) => entry.condition === condition)?.note || undefined}
+              items={menu.map((entry) => [entry.condition, entry.name, entry.note || undefined] as const)}
               onPick={(condition) => onAction(condition === EXHAUSTION ? { kind: "exhaustion", level: 1 } : { kind: "add", condition })}
             />
           )}

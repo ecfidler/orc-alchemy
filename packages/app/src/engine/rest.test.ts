@@ -490,7 +490,7 @@ test("the Long rest row Hit points goes to the maximum after the rest: 'Ate and 
   const row = (rest: ReturnType<typeof longRest>, ate: boolean) => longRestRows(rest, { ate }).find((r) => r.key === "hit points")?.change;
   // At level 4 with full hit points, the sheet shows the halved maximum.
   const four = longRest(sheetOf(setExhaustion(e, wizard5(), 4)));
-  expect(four).toMatchObject({ current: half, max: half, baseMax: full, exhaustion: 4 });
+  expect(four).toMatchObject({ current: half, baseMax: full, exhaustion: 4 });
   expect(row(four, true)).toBe(`${half} → ${full} / ${full}`);
   // "Ate and drank" off: the row stays, with no change.
   expect(row(four, false)).toBeNull();

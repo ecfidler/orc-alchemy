@@ -692,7 +692,10 @@ the ability highlight, inspiration and the AC pick.
   part is a button that opens a popup. When the record has no current HP,
   show the max as the current value. At 0, the current number is
   `--caution`. The caption "MAXIMUM HALVED · EXHAUSTION" shows under the
-  box at exhaustion level 4, in a space that the box keeps.
+  box at exhaustion level 4, in a space of one line that the box keeps.
+  The caption does not wrap. Where the part is narrow, it runs into the
+  padding on both sides, and in a vitals panel narrower than 330px its
+  letter spacing is 0.03em.
 * Hit dice: a button with the dice left for each die size ("3 / 5" and
   "d10") and the "Hit dice" label. It opens a popup.
 * Death saves: two rows of three slot circles, successes `--success` and

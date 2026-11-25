@@ -4,9 +4,10 @@ import { useRefocus } from "./refocus.ts";
 import { SmallPopup, type SmallPopupProps } from "./SmallPopup.tsx";
 
 /** The look of a token: "plain" (the default), "dashed" for a token that the app adds by itself, "bubble" for the use bubble fill. */
-export type TokenLook = "plain" | "dashed" | "bubble";
+type TokenLook = "plain" | "dashed" | "bubble";
 
-export type TokenProps = {
+/** The props of every token. */
+type TokenBaseProps = {
   /** The text of the token. A long text wraps inside the token. */
   label: string;
   /** Gets a click on the X. Leave it out for a token with no X. */
@@ -15,25 +16,6 @@ export type TokenProps = {
   name?: string;
   /** The X's whole name, when "Remove" is not the right word, for example "Put back Pears". */
   removeName?: string;
-  /** With it, the text is a button that calls it, for example to open a list that changes the pick. */
-  onOpen?: () => void;
-  /** The name of the text's button, when it is not `label`, for example "Change basket Pears". */
-  openName?: string;
-  /** A short word after the text in the button, in small muted type, for example "Change". It is not a part of the button's name. */
-  openHint?: string;
-  /**
-   * With it, the text is a button that opens a SmallPopup under the token, with this title and these controls or this
-   * text. The owner controls `open`. The button is named `openName`, or the label.
-   */
-  popup?: Omit<SmallPopupProps, "trigger" | "anchor" | "takeFocus">;
-  /**
-   * With `popup`: a mouse over the token opens the popup too, and the mouse
-   * leaving the token closes it, unless a click opened it. A click on the
-   * text while the mouse holds it open keeps it open, and so does a press on
-   * another control of the token. The popup that the mouse opens takes no
-   * focus. A touch does not open it.
-   */
-  popupOnHover?: boolean;
   /** A short note after the text, in small muted type, for example "added by the app". It is a part of the token's text. */
   note?: string;
   /** "dashed": a dashed border. "bubble": the use bubble fill and border. */
@@ -49,6 +31,46 @@ export type TokenProps = {
   /** Layout classes. */
   className?: string;
 };
+
+/** The text is a plain text. */
+type PlainLabel = { onOpen?: never; openName?: never; openHint?: never; popup?: never; popupOnHover?: never };
+
+/** The text is a button that calls `onOpen`. */
+type OpenLabel = {
+  /** The text is a button that calls it, for example to open a list that changes the pick. */
+  onOpen: () => void;
+  /** The name of the text's button, when it is not `label`, for example "Change basket Pears". */
+  openName?: string;
+  /** A short word after the text in the button, in small muted type, for example "Change". It is not a part of the button's name. */
+  openHint?: string;
+  popup?: never;
+  popupOnHover?: never;
+};
+
+/** The text is a button that opens a SmallPopup under the token. */
+type PopupLabel = {
+  /** The title and the controls or the text of the SmallPopup. The owner controls `open`. */
+  popup: Omit<SmallPopupProps, "trigger" | "anchor" | "takeFocus">;
+  /** The name of the text's button, when it is not `label`. */
+  openName?: string;
+  /**
+   * A mouse over the token opens the popup too, and the mouse leaving the
+   * token closes it, unless a click opened it. A click on the text while the
+   * mouse holds it open keeps it open, and so does a press on another
+   * control of the token. The popup that the mouse opens takes no focus. A
+   * touch does not open it.
+   */
+  popupOnHover?: boolean;
+  onOpen?: never;
+  openHint?: never;
+};
+
+/**
+ * The props of a token. The text has one of three modes: a plain text, a
+ * button with `onOpen` (and `openHint`), or a button with `popup` (and
+ * `popupOnHover`). Props of two modes together are a type error.
+ */
+export type TokenProps = TokenBaseProps & (PlainLabel | OpenLabel | PopupLabel);
 
 /**
  * One pick: a small box with its text and an X. The X is named
@@ -80,7 +102,7 @@ export function Token({
   const [hovered, setHovered] = useState(false);
   const hover = Boolean(popup && popupOnHover);
   const hoverOnly = hover && hovered && !popup?.open;
-  const onOpenChange = (next: boolean, reason?: string) => {
+  const onOpenChange: SmallPopupProps["onOpenChange"] = (next, reason) => {
     if (!next && hoverOnly) {
       // A click on the text makes the popup that the mouse opened an open by the click.
       if (reason === "trigger-press") return popup?.onOpenChange(true, reason);

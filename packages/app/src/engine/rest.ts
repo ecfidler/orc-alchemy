@@ -317,9 +317,8 @@ export function hitDiceBack(dice: readonly HitDie[]): DiceBack[] {
 
 /** What a Long rest can change, read from the sheet when the dialog opens. */
 export interface LongRest {
-  /** The hit points before the rest, as the sheet shows them, and the maximum that shows. */
+  /** The hit points before the rest, as the sheet shows them. */
   current: number;
-  max: number;
   /** The hit point maximum of the engine, before exhaustion. */
   baseMax: number;
   temp: number;
@@ -359,7 +358,6 @@ type LongRestSheet = Pick<
 export function longRest(sheet: LongRestSheet): LongRest {
   return {
     current: sheet.currentHitPoints ?? sheet.maxHitPoints,
-    max: sheet.maxHitPoints,
     baseMax: sheet.baseMaxHitPoints,
     temp: sheet.tempHitPoints,
     slots: (sheet.spellcasting?.slots ?? []).filter(({ spent }) => spent > 0).map(({ level, spent }) => ({ level, spent })),

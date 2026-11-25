@@ -16,26 +16,26 @@ const warlock = (): StrictEntity => JSON.parse(readFileSync(join(import.meta.dir
 
 test("add and remove write the whole set of conditions in the order of the list, and the rest of the record stays", () => {
   const e = engine();
-  const added = applyConditions(e, setConditions(e, warlock(), ["prone"]), { kind: "add", condition: "blinded" }, MAX);
+  const added = applyConditions(e, setConditions(e, warlock(), ["prone"]), MAX, { kind: "add", condition: "blinded" });
   expect(added).toEqual({ entity: setConditions(e, warlock(), ["blinded", "prone"]), status: "Blinded added." });
-  const removed = applyConditions(e, added.entity, { kind: "remove", condition: "prone" }, MAX);
+  const removed = applyConditions(e, added.entity, MAX, { kind: "remove", condition: "prone" });
   expect(removed).toEqual({ entity: setConditions(e, warlock(), ["blinded"]), status: "Prone removed." });
   // The last condition takes the key away: the record is as it was.
-  expect(applyConditions(e, removed.entity, { kind: "remove", condition: "blinded" }, MAX)).toEqual({ entity: warlock(), status: "Blinded removed." });
+  expect(applyConditions(e, removed.entity, MAX, { kind: "remove", condition: "blinded" })).toEqual({ entity: warlock(), status: "Blinded removed." });
 });
 
 test("an action that changes nothing keeps the record and gives no status", () => {
   const e = engine();
   const entity = setConditions(e, warlock(), ["prone"]);
-  expect(applyConditions(e, entity, { kind: "add", condition: "prone" }, MAX)).toEqual({ entity, status: "" });
-  expect(applyConditions(e, entity, { kind: "remove", condition: "poisoned" }, MAX)).toEqual({ entity, status: "" });
-  expect(applyConditions(e, entity, { kind: "end-concentration", name: "Bless" }, MAX)).toEqual({ entity, status: "" });
+  expect(applyConditions(e, entity, MAX, { kind: "add", condition: "prone" })).toEqual({ entity, status: "" });
+  expect(applyConditions(e, entity, MAX, { kind: "remove", condition: "poisoned" })).toEqual({ entity, status: "" });
+  expect(applyConditions(e, entity, MAX, { kind: "end-concentration", name: "Bless" })).toEqual({ entity, status: "" });
 });
 
 test("the X of the concentration mark removes the mark and nothing else", () => {
   const e = engine();
   const entity = setConcentration(e, setConditions(e, warlock(), ["prone"]), "hold-person");
-  expect(applyConditions(e, entity, { kind: "end-concentration", name: "Hold Person" }, MAX)).toEqual({
+  expect(applyConditions(e, entity, MAX, { kind: "end-concentration", name: "Hold Person" })).toEqual({
     entity: setConditions(e, warlock(), ["prone"]),
     status: "Concentration on Hold Person ended.",
   });
@@ -74,7 +74,7 @@ const sheetOf = (entity: StrictEntity) => toSheet(engine().evaluate(entity).buil
 /** The hit point maximum of the engine for the warlock, and its half. */
 const full = () => sheetOf(warlock()).baseMaxHitPoints;
 const half = () => Math.floor(full() / 2);
-const exhaust = (entity: StrictEntity, level: number) => applyConditions(engine(), entity, { kind: "exhaustion", level }, full());
+const exhaust = (entity: StrictEntity, level: number) => applyConditions(engine(), entity, full(), { kind: "exhaustion", level });
 
 test("the menu adds exhaustion at level 1; the circles change it; level 0 takes the key away", () => {
   const e = engine();

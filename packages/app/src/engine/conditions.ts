@@ -36,9 +36,9 @@ export interface StatusState {
 
 /**
  * True when the app adds the Unconscious token by itself: the hit points are
- * 0 and the character is not dead (three failures, or exhaustion level 6). A Stable character keeps
- * it. The token is not in the record. When the record has Unconscious, that
- * token shows in its place.
+ * 0 and the character is not dead (three failures, or exhaustion level 6).
+ * A Stable character keeps it. The token is not in the record. When the
+ * record has Unconscious, that token shows in its place.
  */
 export const unconsciousAtZero = (state: StatusState) =>
   state.currentHitPoints === 0 &&

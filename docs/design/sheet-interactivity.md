@@ -122,8 +122,9 @@ The vitals panel has one status line with a reserved height. It shows
 the text of the last action, for example "12 damage (5 from the
 temporary hit points)." It is a polite live region. The next action
 replaces the text. The line starts empty when the sheet opens. Under it,
-the panel keeps the height of one note line for
-[the concentration note](#the-concentration-note).
+the panel keeps the space of
+[the concentration note](#the-concentration-note): the height of one
+note line, or of two lines in a vitals panel narrower than 480px.
 
 # The record
 
@@ -430,7 +431,10 @@ The dialog is one page with three sections.
 
 The dialog lists these changes.
 
-* Hit points go to full (the app writes `null`).
+* Hit points go to the maximum that applies after the rest. The app
+  writes `null` only at the engine value. From exhaustion level 4, it
+  writes the halved number. See
+  [The hit point maximum](#the-hit-point-maximum).
 * Temporary hit points go to 0.
 * All spell slots come back, Pact Magic slots also.
 * Each spent use of the groups `short-rest`, `rest` and `long-rest`
@@ -747,7 +751,9 @@ The app applies these effects. It rounds down to a whole number, with no
   shows, with the cause of that result. The caption takes the place of
   the qualifier of the speed, for example "UNARMORED".
 * **Hit point maximum.** The caption under the Hit points box is
-  "MAXIMUM HALVED · EXHAUSTION". The box keeps the space for it.
+  "MAXIMUM HALVED · EXHAUSTION". It is one line at each width, centred
+  on the hit points part, and it can run a few pixels past that part.
+  The box keeps the space of one line for it.
 
 # Inspiration
 

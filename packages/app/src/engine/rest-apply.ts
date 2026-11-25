@@ -2,11 +2,10 @@
 // rest can change (rest.ts), keeps only the picks that the rules allow, and
 // writes all the changes together with play.ts and spells.ts, for one sheet
 // change.
-import { maxHalved, shownMaxHitPoints } from "./conditions.ts";
+import { maxHalved } from "./conditions.ts";
 import type { Engine, StrictEntity } from "./engine.ts";
 import { applyHitPoints } from "./hit-points-apply.ts";
 import {
-  exhaustion,
   type FeatureUsesKey,
   hitDiceSpent,
   rechargeGroup,
@@ -28,6 +27,7 @@ import {
   type LongRest,
   longRest,
   longRestGroup,
+  maxAfter,
   type RestAction,
   type RestUse,
   restStatus,
@@ -127,9 +127,8 @@ function applyShortRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest:
  */
 function applyLongRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest: LongRest, action: Extract<RestAction, { kind: "long" }>) {
   // The hit points go to the maximum after the rest: full (no value), or the halved maximum as a number from level 4.
-  const level = exhaustion(entity);
-  const after = exhaustionAfter({ exhaustion: level }, action.ate);
-  let next: StrictEntity = setCurrentHitPoints(e, entity, maxHalved(after) ? shownMaxHitPoints(sheet.baseMaxHitPoints, after) : null);
+  const after = exhaustionAfter(rest, action.ate);
+  let next: StrictEntity = setCurrentHitPoints(e, entity, maxHalved(after) ? maxAfter(rest, action.ate) : null);
   next = setTempHitPoints(e, next, 0);
   next = setDeathSaves(e, next, { successes: 0, failures: 0 });
   next = setConcentration(e, next, null);
@@ -145,7 +144,7 @@ function applyLongRest(e: Engine, entity: StrictEntity, sheet: RestSheet, rest: 
     }
     next = setHitDiceSpent(e, next, spent);
   }
-  if (after !== level) next = setExhaustion(e, next, after);
+  if (after !== rest.exhaustion) next = setExhaustion(e, next, after);
   const uses = usesWithout(entity, longRestGroup);
   return setUsesSpent(e, next, action.dawn ? giveBackDawn(uses, rest.dawn, action.back) : uses);
 }

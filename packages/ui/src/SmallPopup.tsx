@@ -5,10 +5,11 @@ export type SmallPopupProps = {
   open: boolean;
   /**
    * Gets true from a click on the trigger, and false from a second click on
-   * it, Escape and a click outside. `reason` says why: "trigger-press",
-   * "escape-key", "outside-press" or another Base UI reason.
+   * it, Escape and a click outside. `reason` says why, as the Base UI
+   * Popover says it: "trigger-press", "escape-key", "outside-press" and
+   * others.
    */
-  onOpenChange: (open: boolean, reason?: string) => void;
+  onOpenChange: (open: boolean, reason?: BasePopover.Root.ChangeEventReason) => void;
   /** The title at the top. It names the popup. */
   title: string;
   /**

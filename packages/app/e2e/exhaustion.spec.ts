@@ -12,6 +12,9 @@ import { aboveBox, layout, openWithValues, statusLine, storedValues } from "./pl
 const FIGHTER = join(import.meta.dirname, "../../../fixtures/characters/fighter-5.strict.json");
 
 const EXHAUSTION = "~:orc-alchemy.play/exhaustion";
+const TEMP = "~:orc-alchemy.play/temp-hit-points";
+/** warlock-20: a hit point maximum of 123. */
+const WARLOCK = join(import.meta.dirname, "warlock-20.strict.json");
 const CURRENT = "~:orcpub.dnd.e5.character/current-hit-points";
 
 const box = (page: Page) => page.getByRole("group", { name: "Conditions and statuses" });
@@ -23,9 +26,39 @@ const hitPoints = (page: Page) => page.getByRole("button", { name: /^Hit points,
 const deathSaves = (page: Page) => page.getByRole("group", { name: /^Death saves/ });
 const effects = (page: Page) => page.getByRole("dialog", { name: "Exhaustion" });
 
+/**
+ * Where the text of the caption under current / max is: its number of lines, its space to the text of the Temporary
+ * part on the left and to the right edge of the box, and how far it runs past the part on each side.
+ */
+const hpCaptionPlace = (page: Page) =>
+  hitPoints(page).evaluate((part) => {
+    const text = document.createRange();
+    text.selectNodeContents(part.querySelector("[data-hp-caption]")!);
+    const box = part.closest(".ui-framed-box")!.getBoundingClientRect();
+    const label = document.createRange();
+    label.selectNodeContents(part.closest(".ui-framed-box")!.querySelector("[data-hp-part]:not([aria-label^='Hit points']) .ui-label")!);
+    const t = text.getBoundingClientRect();
+    const p = part.getBoundingClientRect();
+    return {
+      lines: new Set([...text.getClientRects()].map((r) => Math.round(r.top))).size,
+      fromTemporary: t.left - label.getBoundingClientRect().right,
+      fromBoxEdge: box.right - t.right,
+      past: [p.left - t.left, t.right - p.right].map((n) => Math.round(n)),
+    };
+  });
+
+/** The caption is one line, centred on the part, in the box and clear of the text of the Temporary part. */
+async function expectCaptionInBox(page: Page) {
+  const place = await hpCaptionPlace(page);
+  expect(place.lines).toBe(1);
+  expect(Math.abs(place.past[0]! - place.past[1]!)).toBeLessThanOrEqual(1);
+  expect(place.fromTemporary).toBeGreaterThan(2);
+  expect(place.fromBoxEdge).toBeGreaterThan(1);
+}
+
 /** Opens the sheet of the fighter, which is on the Stats tab of a phone. */
-async function openSheet(page: Page, values: Record<string, unknown> = {}) {
-  await openWithValues(page, FIGHTER, values);
+async function openSheet(page: Page, values: Record<string, unknown> = {}, file = FIGHTER) {
+  await openWithValues(page, file, values);
   if ((page.viewportSize()?.width ?? 1280) < 720) await expect(page.getByRole("tab", { name: "Stats" })).toHaveAttribute("aria-selected", "true");
   await expect(box(page)).toBeVisible();
 }
@@ -175,8 +208,8 @@ for (const [width, height] of [
     await expect(hitPoints(page)).toHaveAttribute("aria-label", "Hit points, 27 of 27. Maximum halved\u00a0· Exhaustion");
     await expect(hpCaption).toHaveText("Maximum halved\u00a0· Exhaustion");
     await expect(hpCaption).toHaveCSS("text-transform", "uppercase");
-    // The caption fits in its part.
-    expect(await hpCaption.evaluate((caption) => caption.scrollWidth <= caption.clientWidth)).toBe(true);
+    // The caption is one line in the box, clear of the Temporary part.
+    await expectCaptionInBox(page);
     await expect(statusLine(page)).toHaveText("Exhaustion 3 → 4, hit points 40 → 27.");
     await expect.poll(async () => (await storedValues(page))[CURRENT]).toBe(27);
     expect(await layout(page), "level 4").toEqual(one);
@@ -207,6 +240,37 @@ for (const [width, height] of [
     await expect(hpCaption).toHaveText("");
     await page.mouse.move(0, 0);
     expect(await layout(page), "back at level 3").toEqual(one);
+  });
+}
+
+for (const [width, height] of [
+  [1280, 900],
+  [390, 844],
+  [320, 700],
+] as const) {
+  test(`at ${width}px the caption under current / max is one line, with and without temporary hit points and with a 3-digit maximum`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    // The place and size of the Hit points box and of its parts.
+    const hpBox = () =>
+      hitPoints(page).evaluate((part) =>
+        [part.closest(".ui-framed-box")!, ...part.closest(".ui-framed-box")!.querySelectorAll("[data-hp-part], [data-hp-caption]")].map((element) => {
+          const { x, y, width, height } = element.getBoundingClientRect();
+          return [x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
+        }),
+      );
+    for (const [file, temp] of [
+      [FIGHTER, 0],
+      [FIGHTER, 15],
+      [WARLOCK, 155],
+    ] as const) {
+      // The box keeps its size and its parts their places: the box with the caption is the box without it.
+      await openSheet(page, { [TEMP]: temp }, file);
+      const before = await hpBox();
+      await openSheet(page, { [TEMP]: temp, [EXHAUSTION]: 4 }, file);
+      await expect(hitPoints(page).locator("[data-hp-caption]")).toHaveText("Maximum halved\u00a0· Exhaustion");
+      await expectCaptionInBox(page);
+      expect(await hpBox()).toEqual(before);
+    }
   });
 }
 

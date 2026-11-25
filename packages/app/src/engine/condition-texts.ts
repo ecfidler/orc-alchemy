@@ -11,7 +11,7 @@ export const CONDITION_TEXTS: Record<Condition, readonly string[]> = {
   charmed: ["You cannot attack the charmer or target it with harmful effects.", "The charmer has advantage on social checks with you."],
   deafened: ["You cannot hear. A check that needs hearing fails."],
   frightened: ["Disadvantage on checks and attacks while the source of fear is in sight.", "You cannot move closer to the source of fear by choice."],
-  grappled: ["Your speed is 0, and no bonus to speed applies.", "It ends when the grappler is incapacitated or you leave its reach."],
+  grappled: ["Your speed is 0, and no bonus to speed applies.", "It ends when the grappler is incapacitated, or when an effect takes you out of its reach."],
   incapacitated: ["You cannot take actions or reactions."],
   invisible: [
     "Others cannot see you without magic or a special sense; you count as heavily obscured.",
@@ -23,10 +23,10 @@ export const CONDITION_TEXTS: Record<Condition, readonly string[]> = {
     "A hit from within 5 feet is a critical hit.",
   ],
   petrified: [
-    "You turn to stone with what you wear and carry. You stop aging.",
+    "You turn to stone with the nonmagical things you wear and carry. You stop aging.",
     "You are incapacitated, cannot move or speak, and know nothing around you.",
     "You fail Strength and Dexterity saves. Attacks against you have advantage.",
-    "You resist all damage, and poison and disease stop.",
+    "You resist all damage. Poison and disease cannot affect you; any you have already is suspended.",
   ],
   poisoned: ["Disadvantage on attack rolls and ability checks."],
   prone: [

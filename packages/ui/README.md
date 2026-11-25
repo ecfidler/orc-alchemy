@@ -221,8 +221,9 @@ bun run test       # vitest
     of actions. A pick of one of its `items` calls `onPick`. `icon` shows
     a pixel icon before the label, as on `Button`. `buttonRef` gives a ref
     to the button, for example to give the focus back to it when a dialog
-    that an item opened closes. `note` gives an item a short note in small
-    muted type at the end of its line; the note is a part of its name.
+    that an item opened closes. An item (`MenuItem`) is
+    `[value, text, note?]`: the note is short, in small muted type at the
+    end of its line, and a part of the item's name.
   - Combobox, Autocomplete and Menu take their list styles from
     `src/select.css`. Menu takes `className` for its button.
   - `SplitButton`: a `Button` with an arrow part that opens a Base UI
@@ -266,25 +267,30 @@ bun run test       # vitest
     "Remove {label}" (or "Remove {name}", or `removeName` whole) that
     calls `onRemove`. Without `onRemove` it has no X. A long label wraps
     inside it. Its `children` are a small control after the label, for
-    example a small NumberToggle. With `onOpen`, the label is a button
-    named `openName` (or the label), with an optional muted `openHint`
-    such as "Change", for a slot that holds one value: the button opens a
-    list for a new value. `marked` gives a thicker border, a note-yellow
-    bar on the left and semibold text, for example for a changed value;
-    say so in a name too. With `popup` (the props of a `SmallPopup` but
-    the trigger and the anchor), the label is a button named `openName`
-    (or the label) that opens a SmallPopup under the token; the owner
-    controls `open`. With `popupOnHover` too, a mouse over the token opens
-    that popup with no focus move, and the mouse leaving the token closes
-    it, unless a click opened it. A press on the token's other controls
-    keeps it open; a touch does not open it. `note` is a
-    short muted text after the label, a part of the token's text. `look` is "plain" (the default), "dashed" (a
-    dashed border, for a token that the app adds by itself) or "bubble"
-    (the `--bubble` fill and an `--info` border). With `groupName`, the
-    token is a group with that name. `size="small"` gives 13px semibold
-    sans text and the height of the Chips add button, for a row of status
-    tokens in a box. SlotCircles that change, as a child, draw 15px
-    circles with a 24px tap area, so the row fits in the token.
+    example a small NumberToggle. `marked` gives a thicker border, a
+    note-yellow bar on the left and semibold text, for example for a
+    changed value; say so in a name too. The label has one of three
+    modes, and props of two modes together are a type error:
+    - Plain: a text.
+    - `onOpen`: a button named `openName` (or the label), with an
+      optional muted `openHint` such as "Change", for a slot that holds
+      one value. The button opens a list for a new value.
+    - `popup` (the props of a `SmallPopup` but the trigger and the
+      anchor): a button named `openName` (or the label) that opens a
+      SmallPopup under the token. The owner controls `open`. With
+      `popupOnHover` too, a mouse over the token opens that popup with no
+      focus move, and the mouse leaving the token closes it, unless a
+      click opened it. A press on the token's other controls keeps it
+      open; a touch does not open it.
+
+    `note` is a short muted text after the label, a part of the token's
+    text. `look` is "plain" (the default), "dashed" (a dashed border, for
+    a token that the app adds by itself) or "bubble" (the `--bubble` fill
+    and an `--info` border). With `groupName`, the token is a group with
+    that name. `size="small"` gives 13px semibold sans text and the
+    height of the Chips add button, for a row of status tokens in a box.
+    SlotCircles that change, as a child, draw 15px circles with a 24px
+    tap area, so the row fits in the token.
   - `Tokens`: tokens on one line that wraps. After an X removes its token,
     the focus goes to the next X, or else to the first button after the
     tokens. When the X goes and its token stays, the focus goes to the

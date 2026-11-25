@@ -255,6 +255,8 @@ test("exhaustion level 4: the caption 'Maximum halved · Exhaustion' under curre
   expect(hitPointsButton().getAttribute("aria-label")).toBe("Hit points, 12 of 22. Maximum halved\u00a0· Exhaustion");
   const caption = hitPointsButton().querySelector<HTMLElement>("[data-hp-caption]")!;
   expect([caption.textContent, caption.className.includes("uppercase")]).toEqual(["Maximum halved\u00a0· Exhaustion", true]);
+  // One line at each width: it does not wrap, and the box keeps the height of one line for it.
+  expect(caption.className.split(" ").filter((name) => /whitespace|min-h|lh\]/.test(name))).toEqual(["min-h-[1lh]", "whitespace-nowrap"]);
   cleanup();
   // Below level 4 the line of the caption is there, empty, so a caption that comes moves nothing.
   render(<CharacterSheet sheet={{ ...sheet, exhaustion: 3 }} play={playOf()} />);
