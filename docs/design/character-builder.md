@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T15:45:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T16:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -169,6 +169,25 @@ These changes ask:
 
 When one change is in two rows, the dialog lists the picks of the two
 rows, and the action is Replace.
+
+The engine keeps some picks in a selection at the top of the
+character, such as the languages at `languages` or the Expertise at
+`skill-expertise`. The option that opens the selection, such as the
+High Elf or the Rogue, does not hold these picks. One rule finds the
+picks that the old option accounts for:[^orc-354]
+
+* After the change, a selection keeps as many picks as its max. The last
+  picks over the max go, but only as many as the change adds over the
+  max.
+* A selection that the change closes, because no source of it stays,
+  has a max of 0. Each of its picks goes.
+* Thus a shared selection that gets smaller asks only about the picks
+  that cannot stay. A High Elf acolyte with two of its three languages
+  picked keeps the two when the subrace changes, and the question asks
+  nothing.
+* An Expertise row names the skills, such as "Expertise: Stealth,
+  Perception", not the option "Two Skills". The row names the option
+  only when no skill of the option is picked.
 
 The last row is the way out of the dead end of the research:[^orc-329]
 a Cleric that has Insight and Religion, and then takes Acolyte. The
@@ -977,3 +996,4 @@ one depends only on parts of the frame.
 [^orc-350]: Class step: the choice rows, the subclass dialog and the improvement or feat row, <https://linear.app/orc-alchemy/issue/ORC-350/class-step-the-choice-rows-the-subclass-dialog-and-the-improvement-or>
 [^orc-351]: Class step: hit points, the picks on other steps and a second class, <https://linear.app/orc-alchemy/issue/ORC-351/class-step-hit-points-the-picks-on-other-steps-and-a-second-class>
 [^orc-352]: The Feats, Spells, Equipment and Description steps in the new frame, <https://linear.app/orc-alchemy/issue/ORC-352/the-feats-spells-equipment-and-description-steps-in-the-new-frame>
+[^orc-354]: The question before a change removes picks: the picks in a top-level selection stay, <https://linear.app/orc-alchemy/issue/ORC-354/the-question-before-a-change-removes-picks-the-picks-in-a-top-level>

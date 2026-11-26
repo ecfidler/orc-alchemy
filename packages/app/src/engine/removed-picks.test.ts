@@ -5,6 +5,7 @@ import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { type PickChange, planChange } from "./removed-picks.ts";
+import { SAGE_PACKS } from "./test-backgrounds.ts";
 import { WOOD_KIN_PACKS } from "./test-races.ts";
 
 beforeAll(() => loadEngine());
@@ -247,4 +248,121 @@ test("a different subrace: each pick of the old subrace goes, and the title name
   });
   const changed = e.evaluate(apply(), SUBRACE_CONTENT).selections;
   expect(changed.find((s) => s.path.join("/") === subrace.join("/"))?.selected).toEqual(["wood-kin"]);
+});
+
+// ORC-354: a pick in a top-level selection, such as ["languages"] or ["skill-expertise"], stays in the entity when the
+// option that opened the selection goes. The plan finds the picks that the old option accounts for.
+
+/** A wizard High Elf with its extra language (Halfling) picked, with the Wood Kin subrace in the content. */
+function highElf(more: [path: string[], key: string][] = []): StrictEntity {
+  const e = engine();
+  let entity = addFirstClass(e, newCharacter(e), "wizard", SUBRACE_CONTENT);
+  for (const [path, key] of [[["race"], "elf"], [["race", "elf", "subrace"], "high-elf"], [["languages"], "halfling"], ...more] satisfies [string[], string][])
+    entity = e.select(entity, path, key, SUBRACE_CONTENT) as StrictEntity;
+  return entity;
+}
+const subracePlan = (entity: StrictEntity, change: PickChange) => planChange({ engine: engine(), entity, content: SUBRACE_CONTENT }, change);
+const languagesOf = (entity: StrictEntity) => engine().evaluate(entity, SUBRACE_CONTENT).built.languages ?? [];
+
+test("a High Elf with its extra language that takes a different subrace: the language goes", () => {
+  const { question, removed, apply } = subracePlan(highElf(), { kind: "pick", path: ["race", "elf", "subrace"], to: "wood-kin" });
+  expect(question).toEqual({
+    title: "Replace High Elf with Wood Kin?",
+    action: "Replace",
+    rows: [{ place: "Proficiencies", selection: "Languages", picks: ["Halfling"] }],
+  });
+  expect(removed).toEqual([["languages", "halfling"]]);
+  const changed = apply();
+  expect(languagesOf(changed)).not.toContain("halfling");
+  expect(JSON.stringify(changed)).not.toContain("~:halfling");
+});
+
+test("a High Elf with its extra language that takes a different race: the language goes with the race's other picks", () => {
+  const { question, apply } = subracePlan(highElf(), { kind: "pick", path: ["race"], to: "dwarf" });
+  expect(question?.title).toBe("Replace Elf with Dwarf?");
+  expect(question?.rows).toContainEqual({ place: "Proficiencies", selection: "Languages", picks: ["Halfling"] });
+  expect(JSON.stringify(apply())).not.toContain("~:halfling");
+});
+
+test("a selection that the old option shares with another source: only the picks over the new max go", () => {
+  // High Elf gives one language pick and Acolyte two: three in one selection. Without High Elf, two stay.
+  const two = highElf([
+    [["background"], "acolyte"],
+    [["languages"], "giant"],
+  ]);
+  expect(subracePlan(two, { kind: "pick", path: ["race", "elf", "subrace"], to: "wood-kin" }).question).toBeNull();
+  const three = engine().select(two, ["languages"], "goblin", SUBRACE_CONTENT) as StrictEntity;
+  const { question, apply } = subracePlan(three, { kind: "pick", path: ["race", "elf", "subrace"], to: "wood-kin" });
+  expect(question?.rows).toEqual([{ place: "Proficiencies", selection: "Languages", picks: ["Goblin"] }]);
+  expect(languagesOf(apply())).toEqual(expect.arrayContaining(["halfling", "giant"]));
+});
+
+test("a different background with fewer language picks: the last picks over its max go", () => {
+  const content = { homebrew: SAGE_PACKS };
+  const e = engine();
+  let entity = addFirstClass(e, newCharacter(e), "fighter", content);
+  for (const [path, key] of [
+    [["background"], "acolyte"],
+    [["languages"], "giant"],
+    [["languages"], "goblin"],
+  ] satisfies [string[], string][])
+    entity = e.select(entity, path, key, content) as StrictEntity;
+  const { question } = planChange({ engine: e, entity, content }, { kind: "pick", path: ["background"], to: "sage" });
+  expect(question).toEqual({
+    title: "Replace Acolyte with Sage?",
+    action: "Replace",
+    rows: [{ place: "Proficiencies", selection: "Languages", picks: ["Goblin"] }],
+  });
+});
+
+/** A rogue with Stealth and Perception, and its Expertise in the two. */
+const rogueWithExpertise = () =>
+  character("rogue", [
+    [["class", "rogue", "skill-proficiency"], "stealth"],
+    [["class", "rogue", "skill-proficiency"], "perception"],
+    [["class", "rogue", "expertise"], "two-skills"],
+    [["skill-expertise"], "stealth"],
+    [["skill-expertise"], "perception"],
+  ]);
+
+test("a Rogue with Expertise replaced with a Fighter: the Expertise row names the skills, and the picks go", () => {
+  const { question, removed, apply } = plan(rogueWithExpertise(), { kind: "replace-class", from: "rogue", to: "fighter" });
+  expect(question?.rows).toEqual([
+    { place: "Proficiencies", selection: "Skills", picks: ["Stealth", "Perception"] },
+    { place: "Proficiencies", selection: "Expertise", picks: ["Stealth", "Perception"] },
+  ]);
+  expect(removed).toEqual(
+    expect.arrayContaining([
+      ["class", "rogue", "expertise", "two-skills"],
+      ["skill-expertise", "stealth"],
+      ["skill-expertise", "perception"],
+    ]),
+  );
+  const changed = apply();
+  expect(JSON.stringify(changed)).not.toContain("~:skill-expertise");
+  expect(engine().evaluate(changed, content).built["skill-expertise"] ?? {}).toEqual({});
+});
+
+test("a Rogue 6 lowered to level 5: the Expertise picks of level 6 go, by the new max", () => {
+  const e = engine();
+  let entity = rogueWithExpertise();
+  for (const skill of ["acrobatics", "deception"]) entity = e.select(entity, ["class", "rogue", "skill-proficiency"], skill, content) as StrictEntity;
+  for (let level = 2; level <= 6; level++) entity = e.addLevel(entity, "rogue", content) as StrictEntity;
+  entity = e.select(entity, ["class", "rogue", "levels", "level-6", "expertise"], "two-skills", content) as StrictEntity;
+  for (const skill of ["acrobatics", "deception"]) entity = e.select(entity, ["skill-expertise"], skill, content) as StrictEntity;
+  const { question, apply } = plan(entity, { kind: "lower-level", classKey: "rogue", level: 5 });
+  expect(question?.rows).toEqual([{ place: "Proficiencies", selection: "Expertise", picks: ["Acrobatics", "Deception"] }]);
+  const expertise = selections(apply()).filter((s) => s.actualPath.join("/") === "skill-expertise");
+  expect(expertise.map(({ selected, max }) => [selected, max])).toEqual([[["stealth", "perception"], 2]]);
+});
+
+test("a removed Rogue with Expertise: the Expertise picks go", () => {
+  const e = engine();
+  let entity = e.addClass(character("fighter", [[["class", "fighter", "skill-proficiency"], "athletics"]]), "rogue", content) as StrictEntity;
+  entity = e.select(entity, ["class", "rogue", "multiclass-skill-proficiency"], "stealth", content) as StrictEntity;
+  entity = e.select(entity, ["class", "rogue", "expertise"], "two-skills", content) as StrictEntity;
+  for (const skill of ["athletics", "stealth"]) entity = e.select(entity, ["skill-expertise"], skill, content) as StrictEntity;
+  const { question, apply } = plan(entity, { kind: "remove-class", classKey: "rogue" });
+  expect(question?.rows).toContainEqual({ place: "Proficiencies", selection: "Expertise", picks: ["Athletics", "Stealth"] });
+  expect(JSON.stringify(apply())).not.toContain("~:skill-expertise");
 });

@@ -4,7 +4,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { addFirstClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
+import { addFirstClass, changeClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
 
 /** A new Cleric with Insight and Religion, on the Background step. */
 async function clericWithInsightAndReligion(page: Page) {
@@ -78,6 +78,30 @@ test("on a 390px page, a pick from the modal asks; Cancel keeps the focus in the
   await expect(modal).toBeHidden();
   await expect(section(page, "Background").getByRole("heading", { level: 3 })).toHaveText(/^Acolyte/);
   await expect(section(page, "Background").getByRole("button", { name: "Change Background" })).toBeFocused();
+});
+
+test("a Rogue with Expertise replaced with a Fighter: the question names the skills of the Expertise, and they go (ORC-354)", async ({ page }) => {
+  await newCharacter(page);
+  await addFirstClass(page, "Rogue");
+  await openStep(page, "Proficiencies");
+  await pickIn(section(page, "Skills: Rogue"), "Stealth");
+  await pickIn(section(page, "Skills: Rogue"), "Perception");
+  await pickIn(section(page, "Expertise: Rogue"), "Two Skills");
+  const expertise = section(page, "Skill Expertise");
+  await pickIn(expertise, "Stealth");
+  await pickIn(expertise, "Perception");
+  await expect(picksIn(expertise)).toHaveText(["Perception", "Stealth"]);
+
+  await openStep(page, "Class");
+  await changeClass(page, "Rogue", "Fighter");
+  const question = page.getByRole("alertdialog", { name: "Replace Rogue with Fighter?" });
+  await expect(question.getByRole("term")).toHaveText(["Proficiencies"]);
+  await expect(question.getByRole("definition")).toHaveText(["Skills: Stealth, Perception", "Expertise: Stealth, Perception"]);
+  await question.getByRole("button", { name: "Replace" }).click();
+  await expect(question).toBeHidden();
+  await openStep(page, "Proficiencies");
+  await expect(section(page, "Skill Expertise")).toHaveCount(0);
+  await expect(section(page, "Expertise")).toHaveCount(0);
 });
 
 // Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/change-question.spec.ts -g orc-344 --trace off
