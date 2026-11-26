@@ -46,6 +46,19 @@ export const DEEP_SYLVAR = {
   "~:traits": [],
 };
 
+/** A pack subrace of the SRD race Elf, by its key: +1 Wisdom. With it, Elf has two subraces, High Elf and Wood Kin. */
+export const WOOD_KIN = {
+  "~:key": "~:wood-kin",
+  "~:name": "Wood Kin",
+  "~:option-pack": RACE_PACK,
+  "~:race": "~:elf",
+  "~:abilities": { "~:orcpub.dnd.e5.character/wis": 1 },
+  "~:traits": [],
+};
+
+/** The homebrew with WOOD_KIN alone. */
+export const WOOD_KIN_PACKS = { [RACE_PACK]: { [TAGGED_SUBRACES]: { "~:wood-kin": WOOD_KIN } } };
+
 /** The homebrew with SYLVAR and DEEP_SYLVAR. */
 export const RACE_PACKS = { [RACE_PACK]: { [TAGGED_RACES]: { "~:sylvar": SYLVAR }, [TAGGED_SUBRACES]: { "~:deep-sylvar": DEEP_SYLVAR } } };
 

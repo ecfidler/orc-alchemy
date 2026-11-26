@@ -1,4 +1,5 @@
 import { Input } from "@base-ui/react/input";
+import type { FocusEventHandler, KeyboardEventHandler } from "react";
 
 type TextProps = {
   value: string;
@@ -13,6 +14,12 @@ type TextProps = {
 export type TextInputProps = TextProps & {
   /** "normal" (the default) is up to 26rem wide, "short" up to 7rem, "full" the full width. */
   width?: "normal" | "short" | "full";
+  /** The input's blur, for example to write the text when the user leaves the field. */
+  onBlur?: FocusEventHandler<HTMLInputElement>;
+  /** The input's key down, for example to write the text on Enter. */
+  onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
+  /** The input gets the focus when it first shows. A later render does not move the focus. */
+  autoFocus?: boolean;
 };
 
 /**
@@ -20,12 +27,15 @@ export type TextInputProps = TextProps & {
  * on the raised paper. Its role is textbox. In a Field, the field's errors
  * describe it.
  */
-export function TextInput({ value, onValueChange, "aria-label": ariaLabel, width = "normal", className }: TextInputProps) {
+export function TextInput({ value, onValueChange, "aria-label": ariaLabel, width = "normal", className, onBlur, onKeyDown, autoFocus }: TextInputProps) {
   return (
     <Input
       type="text"
       value={value}
       onValueChange={(next) => onValueChange(next)}
+      onBlur={onBlur}
+      onKeyDown={onKeyDown}
+      autoFocus={autoFocus}
       aria-label={ariaLabel}
       data-width={width}
       className={className ? `ui-input ${className}` : "ui-input"}

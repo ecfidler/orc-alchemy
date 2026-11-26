@@ -1,7 +1,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Input } from "@base-ui/react/input";
 import { type KeyboardEvent, type RefObject, useId, useRef, useState } from "react";
-import { PixelIcon } from "./Icon.tsx";
+import { LockIcon, PixelIcon } from "./Icon.tsx";
 import { ListRow } from "./ListRow.tsx";
 import { useRefocus } from "./refocus.ts";
 
@@ -14,6 +14,13 @@ export type ListItem<T> = {
   example?: string;
   /** The small heading above the row. Rows of one group must be next to each other. */
   group?: string;
+  /**
+   * Why the row cannot be picked. The row then has the lock icon and a
+   * dimmed name, and shows this text small at its right in the place of the
+   * mark. It is disabled, but it keeps the focus and the arrow keys, and the
+   * text describes its button.
+   */
+  unavailable?: string;
 };
 
 type ListModalBase<T> = {
@@ -79,7 +86,9 @@ function sections<T>(items: readonly ListItem<T>[], query: string) {
 /**
  * A modal list, with Base UI Dialog inside: a title, a close X, and one
  * list that scrolls. Each row is a button with the name, an optional short
- * example and a mark, "Add" by default. The X, Escape and a click outside close it. On
+ * example and a mark, "Add" by default. A row with `unavailable` is locked: it
+ * shows the lock icon and the reason in the place of the mark, and a click does
+ * nothing. The X, Escape and a click outside close it. On
  * a narrow screen (600px and less) it fills the screen.
  *
  * By default a pick calls `onPick` and closes the modal. With `stayOpen`,
@@ -185,24 +194,41 @@ function ListBody<T>({
               )}
               <ul className="ui-list" aria-labelledby={run.group ? headingId : undefined}>
                 {run.rows.map((item) => {
-                  const exampleId = `${id}-e${row++}`;
+                  const exampleId = `${id}-e${row}`;
+                  const reasonId = `${id}-r${row++}`;
+                  const locked = item.unavailable !== undefined;
+                  const described = [item.example && exampleId, locked && reasonId].filter(Boolean).join(" ");
                   return (
                     <li key={nth(`row:${item.group ?? ""}:${item.label}`)}>
                       <ListRow
                         data-example={item.example ? "" : undefined}
+                        data-unavailable={locked ? "" : undefined}
                         aria-label={item.label}
-                        aria-describedby={item.example ? exampleId : undefined}
-                        onClick={() => pick(item.value)}
+                        aria-describedby={described || undefined}
+                        disabled={locked}
+                        focusableWhenDisabled={locked}
+                        onClick={() => {
+                          if (!locked) pick(item.value);
+                        }}
                       >
-                        <span className="ui-list-name">{item.label}</span>
+                        <span className="ui-list-name">
+                          {locked && <LockIcon className="ui-list-lock" />}
+                          {item.label}
+                        </span>
                         {item.example && (
                           <span id={exampleId} className="ui-list-example">
                             {item.example}
                           </span>
                         )}
-                        <span className="ui-list-add" aria-hidden="true">
-                          {mark}
-                        </span>
+                        {locked ? (
+                          <span id={reasonId} className="ui-list-reason">
+                            {item.unavailable}
+                          </span>
+                        ) : (
+                          <span className="ui-list-add" aria-hidden="true">
+                            {mark}
+                          </span>
+                        )}
                       </ListRow>
                     </li>
                   );

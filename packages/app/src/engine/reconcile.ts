@@ -2,8 +2,8 @@
 // the option keys of a character that the loaded packs do not resolve, with
 // the engine's suggestions, and a remap of one key to a suggestion.
 import type { ContentSuggestion } from "@pubdoor/dmv";
-import { OPTION_KEY } from "./content.ts";
 import { type Content, engine, type StrictEntity } from "./engine.ts";
+import { KEY, OPTION, OPTIONS, optionsOf, rootOf, SELECTIONS, type StrictNode } from "./strict.ts";
 
 export type { ContentSuggestion };
 
@@ -29,13 +29,7 @@ export function missingContent(entity: StrictEntity, { homebrew, magicItems }: C
   ];
 }
 
-// The strict entity's Transit-JSON keys.
-const SELECTIONS = "~:orcpub.entity.strict/selections";
-const KEY = OPTION_KEY;
-const OPTION = "~:orcpub.entity.strict/option";
-const OPTIONS = "~:orcpub.entity.strict/options";
-
-type Node = Record<string, unknown>;
+type Node = StrictNode;
 
 const notFound = (path: string[]) => new Error(`The option ${path.join(" / ")} is not in the character`);
 
@@ -73,9 +67,6 @@ function changeOptionAt(parent: Node, path: string[], change: (option: Node, sel
   const { [SELECTIONS]: _, ...withoutSelections } = parent;
   return selections.length === 1 ? withoutSelections : { ...parent, [SELECTIONS]: selections.filter((_, i) => i !== index) };
 }
-
-/** The entity as a node: a stored entity is an object; the engine also takes Transit-JSON text. */
-const rootOf = (entity: StrictEntity) => (typeof entity === "string" ? JSON.parse(entity) : entity) as Node;
 
 /**
  * Gives the option at path a new key, and returns the new entity. path
@@ -122,14 +113,6 @@ export function withoutOption(entity: StrictEntity, path: string[]): StrictEntit
   );
   return found ? result : entity;
 }
-
-/** The options of a selection node: its one option, or its list of options. */
-const optionsOf = (selection: Node): Node[] => {
-  const single = selection[OPTION];
-  if (single !== undefined) return [single as Node];
-  const options = selection[OPTIONS];
-  return Array.isArray(options) ? (options as Node[]) : [];
-};
 
 /** The node of the option at path in the parent, or undefined. path alternates selection and option keys. */
 function findOption(parent: Node, path: string[]): Node | undefined {

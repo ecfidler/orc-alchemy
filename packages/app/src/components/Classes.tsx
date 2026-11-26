@@ -2,38 +2,48 @@
 // class rows, and the hit points and ability score improvements each level
 // asks for. Each change is an engine mutation, as in Selection. It also holds
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
+// A refusal of the engine shows in the status toast of the builder (ORC-343).
 import { Button, LeftMark, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
 import { unqualify } from "../engine/content.ts";
 import { type Content, type Engine, engine, type StrictEntity } from "../engine/engine.ts";
+import { addAClass } from "../engine/new-character.ts";
 import { ABILITIES } from "../engine/sheet.ts";
 import { useCharacter, useCharacterContent, useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
+import { useBuilderStatus, useSectionName } from "./builder-context.tsx";
 
 const MAX_LEVEL = 20;
 
 type Mutation = (e: Engine, entity: StrictEntity, options: Content) => StrictEntity;
 
-/** An engine mutation with the loaded content; its error, if it throws, for the alert. */
-export function useMutation(): [error: string | null, run: (mutate: Mutation) => void] {
+/**
+ * The function that makes an engine mutation with the loaded content. When the engine refuses it, its message shows
+ * in the status toast of the builder (docs/design/character-builder.md, "A pick that the character cannot take"): an
+ * inline text that comes and goes would move the page. The function returns false after a refusal, and else true.
+ */
+export function useMutation(): (mutate: Mutation) => boolean {
   const content = useCharacterContent();
-  const [error, setError] = useState<string | null>(null);
-  function run(mutate: Mutation) {
-    setError(null);
+  const say = useBuilderStatus();
+  return function run(mutate: Mutation) {
     try {
       useCharacter.getState().update((entity) => mutate(engine(), entity, content));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      return true;
+    } catch (error) {
+      say(error instanceof Error ? error.message : String(error));
+      return false;
     }
-  }
-  return [error, run];
+  };
 }
 
-/** The class selection: a row per class, in the entity's order, with its level, and a class to add. */
+/**
+ * The class selection: a row per class, in the entity's order, with its level, and a class to add. A new character
+ * has no class (ORC-342): its first class comes with its starting equipment.
+ */
 export function Classes({ selection }: { selection: BuilderSelection }) {
-  const [error, run] = useMutation();
+  const run = useMutation();
   const [adding, setAdding] = useState("");
   const [confirm, confirmDialog] = useConfirm();
   const option = (key: string) => selection.options.find((o) => o.key === key)!;
@@ -68,7 +78,6 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
   return (
     <>
       {confirmDialog}
-      {error && <p role="alert">{error}</p>}
       <ol className="space-y-2">
         {selection.selected.map((key, i) => {
           const { name } = option(key);
@@ -107,7 +116,7 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
       {toAdd && (
         <div className="flex flex-wrap items-center gap-2">
           <Select aria-label="Add a class" value={toAdd.key} options={free.map((o) => [o.key, o.name])} onValueChange={setAdding} />
-          <Button icon="plus" onClick={() => run((e, entity, opts) => e.addClass(entity, toAdd.key, opts))} size="small">
+          <Button icon="plus" onClick={() => run((e, entity, opts) => addAClass(e, entity, toAdd.key, opts))} size="small">
             Add class
           </Button>
         </div>
@@ -120,13 +129,16 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
  * A selection's name and its left mark at the right (docs/design/character-builder.md, "Marks, not sentences"): "2
  * left", "Remove 1" or "Done". The mark has a fixed place, so a pick does not move the heading or change its size.
  * The mark is a part of the heading text: "Languages, 2 left". `mark={false}` gives the heading with no mark, for a
- * part that is no selection with picks, such as an inventory list.
+ * part that is no selection with picks, such as an inventory list. When the open step has another section of the same
+ * name, the name has the sources of the selection (spec, "Text").
  */
 export function Heading({ id, selection, mark = true }: { id: string; selection: BuilderSelection; mark?: boolean }) {
+  // On a step with two sections of one name, the name has the source: "Skill Proficiency: Fighter".
+  const name = useSectionName(selection);
   return (
     <h3 id={id} className={HEADING_CLASSES}>
       <span className="min-w-0">
-        {selection.name}
+        {name}
         {/* A comma for a screen reader: "Languages, 2 left". It is in the line, so no space comes before it. */}
         {mark && <span className="text-[1px] opacity-0">,</span>}
       </span>
@@ -142,7 +154,7 @@ export const HEADING_CLASSES = "flex items-center gap-3 font-sans text-[15px] fo
 export function HitPoints({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { entity, sheet } = useOpenCharacter();
-  const [error, run] = useMutation();
+  const run = useMutation();
   const { actualPath } = selection;
   // The path is ["class", <class>, "levels", <level>, "hit-points"].
   const die = sheet?.classes.find((c) => c.key === actualPath[1])?.hitDie ?? 0;
@@ -156,7 +168,6 @@ export function HitPoints({ selection }: { selection: BuilderSelection }) {
   return (
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
-      {error && <p role="alert">{error}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <ToggleGroup aria-label="Hit point method" value={stored ? [stored.method] : []} className="flex gap-2">
           {toggle("average", `Average (${averageHitPoints(die)})`, () => averageHitPoints(die))}
@@ -172,13 +183,12 @@ export function HitPoints({ selection }: { selection: BuilderSelection }) {
 export function Improvements({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { sheet } = useOpenCharacter();
-  const [error, run] = useMutation();
+  const run = useMutation();
   const { actualPath, max } = selection;
   const full = max !== null && selection.selected.length >= max;
   return (
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
-      {error && <p role="alert">{error}</p>}
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
         {ABILITIES.map((ability) => {
           const abbr = ability.toUpperCase();

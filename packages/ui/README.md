@@ -67,7 +67,8 @@ bun run test       # vitest
     `aria-current` it has the ink fill, paper text and a paper focus ring,
     as a current ghost button is solid. The rows of `ListModal` are
     ListRows. It gives a ref. `className` is for layout and spacing, for
-    example the padding. Styles: `src/picker.css`.
+    example the padding. With `disabled` and `focusableWhenDisabled`, the
+    row keeps the focus and a click does nothing. Styles: `src/picker.css`.
   - `Toggle`: Base UI Toggle, a button that is on or off. It has the
     ghost button look and is solid while it is pressed. On its own it
     takes `pressed` and `onPressedChange`. It takes `className` as
@@ -111,6 +112,15 @@ bun run test       # vitest
     give it an `aria-label`. With `disabled`, it takes no input and has the
     look of a disabled button: muted text and a `--rule-strong` border.
     Styles: `src/number-field.css`.
+  - `TextInput`: Base UI Input, a boxed one-line text field. Its role is
+    textbox. It is controlled by `value` and `onValueChange`, which gets
+    the whole text after each change. `width` is "normal" (the default, up
+    to 26rem), "short" (up to 7rem) or "full". `onBlur` and `onKeyDown`
+    reach the input, for example to write the text on blur or on Enter.
+    With `autoFocus`, the input gets the focus when it first shows; a
+    later render does not move the focus. Put it in a label, or give it an
+    `aria-label`. `TextArea` is the same for more than one line, as a
+    native textarea with `rows`. Styles: `src/field.css`.
   - `AmountField` and `useAmount()`: a NumberField for an amount of 0 or
     more, with its state. `useAmount(initial)` gives the state: `value`,
     `onValueChange`, `note`, and `submit(act)`, which gives the amount to
@@ -155,13 +165,20 @@ bun run test       # vitest
     `src/flash.css`.
   - `useConfirm()`: the themed stand-in for `window.confirm`. It returns
     `[confirm, dialog]`. Render `dialog` in the component, and call
-    `await confirm(question, action, cancel)`: it is true when the user
-    picks the action button, and false on the cancel button or Escape.
-    `action` is the button text, "OK" by default. `cancel` is the text of
-    the button that says no, "Cancel" by default. The cancel button has
-    the focus when the dialog opens.
+    `await confirm(question, action, cancel, options)`: it is true when
+    the user picks the action button, and false on the cancel button or
+    Escape. `action` is the button text, "OK" by default. `cancel` is the
+    text of the button that says no, "Cancel" by default. `options` can
+    give `body`, an element below the question such as a list, and
+    `finalFocus`, as on `AlertDialog`. The cancel button has the focus
+    when the dialog opens.
   - `AlertDialog`: the dialog that `useConfirm()` shows. The owner sets
-    `open`, and closes it from `onAnswer`. Styles: `src/dialog.css`.
+    `open`, and closes it from `onAnswer`. Its `children` are the body
+    below the question: the body describes the dialog, and it scrolls
+    when it is long. When it closes, the focus goes back to where it was
+    when it opened, or to `finalFocus` (a ref) when that is given, for
+    example when the place of the focus closed with the dialog's open.
+    Styles: `src/dialog.css`.
   - `Dialog`: Base UI Dialog, a modal with a `title`, a body (`children`)
     that scrolls, and a footer: Cancel, then the owner's `actions`. It is
     up to 720px wide, and at 600px and less it fills the screen. When it
@@ -270,7 +287,10 @@ bun run test       # vitest
     `items` that scrolls. Each item is `{ value, label, example?, group? }`.
     Each row is a button named by its `label` and described by its
     `example`, with a mark: "Add", or the text of `mark`, for example
-    "Choose". The owner sets `open` and gets
+    "Choose". An item with `unavailable` (a reason text) is a locked row:
+    the lock icon, a dimmed name and the reason small at the right in the
+    place of the mark. It is disabled but keeps the focus, the reason
+    describes its button, and a click picks nothing. The owner sets `open` and gets
     `onOpenChange`. The X, Escape and a click outside close it. At 600px
     and less it fills the screen. By default a pick calls `onPick` and
     closes the modal. With `stayOpen`, it stays open: the caller takes the
@@ -327,7 +347,11 @@ bun run test       # vitest
     items). The picks show as Tokens in the order of `options`, then an
     AddButton opens a ListModal with `stayOpen`, and `search` and
     `pickedText` when the app gives them. `onValueChange` gets the new
-    list: a pick goes at the end, and a value that is no option stays.
+    list: a pick goes at the end, and a value that is no option stays. An
+    option with `unavailable` is a locked row, and it is not in the count
+    of the add button. `reserve` is a number of token lines (28px each)
+    that the token line keeps, also with no pick, so a pick does not move
+    the add button or what is below it.
   - `SegmentedToggle`: a segmented toggle on ToggleGroup for one of
     `options` (`[value, label]` pairs), for example None / Fixed / Scaled.
     A `value` that is no option presses no segment. `size="small"` fits in

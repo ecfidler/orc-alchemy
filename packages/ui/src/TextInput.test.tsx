@@ -64,3 +64,33 @@ test("a text area is a native textarea with its rows, and gives the whole text o
   fireEvent.change(area, { target: { value: "On land." } });
   expect(change).toHaveBeenCalledWith("On land.");
 });
+
+test("a text input gives its blur and its key down, and with autoFocus it gets the focus when it first shows", () => {
+  const blur = vi.fn();
+  const keyDown = vi.fn();
+  const { rerender } = render(
+    <>
+      <button type="button">Elsewhere</button>
+      <FieldLabel label="Name">
+        <TextInput value="Ash" onValueChange={() => {}} onBlur={blur} onKeyDown={(event) => keyDown(event.key)} autoFocus />
+      </FieldLabel>
+    </>,
+  );
+  const input = screen.getByRole("textbox", { name: "Name" });
+  expect(document.activeElement).toBe(input);
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(keyDown).toHaveBeenCalledWith("Enter");
+  const elsewhere = screen.getByRole("button", { name: "Elsewhere" });
+  elsewhere.focus();
+  expect(blur).toHaveBeenCalledTimes(1);
+  // A later render does not take the focus back.
+  rerender(
+    <>
+      <button type="button">Elsewhere</button>
+      <FieldLabel label="Name">
+        <TextInput value="Ash Vale" onValueChange={() => {}} onBlur={blur} onKeyDown={(event) => keyDown(event.key)} autoFocus />
+      </FieldLabel>
+    </>,
+  );
+  expect(document.activeElement).toBe(elsewhere);
+});

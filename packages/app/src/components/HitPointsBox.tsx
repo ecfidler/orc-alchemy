@@ -8,7 +8,8 @@ import type { HitPointAction } from "../engine/hit-points.ts";
 export interface HitPointsBoxProps {
   /** The current hit points that show: from 0 to `max`. */
   current: number;
-  max: number;
+  /** The maximum; null for a character with no class, which has no hit points: the box is then empty and has no buttons. */
+  max: number | null;
   /**
    * The caption under current / max in red caps, for example "Maximum halved
    * · Exhaustion" (ORC-323); null for none. With `onAction`, the box keeps
@@ -46,10 +47,11 @@ export function HitPointsBox({ current, max, caption = null, temp, temporary, on
   const temporaryId = useId();
   const box = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<"hit-points" | "temporary" | null>(null);
-  const currentMax = <CurrentMax current={<span className={current === 0 ? "text-caution" : undefined}>{current}</span>} max={max} />;
+  const currentMax = max !== null && <CurrentMax current={<span className={current === 0 ? "text-caution" : undefined}>{current}</span>} max={max} />;
   const tempValue = temp > 0 ? temp : "";
 
-  if (!onAction)
+  // The empty box keeps the height of its numbers.
+  if (!onAction || max === null)
     return (
       <FramedBox label="Hit Points" labelId={id} className={className}>
         <div className={temporary ? "grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-end gap-2" : "grid"}>
@@ -61,7 +63,7 @@ export function HitPointsBox({ current, max, caption = null, temp, temporary, on
               <Label id={temporaryId}>Temporary</Label>
             </div>
           )}
-          <span role="group" aria-labelledby={id} className="self-center text-center text-[34px] leading-[1.1] tabular-nums">
+          <span role="group" aria-labelledby={id} className="min-h-[1lh] self-center text-center text-[34px] leading-[1.1] tabular-nums">
             {currentMax}
             {caption && <span className={`${CAPTION} block`}>{caption}</span>}
           </span>

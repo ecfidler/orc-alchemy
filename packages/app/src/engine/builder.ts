@@ -13,6 +13,8 @@ export interface BuilderOption {
   key: string;
   name: string;
   selected: boolean;
+  /** How many prerequisites the template gives the option (TemplateOption prereqs); 0 for none. */
+  prereqs: number;
   /** The selections this option opens, when it is selected. */
   selections: BuilderSelection[];
 }
@@ -55,6 +57,9 @@ export interface BuilderSelection {
 /** The ten steps of the builder, in the order of the step rail (spec, "The step rail"). */
 export const STEP_NAMES = ["Name", "Class", "Background", "Race", "Abilities", "Proficiencies", "Feats", "Spells", "Equipment", "Description"] as const;
 export type StepName = (typeof STEP_NAMES)[number];
+
+/** The step that a new character opens on, with the focus in the name field (`/build/{id}?step=Name`). */
+export const NAME_STEP: StepName = "Name";
 
 export interface BuilderStep {
   name: StepName;
@@ -161,7 +166,7 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     if (template === undefined) continue;
     const tags = template.tags ?? [];
     const options = template.options.map((o) => {
-      const option: BuilderOption = { key: o.key, name: o.name, selected: s.selected.includes(o.key), selections: [] };
+      const option: BuilderOption = { key: o.key, name: o.name, selected: s.selected.includes(o.key), prereqs: o.prereqs ?? 0, selections: [] };
       orders.set(option, o.order);
       return option;
     });
@@ -252,14 +257,23 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
   return steps;
 }
 
-/** Each node in the selections and the selections their options open, once, in tree order. */
-function nodes(selections: BuilderSelection[], seen = new Set<BuilderSelection>()): BuilderSelection[] {
+/**
+ * Each node in the selections and the selections their options open, once, in tree order. `picked`: only the
+ * selections of the selected options. `seen`: the nodes to leave out, which the walk adds to, so that walks of more
+ * than one list give each node once.
+ */
+export function treeNodes(
+  selections: BuilderSelection[],
+  { picked = false, seen = new Set<BuilderSelection>() }: { picked?: boolean; seen?: Set<BuilderSelection> } = {},
+): BuilderSelection[] {
   return selections.flatMap((node) => {
     if (seen.has(node)) return [];
     seen.add(node);
-    return [node, ...node.options.flatMap((o) => nodes(o.selections, seen))];
+    return [node, ...node.options.flatMap((o) => (picked && !o.selected ? [] : treeNodes(o.selections, { picked, seen })))];
   });
 }
+
+const nodes = (selections: BuilderSelection[], seen?: Set<BuilderSelection>) => treeNodes(selections, { seen });
 
 /**
  * The selections with picks to make or remove, as the old validate-selections: each merged selection once, in tree
@@ -305,6 +319,15 @@ export function remainingByStep(steps: BuilderStep[]): { toDo: number; tooMany: 
   );
 }
 
+/**
+ * The step that the Edit button of a sheet opens (spec, "The step that opens"): the first step with picks to make or
+ * to remove, or Class when no step has one.
+ */
+export function openingStep(steps: BuilderStep[]): StepName {
+  const counts = remainingByStep(steps);
+  return steps.find((_, i) => counts[i].toDo > 0 || counts[i].tooMany > 0)?.name ?? "Class";
+}
+
 /** What withSpellsToPrepare takes from the sheet. */
 type PrepareSheet = { spellcasting: Spellcasting | null; classes: Pick<SheetClass, "name">[] };
 
@@ -317,6 +340,16 @@ export function withSpellsToPrepare(steps: BuilderStep[], sheet: PrepareSheet | 
   return prepares ? steps.map((step) => (step.name === "Spells" && step.empty ? { ...step, empty: false } : step)) : steps;
 }
 
+// The template shape of the last content: the engine builds a template in about 100 ms, and does not keep it.
+let shapeMemo: { homebrew: Content["homebrew"]; magicItems: Content["magicItems"]; shape: TemplateSelection[] } | null = null;
+
+/** The template shape for the content, as builderSteps takes it. It is built again only when the content changes. */
+export function templateShape({ homebrew, magicItems }: Content): TemplateSelection[] {
+  if (shapeMemo === null || shapeMemo.homebrew !== homebrew || shapeMemo.magicItems !== magicItems)
+    shapeMemo = { homebrew, magicItems, shape: engine().buildTemplate(homebrew, { magicItems }).shape };
+  return shapeMemo.shape;
+}
+
 /**
  * The builder steps for the open character's selections; the template is built once per content. `sheet` is the open
  * character's sheet, for the Spells step of a class that prepares spells (withSpellsToPrepare).
@@ -327,7 +360,7 @@ export function useBuilderSteps(
   sheet: PrepareSheet | null = null,
 ): BuilderStep[] {
   const { homebrew, magicItems } = content;
-  const shape = useMemo(() => engine().buildTemplate(homebrew, { magicItems }).shape, [homebrew, magicItems]);
+  const shape = useMemo(() => templateShape({ homebrew, magicItems }), [homebrew, magicItems]);
   const steps = useMemo(() => (selections === null ? [] : builderSteps(selections, shape)), [selections, shape]);
   return useMemo(() => withSpellsToPrepare(steps, sheet), [steps, sheet]);
 }

@@ -3,16 +3,17 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { storedValue } from "../engine/description.ts";
 import { engine, loadEngine } from "../engine/engine.ts";
+import { newCharacter } from "../engine/new-character.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
-import { summaryCard, withSheetPanel } from "./test-sheet-panel.ts";
+import { withSheetPanel } from "./test-sheet-panel.ts";
 
 beforeAll(() => loadEngine());
 afterEach(cleanup);
 
 /** Opens a new character in the builder, on the Description step. */
 function open(id: string) {
-  useCharacter.getState().load(id, engine().emptyCharacter());
+  useCharacter.getState().load(id, newCharacter(engine()));
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Description/ }));
 }
@@ -21,14 +22,20 @@ const stored = (key: string) => storedValue(useCharacter.getState().entity!, key
 const builder = () => within(screen.getByRole("region", { name: "Builder" }));
 const field = (label: string) => builder().getByLabelText(label) as HTMLInputElement;
 
-test("a name is written on blur, and the summary card shows it", () => {
-  open("description-name");
-  fireEvent.change(field("Character Name"), { target: { value: "Brannor" } });
+test("the step has no name field; the name is on the Name step", () => {
+  open("description-no-name");
+  expect(builder().queryByLabelText(/Character Name/i)).toBeNull();
+  // The first field is the player name; the other fields stay.
+  expect(builder().getAllByRole("textbox")[0]).toBe(field("Player Name"));
+});
+
+test("a player name is written on blur", () => {
+  open("description-player");
+  fireEvent.change(field("Player Name"), { target: { value: "Ana" } });
   // A keystroke does not write.
-  expect(stored("character-name")).toBe("");
-  fireEvent.blur(field("Character Name"));
-  expect(stored("character-name")).toBe("Brannor");
-  expect(within(summaryCard()).getByLabelText("Name").textContent).toBe("Brannor");
+  expect(stored("player-name")).toBe("");
+  fireEvent.blur(field("Player Name"));
+  expect(stored("player-name")).toBe("Ana");
 });
 
 test("XP is written on Enter, as an int", () => {

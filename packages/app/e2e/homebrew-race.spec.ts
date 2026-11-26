@@ -1,5 +1,6 @@
 import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test } from "@playwright/test";
+import { newCharacter, openStep, pickIn, section } from "./builder-helpers.ts";
 import { summaryCard } from "./sheet-panel.ts";
 
 // ORC-75: a race made in the race form is one of a new character's race choices.
@@ -15,12 +16,10 @@ test("a race made in the race form is a race choice of a new character", async (
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
-  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
-  const builder = page.getByRole("region", { name: "Builder" });
+  await newCharacter(page);
   const preview = summaryCard(page);
-  await builder.getByRole("button", { name: "Mezzoloth", exact: true }).click();
+  await openStep(page, "Race");
+  await pickIn(section(page, "Race"), "Mezzoloth");
   await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Mezzoloth");
   await expect(preview.getByLabel("Speed", { exact: true })).toHaveText("35 ft.");
 });

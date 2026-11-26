@@ -31,7 +31,7 @@ const MAX_ATTUNED = 3;
 export function Inventory({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { entity } = useOpenCharacter();
-  const [error, run] = useMutation();
+  const run = useMutation();
   const list = selection.key;
   const customKey = CUSTOM_VALUES[list];
   const items = useMemo(() => storedItems(entity!, list), [entity, list]);
@@ -46,7 +46,6 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
     <section aria-labelledby={id} className="space-y-2">
       {/* An inventory list has no picks to make, so it has no mark. */}
       <Heading id={id} selection={selection} mark={false} />
-      {error && <p role="alert">{error}</p>}
       <Combobox
         aria-label={`Add an item to ${selection.name}`}
         placeholder="Add an item…"
@@ -138,7 +137,7 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
 export function Hands({ lists }: { lists: BuilderSelection[] }) {
   const id = useId();
   const { entity, sheet } = useOpenCharacter();
-  const [error, run] = useMutation();
+  const run = useMutation();
   if (!sheet) return null;
   const { armorClassOptions, equipment, weaponAttacks } = sheet;
   const all = [...equipment.weapons, ...equipment.armor, ...equipment.magicItems];
@@ -176,7 +175,6 @@ export function Hands({ lists }: { lists: BuilderSelection[] }) {
       <h3 id={id} className={HEADING_CLASSES}>
         Equipped Items
       </h3>
-      {error && <p role="alert">{error}</p>}
       <div className="flex flex-wrap gap-4">
         {dropdown("Worn armor", "worn-armor", worn ?? best?.armor?.key ?? "none", armor)}
         {dropdown("Wielded shield", "wielded-shield", wielded ?? best?.shield?.key ?? "none", shields)}

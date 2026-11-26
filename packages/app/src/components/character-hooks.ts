@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { NAME_STEP } from "../engine/builder.ts";
 import { loadEngine } from "../engine/engine.ts";
+import { newCharacter } from "../engine/new-character.ts";
 import { addCharacter, refreshSummaries } from "../state/character.ts";
 import { restorePacks, useHomebrew } from "../state/homebrew.ts";
 import { type CharacterSummary, listSummaries, useSummariesVersion } from "../storage/characters.ts";
 
 /**
- * Stores a new character and opens it in the builder. A new character is the
- * engine's new character, a level 1 barbarian. A random one is one that
- * autofill completes, with no name. Loads the engine on demand.
+ * Stores a new character and opens it in the builder, on the Name step with
+ * the focus in the name field (ORC-342). A new character has no class
+ * (newCharacter). A random one is the engine's new character that autofill
+ * completes, with no name. Loads the engine on demand.
  */
 export function useCreateCharacter() {
   const navigate = useNavigate();
@@ -17,12 +20,12 @@ export function useCreateCharacter() {
   async function create(random: boolean) {
     setError(null);
     try {
-      const { emptyCharacter, autofill } = await loadEngine();
+      const e = await loadEngine();
       await restorePacks(); // so its summary builds with the stored packs
-      const entity = random ? autofill(emptyCharacter(), useHomebrew.getState().content) : emptyCharacter();
-      navigate(`/build/${await addCharacter(entity, "2014", null)}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const entity = random ? e.autofill(e.emptyCharacter(), useHomebrew.getState().content) : newCharacter(e);
+      navigate(`/build/${await addCharacter(entity, "2014", null)}?step=${NAME_STEP}`);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
     }
   }
 

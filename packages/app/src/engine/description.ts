@@ -14,9 +14,12 @@ export interface DescriptionField {
   alt?: string;
 }
 
+/** The key of the character name. The Name step holds it, and the Description step has the other fields (ORC-342). */
+export const NAME_KEY = "character-name";
+
 /** The fields in the old builder's order. */
 export const DESCRIPTION_FIELDS: DescriptionField[] = [
-  { key: "character-name", label: "Character Name", kind: "text" },
+  { key: NAME_KEY, label: "Character Name", kind: "text" },
   { key: "player-name", label: "Player Name", kind: "text" },
   { key: "xps", label: "Experience Points", kind: "number" },
   { key: "age", label: "Age", kind: "text" },

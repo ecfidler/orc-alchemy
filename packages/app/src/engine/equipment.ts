@@ -1,7 +1,9 @@
 // The Equipment step (ORC-59): the inventory lists, custom items, hands and
 // attunement, read from the strict entity, and the writes the old builder
-// and sheet make. Only this file knows their Transit keys.
+// and sheet make. Only this file knows the Transit keys of the items; the
+// keys of the strict entity are in strict.ts.
 import type { Content, Engine, StrictEntity } from "./engine.ts";
+import { KEY, MAP_VALUE, OPTIONS, rootOf, SELECTIONS, unkeyword, VALUES } from "./strict.ts";
 
 const QUANTITY = "~:orcpub.dnd.e5.character.equipment/quantity";
 const EQUIPPED = "~:orcpub.dnd.e5.character.equipment/equipped?";
@@ -16,10 +18,10 @@ export const CUSTOM_VALUES: Record<string, string> = { equipment: "custom-equipm
 export type Hand = "worn-armor" | "wielded-shield" | "main-hand-weapon" | "off-hand-weapon";
 
 type ItemValue = Record<string, unknown>;
-type StrictOption = { "~:orcpub.entity.strict/key": string; "~:orcpub.entity.strict/map-value"?: ItemValue };
+type StrictOption = { [KEY]: string; [MAP_VALUE]?: ItemValue };
 type Strict = {
-  "~:orcpub.entity.strict/selections"?: { "~:orcpub.entity.strict/key": string; "~:orcpub.entity.strict/options"?: StrictOption[] }[];
-  "~:orcpub.entity.strict/values"?: Record<string, unknown>;
+  [SELECTIONS]?: { [KEY]: string; [OPTIONS]?: StrictOption[] }[];
+  [VALUES]?: Record<string, unknown>;
 };
 
 export interface Item {
@@ -36,15 +38,11 @@ export interface CustomItem {
   starting: boolean;
 }
 
-const strict = (entity: StrictEntity) => (typeof entity === "string" ? JSON.parse(entity) : entity) as Strict;
-const unkeyword = (key: string) => key.replace(/^~:/, "");
+const strict = (entity: StrictEntity) => rootOf(entity) as Strict;
 
 function storedValues(entity: StrictEntity, list: string): [key: string, value: ItemValue][] {
-  const selection = strict(entity)["~:orcpub.entity.strict/selections"]?.find((s) => s["~:orcpub.entity.strict/key"] === `~:${list}`);
-  return (selection?.["~:orcpub.entity.strict/options"] ?? []).map((o) => [
-    unkeyword(o["~:orcpub.entity.strict/key"]),
-    o["~:orcpub.entity.strict/map-value"] ?? {},
-  ]);
+  const selection = strict(entity)[SELECTIONS]?.find((s) => s[KEY] === `~:${list}`);
+  return (selection?.[OPTIONS] ?? []).map((o) => [unkeyword(o[KEY]), o[MAP_VALUE] ?? {}]);
 }
 
 /** The items stored in an inventory list, such as "armor", in the entity's order. */
@@ -52,7 +50,7 @@ export const storedItems = (entity: StrictEntity, list: string): Item[] =>
   storedValues(entity, list).map(([key, value]) => ({ key, quantity: Number(value[QUANTITY] ?? 1), equipped: value[EQUIPPED] === true }));
 
 /** A character value, such as "worn-armor", as stored. */
-const value = (entity: StrictEntity, key: string) => strict(entity)["~:orcpub.entity.strict/values"]?.[`~:orcpub.dnd.e5.character/${key}`];
+const value = (entity: StrictEntity, key: string) => strict(entity)[VALUES]?.[`~:orcpub.dnd.e5.character/${key}`];
 
 /** The item key in a hand; "none" when set to nothing, and null when not set. */
 export function hand(entity: StrictEntity, key: Hand): string | null {
@@ -125,6 +123,28 @@ export function changeCustomItem(
     return { [NAME]: item[NAME], [EQUIPPED]: item[EQUIPPED] === true, [QUANTITY]: change.quantity };
   });
   return e.setValue(entity, valueKey, items);
+}
+
+/**
+ * Removes each item of a class's starting equipment: the items of the inventory lists and the custom items with the
+ * class-starting-equipment flag. The other items stay.
+ */
+export function withoutClassStartingEquipment(e: Engine, entity: StrictEntity): StrictEntity {
+  let next = entity;
+  for (const selection of strict(entity)[SELECTIONS] ?? []) {
+    const list = unkeyword(selection[KEY]);
+    for (const [key, item] of storedValues(entity, list)) if (item[CLASS_STARTING] === true) next = e.removeInventoryItem(next, list, key);
+  }
+  for (const valueKey of Object.values(CUSTOM_VALUES)) {
+    const items = customValues(next, valueKey);
+    if (items.some((item) => item[CLASS_STARTING] === true))
+      next = e.setValue(
+        next,
+        valueKey,
+        items.filter((item) => item[CLASS_STARTING] !== true),
+      );
+  }
+  return next;
 }
 
 /** Removes the custom items with the name, as the old builder. */

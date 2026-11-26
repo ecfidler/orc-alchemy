@@ -23,6 +23,12 @@
     margin: 0 0 1rem;
     font: inherit;
   }
+  /* The body below the question: it scrolls when it is long, so the buttons stay on the screen. */
+  .ui-dialog-body {
+    max-height: min(50dvh, 24rem);
+    margin: 0 0 1rem;
+    overflow-y: auto;
+  }
   .ui-dialog-actions {
     display: flex;
     justify-content: flex-end;

@@ -1,4 +1,4 @@
-export { AlertDialog, type AlertDialogProps, type Confirm, useConfirm } from "./AlertDialog.tsx";
+export { AlertDialog, type AlertDialogProps, type Confirm, type ConfirmOptions, useConfirm } from "./AlertDialog.tsx";
 export { AlertNote, AlertNotes } from "./AlertNote.tsx";
 export { AMOUNT_NOTE, type Amount, AmountField, type AmountFieldProps, NoteSpace, selectOnFocus, useAmount } from "./AmountField.tsx";
 export { Autocomplete, type AutocompleteProps } from "./Autocomplete.tsx";
