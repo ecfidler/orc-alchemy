@@ -11,6 +11,7 @@
 import { Field } from "@orc-alchemy/ui";
 import type { BuilderChoices, RaceChoice } from "../../engine/builder-choices.ts";
 import { packType, tag, untag } from "../../engine/content.ts";
+import { Traits } from "./feature-fields.tsx";
 import {
   type BuilderType,
   type Edit,
@@ -24,7 +25,6 @@ import {
   SelectField,
   SKILLS,
   TextField,
-  Traits,
   WithChoices,
 } from "./fields.tsx";
 import {

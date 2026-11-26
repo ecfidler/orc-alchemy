@@ -2,31 +2,14 @@
 // type's form gets, and what it gives the frame. It is in its own file so a
 // form and the frame do not import each other. It also holds the toolkit
 // the forms share: the old app's lists, a record editor, and the controls.
-import {
-  Button,
-  Checkbox,
-  Field,
-  FieldLabel,
-  Fieldset,
-  type ListItem,
-  NumberToggle,
-  Picker,
-  PixelIcon,
-  Select,
-  type SelectOption,
-  TextArea,
-  TextInput,
-  useConfirm,
-  XButton,
-} from "@orc-alchemy/ui";
+// The pickers are in picker-fields.tsx, and the feature list in feature-fields.tsx.
+import { Button, Checkbox, Field, FieldLabel, Fieldset, NumberToggle, PixelIcon, Select, type SelectOption, TextArea, TextInput } from "@orc-alchemy/ui";
 import { type ComponentType, type ReactNode, useId } from "react";
 import { type BuilderChoices, type Choice, useBuilderChoices } from "../../engine/builder-choices.ts";
-import { asSet, nameToKw, setItems, tag, untag } from "../../engine/content.ts";
+import { nameToKw, tag } from "../../engine/content.ts";
 import type { ContentType, Engine, ValidationProblem } from "../../engine/engine.ts";
 import { ABILITY_NAMES, ordinal, ABILITIES as SHEET_ABILITIES } from "../../engine/sheet-text.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
-import { SuggestionLines } from "./SuggestionLines.tsx";
-import { UsesControl } from "./UsesControl.tsx";
 
 /**
  * One item as the form edits it: verbose Transit-JSON, as a stored pack has
@@ -405,109 +388,6 @@ export function Checks({
   );
 }
 
-/** One option of a picker group: a Choice, with the small heading of its run in the list. */
-export type PickItem = Choice & { group?: string };
-
-/** The add button and the list of a picker group. */
-export interface PickerOptions {
-  /** The add button's text after the "+", such as "Add a skill". */
-  add: string;
-  /** A search field in the list. docs/design/homebrew-forms.md, "Picker", gives one to a list of more than about 20 options. */
-  search?: boolean;
-  /** MapPicker only: a stored key that is no option, such as one of a pack that is not enabled, shows as a token named by its key (withOthers). For a SetPicker, give it withOthers items. */
-  others?: boolean;
-}
-
-/**
- * The items, then an item for each of the stored keys that is no item,
- * named by its key. Thus a stored value that no list has shows as a token,
- * and stays until the user removes it.
- */
-export function withOthers(items: PickItem[], keys: string[]): PickItem[] {
-  const known = new Set(items.map((item) => item.key));
-  const others = [...new Set(keys)].filter((key) => !known.has(key));
-  return [...items, ...others.map((key) => ({ key, name: key }))];
-}
-
-/** The footer text of a form's picker list: the number of picks on the form. */
-export const pickedText = (n: number) => `${n} on the form`;
-const listItems = (items: PickItem[], value: (item: PickItem) => string = (item) => item.key): ListItem<string>[] =>
-  items.map((item) => ({ value: value(item), label: item.name, group: item.group }));
-
-/**
- * A picker of the map at path, as {:path {:key true}}, as the old
- * checkboxes stored it: a pick stores true, and a removed token stores
- * false, as the old second click. With removeKey, a removed token removes
- * the key, and a key with a truthy value shows as a token, as the old
- * checkboxes of the background builder did. Only the picked or removed key
- * changes, so a key that is no option keeps its value; with picker.others
- * it also shows as a token.
- */
-export function MapPicker({
-  edit,
-  path,
-  items,
-  picker,
-  removeKey = false,
-}: {
-  edit: Edit;
-  path: Path;
-  items: PickItem[];
-  picker: PickerOptions;
-  removeKey?: boolean;
-}) {
-  const map = (edit.get(...path) ?? {}) as ItemRecord;
-  const value = Object.keys(map)
-    .filter((key) => (removeKey ? Boolean(map[key]) : map[key] === true))
-    .map(untag);
-  return (
-    <Picker
-      label={picker.add}
-      options={listItems(picker.others ? withOthers(items, value) : items)}
-      value={value}
-      search={picker.search}
-      pickedText={pickedText}
-      onValueChange={(next) => {
-        const added = next.filter((key) => !value.includes(key)).map((key): [Path, unknown] => [[...path, key], true]);
-        const removed = value.filter((key) => !next.includes(key)).map((key): [Path, unknown] => [[...path, key], removeKey ? undefined : false]);
-        edit.setAll([...added, ...removed]);
-      }}
-    />
-  );
-}
-
-/**
- * A picker of the set at path, such as ["languages"] or
- * ["spellcasting", "spell-list", intKey(1)], as the old checkboxes stored
- * it: a pick adds the item's stored value at the end, and a removed token
- * takes it out. stored is the value the set holds for an item, such as its
- * keyword. A stored value that is no option stays in the set.
- */
-export function SetPicker({
-  edit,
-  path,
-  items,
-  picker,
-  stored = (item) => tag(item.key),
-}: {
-  edit: Edit;
-  path: Path;
-  items: PickItem[];
-  picker: PickerOptions;
-  stored?: (item: PickItem) => string;
-}) {
-  return (
-    <Picker
-      label={picker.add}
-      options={listItems(items, stored)}
-      value={setItems(edit.get(...path)) as string[]}
-      search={picker.search}
-      pickedText={pickedText}
-      onValueChange={(next) => edit.set(path, asSet(next))}
-    />
-  );
-}
-
 /** A section of a form: its title on a section rule, and the Remove link of a modifier as action. */
 export function Section({ legend, action, children }: { legend: string; action?: ReactNode; children: ReactNode }) {
   return (
@@ -582,44 +462,6 @@ export function RecordTextArea({ edit, field, label }: { edit: Edit; field: stri
 }
 
 /**
- * A proficiency choice in :profs: a "Choose n" select, then a picker for
- * the options, as {:skill-options {:choose 2 :options {:arcana true}}}.
- * Choose shows 1 until it is set. A pick stores true, and a removed token
- * stores false, as the old checkboxes' second click.
- */
-export function ChoicePicker({
-  edit,
-  legend,
-  field,
-  items,
-  picker,
-  action,
-}: {
-  edit: Edit;
-  legend: string;
-  field: string;
-  items: PickItem[];
-  picker: PickerOptions;
-  action?: ReactNode;
-}) {
-  return (
-    <Section legend={legend} action={action}>
-      <div className="grid gap-[10px]">
-        <SelectField
-          label="Choose"
-          name={`${legend}: choose`}
-          value={edit.get("profs", field, "choose")}
-          options={numbers(range(1, 6))}
-          onSelect={(n) => edit.set(["profs", field, "choose"], n)}
-          className="justify-self-start"
-        />
-        <MapPicker edit={edit} path={["profs", field, "options"]} items={items} picker={picker} />
-      </div>
-    </Section>
-  );
-}
-
-/**
  * One card of a list, such as a feature: its top row of fields with the X
  * button at the end, then its other fields, such as a description.
  */
@@ -629,161 +471,6 @@ export function Card({ top, children }: { top: ReactNode; children?: ReactNode }
       <FieldRow look="tight">{top}</FieldRow>
       {children}
     </div>
-  );
-}
-
-/**
- * Whether a feature has content, so that its X asks first
- * (docs/design/homebrew-forms.md, "Features"): a name, text, uses, or a
- * type other than Other. A type of "" is Other, as the monster form has it.
- */
-export function featureHasContent(trait: ItemRecord): boolean {
-  const text = (key: string) => String(trait[tag(key)] ?? "").trim() !== "";
-  const type = untag(trait[tag("type")]);
-  return text("name") || text("description") || trait[tag("frequency")] !== undefined || (type !== "" && type !== "other");
-}
-
-/** The question of the confirm dialog that deletes a feature. */
-export const deleteFeatureQuestion = (trait: ItemRecord) => {
-  const name = String(trait[tag("name")] ?? "").trim();
-  return `Delete ${name === "" ? "this feature" : `\u201c${name}\u201d`}?`;
-};
-
-/** The type options, the section title and the add button text of a feature list. */
-export interface FeatureList {
-  /** The type select's options. A type of "" stores no type. */
-  types: Options;
-  legend: string;
-  add: string;
-}
-
-/** The feature list of the race, subrace, background, class, subclass and feat forms (docs/design/homebrew-forms.md, "Features"). */
-export const FEATURE_LIST: FeatureList = { types: TRAIT_TYPES, legend: "Features", add: "Add a feature" };
-
-/**
- * The Type select of the feature at path: of a feature in a list, or of an
- * item that is its own feature on the sheet, such as a feat (path []). name
- * names the feature, such as "Feature 2". A type of "" stores no type.
- */
-export function FeatureType({ edit, path, name, types = TRAIT_TYPES }: { edit: Edit; path: Path; name: string; types?: Options }) {
-  // The monster's list (MonsterForm.tsx) has Other as "", which stores no type.
-  return (
-    <SelectField
-      label="Type"
-      name={`${name} type`}
-      value={edit.get(...path, "type") ?? ""}
-      options={types}
-      onSelect={(v) => edit.set([...path, "type"], v === "" ? undefined : v)}
-    />
-  );
-}
-
-/**
- * The uses control and the preview of the feature at path, which write its
- * :frequency. No uses removes the key. Under the toggles are the lines of
- * suggested uses and a suggested type that its :description gives
- * (SuggestionLines). name and levelName are as for UsesControl. types is
- * the list of the feature's type select, as FeatureType has it.
- */
-export function FeatureUses({
-  edit,
-  path,
-  name,
-  levelName,
-  types = TRAIT_TYPES,
-}: {
-  edit: Edit;
-  path: Path;
-  name: string;
-  levelName: string | null;
-  types?: Options;
-}) {
-  const feature = (edit.get(...path) ?? {}) as ItemRecord;
-  const setFrequency = (frequency: ItemRecord | undefined) => edit.set([...path, "frequency"], frequency);
-  return (
-    <UsesControl name={name} feature={feature} onChange={setFrequency} levelName={levelName}>
-      <SuggestionLines name={name} feature={feature} types={types} onUses={setFrequency} onType={(type) => edit.set([...path, "type"], type)} />
-    </UsesControl>
-  );
-}
-
-/**
- * The features, each with a name, a type, a description and its uses with a
- * preview (UsesControl). levelName is the class of a class or subclass form:
- * each feature then has the level it is unlocked at, and a level amount
- * counts that class's level. In other forms it is null, and a level amount
- * counts the character level. list gives the type options, the title and
- * the add button, such as the monster's. The X of a feature with content
- * asks first; an empty feature goes at once.
- */
-export function Traits({
-  edit,
-  problems = [],
-  levelName = null,
-  list = FEATURE_LIST,
-}: {
-  edit: Edit;
-  problems?: Problem[];
-  levelName?: string | null;
-  list?: FeatureList;
-}) {
-  const [confirm, confirmDialog] = useConfirm();
-  const traits = (edit.get("traits") ?? []) as ItemRecord[];
-  const remove = async (i: number) => {
-    const trait = traits[i];
-    if (featureHasContent(trait) && !(await confirm(deleteFeatureQuestion(trait), "Delete feature"))) return;
-    edit.set(
-      ["traits"],
-      traits.filter((_, j) => j !== i),
-    );
-  };
-  return (
-    <Fieldset legend={list.legend} look="section" errors={fieldErrors(problems, "traits", list.legend)}>
-      {confirmDialog}
-      {traits.map((trait, i) => {
-        const n = i + 1;
-        return (
-          <Card
-            key={i}
-            top={
-              <>
-                <FieldLabel label="Name" className="min-w-[12rem] flex-1">
-                  <TextInput
-                    aria-label={`Feature ${n} name`}
-                    value={String(trait[tag("name")] ?? "")}
-                    onValueChange={(text) => edit.set(["traits", i, "name"], text)}
-                    width="full"
-                  />
-                </FieldLabel>
-                <FeatureType edit={edit} path={["traits", i]} name={`Feature ${n}`} types={list.types} />
-                {levelName !== null && (
-                  <SelectField
-                    label="Level"
-                    name={`Feature ${n} level`}
-                    value={trait[tag("level")]}
-                    options={numbers(range(1, 21))}
-                    onSelect={(v) => edit.set(["traits", i, "level"], v)}
-                    placeholder="-"
-                  />
-                )}
-                <XButton aria-label={`Delete feature ${n}`} onClick={() => void remove(i)} />
-              </>
-            }
-          >
-            <FieldLabel label="Description">
-              <TextArea
-                aria-label={`Feature ${n} description`}
-                value={String(trait[tag("description")] ?? "")}
-                onValueChange={(text) => edit.set(["traits", i, "description"], text)}
-                rows={3}
-              />
-            </FieldLabel>
-            <FeatureUses edit={edit} path={["traits", i]} name={`Feature ${n}`} levelName={levelName} types={list.types} />
-          </Card>
-        );
-      })}
-      <AddButton onClick={() => edit.set(["traits"], [...traits, {}])}>{list.add}</AddButton>
-    </Fieldset>
   );
 }
 

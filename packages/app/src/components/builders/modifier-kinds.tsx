@@ -8,24 +8,21 @@ import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
   ARTISANS_TOOLS,
   Checks,
-  ChoicePicker,
   CONDITIONS,
   DAMAGE_TYPES,
   type Edit,
   GAMING_SETS,
-  MapPicker,
   MISC_TOOLS,
   MUSICAL_INSTRUMENTS,
   NumberChoice,
   nameToKw,
   type Path,
-  type PickerOptions,
-  type PickItem,
   Section,
   title,
   VEHICLES,
 } from "./fields.tsx";
 import type { Modifier, ModifierView } from "./modifiers.tsx";
+import { ChoicePicker, MapPicker, type PickerOptions, type PickItem } from "./picker-fields.tsx";
 
 const choices = (keys: string[], name: (key: string) => string): Choice[] => keys.map((key) => ({ key, name: name(key) }));
 

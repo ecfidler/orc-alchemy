@@ -8,6 +8,8 @@ a test can check belongs in that check, not here.
   lives in one place. In a form, use the control from `@orc-alchemy/ui`
   (the Exports list in `packages/ui/README.md`) or the helper from
   `packages/app/src/components/builders/fields.tsx` before a local copy.
+  The pickers are in `picker-fields.tsx` and the feature list is in
+  `feature-fields.tsx`, next to it.
 - **In the app, engine code lives in `packages/app/src/engine`.** Only
   that folder of the app imports `@pubdoor/dmv`, as the header comment of
   `engine.ts` states; a test file can import a type from it. Code

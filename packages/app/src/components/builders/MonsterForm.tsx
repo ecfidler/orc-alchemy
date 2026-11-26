@@ -13,30 +13,27 @@
 import { Field, FieldLabel, Fieldset, NumberField, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode } from "react";
 import { packType, tag } from "../../engine/content.ts";
+import { type FeatureList, Traits } from "./feature-fields.tsx";
 import {
   ABILITIES,
   type BuilderType,
   editor,
-  type FeatureList,
   FieldRow,
   FormColumn,
   type FormProps,
   fieldErrors,
   type ItemRecord,
-  MapPicker,
   numberOrNull,
   orFirst,
-  type PickerOptions,
-  type PickItem,
   range,
   Section,
   SKILLS,
-  Traits,
   title,
   WithChoices,
 } from "./fields.tsx";
 import { CONDITION_CHOICES, DAMAGE_CHOICES, mapPicker, propModifier, RESISTANCE_CHOICES } from "./modifier-kinds.tsx";
 import { type Modifier, Modifiers, type ModifierView } from "./modifiers.tsx";
+import { MapPicker, type PickerOptions, type PickItem } from "./picker-fields.tsx";
 
 const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const TYPES = [

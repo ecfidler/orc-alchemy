@@ -11,7 +11,8 @@ import { toSheet } from "../../engine/sheet.ts";
 import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
 import { CharacterSheet } from "../CharacterSheet.tsx";
 import { FEATURE_SECTION_TITLES, FEATURE_SECTIONS } from "../FeatureGroup.tsx";
-import { editor, type ItemRecord, Traits } from "./fields.tsx";
+import { Traits } from "./feature-fields.tsx";
+import { editor, type ItemRecord } from "./fields.tsx";
 import { EXAMPLE_LEVEL, EXAMPLE_SCORE } from "./uses-example.ts";
 
 beforeAll(() => loadEngine());
