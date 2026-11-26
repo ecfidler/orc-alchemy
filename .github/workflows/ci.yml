@@ -1,3 +1,13 @@
+# The checks of each pull request into main (ORC-358).
+#
+# Three jobs run at the same time, so a run takes as long as its longest job:
+# - static: the docs check, lint, the typechecks and the small test suites.
+# - unit: the unit tests of the app, in shards.
+# - e2e: the Playwright tests of the app, in shards.
+#
+# To change the number of shards, change the matrix and the total in the
+# --shard argument of the same job.
+
 name: CI
 
 on:
@@ -11,8 +21,9 @@ permissions:
     contents: read
 
 jobs:
-    ci:
+    static:
         runs-on: ubuntu-latest
+        timeout-minutes: 10
         steps:
             - uses: actions/checkout@v7
               with:
@@ -41,10 +52,6 @@ jobs:
               working-directory: packages/app
               run: bun run typecheck
 
-            - name: Unit tests
-              working-directory: packages/app
-              run: bun run test
-
             - name: UI package typecheck
               working-directory: packages/ui
               run: bun run typecheck
@@ -69,10 +76,60 @@ jobs:
               working-directory: tools/exporter-bookmarklet
               run: bun run test
 
+    unit:
+        name: unit (${{ matrix.shard }}/3)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3]
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version-file: package.json
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - run: bun install --frozen-lockfile
+
+            - name: Unit tests
+              working-directory: packages/app
+              run: bunx vitest run --shard=${{ matrix.shard }}/3
+
+    e2e:
+        name: e2e (${{ matrix.shard }}/4)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3, 4]
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version-file: package.json
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - run: bun install --frozen-lockfile
+
             - name: Install Playwright Chromium
               working-directory: packages/app
               run: bunx playwright install --with-deps chromium
 
-            - name: Playwright smoke
+            - name: Playwright
               working-directory: packages/app
-              run: bun run e2e
+              run: bunx playwright test --shard=${{ matrix.shard }}/4
