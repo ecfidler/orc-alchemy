@@ -9,7 +9,8 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../../engine/engine.ts";
 import { toSheet } from "../../engine/sheet.ts";
 import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
-import { CharacterSheet, FEATURE_SECTION_TITLES, FEATURE_SECTIONS } from "../CharacterSheet.tsx";
+import { CharacterSheet } from "../CharacterSheet.tsx";
+import { FEATURE_SECTION_TITLES, FEATURE_SECTIONS } from "../FeatureGroup.tsx";
 import { editor, type ItemRecord, Traits } from "./fields.tsx";
 import { EXAMPLE_LEVEL, EXAMPLE_SCORE } from "./uses-example.ts";
 

@@ -8,7 +8,7 @@ import { FieldLabel, Label, SegmentedToggle, Select, type SelectOption } from "@
 import { type ReactNode, useId, useState } from "react";
 import { ABILITIES, ABILITY_NAMES } from "../../engine/sheet.ts";
 import { exampleNumbers, previewFeature } from "../../engine/uses-preview.ts";
-import { FeatureGroup } from "../CharacterSheet.tsx";
+import { FeatureGroup } from "../FeatureGroup.tsx";
 import {
   amountOf,
   baseAbility,
