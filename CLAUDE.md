@@ -50,6 +50,8 @@ biome.json               formatter and linter config (ORC-213)
 PRODUCT.md               product record that the Impeccable skill reads (ORC-260)
 DESIGN.md                design tokens and rules for the Impeccable skill, derived from docs/design/theme.md (ORC-260)
 scripts/okf-check.ts     the docs bundle check
+budgets.json             the limits on size and count (ORC-362); CODING_STANDARDS.md "Budgets"
+scripts/budgets.ts       the budget check, which CI and the pre-commit hook run
 scripts/linear-archive.ts  archives closed Linear issues (ORC-292)
 fixtures/                engine fixtures snapshot from the fork
 packages/app/            Alchemy 5e (ORC-91)
@@ -62,7 +64,9 @@ Run `bun install` once from the root. Each package owns its dependencies
 and scripts. From the root, `bun run format` formats the code and sorts
 the imports, and `bun run lint` is the check that CI runs. `bun install`
 also installs a pre-commit hook (`.husky/pre-commit`) that runs Biome on
-the staged files and stages its fixes.
+the staged files and stages its fixes. The same hook applies the size and
+image rules of `budgets.json`, and the commit-msg hook (`.husky/commit-msg`)
+refuses a commit on a branch when its message names no `ORC-nn` issue.
 
 ## Agent skills
 

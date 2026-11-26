@@ -12,6 +12,11 @@
 # - e2e: the Playwright tests of the app, in shards.
 #
 # To change the number of shards of a job, change its matrix.
+#
+# The budget steps (ORC-362) fail a pull request that goes over a limit of
+# budgets.json. CODING_STANDARDS.md, section "Budgets", gives the rules.
+# The timeout of each job is about two times its usual time, so a job that
+# becomes slow fails before the slow time becomes usual.
 
 name: CI
 
@@ -45,11 +50,18 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
                   PR: ${{ github.event.pull_request.number }}
+                  TITLE: ${{ github.event.pull_request.title }}
+                  AUTHOR: ${{ github.event.pull_request.user.login }}
               run: |
                   # A run that is not for a pull request is a full run.
                   if [ -z "$PR" ]; then
                     echo "code=true" >> "$GITHUB_OUTPUT"
                     exit 0
+                  fi
+                  # The squash commit on main gets the title, so the title names the issue (ORC-362).
+                  if [ "$AUTHOR" != "dependabot[bot]" ] && ! printf '%s' "$TITLE" | grep -qE 'ORC-[0-9]+'; then
+                    echo "::error::The title of the pull request must name its Linear issue, for example 'ORC-123: Add the rest button'."
+                    exit 1
                   fi
                   files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[].filename')
                   if echo "$files" | grep -qE '^docs/guides/' || echo "$files" | grep -qvE '^(docs/|\.claude/)|\.md$'; then
@@ -61,7 +73,7 @@ jobs:
 
     static:
         runs-on: ubuntu-latest
-        timeout-minutes: 10
+        timeout-minutes: 6
         steps:
             - uses: actions/checkout@v7
               with:
@@ -85,6 +97,12 @@ jobs:
 
             - name: Script tests
               run: bun run test:scripts
+
+            - name: "Budgets: files"
+              run: bun run budgets files
+
+            - name: "Budgets: e2e tests"
+              run: bun run budgets e2e
 
             - name: Typecheck
               working-directory: packages/app
@@ -114,12 +132,19 @@ jobs:
               working-directory: tools/exporter-bookmarklet
               run: bun run test
 
+            - name: App build
+              working-directory: packages/app
+              run: bun run build
+
+            - name: "Budgets: bundle"
+              run: bun run budgets bundle
+
     unit:
         needs: scope
         if: needs.scope.outputs.code == 'true'
         name: unit (${{ matrix.shard }}/${{ strategy.job-total }})
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        timeout-minutes: 8
         strategy:
             fail-fast: false
             matrix:
@@ -141,14 +166,17 @@ jobs:
 
             - name: Unit tests
               working-directory: packages/app
-              run: bunx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+              run: bunx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=default --reporter=json --outputFile.json=unit-report.json
+
+            - name: "Budgets: time of each test file"
+              run: bun run budgets unit-times packages/app/unit-report.json
 
     e2e:
         needs: scope
         if: needs.scope.outputs.code == 'true'
         name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        timeout-minutes: 8
         strategy:
             fail-fast: false
             matrix:

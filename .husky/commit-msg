@@ -1,0 +1,17 @@
+# The first line of a commit message names its Linear issue (ORC-362).
+# CI makes the same check on the title of each pull request.
+
+first=$(head -n 1 "$1")
+
+# A commit that git writes keeps its message.
+case "$first" in
+  Merge\ * | Revert\ * | fixup!\ * | squash!\ * | amend!\ *) exit 0 ;;
+esac
+
+# A commit made directly on main is a trivial change with no issue.
+[ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = "main" ] && exit 0
+
+if ! printf '%s' "$first" | grep -qE 'ORC-[0-9]+'; then
+  echo "commit-msg: the first line must name the Linear issue, for example 'ORC-123: Add the rest button'."
+  exit 1
+fi
