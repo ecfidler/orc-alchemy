@@ -18,15 +18,14 @@ import {
   SUBRACE_TYPE,
   sameRecord,
   tag,
-  unqualify,
   untag,
   withItem,
   withoutItem,
 } from "./content.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
+import { type AreaAttack, breathWeaponText, hasArea, raceGives } from "./race-gives.ts";
 import { pickableSubraces, subraceOptions, subracePick, templateRace } from "./race-step.ts";
-import { missingContent, picksUnder, remapOption, withOptionOf, withoutOption } from "./reconcile.ts";
-import type { Resistance } from "./sheet.ts";
+import { missingContent, picksUnder, remapOption, withoutOption } from "./reconcile.ts";
 import { srdList } from "./srd-lists.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
@@ -320,165 +319,17 @@ export async function srdBackgroundRecord(key: string): Promise<Record<string, u
 /** The six ability keys, as a race's :abilities has them. */
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"].map((a) => `orcpub.dnd.e5.character/${a}`);
 
-/** An area attack of the built character, such as a Dragonborn's Breath Weapon. */
-interface AreaAttack {
-  name: string;
-  "attack-type"?: string;
-  "area-type"?: string;
-  /** The length of a cone, in feet. */
-  length?: number;
-  "line-width"?: number;
-  "line-length"?: number;
-  /** The ability of the saving throw, as a full key. */
-  save?: string;
-  "damage-type"?: string;
-  "damage-die"?: number;
-}
-
-/** What the engine gives an SRD race and the content list does not have (raceGives). */
-interface RaceGives {
-  /** The keys of the skill proficiencies, such as "perception". */
-  skills: string[];
-  /** The keys of the tool proficiencies, such as "smiths-tools". */
-  tools: string[];
-  /** The keys of the weapon proficiencies, such as "longsword". */
-  weapons: string[];
-  /** The hit points for each level, such as 1 for the Hill Dwarf. 0 for none. */
-  hitPoints: number;
-  /** The damage types of the resistances, such as "poison". */
-  resistances: string[];
-  /** The ability score increases, by the full key of the ability. */
-  abilities: Record<string, number>;
-  /** The spells, as a race stores them: the character level that unlocks the spell, and its level, ability and key. */
-  spells: { level: number; value: { level: number; ability: string; key: string } }[];
-  /** The traits, each with its name, page and summary. */
-  traits: Record<string, unknown>[];
-  /** The attacks, which a pack race holds only as the text of a feature (breathWeaponTrait). */
-  attacks: AreaAttack[];
-}
-
-/** The level of the probe character: each spell of a race is unlocked, and a trait's text names each spell. */
-const PROBE_LEVEL = 20;
-
-/** The class of the probe character for the weapon proficiencies: the default class has each martial weapon, and this class has no weapon of an SRD race. */
-const WEAPON_PROBE_CLASS = "wizard";
-
-/** What the probe reads of a character as the engine builds it. */
-function probed(entity: StrictEntity) {
-  const { built } = engine().evaluate(entity);
-  return {
-    weapons: (built["weapon-profs"] as string[] | null) ?? [],
-    // The hit points for each level without those of the CON modifier.
-    hitPoints:
-      Number(built["hit-point-level-bonus"] ?? 0) - Number((built["ability-bonuses"] as Record<string, number> | null)?.["orcpub.dnd.e5.character/con"] ?? 0),
-    skills: Object.keys(built["skill-profs"] ?? {}),
-    tools: Object.keys(built["tool-profs"] ?? {}),
-    // A resistance with a qualifier has no place in a pack race, which stores the damage type only.
-    resistances: ((built.resistances as Resistance[] | null) ?? []).filter((r) => !r.qualifier).map((r) => r.value),
-    // The scores, not the engine's ability-increases, which do not have the ability picks of a Half-Elf or a Variant Human.
-    abilities: built.abilities as Record<string, number>,
-    spells: Object.entries(built["spells-known"] ?? {}).flatMap(([level, known]) =>
-      (known?.__entries ?? []).map(([[source], spell]) => ({ source, level: Number(level), ability: spell.ability, key: spell.key })),
-    ),
-    traits: built.traits ?? [],
-    // Without the pick that gives its area, such as a Dragonborn's ancestry, an attack has no area yet.
-    attacks: ((built.attacks as AreaAttack[] | null) ?? []).filter((a) => a["attack-type"] === "area" && a["area-type"] != null),
-  };
-}
-
-const raceGivesCache = new Map<string, RaceGives>();
-let probeBase: { levels: StrictEntity[]; top: ReturnType<typeof probed>; weaponProbe: StrictEntity; weapons: string[] } | undefined;
-
-/**
- * What the SRD race with the key gives that its content list does not
- * have: the skill and tool proficiencies (Perception for the Elf), the
- * damage resistances (poison for the Dwarf), the ability score increases,
- * the spells (the Tiefling), the traits and the attacks. They are what a
- * new character of level PROBE_LEVEL with only the race has, without what
- * that character has with no race. A spell's unlock level is the first
- * level at which the character with the race knows it.
- *
- * With picked, the probe character has the race as that entity has it,
- * with the picks under it. Then the result has what the picks give too,
- * such as the tool of a Dwarf or the resistance of a Dragonborn's
- * ancestry. Without picked, a choice of the race gives nothing, and each
- * key is computed once: the pinned SRD content does not change.
- */
-function raceGives(key: string, picked?: StrictEntity): RaceGives {
-  const cached = picked === undefined ? raceGivesCache.get(key) : undefined;
-  if (cached !== undefined) return cached;
-  const e = engine();
-  if (probeBase === undefined) {
-    const levels = [e.emptyCharacter() as StrictEntity];
-    const classKey = Object.keys(e.evaluate(levels[0]).built.levels ?? {})[0];
-    while (levels.length < PROBE_LEVEL) levels.push(e.addLevel(levels[levels.length - 1], classKey));
-    const weaponProbe = e.setClass(levels[0], 0, WEAPON_PROBE_CLASS);
-    probeBase = { levels, top: probed(levels[PROBE_LEVEL - 1]), weaponProbe, weapons: probed(weaponProbe).weapons };
-  }
-  const { levels, top: before, weaponProbe, weapons: ownWeapons } = probeBase;
-  const probedWithRace = (base: StrictEntity) => {
-    const entity = e.select(base, ["race"], key);
-    return probed(picked === undefined ? entity : withOptionOf(entity, picked, ["race", key]));
-  };
-  const withRace = (level: number) => probedWithRace(levels[level - 1]);
-  const top = withRace(PROBE_LEVEL);
-  const raceSpells = top.spells.filter((spell) => !before.spells.some((s) => s.source === spell.source && s.key === spell.key));
-  const unlocked = new Map<string, number>();
-  for (let level = 1; level <= PROBE_LEVEL && unlocked.size < raceSpells.length; level++) {
-    const known = withRace(level).spells;
-    for (const spell of raceSpells) {
-      if (!unlocked.has(spell.key) && known.some((s) => s.source === spell.source && s.key === spell.key)) unlocked.set(spell.key, level);
-    }
-  }
-  const ownTraits = new Set(before.traits.map((t) => t.name));
-  const ownAttacks = new Set(before.attacks.map((a) => a.name));
-  const gives: RaceGives = {
-    skills: top.skills.filter((skill) => !before.skills.includes(skill)),
-    tools: top.tools.filter((tool) => !before.tools.includes(tool)),
-    weapons: probedWithRace(weaponProbe).weapons.filter((weapon) => !ownWeapons.includes(weapon)),
-    hitPoints: top.hitPoints - before.hitPoints,
-    resistances: top.resistances.filter((r) => !before.resistances.includes(r)),
-    // The increase of each score that the race makes.
-    abilities: Object.fromEntries(
-      Object.entries(top.abilities)
-        .map(([ability, bonus]): [string, number] => [ability, bonus - (before.abilities[ability] ?? 0)])
-        .filter(([, bonus]) => bonus !== 0),
-    ),
-    spells: raceSpells
-      .map((spell) => ({ level: unlocked.get(spell.key) ?? 1, value: { level: spell.level, ability: spell.ability, key: spell.key } }))
-      .sort((a, b) => a.level - b.level),
-    traits: top.traits
-      .filter((t) => !ownTraits.has(t.name))
-      .map((t) => ({ name: t.name, ...(t.page != null && { page: t.page }), ...(t.summary != null && { summary: t.summary }) })),
-    attacks: top.attacks.filter((a) => !ownAttacks.has(a.name)),
-  };
-  if (picked === undefined) raceGivesCache.set(key, gives);
-  return gives;
-}
-
 /**
  * The Breath Weapon, the only area attack of an SRD race, as a feature
- * of a pack race, which has no attacks: an
- * action with one use for each short rest, and the area, the saving throw
- * and the damage type as its text. The text has the damage of the SRD
- * Breath Weapon by level, in our own words, because the engine gives the
- * dice for one level only.
+ * of a pack race, which has no attacks: an action with one use for each
+ * short rest, with its text (breathWeaponText).
  */
 function breathWeaponTrait(attack: AreaAttack): Record<string, unknown> {
-  const area =
-    attack["area-type"] === "line"
-      ? `a line ${attack["line-width"]} ft. wide and ${attack["line-length"]} ft. long`
-      : `a ${attack.length} ft. ${attack["area-type"]}`;
-  const die = `d${attack["damage-die"]}`;
-  const save = unqualify(attack.save ?? "").toUpperCase();
   return {
     name: attack.name,
     type: tag("action"),
     frequency: { units: tag("orcpub.dnd.e5.units/short-rest"), amount: 1 },
-    description:
-      `Each creature in ${area} makes a ${save} saving throw, DC 8 + your CON modifier + your proficiency bonus. ` +
-      `It takes 2${die} ${attack["damage-type"]} damage on a failed save, and half on a success. ` +
-      `The damage is 3${die} at level 6, 4${die} at level 11 and 5${die} at level 16.`,
+    description: breathWeaponText(attack),
   };
 }
 
@@ -609,7 +460,7 @@ export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Pr
     ...(Object.keys(abilities).length > 0 && { abilities }),
     ...(Object.keys(props).length > 0 && { props }),
     ...(Object.keys(profs).length > 0 && { profs }),
-    traits: [...formTraits([...listed, ...gives.traits.filter((t) => !names.has(t.name))]), ...gives.attacks.map(breathWeaponTrait)],
+    traits: [...formTraits([...listed, ...gives.traits.filter((t) => !names.has(t.name))]), ...gives.attacks.filter(hasArea).map(breathWeaponTrait)],
   }) as Record<string, unknown>;
   // A keyword value and a set, which tagKeys does not make.
   return {

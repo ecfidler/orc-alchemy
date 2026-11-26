@@ -5,6 +5,7 @@ import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { loadSpellContent, preparedSpells } from "../engine/spells.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
+import { chosenHeight } from "./Spells.tsx";
 
 // The prepare boxes wait for the spell records (ORC-288), so the records load first.
 beforeAll(async () => {
@@ -146,4 +147,11 @@ test("the Spells step of a paladin 2 is not empty: it has no spell to pick, but 
   expect(spells.hasAttribute("data-dimmed")).toBe(false);
   expect(screen.queryByText("This character has no spell to pick.")).toBeNull();
   expect(screen.getByRole("region", { name: /^Prepared spells: Paladin/ })).toBeTruthy();
+});
+
+test("the chosen line keeps the lines that the most picks take: 2 names on a line of a narrow step and 4 on a wide one; 3 lines with no maximum", () => {
+  expect(chosenHeight(3)).toBe("min-h-10 @min-[560px]/spells:min-h-5");
+  expect(chosenHeight(6)).toBe("min-h-15 @min-[560px]/spells:min-h-10");
+  expect(chosenHeight(20)).toBe("min-h-25 @min-[560px]/spells:min-h-15");
+  expect(chosenHeight(null)).toBe("min-h-15 @min-[560px]/spells:min-h-15");
 });

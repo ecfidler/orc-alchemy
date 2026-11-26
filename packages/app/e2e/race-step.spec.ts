@@ -95,7 +95,7 @@ test("Dwarf with one subrace: the panel shows Hill Dwarf as a fact, and the pick
 test("Dwarf with two subraces (a pack subrace): no Subrace fact, and a Subrace row in Choices after the pick", async ({ page }) => {
   await fighterOnRace(page, true);
   await show(page, "Dwarf");
-  await expect(panel(page).getByRole("term")).toHaveText(["Ability scores", "Size, speed", "Languages"]);
+  await expect(panel(page).getByRole("term")).toHaveText(["Ability scores", "Size, speed", "Languages", "Tools", "Weapons"]);
   await panel(page).getByRole("button", { name: "Choose Dwarf" }).click();
   await expect(heading(page)).toHaveText("Dwarf,1 left");
   const subrace = section(page, "Subrace");
@@ -103,6 +103,23 @@ test("Dwarf with two subraces (a pack subrace): no Subrace fact, and a Subrace r
   await pickIn(subrace, "Ash Dwarf");
   await expect(heading(page)).toHaveText("Dwarf,Done");
   await expect(summaryCard(page).getByLabel("Race", { exact: true })).toHaveText("Dwarf (Ash Dwarf)");
+});
+
+test("the panel shows the traits that the engine gives: the Breath Weapon, the hit points of Hill Dwarf, and the Tiefling's", async ({ page }) => {
+  await fighterOnRace(page);
+  const trait = (name: string) =>
+    panel(page)
+      .getByRole("listitem")
+      .filter({ has: page.locator("b", { hasText: `${name}.` }) });
+  await show(page, "Dragonborn");
+  await expect(trait("Breath Weapon")).toContainText("Your Draconic Ancestry gives the area, the saving throw and the damage type.");
+  await expect(trait("Damage Resistance")).toHaveText("Damage Resistance. You have resistance to the damage type of your Draconic Ancestry.");
+  await show(page, "Dwarf");
+  await expect(trait("Hit Points")).toHaveText("Hit Points. Your hit point maximum increases by 1 for each of your levels.");
+  await expect(fact(page, "Weapons")).toHaveText("Battleaxe, Handaxe, Light hammer, Warhammer");
+  await show(page, "Tiefling");
+  await expect(trait("Hellish Resistance")).toBeVisible();
+  await expect(trait("Infernal Legacy")).toContainText("You get Hellish Rebuke at level 3 and Darkness at level 5.");
 });
 
 test("Half-Elf: three lines to other steps, and a line opens its step", async ({ page }) => {
@@ -178,7 +195,7 @@ async function pickOptionIn(page: Page, select: Locator, name: string) {
   await expect(select).toHaveText(name);
 }
 
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/race-step.spec.ts -g orc-348 --trace off
+// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/race-step.spec.ts -g orc-348 --trace off (or -g orc-355)
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
   test.use({ deviceScaleFactor: 2 });
@@ -232,6 +249,33 @@ test.describe("screenshots", () => {
         await expect(section(page, "Draconic Ancestry")).toBeVisible();
         await ready(page);
         await shot(step(page), "block-dragonborn");
+      });
+    }
+  // The panel of Dragonborn and Tiefling, with the traits that the engine gives (ORC-355).
+  for (const theme of ["light", "dark"])
+    for (const width of [1280, 390]) {
+      const size = width === 390 ? "390" : "desktop";
+      test(`orc-355 the race panel of Dragonborn and Tiefling, ${size}, ${theme}`, async ({ page }) => {
+        mkdirSync(dir, { recursive: true });
+        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+        await page.setViewportSize({ width, height: 900 });
+        await fighterOnRace(page);
+        for (const name of ["Dragonborn", "Tiefling"]) {
+          const path = join(dir, `orc-355-${name.toLowerCase()}-${size}-${theme}.png`);
+          if (width === 390) {
+            await row(page, name).click();
+            const modal = page.getByRole("dialog", { name });
+            await expect(modal.getByRole("listitem").first()).toBeVisible();
+            await ready(page);
+            await page.screenshot({ path, animations: "disabled" });
+            await modal.getByRole("button", { name: "Cancel" }).click();
+          } else {
+            await show(page, name);
+            await expect(panel(page).getByRole("listitem").first()).toBeVisible();
+            await ready(page);
+            await step(page).screenshot({ path, animations: "disabled" });
+          }
+        }
       });
     }
 });

@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T16:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T16:45:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -647,24 +647,41 @@ The main pick of each step is a list with a detail panel.[^orc-332]
   panel.[^orc-347]
 * Above the list, the heading of the selection has the left mark:
   "Background" and "1 left".[^orc-347]
-* The facts of a race are Ability scores, "Size, speed", Languages and
-  Subrace, each only when the race gives it. A choice of the player shows
-  after the fixed part: "Charisma +2; +1 to two of your choice". The
-  ability scores show the largest first. Darkvision is the first
-  trait.[^orc-348]
+* The facts of a race are Ability scores, "Size, speed", Languages,
+  Skills, Tools, Weapons and Subrace, each only when the race gives it. A
+  choice of the player shows after the fixed part: "Charisma +2; +1 to
+  two of your choice". The ability scores show the largest first.
+  Darkvision is the first trait.[^orc-348] [^orc-355]
 * The pick of a race with one subrace also picks the subrace. The engine's
   Custom subrace does not count. The Subrace fact shows the name of the
-  subrace with its ability scores and its traits: "Hill Dwarf: Wisdom +1".
-  A character that has the race and not its one subrace, such as a
+  subrace with its ability scores: "Hill Dwarf: Wisdom +1". The choices,
+  the proficiencies and the traits of the subrace are those of the race
+  in the panel: the traits of the subrace follow those of the race. A
+  character that has the race and not its one subrace, such as a
   character from before this rule, keeps the Subrace row in Choices until
-  the player picks the subrace.[^orc-348]
-* The traits of the panel are those of the record of the race: the
-  item of its pack, or the race of the engine's content list. The panel
-  does not show a trait that only the engine gives, as a modifier, an
-  attack or a trait of the built character. Examples are the Breath
-  Weapon and the damage resistance of the Dragonborn, the Dwarven
-  Toughness of the Hill Dwarf, and the traits of the
-  Tiefling.[^orc-348]
+  the player picks the subrace.[^orc-348] [^orc-355]
+* The panel shows what the engine gives the race and the record does
+  not have.[^orc-355] The source is a probe character with the race and
+  its one subrace, and no other pick, so the text is correct before the
+  player makes a pick. The same rule applies to a pack race.
+  * A trait of the built character that the record does not have, with
+    the text of the engine: the Hellish Resistance and the Infernal
+    Legacy of the Tiefling.
+  * An area attack, with our own text: the Breath Weapon of the
+    Dragonborn. Before the pick that gives the area, the text names
+    that choice: "Your Draconic Ancestry gives the area, the saving
+    throw and the damage type."
+  * "Damage Resistance" for a choice of the race whose each option gives
+    a damage resistance, such as the Draconic Ancestry, and for a damage
+    type that no trait names.
+  * "Hit Points" for the hit points for each level, such as those of the
+    Hill Dwarf, when no trait names hit points.
+  * A spell that comes after level 1 adds its level to the trait that
+    names it: "You get Hellish Rebuke at level 3 and Darkness at level
+    5." A spell that no trait names goes in a "Spells" trait.
+  * The skills, the tools and the weapons are facts.
+* The app builds the text of a race one time for each content and
+  keeps it. The list does not build it: a click on a name does.[^orc-355]
 
 ## After the pick
 
@@ -861,8 +878,10 @@ later project.
 * Under the heading of a spell selection, the line "Chosen" lists the
   picked spells, also those that the filter hides. The line is there
   before the first pick. It keeps the height of the lines that the most
-  picks take, about 4 names on a line and up to 3 lines, so a pick does
-  not move the filter and the cards.[^orc-352]
+  picks take, so a pick does not move the filter and the cards: about 2
+  names on a line and up to 5 lines on a step narrower than 560px, and
+  about 4 names on a line and up to 3 lines on a wider step. A selection
+  with no maximum keeps 3 lines.[^orc-352] [^orc-355]
 
 # The Description step
 
@@ -875,8 +894,10 @@ later project.
 * The left mark of Alignment is at the right of its label, in a fixed
   place, and is a part of the name of the select: "Alignment, 1
   left".[^orc-352]
-* The one-line fields are three in a row on a wide step and one on a
-  phone. A text area and a URL field have the full width.[^orc-352]
+* The one-line fields are three in a row on a step 600px wide or more,
+  and one on a narrower step, as on a phone. The width of the step
+  counts, not the width of the page. A text area and a URL field have the
+  full width.[^orc-352] [^orc-355]
 
 # Keyboard and screen reader
 
@@ -997,3 +1018,4 @@ one depends only on parts of the frame.
 [^orc-351]: Class step: hit points, the picks on other steps and a second class, <https://linear.app/orc-alchemy/issue/ORC-351/class-step-hit-points-the-picks-on-other-steps-and-a-second-class>
 [^orc-352]: The Feats, Spells, Equipment and Description steps in the new frame, <https://linear.app/orc-alchemy/issue/ORC-352/the-feats-spells-equipment-and-description-steps-in-the-new-frame>
 [^orc-354]: The question before a change removes picks: the picks in a top-level selection stay, <https://linear.app/orc-alchemy/issue/ORC-354/the-question-before-a-change-removes-picks-the-picks-in-a-top-level>
+[^orc-355]: The race panel shows the traits that the engine gives, <https://linear.app/orc-alchemy/issue/ORC-355>

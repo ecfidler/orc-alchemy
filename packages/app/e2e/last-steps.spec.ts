@@ -88,6 +88,47 @@ test("Alignment is the first field of the Description step, a select; a pick wri
   await expect(builder(page).getByText("Alignment")).toHaveCount(0);
 });
 
+test("on a 390px page, a pick in a spell selection does not move the filter or the cards either", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await newCharacter(page);
+  await addFirstClass(page, "Wizard");
+  await openStep(page, "Spells");
+  const cantrips = section(page, "Wizard Cantrips Known");
+  const card = (name: string) => cantrips.getByRole("button", { name, exact: true });
+  const parts = [cantrips.getByLabel("Search: Wizard Cantrips Known"), card("Acid Splash"), section(page, "Wizard Spells Known")];
+  const before = await boxes(parts);
+  for (const name of ["Prestidigitation", "Acid Splash", "Fire Bolt"]) await card(name).click();
+  await expect(cantrips.getByRole("heading").first()).toHaveAccessibleName("Wizard Cantrips Known, Done");
+  expect(await boxes(parts)).toEqual(before);
+});
+
+/** The one-line text fields of the Description step, in their order. */
+const ONE_LINE = ["Player Name", "Age", "Sex", "Height", "Weight", "Hair Color", "Eye Color", "Skin Color"];
+
+/** The count of the columns of the one-line fields of the Description step, and true when a field goes past the step. */
+async function descriptionColumns(page: Page) {
+  const step = (await builder(page).boundingBox())!;
+  const fields = await boxes(ONE_LINE.map((label) => builder(page).getByLabel(label, { exact: true })));
+  return { columns: new Set(fields.map((b) => Math.round(b.x))).size, overflow: fields.some((b) => b.x + b.width > step.x + step.width + 0.5) };
+}
+
+test("the one-line fields of the Description step are three in a row on a wide step and one on a narrow step, with no overflow", async ({ page }) => {
+  for (const [width, columns] of [
+    [1280, 3],
+    [1800, 3],
+    [730, 1],
+    [390, 1],
+  ]) {
+    await page.setViewportSize({ width, height: 900 });
+    if (width === 1280) {
+      await newCharacter(page);
+      await openStep(page, "Description");
+    }
+    await expect(builder(page).getByLabel("Player Name")).toBeVisible();
+    expect(await descriptionColumns(page), `${width}px`).toEqual({ columns, overflow: false });
+  }
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/last-steps.spec.ts -g orc-352 --trace off
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");

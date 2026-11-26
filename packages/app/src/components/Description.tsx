@@ -22,18 +22,20 @@ export function Description({ alignment }: { alignment?: BuilderSelection }) {
   const run = useMutation();
   if (!entity) return null;
   return (
-    // The one-line fields are three in a row on a wide step, and one on a phone. A text area and a URL, with its
-    // image, have the full width.
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-x-[18px] gap-y-3">
-      {alignment && <AlignmentField selection={alignment} />}
-      {FIELDS.map((field) => (
-        <TextField
-          key={field.key}
-          field={field}
-          stored={storedValue(entity, field.key)}
-          onCommit={(text) => run((e, entity) => setDescription(e, entity, field.key, text))}
-        />
-      ))}
+    // The one-line fields are three in a row on a step 600px wide or more, and one on a narrower step, as on a phone.
+    // The width of the step counts, not that of the page. A text area and a URL, with its image, have the full width.
+    <div className="@container/description">
+      <div data-fields="" className="grid grid-cols-1 gap-x-[18px] gap-y-3 @min-[600px]/description:grid-cols-3">
+        {alignment && <AlignmentField selection={alignment} />}
+        {FIELDS.map((field) => (
+          <TextField
+            key={field.key}
+            field={field}
+            stored={storedValue(entity, field.key)}
+            onCommit={(text) => run((e, entity) => setDescription(e, entity, field.key, text))}
+          />
+        ))}
+      </div>
     </div>
   );
 }
