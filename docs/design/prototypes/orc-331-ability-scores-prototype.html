@@ -1,0 +1,299 @@
+<meta charset="utf-8">
+<title>Ability Scores Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..700&display=swap">
+<style>
+/* PROTOTYPE (ORC-331), throwaway. Three variants of the control that sets the six ability scores, each with the four methods.
+   Paper theme (docs/design/theme.md). Light is the default; dark is only the Theme toggle here.
+   Hash: #<variant> a, b or c. */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --danger: #c2271d; --success: #1f7a3a; --info: #1e5fb4;
+  --note: #ffe45c; --note-ink: #222222;
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --shadow: rgba(60, 45, 0, 0.22);
+  --proto-bg: #1c2b4a; --proto-fg: #ffffff;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:root[data-proto-theme="dark"] {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --success: #4ed07a; --info: #5ea2ff;
+  --note-ink: #000000; --shadow: rgba(255, 255, 255, 0.12);
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-serif); font-size: 17px; line-height: 1.5;
+  font-weight: 450; font-variant-numeric: lining-nums tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, p, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+/* ---------- prototype chrome (not part of the design) ---------- */
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.proto-top { font-family: var(--font-sans); font-size: 12.5px; background: var(--proto-bg); color: var(--proto-fg);
+  padding-block: 8px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.proto-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.proto-group > span { opacity: .75; margin-right: 2px; }
+.proto-top button { background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.proto-top button[aria-pressed="true"] { background: var(--proto-fg); color: var(--proto-bg); }
+.proto-notes { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; background: var(--panel); border-bottom: 1px solid var(--rule); padding-block: 8px; }
+.proto-notes b { font-weight: 600; }
+.proto-notes p { max-width: 100ch; }
+
+/* ---------- shared parts ---------- */
+.stagewrap { padding-block: 18px 60px; }
+.stage { position: relative; width: 100%; max-width: 760px; margin: 0 auto; }
+.stage.phone { max-width: 390px; outline: 1px dashed var(--rule-strong); outline-offset: 8px; }
+.h2row { border-bottom: 1px solid var(--rule-strong); padding-bottom: 6px; margin-bottom: 14px; }
+.h2row h2 { font-size: 26px; font-weight: 600; line-height: 1.2; }
+.btn { font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; border: 1px solid var(--ink); background: var(--paper-raised); padding: 5px 12px; border-radius: 0; white-space: nowrap; min-height: 32px; }
+.btn:hover { background: var(--panel); }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--ink); }
+.phone .seg { grid-template-columns: repeat(2, 1fr); }
+.seg button { font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; background: var(--paper-raised); border: 0; padding: 8px 6px; min-height: 38px; }
+.seg button + button { border-left: 1px solid var(--ink); }
+.phone .seg button:nth-child(3) { border-left: 0; }
+.phone .seg button:nth-child(n+3) { border-top: 1px solid var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.seg button:not([aria-pressed="true"]):hover { background: var(--panel); }
+/* the strip under the methods: one fixed height for all four methods */
+.strip { height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--font-sans); font-size: 13.5px; color: var(--ink-muted); margin: 6px 0 10px; }
+.phone .strip { height: 64px; }
+.strip b { color: var(--ink); font-weight: 600; }
+.strip .bad { color: var(--danger); font-weight: 600; }
+.meter { display: inline-grid; grid-template-columns: repeat(27, 6px); gap: 2px; vertical-align: middle; margin-left: 8px; }
+.phone .meter { grid-template-columns: repeat(27, 4px); gap: 1px; margin-left: 0; }
+.meter i { height: 12px; background: var(--ink); }
+.meter i.spent { background: var(--rule); }
+.num { border: 1.5px solid var(--ink); background: var(--paper-raised); width: 58px; height: 36px; text-align: center; font-size: 19px; border-radius: 0; -moz-appearance: textfield; }
+.num::-webkit-outer-spin-button, .num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pm { display: inline-grid; grid-template-columns: 32px 34px 32px; align-items: center; text-align: center; }
+.pm button { width: 32px; height: 36px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 17px; line-height: 1; padding: 0; }
+.pm button:disabled { opacity: .3; cursor: default; }
+.pm button:not(:disabled):hover { background: var(--panel); }
+.pm span { font-size: 20px; }
+.mod { font-family: var(--font-sans); font-weight: 600; }
+.tok { font-family: var(--font-sans); font-size: 11.5px; border: 1px solid var(--rule-strong); padding: 0 5px; white-space: nowrap; color: var(--ink); background: var(--paper-raised); }
+.lab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.sm { font-family: var(--font-sans); font-size: 11.5px; color: var(--ink-muted); }
+
+/* ---------- A: six columns, a select for each ability ---------- */
+.A .cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.A.phone .cols { grid-template-columns: repeat(3, 1fr); }
+.A .col { border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 8px 4px 6px; display: grid; justify-items: center; gap: 4px; }
+.A .col .ctl { height: 38px; display: flex; align-items: center; }
+.A .col .cost, .A .col .bon { height: 20px; display: flex; gap: 3px; align-items: center; }
+.A .col .tot { border-top: 1px solid var(--rule-strong); width: 100%; text-align: center; padding-top: 4px; }
+.A .col .tot b { font-size: 28px; font-weight: 500; line-height: 1.1; display: block; }
+.A select { border: 1.5px solid var(--ink); background: var(--paper-raised); height: 36px; width: 64px; font-size: 19px; text-align: center; border-radius: 0; padding: 0 4px; }
+
+/* ---------- B: six rows; the abilities are put in order, or a score is clicked ---------- */
+.B .rows { border-top: 1px solid var(--rule-strong); }
+.B .row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 132px 44px 44px; gap: 10px; align-items: center; border-bottom: 1px solid var(--rule); min-height: 54px; padding: 4px 0; }
+.B.phone .row { grid-template-columns: 1fr 44px 44px; row-gap: 2px; }
+.B.phone .row .ctl { grid-column: 1 / -1; grid-row: 2; }
+.B.phone .row .bon { grid-column: 1 / -1; grid-row: 3; min-height: 20px; }
+.B .row .ctl { height: 38px; display: flex; align-items: center; }
+.B .row .ctl > * { flex: 1; }
+.B .row.head { min-height: 0; height: 26px; padding: 2px 0; border-bottom-color: var(--rule-strong); }
+.B .row.head .ctl { height: 18px; }
+.B.phone .row.head .bon { display: none; }
+.B .row .nm { font-family: var(--font-sans); font-size: 14.5px; font-weight: 600; }
+.B .row .bon { display: flex; gap: 4px; flex-wrap: wrap; }
+.B .row .t { font-size: 24px; font-weight: 500; text-align: center; }
+.B .row .m { text-align: center; }
+.B .scale { display: grid; grid-template-columns: repeat(8, minmax(30px, 1fr)); gap: 3px; max-width: 320px; }
+.B .scale button { border: 1px solid var(--rule-strong); background: var(--paper-raised); height: 36px; font-size: 17px; padding: 0; }
+.B .scale button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.B .scale button:disabled { opacity: .3; cursor: default; }
+.B .scale button:not(:disabled):not([aria-pressed="true"]):hover { background: var(--panel); }
+.B .scale.costs { font-family: var(--font-sans); font-size: 11px; color: var(--ink-muted); text-align: center; }
+.B .order { display: flex; align-items: center; gap: 10px; }
+.B .order .slot { font-size: 22px; width: 34px; text-align: center; }
+.B .order .mv { display: inline-flex; gap: 3px; }
+.B .order .mv button { width: 34px; height: 34px; border: 1px solid var(--ink); background: var(--paper-raised); font-family: var(--font-sans); font-size: 14px; padding: 0; }
+.B .order .mv button:disabled { opacity: .3; cursor: default; }
+.B .row[draggable="true"] { cursor: grab; }
+.B .row.over { background: var(--panel); }
+.B .grip { color: var(--ink-muted); font-family: var(--font-sans); letter-spacing: -2px; margin-right: 6px; }
+
+/* ---------- C: boxes; top to bottom: the name, the base score that the player moves, the increases, the total and modifier ---------- */
+.C .boxes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.C.phone .boxes { grid-template-columns: repeat(3, 1fr); }
+.C .box { border: 1.5px solid var(--rule-strong); border-radius: 6px; background: var(--paper-raised); display: grid; justify-items: center; overflow: hidden; }
+.C .box .lab { padding-top: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.C .box .ctl { height: 40px; display: flex; align-items: center; margin-top: 4px; }
+.C .box .cost { height: 16px; }
+.C .box .bon { height: 24px; display: flex; gap: 3px; align-items: center; margin-bottom: 6px; }
+.C .box .res { width: 100%; display: grid; justify-items: center; gap: 3px; padding: 6px 4px 9px; background: var(--panel); border-top: 1px solid var(--rule-strong); }
+.C .box .big { font-size: 34px; font-weight: 500; line-height: 1.05; }
+.C .box .mod { border: 1px solid var(--rule-strong); border-radius: 999px; padding: 0 9px; font-size: 13px; background: var(--paper-raised); }
+.C .box.over { border-color: var(--ink); }
+.C .box.over .res { background: color-mix(in srgb, var(--note) 45%, var(--paper-raised)); }
+.C .chip { display: inline-grid; grid-template-columns: 18px 1fr; align-items: center; width: 74px; height: 38px; padding: 0 8px 0 0; border: 1.5px solid var(--ink); background: var(--paper-raised);
+  font-size: 20px; cursor: grab; touch-action: none; transition: background-color .12s ease-out, transform .12s ease-out; }
+.C .chip:active { cursor: grabbing; }
+.C .chip .grip { height: 100%; display: grid; place-items: center; border-right: 1px solid var(--rule); color: var(--ink-muted); }
+.C .chip:hover { background: var(--panel); }
+.C .chip:hover .grip { color: var(--ink); }
+.C .chip[aria-pressed="true"] { background: var(--note); color: var(--note-ink); transform: translateY(-2px); }
+.C .chip[aria-pressed="true"] .grip { color: var(--note-ink); border-right-color: var(--note-ink); }
+.C .chip.dragging { opacity: .35; }
+@media (prefers-reduced-motion: reduce) { .C .chip { transition: none; } .C .chip[aria-pressed="true"] { transform: none; } }
+</style>
+
+<div class="proto-top gut">
+  <span class="proto-group" id="g-variant"><span>Variant</span></span>
+  <span class="proto-group" id="g-bonus"><span>Character</span></span>
+  <span class="proto-group" id="g-width"><span>Width</span></span>
+  <span class="proto-group" id="g-theme"><span>Theme</span></span>
+</div>
+<div class="proto-notes gut"><p id="note"></p></div>
+<div class="stagewrap gut"><div class="stage" id="stage"></div></div>
+
+<script>
+// PROTOTYPE (ORC-331), throwaway. State is in memory only.
+const VARIANTS = {
+  a: ["A. Columns and selects", "<b>A. Columns and selects.</b> Six columns, as today, but each is a box with the total at the bottom. For the standard scores and the roll, each ability has a select: pick a number, and the ability that had it takes the old number. Point buy has minus and plus with the cost of the next point."],
+  b: ["B. Rows", "<b>B. Rows.</b> One row for each ability. For the standard scores and the roll, the six numbers stay in place and you put the abilities in order: drag a row, or use the arrows. Point buy shows the scores 8 to 15 as buttons, with the cost above them, and you click the score you want."],
+  c: ["C. Sheet boxes", "<b>C. Sheet boxes (new order, 2026-11-25).</b> Each box reads from top to bottom: the ability, the base score that you move, the increases from other sources, then the total and the modifier. For the standard scores and the roll, drag a score by its handle to a different box to swap the two, or click one score and then the other. Point buy has minus and plus in the same place."],
+};
+const AB = [["str", "Strength"], ["dex", "Dexterity"], ["con", "Constitution"], ["int", "Intelligence"], ["wis", "Wisdom"], ["cha", "Charisma"]];
+const METHODS = [["point-buy", "Point buy"], ["standard-roll", "Standard roll"], ["standard-scores", "Standard scores"], ["manual-entry", "Manual entry"]];
+const COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 }, POINTS = 27;
+const BONUS = {
+  none: {},
+  dwarf: { con: [["Race", 2]], wis: [["Subrace", 1]] },
+  lvl4: { con: [["Race", 2]], wis: [["Subrace", 1]], str: [["Improvement", 2]] },
+};
+const fromList = (list) => Object.fromEntries(AB.map(([k], i) => [k, list[i]]));
+const roll = () => fromList(AB.map(() => { const d = [0, 0, 0, 0].map(() => 1 + Math.floor(Math.random() * 6)).sort((x, y) => x - y); return d[1] + d[2] + d[3]; }).sort((x, y) => y - x));
+const S = { variant: "c", method: "standard-scores", scores: fromList([15, 14, 13, 12, 10, 8]), bonus: "dwarf", phone: false, dark: false, held: null };
+
+const bonuses = (a) => BONUS[S.bonus][a] ?? [];
+const total = (a) => S.scores[a] + bonuses(a).reduce((n, [, v]) => n + v, 0);
+const sign = (n) => (n < 0 ? "−" + -n : "+" + n);
+const mod = (a) => sign(Math.floor((total(a) - 10) / 2));
+const left = () => { let spent = 0; for (const [a] of AB) { const c = COST[S.scores[a]]; if (c === undefined) return null; spent += c; } return POINTS - spent; };
+const canUp = (a) => { const l = left(), s = S.scores[a]; return l !== null && s < 15 && total(a) < 20 && COST[s + 1] - COST[s] <= l; };
+const canDown = (a) => left() !== null && S.scores[a] > 8;
+const canSet = (a, n) => { const l = left(); return l !== null && COST[n] - COST[S.scores[a]] <= l && n + total(a) - S.scores[a] <= 20; };
+const swap = (a, b) => { [S.scores[a], S.scores[b]] = [S.scores[b], S.scores[a]]; };
+const isAssign = () => S.method === "standard-scores" || S.method === "standard-roll";
+const toks = (a) => bonuses(a).map(([src, v]) => `<span class="tok" title="${src}">${sign(v)} ${src}</span>`).join("") ;
+
+function strip(hint) {
+  if (S.method === "point-buy") {
+    const l = left();
+    if (l === null) return `<span class="bad">Points cannot be counted: a base score is outside 8 to 15.</span>`;
+    return `<span><b>${l}</b> of ${POINTS} points left <span class="meter" aria-hidden="true">${Array.from({ length: POINTS }, (_, i) => `<i class="${i < POINTS - l ? "spent" : ""}"></i>`).join("")}</span></span>`;
+  }
+  if (S.method === "manual-entry") return `<span>Type each base score, from 1 to 30.</span>`;
+  const reroll = S.method === "standard-roll" ? `<button class="btn" data-reroll>Re-roll</button>` : "";
+  return `<span>${hint}</span>${reroll}`;
+}
+const methods = () => `<div class="seg" role="group" aria-label="Method">${METHODS.map(([k, n]) => `<button data-method="${k}" aria-pressed="${S.method === k}">${n}</button>`).join("")}</div>`;
+const pm = (a) => `<span class="pm"><button data-step="-1" data-a="${a}" aria-label="Decrease" ${canDown(a) ? "" : "disabled"}>−</button><span>${S.scores[a]}</span><button data-step="1" data-a="${a}" aria-label="Increase" ${canUp(a) ? "" : "disabled"}>+</button></span>`;
+const field = (a) => `<input class="num" type="number" min="1" max="30" value="${S.scores[a]}" data-manual="${a}" aria-label="${a} base score">`;
+const nextCost = (a) => { const s = S.scores[a]; return S.method !== "point-buy" || COST[s] === undefined ? "" : s >= 15 ? "max" : `next: ${COST[s + 1] - COST[s]} pt`; };
+
+const RENDER = {
+  a() {
+    const pool = [...new Set(Object.values(S.scores))].sort((x, y) => y - x);
+    const ctl = (a) => S.method === "point-buy" ? pm(a) : S.method === "manual-entry" ? field(a)
+      : `<select data-pick="${a}" aria-label="${a} base score">${pool.map((n) => `<option ${n === S.scores[a] ? "selected" : ""}>${n}</option>`).join("")}</select>`;
+    return `${methods()}<div class="strip">${strip("Pick a number for each ability. The two abilities swap.")}</div>
+      <div class="cols">${AB.map(([a]) => `<div class="col"><span class="lab">${a}</span><div class="ctl">${ctl(a)}</div><div class="cost sm">${nextCost(a)}</div><div class="bon">${toks(a)}</div>
+        <div class="tot"><b>${total(a)}</b><span class="mod">${mod(a)}</span></div></div>`).join("")}</div>`;
+  },
+  b() {
+    // For the two assign methods the rows are in score order, and the abilities move.
+    const order = isAssign() ? S.order.map((a) => AB.find(([k]) => k === a)) : AB;
+    const scale = (a) => `<div class="scale">${[8, 9, 10, 11, 12, 13, 14, 15].map((n) => `<button data-set="${n}" data-a="${a}" aria-pressed="${S.scores[a] === n}" ${n === S.scores[a] || canSet(a, n) ? "" : "disabled"}>${n}</button>`).join("")}</div>`;
+    const ctl = (a, i) => S.method === "point-buy" ? scale(a) : S.method === "manual-entry" ? field(a)
+      : `<div class="order"><span class="slot">${S.scores[a]}</span><span class="mv"><button data-move="-1" data-i="${i}" aria-label="Move up" ${i === 0 ? "disabled" : ""}>▲</button><button data-move="1" data-i="${i}" aria-label="Move down" ${i === 5 ? "disabled" : ""}>▼</button></span></div>`;
+    const head = S.method === "point-buy" ? `<div class="scale costs">${[0, 1, 2, 3, 4, 5, 7, 9].map((c) => `<span>${c} pt</span>`).join("")}</div>` : "<span></span>";
+    return `${methods()}<div class="strip">${strip("Put the abilities in order. Drag a row, or use the arrows.")}</div>
+      <div class="rows"><div class="row head"><span class="lab">Ability</span><span class="ctl">${head}</span><span class="lab bon">Added</span><span class="lab t" style="font-size:10.5px">Total</span><span class="lab m">Mod</span></div>
+      ${order.map(([a, name], i) => `<div class="row" ${isAssign() ? `draggable="true" data-row="${i}"` : ""}><span class="nm">${isAssign() ? '<span class="grip" aria-hidden="true">⋮⋮</span>' : ""}${name}</span><span class="ctl">${ctl(a, i)}</span><span class="bon">${toks(a)}</span><span class="t">${total(a)}</span><span class="m mod">${mod(a)}</span></div>`).join("")}</div>`;
+  },
+  c() {
+    const grip = '<span class="grip" aria-hidden="true"><svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg></span>';
+    const ctl = (a) => S.method === "point-buy" ? pm(a) : S.method === "manual-entry" ? field(a)
+      : `<button class="chip" draggable="true" data-chip="${a}" aria-pressed="${S.held === a}" aria-label="${a} base score ${S.scores[a]}. Drag to a different ability, or click to swap.">${grip}<span>${S.scores[a]}</span></button>`;
+    return `${methods()}<div class="strip">${strip(S.held ? "Now click the score to swap it with." : "Drag a score to a different ability, or click two scores to swap them.")}</div>
+      <div class="boxes">${AB.map(([a, name]) => `<div class="box" data-box="${a}"><span class="lab" title="${name}">${a}</span><div class="ctl">${ctl(a)}</div><div class="cost sm">${nextCost(a)}</div>
+        <div class="bon">${toks(a)}</div><div class="res"><span class="big">${total(a)}</span><span class="mod">${mod(a)}</span></div></div>`).join("")}</div>`;
+  },
+};
+
+function render() {
+  const stage = document.getElementById("stage");
+  stage.className = `stage ${S.variant.toUpperCase()} ${S.phone ? "phone" : ""}`;
+  stage.innerHTML = `<div class="h2row"><h2>Abilities</h2></div>` + RENDER[S.variant]();
+  document.getElementById("note").innerHTML = VARIANTS[S.variant][1] + " Change the method: the six scores must stay in the same place.";
+  document.documentElement.dataset.protoTheme = S.dark ? "dark" : "light";
+  for (const [id, cur] of [["g-variant", S.variant], ["g-bonus", S.bonus], ["g-width", S.phone ? "phone" : "desktop"], ["g-theme", S.dark ? "dark" : "light"]])
+    for (const b of document.getElementById(id).querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.v === cur));
+}
+function group(id, items, on) {
+  const g = document.getElementById(id);
+  for (const [v, label] of items) { const b = document.createElement("button"); b.dataset.v = v; b.textContent = label; b.onclick = () => { on(v); S.held = null; render(); }; g.append(b); }
+}
+group("g-variant", Object.entries(VARIANTS).map(([k, v]) => [k, v[0]]), (v) => { S.variant = v; history.replaceState(null, "", "#" + v); });
+group("g-bonus", [["none", "No race yet"], ["dwarf", "Hill Dwarf"], ["lvl4", "Hill Dwarf, level 4"]], (v) => { S.bonus = v; });
+group("g-width", [["desktop", "Desktop"], ["phone", "Phone"]], (v) => { S.phone = v === "phone"; });
+group("g-theme", [["light", "Light"], ["dark", "Dark"]], (v) => { S.dark = v === "dark"; });
+
+const stage = document.getElementById("stage");
+// B keeps its own order of the abilities, so that two equal scores can still change places.
+const syncOrder = () => { S.order = [...AB].sort((x, y) => S.scores[y[0]] - S.scores[x[0]] || AB.indexOf(x) - AB.indexOf(y)).map(([a]) => a); };
+const bOrder = () => S.order;
+const place = (o) => { const vals = Object.values(S.scores).sort((x, y) => y - x); o.forEach((a, i) => { S.scores[a] = vals[i]; }); S.order = o; };
+stage.addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  const d = b.dataset;
+  if (d.method) {
+    if (d.method === S.method) return;
+    // As the builder of today: manual entry keeps the scores it has.
+    if (d.method === "point-buy") S.scores = fromList([8, 8, 8, 8, 8, 8]);
+    else if (d.method === "standard-roll") S.scores = roll();
+    else if (d.method === "standard-scores") S.scores = fromList([15, 14, 13, 12, 10, 8]);
+    S.method = d.method; S.held = null;
+  } else if (d.reroll !== undefined) S.scores = roll();
+  else if (d.step) S.scores[d.a] += Number(d.step);
+  else if (d.set) S.scores[d.a] = Number(d.set);
+  else if (d.move) { const o = [...bOrder()], i = Number(d.i), j = i + Number(d.move); [o[i], o[j]] = [o[j], o[i]]; place(o); render(); return; }
+  else if (d.chip) { if (S.held && S.held !== d.chip) { swap(S.held, d.chip); S.held = null; } else S.held = S.held ? null : d.chip; }
+  else return;
+  syncOrder(); render();
+});
+stage.addEventListener("change", (e) => {
+  const d = e.target.dataset;
+  if (d.pick) { const n = Number(e.target.value), other = AB.map(([a]) => a).find((a) => a !== d.pick && S.scores[a] === n); if (other) swap(d.pick, other); }
+  else if (d.manual) { const n = Math.round(Number(e.target.value)); if (n >= 1 && n <= 30) S.scores[d.manual] = n; }
+  else return;
+  syncOrder(); render();
+});
+// Drag: a row in B (the abilities change places), a score chip in C (the two scores swap).
+let drag = null;
+stage.addEventListener("dragstart", (e) => { const t = e.target.closest("[data-row],[data-chip]"); if (!t) return; drag = t.dataset.row !== undefined ? { row: Number(t.dataset.row) } : { chip: t.dataset.chip }; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); if (t.dataset.chip) requestAnimationFrame(() => t.classList.add("dragging")); });
+const dropTarget = (e) => (drag?.row !== undefined ? e.target.closest("[data-row]") : drag?.chip ? e.target.closest("[data-box]") : null);
+stage.addEventListener("dragover", (e) => { const t = dropTarget(e); if (!t) return; e.preventDefault(); stage.querySelectorAll(".over").forEach((x) => x.classList.remove("over")); t.classList.add("over"); });
+stage.addEventListener("drop", (e) => {
+  const t = dropTarget(e); if (!t) return; e.preventDefault();
+  if (drag.row !== undefined) {   // the dragged ability goes to the row it is dropped on, and the abilities between move by one
+    const o = [...bOrder()], to = Number(t.dataset.row);
+    const [moved] = o.splice(drag.row, 1); o.splice(to, 0, moved); place(o);
+  } else if (t.dataset.box !== drag.chip) { swap(drag.chip, t.dataset.box); syncOrder(); }
+  drag = null; S.held = null; render();
+});
+stage.addEventListener("dragend", () => { drag = null; stage.querySelectorAll(".over, .dragging").forEach((x) => x.classList.remove("over", "dragging")); });
+syncOrder();
+const h = location.hash.slice(1); if (VARIANTS[h]) S.variant = h;
+render();
+</script>

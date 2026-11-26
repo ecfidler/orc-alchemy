@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-25T21:20:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T05:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -327,9 +327,10 @@ Every Select, Combobox and NumberField in the app is boxed, not only in the
 homebrew forms: a 1px ink border on `--paper-raised`.
 
 These stay native and get the theme through Tailwind: the two `<details>`
-disclosures (style them with the `open:` variant), the builder step bar
-(stays `<nav>` with `aria-current`; only its buttons become Button), file
-inputs and links.
+disclosures (style them with the `open:` variant), file inputs and
+links. The builder step bar becomes the step rail of the
+[Character builder spec](character-builder.md#the-step-rail). It stays a
+`<nav>` with `aria-current`.
 
 **Test helpers** at `@orc-alchemy/ui/testing`: "pick an option" for Vitest,
 "pick an option" for Playwright, and "answer the confirm dialog". The
@@ -382,8 +383,9 @@ Do not use an icon for a second meaning. A control without a row in this
 table has no icon.
 
 **Class icons** (ORC-337). Each SRD class has one pixel icon. A class icon
-goes only with the name of its class, in the Class step of the builder.
-The step is not built: it comes with the character builder spec (ORC-334).
+goes only with the name of its class, in the Class step of the builder:
+in a class card, in the modal of a class and in the header of a class
+block. See the [Character builder spec](character-builder.md#the-class-step).
 The package has no 5e words, so the name of an icon is the name of its
 drawing, and the app holds the list of the icon of each class.
 
@@ -466,10 +468,11 @@ the same yellow in dark mode.
 * **Where it goes:** only where the user must act. Unresolved content on
   the sheet, and key conflicts before import.
 * **Inline note:** a small form of the note, in the line of text. The line
-  grows to fit it, so it covers nothing. The builder step bar shows its
-  count of choices left as an inline note. A selection with choices left
-  has "n to choose" as an inline note in its heading. Too many choices
-  picked is a red (`--note-red`) inline note, on the step bar and in the
+  grows to fit it, so it covers nothing. The builder step rail shows its
+  count of picks left as an inline note. A selection with picks left
+  has "n left" as an inline note at the right of its heading. See
+  [Marks, not sentences](character-builder.md#marks-not-sentences). Too many picks
+  is a red (`--note-red`) inline note, on the step rail and in the
   heading (Ethan, on PR #65).
 * Information that needs no action, such as an import-log warning, stays as
   `--warning` text.
@@ -868,7 +871,11 @@ The phone layout of the character sheet is ORC-173. These rules apply:
   orange, and the current tab is taller (`Tabs` in `@orc-alchemy/ui`).
   After a switch with the row stuck, the page scrolls back so the new tab
   starts under the row. There are no swipe gestures.
-* The builder preview has no tabs. It keeps one long column.
+* The builder has no preview beside the steps. It has the summary card
+  and the full sheet panel of the
+  [Character builder spec](character-builder.md#the-summary-card).
+  Where this document says "the builder preview", read "the full sheet
+  panel". The panel has no tabs, and it keeps one long column.
 * In one column, the AC, initiative and speed boxes share the width, up to
   112px each.
 * When the sheet is narrower than 720px, the attacks table has no

@@ -157,3 +157,39 @@ _Avoid_: Fatigue, exhaustion condition
 The pair of armor and shield whose AC the sheet shows in place of the AC of
 the worn armor. It does not change the equipment.
 _Avoid_: AC override, equipped armor, loadout
+
+**Step**:
+One part of the character builder, for example Class or Proficiencies. The
+builder has ten steps in a fixed order, and each step opens at any time.
+_Avoid_: Tab, page, stage
+
+**Step rail**:
+The row of step buttons across the top of the character builder. It shows
+the open step and the left mark of each step.
+_Avoid_: Step bar, stepper, breadcrumb, tabs
+
+**Left mark**:
+The small yellow count of the picks that are left, on a step in the step
+rail and at the heading of a selection: "2 left".
+_Avoid_: Badge, "Still to do", remaining count
+
+**Summary card**:
+The narrow card at the right of a step in the character builder. It shows
+the name, the class, the background, the race and the main values of the
+character, and it has no control.
+_Avoid_: Preview, mini sheet, sidebar
+
+**Detail panel**:
+The panel that shows the full content of the option that the player clicked
+in a list, with the button that makes the pick.
+_Avoid_: Preview pane, info box, tooltip
+
+**Class block**:
+The block of one class on the Class step, with its level, its choices, its
+hit points and its picks on other steps.
+_Avoid_: Class card (a class card is the button that picks a class), class row
+
+**Choice row**:
+One choice of a class level on the Class step. It opens to show its
+options, and it shows its pick when it is closed.
+_Avoid_: Accordion, selection row
