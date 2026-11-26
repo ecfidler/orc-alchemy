@@ -2,7 +2,7 @@
 name: "linear-issue-workflow"
 description: "Take a Linear issue from Todo to a reviewed, PR-ready branch. Use when asked to work on, implement, or complete a Linear issue (e.g. ORC-44)."
 disable-model-invocation: false
-version: "1.4.0"
+version: "1.4.1"
 ---
 
 ## Orchestrator Introduction
@@ -89,7 +89,7 @@ When `project-workflow` runs the issue as part of a slice, the slice owns the br
 
 ### Completion
 
-1. Write the PR description.
+1. Write the PR description. For a change to the UI, take the screenshots by the rules in `project-workflow`, section "Screenshots".
 2. Mark the PR as ready for merge.
 3. Identify any follow-up tickets that may need to be created as a result of this session.
     - Create them in Linear linked to this issue.

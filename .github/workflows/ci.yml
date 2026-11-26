@@ -1,4 +1,4 @@
-# The checks of each pull request into main (ORC-358).
+# The checks of each pull request and of each push to main (ORC-358).
 #
 # Three jobs run at the same time, so a run takes as long as its longest job:
 # - static: the docs check, lint, the typechecks and the small test suites.
@@ -13,9 +13,15 @@ name: CI
 on:
     push:
         branches: [main]
+    # Each pull request, not only those into main: a stack of pull requests
+    # merges in one operation, so each one must be checked (ORC-359).
     pull_request:
-        branches: [main]
     workflow_dispatch:
+
+# A new push to a pull request cancels the run of the push before.
+concurrency:
+    group: ci-${{ github.event.pull_request.number || github.sha }}
+    cancel-in-progress: true
 
 permissions:
     contents: read

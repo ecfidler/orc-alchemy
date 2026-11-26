@@ -988,8 +988,10 @@ Linear disagree, Linear wins.
 15. Stuck notes where the user must act (ORC-169).
 16. Palette clean-up (ORC-170).
 
-**Review:** each ticket that changes a page attaches Playwright screenshots
-of the page in light and dark to its PR. CI has no screenshot comparison
+**Review:** each ticket that changes a page shows Playwright screenshots
+of the page in light mode at desktop width. A ticket that changes theme
+colours adds dark screenshots, and a ticket that changes the phone layout
+adds screenshots at 390 px (ORC-359). CI has no screenshot comparison
 tests, because font rendering differs between machines.
 
 # Out of scope for M8
