@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T12:38:24Z }
+generated: { by: claude-code/agent, at: 2026-11-26T13:13:51Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -353,6 +353,26 @@ no class equipment.
   "Level" and "Features".
 * The modal has the button "Choose {class}" with the check icon. It
   makes the pick and closes the modal.
+* The width of the part counts, not the width of the page: the cards are
+  6 in a row when the part is 560px wide or more, as for the list with a
+  detail panel. Each card has the same size, also a card with no
+  icon.[^orc-349]
+* The facts and the features table come from a trial character that the
+  engine builds with the class: at level 1 for the facts, and at each
+  level from 1 to 20 for the table. The same rules thus give the text of
+  an SRD class and of a pack class. The table shows the choices of each
+  level, the features that the character has first at the level,
+  "Spellcasting" or "Pact Magic" at the first level with spell slots, and
+  "Extra Attack" when the number of attacks goes up. It does not show
+  the spells known of each level. The table shows when it is made, after
+  the facts.[^orc-349]
+* The description of a pack class is the description of its record. The
+  engine has no description of an SRD class, so the app has one sentence
+  for each.[^orc-349]
+* The facts are "Hit die", "Saving throws", "Armor, weapons", "Skills"
+  and "Subclass". Skills gives the number and the options: "Two of
+  Athletics, History", or "Three of your choice" when the class has all
+  the skills.[^orc-349]
 
 ## The class block
 
@@ -369,6 +389,19 @@ After the pick, each class is a **class block**.
   button. The field takes 1 to 20. The buttons have an `aria-label`.
 * The body has three sections, in this order: Choices, Hit points,
   Picked on other steps.
+* The dialog of Change does not show the classes of the character. After
+  a change, the focus goes to the Change button of the block. After
+  Cancel of the question, the focus goes to the Change button of the old
+  class.[^orc-349]
+* A typed level counts at Enter and when the field loses the focus.
+  After Enter the focus stays in the field. Up and Down in the field are
+  the plus and the minus button. A number below 1 or above 20 changes
+  nothing, and the status toast says "A class level is from 1 to 20."
+  A higher level that the engine refuses shows its reason in the status
+  toast.[^orc-349]
+* The header does not move when the level or the class changes. On a
+  narrow part, the level control, About and Change go to a second row
+  below the name.[^orc-349]
 
 ## Choices
 
@@ -815,3 +848,4 @@ one depends only on parts of the frame.
 [^orc-346]: The Proficiencies step, <https://linear.app/orc-alchemy/issue/ORC-346/the-proficiencies-step>
 [^orc-347]: The list with a detail panel, and the Background step, <https://linear.app/orc-alchemy/issue/ORC-347/the-list-with-a-detail-panel-and-the-background-step>
 [^orc-348]: The Race step, with Custom Origin, <https://linear.app/orc-alchemy/issue/ORC-348/the-race-step-with-custom-origin>
+[^orc-349]: Class step: the class cards, the modal and the class block, <https://linear.app/orc-alchemy/issue/ORC-349/class-step-the-class-cards-the-modal-and-the-class-block>

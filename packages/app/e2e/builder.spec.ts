@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
-import { addFirstClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
+import { addFirstClass, changeClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
 import { closeSheetPanel, openSheetPanel, summaryCard } from "./sheet-panel.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
@@ -78,20 +78,18 @@ test("replacing a class with more than level 1 asks first", async ({ page }) => 
   await expect(klass).toHaveText("Fighter 5");
   await stepButton(page, "Class").click();
 
-  const dialog = page.getByRole("alertdialog", {
-    name: "Replace Fighter with Wizard? Fighter's 5 levels and their choices are removed, and Wizard starts at level 1. This cannot be undone.",
-  });
-  const class1 = builder.getByLabel("Class 1", { exact: true });
-  await pickOption(class1, "Wizard");
+  // The question of a change that removes picks (ORC-344), from Change of the class block (ORC-349).
+  const dialog = page.getByRole("alertdialog", { name: "Replace Fighter with Wizard?" });
+  await changeClass(page, "Fighter", "Wizard");
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(klass).toHaveText("Fighter 5");
-  await expect(class1).toHaveText("Fighter");
+  await expect(builder.getByRole("heading", { level: 3, name: "Fighter", exact: true })).toBeVisible();
 
-  await pickOption(class1, "Wizard");
+  await changeClass(page, "Fighter", "Wizard");
   await dialog.getByRole("button", { name: "Replace" }).click();
   await expect(klass).toHaveText("Wizard 1");
-  await expect(class1).toHaveText("Wizard");
+  await expect(builder.getByRole("heading", { level: 3, name: "Wizard", exact: true })).toBeVisible();
 });
 
 test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page }) => {
@@ -116,7 +114,8 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await addFirstClass(page, "Fighter");
   await expect(klass).toHaveText("Fighter 1");
   await expect(builder.getByRole("button", { name: "Remove a Fighter level" })).toBeDisabled();
-  await expect(builder.getByRole("button", { name: "Remove Fighter", exact: true })).toBeDisabled();
+  // With one class, there is no Remove button.
+  await expect(builder.getByRole("button", { name: "Remove Fighter", exact: true })).toHaveCount(0);
   await builder.getByRole("button", { name: "Add a Fighter level" }).click();
   await builder.getByRole("button", { name: "Add a Fighter level" }).click();
   await expect(klass).toHaveText("Fighter 3");
@@ -133,7 +132,7 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await pickOption(builder.getByLabel("Add a class", { exact: true }), "Wizard");
   await builder.getByRole("button", { name: "Add class" }).click();
   await expect(klass).toHaveText("Fighter 3, Wizard 1");
-  await expect(builder.getByLabel("Class 2", { exact: true })).toHaveText("Wizard");
+  await expect(builder.getByRole("heading", { level: 3, name: "Wizard", exact: true })).toBeVisible();
   await region("Hit Points: Wizard 1").getByRole("button", { name: "Average (4)" }).click();
   await builder.getByRole("button", { name: "Add a Wizard level" }).click();
   await region("Hit Points: Wizard 2").getByRole("button", { name: "Average (4)" }).click();
@@ -143,13 +142,14 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await expect(preview.getByLabel("Level", { exact: true })).toHaveText("5");
   await expect(hp).toHaveText("35");
 
-  // Removing a level or a class that is not the first does not ask.
+  // A lower level that removes the School of Evocation asks first (ORC-349); removing a class with no pick does not ask.
   await builder.getByRole("button", { name: "Remove a Wizard level" }).click();
+  await page.getByRole("alertdialog", { name: "Lower Wizard to level 1?" }).getByRole("button", { name: "Remove" }).click();
   await expect(klass).toHaveText("Fighter 3, Wizard 1");
   await builder.getByRole("button", { name: "Remove Wizard", exact: true }).click();
   await expect(klass).toHaveText("Fighter 3");
   await expect(hp).toHaveText("25");
-  await expect(builder.getByLabel("Class 2", { exact: true })).toHaveCount(0);
+  await expect(builder.getByRole("heading", { level: 3, name: "Wizard", exact: true })).toHaveCount(0);
 });
 
 test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepares the spell", async ({ page }) => {

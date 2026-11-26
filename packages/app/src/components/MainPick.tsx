@@ -282,36 +282,52 @@ function PickBlock({ selection, option, name, noun, pack, detail, customizable, 
   const [about, setAbout] = useState(false);
   const hasChoices = children !== undefined && children !== null && children !== false;
   return (
-    <div ref={block} className="border border-rule-strong bg-paper-raised">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-rule-strong px-3 py-2.5">
-        <h3 className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
-          <span className="min-w-0 text-[24px] leading-tight font-semibold">
-            <span data-pick-name="">{option.name}</span>
-            {pack && <small className="ml-2.5 font-sans text-[12px] font-medium text-ink-muted">{pack}</small>}
-            <span className="text-[1px] opacity-0">,</span>
+    <BlockFrame
+      frameRef={block}
+      header={
+        <>
+          <h3 className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
+            <span className="min-w-0 text-[24px] leading-tight font-semibold">
+              <span data-pick-name="">{option.name}</span>
+              {pack && <small className="ml-2.5 font-sans text-[12px] font-medium text-ink-muted">{pack}</small>}
+              <span className="text-[1px] opacity-0">,</span>
+            </span>
+            <span className="flex-1" />
+            <LeftMark left={stepMark([selection])} />
+          </h3>
+          <span className="ml-auto inline-flex flex-wrap items-center gap-1.5">
+            <Button variant="ghost" size="small" aria-label={`About ${option.name}`} onClick={() => setAbout(true)}>
+              About
+            </Button>
+            {customizable && <BlockCustomize selection={selection} option={option} customizable={customizable} guided={guided} scope={block} />}
+            <Button ref={changeButton} variant="ghost" size="small" aria-label={`Change ${name}`} onClick={onChange}>
+              Change
+            </Button>
           </span>
-          <span className="flex-1" />
-          <LeftMark left={stepMark([selection])} />
-        </h3>
-        <span className="ml-auto inline-flex flex-wrap items-center gap-1.5">
-          <Button variant="ghost" size="small" aria-label={`About ${option.name}`} onClick={() => setAbout(true)}>
-            About
-          </Button>
-          {customizable && <BlockCustomize selection={selection} option={option} customizable={customizable} guided={guided} scope={block} />}
-          <Button ref={changeButton} variant="ghost" size="small" aria-label={`Change ${name}`} onClick={onChange}>
-            Change
-          </Button>
-        </span>
-      </div>
-      <div className="space-y-3 px-3 pt-3 pb-3">
-        {hasChoices && <BlockSection title="Choices">{children}</BlockSection>}
-        <BlockSection title="Picked on other steps">
-          <OtherSteps selection={selection} noun={noun} />
-        </BlockSection>
-      </div>
+        </>
+      }
+    >
+      {hasChoices && <BlockSection title="Choices">{children}</BlockSection>}
+      <BlockSection title="Picked on other steps">
+        <OtherSteps selection={selection} noun={noun} />
+      </BlockSection>
       <Dialog open={about} onOpenChange={setAbout} title={option.name} footer={false}>
         {detail(option, pack, "modal")}
       </Dialog>
+    </BlockFrame>
+  );
+}
+
+/**
+ * The frame of a block, the look of the class block (docs/design/character-builder.md, "The class block"): a raised
+ * box with a rule around it, the header row with a rule under it, and the body, whose sections are its children. The
+ * class block and the block of a main pick share it.
+ */
+export function BlockFrame({ header, children, frameRef }: { header: ReactNode; children: ReactNode; frameRef?: RefObject<HTMLDivElement> }) {
+  return (
+    <div ref={frameRef} className="border border-rule-strong bg-paper-raised">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-rule-strong px-3 py-2.5">{header}</div>
+      <div className="space-y-3 px-3 pt-3 pb-3">{children}</div>
     </div>
   );
 }
@@ -339,8 +355,8 @@ function BlockCustomize({
   );
 }
 
-/** A section of the block: a small title in capitals, then its content. */
-function BlockSection({ title, children }: { title: string; children: ReactNode }) {
+/** A section of the body of a block: a small title in capitals, then its content. */
+export function BlockSection({ title, children }: { title: string; children: ReactNode }) {
   const id = useId();
   return (
     <section aria-labelledby={id} className="space-y-1">

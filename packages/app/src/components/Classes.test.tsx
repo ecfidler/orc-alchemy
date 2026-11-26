@@ -1,11 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { storedHitPoints } from "../engine/classes.ts";
-import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
+import { loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
 import { Heading } from "./Classes.tsx";
@@ -26,24 +25,7 @@ function open(entity: StrictEntity, step: string) {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: new RegExp(`^${step}`) }));
 }
 
-const built = () => engine().evaluate(useCharacter.getState().entity!).built;
 const region = (name: string) => screen.getByRole("region", { name: new RegExp(`^${name}`) });
-
-test("removing the first class asks first when the next class is above level 1", async () => {
-  open(fighter3Wizard2(), "Class");
-  fireEvent.click(screen.getByRole("button", { name: "Remove Fighter" }));
-  expect(await answerConfirmDialog("Cancel")).toBe(
-    "Remove Fighter? Wizard becomes the first class and returns to level 1, and its other levels and their choices are removed. This cannot be undone.",
-  );
-  expect(built().classes).toEqual(["fighter", "wizard"]);
-
-  fireEvent.click(screen.getByRole("button", { name: "Remove Fighter" }));
-  await answerConfirmDialog("Remove");
-  await waitFor(() => expect(built().classes).toEqual(["wizard"]));
-  expect(built().levels.wizard["class-level"]).toBe(1);
-  expect(screen.getByRole("combobox", { name: "Class 1" })).toHaveTextContent("Wizard");
-  expect(screen.getByRole("button", { name: "Remove Wizard" }).hasAttribute("disabled")).toBe(true);
-});
 
 test("hit points by roll or typed in", () => {
   open(fighter3Wizard2(), "Class");

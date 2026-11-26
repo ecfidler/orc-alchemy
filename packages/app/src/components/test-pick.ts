@@ -63,3 +63,29 @@ export function startCustomOrigin(race: HTMLElement): void {
   fireEvent.click(within(race).getByRole("button", { name: "Custom Origin" }));
   fireEvent.click(within(race).getByRole("button", { name: "Start a custom origin" }));
 }
+
+/** The class card `name` in `scope` (ORC-349). */
+export const classCard = (scope: HTMLElement, name: string) =>
+  within(scope)
+    .getAllByRole("button", { name })
+    .find((button) => button.hasAttribute("data-class-card"))!;
+
+/**
+ * Picks the first class `name` of a character with no class, on the Class step (ORC-349): a click on its card opens
+ * its modal, and "Choose {name}" picks it. Its Playwright twin is addFirstClass in e2e/builder-helpers.ts.
+ */
+export async function chooseFirstClass(name: string): Promise<void> {
+  fireEvent.click(classCard(section("Class"), name));
+  fireEvent.click(await screen.findByRole("button", { name: `Choose ${name}` }));
+}
+
+/**
+ * Starts the change of the class `from` to `to` (ORC-349): Change of the block opens the class cards in a dialog, a
+ * click on a card opens its modal, and "Change to {to}" makes the change, or asks first. Its Playwright twin is
+ * changeClass in e2e/builder-helpers.ts.
+ */
+export async function changeClass(from: string, to: string): Promise<void> {
+  fireEvent.click(screen.getByRole("button", { name: `Change ${from}` }));
+  fireEvent.click(classCard(await screen.findByRole("dialog", { name: `Change ${from}` }), to));
+  fireEvent.click(await screen.findByRole("button", { name: `Change to ${to}` }));
+}

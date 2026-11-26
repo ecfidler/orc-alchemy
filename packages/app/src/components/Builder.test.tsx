@@ -3,7 +3,6 @@
 // ("The summary card"). e2e/builder.spec.ts measures in a browser that a pick does not move a selection heading or a
 // line of the card.
 import "fake-indexeddb/auto";
-import { pickOption } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -13,7 +12,7 @@ import { newCharacter } from "../engine/new-character.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
 import { BuilderStatusToast, useBuilderStatus } from "./builder-context.tsx";
-import { pickIn, section } from "./test-pick.ts";
+import { chooseFirstClass, pickIn, section } from "./test-pick.ts";
 import { closeSheetPanel, openSheetPanel, summaryCard } from "./test-sheet-panel.ts";
 
 beforeAll(() => loadEngine());
@@ -203,12 +202,11 @@ test("the Class step of a new character shows 1 left in the rail and at its head
   expect(rail().getByRole("button", { name: "Class, 1 pick left" })).toBeTruthy();
   const classes = builder().getByRole("region", { name: /^Class/ });
   expect(within(classes).getAllByRole("heading")[0].textContent).toBe("Class,1 left");
-  // No class row: only the class to add. A wizard needs INT 13 as a multiclass, but not as the first class.
-  expect(within(classes).queryByRole("combobox", { name: "Class 1" })).toBeNull();
-  await pickOption(within(classes).getByRole("combobox", { name: "Add a class" }), "Wizard");
-  fireEvent.click(within(classes).getByRole("button", { name: "Add class" }));
-  expect(within(builder().getByRole("region", { name: /^Class/ })).getAllByRole("heading")[0].textContent).toBe("Class,Done");
-  expect(cardLines()).toMatchObject({ Class: "Wizard 1", Level: "1", "Hit points": "7" });
+  // No class block: only the class cards (ORC-349). A wizard needs INT 13 as a multiclass, but not as the first class.
+  expect(within(classes).queryByRole("button", { name: "Change Wizard" })).toBeNull();
+  await chooseFirstClass("Wizard");
+  await waitFor(() => expect(cardLines()).toMatchObject({ Class: "Wizard 1", Level: "1", "Hit points": "7" }));
+  expect(within(builder().getByRole("region", { name: /^Class/ })).getByRole("heading", { level: 3, name: "Wizard" })).toBeTruthy();
   expect(rail().getByRole("button", { name: "Class" })).toBeTruthy();
 });
 

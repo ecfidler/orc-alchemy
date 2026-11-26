@@ -1,6 +1,6 @@
 // Helpers for the e2e specs that make a new character in the builder (ORC-342): a new character has no class, and
 // it opens on the Name step.
-import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
+import { pickFromPicker } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /** A step button of the rail. Its name ends with its count of picks left, when it has some: "Class, 2 picks left". */
@@ -21,13 +21,36 @@ export async function newCharacter(page: Page) {
   await expect(page.getByRole("region", { name: "Builder" }).getByRole("heading", { level: 2 })).toHaveText("Name");
 }
 
-/** Opens the Class step of a character with no class, and adds its first class. */
+/** The class card `name` in `scope` (ORC-349). */
+export const classCard = (scope: Locator, name: string) => scope.locator("[data-class-card]").and(scope.getByRole("button", { name, exact: true }));
+
+/**
+ * Opens the Class step of a character with no class, and adds its first class (ORC-349): a click on its card opens its
+ * modal, and "Choose {name}" picks it. Its Vitest twin is chooseFirstClass in src/components/test-pick.ts.
+ */
 export async function addFirstClass(page: Page, name: string) {
   await openStep(page, "Class");
   const builder = page.getByRole("region", { name: "Builder" });
-  await pickOption(builder.getByLabel("Add a class", { exact: true }), name);
-  await builder.getByRole("button", { name: "Add class" }).click();
-  await expect(builder.getByLabel("Class 1", { exact: true })).toHaveText(name);
+  await classCard(builder, name).click();
+  await page
+    .getByRole("dialog", { name, exact: true })
+    .getByRole("button", { name: `Choose ${name}`, exact: true })
+    .click();
+  await expect(builder.getByRole("button", { name: `Change ${name}`, exact: true })).toBeVisible();
+}
+
+/**
+ * Starts the change of the class `from` to `to` on the Class step (ORC-349): Change of its block opens the class cards
+ * in a dialog, a click on a card opens its modal, and "Change to {to}" makes the change, or asks first. Its Vitest twin
+ * is changeClass in src/components/test-pick.ts.
+ */
+export async function changeClass(page: Page, from: string, to: string) {
+  await page
+    .getByRole("region", { name: "Builder" })
+    .getByRole("button", { name: `Change ${from}`, exact: true })
+    .click();
+  await classCard(page.getByRole("dialog", { name: `Change ${from}` }), to).click();
+  await page.getByRole("button", { name: `Change to ${to}`, exact: true }).click();
 }
 
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

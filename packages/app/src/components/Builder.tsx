@@ -20,7 +20,8 @@ import { useOpenCharacter } from "../state/character.ts";
 import { AbilityIncreases, AbilityScores } from "./AbilityScores.tsx";
 import { BuilderStatusToast, OpenStepProvider, SectionLevelProvider, StepFrameProvider } from "./builder-context.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
-import { Classes, Heading, HitPoints } from "./Classes.tsx";
+import { Heading, HitPoints } from "./Classes.tsx";
+import { ClassStep } from "./ClassStep.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
@@ -188,8 +189,7 @@ export function Selection({ selection }: { selection: BuilderSelection }) {
 function Options({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { actualPath } = selection;
-  // The classes are rows, not cards. They stay here, not in Selection, because
-  // each class's choices open after the rows as any selected option's do.
+  // The classes are the class cards and the class blocks (ORC-349). The sections that a class opens are the body of its block.
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
   // A feat has a Customize line under the control (ORC-134). A background and a race have the button in their block (ORC-347, ORC-348).
   const customizable = customizableFor(selection);
@@ -197,11 +197,10 @@ function Options({ selection }: { selection: BuilderSelection }) {
   const origin = useCustomOrigin(selection);
   const mainPick = mainPickParts(selection);
 
-  // Classes in the entity's order, as their rows.
-  const opened = (isClass ? selection.selected.map((key) => selection.options.find((o) => o.key === key)!) : selection.options).filter(
-    (o) => o.selected && o.selections.length > 0,
-  );
+  const opened = selection.options.filter((o) => o.selected && o.selections.length > 0);
   const section = (child: BuilderSelection) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />;
+  if (isClass)
+    return <ClassStep selection={selection} body={(option) => <SectionLevelProvider level={4}>{option.selections.map(section)}</SectionLevelProvider>} />;
   // The background and the race are a list with a detail panel, and then a block with their choices in it (ORC-347,
   // ORC-348). The one subrace of a race is a fact of its panel, not a row of Choices (choiceSelections).
   if (mainPick) {
@@ -225,7 +224,7 @@ function Options({ selection }: { selection: BuilderSelection }) {
     <>
       <section aria-labelledby={id} className="space-y-2">
         <Heading id={id} selection={selection} />
-        {isClass ? <Classes selection={selection} /> : !selection.sequential && <SelectionControl selection={selection} />}
+        {!selection.sequential && <SelectionControl selection={selection} />}
         {customizable && <CustomizeLines selection={selection} customizable={customizable} />}
       </section>
       {sections}

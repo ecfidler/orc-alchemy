@@ -1,19 +1,23 @@
 // The detail of an option of the Background and Race steps (ORC-347, ORC-348, docs/design/character-builder.md "The
 // list and the panel"), as the detail panel, the modal of a narrow page and the About modal show it: the name, the pack, the
 // description, the facts in a definition list, and the feature. The rules of what it shows are in
-// engine/origin-detail.ts.
+// engine/origin-detail.ts. The detail of a class (ORC-349, "The class cards") has the same parts, with the class icon
+// and the features table; its rules are in engine/class-detail.ts.
 import type { ListPanelPlace } from "@orc-alchemy/ui";
+import { PixelIcon } from "@orc-alchemy/ui";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { templateShape } from "../engine/builder.ts";
+import { CLASS_TYPE, type ClassFeatureRow, classFacts, classFeatureSteps, knownClassFeatures } from "../engine/class-detail.ts";
 import { BACKGROUND_TYPE } from "../engine/content.ts";
 import { CUSTOM_PACK, optionOrigin } from "../engine/custom.ts";
 import { RACE_TYPE } from "../engine/custom-origin.ts";
-import type { ContentType } from "../engine/engine.ts";
+import { type ContentType, engine } from "../engine/engine.ts";
 import { backgroundDetail, nameLookup, type OptionDetail, plainRecord, raceDetail, srdBackgrounds, srdItemNames, srdRaces } from "../engine/origin-detail.ts";
 import { proficiencyNames } from "../engine/proficiencies.ts";
 import { templateRace } from "../engine/race-step.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
+import { classIcon } from "./class-icons.ts";
 
 /**
  * The function that gives the pack of an option of the content type by its key: the name of its content pack, the
@@ -92,19 +96,22 @@ export function useRaceDetail(key: string): OptionDetail | null {
 /**
  * The detail of an option: its name as a heading (in the panel only: the title of a modal names it), the pack as
  * "From {pack}", the description, the facts as a definition list, and the traits, each with its name in bold. The
- * children show after them, such as the second paragraph of the Custom Origin row.
+ * children show after them, such as the second paragraph of the Custom Origin row. `icon` shows at the left of the
+ * description, such as the icon of a class.
  */
 export function OptionDetailView({
   name,
   pack,
   detail,
   place,
+  icon,
   children,
 }: {
   name: string;
   pack?: string;
   detail: OptionDetail | null;
   place: ListPanelPlace;
+  icon?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -115,7 +122,14 @@ export function OptionDetailView({
           {pack && <p className="mt-0.5 font-sans text-[12px] text-ink-muted">From {pack}</p>}
         </div>
       )}
-      {detail?.description && <p className="text-[16px]">{detail.description}</p>}
+      {icon ? (
+        <div className="flex items-center gap-2.5">
+          {icon}
+          {detail?.description && <p className="text-[16px]">{detail.description}</p>}
+        </div>
+      ) : (
+        detail?.description && <p className="text-[16px]">{detail.description}</p>
+      )}
       {detail && detail.facts.length > 0 && (
         <dl className="grid grid-cols-[104px_minmax(0,1fr)] gap-x-2.5 gap-y-0.5 text-[15px]">
           {detail.facts.map(({ label, value }) => (
@@ -156,4 +170,87 @@ export function BackgroundDetail({ optionKey, name, pack, place }: DetailProps) 
 /** The detail of the race option with the key and the name (ORC-348). */
 export function RaceDetail({ optionKey, name, pack, place }: DetailProps) {
   return <OptionDetailView name={name} pack={pack} detail={useRaceDetail(optionKey)} place={place} />;
+}
+
+/**
+ * The description and the facts of the class with the key (classFacts): the help of the record of a pack class, or
+ * else the SRD sentence. One build of a trial character; it is made again only when the class or the content changes.
+ */
+export function useClassFacts(key: string): OptionDetail | null {
+  const { content } = useOpenCharacter();
+  const homebrew = useHomebrew((state) => state.content.homebrew);
+  const custom = useCharacter((state) => state.custom);
+  const origin = optionOrigin(homebrew, custom, CLASS_TYPE, key);
+  const help = origin.from === "built-in" ? undefined : String((plainRecord(origin.item) as Record<string, unknown>).help ?? "");
+  return useMemo(() => {
+    try {
+      return classFacts({ engine: engine(), content }, key, help);
+    } catch {
+      // A class that the engine cannot build shows no facts.
+      return null;
+    }
+  }, [content, key, help]);
+}
+
+/**
+ * The features table of the class with the key (classFeatureSteps); null while it is made. It takes a build of a trial
+ * character at each level, so it is made in short parts between the frames, and it is kept for the content.
+ */
+export function useClassFeatures(key: string): ClassFeatureRow[] | null {
+  const { content } = useOpenCharacter();
+  const [made, setMade] = useState<{ key: string; content: unknown; rows: ClassFeatureRow[] } | null>(null);
+  const known = knownClassFeatures(content, key);
+  useEffect(() => {
+    if (knownClassFeatures(content, key) !== undefined) return;
+    const steps = classFeatureSteps({ engine: engine(), content }, key);
+    let timer: ReturnType<typeof setTimeout>;
+    const part = () => {
+      const until = performance.now() + 12;
+      for (;;) {
+        const step = steps.next();
+        if (step.done) return setMade({ key, content, rows: step.value });
+        if (performance.now() > until) break;
+      }
+      timer = setTimeout(part, 0);
+    };
+    timer = setTimeout(part, 0);
+    return () => clearTimeout(timer);
+  }, [content, key]);
+  return known ?? (made?.key === key && made.content === content ? made.rows : null);
+}
+
+/**
+ * The detail of a class, as its modal shows it (ORC-349): the icon at 32px with the description, the facts, and the
+ * features table with the column headings "Level" and "Features". The table shows once it is made.
+ */
+export function ClassDetail({ optionKey, name, pack }: { optionKey: string; name: string; pack?: string }) {
+  const detail = useClassFacts(optionKey);
+  const features = useClassFeatures(optionKey);
+  const icon = classIcon(optionKey);
+  return (
+    <OptionDetailView name={name} pack={pack} detail={detail} place="modal" icon={icon && <PixelIcon name={icon} className="me-0 size-8" />}>
+      {features && features.length > 0 && (
+        <table className="w-full border-collapse text-left">
+          <thead>
+            <tr className="font-sans text-[12.5px] font-bold">
+              <th scope="col" className="w-14 pb-1 font-bold">
+                Level
+              </th>
+              <th scope="col" className="pb-1 font-bold">
+                Features
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {features.map(({ level, names }) => (
+              <tr key={level} className="border-t border-rule align-top">
+                <td className="pt-1 font-sans text-[12px] text-ink-muted">{level}</td>
+                <td className="py-0.5 text-[15px]">{names.join(", ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </OptionDetailView>
+  );
 }

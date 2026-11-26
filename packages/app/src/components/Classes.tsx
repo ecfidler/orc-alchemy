@@ -1,20 +1,15 @@
-// The Class step (ORC-58): the classes and their levels, as the old builder's
-// class rows, and the hit points each level asks for. The ability score
-// improvements are on the Abilities step (AbilityScores.tsx). Each change is
-// an engine mutation, as in Selection. It also holds useMutation and Heading,
-// which Options in Builder.tsx uses for each selection.
-// A refusal of the engine shows in the status toast of the builder (ORC-343).
-import { Button, LeftMark, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
-import { useId, useMemo, useState } from "react";
+// The parts of the builder that each selection uses (ORC-58): useMutation, which makes an engine mutation, and Heading,
+// the name and the left mark of a selection, and the hit points that each level of a class asks for. The class cards
+// and the class blocks of the Class step are in ClassStep.tsx (ORC-349). The ability score improvements are on the
+// Abilities step (AbilityScores.tsx). A refusal of the engine shows in the status toast of the builder (ORC-343).
+import { LeftMark, Toggle, ToggleGroup } from "@orc-alchemy/ui";
+import { useId, useMemo } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
 import { type Content, type Engine, engine, type StrictEntity } from "../engine/engine.ts";
-import { addAClass } from "../engine/new-character.ts";
 import { useCharacter, useCharacterContent, useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
 import { useBuilderStatus, useSectionLevel, useSectionName } from "./builder-context.tsx";
-
-const MAX_LEVEL = 20;
 
 type Mutation = (e: Engine, entity: StrictEntity, options: Content) => StrictEntity;
 
@@ -35,93 +30,6 @@ export function useMutation(): (mutate: Mutation) => boolean {
       return false;
     }
   };
-}
-
-/**
- * The class selection: a row per class, in the entity's order, with its level, and a class to add. A new character
- * has no class (ORC-342): its first class comes with its starting equipment.
- */
-export function Classes({ selection }: { selection: BuilderSelection }) {
-  const run = useMutation();
-  const [adding, setAdding] = useState("");
-  const [confirm, confirmDialog] = useConfirm();
-  const option = (key: string) => selection.options.find((o) => o.key === key)!;
-  const levelOf = (key: string) => option(key).selections.find((s) => s.key === "levels")?.selected.length ?? 1;
-  const free = selection.options.filter((o) => !o.selected);
-  const toAdd = free.find((o) => o.key === adding) ?? free[0];
-
-  async function replace(index: number, from: string, to: string) {
-    const [old, next, levels] = [option(from).name, option(to).name, levelOf(from)];
-    if (
-      levels > 1 &&
-      !(await confirm(
-        `Replace ${old} with ${next}? ${old}'s ${levels} levels and their choices are removed, and ${next} starts at level 1. This cannot be undone.`,
-        "Replace",
-      ))
-    )
-      return;
-    run((e, entity, opts) => e.setClass(entity, index, to, opts));
-  }
-
-  async function remove(index: number, key: string) {
-    // Removing the first class makes the next one first, at level 1.
-    const next = selection.selected[1];
-    if (index === 0 && next !== undefined && levelOf(next) > 1) {
-      const name = option(next).name;
-      const message = `Remove ${option(key).name}? ${name} becomes the first class and returns to level 1, and its other levels and their choices are removed. This cannot be undone.`;
-      if (!(await confirm(message, "Remove"))) return;
-    }
-    run((e, entity, opts) => e.removeClass(entity, key, opts));
-  }
-
-  return (
-    <>
-      {confirmDialog}
-      <ol className="space-y-2">
-        {selection.selected.map((key, i) => {
-          const { name } = option(key);
-          const level = levelOf(key);
-          return (
-            <li key={key} className="flex flex-wrap items-center gap-2">
-              <Select
-                aria-label={`Class ${i + 1}`}
-                value={key}
-                options={[option(key), ...free].map((o) => [o.key, o.name])}
-                onValueChange={(to) => replace(i, key, to)}
-              />
-              <span>Level</span>
-              <Button
-                aria-label={`Remove a ${name} level`}
-                disabled={level <= 1}
-                onClick={() => run((e, entity, opts) => e.removeLevel(entity, key, opts))}
-                size="small"
-                icon="minus"
-              />
-              <span>{level}</span>
-              <Button
-                aria-label={`Add a ${name} level`}
-                disabled={level >= MAX_LEVEL}
-                onClick={() => run((e, entity, opts) => e.addLevel(entity, key, opts))}
-                size="small"
-                icon="plus"
-              />
-              <Button icon="trash" disabled={selection.selected.length === 1} onClick={() => remove(i, key)} size="small">
-                Remove {name}
-              </Button>
-            </li>
-          );
-        })}
-      </ol>
-      {toAdd && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Select aria-label="Add a class" value={toAdd.key} options={free.map((o) => [o.key, o.name])} onValueChange={setAdding} />
-          <Button icon="plus" onClick={() => run((e, entity, opts) => addAClass(e, entity, toAdd.key, opts))} size="small">
-            Add class
-          </Button>
-        </div>
-      )}
-    </>
-  );
 }
 
 /**
