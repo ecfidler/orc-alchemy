@@ -2,8 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { type BuilderSelection, builderSteps, pickName, remainingByStep, remainingOf, unfilled } from "./builder.ts";
+import { type BuilderSelection, builderSteps, pickName, remainingByStep, remainingOf, unfilled, withSpellsToPrepare } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import type { Spellcaster, Spellcasting } from "./sheet.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const charactersDir = join(fixturesDir, "characters");
@@ -20,18 +21,165 @@ const child = (selection: BuilderSelection, option: string, key: string) =>
 
 const LISTS = ["armor", "equipment", "magic-armor", "magic-weapons", "other-magic-items", "treasure", "weapons"];
 
-test("emptyCharacter has the Race, Background, Class, Abilities, Feats and Equipment steps", () => {
+const STEP_ORDER = ["Name", "Class", "Background", "Race", "Abilities", "Proficiencies", "Feats", "Spells", "Equipment", "Description"];
+/** Each step's name and the actual paths of its selections, with their sources. */
+const placed = (entity: StrictEntity) =>
+  Object.fromEntries(stepsOf(entity).map((s) => [s.name, s.selections.map((x) => `${x.actualPath.join("/")} [${x.sources.join(", ")}]`)]));
+
+test("emptyCharacter has the ten steps, and each selection is on its step with its source", () => {
   const steps = stepsOf(engine().emptyCharacter());
-  expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Abilities", "Feats", "Equipment"]);
-  expect(steps.map((s) => s.selections.map((x) => x.key))).toEqual([
-    ["race"],
-    ["alignment", "background"],
-    ["class"],
-    ["ability-scores"],
-    ["feats"],
+  expect(steps.map((s) => s.name)).toEqual(STEP_ORDER);
+  expect(placed(engine().emptyCharacter())).toEqual({
+    // Name and Description hold fields; Name has no selection.
+    Name: [],
+    Class: ["class []"],
+    Background: ["background []"],
+    Race: ["race []"],
+    Abilities: ["ability-scores []"],
+    // The barbarian's two skills.
+    Proficiencies: ["class/barbarian/skill-proficiency [Barbarian]"],
+    // The top-level feats selection, which allows no pick at level 1.
+    Feats: ["feats []"],
+    Spells: [],
     // The barbarian's starting equipment has an order, so it goes first.
-    ["starting-equipment-martial-weapon", "starting-equipment-simple-weapon", ...LISTS],
+    Equipment: [
+      "class/barbarian/starting-equipment-martial-weapon [Barbarian]",
+      "class/barbarian/starting-equipment-simple-weapon [Barbarian]",
+      ...LISTS.map((list) => `${list} []`),
+    ],
+    // Alignment moves here from the Background step.
+    Description: ["alignment []"],
+  });
+});
+
+test("a step with nothing to pick stays, flagged empty, and Name and Description never are", () => {
+  // A barbarian 1 has no spell and no feat to pick.
+  const empty = (entity: StrictEntity) =>
+    stepsOf(entity)
+      .filter((s) => s.empty)
+      .map((s) => s.name);
+  expect(empty(engine().emptyCharacter())).toEqual(["Feats", "Spells"]);
+  expect(empty(readFixture("wizard-20"))).toEqual(["Feats"]);
+  // warlock-10-drow has a feat to pick at level 4 or 8.
+  expect(empty(readFixture("warlock-10-drow"))).toEqual([]);
+  const name = step(engine().emptyCharacter(), "Name");
+  expect(name).toEqual({ name: "Name", selections: [], empty: false });
+});
+
+test("the Spells step is not empty when a class of the character prepares spells", () => {
+  // A barbarian 1 has no spell to pick, so its Spells step is empty.
+  const steps = stepsOf(engine().emptyCharacter());
+  const spellsEmpty = (list: typeof steps) => list.find((s) => s.name === "Spells")!.empty;
+  const caster = (prepares: boolean): Spellcaster => ({
+    name: "Paladin",
+    ability: "cha",
+    saveDc: 11,
+    attackBonus: 3,
+    prepares,
+    canPrepare: prepares ? 2 : null,
+  });
+  const sheet = (prepares: boolean) => ({
+    spellcasting: { casters: [caster(prepares)], byLevel: [] } as unknown as Spellcasting,
+    classes: [{ name: "Paladin" }],
+  });
+  expect(spellsEmpty(withSpellsToPrepare(steps, null))).toBe(true);
+  expect(spellsEmpty(withSpellsToPrepare(steps, { spellcasting: null, classes: [] }))).toBe(true);
+  expect(spellsEmpty(withSpellsToPrepare(steps, sheet(false)))).toBe(true);
+  const prepared = withSpellsToPrepare(steps, sheet(true));
+  expect(spellsEmpty(prepared)).toBe(false);
+  // The other steps are the same, and the steps given do not change.
+  expect(prepared.filter((s) => s.empty).map((s) => s.name)).toEqual(["Feats"]);
+  expect(spellsEmpty(steps)).toBe(true);
+});
+
+test("wizard-20 has each selection on its step, with its source", () => {
+  const steps = placed(readFixture("wizard-20"));
+  expect(steps.Name).toEqual([]);
+  expect(steps.Class).toEqual(["class []"]);
+  expect(steps.Background).toEqual(["background []"]);
+  expect(steps.Race).toEqual(["race []"]);
+  // The points of the Ability Score Improvement at levels 4, 8, 12, 16 and 19.
+  expect(steps.Abilities).toEqual([
+    "ability-scores []",
+    ...[4, 8, 12, 16, 19].map((level) => `class/wizard/levels/level-${level}/asi-or-feat/ability-score-improvement/asi [Wizard]`),
   ]);
+  // The human's language and the acolyte's two are one selection, with the sources in step order.
+  expect(steps.Proficiencies).toEqual(["class/wizard/skill-proficiency [Wizard]", "languages [Acolyte, Human]"]);
+  expect(steps.Feats).toEqual(["feats []"]);
+  expect(steps.Spells).toHaveLength(5);
+  expect(steps.Description).toEqual(["alignment []"]);
+  // The Ability Score Improvement or Feat choice stays at its level on the Class step.
+  const [klass] = step(readFixture("wizard-20"), "Class").selections;
+  const level4 = child(child(klass, "wizard", "levels"), "level-4", "asi-or-feat");
+  expect(level4).toMatchObject({ selected: ["ability-score-improvement"], sources: ["Wizard"] });
+  expect(child(level4, "ability-score-improvement", "asi")).toBeUndefined();
+});
+
+test("fighter-3-wizard-2 has each selection on its step, with its source", () => {
+  expect(stepsOf(readFixture("fighter-3-wizard-2")).map((s) => s.name)).toEqual(STEP_ORDER);
+  const steps = placed(readFixture("fighter-3-wizard-2"));
+  expect(steps.Name).toEqual([]);
+  expect(steps.Class).toEqual(["class []"]);
+  expect(steps.Background).toEqual(["background []"]);
+  expect(steps.Race).toEqual(["race []"]);
+  // The half-elf's two +1.
+  expect(steps.Abilities).toEqual(["ability-scores []", "race/half-elf/asi [Half-Elf]"]);
+  // A wizard taken second gives no skill.
+  expect(steps.Proficiencies).toEqual([
+    "race/half-elf/skill-proficiency [Half-Elf]",
+    "class/fighter/skill-proficiency [Fighter]",
+    "languages [Acolyte, Half-Elf]",
+  ]);
+  expect(steps.Feats).toEqual(["feats []"]);
+  expect(steps.Spells).toEqual(["class/wizard/wizard-cantrips-known [Wizard]", "class/wizard/wizard-spells-known [Wizard]"]);
+  expect(steps.Description).toEqual(["alignment []"]);
+  // Nothing of these stays under the race or the background.
+  const under = (name: string) =>
+    stepsOf(readFixture("fighter-3-wizard-2"))
+      .find((s) => s.name === name)!
+      .selections.flatMap((s) => s.options.flatMap((o) => o.selections.map((x) => x.key)));
+  expect(under("Race")).toEqual([]);
+  expect(under("Background")).toEqual([]);
+});
+
+test("a feat selection is on the Feats step with its source, and each pick counts there once", () => {
+  // A variant human picks a feat, a skill and two +1.
+  let entity = engine().select(engine().emptyCharacter(), ["race"], "human");
+  entity = engine().select(entity, ["race", "human", "variant"], "variant-human");
+  const steps = stepsOf(entity);
+  const feats = steps.find((s) => s.name === "Feats")!;
+  expect(feats.selections).toEqual([expect.objectContaining({ actualPath: ["feats"], sources: ["Variant Human"], remaining: 1 })]);
+  expect(feats.empty).toBe(false);
+  expect(steps.find((s) => s.name === "Abilities")!.selections.map((s) => [s.actualPath.join("/"), s.sources])).toContainEqual([
+    "race/human/variant/variant-human/asi",
+    ["Variant Human"],
+  ]);
+  expect(steps.find((s) => s.name === "Proficiencies")!.selections.map((s) => [s.actualPath.join("/"), s.sources])).toContainEqual([
+    "race/human/variant/variant-human/skill-proficiency",
+    ["Variant Human"],
+  ]);
+  const [race] = steps.find((s) => s.name === "Race")!.selections;
+  const variant = child(race, "human", "variant");
+  expect(variant.options.find((o) => o.key === "variant-human")!.selections).toEqual([]);
+  // Feats 1, Abilities 2, Proficiencies: the human's language, the variant's skill and the barbarian's two skills.
+  const counts = Object.fromEntries(steps.map((s, i) => [s.name, remainingByStep(steps)[i].toDo]));
+  expect(counts).toMatchObject({ Feats: 1, Abilities: 2, Proficiencies: 4, Race: 1 });
+});
+
+test("an expertise and a tool selection are on the Proficiencies step with their source", () => {
+  // A rogue 1 picks expertise; a dwarf picks a tool.
+  let entity = engine().setClass(engine().emptyCharacter(), 0, "rogue");
+  entity = engine().select(entity, ["race"], "dwarf");
+  const proficiencies = step(entity, "Proficiencies").selections.map((s) => [s.actualPath.join("/"), s.sources]);
+  expect(proficiencies).toEqual(
+    expect.arrayContaining([
+      ["class/rogue/expertise", ["Rogue"]],
+      ["class/rogue/skill-proficiency", ["Rogue"]],
+      ["race/dwarf/tool-proficiency", ["Dwarf"]],
+    ]),
+  );
+  // The expertise's options open their skills under it, not as more sections.
+  expect(proficiencies.filter(([path]) => (path as string).startsWith("skill-expertise"))).toEqual([]);
 });
 
 test("fighter-3-wizard-2's starting equipment is in the Equipment step, not under its class and background", () => {
@@ -78,14 +226,12 @@ test("fighter-3-wizard-2 nests subclasses under the levels of each class", () =>
 });
 
 test("a ref selection at several positions is one merged selection", () => {
-  // Half-elf gives 1 language and acolyte 2; the character has 4.
-  const [race, background, klass] = stepsOf(readFixture("fighter-3-wizard-2")).map((s) => s.selections);
-  const fromRace = child(race[0], "half-elf", "languages");
-  const fromBackground = child(background[1], "acolyte", "languages");
-  expect(fromRace).toBe(fromBackground);
-  expect(fromRace).toMatchObject({ actualPath: ["languages"], min: 3, max: 3, remaining: -1 });
-  expect(fromRace.selected).toEqual(["common", "elvish", "dwarvish", "orc"]);
-  expect(fromRace.options).toHaveLength(16);
+  // Half-elf gives 1 language and acolyte 2; the character has 4. It shows once, on the Proficiencies step.
+  const languages = step(readFixture("fighter-3-wizard-2"), "Proficiencies").selections.filter((s) => s.key === "languages");
+  expect(languages).toEqual([expect.objectContaining({ actualPath: ["languages"], min: 3, max: 3, remaining: -1, sources: ["Acolyte", "Half-Elf"] })]);
+  expect(languages[0].selected).toEqual(["common", "elvish", "dwarvish", "orc"]);
+  expect(languages[0].options).toHaveLength(16);
+  const klass = step(readFixture("fighter-3-wizard-2"), "Class").selections;
 
   // Spells known at wizard levels 1 and 2: 6 + 2, with no maximum. It shows once, on the Spells step.
   const spells = step(readFixture("fighter-3-wizard-2"), "Spells").selections.filter((s) => s.key === "wizard-spells-known");
@@ -108,8 +254,8 @@ test("wizard-20's spell selections are on the Spells step, not under the wizard'
   const levels = child(klass, "wizard", "levels");
   const underLevels = levels.options.flatMap((o) => o.selections);
   expect(underLevels.filter((s) => s.tags.includes("spells"))).toEqual([]);
-  expect(steps.map((s) => s.name)).toEqual(["Race", "Background", "Class", "Abilities", "Feats", "Spells", "Equipment"]);
-  expect(remainingByStep(steps)[5]).toEqual({ toDo: 0, tooMany: 0 });
+  expect(steps.map((s) => s.name)).toEqual(STEP_ORDER);
+  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Spells")]).toEqual({ toDo: 0, tooMany: 0 });
 });
 
 test("a subrace's cantrips are on the Spells step too", () => {
@@ -130,7 +276,7 @@ test("a merged ref selection counts every pick once", () => {
   // Human gives 1 language and acolyte 2.
   let entity = engine().select(engine().emptyCharacter(), ["race"], "human");
   entity = engine().select(entity, ["background"], "acolyte");
-  const languages = () => child(step(entity, "Race").selections[0], "human", "languages");
+  const languages = () => step(entity, "Proficiencies").selections.find((s) => s.key === "languages")!;
   expect(languages().remaining).toBe(3);
   entity = engine().select(entity, languages().actualPath, "dwarvish");
   expect(languages().remaining).toBe(2);
@@ -194,7 +340,8 @@ test("a merged ref selection sorts the union of its options and finds children i
     ],
     shape,
   );
-  const merged = child(steps[0].selections[0], "x", "languages");
+  // The languages have no tag, so they stay under the option that opens them.
+  const merged = child(steps.find((s) => s.name === "Race")!.selections[0], "x", "languages");
   expect(merged.options.map((o) => o.key)).toEqual(["abyssal", "common", "giant"]);
   expect(child(merged, "giant", "rune").options.map((o) => o.key)).toEqual(["dwarf-rune"]);
 });
@@ -295,7 +442,8 @@ test.each(metaFixtures)("%s has the picks its meta file records, with its packs 
 test("remainingByStep counts picks to remove apart from picks to make", () => {
   // fighter-3-wizard-2's half-elf has Common and Elvish in its choice of 1 language: 1 too many.
   const steps = stepsOf(engine().importCharacter(readJson("characters/fighter-3-wizard-2.strict.json")).entity);
-  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Race")]).toEqual({ toDo: 0, tooMany: 1 });
+  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Proficiencies")]).toEqual({ toDo: 0, tooMany: 1 });
+  expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Race")]).toEqual({ toDo: 0, tooMany: 0 });
 });
 
 test("unfilled and remainingByStep count a merged selection once", () => {
@@ -304,10 +452,22 @@ test("unfilled and remainingByStep count a merged selection once", () => {
   entity = engine().select(entity, ["background"], "acolyte");
   const steps = stepsOf(entity);
   expect(unfilled(steps).filter((s) => s.key === "languages")).toEqual([expect.objectContaining({ remaining: 3 })]);
-  // Race: languages 3, subrace 1 and variant 1. Background: alignment 1; its
-  // languages count under Race. Class: the barbarian's 2 skills. Equipment:
-  // the barbarian's 2 weapons, and the acolyte's holy symbol and prayer book.
-  expect(remainingByStep(steps).map((count) => count.toDo)).toEqual([5, 1, 2, 0, 0, 4]);
+  // Race: subrace 1 and variant 1. Proficiencies: the 3 languages and the
+  // barbarian's 2 skills. Equipment: the barbarian's 2 weapons, and the
+  // acolyte's holy symbol and prayer book. Description: alignment 1.
+  const toDo = remainingByStep(steps).map((count) => count.toDo);
+  expect(Object.fromEntries(steps.map((s, i) => [s.name, toDo[i]]))).toEqual({
+    Name: 0,
+    Class: 0,
+    Background: 0,
+    Race: 2,
+    Abilities: 0,
+    Proficiencies: 5,
+    Feats: 0,
+    Spells: 0,
+    Equipment: 4,
+    Description: 1,
+  });
   expect(remainingByStep(steps).every((count) => count.tooMany === 0)).toBe(true);
 });
 
@@ -316,6 +476,9 @@ test("pickName names a pick by its selection and its option, at any depth, and g
   expect(pickName(race, ["race", "human", "subrace", "illuskan"])).toBe("Subrace (Illuskan)");
   expect(pickName(race, ["race", "human", "variant", "standard-human"])).toBe("Variant (Standard Human)");
   expect(pickName(race, ["race", "human"])).toBe("Race (Human)");
+  // The human's languages moved to the Proficiencies step, but they are still in the race's tree.
+  const language = step(readFixture("fighter-20"), "Proficiencies").selections.find((s) => s.key === "languages")!.selected[0];
+  expect(pickName(race, ["languages", language])).toMatch(/^Languages \(\w+\)$/);
   // A key that the tree does not have, such as a pick under an option that is gone.
   expect(pickName(race, ["race", "human", "subrace", "no-such-subrace"])).toBe("no-such-subrace");
   expect(pickName(race, ["race", "dwarf", "subrace", "hill-dwarf"])).toBe("hill-dwarf");

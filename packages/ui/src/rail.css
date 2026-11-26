@@ -1,0 +1,91 @@
+/* The step rail and the left mark (docs/design/theme.md, "Controls"; docs/design/character-builder.md, "The step rail"). */
+
+@layer components {
+  /* One row on a rule. It does not wrap: it scrolls sideways when it is wider than its column. */
+  .ui-rail-list {
+    position: relative;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  .ui-rail-item {
+    flex: 1 0 auto;
+  }
+  /* The bottom border of the current step is on the rule, so the row keeps its height. */
+  .ui-rail-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 40px;
+    margin-bottom: -1px;
+    padding: 8px 10px 7px;
+    border-bottom: 3px solid transparent;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  /* The current step: ink, a strong underline. The weight does not change, so the row does not move. */
+  .ui-rail-step[aria-current="step"] {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+    text-shadow: 0.4px 0 0 currentColor;
+    background: transparent;
+  }
+  .ui-rail-step:hover {
+    color: var(--ink);
+    background: var(--panel);
+  }
+  .ui-rail-number {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+  .ui-rail-step > .ui-inline-note {
+    margin-left: 0;
+  }
+  /* A step with nothing to pick is dimmed, and it still opens. */
+  .ui-rail-step[data-dimmed] > :is(.ui-rail-number, .ui-rail-label) {
+    opacity: 0.5;
+  }
+
+  /*
+   * The mark at the right of a heading. Its box is there for each of the three
+   * marks, with the same height, so the heading keeps its place and its size.
+   */
+  .ui-left-mark {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 92px;
+    height: 22px;
+    margin-left: auto;
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .ui-left-mark > .ui-inline-note {
+    margin-left: 0;
+    font-size: 12px;
+  }
+  .ui-left-mark-done {
+    display: inline-flex;
+    align-items: center;
+    color: var(--ink-muted);
+  }
+  .ui-left-mark-done > .ui-icon {
+    margin-inline-end: 4px;
+    vertical-align: 0;
+  }
+}

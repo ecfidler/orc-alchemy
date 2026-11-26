@@ -229,6 +229,8 @@ step.[^orc-330]
 * A step with no selection for this character stays in the rail,
   dimmed. It opens, and it shows one line: "This character has no feat
   to pick." or "This character has no spell to pick."
+* The Spells step is not such a step when a class of the character
+  prepares spells. The step then has spells to prepare.
 * The rail does not wrap. When it is wider than the page, it scrolls
   sideways, and the open step scrolls into view.
 * The step title is an `<h2>` with "Step 4 of 10" at its right.
@@ -265,6 +267,13 @@ The card has the same lines on each step:
 | The six abilities | The total and the modifier of each, three in a row |
 
 * A line with no value keeps its place and shows nothing at the right.
+* When the character has no name, the Name line shows "Unnamed
+  character", muted.
+* When a value is too long for its line, the line cuts it with "…" and
+  stays on one line. The `title` of the value has the full text.
+* When the character has no race, the Speed line is empty.
+* When the character has no class, the Level line and the Hit points
+  line are empty.
 * The card has no control but the button below it.
 * The button "Open the full sheet" is below the card. It opens the
   sheet in a panel at the right side, over the builder. The panel shows

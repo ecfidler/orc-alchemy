@@ -274,6 +274,16 @@ homebrew forms. They have no game words: the app gives the lists.
   window less its 16px margins, and its body has no padding and no
   scroll: the owner lays it out, for example as two panes that scroll
   apart (ORC-285).
+* **SidePanel** (ORC-341): a modal panel at the right side of the
+  window, over the page. It is the full height of the window and up to
+  440px wide. Under 720px it is the full width. It has a title row with a
+  Close button, and a body that scrolls. It has the `--paper` fill, a
+  1.5px ink border on its left and the `--note-shadow` offset shadow. Its
+  backdrop is the ListModal's 40% ink wash. When it opens, the focus goes
+  to Close. Close, Esc and a click outside close it, and the focus goes
+  back to the control that opened it. It does not move when it opens or
+  closes, as the other dialogs. The full sheet panel of the builder uses
+  it.
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control. A token can
@@ -332,6 +342,26 @@ links. The builder step bar becomes the step rail of the
 [Character builder spec](character-builder.md#the-step-rail). It stays a
 `<nav>` with `aria-current`.
 
+The step rail adds two parts to the package (ORC-340). They have no game
+words.
+
+* **StepRail:** one row of step buttons on a rule, in a `<nav>` with a
+  list. Each button shows the number of the step in small muted type,
+  then its name, in Inter 13.5px. The current step has ink text and a
+  3px ink underline on the rule. The weight does not change, so the row
+  does not move. A step with picks left shows the number as an inline
+  note after its name. A step with picks to remove shows a red inline
+  note, "Remove 1". The name of the button has the marks in words:
+  "Class, 2 picks left". A step with nothing to pick is faded, and it
+  still opens. The row does not wrap. When it is wider than its column,
+  it scrolls sideways, and the current step scrolls into view.
+* **LeftMark:** the mark at the right of a selection heading: "2 left" as
+  a yellow inline note, "Remove 1" as a red inline note, or the `check`
+  icon and "Done" in muted Inter. The three marks are in one box with a
+  fixed height and a minimum width, so the heading keeps its place and
+  its size. The mark is a part of the heading text for a screen
+  reader.
+
 **Test helpers** at `@orc-alchemy/ui/testing`: "pick an option" for Vitest,
 "pick an option" for Playwright, and "answer the confirm dialog". The
 `.checked` reads become `toBeChecked()`.
@@ -356,7 +386,7 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | Icon | Use |
 | --- | --- |
 | `pencil` | A control that opens the builder, a Customize dialog, or a homebrew form: a place where content changes. |
-| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. Also the mark of the Inspiration box, until inspiration has an icon of its own (ORC-324). |
+| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. Also the mark of the Inspiration box, until inspiration has an icon of its own (ORC-324), and the "Done" left mark of a builder selection (ORC-340). |
 | `x` | A control that closes and does not keep the changes: Cancel. |
 | `sparkles` | A control for spellcasting: All spells, Prepare spells, and the Cast button of a spell (ORC-320). |
 | `external` | A link that opens a page of another site: Send feedback. |
@@ -470,7 +500,8 @@ the same yellow in dark mode.
 * **Inline note:** a small form of the note, in the line of text. The line
   grows to fit it, so it covers nothing. The builder step rail shows its
   count of picks left as an inline note. A selection with picks left
-  has "n left" as an inline note at the right of its heading. See
+  has "n left" as an inline note at the right of its heading. A
+  selection with no pick left has the `check` icon and "Done" there. See
   [Marks, not sentences](character-builder.md#marks-not-sentences). Too many picks
   is a red (`--note-red`) inline note, on the step rail and in the
   heading (Ethan, on PR #65).
@@ -875,7 +906,8 @@ The phone layout of the character sheet is ORC-173. These rules apply:
   and the full sheet panel of the
   [Character builder spec](character-builder.md#the-summary-card).
   Where this document says "the builder preview", read "the full sheet
-  panel". The panel has no tabs, and it keeps one long column.
+  panel". The panel has no tabs, and it keeps one long column. Under
+  720px the summary card does not show, and the panel is the full width.
 * In one column, the AC, initiative and speed boxes share the width, up to
   112px each.
 * When the sheet is narrower than 720px, the attacks table has no

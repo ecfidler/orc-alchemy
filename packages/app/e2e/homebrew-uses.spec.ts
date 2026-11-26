@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { featureCard as card } from "./homebrew-helpers.ts";
+import { summaryCard } from "./sheet-panel.ts";
 
 // ORC-204: feature uses made in a form show as use bubbles on a character's sheet.
 
@@ -36,7 +37,7 @@ test("a feature with fixed uses and one with scaled uses show their bubbles on t
   await page.getByRole("button", { name: "New character" }).click();
   await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
   await page.getByRole("region", { name: "Builder" }).getByRole("button", { name: "Tidecaller", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Preview" }).getByLabel("Race", { exact: true })).toHaveText("Tidecaller");
+  await expect(summaryCard(page).getByLabel("Race", { exact: true })).toHaveText("Tidecaller");
   await page.getByRole("link", { name: "Done" }).click();
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
   await expect(page.getByRole("region", { name: "Builder" })).toHaveCount(0);

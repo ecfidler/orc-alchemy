@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { openSheetPanel } from "./sheet-panel.ts";
 
 // The Spells panel (ORC-285, docs/design/spells-panel.md "The panel" and "Keyboard and screen reader").
 // e2e/life-cleric-9.strict.json is a Life cleric 9 by the builder's calls (src/engine/spell-list.test.ts).
@@ -276,8 +277,8 @@ test("the builder link goes to the Spells step of the builder", async ({ page })
   await expect(page).toHaveURL(/\/build\/[0-9a-f-]+\?step=Spells$/);
   await expect(page.getByRole("navigation", { name: "Steps" }).getByRole("button", { name: /^Spells/ })).toHaveAttribute("aria-current", "step");
   await expect(panel(page)).toBeHidden();
-  // The builder preview has no panel: no All spells button, and the names are plain text.
-  const preview = page.getByRole("region", { name: "Preview" });
+  // The full sheet panel of the builder has no Spells panel: no All spells button, and the names are plain text.
+  const preview = await openSheetPanel(page);
   await expect(preview.getByText("Raise Dead")).toBeVisible();
   await expect(preview.getByRole("button", { name: "All spells" })).toHaveCount(0);
   await expect(preview.getByRole("button", { name: "Raise Dead" })).toHaveCount(0);

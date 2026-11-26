@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { closeSheetPanel, openSheetPanel, summaryCard } from "./sheet-panel.ts";
 
 // ORC-134: Customize a feat for one character. The feat form opens in a
 // dialog over the builder, and its own modals (the "+ Add a modifier" list
@@ -199,10 +200,10 @@ test("Customize the SRD race: the note shows with no line of removed picks, and 
   await expect(dialog).toBeHidden();
 
   await expect(builder.getByRole("button", { name: "Edit custom Human (Custom)" })).toBeFocused();
-  const sheet = page.getByRole("region", { name: "Preview" });
-  await expect(sheet.getByLabel("Race", { exact: true })).toHaveText("Human (Custom)");
+  await expect(summaryCard(page).getByLabel("Race", { exact: true })).toHaveText("Human (Custom)");
+  const sheet = await openSheetPanel(page);
   const bubble = sheet.getByRole("group", { name: "Second Wind of the Plains" });
-  // The builder preview shows the uses and takes no clicks.
+  // The full sheet panel shows the uses and takes no clicks.
   await expect(bubble.getByRole("img", { name: "Second Wind of the Plains uses spent: 0 of 2" }).locator(".ui-slot-circle")).toHaveCount(2);
   await expect(bubble.getByText("Long rest")).toBeVisible();
 });
@@ -254,14 +255,17 @@ test("Custom Origin with the keyboard: move a bonus, swap a language and a skill
   const edit = builder.getByRole("button", { name: "Edit custom origin Half-Orc (Custom Origin)" });
   await expect(edit).toBeFocused();
 
-  const sheet = page.getByRole("region", { name: "Preview" });
-  await expect(sheet.getByLabel("Race", { exact: true })).toHaveText("Half-Orc (Custom Origin)");
+  await expect(summaryCard(page).getByLabel("Race", { exact: true })).toHaveText("Half-Orc (Custom Origin)");
+  const sheet = await openSheetPanel(page);
   await expect(sheet.getByRole("group", { name: "Other proficiencies & languages" })).toContainText("Dwarvish");
   const skill = (name: string) => sheet.getByRole("group", { name: "Skills" }).getByRole("listitem").filter({ hasText: name });
   await expect(skill("Stealth").getByRole("img", { name: "Proficient" })).toBeVisible();
   await expect(skill("Intimidation").getByRole("img", { name: "Proficient" })).toHaveCount(0);
+  await closeSheetPanel(page);
 
   // Edit custom origin opens the dialog with the picks.
+  await edit.focus();
+  await expect(edit).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(dialog.getByRole("combobox", { name: "Base race" })).toHaveText("Half-Orc");
   await expect(dialog.getByRole("combobox", { name: "+2 bonus, Half-Orc gives Strength" })).toHaveText("Dexterity");

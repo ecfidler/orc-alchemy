@@ -11,7 +11,7 @@ import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts"
 import { useOpenCharacter } from "../state/character.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { OptionCards, Selection } from "./Builder.tsx";
-import { Heading, useMutation } from "./Classes.tsx";
+import { HEADING_CLASSES, Heading, useMutation } from "./Classes.tsx";
 import { PrepareCountText } from "./PrepareCount.tsx";
 
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
@@ -110,7 +110,7 @@ export function PreparedSpells() {
         const name = count.className;
         return (
           <section key={name} aria-label={`Prepared spells: ${name}`} className="space-y-2">
-            <h3 className="font-bold">Prepared spells: {name}</h3>
+            <h3 className={HEADING_CLASSES}>Prepared spells: {name}</h3>
             <p>
               <PrepareCountText count={count} withClass={false} />
             </p>

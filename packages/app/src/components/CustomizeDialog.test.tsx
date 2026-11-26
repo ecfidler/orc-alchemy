@@ -16,6 +16,7 @@ import { DEEP_SYLVAR, RACE_PACK, RACE_PACKS, SYLVAR, TAGGED_RACES, TAGGED_SUBRAC
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
+import { withSheetPanel } from "./test-sheet-panel.ts";
 
 // A test turns on `fail` to make the load of the SRD background list fail, as offline.
 const srdLoad = vi.hoisted(() => ({ fail: false }));
@@ -148,9 +149,10 @@ test("Edit custom changes the copy, and the sheet shows the change; a new name r
   expect(selectedFeats()).toEqual(["skill-savant"]);
   expect(skills()).toContain("arcana");
   expect(Object.keys((useCharacter.getState().custom as Record<string, object>)[FEATS])).toEqual(["~:skill-savant"]);
-  const preview = screen.getByRole("region", { name: "Preview" });
-  await waitFor(() => expect(preview).toHaveTextContent("You know every skill."));
-  expect(preview).toHaveTextContent("Skill Savant");
+  await withSheetPanel(async (sheet) => {
+    await waitFor(() => expect(sheet).toHaveTextContent("You know every skill."));
+    expect(sheet).toHaveTextContent("Skill Savant");
+  });
   expect(within(lines).getByRole("button", { name: "Edit custom Skill Savant" })).toBeTruthy();
   // The original stays.
   expect(cards().map((card) => card.textContent)).toEqual(expect.arrayContaining(["Skill Expert", "Skill Savant"]));
@@ -250,7 +252,6 @@ async function openBackground(pack = false) {
 }
 const background = () => evaluate().selections.find((s) => s.key === "background")!.selected;
 const backgroundCards = () => within(within(screen.getByRole("region", { name: "Builder" })).getByRole("group", { name: "Background" })).getAllByRole("button");
-const preview = () => screen.getByRole("region", { name: "Preview" });
 
 test("Customize on a pack background makes '<Name> (Custom)', selects it by the engine's key, and the sheet shows its skills, tools, languages and equipment", async () => {
   const lines = await openBackground(true);
@@ -277,24 +278,25 @@ test("Customize on a pack background makes '<Name> (Custom)', selects it by the 
   expect(evaluate().selections.find((s) => s.actualPath.join("/") === "background/sage-custom-/tool-proficiency-artisans-tools")!.selected).toEqual([
     "smiths-tools",
   ]);
-  const sheet = preview();
-  await waitFor(() => expect(sheet).toHaveTextContent("Sage (Custom)"));
-  for (const text of [
-    "+7 Arcana",
-    "+7 History",
-    "Smiths Tools (+6), Thieves Tools (+6)",
-    "Common, Draconic, Elvish",
-    "Ink (equipped)",
-    "Ink Pen (equipped)",
-    "Researcher",
-  ])
-    expect(sheet).toHaveTextContent(text);
-  // The feature keeps its uses: one use, back on a long rest.
-  const bubble = within(within(sheet).getByRole("group", { name: "Features & traits" })).getByRole("group", { name: "Researcher" });
-  expect(within(bubble).getByRole("img", { name: "Researcher uses spent: 0 of 1" }).querySelectorAll(".ui-slot-circle")).toHaveLength(1);
-  expect(within(bubble).getByText("Long rest")).toBeTruthy();
   const edit = within(lines).getByRole("button", { name: "Edit custom Sage (Custom)" });
   await waitFor(() => expect(document.activeElement).toBe(edit));
+  await withSheetPanel(async (sheet) => {
+    await waitFor(() => expect(sheet).toHaveTextContent("Sage (Custom)"));
+    for (const text of [
+      "+7 Arcana",
+      "+7 History",
+      "Smiths Tools (+6), Thieves Tools (+6)",
+      "Common, Draconic, Elvish",
+      "Ink (equipped)",
+      "Ink Pen (equipped)",
+      "Researcher",
+    ])
+      expect(sheet).toHaveTextContent(text);
+    // The feature keeps its uses: one use, back on a long rest.
+    const bubble = within(within(sheet).getByRole("group", { name: "Features & traits" })).getByRole("group", { name: "Researcher" });
+    expect(within(bubble).getByRole("img", { name: "Researcher uses spent: 0 of 1" }).querySelectorAll(".ui-slot-circle")).toHaveLength(1);
+    expect(within(bubble).getByText("Long rest")).toBeTruthy();
+  });
   expect(backgroundCards().map((card) => card.textContent)).toEqual(expect.arrayContaining(["Sage", "Sage (Custom)", "Acolyte"]));
   // Another character, without this custom content, has the original and not the copy.
   const others = engine()
@@ -509,20 +511,21 @@ test("Customize on a pack race makes '<Name> (Custom)', selects it, and the shee
     [TAGGED_RACES]: { "~:sylvar-custom": { ...SYLVAR, "~:key": "~:sylvar-custom", "~:name": "Sylvar (Custom)", "~:option-pack": CUSTOM_PACK } },
   });
   expect(useCharacter.getState().entity).toEqual(remapOption(withSylvar(), ["race", "sylvar"], "sylvar-custom"));
-  const sheet = preview();
-  await waitFor(() => expect(sheet).toHaveTextContent("Sylvar (Custom)"));
-  // +2 Wisdom and +1 Dexterity on fighter-20's scores, as before the save.
-  expect(within(sheet).getByLabelText("WIS").textContent).toBe("14+2");
-  expect(within(sheet).getByLabelText("DEX").textContent).toBe("17+3");
-  expect(within(sheet).getByRole("group", { name: "Speed" }).textContent).toBe("35 ft.");
-  expect(within(sheet).getByLabelText("Darkvision").textContent).toContain("60");
-  for (const text of ["Common, Draconic, Elvish, Sylvan", "Leafstep"]) expect(sheet).toHaveTextContent(text);
-  // The feature keeps its uses: one use, back on a long rest.
-  const bubble = within(within(sheet).getByRole("group", { name: "Features & traits" })).getByRole("group", { name: "Leafstep" });
-  expect(within(bubble).getByRole("img", { name: "Leafstep uses spent: 0 of 1" }).querySelectorAll(".ui-slot-circle")).toHaveLength(1);
-  expect(within(bubble).getByText("Long rest")).toBeTruthy();
   const edit = within(lines).getByRole("button", { name: "Edit custom Sylvar (Custom)" });
   await waitFor(() => expect(document.activeElement).toBe(edit));
+  await withSheetPanel(async (sheet) => {
+    await waitFor(() => expect(sheet).toHaveTextContent("Sylvar (Custom)"));
+    // +2 Wisdom and +1 Dexterity on fighter-20's scores, as before the save.
+    expect(within(sheet).getByLabelText("WIS").textContent).toBe("14+2");
+    expect(within(sheet).getByLabelText("DEX").textContent).toBe("17+3");
+    expect(within(sheet).getByRole("group", { name: "Speed" }).textContent).toBe("35 ft.");
+    expect(within(sheet).getByLabelText("Darkvision").textContent).toContain("60");
+    for (const text of ["Common, Draconic, Elvish, Sylvan", "Leafstep"]) expect(sheet).toHaveTextContent(text);
+    // The feature keeps its uses: one use, back on a long rest.
+    const bubble = within(within(sheet).getByRole("group", { name: "Features & traits" })).getByRole("group", { name: "Leafstep" });
+    expect(within(bubble).getByRole("img", { name: "Leafstep uses spent: 0 of 1" }).querySelectorAll(".ui-slot-circle")).toHaveLength(1);
+    expect(within(bubble).getByText("Long rest")).toBeTruthy();
+  });
 
   // Edit custom opens the copy with the same note.
   fireEvent.click(edit);
