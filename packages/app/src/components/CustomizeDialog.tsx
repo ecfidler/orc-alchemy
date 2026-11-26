@@ -9,21 +9,10 @@ import { Button, Dialog, useConfirm } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { type BuilderSelection, pickName } from "../engine/builder.ts";
 import { tag } from "../engine/content.ts";
-import {
-  builtInText,
-  CUSTOM_PACK,
-  copyKeyOf,
-  customName,
-  formRecord,
-  isCustomCopy,
-  optionOrigin,
-  type SavedCopy,
-  saveCopy,
-  srdBackgroundRecord,
-  srdRaceCopy,
-  withCopyStartingEquipment,
-  withPickedSubrace,
-} from "../engine/custom.ts";
+import { builtInText, CUSTOM_PACK, copyKeyOf, customName, formRecord, isCustomCopy, optionOrigin, type SavedCopy, saveCopy } from "../engine/custom.ts";
+import { srdBackgroundRecord, withCopyStartingEquipment } from "../engine/custom-background.ts";
+import { srdRaceCopy } from "../engine/custom-race.ts";
+import { withPickedSubrace } from "../engine/custom-subrace.ts";
 import type { Built2014, Content, ContentType, StrictEntity } from "../engine/engine.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";

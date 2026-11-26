@@ -5,7 +5,6 @@
 // never see it.
 import type { Built2014 } from "@pubdoor/dmv";
 import {
-  asSet,
   BACKGROUND_TYPE,
   disabledInFile,
   isMap,
@@ -15,19 +14,14 @@ import {
   OPTION_KEY,
   OPTION_PACK,
   optionKeyOf,
-  SUBRACE_TYPE,
-  sameRecord,
   tag,
   untag,
   withItem,
   withoutItem,
 } from "./content.ts";
-import { buildTemplate, type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
-import { type AreaAttack, breathWeaponText, hasArea, raceGives } from "./race-gives.ts";
-import { pickableSubraces, subraceOptions, subracePick, templateRace } from "./race-step.ts";
+import type { Content, ContentType, StrictEntity } from "./engine.ts";
 import { missingContent, picksUnder, remapOption, withoutOption } from "./reconcile.ts";
 import { capitalized } from "./sheet-text.ts";
-import { srdList } from "./srd-lists.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
 export const CUSTOM_PACK = "Custom (this character)";
@@ -257,331 +251,19 @@ export function customizeOption(
 }
 
 /** The value with each key of each map at any depth as a Transit keyword, as a pack item has its keys. */
-const tagKeys = (value: unknown): unknown =>
+export const tagKeys = (value: unknown): unknown =>
   Array.isArray(value) ? value.map(tagKeys) : isMap(value) ? Object.fromEntries(Object.entries(value).map(([k, v]) => [tag(k), tagKeys(v)])) : value;
-
-/** The prefix of the name of a background's equipment choice in the template, as "Starting Equipment: Holy Symbol". */
-const CHOICE_PREFIX = "Starting Equipment: ";
-
-/**
- * The equipment choices of the SRD background with the key that the
- * engine's template has and that the content list leaves out, such as the
- * holy symbol of Acolyte, in the form's :equipment-choices shape. The
- * template gives each choice's name and options. A copy with the choice
- * keeps the character's pick under it: the engine keys the choice as
- * "starting-equipment-" and the key of its name.
- */
-function templateChoices(key: string, listed: unknown[]): Record<string, unknown>[] {
-  const option = buildTemplate()
-    .shape.find((s) => s.key === "background")
-    ?.options.find((o) => o.key === key);
-  const has = new Set(listed.map((c) => `starting-equipment-${nameToKw(String((c as Record<string, unknown>).name ?? ""))}`));
-  return (option?.selections ?? [])
-    .filter((s) => (s.tags ?? []).includes("starting-equipment") && !has.has(s.key) && s.name.startsWith(CHOICE_PREFIX))
-    .map((s) => ({
-      name: s.name.slice(CHOICE_PREFIX.length),
-      options: Object.fromEntries(s.options.filter((o) => o.key !== "none").map((o) => [o.key, 1])),
-    }));
-}
 
 /**
  * The features of an SRD option in the engine's content list, as a form
  * edits them: the summary of a feature without a description is its
  * description, the field that the form edits. [] when traits is not a list.
  */
-function formTraits(traits: unknown): unknown[] {
+export function formTraits(traits: unknown): unknown[] {
   return (Array.isArray(traits) ? traits : []).map((trait: Record<string, unknown>) => {
     const { summary, ...more } = trait;
     return more.description === undefined && typeof summary === "string" ? { ...more, description: summary } : trait;
   });
-}
-
-/**
- * The SRD background with the key as a form record, for its copy, or
- * undefined if the SRD has no such background. The source is the engine's
- * content list (content/backgrounds.json), which has each SRD background
- * with the fields of a pack background (BackgroundForm.tsx). The keys are
- * made Transit keywords, and the features are as the form edits them
- * (formTraits). An equipment choice that the list leaves out comes from
- * the engine's template (templateChoices), so the copy keeps the
- * character's pick. The SRD list loads once, as its own chunk.
- */
-export async function srdBackgroundRecord(key: string): Promise<Record<string, unknown> | undefined> {
-  const background = (await srdList("backgrounds")).find((b) => b.key === key);
-  if (background === undefined) return undefined;
-  const { key: _key, traits, "equipment-choices": choices, ...rest } = background;
-  const listed = Array.isArray(choices) ? choices : [];
-  const allChoices = [...listed, ...templateChoices(key, listed)];
-  return tagKeys({ ...rest, ...(allChoices.length > 0 && { "equipment-choices": allChoices }), traits: formTraits(traits) }) as Record<string, unknown>;
-}
-
-/** The six ability keys, as a race's :abilities has them. */
-const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"].map((a) => `orcpub.dnd.e5.character/${a}`);
-
-/**
- * The Breath Weapon, the only area attack of an SRD race, as a feature
- * of a pack race, which has no attacks: an action with one use for each
- * short rest, with its text (breathWeaponText).
- */
-function breathWeaponTrait(attack: AreaAttack): Record<string, unknown> {
-  return {
-    name: attack.name,
-    type: tag("action"),
-    frequency: { units: tag("orcpub.dnd.e5.units/short-rest"), amount: 1 },
-    description: breathWeaponText(attack),
-  };
-}
-
-/** The choices of an SRD race that a pack race can hold, by the key of the choice in the template: the key of the choice in :profs. */
-const KEPT_CHOICES: Record<string, string> = { languages: "language-options", "skill-proficiency": "skill-options" };
-
-/**
- * The language choice and the skill choice of the SRD race with the key,
- * as the :profs of a pack race: {:language-options {:choose 1 :options
- * {:elvish true}}}. The template gives the number to choose and the
- * options. The engine gives the choice of the copy the key of the SRD
- * choice, so the character's picks stay.
- *
- * With subrace, the key of an SRD subrace of the race, the result also
- * has the choices of the subrace that the character must make, such as
- * the language of the High Elf. A choice of the race and the same choice
- * of the subrace become one choice, of the two numbers together.
- */
-function raceChoices(key: string, subrace?: string): Record<string, unknown> {
-  // The option of the SRD race in the template, with its choices: the template with no homebrew has the SRD races only.
-  const option = templateRace(key, { homebrew: undefined });
-  const own = option?.selections ?? [];
-  const ofSubrace = subraceOptions(option).find((o) => o.key === subrace)?.selections ?? [];
-  const choices: Record<string, { choose: number; options: Record<string, true> }> = {};
-  for (const s of [...own, ...ofSubrace]) {
-    const field = KEPT_CHOICES[s.key];
-    // A choice with a minimum of 0, such as those of the engine's custom subrace, is not one that the character must make.
-    const choose = s.min ?? 1;
-    if (field === undefined || s.options.length === 0 || choose === 0) continue;
-    const choice = choices[field] ?? { choose: 0, options: {} };
-    for (const o of s.options) choice.options[o.key] = true;
-    choices[field] = { choose: choice.choose + choose, options: choice.options };
-  }
-  return choices;
-}
-
-/** The picks of a character under its race that a copy of the race holds, and the entity that has only them under the race (racePicks). */
-interface RacePicks {
-  /** The entity without the picks under the race that the copy does not hold as values. */
-  entity: StrictEntity;
-  /** The paths of the picks that the copy holds as values, such as ["race", "dwarf", "tool-proficiency", "smiths-tools"]. */
-  held: string[][];
-}
-
-/**
- * The picks under the race with the key that a copy holds as fixed
- * values, because a pack race does not have their choices: the tool of a
- * Dwarf, the ability picks of a Half-Elf, the variant of a Human with its
- * picks, the ancestry of a Dragonborn, and an SRD subrace with the picks
- * under it, such as the cantrip of a High Elf. Not the picks of a choice
- * that the copy keeps (KEPT_CHOICES), and not a pack subrace, whose
- * values come from its record (withSubrace). undefined when the entity
- * has no pick under the race with the key, for example because it has
- * another race.
- */
-function racePicks(entity: StrictEntity, key: string): RacePicks | undefined {
-  const picks = picksUnder(entity, ["race", key]);
-  if (picks.length === 0) return undefined;
-  // The engine's custom subrace has picks that the probe does not read, such as a speed, so the copy does not hold it, and Save names it.
-  const srdSubraces = new Set(pickableSubraces(templateRace(key, { homebrew: undefined })).map((o) => o.key));
-  const dropped = (path: string[]) => (path[2] === "subrace" ? !srdSubraces.has(path[3]) : KEPT_CHOICES[path[2]] !== undefined);
-  const top = picks.filter((p) => p.length === 4 && dropped(p));
-  return { entity: top.reduce((result, path) => withoutOption(result, path), entity), held: picks.filter((p) => !dropped(p)) };
-}
-
-/** A copy of an SRD race for a character (srdRaceCopy). */
-export interface RaceCopy {
-  record: Record<string, unknown>;
-  /** The paths of the character's picks under the race whose values the record has. A save of the copy removes them, but loses nothing. */
-  held: string[][];
-}
-
-/**
- * The SRD race with the key as a form record in the shape of a pack race
- * (RaceForm.tsx), for its copy, or undefined if the engine's content list
- * (content/races.json) has no such race. The record has what the list has:
- * the name, the description (:help), the size, the speed, the darkvision,
- * the ability score increases, the languages, the weapon proficiencies and
- * the features (formTraits). What the list does not have comes from the
- * engine (raceGives): the skill proficiencies, the damage resistances, the
- * spells, and each trait whose name the list does not have, such as those
- * of the Tiefling. The language choice and the skill choice of the race
- * are choices of the record (raceChoices).
- *
- * With the entity of a character of this race, the record also has what
- * the character's picks under the race give, as fixed values (racePicks):
- * a tool, ability score increases, a skill, a damage resistance, and an
- * attack as a feature (breathWeaponTrait). An SRD subrace is such a pick:
- * the record has its ability score increase, its weapons, its hit points
- * for each level, its features and the spell that the character picked,
- * and its language choice is a choice of the record. held has those
- * picks.
- *
- * Without a variant pick, the Human gets +1 to each ability, which the
- * engine gives with its variant Standard Human. The race form has no
- * saving throw advantage, so the copy has it only as the text of a
- * feature. The copy has no Subrace choice. The SRD list loads once, as
- * its own chunk.
- */
-export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Promise<RaceCopy | undefined> {
-  const race = (await srdList("races")).find((r) => r.key === key);
-  if (race === undefined) return undefined;
-  const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, abilities: _abilities, ...rest } = race;
-  const picks = entity == null ? undefined : racePicks(entity, key);
-  const held = picks?.held ?? [];
-  // Without a held pick, the probe is that of the race alone, which is computed once.
-  const gives = raceGives(key, held.length > 0 ? picks?.entity : undefined);
-  // The engine gives the Human's +1 to each ability with the variant Standard Human, so a Human without a variant pick gets it here.
-  const standard = key === "human" && !held.some((p) => p[2] === "variant");
-  const abilities = standard ? Object.fromEntries(ABILITY_KEYS.map((a) => [a, 1])) : gives.abilities;
-  const flags = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, true]));
-  // The list has the weapons of the race. The probe also has those of a subrace.
-  const allWeapons = [...new Set([...(Array.isArray(weapons) ? (weapons as string[]) : []), ...gives.weapons])];
-  const props = {
-    ...(allWeapons.length > 0 && { "weapon-prof": flags(allWeapons) }),
-    ...(gives.hitPoints > 0 && { "max-hp-bonus": gives.hitPoints }),
-    ...(gives.skills.length > 0 && { "skill-prof": flags(gives.skills) }),
-    ...(gives.resistances.length > 0 && { "damage-resistance": flags(gives.resistances) }),
-  };
-  const profs = {
-    ...(gives.tools.length > 0 && { tool: flags(gives.tools) }),
-    ...raceChoices(key, subracePick(held)?.[3]),
-  };
-  const listed = Array.isArray(traits) ? traits : [];
-  const names = new Set(listed.map((t: Record<string, unknown>) => t.name));
-  const record = tagKeys({
-    ...rest,
-    ...(Object.keys(abilities).length > 0 && { abilities }),
-    ...(Object.keys(props).length > 0 && { props }),
-    ...(Object.keys(profs).length > 0 && { profs }),
-    traits: [...formTraits([...listed, ...gives.traits.filter((t) => !names.has(t.name))]), ...gives.attacks.filter(hasArea).map(breathWeaponTrait)],
-  }) as Record<string, unknown>;
-  // A keyword value and a set, which tagKeys does not make.
-  return {
-    held,
-    record: {
-      ...record,
-      ...(typeof size === "string" && { [tag("size")]: tag(size) }),
-      [tag("languages")]: asSet(Array.isArray(languages) ? languages : []),
-      // A spell's ability and key are keywords.
-      ...(gives.spells.length > 0 && {
-        [tag("spells")]: gives.spells.map(({ level, value }) => ({
-          [tag("level")]: level,
-          [tag("value")]: { [tag("level")]: value.level, [tag("ability")]: tag(value.ability), [tag("key")]: tag(value.key) },
-        })),
-      }),
-    },
-  };
-}
-
-/** The record of srdRaceCopy for no character: the SRD race with the key, with no value from a pick. */
-export const srdRaceRecord = async (key: string): Promise<Record<string, unknown> | undefined> => (await srdRaceCopy(key))?.record;
-
-/** The keys of the numbers of a race and its subrace that the engine adds: the hit points for each level, the number to choose of a choice, and each ability score increase. */
-const SUMMED_KEYS = new Set(["max-hp-bonus", "choose", ...ABILITY_KEYS].map(tag));
-
-/**
- * The two values at the key of a race and its subrace as one value: maps
- * as one map, and numbers that the engine adds as their sum. Else the
- * subrace's value, as for a flying speed, where the engine uses that of
- * the subrace.
- */
-function merged(key: string, ofRace: unknown, ofSubrace: unknown): unknown {
-  if (ofRace === undefined) return ofSubrace;
-  if (typeof ofRace === "number" && typeof ofSubrace === "number") {
-    return SUMMED_KEYS.has(key) ? ofRace + ofSubrace : ofSubrace;
-  }
-  if (!isMap(ofRace) || !isMap(ofSubrace)) return ofSubrace;
-  const result: Record<string, unknown> = { ...ofRace };
-  for (const [k, value] of Object.entries(ofSubrace)) result[k] = merged(k, ofRace[k], value);
-  return result;
-}
-
-/** The fields of a pack subrace that replace those of the race in withSubrace, and the fields that it adds to those of the race. The other fields are the name, the key, the race and the option source. */
-const SUBRACE_OWN_FIELDS = ["size", "speed", "darkvision"].map(tag);
-const SUBRACE_ADDED_FIELDS = ["abilities", "props", "profs", "spells", "traits"].map(tag);
-const PROFS = tag("profs");
-/** The keys of the :profs of a pack subrace that the engine uses. */
-const SUBRACE_PROFS = new Set(["tool", "skill-options"].map(tag));
-
-/** The :profs of a pack subrace that the engine uses: the tools and the skill choice. undefined when it has neither. */
-function subraceProfs(profs: Record<string, unknown>): Record<string, unknown> | undefined {
-  const used = Object.entries(profs).filter(([key]) => SUBRACE_PROFS.has(key));
-  return used.length > 0 ? Object.fromEntries(used) : undefined;
-}
-
-/**
- * The race record with the values of the pack subrace record as its own,
- * for a copy of the race of a character with that subrace (ORC-248). The
- * size, the speed and the darkvision are those of the subrace when it has
- * them. Ability score increases and the hit points for each level are
- * sums. The proficiencies, the resistances and the options of a choice
- * are those of the two together, and a choice of both has the two numbers
- * to choose together. A flying or swimming speed is that of the subrace.
- * The spells and the features of the subrace come after those of the
- * race. The only choice of a subrace that the engine offers is its skill
- * choice, so the record gets no other choice of the subrace.
- */
-export function withSubrace(race: Record<string, unknown>, subrace: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...race };
-  for (const field of SUBRACE_OWN_FIELDS) if (subrace[field] !== undefined) result[field] = subrace[field];
-  for (const field of SUBRACE_ADDED_FIELDS) {
-    const ofRace = race[field];
-    const ofSubrace = field === PROFS && isMap(subrace[field]) ? subraceProfs(subrace[field]) : subrace[field];
-    if (ofSubrace === undefined) continue;
-    result[field] = Array.isArray(ofSubrace) ? [...(Array.isArray(ofRace) ? ofRace : []), ...ofSubrace] : merged(field, ofRace, ofSubrace);
-  }
-  return result;
-}
-
-/** The record with the skills as skill proficiencies, and with that many fewer skills to choose in its skill choice. A choice of no skill goes. */
-function withPickedSkills(record: Record<string, unknown>, skills: string[]): Record<string, unknown> {
-  if (skills.length === 0) return record;
-  const [propsKey, skillKey, optionsKey, chooseKey] = ["props", "skill-prof", "skill-options", "choose"].map(tag);
-  const props = isMap(record[propsKey]) ? record[propsKey] : {};
-  const { [optionsKey]: choice, ...profs } = isMap(record[PROFS]) ? record[PROFS] : {};
-  const choose = isMap(choice) ? Number(choice[chooseKey] ?? 0) - skills.length : 0;
-  const { [PROFS]: _profs, ...rest } = record;
-  const nextProfs = { ...profs, ...(choose > 0 && { [optionsKey]: { ...(choice as object), [chooseKey]: choose } }) };
-  return {
-    ...rest,
-    [propsKey]: {
-      ...props,
-      [skillKey]: { ...(isMap(props[skillKey]) ? props[skillKey] : {}), ...Object.fromEntries(skills.map((skill) => [tag(skill), true])) },
-    },
-    ...(Object.keys(nextProfs).length > 0 && { [PROFS]: nextProfs }),
-  };
-}
-
-/**
- * The copy of the race with the key with the values of the character's
- * pack subrace (withSubrace), and the subrace pick as a held pick. The
- * character's skill picks under the subrace are skill proficiencies of
- * the copy, and held picks: the skill choice of the copy is a choice of
- * the race, so a pick under the subrace does not stay. The copy itself
- * when the character has no subrace of the race, when the copy has the
- * subrace already (an SRD subrace, srdRaceCopy), or when no enabled pack
- * has the subrace. homebrew is the loaded content's.
- */
-export function withPickedSubrace(copy: RaceCopy, key: string, entity: StrictEntity | null, homebrew: Content["homebrew"]): RaceCopy {
-  const picks = entity === null ? [] : picksUnder(entity, ["race", key]);
-  const pick = subracePick(picks);
-  if (pick === undefined || copy.held.some((p) => p.join("/") === pick.join("/"))) return copy;
-  const origin = optionOrigin(homebrew, undefined, SUBRACE_TYPE, pick[3]);
-  if (origin.from !== "pack") return copy;
-  const skills = picks.filter((p) => p.length === 6 && p[3] === pick[3] && p[4] === "skill-proficiency");
-  return {
-    record: withPickedSkills(
-      withSubrace(copy.record, origin.item),
-      skills.map((p) => p[5]),
-    ),
-    held: [...copy.held, pick, ...skills],
-  };
 }
 
 /** The options under the option at path that do not resolve against the content, as missingContent gives them. */
@@ -642,25 +324,4 @@ export function saveCopy(entity: StrictEntity, custom: object | undefined, conte
   const paths = lost.filter((p) => !held.has(p.join("/")));
   const removed = paths.filter((p) => !paths.some((q) => q.length < p.length && q.every((k, i) => p[i] === k)));
   return { entity: kept, custom: next.custom, key, content: withCopy, removed };
-}
-
-/** The values of a background's starting equipment that addStartingEquipment gives: the items and the gold. */
-const startingEquipment = (record: Record<string, unknown>) => [record[tag("equipment")], record[tag("treasure")]];
-
-/**
- * The entity after a save of a background copy with the key: when the
- * items or the gold of `after` are not those of `before`, the character's
- * background starting equipment is replaced with the copy's, as a new pick
- * of a background does (engine addStartingEquipment). Else entity itself,
- * so other changes to the inventory stay. content is what the character
- * builds against with the copy.
- */
-export function withCopyStartingEquipment(
-  entity: StrictEntity,
-  key: string,
-  before: Record<string, unknown>,
-  after: Record<string, unknown>,
-  content: Content,
-): StrictEntity {
-  return sameRecord(startingEquipment(before), startingEquipment(after)) ? entity : engine().addStartingEquipment(entity, key, content);
 }
