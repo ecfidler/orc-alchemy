@@ -6,7 +6,8 @@
 // background gives Str +2 and Con +1.
 
 import type { StrictOption, StrictSelection } from "../core/entity.ts";
-import type { Entity2024 } from "./evaluate.ts";
+import type { Built2024 } from "./built.ts";
+import { type Entity2024, evaluate } from "./evaluate.ts";
 
 export interface Choices {
   level: number;
@@ -102,6 +103,12 @@ export function fighterCharacter(choices: Choices): Entity2024 {
     ],
   };
 }
+
+/** The test Fighter, evaluated with the 2024 rules. */
+export const buildFighter = (choices: Choices) => evaluate(fighterCharacter(choices), { rules: "2024" });
+
+/** The attack line of a weapon, by the `weapon` of the line. */
+export const weaponAttackOf = (built: Built2024, weapon: string) => built.weaponAttacks.find((a) => a.weapon === weapon);
 
 /** The envelope of a test pack file, without records. */
 export function testPackEnvelope(id = "test") {

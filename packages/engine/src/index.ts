@@ -33,5 +33,6 @@ export {
 } from "./rules2024/evaluate.ts";
 export { defineHook, HOOKS, type Hook, type HookRegistry } from "./rules2024/hooks/index.ts";
 export { type ContentPackOptions, loadContentPack } from "./rules2024/packs.ts";
-export { backgroundOption, classOption, featOption, featSelection, RecordError, speciesOption, subclassOption } from "./rules2024/records.ts";
+export { RecordError } from "./rules2024/record-values.ts";
+export { backgroundOption, classOption, featOption, featSelection, speciesOption, subclassOption } from "./rules2024/records.ts";
 export { createTemplate, POINT_BUDGET, POINT_COSTS, pointCost, STANDARD_ARRAY, template2024 } from "./rules2024/template.ts";
