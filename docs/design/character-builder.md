@@ -528,6 +528,12 @@ On a page narrower than 720px, they are three in a row.
   4. The total and the modifier, large, on a shaded band at the bottom.
 * The boxes do not move and do not change their size when the method or
   a score changes.
+* The token area of a box holds two tokens. With more sources, the
+  second token is the sum of the others, "+3 more". The full list is in
+  the box for a screen reader.[^orc-345]
+* The boxes are six in a row when the control is 600px wide or more. So
+  on a page a little wider than 720px, where the summary card takes
+  space, they are three in a row too.[^orc-345]
 
 The base score for each method:
 
@@ -543,6 +549,9 @@ class level, is placed on this step. Each such choice is a section below
 the boxes, with the source in its heading and the left mark. The player
 places a point with plus and minus buttons in the section. The point
 then shows as a token in the box.
+The heading of such a section is "Ability Score Improvement: Fighter 4"
+for a class level, and "Ability Score Increase: Half-Elf" for a race, a
+subrace or a feat.[^orc-345]
 
 # The Proficiencies step
 
@@ -720,3 +729,4 @@ one depends only on parts of the frame.
 [^orc-335]: What the new Class step does, <https://linear.app/orc-alchemy/issue/ORC-335/what-the-new-class-step-does>
 [^orc-336]: The new Class step, <https://linear.app/orc-alchemy/issue/ORC-336/the-new-class-step>
 [^orc-338]: The list with a detail panel for Race and Background, <https://linear.app/orc-alchemy/issue/ORC-338/the-list-with-a-detail-panel-for-race-and-background>
+[^orc-345]: The ability score control, <https://linear.app/orc-alchemy/issue/ORC-345/the-ability-score-control>

@@ -79,11 +79,20 @@ export function rollScores(random: () => number = Math.random): Scores {
   });
 }
 
-/** Swaps an ability's score with its left (-1) or right (1) neighbour's; str and cha are neighbours. */
-export function swapScores(scores: Scores, ability: Ability, direction: -1 | 1): Scores {
-  const i = ABILITIES.indexOf(ability);
-  const other = ABILITIES[(i + direction + ABILITIES.length) % ABILITIES.length];
-  return { ...scores, [ability]: scores[other], [other]: scores[ability] };
+/** The two abilities change their scores, for a drag of one score to a different box or two clicks (ORC-345). */
+export function swapAbilities(scores: Scores, a: Ability, b: Ability): Scores {
+  return { ...scores, [a]: scores[b], [b]: scores[a] };
+}
+
+/**
+ * The point-buy cost of one point more on the ability, as "next: 2 pt" shows it (ORC-345). null at 15, and for a score
+ * outside 8 to 15, which has no cost.
+ */
+export function nextPointCost(scores: Scores, ability: Ability): number | null {
+  const score = scores[ability];
+  const now = POINT_BUY_COSTS[score];
+  const next = POINT_BUY_COSTS[score + 1];
+  return now === undefined || next === undefined ? null : next - now;
 }
 
 export interface AbilityRows {
@@ -128,4 +137,83 @@ export function abilityRows(built: Built2014, selections: AvailableSelection[]):
     total: byAbility(built.abilities),
     modifier: byAbility(built["ability-bonuses"]),
   };
+}
+
+/** Where an increase of an ability score comes from, in the order that the box shows the tokens (ORC-345). */
+export const INCREASE_SOURCES = ["Race", "Subrace", "Improvement", "Feat", "Other"] as const;
+export type IncreaseSource = (typeof INCREASE_SOURCES)[number];
+
+/** An increase of one ability from one kind of source, for example +2 from the race. A label "more" folds the rest. */
+export interface Increase {
+  label: IncreaseSource | "more";
+  amount: number;
+}
+
+/**
+ * The kind of source of an asi selection (a choice of increases), from its path: under a feat it is "Feat", under the
+ * race "Race" (the half-elf's two +1) or "Subrace", under a class "Improvement" (an Ability Score Improvement).
+ */
+export function asiSource(path: readonly string[]): IncreaseSource {
+  if (path.includes("feats")) return "Feat";
+  if (path[0] === "race") return path.includes("subrace") ? "Subrace" : "Race";
+  if (path[0] === "class") return "Improvement";
+  return "Other";
+}
+
+/**
+ * The increases of each ability by the kind of their source, in the order of INCREASE_SOURCES, without the zeros. The
+ * race and the subrace come from built's fixed increases, plus the points of the asi selections under them. The asi
+ * selections give the points of the class levels and the feats. "Other" is what is left of built's total after the
+ * base score and the rest, for example from a magic item: so the tokens always add up to the total less the base.
+ */
+export function abilityIncreases(built: Built2014, selections: AvailableSelection[], base: Scores): Record<Ability, Increase[]> {
+  const race = byAbility(built["race-ability-increases"]);
+  const subrace = byAbility(built["subrace-ability-increases"]);
+  const total = byAbility(built.abilities);
+  const by = Object.fromEntries(ABILITIES.map((a) => [a, { Race: race[a], Subrace: subrace[a], Improvement: 0, Feat: 0, Other: 0 }])) as Record<
+    Ability,
+    Record<IncreaseSource, number>
+  >;
+  for (const s of selections) {
+    if (s.key !== "asi") continue;
+    const source = asiSource(s.actualPath);
+    for (const key of s.selected) {
+      const ability = unqualify(key) as Ability;
+      if (ability in by) by[ability][source]++;
+    }
+  }
+  for (const a of ABILITIES) {
+    const known = INCREASE_SOURCES.reduce((sum, source) => sum + by[a][source], 0);
+    by[a].Other += total[a] - base[a] - known;
+  }
+  return Object.fromEntries(
+    ABILITIES.map((a) => [a, INCREASE_SOURCES.filter((source) => by[a][source] !== 0).map((source) => ({ label: source, amount: by[a][source] }))]),
+  ) as Record<Ability, Increase[]>;
+}
+
+/** The number of tokens that the token area of a box holds: two lines of one token (ORC-345). */
+export const INCREASE_ROOM = 2;
+
+/**
+ * The tokens that a box shows: all increases when they fit in `room`, or else the first ones and one token "more" with
+ * the sum of the rest. The box gives the whole list to a screen reader.
+ */
+export function foldIncreases(increases: Increase[], room = INCREASE_ROOM): Increase[] {
+  if (increases.length <= room) return increases;
+  const rest = increases.slice(room - 1).reduce((sum, i) => sum + i.amount, 0);
+  return [...increases.slice(0, room - 1), { label: "more", amount: rest }];
+}
+
+/**
+ * The heading of the section of a choice of increases (ORC-345): the kind of choice and its source. A choice of a class
+ * level is "Ability Score Improvement: Fighter 4"; a choice of a race, a subrace or a feat is "Ability Score Increase:
+ * Half-Elf". Without a source, the selection's own name.
+ */
+export function increaseSectionName({ name, sources, actualPath }: { name: string; sources: string[]; actualPath: readonly string[] }): string {
+  if (sources.length === 0) return name;
+  if (asiSource(actualPath) === "Improvement") {
+    const level = actualPath[3]?.match(/^level-(\d+)$/)?.[1];
+    return `Ability Score Improvement: ${sources.join(", ")}${level ? ` ${level}` : ""}`;
+  }
+  return `Ability Score Increase: ${sources.join(", ")}`;
 }

@@ -68,3 +68,14 @@ test("the keyboard: the arrow keys, Home and End move between the segments", asy
   await key("End", scaled);
   await key("Home", none);
 });
+
+test("fill makes the segments the cells of a grid, with the columns from className", () => {
+  const { container } = render(<SegmentedToggle aria-label="Method" options={OPTIONS} value="fixed" onValueChange={() => {}} fill className="grid-cols-2" />);
+  const group = screen.getByRole("group", { name: "Method" });
+  expect([group.className, group.dataset.fill]).toEqual(["ui-segmented grid-cols-2", ""]);
+  expect(pressed()).toEqual(["false", "true", "false"]);
+  // Without fill there is no attribute.
+  container.remove();
+  render(<Kinds />);
+  expect(screen.getByRole("group", { name: "Uses" }).dataset.fill).toBeUndefined();
+});

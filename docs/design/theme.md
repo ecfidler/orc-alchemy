@@ -323,6 +323,9 @@ homebrew forms. They have no game words: the app gives the lists.
   first pick, so a pick does not move the add button (ORC-343).
 * **SegmentedToggle:** a segmented toggle for a short list of words, for
   example None / Fixed / Scaled, on ToggleGroup. The options are a prop.
+  With `fill`, the segments are the equal cells of a grid, with 1px ink
+  lines between them, for example the four methods of the ability scores
+  in two rows on a narrow page (ORC-345).
 * **NumberToggle:** a SegmentedToggle of numbers, for example
   None / 1 / 2 / 3. The numbers are a prop.
 * **Chips:** number chips with an X, and a "+ Add" Menu. `AddChip` is the same dashed "+" button alone, for an empty slot.

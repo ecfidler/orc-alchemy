@@ -88,8 +88,9 @@ test.describe("screenshots", () => {
       await pickIn(section(page, "Skill Proficiency: Half-Elf"), "Perception");
       await pickIn(section(page, "Skill Proficiency: Half-Elf"), "Stealth");
       await openStep(page, "Abilities");
-      await page.getByRole("button", { name: "Increase STR" }).click();
-      await page.getByRole("button", { name: "Increase CON" }).click();
+      const increases = section(page, "Ability Score Increase: Half-Elf");
+      await increases.getByRole("button", { name: "Increase Strength" }).click();
+      await increases.getByRole("button", { name: "Increase Constitution" }).click();
       await openStep(page, "Race");
       await pickIn(section(page, "Race"), "Dwarf");
       await expect(page.getByRole("alertdialog", { name: "Replace Half-Elf with Dwarf?" })).toBeVisible();

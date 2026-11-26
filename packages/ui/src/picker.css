@@ -396,6 +396,25 @@
     /* Inside the segment: the toggle's box has overflow: hidden, which clips an outline outside it. */
     outline-offset: -3px;
   }
+  /* A segmented toggle that fills a grid (ORC-345): equal cells, and the 1px ink lines between them are the gaps. */
+  .ui-segmented:where([data-fill]) {
+    display: grid;
+    gap: 1px;
+    background: var(--ink);
+  }
+  .ui-segmented:where([data-fill]) > .ui-segment {
+    min-height: 38px;
+    padding: 6px;
+    border-left: 0;
+    background: var(--paper-raised);
+  }
+  .ui-segmented:where([data-fill]) > .ui-segment:where(:not([data-disabled]):hover) {
+    background: var(--panel);
+  }
+  .ui-segmented:where([data-fill]) > .ui-segment:where([data-pressed]) {
+    color: var(--paper);
+    background: var(--ink);
+  }
   .ui-segmented:where([data-size="small"]) {
     border-width: 1px;
     border-radius: 4px;

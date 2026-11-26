@@ -7,10 +7,10 @@ import { Button, ButtonLink, SidePanel, StepRail } from "@orc-alchemy/ui";
 import { type ReactElement, useEffect, useId, useRef, useState } from "react";
 import { type BuilderSelection, NAME_STEP, openingStep, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { AbilityScores } from "./AbilityScores.tsx";
+import { AbilityIncreases, AbilityScores } from "./AbilityScores.tsx";
 import { BuilderStatusToast, StepFrameProvider } from "./builder-context.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
-import { Classes, Heading, HitPoints, Improvements } from "./Classes.tsx";
+import { Classes, Heading, HitPoints } from "./Classes.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
@@ -165,7 +165,7 @@ const isList = (selection: BuilderSelection) => selection.actualPath.length === 
  */
 export function Selection({ selection }: { selection: BuilderSelection }) {
   if (selection.key === "hit-points" && selection.requireValue) return <HitPoints selection={selection} />;
-  if (selection.key === "asi") return <Improvements selection={selection} />;
+  if (selection.key === "asi") return <AbilityIncreases selection={selection} />;
   return <Options selection={selection} />;
 }
 

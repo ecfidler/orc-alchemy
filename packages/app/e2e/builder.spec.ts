@@ -106,10 +106,10 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await openStep(page, "Race");
   await pickIn(section(page, "Race"), "Half-Elf");
   await stepButton(page, "Abilities").click();
-  const asi = region("Ability Score Improvement");
-  await asi.getByRole("button", { name: "Increase STR" }).click();
-  await asi.getByRole("button", { name: "Increase INT" }).click();
-  await expect(asi.getByRole("button", { name: "Increase DEX" })).toBeDisabled();
+  const asi = region("Ability Score Increase: Half-Elf");
+  await asi.getByRole("button", { name: "Increase Strength" }).click();
+  await asi.getByRole("button", { name: "Increase Intelligence" }).click();
+  await expect(asi.getByRole("button", { name: "Increase Dexterity" })).toBeDisabled();
   await expect(preview.getByLabel("INT", { exact: true })).toHaveText("13 +1");
 
   // Con 13 is +1: 10 + 1 at level 1, then the average 6 + 1 for each level after.
@@ -532,24 +532,25 @@ test("fighter-1's scores by hand: a standard human with the standard scores, the
 
   await stepButton(page, "Abilities").click();
   await expect(builder.getByRole("button", { name: "Standard Scores" })).toHaveAttribute("aria-pressed", "true");
-  const scores = builder.getByRole("table", { name: "Ability scores" });
-  const total = scores.getByRole("row", { name: /^Total/ }).getByRole("cell");
-  await expect(total).toHaveText(["16", "15", "14", "13", "11", "9"]);
-  await expect(scores.getByRole("row", { name: /^Race/ }).getByRole("cell")).toHaveText(["+1", "+1", "+1", "+1", "+1", "+1"]);
+  const scores = section(page, "Base Ability Scores");
+  const total = scores.locator("[data-total]");
+  await expect(total).toHaveText(["Total 16", "Total 15", "Total 14", "Total 13", "Total 11", "Total 9"]);
+  await expect(scores.locator("[data-token]")).toHaveText(Array(6).fill("+1 Race"));
   await expect(str).toHaveText("16 +3");
 
-  // STR and DEX change places.
-  await builder.getByRole("button", { name: "Move STR right" }).click();
-  await expect(total).toHaveText(["15", "16", "14", "13", "11", "9"]);
+  // STR and DEX change places: two clicks on their chips (ORC-345).
+  await scores.getByRole("button", { name: /^Strength base score/ }).click();
+  await scores.getByRole("button", { name: /^Dexterity base score/ }).click();
+  await expect(total).toHaveText(["Total 15", "Total 16", "Total 14", "Total 13", "Total 11", "Total 9"]);
   await expect(str).toHaveText("15 +2");
 
   // Point buy starts every score at 8, and an increase spends points.
   await builder.getByRole("button", { name: "Point Buy" }).click();
-  await expect(total).toHaveText(["9", "9", "9", "9", "9", "9"]);
-  await expect(builder.getByText("Points left: 27 of 27")).toBeVisible();
-  await builder.getByRole("button", { name: "Increase CON" }).click();
-  await expect(total).toHaveText(["9", "9", "10", "9", "9", "9"]);
-  await expect(builder.getByText("Points left: 26 of 27")).toBeVisible();
+  await expect(total).toHaveText(Array(6).fill("Total 9"));
+  await expect(scores.locator("[data-strip]")).toHaveText("27 of 27 points left");
+  await scores.getByRole("button", { name: "Increase Constitution" }).click();
+  await expect(total).toHaveText(["Total 9", "Total 9", "Total 10", "Total 9", "Total 9", "Total 9"]);
+  await expect(scores.locator("[data-strip]")).toHaveText("26 of 27 points left");
 });
 
 test("fighter-20 without armor or magic items is equipped on the Equipment step", async ({ page }, testInfo) => {
