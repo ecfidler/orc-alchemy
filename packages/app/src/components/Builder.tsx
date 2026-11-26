@@ -5,7 +5,16 @@
 // card beside the step and the full sheet panel are ORC-341 ("The summary card").
 import { Button, ButtonLink, SidePanel, StepRail } from "@orc-alchemy/ui";
 import { type ReactElement, useEffect, useId, useRef, useState } from "react";
-import { type BuilderSelection, NAME_STEP, openingStep, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
+import {
+  type BuilderSelection,
+  CLASS_STEP,
+  NAME_STEP,
+  openingStep,
+  PROFICIENCIES_STEP,
+  remainingByStep,
+  type StepName,
+  useBuilderSteps,
+} from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityIncreases, AbilityScores } from "./AbilityScores.tsx";
 import { BuilderStatusToast, StepFrameProvider } from "./builder-context.tsx";
@@ -23,12 +32,6 @@ import { SummaryCard } from "./SummaryCard.tsx";
 
 /** The name of the builder's Spells step, for example for a link to it (`/build/{id}?step=Spells`). */
 export const SPELLS_STEP: StepName = "Spells";
-
-/** The step of the skills, the expertise, the languages and the tools (ORC-346). */
-const PROFICIENCIES_STEP: StepName = "Proficiencies";
-
-/** The step that Enter in the name field goes to. */
-const CLASS_STEP: StepName = "Class";
 
 /** The one line of a step that has nothing to pick for this character (spec, "The step rail"). */
 const EMPTY_LINE: Partial<Record<StepName, string>> = {

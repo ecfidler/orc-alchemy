@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderStep, builderSteps, remainingByStep, treeNodes } from "./builder.ts";
 import { engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
-import { proficiencyGroups, proficiencyNames, proficiencySectionName, proficiencySectionNames } from "./proficiencies.ts";
-import { fixedProficiencies, pickSources, topSources, unavailableOptions } from "./selection-control.ts";
+import { fixedProficiencies, proficiencyGroups, proficiencyNames, proficiencySectionName, proficiencySectionNames } from "./proficiencies.ts";
+import { pickSources, topSources, unavailableOptions } from "./selection-control.ts";
 import { FEAT_PACK, SKILL_EXPERT } from "./test-feats.ts";
 
 beforeAll(() => loadEngine());

@@ -2,6 +2,7 @@
 // from and written to the strict entity, with the old character_builder.cljs
 // rules for point buy, rolls and swaps, and the increases built adds to them.
 import type { AvailableSelection, Built2014 } from "@pubdoor/dmv";
+import { levelOfKey, sourcedHeading } from "./builder.ts";
 import { unqualify } from "./content.ts";
 import { type Content, engine, type StrictEntity } from "./engine.ts";
 import { ABILITIES, type Ability } from "./sheet.ts";
@@ -20,6 +21,9 @@ const scoresOf = (score: (ability: Ability) => number) => Object.fromEntries(ABI
 
 /** Point buy starts each score at 8. */
 export const POINT_BUY_START: Scores = scoresOf(() => 8);
+
+/** The highest base score that point buy gives. */
+export const POINT_BUY_MAX = 15;
 
 /** An ability's key in the strict entity's scores. */
 const scoreKey = (ability: Ability) => `~:orcpub.dnd.e5.character/${ability}`;
@@ -64,7 +68,7 @@ export function pointsLeft(scores: Scores): number | null {
 export function canIncrease(scores: Scores, ability: Ability, total: number): boolean {
   const left = pointsLeft(scores);
   const score = scores[ability];
-  if (left === null || score >= 15 || total >= 20) return false;
+  if (left === null || score >= POINT_BUY_MAX || total >= 20) return false;
   return POINT_BUY_COSTS[score + 1] - POINT_BUY_COSTS[score] <= left;
 }
 
@@ -212,9 +216,6 @@ export function foldIncreases(increases: Increase[], room = INCREASE_ROOM): Incr
  */
 export function increaseSectionName({ name, sources, actualPath }: { name: string; sources: string[]; actualPath: readonly string[] }): string {
   if (sources.length === 0) return name;
-  if (asiSource(actualPath) === "Improvement") {
-    const level = actualPath[3]?.match(/^level-(\d+)$/)?.[1];
-    return `Ability Score Improvement: ${sources.join(", ")}${level ? ` ${level}` : ""}`;
-  }
-  return `Ability Score Increase: ${sources.join(", ")}`;
+  if (asiSource(actualPath) === "Improvement") return sourcedHeading("Ability Score Improvement", sources, levelOfKey(actualPath[3]));
+  return sourcedHeading("Ability Score Increase", sources);
 }

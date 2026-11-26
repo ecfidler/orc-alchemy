@@ -397,6 +397,9 @@ const nameOf = (feature: { name?: string | null }) => feature.name || UNNAMED_FE
 /** The old app's bonus-str, for ability, save, skill and other bonuses: "+3", "-1", and "0" for zero. */
 export const bonusStr = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
+/** A modifier as the builder shows it: bonusStr with a true minus sign (U+2212), "+2", "0", "−1". */
+export const modifierText = (n: number) => (n < 0 ? `−${-n}` : bonusStr(n));
+
 /** The old app's mod-str, for initiative and attack and damage rolls: "+0" for zero. */
 export const modStr = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 

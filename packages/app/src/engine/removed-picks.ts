@@ -5,7 +5,7 @@
 // and gives the entity with those picks removed before the engine gets the change, so the engine never gets the two
 // picks together (the dead end of the ORC-329 research: a Cleric with Insight and Religion takes Acolyte).
 
-import { type BuilderSelection, type BuilderStep, builderSteps, STEP_NAMES, type StepName, templateShape, treeNodes } from "./builder.ts";
+import { type BuilderSelection, type BuilderStep, builderSteps, levelOfKey, STEP_NAMES, type StepName, templateShape, treeNodes } from "./builder.ts";
 import type { Content, Engine, StrictEntity } from "./engine.ts";
 import { withoutOption } from "./reconcile.ts";
 import { proficiencyKind } from "./selection-control.ts";
@@ -137,9 +137,9 @@ function proficiencies(e: Engine, entity: StrictEntity, content: Content): Set<s
 
 /** The place of a pick: its level on the Class step ("Level 4"), or its step. */
 function placeOf(step: StepName, path: string[]): { place: string; rank: number } {
-  const level = step === "Class" && path[2] === "levels" ? /^level-(\d+)$/.exec(path[3] ?? "") : null;
+  const level = step === "Class" && path[2] === "levels" ? levelOfKey(path[3]) : null;
   const rank = STEP_NAMES.indexOf(step) * 100;
-  return level ? { place: `Level ${level[1]}`, rank: rank + Number(level[1]) } : { place: step, rank };
+  return level ? { place: `Level ${level}`, rank: rank + Number(level) } : { place: step, rank };
 }
 
 /** The names, with a count for a name that repeats, such as two picks of Strength: "Strength ×2". */

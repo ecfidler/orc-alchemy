@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T05:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T10:42:53Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -513,7 +513,8 @@ Choose button.
 # The Abilities step
 
 The ability score control is six boxes, one for each ability.[^orc-331]
-On a page narrower than 720px, they are three in a row.
+They are six in a row on a wide control, and three in a row on a
+narrower one. The last bullet of the list below gives the widths.
 
 * The four methods are a segmented toggle above the boxes: Standard
   Scores, Standard Roll, Point Buy, Manual Entry.
@@ -523,18 +524,24 @@ On a page narrower than 720px, they are three in a row.
 * Each box reads from the top:
   1. The ability name, 13.5px, weight 600, in the ink color.
   2. The base score.
-  3. The increases from other sources, as tokens: "+2 Race", "+1
-     Subrace", "+2 Improvement".
+  3. The increases from other sources, as source tags (see the
+     [Theme spec](theme.md)): "+2 Race", "+1 Subrace", "+2 Improvement".
   4. The total and the modifier, large, on a shaded band at the bottom.
 * The boxes do not move and do not change their size when the method or
   a score changes.
-* The token area of a box holds two tokens. With more sources, the
-  second token is the sum of the others, "+3 more". The full list is in
+* The tag area of a box holds two source tags. With more sources, the
+  second tag is the sum of the others, "+3 more". The full list is in
   the box for a screen reader.[^orc-345]
 * The boxes are six in a row only when the control is 728px wide or
   more. Then each box has space for the point-buy buttons and for a
-  "+2 Improvement" token. So on a page narrower than about 1250px, where
+  "+2 Improvement" tag. So on a page narrower than about 1250px, where
   the summary card takes space, they are three in a row too.[^orc-345]
+* The boxes are three in a row only when the control is 323px wide or
+  more, so that each box has space for the point-buy buttons. A
+  narrower control has two boxes in a row, and under 212px one box in a
+  row. The points from other sources use the same widths. On a page
+  from 720px to about 860px, the app rail and the summary card both
+  show, and the control is only 198px to 338px wide.[^orc-345]
 
 The base score for each method:
 
@@ -561,10 +568,12 @@ tool.[^orc-332] [^orc-333] The Class, Background and Race steps do not
 show these selections. They show a line in "Picked on other steps".
 
 * The step has three groups, each with a heading: Skills, Languages,
-  Tools. A fourth group, "Other proficiencies", shows only for a
-  selection that gives no skill, language or tool, such as the armor
-  and weapon selections of the "Custom" options. A group with no
-  selection for this character does not show.
+  Tools. A fourth group, "Other proficiencies", after Tools, shows only
+  for a selection that gives no skill, language or tool, such as the
+  armor and weapon selections of the "Custom" options. A selection that
+  gives tools and languages, such as "Tool / Language Proficiencies" of
+  the "Custom" background, is in Tools. A group with no selection for
+  this character does not show.[^orc-346]
 * A group has one section for each source, with the source in the
   heading and the left mark: "Skills: Fighter", "Languages: Acolyte".
   The sections are in the order of the steps: class, background, race,
@@ -589,11 +598,6 @@ show these selections. They show a line in "Picked on other steps".
   class level has the level: "Expertise: Rogue 6".[^orc-346]
 * The group heading is an `<h3>`, and the section headings are
   `<h4>`.[^orc-346]
-* A selection that gives no skill, language or tool, such as the armor
-  of the engine's "Custom" race, is in a fourth group, "Other
-  proficiencies", after Tools. A selection that gives tools and
-  languages, such as "Tool / Language Proficiencies" of the "Custom"
-  background, is in Tools.[^orc-346]
 * The tokens of "Already has" are in the order of the names. The engine
   gives no source for a language, and for some fixed skills and tools.
   Then the source is the race, the background or the class without

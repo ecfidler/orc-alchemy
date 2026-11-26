@@ -1,11 +1,23 @@
 // The Proficiencies step (ORC-346, docs/design/character-builder.md "The Proficiencies step"): its selections in
 // groups (Skills, Languages, Tools), one section for each source in the order class, background, race, feat, the
 // Expertise sections after the skill sections, the heading name of each section, and the "Already has" line of each
-// group.
+// group, with what the character has from fixed sources.
 
 import type { TemplateSelection } from "@pubdoor/dmv";
-import type { BuilderSelection } from "./builder.ts";
-import { type FixedProficiency, type ProficiencyKind, proficiencyKind, sectionNames, type TopSource } from "./selection-control.ts";
+import { type BuilderSelection, levelOfKey, sourcedHeading } from "./builder.ts";
+import type { Built2014, Content, StrictEntity } from "./engine.ts";
+import { withoutOption } from "./reconcile.ts";
+import {
+  type AvailabilityInput,
+  givers,
+  languageSources,
+  type ProficiencyKind,
+  proficiencyIds,
+  proficiencyKind,
+  proficiencySources,
+  sectionNames,
+  type TopSource,
+} from "./selection-control.ts";
 import { keyToName, SKILLS } from "./sheet.ts";
 
 /**
@@ -48,7 +60,7 @@ export function groupOf(selection: BuilderSelection): GroupName {
  */
 function classLevel({ actualPath }: BuilderSelection): string | null {
   if (actualPath[0] !== "class" || actualPath[2] !== "levels") return null;
-  return actualPath[3]?.match(/^level-(\d+)$/)?.[1] ?? null;
+  return levelOfKey(actualPath[3]);
 }
 
 /** The class level for the heading: only for a selection that its class level opens directly ("Expertise: Rogue 6"). */
@@ -64,8 +76,7 @@ export function proficiencySectionName(selection: BuilderSelection): string {
   const group = groupOf(selection);
   const what = isExpertise(selection) ? "Expertise" : proficiencyKind(selection) !== null ? group : selection.name;
   if (selection.sources.length === 0) return what;
-  const level = isExpertise(selection) ? headingLevel(selection) : null;
-  return `${what}: ${selection.sources.join(", ")}${level ? ` ${level}` : ""}`;
+  return sourcedHeading(what, selection.sources, isExpertise(selection) ? headingLevel(selection) : null);
 }
 
 /**
@@ -88,11 +99,9 @@ let namesMemo: { shape: TemplateSelection[]; names: Map<string, string> } | null
 export function proficiencyNames(shape: TemplateSelection[]): Map<string, string> {
   if (namesMemo?.shape === shape) return namesMemo.names;
   const names = new Map<string, string>();
-  const kindOf = (tags: string[]): ProficiencyKind | null =>
-    tags.includes("skill-profs") ? "skill" : tags.includes("tool-profs") ? "tool" : tags.includes("language-profs") ? "language" : null;
   const walk = (list: TemplateSelection[]) => {
     for (const s of list) {
-      const kind = s.key.includes("expertise") ? null : kindOf(s.tags ?? []);
+      const kind = proficiencyKind({ key: s.key, tags: s.tags ?? [] });
       for (const o of s.options) {
         if (kind !== null && !names.has(`${kind}:${o.key}`)) names.set(`${kind}:${o.key}`, o.name);
         walk(o.selections ?? []);
@@ -102,6 +111,69 @@ export function proficiencyNames(shape: TemplateSelection[]): Map<string, string
   walk(shape);
   namesMemo = { shape, names };
   return names;
+}
+
+/** A skill, a tool or a language that the character has from a fixed source, not from a pick. */
+export interface FixedProficiency {
+  kind: ProficiencyKind;
+  key: string;
+  /** The names of its sources, such as ["Acolyte"]; empty when the builder cannot find one. */
+  sources: string[];
+}
+
+/** The character without its picks: the entity, what it builds to, and what it then has, by "{kind}:{key}". */
+interface WithoutPicks {
+  entity: StrictEntity;
+  built: Built2014;
+  ids: Set<string>;
+}
+
+// The character without its picks of the last entity, content and picks (withoutPicks).
+let withoutPicksMemo: { entity: StrictEntity; content: Content; picks: AvailabilityInput["picks"]; result: WithoutPicks | null } | null = null;
+
+/**
+ * The character with no pick of a skill, a tool or a language: each path that input.picks holds is removed. The engine
+ * names no source of a picked skill ("nil"), as it names none for some fixed ones, such as the Perception of an elf:
+ * so only this build tells a fixed source of a picked item. Null when nothing is picked, or when the engine fails.
+ */
+function withoutPicks({ engine, entity, content, picks }: AvailabilityInput): WithoutPicks | null {
+  const last = withoutPicksMemo;
+  if (last !== null && last.entity === entity && last.content === content && last.picks === picks) return last.result;
+  const paths = [...picks.values()].flatMap((pick) => pick.paths);
+  let result: WithoutPicks | null = null;
+  if (paths.length > 0) {
+    try {
+      const stripped = paths.reduce((from, path) => withoutOption(from, path), entity);
+      const { built } = engine.evaluate(stripped, content);
+      result = { entity: stripped, built, ids: proficiencyIds(built) };
+    } catch {
+      result = null;
+    }
+  }
+  withoutPicksMemo = { entity, content, picks, result };
+  return result;
+}
+
+/**
+ * Each skill, tool and language that the character has from a fixed source, with its sources (spec, "The
+ * Proficiencies step": "Already has"). An item that a selection picked shows only when the character also has it
+ * without its picks (withoutPicks), such as the Perception of a rogue who picked it and then became an elf; its
+ * sources are then the givers in the character without its picks. The sources of a skill and a tool are the names in
+ * the built proficiencies; for a language, and in the place of a "nil", they are the top-level options that give it.
+ */
+export function fixedProficiencies(input: AvailabilityInput): FixedProficiency[] {
+  const stripped = withoutPicks(input);
+  // Without the picks: the givers of that character, as the "nil" of a picked skill is not the pick's.
+  const strippedGivers = stripped === null ? null : givers({ ...input, entity: stripped.entity, built: stripped.built });
+  return [...proficiencyIds(input.built)].flatMap((id): FixedProficiency[] => {
+    const [kind, key] = id.split(/:(.*)/s) as [ProficiencyKind, string];
+    if (!input.picks.has(id)) {
+      const sources = kind === "language" ? languageSources(input, key) : (proficiencySources(input, kind, key) ?? []);
+      return [{ kind, key, sources }];
+    }
+    if (stripped === null || !stripped.ids.has(id)) return [];
+    return [{ kind, key, sources: strippedGivers?.get(id) ?? [] }];
+  });
 }
 
 const SKILL_NAMES = new Map(SKILLS.map(([key, name]) => [key, name]));

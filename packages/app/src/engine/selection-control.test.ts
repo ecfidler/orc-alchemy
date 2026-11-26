@@ -4,9 +4,9 @@ import { beforeAll, expect, test } from "vitest";
 import { setBaseScores } from "./abilities.ts";
 import { type BuilderSelection, type BuilderStep, builderSteps } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { fixedProficiencies } from "./proficiencies.ts";
 import {
   controlKind,
-  fixedProficiencies,
   fromText,
   hasSearch,
   notAvailableText,

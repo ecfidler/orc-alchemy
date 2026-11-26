@@ -40,8 +40,21 @@ const boxes = (page: Page) =>
     }),
   );
 
-// 1280px: six in a row. 660px, a little narrower than the breakpoint with no rail, and 390px: three in a row.
-for (const width of [1280, 660, 390]) {
+/** The minus and the plus of each point-buy box are inside their box, so that no part of them is cut. */
+async function expectButtonsInBoxes(page: Page) {
+  for (const ability of ABILITIES) {
+    const outer = (await box(page, ability).boundingBox())!;
+    for (const name of [`Decrease ${ability}`, `Increase ${ability}`]) {
+      const inner = (await box(page, ability).getByRole("button", { name }).boundingBox())!;
+      expect(inner.x).toBeGreaterThanOrEqual(outer.x);
+      expect(inner.x + inner.width).toBeLessThanOrEqual(outer.x + outer.width);
+    }
+  }
+}
+
+// 1280px: six in a row. 660px, a little narrower than the breakpoint with no rail, and 390px: three in a row. 760px,
+// with the rail and the summary card: a control of about 240px, two in a row.
+for (const width of [1280, 760, 660, 390]) {
   test(`the boxes do not move or change their size at a change of method or of a score, ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await abilitiesStep(page, { halfElf: true });
@@ -49,9 +62,9 @@ for (const width of [1280, 660, 390]) {
     const before = await boxes(page);
     // Six boxes, the strip, the control and the half-elf's section, and the row of Back and Next.
     expect(before.length).toBe(10);
-    // Six in a row on a wide page, three in a row on the narrower ones.
+    // Six in a row on a wide page, three in a row on the narrower ones, and two in a row in a control of about 240px.
     const rows = new Set(before.slice(0, 6).map(([, y]) => y));
-    expect(rows.size).toBe(width === 1280 ? 1 : 2);
+    expect(rows.size).toBe(width === 1280 ? 1 : width === 760 ? 3 : 2);
 
     const same = async () => expect(await boxes(page)).toEqual(before);
     // A chip held, so the strip shows the longer hint, and a swap by two clicks.
@@ -65,6 +78,7 @@ for (const width of [1280, 660, 390]) {
       await method(page, name).click();
       await expect(method(page, name)).toHaveAttribute("aria-pressed", "true");
       await same();
+      if (name === "Point Buy") await expectButtonsInBoxes(page);
       if (name === "Standard Roll") {
         await control(page).getByRole("button", { name: "Re-roll" }).click();
         await same();

@@ -5,10 +5,9 @@ import { Label, SectionRule, Token, Tokens } from "@orc-alchemy/ui";
 import { type ReactNode, useId, useMemo } from "react";
 import { type BuilderSelection, type BuilderStep, templateShape } from "../engine/builder.ts";
 import { engine } from "../engine/engine.ts";
-import { type ProficiencyGroup, proficiencyGroups, proficiencyNames } from "../engine/proficiencies.ts";
-import { fixedProficiencies } from "../engine/selection-control.ts";
+import { fixedProficiencies, type ProficiencyGroup, proficiencyGroups, proficiencyNames } from "../engine/proficiencies.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { SectionLevel, useStepFrame } from "./builder-context.tsx";
+import { SectionLevelProvider, useStepFrame } from "./builder-context.tsx";
 
 /** The groups of the step, with the "Already has" items of the open character. */
 function useGroups(step: BuilderStep): ProficiencyGroup[] {
@@ -28,11 +27,11 @@ function useGroups(step: BuilderStep): ProficiencyGroup[] {
 export function ProficienciesStep({ step, section }: { step: BuilderStep; section: (selection: BuilderSelection) => ReactNode }) {
   const groups = useGroups(step);
   return (
-    <SectionLevel.Provider value={4}>
+    <SectionLevelProvider level={4}>
       {groups.map((group) => (
         <Group key={group.name} group={group} section={section} />
       ))}
-    </SectionLevel.Provider>
+    </SectionLevelProvider>
   );
 }
 

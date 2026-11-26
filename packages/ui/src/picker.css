@@ -260,8 +260,8 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
-  /* A plain text at the end of a token, with no X after it: the right padding of the token is for the X, so the text gets its own, as a note does. */
-  .ui-token > span.ui-token-label:last-child {
+  /* A plain text at the end of a token, with no X after it: the right padding of the token is for the X, so the text gets its own, as a note does. The text button of an open token has its own padding. */
+  .ui-token > .ui-token-label:where(:last-child:not(.ui-token-open)) {
     padding-right: 7px;
   }
   /* A token whose text is a button (onOpen): the button fills the text's place, with a muted hint after the text. */

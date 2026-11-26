@@ -1,10 +1,10 @@
 // The Abilities step (ORC-57, ORC-345; docs/design/character-builder.md "The Abilities step"): six boxes, one for
 // each ability. Each box reads from the top: the name, the base score that the method sets, the increases from other
-// sources as tokens, and the total and the modifier on a shaded band. The four methods are a segmented toggle, with a
+// sources as source tags, and the total and the modifier on a shaded band. The four methods are a segmented toggle, with a
 // strip of fixed height below it. The boxes do not move and do not change their size when the method or a score
 // changes. The rules are in engine/abilities.ts; this module only renders them and calls them.
 import { Button, NumberField, SegmentedToggle, Toggle } from "@orc-alchemy/ui";
-import { type ReactNode, type PointerEvent as ReactPointerEvent, useId, useMemo, useRef, useState } from "react";
+import { type ReactNode, useId, useMemo, useState } from "react";
 import {
   abilityIncreases,
   abilityRows,
@@ -16,6 +16,7 @@ import {
   increaseSectionName,
   type Method,
   nextPointCost,
+  POINT_BUY_MAX,
   POINT_BUY_POINTS,
   POINT_BUY_START,
   pointsLeft,
@@ -27,9 +28,10 @@ import {
 } from "../engine/abilities.ts";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { unqualify } from "../engine/content.ts";
-import { ABILITIES, ABILITY_NAMES, type Ability, bonusStr } from "../engine/sheet.ts";
+import { ABILITIES, ABILITY_NAMES, type Ability, modifierText } from "../engine/sheet.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { Heading, useMutation } from "./Classes.tsx";
+import { useChipDrag } from "./use-chip-drag.ts";
 
 /** The two methods whose base scores are chips that swap. */
 const swaps = (method: Method | null) => method === "standard-scores" || method === "standard-roll";
@@ -37,13 +39,13 @@ const swaps = (method: Method | null) => method === "standard-scores" || method 
 /** The methods in the order of the spec, which is not the order of the options (by name). */
 const METHODS: Method[] = ["standard-scores", "standard-roll", "point-buy", "manual-entry"];
 
-/** A pointer moves this far, in px, before a press on a chip is a drag and not a click. */
-const DRAG_START = 5;
+/** The hint in the strip of the two methods whose chips swap. */
+const SWAP_HINT = "Drag a score to a different box, or pick two scores to swap them.";
 
 /** The hint in the strip, by method. */
 const HINTS: Record<Method, string> = {
-  "standard-scores": "Drag a score to a different box, or pick two scores to swap them.",
-  "standard-roll": "Drag a score to a different box, or pick two scores to swap them.",
+  "standard-scores": SWAP_HINT,
+  "standard-roll": SWAP_HINT,
   "point-buy": "",
   "manual-entry": "Type each base score, from 1 to 30.",
 };
@@ -143,7 +145,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
           }}
           {...drag.handlers(ability)}
           style={drag.offset(ability)}
-          className={`grid h-[38px] w-[74px] cursor-grab touch-none grid-cols-[18px_1fr] items-center rounded-[4px] border-[1.5px] border-ink bg-paper-raised pr-2 text-[20px] select-none transition-[background-color,translate] duration-100 ease-out hover:bg-panel data-[pressed]:-translate-y-0.5 data-[pressed]:bg-note data-[pressed]:text-note-ink motion-reduce:transition-none motion-reduce:data-[pressed]:translate-y-0 ${drag.dragging === ability ? "relative z-10 cursor-grabbing opacity-80 shadow-md" : ""}`}
+          className={`grid h-[38px] w-[74px] cursor-grab touch-none grid-cols-[18px_1fr] items-center rounded-[4px] border-[1.5px] border-ink bg-paper-raised pr-2 text-[20px] select-none transition-[background-color,translate] duration-100 ease-out hover:bg-panel data-[pressed]:-translate-y-0.5 data-[pressed]:bg-note data-[pressed]:text-note-ink motion-reduce:transition-none motion-reduce:data-[pressed]:translate-y-0 ${drag.dragging === ability ? "relative z-10 cursor-grabbing opacity-80 shadow-[0_4px_8px_-5px_var(--note-shadow)]" : ""}`}
         >
           <Grip />
           <span>{score}</span>
@@ -167,9 +169,14 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
         className="grid-cols-2 @min-[560px]/abilities:grid-cols-4"
       />
       <Strip method={method} scores={scores} held={held !== null} hintId={hintId} onReroll={() => method && write(method, rollScores())} />
-      {/* Six in a row only when each box has room for a "+2 Improvement" token (102px) with the 4px padding of the token
-          area at each side, and so for the point-buy grid (98px): 6 × (110px + 3px of border) + 5 gaps of 10px = 728px. */}
-      <div data-ability-boxes="" className="grid grid-cols-3 gap-2.5 @min-[728px]/abilities:grid-cols-6">
+      {/* Six in a row only when each box has room for a "+2 Improvement" tag (102px) with the 4px padding of the tag
+          area at each side, and so for the point-buy grid (98px): 6 × (110px + 3px of border) + 5 gaps of 10px = 728px.
+          Three in a row when each box has room for the point-buy grid: 3 × (98px + 3px) + 2 gaps = 323px; else two
+          (212px), else one. A page with the app's rail and the summary card has a control of only about 200px. */}
+      <div
+        data-ability-boxes=""
+        className="grid grid-cols-1 gap-2.5 @min-[212px]/abilities:grid-cols-2 @min-[323px]/abilities:grid-cols-3 @min-[728px]/abilities:grid-cols-6"
+      >
         {ABILITIES.map((ability) => {
           const cost = method === "point-buy" ? nextPointCost(scores, ability) : null;
           return (
@@ -179,14 +186,15 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
               aria-label={ABILITY_NAMES[ability]}
               data-box={ability}
               data-over={drag.over === ability ? "" : undefined}
-              className="grid min-w-0 grid-rows-[auto_44px_16px_46px_auto] justify-items-center overflow-hidden rounded-md border-[1.5px] border-rule-strong bg-paper-raised data-[over]:border-ink"
+              // The box of the dragged chip does not clip, so that the chip shows on its way to a different box.
+              className={`grid min-w-0 grid-rows-[auto_44px_16px_46px_auto] justify-items-center rounded-md border-[1.5px] border-rule-strong bg-paper-raised data-[over]:border-ink ${drag.dragging === ability ? "relative z-10 overflow-visible" : "overflow-hidden"}`}
             >
               <span aria-hidden="true" className="pt-2 font-sans text-[13.5px] leading-5 font-semibold text-ink">
                 {ABILITY_NAMES[ability]}
               </span>
               <div className="flex items-center pt-1">{base(ability)}</div>
               <span data-next-cost="" className="font-sans text-[11.5px] leading-4 text-ink-muted">
-                {method === "point-buy" && (cost === null ? (scores[ability] === 15 ? "max" : "") : `next: ${cost} pt`)}
+                {method === "point-buy" && (cost === null ? (scores[ability] === POINT_BUY_MAX ? "max" : "") : `next: ${cost} pt`)}
               </span>
               <IncreaseTokens increases={increases[ability]} />
               <div className="grid w-full justify-items-center gap-[3px] border-t border-rule-strong bg-panel px-1 pt-1.5 pb-[9px] in-data-[over]:bg-note/45">
@@ -199,7 +207,7 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
                   className="rounded-full border border-rule-strong bg-paper-raised px-[9px] font-sans text-[13px] leading-5 font-semibold"
                 >
                   <span className="sr-only">modifier </span>
-                  {signed(rows.modifier[ability])}
+                  {modifierText(rows.modifier[ability])}
                 </span>
               </div>
             </div>
@@ -262,15 +270,13 @@ function Meter({ left }: { left: number }) {
   );
 }
 
-/** A modifier with its sign, and a true minus sign: "+2", "0", "−1". */
-const signed = (n: number) => (n < 0 ? `−${-n}` : bonusStr(n));
-
-/** "+2 Race": an increase as its token text. */
-const tokenText = ({ label, amount }: Increase) => `${signed(amount)} ${label}`;
+/** "+2 Race": an increase as the text of its source tag. */
+const tokenText = ({ label, amount }: Increase) => `${modifierText(amount)} ${label}`;
 
 /**
- * The increases of one ability, as tokens in an area of a fixed size: two lines of one token. More than two fold into
- * one token "+3 more" (foldIncreases). A screen reader gets the whole list.
+ * The increases of one ability, as source tags in an area of a fixed size: two lines of one tag. More than two fold
+ * into one tag "+3 more" (foldIncreases). A screen reader gets the whole list. A source tag is not a ui Token: it has
+ * no X and the lighter rule border (docs/design/theme.md, "Source tag").
  */
 function IncreaseTokens({ increases }: { increases: Increase[] }) {
   const shown = foldIncreases(increases);
@@ -307,81 +313,6 @@ function Grip() {
 }
 
 /**
- * The drag of a chip to a different box, with pointer events, so that a mouse, a pen and a touch work the same. A
- * press that moves less than DRAG_START is a click. A drop on a different box calls `onDrop`; a drop outside a box, or
- * on the chip's own box, does nothing. After a drag, the click that the browser sends is not a click on the chip.
- */
-function useChipDrag(onDrop: (from: Ability, to: Ability) => void) {
-  const start = useRef<{ ability: Ability; pointer: number; x: number; y: number; moved: boolean; chip: HTMLElement } | null>(null);
-  const [dragging, setDragging] = useState<{ ability: Ability; dx: number; dy: number } | null>(null);
-  const [over, setOver] = useState<Ability | null>(null);
-  const skipClick = useRef(false);
-
-  /** The ability of the box under the point, not counting the dragged chip. */
-  const boxAt = (x: number, y: number, chip: HTMLElement): Ability | null => {
-    const under = document.elementsFromPoint?.(x, y).find((element) => !chip.contains(element));
-    return (under?.closest<HTMLElement>("[data-box]")?.dataset.box as Ability | undefined) ?? null;
-  };
-  const end = () => {
-    start.current = null;
-    setDragging(null);
-    setOver(null);
-  };
-
-  return {
-    dragging: dragging?.ability ?? null,
-    over,
-    /** The chip's move while it is dragged, as a style. */
-    offset: (ability: Ability) => (dragging?.ability === ability ? { transform: `translate(${dragging.dx}px, ${dragging.dy}px)` } : undefined),
-    /** True once after a drag: the click that ends it does nothing. */
-    consumeClick() {
-      const skip = skipClick.current;
-      skipClick.current = false;
-      return skip;
-    },
-    handlers: (ability: Ability) => ({
-      onPointerDown(e: ReactPointerEvent<HTMLElement>) {
-        if (e.button !== 0) return;
-        start.current = { ability, pointer: e.pointerId, x: e.clientX, y: e.clientY, moved: false, chip: e.currentTarget };
-        try {
-          e.currentTarget.setPointerCapture(e.pointerId);
-        } catch {
-          // A pointer that the browser does not know, as a synthetic event can have: the drag works without capture.
-        }
-      },
-      onPointerMove(e: ReactPointerEvent<HTMLElement>) {
-        const s = start.current;
-        if (!s || s.pointer !== e.pointerId) return;
-        const [dx, dy] = [e.clientX - s.x, e.clientY - s.y];
-        if (!s.moved && Math.hypot(dx, dy) < DRAG_START) return;
-        s.moved = true;
-        setDragging({ ability: s.ability, dx, dy });
-        const to = boxAt(e.clientX, e.clientY, s.chip);
-        setOver(to !== s.ability ? to : null);
-      },
-      onPointerUp(e: ReactPointerEvent<HTMLElement>) {
-        const s = start.current;
-        if (!s || s.pointer !== e.pointerId) return;
-        end();
-        if (!s.moved) return;
-        skipClick.current = true;
-        // A touch can end with no click: the skip ends with this task.
-        setTimeout(() => {
-          skipClick.current = false;
-        }, 0);
-        const to = boxAt(e.clientX, e.clientY, s.chip);
-        if (to !== null && to !== s.ability) onDrop(s.ability, to);
-      },
-      onPointerCancel: end,
-      // The browser took the capture away, for example when the chip left the page: the drag ends with no drop.
-      onLostPointerCapture(e: ReactPointerEvent<HTMLElement>) {
-        if (start.current?.pointer === e.pointerId) end();
-      },
-    }),
-  };
-}
-
-/**
  * The points of one choice of increases from a different source, such as the two +1 of a half-elf or an Ability Score
  * Improvement of a class level (spec, "Points from other sources"): a section below the boxes, with the source in its
  * heading and the left mark, and a minus and a plus button for each ability. A point then shows as a token in the box.
@@ -396,7 +327,8 @@ export function AbilityIncreases({ selection }: { selection: BuilderSelection })
   return (
     <section aria-labelledby={id} className="@container/increases space-y-2">
       <Heading id={id} selection={selection} name={increaseSectionName(selection)} />
-      <ul className="grid grid-cols-3 gap-2.5 @min-[728px]/increases:grid-cols-6">
+      {/* As the boxes: each item has a grid of minus, count and plus of 98px, and a border of 2px. */}
+      <ul className="grid grid-cols-1 gap-2.5 @min-[212px]/increases:grid-cols-2 @min-[323px]/increases:grid-cols-3 @min-[728px]/increases:grid-cols-6">
         {ABILITIES.map((ability) => {
           const name = ABILITY_NAMES[ability];
           const count = selection.selected.filter((key) => unqualify(key) === ability).length;
