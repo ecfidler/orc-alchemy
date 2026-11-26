@@ -6,7 +6,7 @@
 // feat (ORC-134), the background (ORC-135) and the race (ORC-136).
 
 import { Button, Dialog, useConfirm } from "@orc-alchemy/ui";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { type BuilderSelection, pickName } from "../engine/builder.ts";
 import { tag } from "../engine/content.ts";
 import {
@@ -278,18 +278,25 @@ interface Session {
   held?: string[][];
 }
 
+/** What useCustomize gives: the text of the button of an option, the open of its dialog, and the element to render. */
+export interface Customize {
+  /** The button text for the selected option with the key: Customize, Edit custom, or the guided label for a copy that another dialog edits. */
+  label: (key: string) => string;
+  /** Opens the dialog for the selected option with the key and the name, or the guided dialog of a copy that it owns. */
+  open: (key: string, name: string) => void;
+  /** The dialog, and the line of an error at the open. Render it in the component. */
+  element: ReactNode;
+}
+
 /**
- * Under a selection's option cards: one line for each selected option, with
- * its name and a small Customize button, or Edit custom for a copy. The
- * button is not in the card, because a card is a toggle. Customize opens the
- * form on a copy of the option, named customName of it; Edit custom opens it
- * on the copy. A save writes the copy and selects it, drops the picks
- * under it that do not resolve (saveCopy), and then does the type's
- * afterSave. Before Save, the dialog names the picks that a save of the
- * form's record removes, such as a subrace. A copy that guided owns has
- * the guided button in place of Edit custom.
+ * The Customize dialog of a selection's options (ORC-134). Customize opens the form on a copy of the option, named
+ * customName of it; Edit custom opens it on the copy. A save writes the copy and selects it, drops the picks under it
+ * that do not resolve (saveCopy), and then does the type's afterSave. Before Save, the dialog names the picks that a
+ * save of the form's record removes, such as a subrace. A copy that guided owns has the guided button in place of Edit
+ * custom. When the dialog closes, the focus goes to the button in `scope` whose data-customize is the key of the
+ * option, the copy's key after a save: give each button `data-customize={key}`.
  */
-export function CustomizeLines({ selection, customizable, guided }: { selection: BuilderSelection; customizable: Customizable; guided?: GuidedEdit }) {
+export function useCustomize(selection: BuilderSelection, customizable: Customizable, scope: RefObject<HTMLElement | null>, guided?: GuidedEdit): Customize {
   const { builder } = customizable;
   const contentType = builder.contentType as ContentType;
   const homebrew = useHomebrew((state) => state.content.homebrew);
@@ -297,12 +304,20 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
   const { built } = useOpenCharacter();
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const lines = useRef<HTMLUListElement>(null);
-  // The key of the button to give the focus to when the dialog closes. A save changes the line's key.
+  // The key of the button to give the focus to when the dialog closes. A save changes the button's key.
   const focusKey = useRef<string | null>(null);
-  const selected = selection.options.filter((o) => o.selected);
 
-  async function open(key: string, name: string) {
+  function label(key: string) {
+    const isCopy = isCustomCopy(homebrew, custom, contentType, key);
+    if (isCopy && guided?.owns(key)) return guided.label;
+    return isCopy ? "Edit custom" : "Customize";
+  }
+
+  async function openDialog(key: string, name: string) {
+    if (isCustomCopy(homebrew, custom, contentType, key) && guided?.owns(key)) {
+      guided.open(key);
+      return;
+    }
     setError(null);
     const origin = optionOrigin(homebrew, custom, contentType, key);
     focusKey.current = key;
@@ -384,33 +399,10 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
     setSession({ ...session, open: false });
   }
 
-  const finalFocus = () => lines.current?.querySelector<HTMLElement>(`[data-customize="${CSS.escape(focusKey.current ?? "")}"]`) ?? null;
+  const finalFocus = () => scope.current?.querySelector<HTMLElement>(`[data-customize="${CSS.escape(focusKey.current ?? "")}"]`) ?? null;
 
-  return (
+  const element = (
     <>
-      {selected.length > 0 && (
-        <ul ref={lines} aria-label={`Customize ${selection.name}`} className="space-y-1 text-[15px]">
-          {selected.map((option) => {
-            const isCopy = isCustomCopy(homebrew, custom, contentType, option.key);
-            const owner = isCopy && guided?.owns(option.key) ? guided : undefined;
-            const label = owner ? owner.label : isCopy ? "Edit custom" : "Customize";
-            return (
-              <li key={option.key} className="flex flex-wrap items-baseline gap-x-3">
-                <span>{option.name}</span>
-                <Button
-                  variant="link"
-                  icon="pencil"
-                  data-customize={option.key}
-                  aria-label={`${label} ${option.name}`}
-                  onClick={() => (owner ? owner.open(option.key) : void open(option.key, option.name))}
-                >
-                  {label}
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
       {error && <p role="alert">{error}</p>}
       {session && (
         <CustomizeDialog
@@ -427,6 +419,44 @@ export function CustomizeLines({ selection, customizable, guided }: { selection:
           finalFocus={finalFocus}
         />
       )}
+    </>
+  );
+  return { label, open: (key, name) => void openDialog(key, name), element };
+}
+
+/**
+ * Under a selection's option cards: one line for each selected option, with its name and a small Customize button, or
+ * Edit custom for a copy (useCustomize). The button is not in the card, because a card is a toggle. The Feats step and
+ * the Race step have these lines; the Background step has the button in its block (ORC-347).
+ */
+export function CustomizeLines({ selection, customizable, guided }: { selection: BuilderSelection; customizable: Customizable; guided?: GuidedEdit }) {
+  const lines = useRef<HTMLUListElement>(null);
+  const customize = useCustomize(selection, customizable, lines, guided);
+  const selected = selection.options.filter((o) => o.selected);
+  return (
+    <>
+      {selected.length > 0 && (
+        <ul ref={lines} aria-label={`Customize ${selection.name}`} className="space-y-1 text-[15px]">
+          {selected.map((option) => {
+            const label = customize.label(option.key);
+            return (
+              <li key={option.key} className="flex flex-wrap items-baseline gap-x-3">
+                <span>{option.name}</span>
+                <Button
+                  variant="link"
+                  icon="pencil"
+                  data-customize={option.key}
+                  aria-label={`${label} ${option.name}`}
+                  onClick={() => customize.open(option.key, option.name)}
+                >
+                  {label}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {customize.element}
     </>
   );
 }

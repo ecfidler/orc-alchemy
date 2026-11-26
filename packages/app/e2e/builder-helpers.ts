@@ -47,12 +47,32 @@ export const listOpener = (scope: Locator) =>
     .first();
 
 /**
+ * Picks the option `name` in the list with a detail panel of a main pick (ORC-347), such as the background: Change
+ * opens the list again after a pick, then a click on the row shows the option in the panel, or in a modal on a narrow
+ * page, and "Choose {name}" picks it. Its Vitest twin is pickInList in src/components/test-pick.ts.
+ */
+export async function pickInList(scope: Locator, name: string) {
+  const list = scope.locator(".ui-list-panel");
+  if ((await list.count()) === 0) await scope.getByRole("button", { name: /^Change / }).click();
+  await list.getByRole("button", { name, exact: true }).click();
+  // The panel, or the modal of a narrow page: the hidden panel is not in the page's roles.
+  await scope
+    .page()
+    .getByRole("button", { name: `Choose ${name}`, exact: true })
+    .click();
+}
+
+/**
  * Picks the option `name` in the selection of `scope` (its section), by its control (ORC-343): a click on its option
- * card, or a pick in the list that its Choose, Change or add button opens. Its Vitest twin is pickIn in
- * src/components/test-pick.ts.
+ * card, a pick in the list with a detail panel of a main pick (ORC-347), or a pick in the list that its Choose, Change
+ * or add button opens. Its Vitest twin is pickIn in src/components/test-pick.ts.
  */
 export async function pickIn(scope: Locator, name: string) {
   await expect(scope.getByRole("heading").first()).toBeVisible();
+  if ((await scope.getAttribute("data-main-pick")) !== null) {
+    await pickInList(scope, name);
+    return;
+  }
   const card = scope.locator("[aria-pressed]").and(scope.getByRole("button", { name, exact: true }));
   if ((await card.count()) > 0) {
     await card.click();

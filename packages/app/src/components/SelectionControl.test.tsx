@@ -156,7 +156,10 @@ test("the engine's Custom option does not show, unless the character has it", as
   cleanup();
   // An imported character with the Custom background: it shows, picked, with its lists in pickers.
   open("Background", [[["background"], "custom"]]);
-  expect(within(section("Background")).getByRole("button", { name: "Custom" }).getAttribute("aria-pressed")).toBe("true");
+  // The block of the pick names it (ORC-347), and Change shows it in the list, picked.
+  expect(within(section("Background")).getByRole("heading", { level: 3 }).textContent).toMatch(/^Custom/);
+  fireEvent.click(within(section("Background")).getByRole("button", { name: "Change Background" }));
+  expect(within(section("Background")).getByRole("button", { name: "Custom" }).hasAttribute("data-picked")).toBe(true);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Proficiencies/ }));
   expect(within(section("Skills: Custom")).getByRole("button", { name: "Add a skill" })).toBeTruthy();
 });

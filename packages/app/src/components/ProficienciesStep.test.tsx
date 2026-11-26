@@ -80,5 +80,6 @@ test("the rail counts these picks on the Proficiencies step only, and the Race a
   expect(outline()).toEqual(["H3 Race"]);
   cleanup();
   open("Background", select(["race"], "half-elf"), select(["background"], "acolyte"));
-  expect(outline()).toEqual(["H3 Background"]);
+  // The block of the background (ORC-347) has a line to Proficiencies in place of these sections.
+  expect(outline()).toEqual(["H3 Acolyte", "H4 Picked on other steps"]);
 });

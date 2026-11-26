@@ -10,6 +10,7 @@ export { Dialog, type DialogProps } from "./Dialog.tsx";
 export { Field, FieldErrors, FieldLabel, Fieldset } from "./Field.tsx";
 export { LockIcon, PixelIcon, type PixelIconName } from "./Icon.tsx";
 export { type ListItem, ListModal, type ListModalProps } from "./ListModal.tsx";
+export { ListPanel, type ListPanelItem, type ListPanelPlace, type ListPanelProps } from "./ListPanel.tsx";
 export { ListRow, type ListRowProps } from "./ListRow.tsx";
 export { Menu, type MenuItem, type MenuProps } from "./Menu.tsx";
 export { NoteLine } from "./NoteLine.tsx";

@@ -46,3 +46,46 @@ export function withSage(): StrictEntity {
   const entity = e.select(fighter20(), ["background"], "sage", options);
   return e.select(entity, ARTISAN, "smiths-tools", options);
 }
+
+/** The pack of VALE_BACKGROUNDS: invented backgrounds, as in the prototype of the list with a detail panel (ORC-338). */
+export const VALE_PACK = "Vale of Ash";
+
+/** 24 invented names: with the SRD Acolyte, a list of 25 backgrounds, more than the 20 that get a search field (ORC-347). */
+const VALE_NAMES = [
+  "Archivist",
+  "Bargehand",
+  "Beekeeper",
+  "Bell Ringer",
+  "Bonesetter",
+  "Border Scout",
+  "Caravan Guard",
+  "Cartographer",
+  "Chandler",
+  "Ferryman",
+  "Gamekeeper",
+  "Glassblower",
+  "Gravedigger",
+  "Herbalist",
+  "Lamplighter",
+  "Mason",
+  "Messenger",
+  "Miller",
+  "Night Watch",
+  "Pilgrim",
+  "Ratcatcher",
+  "Salt Trader",
+  "Shepherd",
+  "Weaver",
+];
+
+/** The backgrounds of VALE_PACK, each with a skill and a description, keyed by the key of its name as the engine keys a background. */
+export const VALE_BACKGROUNDS = VALE_NAMES.map((name) => {
+  const key = name.toLowerCase().replace(/\W+/g, "-");
+  return {
+    "~:key": `~:${key}`,
+    "~:name": name,
+    "~:option-pack": VALE_PACK,
+    "~:help": `An invented background: the ${name.toLowerCase()} of the vale.`,
+    "~:profs": { "~:skill": { "~:history": true } },
+  };
+});

@@ -1,0 +1,134 @@
+/* The list with a detail panel (docs/design/character-builder.md, "The list and the panel"; prototype orc-338, variant B). Low specificity, so the app's layout utilities win. */
+
+@layer components {
+  /* The part is a container: below 560px of its own width, it is narrow. */
+  .ui-list-panel {
+    container: ui-list-panel / inline-size;
+  }
+  /* Narrow first: the list has the full width and a height of 400px, and the panel does not show. */
+  .ui-list-panel-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    height: 400px;
+  }
+  .ui-list-panel-detail {
+    display: none;
+  }
+  /* Wide: the list is 250px wide at the left, the panel at the right, the two 440px high. */
+  @container ui-list-panel (min-width: 560px) {
+    .ui-list-panel-grid {
+      grid-template-columns: 250px minmax(0, 1fr);
+      height: 440px;
+    }
+    .ui-list-panel-detail {
+      display: flex;
+    }
+  }
+  .ui-list-panel-list,
+  .ui-list-panel-detail {
+    flex-direction: column;
+    min-height: 0;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule-strong);
+  }
+  .ui-list-panel-list {
+    display: flex;
+  }
+  .ui-list-panel-search {
+    flex: none;
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--rule-strong);
+    border-radius: 0;
+  }
+  .ui-list-panel-search::placeholder {
+    color: var(--ink-muted);
+  }
+  .ui-list-panel-search:focus-visible {
+    outline-offset: -3px;
+  }
+  .ui-list-panel-rows {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .ui-list-panel-ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* A row: a 16px place for the check or the lock, the name, and the aside at the right. */
+  .ui-list-row.ui-list-panel-row {
+    grid-template-columns: 16px minmax(0, 1fr) auto;
+    gap: 8px;
+    min-height: 38px;
+    padding: 6px 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+  }
+  .ui-list-panel-ul > li:last-child > .ui-list-panel-row {
+    border-bottom: 0;
+  }
+  .ui-list-panel-mark {
+    display: inline-flex;
+  }
+  .ui-list-panel-name {
+    overflow-wrap: anywhere;
+  }
+  .ui-list-panel-row:where([data-picked]) .ui-list-panel-name {
+    font-weight: 700;
+  }
+  .ui-list-panel-row:where([data-unavailable]) .ui-list-panel-name {
+    color: var(--ink-muted);
+  }
+  .ui-list-panel-aside {
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--ink-muted);
+  }
+  /* On the current row (the ink fill), the muted texts are a mix of the paper and the ink. */
+  .ui-list-panel-row:where([aria-current]:not([aria-current="false"])) :where(.ui-list-panel-aside, .ui-list-panel-name) {
+    color: color-mix(in srgb, var(--paper) 78%, var(--ink));
+  }
+  .ui-list-panel-row:where([aria-current]:not([aria-current="false"]):not([data-unavailable])) .ui-list-panel-name {
+    color: var(--paper);
+  }
+  /* The fixed last row does not scroll with the list. */
+  .ui-list-panel-fixed {
+    flex: none;
+    border-top: 1px solid var(--rule-strong);
+  }
+  .ui-list-panel-fixed > .ui-list-panel-row {
+    border-bottom: 0;
+  }
+  .ui-list-panel-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px 16px 8px;
+  }
+  .ui-list-panel-act {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--rule-strong);
+  }
+  .ui-list-panel-empty {
+    margin: 0;
+    padding: 14px 16px;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    color: var(--ink-muted);
+  }
+}

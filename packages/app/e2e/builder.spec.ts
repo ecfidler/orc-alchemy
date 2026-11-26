@@ -33,7 +33,7 @@ test("a new character becomes a dwarf acolyte fighter 1, and the summary card fo
   await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
 
   await stepButton(page, "Background").click();
-  await builder.getByRole("button", { name: "Acolyte", exact: true }).click();
+  await pickIn(section(page, "Background"), "Acolyte");
   await expect(preview.getByLabel("Background", { exact: true })).toHaveText("Acolyte");
   await expect(await openSheetPanel(page)).toContainText("Shelter the Faithful");
   await closeSheetPanel(page);
@@ -371,7 +371,7 @@ test("a pick does not move the lines of the summary card, and a long name does n
   await expect(card.getByLabel("Speed", { exact: true })).toHaveText("25 ft.");
   expect(await boxes()).toEqual(before);
   await stepButton(page, "Background").click();
-  await builder.getByRole("button", { name: "Acolyte", exact: true }).click();
+  await pickIn(section(page, "Background"), "Acolyte");
   await expect(card.getByLabel("Background", { exact: true })).toHaveText("Acolyte");
   expect(await boxes()).toEqual(before);
 
@@ -657,7 +657,7 @@ test("fighter-1 built from New character through the steps matches its expected 
   await pickIn(section(page, "Subrace"), "Damaran");
   await pick("Standard Human");
   await openStep(page, "Background");
-  await pick("Acolyte");
+  await pickIn(section(page, "Background"), "Acolyte");
   await addFirstClass(page, "Fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await pick("Defense");

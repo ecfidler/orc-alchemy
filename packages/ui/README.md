@@ -38,6 +38,7 @@ bun run test       # vitest
   the select, combobox, autocomplete and menu styles (`src/select.css`),
   the list modal, token, picker, number toggle, segmented toggle and chips styles
   (`src/picker.css`),
+  the list with a detail panel (`src/list-panel.css`),
   the paper pattern, stuck note, note line and use bubble styles
   (`src/paper.css`), the tabs styles (`src/tabs.css`), the step rail and
   left mark styles (`src/rail.css`), and the toast styles
@@ -196,7 +197,9 @@ bun run test       # vitest
     function that runs at the open) gives the focus to another element at
     the open. With `size="narrow"` it is up to 520px wide, for a short
     form or list; at 600px and less it fills the screen too. With
-    `size="wide"` it is up to 1100px wide. The owner can
+    `size="wide"` it is up to 1100px wide. A dialog of any size takes
+    `footer={false}`: it has no footer, takes no `actions`, and has the X
+    named "Close", for content to read. With `size="wide"`, the owner can
     then give a `header` in place of the title row: the `title` does not
     show, and it still names the dialog. `footer={false}` removes the
     footer and does not take `actions`, and an X named "Close" at the end
@@ -307,6 +310,28 @@ bun run test       # vitest
     element that the pick made (the page is still inert then, so the
     function finds it with a ref or a DOM query). The backdrop is a 40%
     ink wash, as in the prototypes.
+  - `ListPanel`: a list with a detail panel. The list of `items`
+    (`ListPanelItem`: `value`, `label`, `aside`, `unavailable`) is at the
+    left, 250px wide, and the panel at the right; the two have one fixed
+    height, 440px, so a change of the current row moves nothing. A row is
+    a ListRow named by its `label`; its `aside`, small at its right, for
+    example a pack name, and its `unavailable` text describe it. A row
+    with `unavailable` has the lock icon and a dimmed name, and a click
+    still shows it. The row of `picked` is bold with the check icon. A
+    click on a row makes it current (`aria-current`) and shows it in the
+    panel: `detail(item, place)` is the content, which scrolls, and
+    `action(item, place)` is the row at the bottom, for example a reason
+    and a Choose button. The part picks nothing itself. Before a click,
+    the panel shows `emptyText`. `defaultCurrent` shows that row at the
+    mount and gives it the focus. `search` (`placeholder`) adds a search
+    field that filters by name, with one line for no result. `fixedRow`
+    (with an optional `icon`) is a last row that does not scroll and that
+    the search does not filter. Tab, Up and Down, Home and End work as in
+    a ListModal, and Down in the search goes to the first row. When the
+    part is narrower than 560px (a container query), the list has the
+    full width and 400px, the panel does not show, and a click opens the
+    detail in a `Dialog` named by the label, with the action in its
+    footer. Styles: `src/list-panel.css`.
   - `Token`: a pick, a small box with its `label` and an X named
     "Remove {label}" (or "Remove {name}", or `removeName` whole) that
     calls `onRemove`. Without `onRemove` it has no X. A long label wraps

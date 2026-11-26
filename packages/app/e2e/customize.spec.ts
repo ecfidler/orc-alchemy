@@ -160,9 +160,8 @@ test("Customize the SRD background, then add equipment and a tool with the picke
   await expect(dialog).toBeHidden();
   const edit = builder.getByRole("button", { name: "Edit custom Acolyte (Custom)" });
   await expect(edit).toBeFocused();
-  const cards = builder.getByRole("group", { name: "Background", exact: true });
-  await expect(cards.getByRole("button", { name: "Acolyte (Custom)", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(cards.getByRole("button", { name: "Acolyte", exact: true })).toHaveAttribute("aria-pressed", "false");
+  // The block of the background has the copy (ORC-347).
+  await expect(builder.getByRole("region", { name: "Background", exact: true }).getByRole("heading", { level: 3 })).toHaveText(/^Acolyte \(Custom\)/);
 
   await page.keyboard.press("Enter");
   const again = page.getByRole("dialog", { name: "Edit custom background" });

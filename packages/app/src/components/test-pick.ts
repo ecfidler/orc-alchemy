@@ -12,10 +12,26 @@ export function listOpener(scope: HTMLElement): HTMLElement | null {
 }
 
 /**
- * Picks the option `name` in the selection of `scope` (its section): a click on its option card, or a pick in the
- * list that its Choose, Change or add button opens. Resolves once a list has closed.
+ * Picks the option `name` in the list with a detail panel of a main pick (ORC-347), such as the background: Change
+ * opens the list again after a pick, then a click on the row shows the option, and "Choose {name}" picks it.
+ */
+export function pickInList(scope: HTMLElement, name: string): void {
+  if (!scope.querySelector(".ui-list-panel")) fireEvent.click(within(scope).getByRole("button", { name: /^Change / }));
+  const list = scope.querySelector<HTMLElement>(".ui-list-panel")!;
+  fireEvent.click(within(list).getByRole("button", { name }));
+  fireEvent.click(within(list).getByRole("button", { name: `Choose ${name}` }));
+}
+
+/**
+ * Picks the option `name` in the selection of `scope` (its section): a click on its option card, a pick in the list
+ * with a detail panel of a main pick, or a pick in the list that its Choose, Change or add button opens. Resolves once
+ * a list has closed.
  */
 export async function pickIn(scope: HTMLElement, name: string): Promise<void> {
+  if (scope.hasAttribute("data-main-pick")) {
+    pickInList(scope, name);
+    return;
+  }
   const card = within(scope)
     .queryAllByRole("button", { name })
     .find((button) => button.classList.contains("ui-button") && button.closest('[role="group"]') !== null);

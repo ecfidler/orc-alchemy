@@ -1,6 +1,6 @@
 import { pickFromPicker } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test } from "@playwright/test";
-import { newCharacter } from "./builder-helpers.ts";
+import { newCharacter, pickIn, section } from "./builder-helpers.ts";
 import { openSheetPanel, summaryCard } from "./sheet-panel.ts";
 
 // ORC-76: a background made in the background form is one of a new character's background choices.
@@ -16,13 +16,12 @@ test("a background made in the background form is a background choice of a new c
   await expect(page).toHaveURL(/\/content$/);
 
   await newCharacter(page);
-  const builder = page.getByRole("region", { name: "Builder" });
   const preview = summaryCard(page);
   await page
     .getByRole("navigation", { name: "Steps" })
     .getByRole("button", { name: /^Background(, .*)?$/ })
     .click();
-  await builder.getByRole("button", { name: "Spy", exact: true }).click();
+  await pickIn(section(page, "Background"), "Spy");
   await expect(preview.getByLabel("Background", { exact: true })).toHaveText("Spy");
   await expect(await openSheetPanel(page)).toContainText("Criminal Contact");
 });

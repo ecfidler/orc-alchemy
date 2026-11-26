@@ -4,7 +4,7 @@
 // with Builder.tsx.
 import { Toast } from "@orc-alchemy/ui";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
-import { type BuilderSelection, type BuilderStep, PROFICIENCIES_STEP } from "../engine/builder.ts";
+import { type BuilderSelection, type BuilderStep, PROFICIENCIES_STEP, type StepName } from "../engine/builder.ts";
 import { proficiencySectionNames } from "../engine/proficiencies.ts";
 import { type PickSource, pickSources, sectionNames, type TopSource, topSources } from "../engine/selection-control.ts";
 
@@ -36,6 +36,8 @@ export function BuilderStatusToast({ children }: { children: ReactNode }) {
 
 /** What the builder tells the sections of the open step. */
 export interface StepFrame {
+  /** All the steps of the builder, for a part that names the step of a pick, such as "Picked on other steps". */
+  steps: BuilderStep[];
   /** The heading name of each section of the open step (sectionNames). A selection that is not in it has its own name. */
   names: Map<BuilderSelection, string>;
   /** The selected race, background and classes of the whole character, on all steps (topSources). */
@@ -44,7 +46,7 @@ export interface StepFrame {
   picks: Map<string, PickSource>;
 }
 
-const EMPTY_FRAME: StepFrame = { names: new Map(), tops: [], picks: new Map() };
+const EMPTY_FRAME: StepFrame = { steps: [], names: new Map(), tops: [], picks: new Map() };
 
 const StepFrameContext = createContext<StepFrame>(EMPTY_FRAME);
 
@@ -57,9 +59,20 @@ export function StepFrameProvider({ steps, step, children }: { steps: BuilderSte
   const picks = useMemo(() => pickSources(steps), [steps]);
   // The sections of the Proficiencies step each name their source: "Skills: Fighter" (ORC-346).
   const names = useMemo(() => (step?.name === PROFICIENCIES_STEP ? proficiencySectionNames(step.selections) : sectionNames(step?.selections ?? [])), [step]);
-  const frame = useMemo(() => ({ names, tops, picks }), [names, tops, picks]);
+  const frame = useMemo(() => ({ steps, names, tops, picks }), [steps, names, tops, picks]);
   return <StepFrameContext.Provider value={frame}>{children}</StepFrameContext.Provider>;
 }
+
+/** Opens a step of the builder, as Next and Back do: the focus goes to the step title. */
+const OpenStep = createContext<(step: StepName) => void>(() => {});
+
+/** Gives `open` to the parts in `children` that open a step, such as a line of "Picked on other steps". */
+export function OpenStepProvider({ open, children }: { open: (step: StepName) => void; children: ReactNode }) {
+  return <OpenStep.Provider value={open}>{children}</OpenStep.Provider>;
+}
+
+/** The function that opens a step of the builder. Outside the builder it does nothing. */
+export const useOpenStep = () => useContext(OpenStep);
 
 /** The frame of the open step. Outside the builder, no section has another name and no pick has a source. */
 export const useStepFrame = () => useContext(StepFrameContext);

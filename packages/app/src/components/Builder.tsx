@@ -15,16 +15,19 @@ import {
   type StepName,
   useBuilderSteps,
 } from "../engine/builder.ts";
+import { BACKGROUND_TYPE } from "../engine/content.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityIncreases, AbilityScores } from "./AbilityScores.tsx";
-import { BuilderStatusToast, StepFrameProvider } from "./builder-context.tsx";
+import { BuilderStatusToast, OpenStepProvider, SectionLevelProvider, StepFrameProvider } from "./builder-context.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { Classes, Heading, HitPoints } from "./Classes.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
+import { isMainPick, MainPick } from "./MainPick.tsx";
 import { NameStep } from "./NameStep.tsx";
+import { BackgroundDetail } from "./OptionDetail.tsx";
 import { ProficienciesStep } from "./ProficienciesStep.tsx";
 import { SelectionControl } from "./SelectionControl.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
@@ -100,59 +103,61 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
           <section aria-label="Builder" className="min-w-0 space-y-4">
             {/* The heading names of the open step's sections, and where the character's picks come from (ORC-343). */}
             <StepFrameProvider steps={steps} step={step}>
-              {step && (
-                <>
-                  <div className="flex items-baseline justify-between gap-3 border-b border-rule-strong pb-1.5">
-                    <h2 ref={title} tabIndex={-1} className="text-[26px] leading-tight font-semibold">
-                      {step.name}
-                    </h2>
-                    <span className="font-sans text-[12.5px] whitespace-nowrap text-ink-muted">
-                      Step {index + 1} of {steps.length}
-                    </span>
-                  </div>
-                  {step.empty && <p className="font-sans text-[13.5px] text-ink-muted">{EMPTY_LINE[step.name]}</p>}
-                  {/* The Proficiencies step has its selections in groups (ORC-346). */}
-                  {!step.empty && step.name === PROFICIENCIES_STEP && (
-                    <ProficienciesStep step={step} section={(selection) => <Selection selection={selection} />} />
-                  )}
-                  {!step.empty &&
-                    step.name !== PROFICIENCIES_STEP &&
-                    step.selections.map((selection) => {
-                      // A class and a background can have starting equipment with the same key.
-                      const key = JSON.stringify(selection.actualPath);
-                      if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
-                      if (isList(selection)) return <Inventory key={key} selection={selection} />;
-                      if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
-                      return <Selection key={key} selection={selection} />;
-                    })}
-                  {step.name === NAME_STEP && <NameStep autoFocus={focusName.current} onEnter={() => go(CLASS_STEP)} />}
-                  {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
-                  {step.name === SPELLS_STEP && <PreparedSpells />}
-                  {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
-                  {step.name === "Description" && <Description />}
-                  {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 720px the Sheet button is
+              <OpenStepProvider open={go}>
+                {step && (
+                  <>
+                    <div className="flex items-baseline justify-between gap-3 border-b border-rule-strong pb-1.5">
+                      <h2 ref={title} tabIndex={-1} className="text-[26px] leading-tight font-semibold">
+                        {step.name}
+                      </h2>
+                      <span className="font-sans text-[12.5px] whitespace-nowrap text-ink-muted">
+                        Step {index + 1} of {steps.length}
+                      </span>
+                    </div>
+                    {step.empty && <p className="font-sans text-[13.5px] text-ink-muted">{EMPTY_LINE[step.name]}</p>}
+                    {/* The Proficiencies step has its selections in groups (ORC-346). */}
+                    {!step.empty && step.name === PROFICIENCIES_STEP && (
+                      <ProficienciesStep step={step} section={(selection) => <Selection selection={selection} />} />
+                    )}
+                    {!step.empty &&
+                      step.name !== PROFICIENCIES_STEP &&
+                      step.selections.map((selection) => {
+                        // A class and a background can have starting equipment with the same key.
+                        const key = JSON.stringify(selection.actualPath);
+                        if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
+                        if (isList(selection)) return <Inventory key={key} selection={selection} />;
+                        if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
+                        return <Selection key={key} selection={selection} />;
+                      })}
+                    {step.name === NAME_STEP && <NameStep autoFocus={focusName.current} onEnter={() => go(CLASS_STEP)} />}
+                    {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
+                    {step.name === SPELLS_STEP && <PreparedSpells />}
+                    {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
+                    {step.name === "Description" && <Description />}
+                    {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 720px the Sheet button is
                   between them. */}
-                  <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
-                    {back ? <Button onClick={() => go(back.name)}>Back</Button> : <span />}
-                    {sheet && (
-                      <Button className="min-[720px]:hidden" onClick={() => setSheetOpen(true)}>
-                        Sheet
-                      </Button>
-                    )}
-                    {next ? (
-                      <Button variant="solid" onClick={() => go(next.name)}>
-                        Next: {next.name}
-                      </Button>
-                    ) : (
-                      sheetLink && (
-                        <ButtonLink variant="solid" render={sheetLink}>
-                          Go to the sheet
-                        </ButtonLink>
-                      )
-                    )}
-                  </div>
-                </>
-              )}
+                    <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
+                      {back ? <Button onClick={() => go(back.name)}>Back</Button> : <span />}
+                      {sheet && (
+                        <Button className="min-[720px]:hidden" onClick={() => setSheetOpen(true)}>
+                          Sheet
+                        </Button>
+                      )}
+                      {next ? (
+                        <Button variant="solid" onClick={() => go(next.name)}>
+                          Next: {next.name}
+                        </Button>
+                      ) : (
+                        sheetLink && (
+                          <ButtonLink variant="solid" render={sheetLink}>
+                            Go to the sheet
+                          </ButtonLink>
+                        )
+                      )}
+                    </div>
+                  </>
+                )}
+              </OpenStepProvider>
             </StepFrameProvider>
           </section>
           <div className="sticky top-4 max-[720px]:hidden">{sheet && <SummaryCard sheet={sheet} onOpenSheet={() => setSheetOpen(true)} />}</div>
@@ -187,7 +192,7 @@ function Options({ selection }: { selection: BuilderSelection }) {
   // The classes are rows, not cards. They stay here, not in Selection, because
   // each class's choices open after the rows as any selected option's do.
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
-  // A feat, a background or a race has a Customize line under the control (ORC-134, ORC-135, ORC-136).
+  // A feat or a race has a Customize line under the control (ORC-134, ORC-136). A background has the button in its block (ORC-347).
   const customizable = customizableFor(selection);
   // The race has the Custom Origin entry after its control (ORC-138).
   const origin = useCustomOrigin(selection);
@@ -196,6 +201,19 @@ function Options({ selection }: { selection: BuilderSelection }) {
   const opened = (isClass ? selection.selected.map((key) => selection.options.find((o) => o.key === key)!) : selection.options).filter(
     (o) => o.selected && o.selections.length > 0,
   );
+  const sections = opened.flatMap((option) => option.selections.map((child) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />));
+  // The background is a list with a detail panel, and then a block with its choices in it (ORC-347).
+  if (isMainPick(selection))
+    return (
+      <MainPick
+        selection={selection}
+        noun="background"
+        contentType={BACKGROUND_TYPE}
+        detail={(option, pack, place) => <BackgroundDetail optionKey={option.key} name={option.name} pack={pack} place={place} />}
+        customizable={customizable}
+        choices={<SectionLevelProvider level={4}>{sections}</SectionLevelProvider>}
+      />
+    );
   return (
     <>
       <section aria-labelledby={id} className="space-y-2">
@@ -205,7 +223,7 @@ function Options({ selection }: { selection: BuilderSelection }) {
         {customizable && <CustomizeLines selection={selection} customizable={customizable} guided={origin?.guided} />}
         {origin?.dialog}
       </section>
-      {opened.flatMap((option) => option.selections.map((child) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />))}
+      {sections}
     </>
   );
 }

@@ -45,19 +45,28 @@ type WideBase = {
 
 export type DialogProps = DialogBase &
   (
-    | {
+    | ({
         /**
          * Not set or "normal": up to 720px wide, with the title row and a
          * footer. "narrow": the same, up to 520px wide, for a short form or
          * list. At 600px and less, each fills the screen.
          */
         size?: "normal" | "narrow";
-        /** The buttons after Cancel, at the end of the footer, for example a solid Save button. */
-        actions?: ReactNode;
         header?: never;
-        footer?: never;
         fill?: never;
-      }
+      } & (
+        | {
+            /** True or not set: the footer with Cancel and the `actions`. */
+            footer?: true;
+            /** The buttons after Cancel, at the end of the footer, for example a solid Save button. */
+            actions?: ReactNode;
+          }
+        | {
+            /** False: no footer, and an X named "Close" at the end of the title row closes the dialog, for content to read. */
+            footer: false;
+            actions?: never;
+          }
+      ))
     | (WideBase & {
         /** The content of the header row, in place of the title. The owner puts its own heading in it. */
         header?: ReactNode;
@@ -119,7 +128,8 @@ function useLateControlFocus(open: boolean, body: HTMLElement | null, ownFocus: 
  * With `size="narrow"` it is up to 520px wide. With `size="wide"` it is up
  * to 1100px wide. The owner can then give its
  * own `header` in place of the title, and `footer={false}` removes the
- * footer and puts an X in the header row. The X also calls
+ * footer and puts an X in the header row; a dialog of another size takes
+ * `footer={false}` too, for content to read. The X also calls
  * `onOpenChange(false)`. `fill` gives it the height of the window less its
  * margin, and a body with no padding and no scroll, which the owner lays out.
  *
@@ -142,7 +152,7 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
   useLateControlFocus(open, body, ownFocus);
   const wide = size === "wide";
   const ownHeader = wide && header !== undefined;
-  const withX = wide && !footer;
+  const withX = !footer;
   // Base UI gives the focus to the first control of the popup, and in a dialog with an X, that is the X. So this function gives it to the owner's
   // element, else to the first control of the body. When neither is there, it does as Base UI does: the popup on a touch screen, else the first control.
   const initial =
@@ -173,7 +183,7 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
           <div ref={setBody} className="ui-modal-body">
             {children}
           </div>
-          {(!wide || footer) && (
+          {footer && (
             <div className="ui-modal-foot">
               <BaseDialog.Close render={<Button icon="x" />}>Cancel</BaseDialog.Close>
               {actions}
