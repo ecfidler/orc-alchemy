@@ -377,6 +377,7 @@ Each icon has one use:
 - **save:** the Save button of the action row, which writes the character and closes nothing.
 - **lock:** a value that cannot change, for example an always-prepared spell. `LockIcon` draws it with no space after it.
 - **up** and **down:** no use at this time. They are for a control that moves or sorts.
+- **Class icons:** each SRD class has one icon, with the name of its drawing: `anger` (Barbarian), `note` (Bard), `sun` (Cleric), `leaf` (Druid), `helmet` (Fighter), `figure` (Monk), `shield` (Paladin), `arrow` (Ranger), `dagger` (Rogue), `spiral` (Sorcerer), `chain` (Warlock) and `book` (Wizard). A class icon goes only with the name of its class, in the Class step of the builder, which is not built.
 
 A confirm dialog shows the check and the x only when its cancel text is "Cancel". A control with no entry in this list has no icon. The full rules are in `docs/design/theme.md`, "Icons".
 
