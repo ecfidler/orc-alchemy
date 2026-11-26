@@ -3,7 +3,7 @@
 // through useCharacter's update, so it autosaves.
 import { Button, NoteCount, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
-import { type BuilderOption, type BuilderSelection, remainingByStep, unfilled, useBuilderSteps } from "../engine/builder.ts";
+import { type BuilderOption, type BuilderSelection, remainingByStep, type StepName, unfilled, useBuilderSteps } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
@@ -15,19 +15,18 @@ import { Hands, Inventory } from "./Equipment.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 
 /** The name of the builder's Spells step, for example for a link to it (`/build/{id}?step=Spells`). */
-export const SPELLS_STEP = "Spells";
+export const SPELLS_STEP: StepName = "Spells";
 
 /**
- * `step`: the name of the step that shows first, for example `SPELLS_STEP`. The Race step by default. It is read only
+ * `step`: the name of the step that shows first, for example `SPELLS_STEP`. The Race step by default, until the step
+ * rail sets which step opens (ORC-340, ORC-342). It is read only
  * at the start: a later change of step does not change it, so the URL keeps its `?step=` and a reload goes back to
  * that step. A name that is not a step gives the first step.
  */
 export function Builder({ step: firstStep = "Race" }: { step?: string }) {
   const { selections, sheet, content } = useOpenCharacter();
-  // The Description step has no selections, so builderSteps does not give
-  // it. Before the character loads there are no steps at all.
-  const engineSteps = useBuilderSteps(selections, content);
-  const steps = engineSteps.length === 0 ? engineSteps : [...engineSteps, { name: "Description", selections: [] }];
+  // The ten steps, with Name and Description. Before the character loads there are no steps at all.
+  const steps = useBuilderSteps(selections, content);
   const [stepName, setStepName] = useState(firstStep);
   const step = steps.find((s) => s.name === stepName) ?? steps[0];
   const counts = remainingByStep(steps);
@@ -95,6 +94,7 @@ export function Builder({ step: firstStep = "Race" }: { step?: string }) {
               if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
               return <Selection key={key} selection={selection} />;
             })}
+            {step.name === "Name" && <p>The character name is on the Description step.</p>}
             {step.name === SPELLS_STEP && <PreparedSpells />}
             {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
             {step.name === "Description" && <Description />}

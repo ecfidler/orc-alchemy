@@ -103,8 +103,9 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   const hp = preview.getByLabel("Hit Points", { exact: true });
   const region = (name: string) => builder.getByRole("region", { name: new RegExp(`^${name}`) });
 
-  // The half-elf's improvement: INT 12 + 1 is 13, as a wizard needs.
+  // The half-elf's improvement, on the Abilities step: INT 12 + 1 is 13, as a wizard needs.
   await builder.getByRole("button", { name: "Half-Elf", exact: true }).click();
+  await stepButton(page, "Abilities").click();
   const asi = region("Ability Score Improvement");
   await asi.getByRole("button", { name: "Increase STR" }).click();
   await asi.getByRole("button", { name: "Increase INT" }).click();
@@ -157,8 +158,8 @@ test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepare
   const preview = page.getByRole("region", { name: "Preview" });
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Barbarian 1");
 
-  // A barbarian has no spells, so the step appears with the wizard: 3 cantrips and 6 spells.
-  await expect(stepButton(page, "Spells")).toHaveCount(0);
+  // A barbarian has no spells, so the step has no count; the wizard has 3 cantrips and 6 spells to pick.
+  await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells");
   await stepButton(page, "Class").click();
   await pickOption(builder.getByLabel("Class 1", { exact: true }), "Wizard");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Wizard 1");
@@ -233,7 +234,10 @@ test("the builder lists the picks still to make, and a pick removes its message"
   await expect(summary).toContainText("You have 2 more 'Skill Proficiency' selections to make.");
   // Starting equipment counts on the Equipment step but is not in the summary, as in the old builder.
   await expect(summary).not.toContainText("Starting Equipment");
-  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class (2 to do)");
+  // The barbarian's skills count on the Proficiencies step, and the alignment on the Description step.
+  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class");
+  await expect(stepButton(page, "Proficiencies")).toHaveAccessibleName("Proficiencies (2 to do)");
+  await expect(stepButton(page, "Description")).toHaveAccessibleName("Description (1 to do)");
   await expect(stepButton(page, "Equipment")).toHaveAccessibleName("Equipment (2 to do)");
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race (1 to do)");
   // The count on a step is a small note; each selection still to make has an inline note in its heading.
@@ -390,9 +394,12 @@ test("the Description step writes a name on Enter, and XP on blur as an int", as
   const preview = page.getByRole("region", { name: "Preview" });
   await expect(preview.getByRole("heading", { level: 1 })).toBeVisible();
 
-  // Description is the last step, and it has nothing to do.
-  const description = page.getByRole("navigation", { name: "Steps" }).getByRole("button").last();
-  await expect(description).toHaveAccessibleName("Description");
+  // Description is the last step of ten, and it has the alignment to pick.
+  const buttons = page.getByRole("navigation", { name: "Steps" }).getByRole("button");
+  const order = ["Name", "Class", "Background", "Race", "Abilities", "Proficiencies", "Feats", "Spells", "Equipment", "Description"];
+  await expect(buttons).toHaveText(order.map((name) => new RegExp(`^${name}`)));
+  const description = buttons.last();
+  await expect(description).toHaveAccessibleName("Description (1 to do)");
   await description.click();
 
   const name = builder.getByLabel("Character Name");
@@ -422,14 +429,16 @@ test("fighter-1 built from New character through the steps matches its expected 
     }
   };
 
-  // The human knows one language more; the acolyte opens two more.
-  await pick("Human", "Damaran", "Standard Human", "Dwarvish");
+  await pick("Human", "Damaran", "Standard Human");
   await stepButton(page, "Background").click();
-  await pick("Lawful Good", "Acolyte", "Elvish", "Giant");
+  await pick("Acolyte");
   await stepButton(page, "Class").click();
   await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
-  await pick("Defense", "Athletics", "Perception");
+  await pick("Defense");
+  // The human knows one language more and the acolyte two more: one selection, with the fighter's skills.
+  await stepButton(page, "Proficiencies").click();
+  await pick("Dwarvish", "Elvish", "Giant", "Athletics", "Perception");
   // The standard scores are the default.
   await stepButton(page, "Abilities").click();
   await expect(builder.getByRole("button", { name: "Standard Scores" })).toHaveAttribute("aria-pressed", "true");
@@ -442,6 +451,7 @@ test("fighter-1 built from New character through the steps matches its expected 
   // off-hand list offers only dual-wield weapons. The values below do not change.
   await pickOption(builder.getByLabel("Main hand"), "Longsword");
   await stepButton(page, "Description").click();
+  await pick("Lawful Good");
   const name = builder.getByLabel("Character Name");
   await name.fill(expected["character-name"]);
   await name.press("Enter");

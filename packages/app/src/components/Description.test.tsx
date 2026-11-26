@@ -13,7 +13,7 @@ afterEach(cleanup);
 function open(id: string) {
   useCharacter.getState().load(id, engine().emptyCharacter());
   render(<Builder />);
-  fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: "Description" }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Description/ }));
 }
 
 const stored = (key: string) => storedValue(useCharacter.getState().entity!, key);

@@ -69,7 +69,8 @@ test("hit points by roll or typed in", () => {
 });
 
 test("the half-elf's improvement takes two different abilities, and shows the engine's refusal", () => {
-  open(engine().select(engine().emptyCharacter(), ["race"], "half-elf"), "Race");
+  // The improvement is on the Abilities step.
+  open(engine().select(engine().emptyCharacter(), ["race"], "half-elf"), "Abilities");
   const asi = within(region("Ability Score Improvement"));
   // The half-elf's CHA +2 is its race's, so CHA is not offered.
   expect(asi.getByRole("button", { name: "Increase CHA" }).hasAttribute("disabled")).toBe(true);
@@ -98,9 +99,9 @@ test("a selection heading: a yellow note for picks to make, a red note for too m
 });
 
 test("a step with only picks to remove shows them as a red note count on the step bar", () => {
-  // fighter-3-wizard-2's half-elf has one language too many.
-  open(fighter3Wizard2(), "Race");
-  const race = within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ });
-  expect(race.textContent).toBe("Race (1 too many)1 too many");
-  expect(within(race).getByText("1 too many").dataset.tone).toBe("failed");
+  // fighter-3-wizard-2's half-elf has one language too many, which is on the Proficiencies step.
+  open(fighter3Wizard2(), "Proficiencies");
+  const proficiencies = within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Proficiencies/ });
+  expect(proficiencies.textContent).toBe("Proficiencies (1 too many)1 too many");
+  expect(within(proficiencies).getByText("1 too many").dataset.tone).toBe("failed");
 });
