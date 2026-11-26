@@ -4,7 +4,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { addFirstClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
+import { addFirstClass, builder, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
 
 /** A new character with these picks, on the Proficiencies step. */
 async function character(page: Page, { klass, race, background }: { klass?: string; race?: string; background?: string }) {
@@ -21,7 +21,6 @@ async function character(page: Page, { klass, race, background }: { klass?: stri
   await openStep(page, "Proficiencies");
 }
 
-const builder = (page: Page) => page.getByRole("region", { name: "Builder" });
 const group = (page: Page, name: string) => builder(page).getByRole("group", { name, exact: true });
 /** The "Already has" tokens of a group. */
 const alreadyHas = (page: Page, name: string) => group(page, name).getByRole("group", { name: "Already has" }).locator(".ui-token-label");

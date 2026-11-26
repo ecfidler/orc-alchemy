@@ -1,21 +1,9 @@
 // The builder on a narrow page (ORC-353, docs/design/character-builder.md "A narrow page" and "The summary card"): at
 // 390px each step fits in the page, with the rail, the Sheet button and the modals; from 720px to 860px the summary
 // card does not show, so that the step keeps the width that its controls need.
-import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { classCard, newCharacter, openStep, rowHead, section } from "./builder-helpers.ts";
+import { addFirstClass, builder, classCard, newCharacter, openFixture, openStep, pickIn, rowHead, STEPS, section } from "./builder-helpers.ts";
 import { summaryCard } from "./sheet-panel.ts";
-
-const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
-const builder = (page: Page) => page.getByRole("region", { name: "Builder" });
-
-/** Imports the fixture character and opens it in the builder on the step. */
-async function openFixture(page: Page, fixture: string, step: string) {
-  await page.goto("/import");
-  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, `${fixture}.strict.json`));
-  await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await openStep(page, step);
-}
 
 /**
  * The parts of the builder that go past the right side of the step, as short names: an element whose box ends after
@@ -46,17 +34,21 @@ async function firstRow(items: Locator) {
   return tops.filter((top) => top === tops[0]).length;
 }
 
-/** The box of the dialog `name` is inside the window. */
-async function expectInWindow(page: Page, name: string | RegExp) {
-  const box = (await page.getByRole("dialog", { name }).boundingBox())!;
+/** The box of the dialog `name`, or of the alert dialog with `role`, is inside the window. */
+async function expectInWindow(page: Page, name: string | RegExp, role: "dialog" | "alertdialog" = "dialog") {
+  await expectBoxInWindow(page, page.getByRole(role, { name }));
+}
+
+/** The box of the dialog is inside the window. */
+async function expectBoxInWindow(page: Page, dialog: Locator) {
+  await expect(dialog).toBeVisible();
+  const box = (await dialog.boundingBox())!;
   const { width, height } = page.viewportSize()!;
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.y).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(width);
   expect(box.y + box.height).toBeLessThanOrEqual(height);
 }
-
-const STEPS = ["Name", "Class", "Background", "Race", "Abilities", "Proficiencies", "Feats", "Spells", "Equipment", "Description"];
 
 test("at 390px each step fits in the page, with the rail and the Sheet button between Back and Next", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -117,6 +109,53 @@ test("at 390px the class cards are three in a row, and the modals and dialogs fi
   // The full sheet panel has the full width.
   await builder(page).getByRole("button", { name: "Sheet", exact: true }).click();
   expect((await page.getByRole("dialog", { name: "Sheet" }).boundingBox())!.width).toBe(390);
+});
+
+test("at 390px the picker list, the change question, Customize, the Race modal and Custom Origin fit in the window", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await newCharacter(page);
+  await addFirstClass(page, "Cleric");
+  await openStep(page, "Proficiencies");
+  for (const skill of ["Insight", "Religion"]) await pickIn(section(page, "Skills: Cleric"), skill);
+
+  // The change question: Acolyte gives Insight and Religion, which the Cleric picked.
+  await openStep(page, "Background");
+  await section(page, "Background").getByRole("button", { name: "Acolyte", exact: true }).click();
+  await page.getByRole("button", { name: "Choose Acolyte", exact: true }).click();
+  await expectInWindow(page, "Change to Acolyte?", "alertdialog");
+  await page.getByRole("alertdialog", { name: "Change to Acolyte?" }).getByRole("button", { name: "Change" }).click();
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // Customize of the background.
+  await builder(page).getByRole("button", { name: "Customize Acolyte" }).click();
+  await expectInWindow(page, "Customize Acolyte");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // The Race modal, and the modal and the dialog of Custom Origin.
+  await openStep(page, "Race");
+  const race = section(page, "Race");
+  await race.getByRole("button", { name: "Dwarf", exact: true }).click();
+  await expectInWindow(page, "Dwarf");
+  await page.getByRole("dialog", { name: "Dwarf" }).getByRole("button", { name: "Cancel" }).click();
+  await race.getByRole("button", { name: "Custom Origin", exact: true }).click();
+  await expectInWindow(page, "Custom Origin");
+  await page.getByRole("button", { name: "Start a custom origin", exact: true }).click();
+  const origin = page.getByRole("dialog", { name: "Custom Origin" });
+  await expect(origin.getByRole("combobox", { name: "Base race" })).toBeVisible();
+  await expectBoxInWindow(page, origin);
+  // Cancel of the dialog, and then Cancel of the modal under it.
+  await origin.getByRole("button", { name: "Cancel" }).click();
+  await expect(origin.getByRole("combobox", { name: "Base race" })).toHaveCount(0);
+  await origin.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // The list of a picker: "Add a skill" of the Half-Elf on the Proficiencies step.
+  await pickIn(race, "Half-Elf");
+  await openStep(page, "Proficiencies");
+  await section(page, "Skills: Half-Elf").getByRole("button", { name: "Add a skill" }).click();
+  await expectBoxInWindow(page, page.getByRole("dialog"));
 });
 
 /**

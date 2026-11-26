@@ -434,7 +434,8 @@ export function OtherSteps({ selection, noun, lines: given }: { selection: Build
   if (lines.length === 0)
     return <p className="border-y border-rule-strong py-2 font-sans text-[13.5px] text-ink-muted">This {noun} gives no pick on another step.</p>;
   return (
-    <ul aria-label="Picked on other steps" className="divide-y divide-rule border-y border-rule-strong">
+    // The kind column is wider on a list 400px wide or more: the width of the list counts, not that of the page.
+    <ul aria-label="Picked on other steps" className="@container divide-y divide-rule border-y border-rule-strong">
       {lines.map((line) => {
         const picks = line.remaining === 0 && line.picks.length > 0 ? line.picks.join(", ") : null;
         const value = picks ?? (line.remaining > 0 ? `${line.remaining} left` : line.remaining < 0 ? `remove ${-line.remaining}` : "done");
@@ -444,7 +445,7 @@ export function OtherSteps({ selection, noun, lines: given }: { selection: Build
               variant="bare"
               aria-label={`${line.kind}, ${value}, ${line.step}`}
               onClick={() => open(line.step)}
-              className="grid min-h-[38px] w-full grid-cols-[112px_minmax(0,1fr)_auto] items-center gap-2.5 py-1 pr-1 text-left hover:bg-panel min-[720px]:grid-cols-[150px_minmax(0,1fr)_auto]"
+              className="grid min-h-[38px] w-full grid-cols-[112px_minmax(0,1fr)_auto] items-center gap-2.5 py-1 pr-1 text-left hover:bg-panel @min-[400px]:grid-cols-[150px_minmax(0,1fr)_auto]"
             >
               <span className="font-sans text-[14px] font-semibold">{line.kind}</span>
               <span className="min-w-0 truncate text-[15.5px]">{picks ?? <LeftMark left={line.remaining} />}</span>

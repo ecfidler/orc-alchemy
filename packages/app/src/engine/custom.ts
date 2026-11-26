@@ -26,6 +26,7 @@ import { type Content, type ContentType, engine, type StrictEntity } from "./eng
 import { type AreaAttack, breathWeaponText, hasArea, raceGives } from "./race-gives.ts";
 import { pickableSubraces, subraceOptions, subracePick, templateRace } from "./race-step.ts";
 import { missingContent, picksUnder, remapOption, withoutOption } from "./reconcile.ts";
+import { capitalized } from "./sheet.ts";
 import { srdList } from "./srd-lists.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
@@ -201,8 +202,7 @@ export const features = (built: Built2014) => [built.traits, built.actions, buil
  */
 export function builtInText(built: Built2014, name: string): string {
   const feature = features(built).find((f) => f.name === name);
-  const text = (feature?.description ?? feature?.summary ?? "").trim();
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  return capitalized((feature?.description ?? feature?.summary ?? "").trim());
 }
 
 export interface Customization {

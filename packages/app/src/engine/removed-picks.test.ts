@@ -2,11 +2,12 @@
 // that removes picks"): the five changes of the spec's table, a change in two rows, and a change that removes no pick.
 import type { AvailableSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { withoutOption } from "./reconcile.ts";
 import { type PickChange, planChange } from "./removed-picks.ts";
 import { SAGE_PACKS } from "./test-backgrounds.ts";
+import { FEAT_PACK, SKILL_EXPERT } from "./test-feats.ts";
 import { WOOD_KIN_PACKS } from "./test-races.ts";
 
 beforeAll(() => loadEngine());
@@ -368,6 +369,27 @@ test("a removed Rogue with Expertise: the Expertise picks go", () => {
   expect(JSON.stringify(apply())).not.toContain("~:skill-expertise");
 });
 
+test("a removed Rogue of a Bard: the Expertise option of the Rogue does not make the row name its sources", () => {
+  // The Bard 3 and the Rogue 1 share the selection ["skill-expertise"], with the sources Bard and Rogue. The Expertise
+  // option of the Rogue, "Two Skills", has the source Rogue only, but it is not a row: the row names the skills.
+  const e = engine();
+  let entity = character("bard", [
+    [["class", "bard", "skill-proficiency"], "athletics"],
+    [["class", "bard", "skill-proficiency"], "history"],
+    [["class", "bard", "skill-proficiency"], "insight"],
+  ]);
+  for (let level = 2; level <= 3; level++) entity = e.addLevel(entity, "bard", content) as StrictEntity;
+  entity = e.addClass(entity, "rogue", content) as StrictEntity;
+  entity = e.select(entity, ["class", "rogue", "multiclass-skill-proficiency"], "stealth", content) as StrictEntity;
+  entity = e.select(entity, ["class", "rogue", "expertise"], "two-skills", content) as StrictEntity;
+  for (const skill of ["athletics", "history", "insight", "stealth"]) entity = e.select(entity, ["skill-expertise"], skill, content) as StrictEntity;
+  const { question } = plan(entity, { kind: "remove-class", classKey: "rogue" });
+  expect(question?.rows).toEqual([
+    { place: "Proficiencies", selection: "Skills", picks: ["Stealth"] },
+    { place: "Proficiencies", selection: "Expertise", picks: ["Insight", "Stealth"] },
+  ]);
+});
+
 test("a selection that the change closes loses each of its picks, also when it had more picks than its max before", () => {
   // High Elf gives one language pick and Acolyte two: three picks. Without the background the max is 1, and the three
   // picks stay in the entity at ["languages"]. Wood Kin then closes the selection: each of the three picks goes.
@@ -388,6 +410,36 @@ test("a selection that the change closes loses each of its picks, also when it h
   expect(question?.rows).toEqual([{ place: "Proficiencies", selection: "Languages", picks: ["Halfling", "Giant", "Goblin"] }]);
   const changed = apply();
   for (const key of ["halfling", "giant", "goblin"]) expect(JSON.stringify(changed)).not.toContain(`~:${key}`);
+});
+
+test("a selection whose max goes to 0 is closed: each of its picks goes, also when it had more picks than its max before", () => {
+  // The top-level ["feats"] selection stays in the steps with a max of 0 when no source of it stays. A Variant Human
+  // wizard 4 with the feat of level 4 has two feat picks. Without the feat of level 4 the max is 1, and the two picks
+  // stay in the entity. Standard Human then closes the selection: the two feats go.
+  const content = { homebrew: { [FEAT_PACK]: { "~:orcpub.dnd.e5/feats": { "~:skill-expert": SKILL_EXPERT } } } as Homebrew };
+  const e = engine();
+  const level4 = ["class", "wizard", "levels", "level-4", "asi-or-feat"];
+  let entity = addFirstClass(e, newCharacter(e), "wizard", content);
+  for (let level = 2; level <= 4; level++) entity = e.addLevel(entity, "wizard", content) as StrictEntity;
+  for (const [path, key] of [
+    [level4, "feat"],
+    [["race"], "human"],
+    [["race", "human", "variant"], "variant-human"],
+    [["feats"], "grappler"],
+    [["feats"], "skill-expert"],
+  ] satisfies [string[], string][])
+    entity = e.select(entity, path, key, content) as StrictEntity;
+  entity = withoutOption(entity, [...level4, "feat"]);
+  const feats = () => {
+    const found = e.evaluate(entity, content).selections.filter((s) => s.actualPath.join("/") === "feats");
+    // The engine gives the selection once for each source, each with all the picks.
+    return [[...new Set(found.flatMap((s) => s.selected))], found.reduce((max, s) => max + (s.max ?? 0), 0)];
+  };
+  expect(feats()).toEqual([["grappler", "skill-expert"], 1]);
+  const { question, apply } = planChange({ engine: e, entity, content }, { kind: "pick", path: ["race", "human", "variant"], to: "standard-human" });
+  expect(question?.rows).toContainEqual({ place: "Feats", selection: "Feats", picks: ["Grappler", "Skill Expert"] });
+  entity = apply();
+  expect(feats()).toEqual([[], 0]);
 });
 
 test("a new option that opens the same top-level selection keeps the pick of the old option: High Elf to Human asks nothing about the language", () => {

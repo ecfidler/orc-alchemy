@@ -9,10 +9,10 @@
 
 import type { TemplateOption, TemplateSelection } from "@pubdoor/dmv";
 import { isMap, unqualify } from "./content.ts";
-import { BREATH_WEAPON_USE, breathWeaponText, type RaceDetailGives, type RaceGives } from "./race-gives.ts";
+import { breathWeaponText, breathWeaponUse, type RaceDetailGives, type RaceGives } from "./race-gives.ts";
 import { SUBRACE_KEY, soleSubrace, subraceOptions } from "./race-step.ts";
 import { listText } from "./selection-control.ts";
-import { ABILITIES, ABILITY_NAMES, abilityOfKey, keyToName } from "./sheet.ts";
+import { ABILITIES, ABILITY_NAMES, abilityOfKey, capitalized, keyToName } from "./sheet.ts";
 import { srdList } from "./srd-lists.ts";
 
 /** One fact of the panel, a row of its definition list: "Skills", "Insight, Religion". */
@@ -164,12 +164,9 @@ function modifierAbilities(option: TemplateOption): string[] {
   });
 }
 
-/**
- * The selections of a race option with the tag: its own, not those of its subraces, and those of its one subrace
- * (soleSubrace), which the pick of the race picks too.
- */
+/** The selections of a race option with the tag (raceSelections), but not the Subrace selection. */
 const raceChoices = (option: TemplateOption | undefined, tag: string): TemplateSelection[] =>
-  [...(option?.selections ?? []), ...soleSubraceSelections(option)].filter((s) => s.key !== SUBRACE_KEY && (s.tags ?? []).includes(tag));
+  raceSelections(option).filter((s) => s.key !== SUBRACE_KEY && (s.tags ?? []).includes(tag));
 
 /** A choice of the race of `n` from the options: "One of your choice" above six options, else "One of Dwarvish, Elvish". */
 function raceChoiceText(selection: TemplateSelection): string {
@@ -186,17 +183,15 @@ function languagesOf(value: unknown): string[] {
 /** The names in the order of the alphabet. */
 const sorted = (names: string[]) => [...names].sort((a, b) => a.localeCompare(b));
 
-/** The text with a capital first letter. */
-const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
-/** The name of a spell by its key: "Hellish Rebuke". */
-const spellName = (key: string) => keyToName(key);
-
 /** "You get Hellish Rebuke at level 3 and Darkness at level 5." for the spells that a race gives after level 1. */
-const unlockText = (spells: RaceGives["spells"]) => `You get ${listText(spells.map((s) => `${spellName(s.value.key)} at level ${s.level}`))}.`;
+const unlockText = (spells: RaceGives["spells"]) => `You get ${listText(spells.map((s) => `${keyToName(s.value.key)} at level ${s.level}`))}.`;
 
-/** True when the text names the word, in any case. */
-const says = (text: string, word: string) => text.toLowerCase().includes(word.toLowerCase());
+/**
+ * True when the text has the words as a whole word, in any case: "Fire Bolt" in "cast fire bolt", not "Shield" in
+ * "shielding". The match is not case-sensitive, because the engine's text of a trait can have a spell name in lower
+ * case: "You know thaumaturgy".
+ */
+const says = (text: string, words: string) => new RegExp(`\\b${words.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text);
 
 /** True when each option of the selection gives a damage resistance, as the Draconic Ancestry of the Dragonborn. */
 const givesResistance = (s: TemplateSelection) =>
@@ -221,29 +216,31 @@ function withEngineTraits(listed: DetailTrait[], option: TemplateOption | undefi
     ...listed,
     ...gives.traits.flatMap((t) => {
       const name = String(t.name ?? "").trim();
-      return listedNames.has(name) ? [] : [{ name, text: capital(String(t.summary ?? "").trim()) }];
+      return listedNames.has(name) ? [] : [{ name, text: capitalized(String(t.summary ?? "").trim()) }];
     }),
     ...gives.attacks
       .filter((a) => !listedNames.has(a.name))
-      .map((a) => ({ name: a.name, text: `${breathWeaponText(a, areaChoice ?? undefined)} ${BREATH_WEAPON_USE}` })),
+      .map((a) => ({ name: a.name, text: `${breathWeaponText(a, areaChoice ?? undefined)} ${breathWeaponUse(a.name)}` })),
   ];
-  const named = (word: string) => all.some((t) => says(t.text, word));
-  const resistanceChoices = [...(option?.selections ?? []), ...soleSubraceSelections(option)].filter((s) => (s.min ?? 0) >= 1 && givesResistance(s));
-  const resistances = gives.resistances.filter((r) => !named(r));
+  const named = (words: string) => all.some((t) => says(t.text, words));
+  const resistanceChoices = raceSelections(option).filter((s) => (s.min ?? 0) >= 1 && givesResistance(s));
+  // A text names a resistance when it names the damage type and resistance: "resistance to poison damage". The Breath
+  // Weapon of a copy names its damage type, "takes 2d6 fire damage", and not the resistance.
+  const resistances = gives.resistances.filter((r) => !all.some((t) => says(t.text, r) && /resist/i.test(t.text)));
   // The spells that no text names, for the trait "Spells".
-  const spells = gives.spells.filter((s) => !named(spellName(s.value.key)));
+  const spells = gives.spells.filter((s) => !named(keyToName(s.value.key)));
   const ownKnown = spells.filter((s) => s.level <= 1);
   const ownLater = spells.filter((s) => s.level > 1);
   const abilities = [...new Set(spells.map((s) => abilityOfKey(s.value.ability)))];
   const late = gives.spells.filter((s) => s.level > 1);
   return [
     ...all.map((t) => {
-      const mentioned = late.filter((s) => says(t.text, spellName(s.value.key)));
+      const mentioned = late.filter((s) => says(t.text, keyToName(s.value.key)));
       return mentioned.length > 0 ? { ...t, text: `${t.text} ${unlockText(mentioned)}` } : t;
     }),
     ...resistanceChoices.map((s) => ({ name: "Damage Resistance", text: `You have resistance to the damage type of your ${s.name}.` })),
     ...(resistances.length > 0 ? [{ name: "Damage Resistance", text: `You have resistance to ${listText(resistances)} damage.` }] : []),
-    ...(gives.hitPoints > 0 && !named("hit point")
+    ...(gives.hitPoints > 0 && !named("hit point maximum")
       ? [{ name: "Hit Points", text: `Your hit point maximum increases by ${gives.hitPoints} for each of your levels.` }]
       : []),
     ...(spells.length > 0
@@ -251,7 +248,7 @@ function withEngineTraits(listed: DetailTrait[], option: TemplateOption | undefi
           {
             name: "Spells",
             text: [
-              ...(ownKnown.length > 0 ? [`You know ${listText(ownKnown.map((s) => spellName(s.value.key)))}.`] : []),
+              ...(ownKnown.length > 0 ? [`You know ${listText(ownKnown.map((s) => keyToName(s.value.key)))}.`] : []),
               ...(ownLater.length > 0 ? [unlockText(ownLater)] : []),
               ...(abilities.length === 1 && abilities[0] !== null ? [`${ABILITY_NAMES[abilities[0]]} is the spellcasting ability for these spells.`] : []),
             ].join(" "),
@@ -267,6 +264,9 @@ function soleSubraceSelections(option: TemplateOption | undefined): TemplateSele
   return sole === null ? [] : (subraceOptions(option).find((o) => o.key === sole.key)?.selections ?? []);
 }
 
+/** The selections of a race option: its own, not those of its subraces, and those of its one subrace (soleSubrace). */
+const raceSelections = (option: TemplateOption | undefined) => [...(option?.selections ?? []), ...soleSubraceSelections(option)];
+
 /** What raceDetail takes besides the record and the option: what the engine gives the race, and the names of the keys. */
 export interface RaceDetailFrom {
   /** What the engine gives the race (raceDetailGives). Without it, the panel has only what the record has. */
@@ -278,7 +278,7 @@ export interface RaceDetailFrom {
 /**
  * The detail of a race from its plain record (plainRecord), its option of the template (with its choices), and what
  * the engine gives it (raceDetailGives): the description (:help), the facts Ability scores, "Size, speed", Languages,
- * Skills, Tools, Weapons and Subrace, each only when the race gives it, and the darkvision and the traits. A choice of
+ * Skills, Tools, Weapons, Cantrip, Spells and Subrace, each only when the race gives it, and the darkvision and the traits. A choice of
  * the player shows after the fixed part: "Charisma +2; +1 to two of your choice". The Subrace fact is the one subrace
  * of a race with one (soleSubrace), with its ability score increases: "Hill Dwarf: Wisdom +1". The choices, the
  * proficiencies and the traits of that subrace are those of the race, because the pick of the race picks it too. A
@@ -306,6 +306,11 @@ export function raceDetail(record: Record<string, unknown>, option: TemplateOpti
   add("Skills", [...names("skill", gives?.skills), ...raceChoices(option, "skill-profs").map(raceChoiceText)]);
   add("Tools", [...names("tool", gives?.tools), ...raceChoices(option, "tool-profs").map(raceChoiceText)]);
   add("Weapons", names("item", gives?.weapons));
+  // A spell choice, such as the cantrip of a High Elf, by the kind of its line in "Picked on other steps" (lineKind).
+  const spellChoices = raceChoices(option, "spells");
+  const isCantrip = (s: TemplateSelection) => /cantrip/i.test(`${s.key} ${s.name}`);
+  add("Cantrip", spellChoices.filter(isCantrip).map(raceChoiceText));
+  add("Spells", spellChoices.filter((s) => !isCantrip(s)).map(raceChoiceText));
   const sole = soleSubrace(option);
   const ofRecord = sole === null ? undefined : (Array.isArray(record.subraces) ? record.subraces : []).find((s) => isMap(s) && s.name === sole.name);
   if (sole !== null) {

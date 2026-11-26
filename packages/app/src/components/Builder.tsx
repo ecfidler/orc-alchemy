@@ -99,8 +99,9 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
     <BuilderStatusToast>
       <div className="space-y-5">
         {step && <StepRail steps={rail} current={step.name} onStepChange={setStepName} />}
-        {/* The step at the left, and the summary card at the right. Under 860px the card does not show: beside the app
-        rail and the card, the step would be narrower than 338px, and its controls need that width (ORC-353). */}
+        {/* The step at the left, and the summary card at the right. At 860px, beside the app rail and the card, the step
+        is 338px wide, a little more than the 323px that its controls need. Under 860px the card does not show, so the
+        step does not get narrower than its controls (ORC-353). */}
         <div className="grid items-start gap-7 min-[860px]:grid-cols-[minmax(0,1fr)_250px]">
           <section aria-label="Builder" className="min-w-0 space-y-4">
             {/* The heading names of the open step's sections, and where the character's picks come from (ORC-343). */}

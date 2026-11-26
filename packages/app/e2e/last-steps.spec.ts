@@ -6,21 +6,10 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { addFirstClass, newCharacter, openStep, section, stepButton } from "./builder-helpers.ts";
-
-const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
-const builder = (page: Page) => page.getByRole("region", { name: "Builder" });
+import { addFirstClass, builder, newCharacter, openFixture, openStep, section, stepButton } from "./builder-helpers.ts";
 
 /** The boxes of the locators, for a test that compares them before and after a change. */
 const boxes = (locators: Locator[]) => Promise.all(locators.map(async (locator) => (await locator.boundingBox())!));
-
-/** Imports the fixture character and opens it in the builder on the step. */
-async function openFixture(page: Page, fixture: string, step: string) {
-  await page.goto("/import");
-  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, `${fixture}.strict.json`));
-  await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await openStep(page, step);
-}
 
 test("a pick in a spell selection does not move its heading, the chosen line, the filter or the cards", async ({ page }) => {
   await newCharacter(page);

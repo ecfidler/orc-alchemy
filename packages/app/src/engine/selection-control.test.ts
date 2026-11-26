@@ -189,7 +189,7 @@ test("each feat section names its sources, also when no other section has its na
   entity = e.select(entity, ["race", "human", "variant"], "variant-human") as StrictEntity;
   const feats = () => build(entity).steps.find((s) => s.name === "Feats")!.selections;
   expect([...featSectionNames(feats()).values()]).toEqual(["Feats: Variant Human"]);
-  // The feat of a Fighter 4 is in the same selection of the engine: its heading names the two sources, the class first.
+  // The feat of a Barbarian 4 is in the same selection of the engine: its heading names the two sources, the class first.
   for (let level = 1; level < 4; level++) entity = e.addLevel(entity, "barbarian") as StrictEntity;
   entity = e.select(entity, ["class", "barbarian", "levels", "level-4", "asi-or-feat"], "feat") as StrictEntity;
   expect([...featSectionNames(feats()).values()]).toEqual(["Feats: Barbarian, Variant Human"]);

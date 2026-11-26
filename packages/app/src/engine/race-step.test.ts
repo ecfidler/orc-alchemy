@@ -178,7 +178,7 @@ test("Dragonborn: the panel has the Breath Weapon and the Damage Resistance, wit
         "Each creature in the area makes a saving throw, DC 8 + your CON modifier + your proficiency bonus. " +
         "It takes 2d6 damage on a failed save, and half on a success. The damage is 3d6 at level 6, 4d6 at level 11 and 5d6 at level 16. " +
         "Your Draconic Ancestry gives the area, the saving throw and the damage type. " +
-        "It takes an action. You can use it again after a short or long rest.",
+        "The Breath Weapon takes an action. You can use it again after a short or long rest.",
     },
     { name: "Damage Resistance", text: "You have resistance to the damage type of your Draconic Ancestry." },
   ]);
@@ -217,6 +217,8 @@ test("the other SRD races: the skills and the weapons that the engine gives are 
     { label: "Languages", value: "Common, Elvish; One of your choice" },
     { label: "Skills", value: "Perception" },
     { label: "Weapons", value: "Longbow, Longsword, Shortbow, Shortsword" },
+    // The cantrip choice of High Elf. Its line in "Picked on other steps" has the kind Cantrip too.
+    { label: "Cantrip", value: "One of your choice" },
     { label: "Subrace", value: "High Elf: Intelligence +1" },
   ]);
   expect(elf.traits.map((t) => t.name)).toEqual(["Darkvision", "Fey Ancestry", "Trance"]);
@@ -258,6 +260,29 @@ test("a pack race by the same rule: a resistance, hit points and spells that no 
     { name: "Damage Resistance", text: "You have resistance to cold damage." },
     { name: "Hit Points", text: "Your hit point maximum increases by 1 for each of your levels." },
     { name: "Spells", text: "You know Druidcraft. You get Entangle at level 3. Wisdom is the spellcasting ability for these spells." },
+  ]);
+});
+
+test("a pack race: a trait names a resistance only when it says resist, the hit points only as the hit point maximum, and a spell as a word", async () => {
+  // As the Customize copy of a red Dragonborn: its Breath Weapon names fire damage, but no trait names the resistance.
+  const drake = {
+    ...SYLVAR,
+    "~:key": "~:drake",
+    "~:name": "Drake",
+    "~:props": { "~:damage-resistance": { "~:fire": true }, "~:max-hp-bonus": 1 },
+    "~:spells": [{ "~:level": 1, "~:value": { "~:level": 1, "~:ability": "~:orcpub.dnd.e5.character/int", "~:key": "~:shield" } }],
+    "~:traits": [
+      { "~:name": "Breath Weapon", "~:description": "Each creature in a 15 ft. cone takes 2d6 fire damage on a failed DEX save." },
+      { "~:name": "Relentless", "~:description": "When you drop to 1 hit point, you can stand up again." },
+      { "~:name": "Scales", "~:description": "Your scales are shielding you." },
+    ],
+  };
+  const homebrew = { [RACE_PACK]: { [TAGGED_RACES]: { "~:drake": drake } } };
+  const detail = await fullDetail("drake", homebrew, plainRecord(drake) as Record<string, unknown>);
+  expect(detail.traits.slice(4)).toEqual([
+    { name: "Damage Resistance", text: "You have resistance to fire damage." },
+    { name: "Hit Points", text: "Your hit point maximum increases by 1 for each of your levels." },
+    { name: "Spells", text: "You know Shield. Intelligence is the spellcasting ability for these spells." },
   ]);
 });
 

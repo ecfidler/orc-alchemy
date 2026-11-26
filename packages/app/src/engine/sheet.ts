@@ -370,12 +370,11 @@ export const SKILLS: [key: string, name: string, ability: Ability][] = [
 
 const EQUIPMENT_NS = "orcpub.dnd.e5.character.equipment/";
 
+/** The text with a capital first letter: "at will" → "At will". */
+export const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
 /** The old app's capitalised kw-to-name: "crossbow-light" → "Crossbow Light". */
-export const keyToName = (key: string) =>
-  unqualify(key)
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+export const keyToName = (key: string) => unqualify(key).split("-").map(capitalized).join(" ");
 
 const named = (key: string): Named => ({ key, name: keyToName(key) });
 

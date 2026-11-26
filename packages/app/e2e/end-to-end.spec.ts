@@ -5,11 +5,22 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
-import { expect, type Page, test } from "@playwright/test";
-import { classCard, newCharacter, openStep, pickIn, picksIn, rowHead, section, stepButton } from "./builder-helpers.ts";
+import { expect, type Locator, type Page, test } from "@playwright/test";
+import {
+  builder,
+  chooseClass,
+  classCard,
+  newCharacter,
+  openFixture,
+  openStep,
+  pickIn,
+  picksIn,
+  rowHead,
+  STEPS,
+  section,
+  stepButton,
+} from "./builder-helpers.ts";
 
-const STEPS = ["Name", "Class", "Background", "Race", "Abilities", "Proficiencies", "Feats", "Spells", "Equipment", "Description"];
-const builder = (page: Page) => page.getByRole("region", { name: "Builder" });
 const title = (page: Page) => builder(page).getByRole("heading", { level: 2 });
 
 /** Next, from the open step to the step `to`: the focus goes to the title of `to` (spec, "Keyboard and screen reader"). */
@@ -22,13 +33,9 @@ async function next(page: Page, to: string) {
   await expect(builder(page).getByText(`Step ${STEPS.indexOf(to) + 1} of 10`, { exact: true })).toBeVisible();
 }
 
-/** Picks the class `name` from its card and its modal on the open Class step. */
-async function chooseClass(page: Page, name: string) {
-  await classCard(builder(page), name).click();
-  await page
-    .getByRole("dialog", { name, exact: true })
-    .getByRole("button", { name: `Choose ${name}`, exact: true })
-    .click();
+/** Picks the class `name` on the open Class step (chooseClass): after the pick, the focus is on the Change button of its block. */
+async function chooseClassFocused(page: Page, name: string) {
+  await chooseClass(page, name);
   await expect(builder(page).getByRole("button", { name: `Change ${name}`, exact: true })).toBeFocused();
 }
 
@@ -45,7 +52,7 @@ test("a new character goes through the ten steps in order with Next, makes each 
   await page.keyboard.type("Brannor Ironfist");
 
   await next(page, "Class");
-  await chooseClass(page, "Fighter");
+  await chooseClassFocused(page, "Fighter");
   await pickIn(section(page, "Fighting Style"), "Defense");
 
   await next(page, "Background");
@@ -97,7 +104,7 @@ test("a new character goes through the ten steps in order with Next, makes each 
 test("the path of the research: a Cleric with Insight and Religion takes Acolyte, the question asks, and the character has no dead end", async ({ page }) => {
   await newCharacter(page);
   await next(page, "Class");
-  await chooseClass(page, "Cleric");
+  await chooseClassFocused(page, "Cleric");
   await pickIn(section(page, "Divine Domain"), "Life Domain");
   for (const step of ["Background", "Race", "Abilities", "Proficiencies"]) await next(page, step);
   const skills = section(page, "Skills: Cleric");
@@ -140,21 +147,11 @@ test("the path of the research: a Cleric with Insight and Religion takes Acolyte
   await expect(page.getByLabel("Background", { exact: true })).toHaveText("Acolyte");
 });
 
-const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
-
-/** Imports the fixture character and opens it in the builder on the step. */
-async function openFixture(page: Page, fixture: string, step: string) {
-  await page.goto("/import");
-  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, `${fixture}.strict.json`));
-  await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await openStep(page, step);
-}
-
 /**
  * Opens a dialog or a modal with Enter on `opener`, and closes it with Escape (spec, "Keyboard and screen reader"): at the
  * open the focus is in the dialog, and at the close it goes back to the opener.
  */
-async function openAndClose(page: Page, opener: ReturnType<Page["getByRole"]>, dialog: string | RegExp) {
+async function openAndClose(page: Page, opener: Locator, dialog: string | RegExp) {
   await opener.focus();
   await page.keyboard.press("Enter");
   const box = page.getByRole("dialog", { name: dialog });

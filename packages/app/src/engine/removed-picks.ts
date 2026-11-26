@@ -192,9 +192,9 @@ function rowsOf(paths: string[][], steps: BuilderStep[], own: string | null): Re
   }
   // An option of an expertise selection, such as "Two Skills", is not a row's pick when a pick of the selection that
   // it opens goes too: the row names the skills.
-  const named = (node: BuilderSelection, key: string) =>
+  const isRowPick = (node: BuilderSelection, key: string) =>
     !isExpertise(node) || !node.options.find((option) => option.key === key)?.selections.some((under) => groups.has(under));
-  for (const [node, group] of groups) group.keys = group.keys.filter((key) => named(node, key));
+  for (const [node, group] of groups) group.keys = group.keys.filter((key) => isRowPick(node, key));
   const shown = [...groups].filter(([, { keys }]) => keys.length > 0);
   // Two rows of one place and one name, such as two skill selections, name the sources of each, when their sources
   // are not the same. A group with no pick left after the filter above is not a row, so it does not count.
@@ -242,7 +242,8 @@ const pathKey = (path: string[]) => path.join("/");
  * * in a selection that has more picks than its max after the change, such as the languages of a race and a
  *   background, the last picks over the max, as many as the change adds. A top-level selection that the old option
  *   opened, such as the extra language of a High Elf at ["languages"] or the Expertise of a Rogue at
- *   ["skill-expertise"], keeps its picks in the entity when the option goes: with no source left, its max is 0, and
+ *   ["skill-expertise"], keeps its picks in the entity when the option goes. With no source left, the change closes
+ *   the selection: the selection is not in the steps after the change, or its max goes from more than 0 to 0. Then
  *   each of its picks goes (ORC-354);
  * * a skill, a tool or a language that the new option gives as fixed, and that the player picked in a selection of
  *   a different source. The fixed ones are the proficiencies that the change adds to the character with no picked
@@ -299,14 +300,19 @@ export function planChange(input: ChangeInput, change: PickChange): ChangePlan {
     for (const path of new Set([...nodes.keys(), ...afterNodes.keys()])) {
       const was = nodes.get(path);
       const now = afterNodes.get(path);
-      if (isInventory((now ?? was)!)) continue;
+      // The path is a key of one of the two maps.
+      const node = (now ?? was)!;
+      if (isInventory(node)) continue;
       // A selection that the change closes keeps its picks in the entity when its path is not under the old option,
-      // such as the languages of a High Elf at ["languages"]: its max is then 0.
-      const picks = now?.selected ?? was!.selected.filter((key) => left.has(pathKey([...was!.actualPath, key])));
+      // such as the languages of a High Elf at ["languages"]. The change closes a selection when the selection is not
+      // in the steps after it, or when its max goes from more than 0 to 0, as the top-level ["feats"] selection, which
+      // stays in the steps with a max of 0.
+      const closed = now === undefined || (now.max === 0 && (was?.max ?? 0) > 0);
+      const picks = now?.selected ?? node.selected.filter((key) => left.has(pathKey([...node.actualPath, key])));
       // A selection that has more picks than its max after the change loses its last picks, as many as the change adds.
       // A selection that the change closes loses each of its picks, also when it had more picks than its max before.
-      const extra = now === undefined ? picks.length : over(picks.length, now.max) - (was === undefined ? 0 : over(was.selected.length, was.max));
-      if (extra > 0) overMax.push(...picks.slice(-extra).map((key) => [...(now ?? was)!.actualPath, key]));
+      const extra = closed ? picks.length : over(picks.length, now.max) - (was === undefined ? 0 : over(was.selected.length, was.max));
+      if (extra > 0) overMax.push(...picks.slice(-extra).map((key) => [...node.actualPath, key]));
     }
     overMax = overMax.filter((path) => counts(path));
   } catch {

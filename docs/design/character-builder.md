@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T16:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T17:23:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -180,13 +180,13 @@ picks that the old option accounts for:[^orc-354]
   picks over the max go, but only as many as the change adds over the
   max.
 * A selection that the change closes, because no source of it stays,
-  has a max of 0. Each of its picks goes.
+  loses each of its picks, also when it had more picks than its max
+  before the change. The engine then does not give the selection, or
+  gives it with a max of 0, as the selection at `feats`.[^orc-353]
 * Thus a shared selection that gets smaller asks only about the picks
   that cannot stay. A High Elf acolyte with two of its three languages
   picked keeps the two when the subrace changes, and the question asks
   nothing.
-* A selection that the change closes loses each of its picks, also when
-  it had more picks than its max before the change.[^orc-353]
 * A new option that opens the same top-level selection keeps the picks
   of the old option, and the question does not list them. A High Elf
   that becomes a Human keeps its extra language: the Human gives one
@@ -662,7 +662,9 @@ The main pick of each step is a list with a detail panel.[^orc-332]
 * Above the list, the heading of the selection has the left mark:
   "Background" and "1 left".[^orc-347]
 * The facts of a race are Ability scores, "Size, speed", Languages,
-  Skills, Tools, Weapons and Subrace, each only when the race gives it. A
+  Skills, Tools, Weapons, Cantrip, Spells and Subrace, each only when the
+  race gives it. Cantrip is a cantrip choice, such as that of the High
+  Elf, and Spells is another spell choice.[^orc-355] A
   choice of the player shows after the fixed part: "Charisma +2; +1 to
   two of your choice". The ability scores show the largest first.
   Darkvision is the first trait.[^orc-348] [^orc-355]
@@ -684,15 +686,22 @@ The main pick of each step is a list with a detail panel.[^orc-332]
   * An area attack, with our own text: the Breath Weapon of the
     Dragonborn. Before the pick that gives the area, the text names
     that choice: "Your Draconic Ancestry gives the area, the saving
-    throw and the damage type."
+    throw and the damage type." The text ends with the use: "The Breath
+    Weapon takes an action. You can use it again after a short or long
+    rest."
   * "Damage Resistance" for a choice of the race whose each option gives
     a damage resistance, such as the Draconic Ancestry, and for a damage
-    type that no trait names.
+    type that no trait names. A trait names the resistance when its text
+    has the damage type and "resist": "resistance to poison damage". The
+    Breath Weapon of a copy says "fire damage", but it does not name the
+    resistance.
   * "Hit Points" for the hit points for each level, such as those of the
-    Hill Dwarf, when no trait names hit points.
+    Hill Dwarf, when no trait says "hit point maximum".
   * A spell that comes after level 1 adds its level to the trait that
     names it: "You get Hellish Rebuke at level 3 and Darkness at level
-    5." A spell that no trait names goes in a "Spells" trait.
+    5." A spell that no trait names goes in a "Spells" trait. A trait
+    names a spell when its text has the spell name as a whole word, in
+    any case: the engine writes "You know thaumaturgy".
   * The skills, the tools and the weapons are facts.
 * The app builds the text of a race one time for each content and
   keeps it. The list does not build it: a click on a name does.[^orc-355]
@@ -765,8 +774,8 @@ The page of the builder is narrow below 860px.[^orc-353]
 * The summary card does not show, and the Sheet button between Back and
   Next opens the full sheet panel. See [The summary card](#the-summary-card).
 * So the step keeps the width that its controls need. From 720px to
-  860px, the app rail is at the left, and the step is 476px to 615px
-  wide. Below 720px the app rail is a strip at the top.
+  859px, the app rail is at the left, and the step is 476px to 615px
+  wide. At 680px and below, the app rail is a strip at the top.
 * At 390px each step fits in the page: no control goes past the step, the
   rail scrolls sideways, the ability score boxes and the class cards are
   three in a row, and each modal and dialog fits in the window.
@@ -906,7 +915,7 @@ later project.
   picks take, so a pick does not move the filter and the cards: about 2
   names on a line and up to 5 lines on a step narrower than 560px, and
   about 4 names on a line and up to 3 lines on a wider step. A selection
-  with no maximum keeps 3 lines.[^orc-352] [^orc-355]
+  with no maximum keeps 3 lines.[^orc-352]
 
 # The Description step
 
@@ -915,6 +924,9 @@ later project.
 * The step has no name field.
 * The other 18 fields stay. They use the ui `TextInput` and `TextArea`,
   with the label above the field.
+* Experience Points is a `TextInput` that keeps only a whole number. At
+  the blur, "12.9" becomes "12", and a text that is not a number
+  removes the value. The URL fields are `TextInput`s too.[^orc-352]
 * The step has "Go to the sheet" in the place of Next.
 * The left mark of Alignment is at the right of its label, in a fixed
   place, and is a part of the name of the select: "Alignment, 1
@@ -922,7 +934,7 @@ later project.
 * The one-line fields are three in a row on a step 600px wide or more,
   and one on a narrower step, as on a phone. The width of the step
   counts, not the width of the page. A text area and a URL field have the
-  full width.[^orc-352] [^orc-355]
+  full width.[^orc-352]
 
 # Keyboard and screen reader
 

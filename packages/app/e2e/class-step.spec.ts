@@ -11,6 +11,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import {
   addClass,
   addFirstClass,
+  builder,
   changeClass,
   classCard,
   hitPointsOf,
@@ -30,7 +31,6 @@ import { summaryCard } from "./sheet-panel.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
 
-const builder = (page: Page) => page.getByRole("region", { name: "Builder" });
 const block = (page: Page, name: string) => builder(page).getByRole("region", { name, exact: true });
 const levelField = (page: Page, name: string) => builder(page).getByRole("textbox", { name: `${name} level`, exact: true });
 const classLine = (page: Page) => summaryCard(page).getByLabel("Class", { exact: true });

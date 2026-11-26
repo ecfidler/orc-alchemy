@@ -3,10 +3,8 @@
 // tag, the components line, the cast note line and the paragraphs of the
 // description. Each function takes the values of a spell record, so other
 // pages can use them.
-import { ordinal } from "./sheet.ts";
+import { capitalized, ordinal } from "./sheet.ts";
 import type { SpellRecord } from "./spell-records.ts";
-
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /**
  * The level and the school: "1st-level enchantment", or "Enchantment

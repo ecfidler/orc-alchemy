@@ -5,8 +5,7 @@
 // reads them.
 
 import { unqualify } from "./content.ts";
-import type { Content, StrictEntity } from "./engine.ts";
-import { engine } from "./engine.ts";
+import { type Content, engine, type StrictEntity } from "./engine.ts";
 import { SUBRACE_KEY, soleSubrace, templateRace } from "./race-step.ts";
 import { withOptionOf } from "./reconcile.ts";
 import type { Resistance } from "./sheet.ts";
@@ -182,8 +181,11 @@ export function breathWeaponText(attack: AreaAttack, choice = "a choice of the r
   );
 }
 
-/** How the Breath Weapon is used, as its feature in a copy has it (custom.ts breathWeaponTrait): an action, with one use for each short rest. */
-export const BREATH_WEAPON_USE = "It takes an action. You can use it again after a short or long rest.";
+/**
+ * How the area attack with the name is used, as the Breath Weapon's feature in a copy has it (custom.ts
+ * breathWeaponTrait): an action, with one use for each short rest. "The Breath Weapon takes an action. …"
+ */
+export const breathWeaponUse = (name: string) => `The ${name} takes an action. You can use it again after a short or long rest.`;
 
 /** What the detail panel of a race shows from the engine (raceDetailGives). */
 export interface RaceDetailGives {
@@ -199,7 +201,7 @@ const detailCache = new WeakMap<Content, Map<string, RaceDetailGives>>();
  * What the engine gives the race with the key, for its detail panel: raceGives of the race, with its one subrace
  * picked when it has one (the pick of the race picks it too), and the choice of the race that gives an attack its
  * area. The probe has no other pick, so the text is the same for each character. Each key is computed once for each
- * content: a probe evaluates the character some times (about 60 ms).
+ * content: a probe evaluates the character many times (about 60 ms).
  */
 export function raceDetailGives(key: string, content: Content): RaceDetailGives {
   let forContent = detailCache.get(content);
