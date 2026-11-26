@@ -1,5 +1,6 @@
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test } from "@playwright/test";
+import { openSheetPanel, summaryCard } from "./sheet-panel.ts";
 
 // ORC-75: a class made in the class form is a class a new character can take.
 test("a class made in the class form can be picked for a new character", async ({ page }) => {
@@ -16,7 +17,7 @@ test("a class made in the class form can be picked for a new character", async (
   await page.getByRole("button", { name: "New character" }).click();
   await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
   const builder = page.getByRole("region", { name: "Builder" });
-  const preview = page.getByRole("region", { name: "Preview" });
+  const preview = summaryCard(page);
   await page
     .getByRole("navigation", { name: "Steps" })
     .getByRole("button", { name: /^Class/ })
@@ -24,5 +25,5 @@ test("a class made in the class form can be picked for a new character", async (
   await pickOption(builder.getByLabel("Class 1", { exact: true }), "Rune Knight");
   await expect(builder.getByLabel("Class 1", { exact: true })).toHaveText("Rune Knight");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Rune Knight 1");
-  await expect(preview).toContainText("Rune Carver");
+  await expect(await openSheetPanel(page)).toContainText("Rune Carver");
 });

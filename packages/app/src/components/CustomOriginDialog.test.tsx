@@ -14,6 +14,7 @@ import { SYLVAR, TAGGED_RACES, withHillDwarf, withSylvar } from "../engine/test-
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
+import { withSheetPanel } from "./test-sheet-panel.ts";
 
 beforeAll(() => loadEngine());
 afterEach(() => {
@@ -38,7 +39,6 @@ const race = () =>
     .map((s) => [s.actualPath.join("/"), s.selected]);
 const save = (dialog: HTMLElement) => within(dialog).getByRole<HTMLButtonElement>("button", { name: "Save" });
 const closed = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-const preview = () => screen.getByRole("region", { name: "Preview" });
 const baseSelect = (dialog: HTMLElement) => within(dialog).getByRole("combobox", { name: "Base race" });
 
 /** Opens the dialog from the entry, once its first control shows. */
@@ -64,9 +64,9 @@ async function swap(dialog: HTMLElement, token: string, row: string, search?: st
   await waitFor(() => expect(screen.queryByRole("dialog", { name: /^Replace / })).toBeNull());
 }
 
-/** The skill line of the sheet with the name, and whether it shows as proficient. */
-const proficient = (skill: string) => {
-  const lines = within(within(preview()).getByRole("group", { name: "Skills" })).getAllByRole("listitem");
+/** The skill line of the sheet (the full sheet panel) with the name, and whether it shows as proficient. */
+const proficient = (sheet: HTMLElement, skill: string) => {
+  const lines = within(within(sheet).getByRole("group", { name: "Skills" })).getAllByRole("listitem");
   const line = lines.find((li) => new RegExp(`\\b${skill}\\b`).test(li.textContent ?? ""))!;
   return within(line).queryByRole("img", { name: "Proficient" }) !== null;
 };
@@ -130,28 +130,29 @@ test("Custom Origin on the SRD Half-Orc with the bonuses moved, a language and a
   expected = withoutOption(expected, ["race", "human", "variant", "standard-human"]);
   expect(useCharacter.getState().entity).toEqual(remapOption(expected, ["race", "human"], "half-orc-custom-origin"));
 
-  // The sheet: the Human's +1 to each ability goes; +2 Dexterity and +1 Wisdom come.
-  const sheet = preview();
-  await waitFor(() => expect(sheet).toHaveTextContent("Half-Orc (Custom Origin)"));
-  const after = evaluate().built.abilities;
-  expect(evaluate().built["race-ability-increases"]).toEqual({ "orcpub.dnd.e5.character/dex": 2, "orcpub.dnd.e5.character/wis": 1 });
-  // fighter-20's Dexterity had the Human's +1 and has +2 now; his Wisdom had +1 and has +1 now.
-  expect([
-    after["orcpub.dnd.e5.character/dex"] - before["orcpub.dnd.e5.character/dex"],
-    after["orcpub.dnd.e5.character/wis"] - before["orcpub.dnd.e5.character/wis"],
-  ]).toEqual([1, 0]);
-  expect(within(sheet).getByLabelText("DEX").textContent).toBe(
-    `${after["orcpub.dnd.e5.character/dex"]}+${Math.floor((after["orcpub.dnd.e5.character/dex"] - 10) / 2)}`,
-  );
-  expect(sheet).toHaveTextContent("Dwarvish");
-  expect(sheet).not.toHaveTextContent(/\bOrc\b(?! \(Custom)/);
-  expect([proficient("Stealth"), proficient("Intimidation")]).toEqual([true, false]);
-
   // The line under the cards names the copy, and its button opens the guided dialog, not the race form.
   const lines = screen.getByRole("list", { name: "Customize Race" });
   expect(within(lines).getByRole("listitem")).toHaveTextContent("Half-Orc (Custom Origin)Edit custom origin");
   const edit = within(lines).getByRole("button", { name: "Edit custom origin Half-Orc (Custom Origin)" });
   await waitFor(() => expect(document.activeElement).toBe(edit));
+
+  // The sheet: the Human's +1 to each ability goes; +2 Dexterity and +1 Wisdom come.
+  await withSheetPanel(async (sheet) => {
+    await waitFor(() => expect(sheet).toHaveTextContent("Half-Orc (Custom Origin)"));
+    const after = evaluate().built.abilities;
+    expect(evaluate().built["race-ability-increases"]).toEqual({ "orcpub.dnd.e5.character/dex": 2, "orcpub.dnd.e5.character/wis": 1 });
+    // fighter-20's Dexterity had the Human's +1 and has +2 now; his Wisdom had +1 and has +1 now.
+    expect([
+      after["orcpub.dnd.e5.character/dex"] - before["orcpub.dnd.e5.character/dex"],
+      after["orcpub.dnd.e5.character/wis"] - before["orcpub.dnd.e5.character/wis"],
+    ]).toEqual([1, 0]);
+    expect(within(sheet).getByLabelText("DEX").textContent).toBe(
+      `${after["orcpub.dnd.e5.character/dex"]}+${Math.floor((after["orcpub.dnd.e5.character/dex"] - 10) / 2)}`,
+    );
+    expect(sheet).toHaveTextContent("Dwarvish");
+    expect(sheet).not.toHaveTextContent(/\bOrc\b(?! \(Custom)/);
+    expect([proficient(sheet, "Stealth"), proficient(sheet, "Intimidation")]).toEqual([true, false]);
+  });
   fireEvent.click(edit);
   const again = await screen.findByRole("dialog", { name: "Custom Origin" });
   await within(again).findByRole("group", { name: "Ability bonuses" });
@@ -201,7 +202,7 @@ test("Edit with a new base race resets the picks, and Save replaces the copy wit
     [TAGGED_RACES]: { "~:elf-custom-origin": { ...copy, "~:key": "~:elf-custom-origin", "~:option-pack": CUSTOM_PACK } },
   });
   expect(useCharacter.getState().entity).toEqual(remapOption(entity, ["race", "half-orc-custom-origin"], "elf-custom-origin"));
-  expect(proficient("Perception")).toBe(true);
+  expect(await withSheetPanel((sheet) => proficient(sheet, "Perception"))).toBe(true);
 });
 
 test("a Hill Dwarf with a tool pick: the +1 of the subrace and the tool are slots, Save names no pick, and Edit shows the same picks (ORC-249)", async () => {

@@ -5,6 +5,7 @@ import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { openSheetPanel } from "../components/test-sheet-panel.ts";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { addCharacter, flushAutosave, useCharacter } from "../state/character.ts";
 import { getCharacter, getDraft, saveDraft, useStorage } from "../storage/characters.ts";
@@ -112,18 +113,18 @@ test("the build route for an unknown character says so once the engine loads", a
   expect(await screen.findByRole("heading", { name: "Character not found" })).toBeTruthy();
 });
 
-test("New character opens the builder, and a pick updates the preview", async () => {
+test("New character opens the builder, and a pick updates the summary card", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
-  const preview = await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
-  expect(within(preview).getByText("Barbarian 1")).toBeTruthy();
+  const summary = await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
+  expect(within(summary).getByText("Barbarian 1")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Done" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Back to List" }).getAttribute("href")).toBe("/characters");
 
   const race = screen.getByRole("region", { name: /^Race/ });
   fireEvent.click(within(race).getByRole("button", { name: "Dwarf" }));
   expect(within(race).getByRole("button", { name: "Dwarf" }).getAttribute("aria-pressed")).toBe("true");
-  expect(within(preview).getByText("Dwarf")).toBeTruthy();
+  expect(within(summary).getByText("Dwarf")).toBeTruthy();
   // Dwarf opens its subrace.
   expect(within(race).getByRole("region", { name: /^Subrace/ })).toBeTruthy();
 });
@@ -131,7 +132,7 @@ test("New character opens the builder, and a pick updates the preview", async ()
 test("Save stores the changes now, and the status says when they are saved", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
-  await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
+  await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
   expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved");
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 
@@ -147,7 +148,7 @@ test("Save stores the changes now, and the status says when they are saved", asy
 test("a sheet change leaves the status at Saved with no Save button, and a failed save shows them", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
-  await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
+  await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
 
   act(() => useCharacter.getState().sheetChange((entity) => engine().setValue(entity, "character-name", "Pike")));
   expect(useCharacter.getState().dirty).toBe(true);
@@ -168,13 +169,13 @@ test("a sheet change leaves the status at Saved with no Save button, and a faile
 test("leaving the character after a failed save asks first", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
-  const preview = await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
+  const summary = await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
   fireEvent.click(within(screen.getByRole("region", { name: /^Race/ })).getByRole("button", { name: "Elf" }));
   useStorage.setState({ failed: true });
 
   fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
   expect(await answerConfirmDialog("Cancel")).toBe("Saving your changes to this browser failed. Leave anyway?");
-  expect(screen.getByRole("region", { name: "Preview" })).toBe(preview);
+  expect(screen.getByRole("region", { name: "Summary" })).toBe(summary);
 
   fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
   await answerConfirmDialog("Leave");
@@ -290,11 +291,12 @@ test("the Spells panel and the sheet change the same slots: a slot spent in the 
   await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } }), { timeout: 3000 });
 });
 
-test("in the builder preview, the slot circles show the spent slots and cannot change", async () => {
+test("in the full sheet panel of the builder, the slot circles show the spent slots and cannot change", async () => {
   const entity = engine().setValue(wizard5(), "orcpub.dnd.e5.spells/slots-used", { "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } });
   const id = await addCharacter(entity, "2014", null);
   renderAt(`/build/${id}`);
-  const preview = await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
+  await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
+  const preview = await openSheetPanel();
   const second = within(preview).getByRole("img", { name: "2nd-level slots: 2 of 3" });
   expect(second.querySelectorAll("[data-marked]")).toHaveLength(2);
   expect(within(preview).queryByRole("slider")).toBeNull();
@@ -344,8 +346,8 @@ test("the builder link of the Spells panel opens the builder at its Spells step"
       .getAttribute("aria-current"),
   ).toBe("step");
   expect(screen.queryByRole("dialog")).toBeNull();
-  // The builder preview has no way in.
-  expect(within(screen.getByRole("region", { name: "Preview" })).queryByRole("button", { name: "All spells" })).toBeNull();
+  // The full sheet panel of the builder has no way in.
+  expect(within(await openSheetPanel()).queryByRole("button", { name: "All spells" })).toBeNull();
 });
 
 // A failed save in the Spells panel (ORC-290).

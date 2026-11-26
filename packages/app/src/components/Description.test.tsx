@@ -5,6 +5,7 @@ import { storedValue } from "../engine/description.ts";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
+import { summaryCard, withSheetPanel } from "./test-sheet-panel.ts";
 
 beforeAll(() => loadEngine());
 afterEach(cleanup);
@@ -18,17 +19,16 @@ function open(id: string) {
 
 const stored = (key: string) => storedValue(useCharacter.getState().entity!, key);
 const builder = () => within(screen.getByRole("region", { name: "Builder" }));
-const preview = () => within(screen.getByRole("region", { name: "Preview" }));
 const field = (label: string) => builder().getByLabelText(label) as HTMLInputElement;
 
-test("a name is written on blur, and the preview shows it", () => {
+test("a name is written on blur, and the summary card shows it", () => {
   open("description-name");
   fireEvent.change(field("Character Name"), { target: { value: "Brannor" } });
   // A keystroke does not write.
   expect(stored("character-name")).toBe("");
   fireEvent.blur(field("Character Name"));
   expect(stored("character-name")).toBe("Brannor");
-  expect(preview().getByRole("heading", { level: 1, name: "Brannor" })).toBeTruthy();
+  expect(within(summaryCard()).getByLabelText("Name").textContent).toBe("Brannor");
 });
 
 test("XP is written on Enter, as an int", () => {
@@ -59,14 +59,14 @@ test("a field cleared is stored as an empty string", () => {
   expect(values["~:orcpub.entity.strict/values"]["~:orcpub.dnd.e5.character/bonds"]).toBe("");
 });
 
-test("the portrait shows in the builder under its URL when set", () => {
+test("the portrait shows in the builder under its URL when set", async () => {
   open("description-portrait");
   expect(builder().queryByAltText("Portrait")).toBeNull();
   fireEvent.change(field("Image URL"), { target: { value: "https://example.com/p.png" } });
   fireEvent.keyDown(field("Image URL"), { key: "Enter" });
   expect(builder().getByAltText("Portrait").getAttribute("src")).toBe("https://example.com/p.png");
   // The sheet does not show the portrait (theme spec, "Not on the sheet in M8").
-  expect(preview().queryByAltText("Portrait")).toBeNull();
+  await withSheetPanel((sheet) => expect(within(sheet).queryByAltText("Portrait")).toBeNull());
   fireEvent.change(field("Faction Image URL"), { target: { value: "https://example.com/f.png" } });
   fireEvent.keyDown(field("Faction Image URL"), { key: "Enter" });
   expect(builder().getByAltText("Faction image").getAttribute("src")).toBe("https://example.com/f.png");

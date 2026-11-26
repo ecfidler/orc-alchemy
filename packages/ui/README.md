@@ -193,6 +193,16 @@ bun run test       # vitest
     the body is a flex column, and the owner lays out its parts and sets
     which of them scroll, for example two panes that scroll apart.
     Styles: `src/dialog.css`.
+  - `SidePanel`: Base UI Dialog, a modal panel at the right side of the
+    window, over the page. It is the full height of the window and up to
+    440px wide. Under 720px it is the full width. It has a title row with
+    the `title` and a Close button, and a body (`children`) that scrolls.
+    It has no footer. When it opens, the focus goes to Close. Close,
+    Escape and a click outside call `onOpenChange(false)`. When it closes,
+    the focus goes back to the element that opened it, or to
+    `finalFocus`. The backdrop is the list modal's ink wash. It does not
+    move when it opens or closes. A ListModal, an AlertDialog or a Dialog
+    that the body opens shows above it. Styles: `src/dialog.css`.
   - `SmallPopup`: Base UI Popover, a small panel under a box, with a
     `title` and its controls (`children`), and no close button. The owner
     gives the opener as `trigger`, a `Button` element whose name says

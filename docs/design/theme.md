@@ -274,6 +274,16 @@ homebrew forms. They have no game words: the app gives the lists.
   window less its 16px margins, and its body has no padding and no
   scroll: the owner lays it out, for example as two panes that scroll
   apart (ORC-285).
+* **SidePanel** (ORC-341): a modal panel at the right side of the
+  window, over the page. It is the full height of the window and up to
+  440px wide. Under 720px it is the full width. It has a title row with a
+  Close button, and a body that scrolls. It has the `--paper` fill, a
+  1.5px ink border on its left and the `--note-shadow` offset shadow. Its
+  backdrop is the ListModal's 40% ink wash. When it opens, the focus goes
+  to Close. Close, Esc and a click outside close it, and the focus goes
+  back to the control that opened it. It does not move when it opens or
+  closes, as the other dialogs. The full sheet panel of the builder uses
+  it.
 * **Token** and **Tokens:** a pick as a small box with its name and an X
   named "Remove {name}". Tokens sit on one line that wraps, and a long name
   wraps inside its token. A token can hold a small control. A token can
@@ -896,7 +906,8 @@ The phone layout of the character sheet is ORC-173. These rules apply:
   and the full sheet panel of the
   [Character builder spec](character-builder.md#the-summary-card).
   Where this document says "the builder preview", read "the full sheet
-  panel". The panel has no tabs, and it keeps one long column.
+  panel". The panel has no tabs, and it keeps one long column. Under
+  720px the summary card does not show, and the panel is the full width.
 * In one column, the AC, initiative and speed boxes share the width, up to
   112px each.
 * When the sheet is narrower than 720px, the attacks table has no

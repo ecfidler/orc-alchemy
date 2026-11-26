@@ -1,9 +1,9 @@
 // The builder (ORC-55): the open character's selections as steps of option
-// cards, beside its sheet as a live preview. Each pick is an engine mutation
-// through useCharacter's update, so it autosaves. The step rail, the step
-// title, Back and Next, and the left marks are ORC-340
-// (docs/design/character-builder.md, "The step rail").
-import { Button, ButtonLink, StepRail, Toast, Toggle, ToggleGroup } from "@orc-alchemy/ui";
+// cards. Each pick is an engine mutation through useCharacter's update, so it
+// autosaves. The step rail, the step title, Back and Next, and the left marks
+// are ORC-340 (docs/design/character-builder.md, "The step rail"). The summary
+// card beside the step and the full sheet panel are ORC-341 ("The summary card").
+import { Button, ButtonLink, SidePanel, StepRail, Toast, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { createContext, type ReactElement, type ReactNode, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
 import { type BuilderOption, type BuilderSelection, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
@@ -15,6 +15,7 @@ import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
+import { SummaryCard } from "./SummaryCard.tsx";
 
 /** The name of the builder's Spells step, for example for a link to it (`/build/{id}?step=Spells`). */
 export const SPELLS_STEP: StepName = "Spells";
@@ -73,13 +74,17 @@ export function Builder({ step: firstStep = "Race", sheetLink }: { step?: string
     setStepName(to);
   };
 
+  // The full sheet panel. Its two openers are the button below the summary card and, under 720px, the Sheet button.
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   const back = steps[index - 1];
   const next = steps[index + 1];
   return (
     <BuilderStatusToast>
       <div className="space-y-5">
         {step && <StepRail steps={rail} current={step.name} onStepChange={setStepName} />}
-        <div className="grid gap-6 lg:grid-cols-2">
+        {/* The step at the left, and the summary card at the right. Under 720px the card does not show. */}
+        <div className="grid items-start gap-7 min-[720px]:grid-cols-[minmax(0,1fr)_250px]">
           <section aria-label="Builder" className="min-w-0 space-y-4">
             {step && (
               <>
@@ -106,9 +111,15 @@ export function Builder({ step: firstStep = "Race", sheetLink }: { step?: string
                 {step.name === SPELLS_STEP && <PreparedSpells />}
                 {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
                 {step.name === "Description" && <Description />}
-                {/* Back and Next. The Name step has no Back, and Next stays at the right. */}
+                {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 720px the Sheet button is
+                  between them. */}
                 <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
                   {back ? <Button onClick={() => go(back.name)}>Back</Button> : <span />}
+                  {sheet && (
+                    <Button className="min-[720px]:hidden" onClick={() => setSheetOpen(true)}>
+                      Sheet
+                    </Button>
+                  )}
                   {next ? (
                     <Button variant="solid" onClick={() => go(next.name)}>
                       Next: {next.name}
@@ -124,11 +135,13 @@ export function Builder({ step: firstStep = "Race", sheetLink }: { step?: string
               </>
             )}
           </section>
-          <section aria-label="Preview" className="border-t border-rule-strong pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-            {sheet && <CharacterSheet sheet={sheet} preview />}
-          </section>
+          <div className="sticky top-4 max-[720px]:hidden">{sheet && <SummaryCard sheet={sheet} onOpenSheet={() => setSheetOpen(true)} />}</div>
         </div>
       </div>
+      {/* The sheet as the preview: the play controls cannot change. */}
+      <SidePanel open={sheetOpen && sheet !== null} onOpenChange={setSheetOpen} title="Sheet">
+        {sheet && <CharacterSheet sheet={sheet} preview />}
+      </SidePanel>
     </BuilderStatusToast>
   );
 }

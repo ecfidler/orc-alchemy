@@ -21,6 +21,7 @@ export { Radio, RadioGroup, type RadioGroupProps } from "./Radio.tsx";
 export { SegmentedToggle, type SegmentedToggleProps } from "./SegmentedToggle.tsx";
 export { Select, SelectBox, type SelectBoxProps, type SelectOption, type SelectProps } from "./Select.tsx";
 export { type FlagColor, FlagTab, FlagTabs, Shell } from "./Shell.tsx";
+export { SidePanel, type SidePanelProps } from "./SidePanel.tsx";
 export { SmallPopup, type SmallPopupProps } from "./SmallPopup.tsx";
 export { SplitButton, type SplitButtonItem, type SplitButtonProps } from "./SplitButton.tsx";
 export { LeftMark, type RailStep, StepRail } from "./StepRail.tsx";

@@ -71,6 +71,9 @@ const pages: [string, (page: Page) => Promise<void>][] = [
       await page.goto("/");
       await page.getByRole("button", { name: "New character" }).click();
       await expect(page.getByRole("region", { name: "Builder" })).toBeVisible();
+      // The summary card stays in the page, and the full sheet panel has the sheet (ORC-341).
+      await expect(page.getByRole("region", { name: "Summary" })).toBeVisible();
+      await page.getByRole("button", { name: "Open the full sheet" }).click();
     },
   ],
   [

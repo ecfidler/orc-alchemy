@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openSheetPanel } from "./sheet-panel.ts";
 
 // ORC-76: a language made in the language form is one of a new human's language choices.
 test("a language made in the language form is a language choice of a new character", async ({ page }) => {
@@ -21,5 +22,5 @@ test("a language made in the language form is a language choice of a new charact
     .getByRole("button", { name: /^Proficiencies(, .*)?$/ })
     .click();
   await builder.getByRole("button", { name: "Deep Stone", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Preview" }).getByText("Deep Stone")).toBeVisible();
+  await expect((await openSheetPanel(page)).getByText("Deep Stone")).toBeVisible();
 });
