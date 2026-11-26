@@ -43,18 +43,20 @@ The base branch is the project branch (`<kebab-name>`) when one exists, else the
 
 ### The merge
 
-The slice PRs are a stack on GitHub. I merge the stack one time: when I have reviewed the slices, I squash-merge the top PR, and GitHub lands each PR below it in the same operation (ORC-359). I can also merge a lower PR, which lands that PR and the PRs below it.
+The slice PRs are a stack on GitHub, and I merge the stack one time (ORC-359). When I have reviewed the slices, I squash-merge the top PR. GitHub then lands each PR below it in the same operation.
 
-- CI runs on each PR. Drive the CI of each slice green as soon as its PR is open, and again after each push. Do not wait for me to merge a lower slice.
-- Do not rebase or change the base of a PR in the stack by hand. After a merge of a part of the stack, GitHub rebases the PRs that remain and points the lowest at the base branch. Then run `git fetch`, move each local branch to its remote branch, and cherry-pick work that you did not push.
-- A fix to a slice goes on the branch of that slice. Then bring each slice above it up to date, and push.
-- A PR that you open after the stack exists is not in the stack. Cut its branch from the top slice, and tell me that it merges after the stack.
+- CI runs on each PR. Drive the CI of each slice green as soon as its PR is open, and again after each push. Do not wait for a merge.
+- A fix to a slice goes on the branch of that slice. Then rebase each slice above it onto the slice below it (`git rebase --onto <slice below> <old tip of the slice below>`), and push each one with `--force-with-lease`.
+- If I merge only a part of the stack, GitHub rebases the PRs that remain and points the lowest at the base branch. Do not rebase them or change a base by hand after a merge. Do these steps:
+    1. Run `git fetch`.
+    2. Move each local branch to its remote branch.
+    3. Cherry-pick the work that you did not push.
 - If the merge from the top PR does not land the stack, stop and tell me.
 
 ### Screenshots
 
 - Light mode only, at desktop width only.
-- Add a shot at 390 px only for an issue that changes the phone layout. Add a dark shot only for an issue that changes theme colours.
+- Add a shot at 390 px only for an issue that changes the phone layout. Add a dark shot only for an issue that changes theme colors.
 - One shot for each state that the issue adds or changes. No shot of a state that an earlier slice showed.
 - Take the shots at the head of the slice, after the last review fix.
 - Do not commit the test or script that takes the shots, and do not commit the images. Save the images in the project files and attach them in the thread.

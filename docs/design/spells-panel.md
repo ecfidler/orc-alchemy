@@ -747,9 +747,10 @@ Linear disagree, Linear wins.
 Tickets 1 and 2 have no blockers and can run at the same time. The
 project can run beside the 2024 engine build.
 
-**Review:** each ticket that changes a page attaches Playwright
-screenshots to its PR, light first and then dark. A ticket that changes
-the phone views adds screenshots at a phone width.
+**Review:** the screenshot rules are in `project-workflow`, section
+"Screenshots": light mode at desktop width, with a dark or a 390 px
+screenshot only for a ticket that changes theme colors or the phone
+layout (ORC-359).
 
 # Out of scope
 

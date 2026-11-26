@@ -44,10 +44,10 @@ When I ask for several issues together, run this workflow for each issue.
 
 ### Inside a Slice
 
-When `project-workflow` runs the issue as part of a slice, the slice owns the branch, the PR, the full checks and the Standards review. For the issue, these replace the steps below:
+When `project-workflow` runs the issue as part of a slice, the slice owns the branch, the PR and the Standards review, and CI runs the full checks on the PR of the slice. For the issue, these replace the steps below:
 
 - **Commit.** Work on the slice branch. The issue is one commit, and its message starts with the issue ID. Fold each review fix into the commit of its issue (`git commit --fixup`, then a rebase with `--autosquash`).
-- **Workers.** One at a time.
+- **Workers.** One at a time. Say in each brief that CI runs the full checks.
 - **Stop.** When the issue must stop, comment on it and return to the slice. `project-workflow`, section "A question in the build", says what follows.
 - **Checks** (step 4 of Plan and Initial Development). Run lint, typecheck, and the test files that the issue changes.
 - **Review.** Spawn only the `spec-reviewer`, on the commit of the issue. The rounds are the same, and round 2 gets the commit again after the fixes are folded in.

@@ -1,17 +1,17 @@
 # The checks of each pull request (ORC-358).
 #
 # - A pull request that changes only docs/, .claude/ or Markdown files runs
-#   only the static job. The scope job decides that.
-# - A push to main starts no run: the pull request ran on the same tree.
-#   One full run on main each night is the safety net.
+#   only the static job. The scope job decides that. docs/guides/ is not in
+#   that set, because a unit test of the app reads a guide.
+# - A push to main starts no run: the pull request ran on the same changes.
+#   One full run on main each night finds a fault that only shows on main.
 #
 # Three jobs run at the same time, so a run takes as long as its longest job:
 # - static: the docs check, lint, the typechecks and the small test suites.
 # - unit: the unit tests of the app, in shards.
 # - e2e: the Playwright tests of the app, in shards.
 #
-# To change the number of shards, change the matrix and the total in the
-# --shard argument of the same job.
+# To change the number of shards of a job, change its matrix.
 
 name: CI
 
@@ -52,7 +52,7 @@ jobs:
                     exit 0
                   fi
                   files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[].filename')
-                  if echo "$files" | grep -qvE '^(docs/|\.claude/)|\.md$'; then
+                  if echo "$files" | grep -qE '^docs/guides/' || echo "$files" | grep -qvE '^(docs/|\.claude/)|\.md$'; then
                     echo "code=true" >> "$GITHUB_OUTPUT"
                   else
                     echo "::notice::Only docs changed: the unit and e2e jobs do not run."
@@ -117,7 +117,7 @@ jobs:
     unit:
         needs: scope
         if: needs.scope.outputs.code == 'true'
-        name: unit (${{ matrix.shard }}/3)
+        name: unit (${{ matrix.shard }}/${{ strategy.job-total }})
         runs-on: ubuntu-latest
         timeout-minutes: 15
         strategy:
@@ -141,12 +141,12 @@ jobs:
 
             - name: Unit tests
               working-directory: packages/app
-              run: bunx vitest run --shard=${{ matrix.shard }}/3
+              run: bunx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
     e2e:
         needs: scope
         if: needs.scope.outputs.code == 'true'
-        name: e2e (${{ matrix.shard }}/4)
+        name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
         runs-on: ubuntu-latest
         timeout-minutes: 15
         strategy:
@@ -174,4 +174,4 @@ jobs:
 
             - name: Playwright
               working-directory: packages/app
-              run: bunx playwright test --shard=${{ matrix.shard }}/4
+              run: bunx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
