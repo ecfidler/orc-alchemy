@@ -127,6 +127,28 @@ export function changeCustomItem(
   return e.setValue(entity, valueKey, items);
 }
 
+/**
+ * Removes each item of a class's starting equipment: the items of the inventory lists and the custom items with the
+ * class-starting-equipment flag. The other items stay.
+ */
+export function withoutClassStartingEquipment(e: Engine, entity: StrictEntity): StrictEntity {
+  let next = entity;
+  for (const selection of strict(entity)["~:orcpub.entity.strict/selections"] ?? []) {
+    const list = unkeyword(selection["~:orcpub.entity.strict/key"]);
+    for (const [key, item] of storedValues(entity, list)) if (item[CLASS_STARTING] === true) next = e.removeInventoryItem(next, list, key);
+  }
+  for (const valueKey of Object.values(CUSTOM_VALUES)) {
+    const items = customValues(next, valueKey);
+    if (items.some((item) => item[CLASS_STARTING] === true))
+      next = e.setValue(
+        next,
+        valueKey,
+        items.filter((item) => item[CLASS_STARTING] !== true),
+      );
+  }
+  return next;
+}
+
 /** Removes the custom items with the name, as the old builder. */
 export const removeCustomItem = (e: Engine, entity: StrictEntity, valueKey: string, name: string) =>
   e.setValue(

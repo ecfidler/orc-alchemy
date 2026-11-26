@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { addFirstClass, newCharacter, openStep } from "./builder-helpers.ts";
 import { featureCard as card } from "./homebrew-helpers.ts";
 import { summaryCard } from "./sheet-panel.ts";
 
@@ -33,9 +34,10 @@ test("a feature with fixed uses and one with scaled uses show their bubbles on t
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/content$/);
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
-  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  await newCharacter(page);
+  // A level 1 character: a fighter, for its level.
+  await addFirstClass(page, "Fighter");
+  await openStep(page, "Race");
   await page.getByRole("region", { name: "Builder" }).getByRole("button", { name: "Tidecaller", exact: true }).click();
   await expect(summaryCard(page).getByLabel("Race", { exact: true })).toHaveText("Tidecaller");
   await page.getByRole("link", { name: "Done" }).click();
@@ -46,7 +48,7 @@ test("a feature with fixed uses and one with scaled uses show their bubbles on t
   const blessing = section("Actions").getByRole("group", { name: "Brine Blessing" });
   await expect(blessing.getByRole("slider", { name: "Brine Blessing" }).locator(".ui-slot-circle")).toHaveCount(3);
   await expect(blessing.getByText("Long rest")).toBeVisible();
-  // A new character is level 1: 10 × 1 is a pool of 10.
+  // A fighter 1 is level 1: 10 × 1 is a pool of 10.
   const reserve = section("Bonus Actions").getByRole("group", { name: "Tidal Reserve" });
   await expect(reserve.getByRole("button", { name: "Tidal Reserve, 10 of 10 left" })).toBeVisible();
   await expect(reserve.getByText("Short rest")).toBeVisible();

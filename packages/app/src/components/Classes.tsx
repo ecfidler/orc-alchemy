@@ -8,6 +8,7 @@ import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
 import { unqualify } from "../engine/content.ts";
 import { type Content, type Engine, engine, type StrictEntity } from "../engine/engine.ts";
+import { addFirstClass } from "../engine/new-character.ts";
 import { ABILITIES } from "../engine/sheet.ts";
 import { useCharacter, useCharacterContent, useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
@@ -31,7 +32,10 @@ export function useMutation(): [error: string | null, run: (mutate: Mutation) =>
   return [error, run];
 }
 
-/** The class selection: a row per class, in the entity's order, with its level, and a class to add. */
+/**
+ * The class selection: a row per class, in the entity's order, with its level, and a class to add. A new character
+ * has no class (ORC-342): its first class comes with its starting equipment.
+ */
 export function Classes({ selection }: { selection: BuilderSelection }) {
   const [error, run] = useMutation();
   const [adding, setAdding] = useState("");
@@ -107,7 +111,13 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
       {toAdd && (
         <div className="flex flex-wrap items-center gap-2">
           <Select aria-label="Add a class" value={toAdd.key} options={free.map((o) => [o.key, o.name])} onValueChange={setAdding} />
-          <Button icon="plus" onClick={() => run((e, entity, opts) => e.addClass(entity, toAdd.key, opts))} size="small">
+          <Button
+            icon="plus"
+            onClick={() =>
+              run((e, entity, opts) => (selection.selected.length === 0 ? addFirstClass(e, entity, toAdd.key, opts) : e.addClass(entity, toAdd.key, opts)))
+            }
+            size="small"
+          >
             Add class
           </Button>
         </div>

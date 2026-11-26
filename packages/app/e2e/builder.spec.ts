@@ -2,30 +2,29 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { addFirstClass, newCharacter, openStep, stepButton } from "./builder-helpers.ts";
 import { closeSheetPanel, openSheetPanel, summaryCard } from "./sheet-panel.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
-// A step button's name ends with its count of picks left, when it has some: "Class, 2 picks left".
-const stepButton = (page: Page, name: string) => page.getByRole("navigation", { name: "Steps" }).getByRole("button", { name: new RegExp(`^${name}(, .*)?$`) });
 
 test("a new character becomes a dwarf acolyte fighter 1, and the summary card follows each pick", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
-  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  await newCharacter(page);
 
   const builder = page.getByRole("region", { name: "Builder" });
   const preview = summaryCard(page);
   const hp = preview.getByLabel("Hit points", { exact: true });
-  // emptyCharacter is a level 1 barbarian with Con 13.
-  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Barbarian 1");
-  await expect(hp).toHaveText("13");
+  // A new character has no class, so no hit points, and the standard scores: Con 13.
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("");
+  await expect(hp).toHaveText("");
+  await expect(preview.getByLabel("CON", { exact: true })).toHaveText("13 +1");
 
   // Race: a dwarf has Con +2 and a speed of 25 ft.
+  await openStep(page, "Race");
   await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
   await expect(builder.getByRole("button", { name: "Dwarf", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
   await expect(preview.getByLabel("Speed", { exact: true })).toHaveText("25 ft.");
-  await expect(hp).toHaveText("14");
+  await expect(preview.getByLabel("CON", { exact: true })).toHaveText("15 +2");
   // Picking another race replaces it, and the dwarf's subrace opens under it.
   await builder.getByRole("button", { name: "Elf", exact: true }).click();
   await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Elf");
@@ -40,10 +39,7 @@ test("a new character becomes a dwarf acolyte fighter 1, and the summary card fo
   await closeSheetPanel(page);
 
   // Class: a fighter's hit die is d10, so 10 + Con +2.
-  await stepButton(page, "Class").click();
-  // At level 1 there is nothing to lose, so the change does not ask first.
-  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
-  await expect(builder.getByLabel("Class 1", { exact: true })).toHaveText("Fighter");
+  await addFirstClass(page, "Fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await expect(hp).toHaveText("12");
   await expect(builder.getByRole("region", { name: /^Fighting Style/ })).toBeVisible();
@@ -55,16 +51,18 @@ test("a new character becomes a dwarf acolyte fighter 1, and the summary card fo
   await expect(page.getByRole("region", { name: "Builder" })).toHaveCount(0);
   await expect(page.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await expect(page.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
+  // Edit opens the first step with a mark: the fighting style is still to pick.
   await page.getByRole("link", { name: "Edit" }).click();
   await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  await expect(page.getByRole("region", { name: "Builder" }).getByRole("heading", { level: 2 })).toHaveText("Class");
 });
 
 test("a pick the engine refuses shows its reason at the selection", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   // A barbarian picks 2 skills: a third is refused.
-  await stepButton(page, "Proficiencies").click();
+  await addFirstClass(page, "Barbarian");
+  await openStep(page, "Proficiencies");
   for (const skill of ["Athletics", "Intimidation", "Survival"]) await builder.getByRole("button", { name: skill, exact: true }).click();
   await expect(builder.getByRole("alert")).toHaveText(/no selections remain/);
   await expect(summaryCard(page).getByLabel("Class", { exact: true })).toHaveText("Barbarian 1");
@@ -96,8 +94,7 @@ test("replacing a class with more than level 1 asks first", async ({ page }) => 
 });
 
 test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const preview = summaryCard(page);
   const klass = preview.getByLabel("Class", { exact: true });
@@ -105,6 +102,7 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   const region = (name: string) => builder.getByRole("region", { name: new RegExp(`^${name}`) });
 
   // The half-elf's improvement, on the Abilities step: INT 12 + 1 is 13, as a wizard needs.
+  await openStep(page, "Race");
   await builder.getByRole("button", { name: "Half-Elf", exact: true }).click();
   await stepButton(page, "Abilities").click();
   const asi = region("Ability Score Improvement");
@@ -114,8 +112,7 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await expect(preview.getByLabel("INT", { exact: true })).toHaveText("13 +1");
 
   // Con 13 is +1: 10 + 1 at level 1, then the average 6 + 1 for each level after.
-  await stepButton(page, "Class").click();
-  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
+  await addFirstClass(page, "Fighter");
   await expect(klass).toHaveText("Fighter 1");
   await expect(builder.getByRole("button", { name: "Remove a Fighter level" })).toBeDisabled();
   await expect(builder.getByRole("button", { name: "Remove Fighter", exact: true })).toBeDisabled();
@@ -155,16 +152,14 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
 });
 
 test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepares the spell", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const preview = summaryCard(page);
-  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Barbarian 1");
+  await expect(preview.getByLabel("Class", { exact: true })).toHaveText("");
 
-  // A barbarian has no spells, so the step has no count; the wizard has 3 cantrips and 6 spells to pick.
+  // A character with no class has no spells, so the step has no count; the wizard has 3 cantrips and 6 spells to pick.
   await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells");
-  await stepButton(page, "Class").click();
-  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Wizard");
+  await addFirstClass(page, "Wizard");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Wizard 1");
   await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells, 9 picks left");
   await stepButton(page, "Spells").click();
@@ -178,7 +173,7 @@ test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepare
   await expect(spells.getByRole("list", { name: "Chosen: Wizard Spells Known" })).toHaveText("1 - Magic Missile");
   await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells, 7 picks left");
 
-  // emptyCharacter has Int 12: a wizard 1 prepares 2 spells.
+  // The standard scores have Int 12: a wizard 1 prepares 2 spells.
   const prepared = builder.getByRole("region", { name: "Prepared spells: Wizard" });
   await expect(prepared).toContainText("0 of 2 prepared");
   // The sheet lists only prepared spells: none yet, then Magic Missile.
@@ -228,7 +223,8 @@ test("the Spells step has the prepare rules of the panel: no limit on the boxes,
 test("Random character opens a complete character in the builder", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Random character" }).click();
-  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  // A random character is a new character too: it opens on Name.
+  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+\?step=Name$/);
   // No step has a pick left: each step button is named by its step only.
   const buttons = page.getByRole("navigation", { name: "Steps" }).getByRole("button");
   await expect(buttons).toHaveCount(10);
@@ -237,19 +233,20 @@ test("Random character opens a complete character in the builder", async ({ page
 });
 
 test("the rail and the headings show the picks left as marks, and a pick changes them", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   await expect(page.getByText("Every choice is made.")).toHaveCount(0);
   await expect(page.getByText(/more '.*' selection/)).toHaveCount(0);
-  // The barbarian's skills count on the Proficiencies step, and the alignment on the Description step.
-  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class");
-  await expect(stepButton(page, "Proficiencies")).toHaveAccessibleName("Proficiencies, 2 picks left");
+  // A new character has a class to pick, and the alignment on the Description step. The name has no mark.
+  await expect(stepButton(page, "Name")).toHaveAccessibleName("Name");
+  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class, 1 pick left");
+  await expect(stepButton(page, "Proficiencies")).toHaveAccessibleName("Proficiencies");
   await expect(stepButton(page, "Description")).toHaveAccessibleName("Description, 1 pick left");
-  await expect(stepButton(page, "Equipment")).toHaveAccessibleName("Equipment, 2 picks left");
+  await expect(stepButton(page, "Equipment")).toHaveAccessibleName("Equipment");
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race, 1 pick left");
   // The mark on a step is the number only; the mark at a heading is "1 left", in the heading text.
   await expect(stepButton(page, "Race").locator(".ui-inline-note")).toHaveText("1");
+  await openStep(page, "Race");
   await expect(builder.getByRole("heading", { name: "Race, 1 left", exact: true })).toBeVisible();
 
   await builder.getByRole("button", { name: "Human", exact: true }).click();
@@ -258,17 +255,19 @@ test("the rail and the headings show the picks left as marks, and a pick changes
   // The human's subrace and its choices are new picks on the same step.
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race, 2 picks left");
 
-  // A fighter has a fighting style to pick on the Class step.
-  await stepButton(page, "Class").click();
-  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
+  // A fighter has a fighting style to pick on the Class step, and 2 skills on the Proficiencies step, with the
+  // language of the human.
+  await expect(stepButton(page, "Proficiencies")).toHaveAccessibleName("Proficiencies, 1 pick left");
+  await addFirstClass(page, "Fighter");
   await expect(stepButton(page, "Class")).toHaveAccessibleName("Class, 1 pick left");
+  await expect(stepButton(page, "Proficiencies")).toHaveAccessibleName("Proficiencies, 3 picks left");
 });
 
 test("a pick does not move the heading of its selection, or change its size", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
-  await stepButton(page, "Proficiencies").click();
+  await addFirstClass(page, "Barbarian");
+  await openStep(page, "Proficiencies");
   const skills = builder.getByRole("region", { name: /^Skill Proficiency/ }).first();
   const heading = skills.getByRole("heading").first();
   await expect(heading).toHaveAccessibleName("Skill Proficiency, 2 left");
@@ -290,8 +289,7 @@ test("a pick does not move the heading of its selection, or change its size", as
 });
 
 test("Next and Back go through the steps with the keyboard, and the focus goes to the step title", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const title = builder.getByRole("heading", { level: 2 });
   await stepButton(page, "Name").click();
@@ -322,8 +320,7 @@ test("Next and Back go through the steps with the keyboard, and the focus goes t
 });
 
 test("a step with nothing to pick is dimmed in the rail, and shows one line", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   await expect(stepButton(page, "Feats")).toHaveAttribute("data-dimmed", "");
   await stepButton(page, "Feats").click();
   await expect(page.getByRole("region", { name: "Builder" }).getByText("This character has no feat to pick.")).toBeVisible();
@@ -331,8 +328,7 @@ test("a step with nothing to pick is dimmed in the rail, and shows one line", as
 
 test("the rail scrolls sideways on a narrow page, and the open step scrolls into view", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const list = page.getByRole("navigation", { name: "Steps" }).getByRole("list");
   // The rail fits in the page; its list scrolls inside it.
   expect(await page.getByRole("navigation", { name: "Steps" }).evaluate((nav) => nav.getBoundingClientRect().right <= window.innerWidth)).toBe(true);
@@ -352,8 +348,7 @@ test("the rail scrolls sideways on a narrow page, and the open step scrolls into
 });
 
 test("a pick does not move the lines of the summary card, and a long name does not grow it", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const card = summaryCard(page);
   // The box of the card, then of each line and each term in it, as [x, y, width, height]. A value can grow in its line.
@@ -369,6 +364,7 @@ test("a pick does not move the lines of the summary card, and a long name does n
   await expect(card.getByLabel("Race", { exact: true })).toHaveText("");
   const before = await boxes();
   // The race and the speed get a value; nothing in the card moves.
+  await openStep(page, "Race");
   await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
   await expect(card.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
   await expect(card.getByLabel("Speed", { exact: true })).toHaveText("25 ft.");
@@ -378,9 +374,14 @@ test("a pick does not move the lines of the summary card, and a long name does n
   await expect(card.getByLabel("Background", { exact: true })).toHaveText("Acolyte");
   expect(await boxes()).toEqual(before);
 
+  // A class gives the class, the level and the hit points; nothing in the card moves.
+  await addFirstClass(page, "Fighter");
+  await expect(card.getByLabel("Hit points", { exact: true })).toHaveText("12");
+  expect(await boxes()).toEqual(before);
+
   // A long name is cut on its one line: the card keeps its size, and its lines their places in it.
-  await stepButton(page, "Description").click();
-  const name = builder.getByLabel("Character Name");
+  await openStep(page, "Name");
+  const name = builder.getByRole("textbox", { name: "Character name" });
   await name.fill("Brannor Ironfist of the Deep Halls, Keeper of the Seventh Forge");
   await name.press("Enter");
   await expect(card.getByLabel("Name", { exact: true })).toHaveText("Brannor Ironfist of the Deep Halls, Keeper of the Seventh Forge");
@@ -388,10 +389,10 @@ test("a pick does not move the lines of the summary card, and a long name does n
 });
 
 test("the summary card stays in view when the step scrolls", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
-  // The Equipment step is longer than the window.
-  await stepButton(page, "Equipment").click();
+  await newCharacter(page);
+  // The Equipment step of a barbarian is longer than the window.
+  await addFirstClass(page, "Barbarian");
+  await openStep(page, "Equipment");
   const card = summaryCard(page);
   await expect(card).toBeInViewport();
   await page.evaluate(() => window.scrollTo(0, 800));
@@ -400,8 +401,8 @@ test("the summary card stays in view when the step scrolls", async ({ page }) =>
 });
 
 test("Open the full sheet opens the panel with the keyboard; Escape closes it and the focus goes back to the button", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
+  await addFirstClass(page, "Barbarian");
   const opener = page.getByRole("button", { name: "Open the full sheet" });
   await opener.focus();
   await expect(opener).toBeFocused();
@@ -426,9 +427,8 @@ test("Open the full sheet opens the panel with the keyboard; Escape closes it an
 
 test("under 720px there is no card, and the Sheet button between Back and Next opens the panel at the full width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
-  await stepButton(page, "Class").click();
+  await newCharacter(page);
+  await openStep(page, "Class");
   const builder = page.getByRole("region", { name: "Builder" });
   await expect(summaryCard(page)).toBeHidden();
   const back = builder.getByRole("button", { name: "Back", exact: true });
@@ -468,11 +468,11 @@ const draftCount = (page: Page) =>
   );
 
 test("a reload mid-edit asks first, then recovers the draft", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const race = summaryCard(page).getByLabel("Race", { exact: true });
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Saved");
+  await openStep(page, "Race");
   await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
   await expect(race).toHaveText("Dwarf");
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Unsaved changes");
@@ -492,19 +492,22 @@ test("a reload mid-edit asks first, then recovers the draft", async ({ page }) =
 });
 
 test("Save stores the changes now, and leaving the builder saves them too", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const race = summaryCard(page).getByLabel("Race", { exact: true });
+  await openStep(page, "Race");
   await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Unsaved changes");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Saved");
   await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
 
-  // Nothing is pending, so a reload does not ask (Playwright would dismiss the prompt and stay).
+  // Nothing is pending, so a reload does not ask (Playwright would dismiss the prompt and stay). The reload opens
+  // the step of the URL, Name, and the field has the focus again.
   await page.reload();
   await expect(race).toHaveText("Dwarf");
+  await expect(builder.getByRole("textbox", { name: "Character name" })).toBeFocused();
+  await openStep(page, "Race");
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Saved");
   await expect(page.getByText(/were recovered/)).toHaveCount(0);
 
@@ -512,15 +515,16 @@ test("Save stores the changes now, and leaving the builder saves them too", asyn
   await builder.getByRole("button", { name: "Elf", exact: true }).click();
   await expect(race).toHaveText("Elf");
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
-  await expect(page.getByRole("listitem", { name: "Unnamed character" })).toContainText("Elf · Barbarian 1", { timeout: 3000 });
+  // A character with no class shows its race only.
+  await expect(page.getByRole("listitem", { name: "Unnamed character" }).locator("p")).toHaveText("Elf", { timeout: 3000 });
   await expect.poll(() => draftCount(page)).toBe(0);
 });
 
 test("fighter-1's scores by hand: a standard human with the standard scores, then a swap and point buy", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const str = summaryCard(page).getByLabel("STR", { exact: true });
+  await openStep(page, "Race");
   await builder.getByRole("button", { name: "Human", exact: true }).click();
   await builder.getByRole("button", { name: "Damaran", exact: true }).click();
   await builder.getByRole("button", { name: "Standard Human", exact: true }).click();
@@ -588,12 +592,28 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
   await expect(longsword.getByRole("cell")).toHaveText(["Longsword 1", "+12 to hit", "+6"]);
 });
 
-test("the Description step writes a name on Enter, and XP on blur as an int", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+test("a new character opens on Name with the focus in the field; Enter writes the name and goes to Class (ORC-342)", async ({ page }) => {
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const preview = summaryCard(page);
   await expect(preview.getByLabel("Name", { exact: true })).toHaveText("Unnamed character");
+  const name = builder.getByRole("textbox", { name: "Character name" });
+  await expect(name).toBeFocused();
+  await page.keyboard.type("Brannor Ironfist");
+  await expect(name).toHaveValue("Brannor Ironfist");
+  await page.keyboard.press("Enter");
+  await expect(builder.getByRole("heading", { level: 2 })).toHaveText("Class");
+  await expect(builder.getByRole("heading", { level: 2 })).toBeFocused();
+  await expect(preview.getByLabel("Name", { exact: true })).toHaveText("Brannor Ironfist");
+  await expect(stepButton(page, "Name")).toHaveAccessibleName("Name");
+  // The Class step shows its left mark, and the heading of the class selection too.
+  await expect(stepButton(page, "Class")).toHaveAccessibleName("Class, 1 pick left");
+  await expect(builder.getByRole("heading", { name: "Class, 1 left", exact: true })).toBeVisible();
+});
+
+test("the Description step has no name field, and writes XP on blur as an int", async ({ page }) => {
+  await newCharacter(page);
+  const builder = page.getByRole("region", { name: "Builder" });
 
   // Description is the last step of ten, and it has the alignment to pick.
   const buttons = page.getByRole("navigation", { name: "Steps" }).getByRole("button");
@@ -603,11 +623,7 @@ test("the Description step writes a name on Enter, and XP on blur as an int", as
   const description = buttons.last();
   await expect(description).toHaveAccessibleName("Description, 1 pick left");
   await description.click();
-
-  const name = builder.getByLabel("Character Name");
-  await name.fill("Brannor Ironfist");
-  await name.press("Enter");
-  await expect(preview.getByLabel("Name", { exact: true })).toHaveText("Brannor Ironfist");
+  await expect(builder.getByLabel(/Character name/i)).toHaveCount(0);
 
   await builder.getByLabel("Experience Points").fill("900.9");
   await builder.getByRole("heading", { name: "Description" }).click();
@@ -618,9 +634,7 @@ test("the Description step writes a name on Enter, and XP on blur as an int", as
 test("fighter-1 built from New character through the steps matches its expected values", async ({ page }) => {
   // The picks of fighter-1.strict.json. The golden test (parity.test.ts) checks the whole entity.
   const expected = JSON.parse(readFileSync(join(charactersDir, "fighter-1.expected.json"), "utf8"));
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
-  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const preview = summaryCard(page);
   const card = (name: string) => builder.getByRole("button", { name, exact: true });
@@ -631,11 +645,17 @@ test("fighter-1 built from New character through the steps matches its expected 
     }
   };
 
+  // The name first, on the step that a new character opens on.
+  const name = builder.getByRole("textbox", { name: "Character name" });
+  await expect(name).toBeFocused();
+  await name.fill(expected["character-name"]);
+  await name.press("Enter");
+  await expect(builder.getByRole("heading", { level: 2 })).toHaveText("Class");
+  await openStep(page, "Race");
   await pick("Human", "Damaran", "Standard Human");
-  await stepButton(page, "Background").click();
+  await openStep(page, "Background");
   await pick("Acolyte");
-  await stepButton(page, "Class").click();
-  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
+  await addFirstClass(page, "Fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await pick("Defense");
   // The human knows one language more and the acolyte two more: one selection, with the fighter's skills.
@@ -654,9 +674,6 @@ test("fighter-1 built from New character through the steps matches its expected 
   await pickOption(builder.getByLabel("Main hand"), "Longsword");
   await stepButton(page, "Description").click();
   await pick("Lawful Good");
-  const name = builder.getByLabel("Character Name");
-  await name.fill(expected["character-name"]);
-  await name.press("Enter");
 
   await expect(preview.getByLabel("Name", { exact: true })).toHaveText(expected["character-name"]);
   // The worn chain mail and the wielded shield: 19.
@@ -709,12 +726,10 @@ test.describe("screenshots", () => {
         mkdirSync(dir, { recursive: true });
         await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
         await page.setViewportSize({ width, height });
-        await page.goto("/");
-        await page.getByRole("button", { name: "New character" }).click();
+        await newCharacter(page);
         const builder = page.getByRole("region", { name: "Builder" });
         // A fighter on the Class step: the class is done, and the fighting style has 1 left.
-        await stepButton(page, "Class").click();
-        await pickOption(builder.getByLabel("Class 1", { exact: true }), "Fighter");
+        await addFirstClass(page, "Fighter");
         await expect(builder.getByRole("heading", { name: "Fighting Style, 1 left" })).toBeVisible();
         await expect(builder.getByRole("heading", { name: "Class, Done" })).toBeVisible();
         await page.evaluate(() => document.fonts.ready);
@@ -799,12 +814,51 @@ test.describe("screenshots", () => {
     await page.screenshot({ path: join(dir, "orc-341-no-class-panel-desktop-light.png") });
   });
 
+  // PR_SCREENSHOTS=1 bunx playwright test e2e/builder.spec.ts -g orc-342 --trace off
+  for (const [theme, width, height, size] of [
+    ["light", 1280, 800, "desktop"],
+    ["dark", 1280, 800, "desktop"],
+    ["light", 390, 844, "390"],
+  ] as const) {
+    test(`orc-342 the Name step of a new character, ${size}, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      await page.setViewportSize({ width, height });
+      await newCharacter(page);
+      await expect(page.getByRole("textbox", { name: "Character name" })).toBeFocused();
+      await ready(page);
+      await page.screenshot({ path: join(dir, `orc-342-name-step-${size}-${theme}.png`) });
+    });
+  }
+  for (const theme of ["light", "dark"] as const) {
+    test(`orc-342 the sheet of a character with no class, desktop, ${theme}`, async ({ page }) => {
+      mkdirSync(dir, { recursive: true });
+      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await newCharacter(page);
+      await page.getByRole("link", { name: "Done" }).click();
+      await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
+      await expect(page.getByRole("group", { name: "Hit Points" })).toHaveText("");
+      await ready(page);
+      await page.screenshot({ path: join(dir, `orc-342-sheet-no-class-desktop-${theme}.png`) });
+    });
+  }
+  test("orc-342 the Class step of a new character, desktop, light", async ({ page }) => {
+    mkdirSync(dir, { recursive: true });
+    await page.addInitScript(() => localStorage.setItem("theme", "light"));
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await newCharacter(page);
+    await openStep(page, "Class");
+    await expect(page.getByRole("region", { name: "Builder" }).getByRole("heading", { name: "Class, 1 left", exact: true })).toBeVisible();
+    await ready(page);
+    await page.screenshot({ path: join(dir, "orc-342-class-step-desktop-light.png") });
+  });
+
   test("orc-340 an empty step, desktop, light", async ({ page }) => {
     mkdirSync(dir, { recursive: true });
     await page.addInitScript(() => localStorage.setItem("theme", "light"));
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto("/");
-    await page.getByRole("button", { name: "New character" }).click();
+    await newCharacter(page);
     await stepButton(page, "Feats").click();
     await expect(page.getByText("This character has no feat to pick.")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);

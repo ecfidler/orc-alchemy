@@ -228,7 +228,8 @@ export function CharacterSheet({
         >
           <HitPointsBox
             current={sheet.currentHitPoints ?? sheet.maxHitPoints}
-            max={sheet.maxHitPoints}
+            // A character with no class has no hit points: the box is empty (ORC-342).
+            max={sheet.classes.length > 0 ? sheet.maxHitPoints : null}
             caption={maxCaption(sheet.exhaustion)}
             temp={sheet.tempHitPoints}
             temporary={!preview}
@@ -236,7 +237,7 @@ export function CharacterSheet({
             popupWidthOf={narrow ? vitals : null}
             className={preview ? undefined : "col-span-2 @min-[600px]/vitals:col-span-1"}
           />
-          <HitDiceBox dice={sheet.hitDice} onAction={play?.onHitDice} popupWidthOf={narrow ? vitals : null} />
+          <HitDiceBox dice={sheet.hitDice} onAction={sheet.hitDice.length > 0 ? play?.onHitDice : undefined} popupWidthOf={narrow ? vitals : null} />
           {!preview && <DeathSavesBox saves={sheet.deathSaves} deadOfExhaustion={deadOfExhaustion(sheet.exhaustion)} onChange={play?.onDeathSaves} />}
         </div>
         <ConditionsBox sheet={sheet} onAction={play?.onConditions} popupWidthOf={narrow ? vitals : null} />

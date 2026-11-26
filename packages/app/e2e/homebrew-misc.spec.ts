@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { newCharacter, openStep } from "./builder-helpers.ts";
 import { openSheetPanel } from "./sheet-panel.ts";
 
 // ORC-76: a language made in the language form is one of a new human's language choices.
@@ -11,10 +12,9 @@ test("a language made in the language form is a language choice of a new charact
   await expect(page).toHaveURL(/\/content$/);
   await expect(page.getByText("1 language", { exact: true })).toBeVisible();
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
-  await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
+  await openStep(page, "Race");
   await builder.getByRole("button", { name: "Human", exact: true }).click();
   // The human's choice of a language is on the Proficiencies step (ORC-339).
   await page

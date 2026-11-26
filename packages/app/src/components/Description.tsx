@@ -1,11 +1,14 @@
 // The Description step (ORC-61): the old builder's Description tab. Each
 // field keeps its text while the user types, and writes it on blur, or on
 // Enter in a one-line field. A write evaluates the whole character, so a
-// keystroke does not write.
+// keystroke does not write. The character name is on the Name step (ORC-342).
 import { useId, useState } from "react";
-import { DESCRIPTION_FIELDS, type DescriptionField, normalized, setDescription, storedValue } from "../engine/description.ts";
+import { DESCRIPTION_FIELDS, type DescriptionField, NAME_KEY, normalized, setDescription, storedValue } from "../engine/description.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useMutation } from "./Classes.tsx";
+
+/** The fields of the Description step: all but the name. */
+const FIELDS = DESCRIPTION_FIELDS.filter((field) => field.key !== NAME_KEY);
 
 export function Description() {
   const { entity } = useOpenCharacter();
@@ -14,7 +17,7 @@ export function Description() {
   return (
     <div className="space-y-3">
       {error && <p role="alert">{error}</p>}
-      {DESCRIPTION_FIELDS.map((field) => (
+      {FIELDS.map((field) => (
         <TextField
           key={field.key}
           field={field}

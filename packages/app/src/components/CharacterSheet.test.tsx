@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import type { ReactElement } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
+import { newCharacter } from "../engine/new-character.ts";
 import { bonusStr, type KnownSpell, ordinal, type Sheet, toSheet } from "../engine/sheet.ts";
 import { loadSpellContent } from "../engine/spells.ts";
 import { useHomebrew } from "../state/homebrew.ts";
@@ -583,6 +584,22 @@ const playMocks = () => ({
   onInspiration: vi.fn(),
   onAcPick: vi.fn(),
   onDismissNote: vi.fn(),
+});
+
+test("a character with no class shows with play: the class line, the hit points and the hit dice are empty (ORC-342)", async () => {
+  await loadEngine();
+  const entity = newCharacter(engine());
+  const play = playMocks();
+  render(<CharacterSheet sheet={toSheet(engine().evaluate(entity).built, entity)} play={play} />);
+  expect(screen.getByLabelText("Class", { exact: true }).textContent).toBe("");
+  // The engine gives 1 for the maximum with no class: the box shows no number and has no popup, also for the
+  // temporary hit points.
+  expect(screen.getByRole("group", { name: "Hit Points" }).textContent).toBe("");
+  expect(screen.getByRole("group", { name: "Temporary" }).textContent).toBe("");
+  expect(screen.queryByRole("button", { name: /hit points/i })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Hit dice/ })).toBeNull();
+  // The other play controls stay.
+  expect(screen.getByRole("button", { name: "Inspiration" })).toBeTruthy();
 });
 
 test("with play, the Inspiration box is a button: a click sets inspiration, and a second click removes it (ORC-324)", () => {

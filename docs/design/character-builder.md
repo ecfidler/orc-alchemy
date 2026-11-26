@@ -333,6 +333,8 @@ no class equipment.
 * The sheet, the summary card and the full sheet panel must show a
   character with no class. The class line is empty, the level is empty,
   and the hit points are empty.
+* On the sheet, the Hit points box and the Hit dice box of a character
+  with no class show no number and open no popup.
 * The engine accepts a character with no class.[^orc-329]
 
 ## The class cards

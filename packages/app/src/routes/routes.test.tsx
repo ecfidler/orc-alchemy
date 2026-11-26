@@ -113,14 +113,23 @@ test("the build route for an unknown character says so once the engine loads", a
   expect(await screen.findByRole("heading", { name: "Character not found" })).toBeTruthy();
 });
 
-test("New character opens the builder, and a pick updates the summary card", async () => {
+/** Opens a step of the builder with the step rail. */
+const openStep = (name: string) =>
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: new RegExp(`^${name}`) }));
+
+test("New character opens the builder on Name with the focus in the field, with no class, and a pick updates the summary card", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
   const summary = await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
-  expect(within(summary).getByText("Barbarian 1")).toBeTruthy();
+  expect(within(summary).getByLabelText("Class").textContent).toBe("");
   expect(screen.getByRole("link", { name: "Done" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Back to List" }).getAttribute("href")).toBe("/characters");
+  expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Name");
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Character name" })));
+  // The Class step shows 1 left.
+  expect(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: "Class, 1 pick left" })).toBeTruthy();
 
+  openStep("Race");
   const race = screen.getByRole("region", { name: /^Race/ });
   fireEvent.click(within(race).getByRole("button", { name: "Dwarf" }));
   expect(within(race).getByRole("button", { name: "Dwarf" }).getAttribute("aria-pressed")).toBe("true");
@@ -136,6 +145,7 @@ test("Save stores the changes now, and the status says when they are saved", asy
   expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved");
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 
+  openStep("Race");
   fireEvent.click(within(screen.getByRole("region", { name: /^Race/ })).getByRole("button", { name: "Halfling" }));
   expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Unsaved changes");
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -170,6 +180,7 @@ test("leaving the character after a failed save asks first", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
   const summary = await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
+  openStep("Race");
   fireEvent.click(within(screen.getByRole("region", { name: /^Race/ })).getByRole("button", { name: "Elf" }));
   useStorage.setState({ failed: true });
 
@@ -180,6 +191,22 @@ test("leaving the character after a failed save asks first", async () => {
   fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
   await answerConfirmDialog("Leave");
   expect(await screen.findByRole("heading", { level: 1, name: "Alchemy 5e" })).toBeTruthy();
+});
+
+test("Edit on a sheet opens the first step with a mark, or Class when no step has one", async () => {
+  // The engine's barbarian has its class, and no background.
+  const id = await addCharacter(engine().emptyCharacter(), "2014", null);
+  renderAt(`/sheet/${id}`);
+  fireEvent.click(await screen.findByRole("link", { name: "Edit" }, { timeout: 5000 }));
+  expect((await screen.findByRole("heading", { level: 2 })).textContent).toBe("Background");
+  // The name field does not take the focus.
+  expect(document.activeElement).not.toBe(screen.queryByRole("textbox", { name: "Character name" }));
+  cleanup();
+  // A complete character.
+  const done = await addCharacter(engine().autofill(engine().emptyCharacter(), { seed: 7 }), "2014", null);
+  renderAt(`/sheet/${done}`);
+  fireEvent.click(await screen.findByRole("link", { name: "Edit" }, { timeout: 5000 }));
+  expect((await screen.findByRole("heading", { level: 2 })).textContent).toBe("Class");
 });
 
 test("opening a character with a draft recovers it and says so", async () => {

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { type Download, expect, type Page, test } from "@playwright/test";
+import { addFirstClass, newCharacter } from "./builder-helpers.ts";
 import { expectNoteClearOfContent } from "./notes.ts";
 
 const orcbrewDir = join(import.meta.dirname, "../../../fixtures/orcbrew");
@@ -173,12 +174,10 @@ test("a spell made on My Content is a choice in a new wizard's spells", async ({
   await expect(page).toHaveURL(/\/content$/);
   await expect(page.getByRole("region", { name: "Default Option Source" })).toBeVisible();
 
-  await page.goto("/");
-  await page.getByRole("button", { name: "New character" }).click();
+  await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   const steps = page.getByRole("navigation", { name: "Steps" });
-  await steps.getByRole("button", { name: /^Class/ }).click();
-  await pickOption(builder.getByLabel("Class 1", { exact: true }), "Wizard");
+  await addFirstClass(page, "Wizard");
   await steps.getByRole("button", { name: /^Spells/ }).click();
   await expect(builder.getByRole("region", { name: /^Wizard Spells Known/ }).getByRole("button", { name: "1 - Fire Pop" })).toBeVisible();
 });

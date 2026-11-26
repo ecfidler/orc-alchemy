@@ -2,8 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { type BuilderSelection, builderSteps, pickName, remainingByStep, remainingOf, unfilled, withSpellsToPrepare } from "./builder.ts";
+import { type BuilderSelection, builderSteps, openingStep, pickName, remainingByStep, remainingOf, unfilled, withSpellsToPrepare } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { newCharacter } from "./new-character.ts";
 import type { Spellcaster, Spellcasting } from "./sheet.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
@@ -482,4 +483,16 @@ test("pickName names a pick by its selection and its option, at any depth, and g
   // A key that the tree does not have, such as a pick under an option that is gone.
   expect(pickName(race, ["race", "human", "subrace", "no-such-subrace"])).toBe("no-such-subrace");
   expect(pickName(race, ["race", "dwarf", "subrace", "hill-dwarf"])).toBe("hill-dwarf");
+});
+
+test("the step that opens is the first step with picks to make or to remove, or Class when no step has one", () => {
+  // The new character has no class: Class has 1 left, and Name never has a mark.
+  expect(openingStep(stepsOf(newCharacter(engine())))).toBe("Class");
+  // The engine's new character has its class, and no background.
+  expect(openingStep(stepsOf(engine().emptyCharacter()))).toBe("Background");
+  // A step with a pick too many counts too.
+  const steps = stepsOf(engine().emptyCharacter()).map((s) => ({ ...s, selections: [] as BuilderSelection[] }));
+  expect(openingStep(steps)).toBe("Class");
+  const over = { ...stepsOf(engine().emptyCharacter()).find((s) => s.name === "Race")!.selections[0], remaining: -1 };
+  expect(openingStep(steps.map((s) => (s.name === "Spells" ? { ...s, selections: [over] } : s)))).toBe("Spells");
 });

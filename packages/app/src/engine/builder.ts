@@ -56,6 +56,9 @@ export interface BuilderSelection {
 export const STEP_NAMES = ["Name", "Class", "Background", "Race", "Abilities", "Proficiencies", "Feats", "Spells", "Equipment", "Description"] as const;
 export type StepName = (typeof STEP_NAMES)[number];
 
+/** The step that a new character opens on, with the focus in the name field (`/build/{id}?step=Name`). */
+export const NAME_STEP: StepName = "Name";
+
 export interface BuilderStep {
   name: StepName;
   selections: BuilderSelection[];
@@ -303,6 +306,15 @@ export function remainingByStep(steps: BuilderStep[]): { toDo: number; tooMany: 
       { toDo: 0, tooMany: 0 },
     ),
   );
+}
+
+/**
+ * The step that the Edit button of a sheet opens (spec, "The step that opens"): the first step with picks to make or
+ * to remove, or Class when no step has one.
+ */
+export function openingStep(steps: BuilderStep[]): StepName {
+  const counts = remainingByStep(steps);
+  return steps.find((_, i) => counts[i].toDo > 0 || counts[i].tooMany > 0)?.name ?? "Class";
 }
 
 /** What withSpellsToPrepare takes from the sheet. */

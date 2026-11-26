@@ -3,11 +3,13 @@
 // ("The summary card"). e2e/builder.spec.ts measures in a browser that a pick does not move a selection heading or a
 // line of the card.
 import "fake-indexeddb/auto";
+import { pickOption } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { STEP_NAMES } from "../engine/builder.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
+import { newCharacter } from "../engine/new-character.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder, BuilderStatusToast, useBuilderStatus } from "./Builder.tsx";
 import { closeSheetPanel, openSheetPanel, summaryCard } from "./test-sheet-panel.ts";
@@ -180,15 +182,45 @@ test("the summary card has the same lines on each step, with the values of the c
 });
 
 test("a character with no class and no race shows in the card and in the full sheet panel with no error", async () => {
-  // emptyCharacter less its class: no class, no race.
-  const e = engine();
-  open("Class", undefined, e.removeClass(e.emptyCharacter() as StrictEntity, "barbarian") as StrictEntity);
+  // The app's new character: no class, no race.
+  open("Class", undefined, newCharacter(engine()));
   // The class, the level and the hit points are empty.
   expect(cardLines()).toMatchObject({ Class: "", Level: "", Race: "", "Hit points": "", Speed: "", STR: "15 +2" });
   const panel = await openSheetPanel();
   expect(within(panel).getByRole("heading", { level: 1, name: "Unnamed character" })).toBeTruthy();
   expect(within(panel).getByLabelText("Class", { exact: true }).textContent).toBe("");
+  // The Hit Points box shows no number, and the Hit dice box none.
+  expect(within(panel).getByRole("group", { name: "Hit Points" }).textContent).toBe("");
+  expect(within(panel).getByRole("group", { name: "Hit dice" }).textContent).toBe("");
   await closeSheetPanel();
+});
+
+test("the Class step of a new character shows 1 left in the rail and at its heading, and the first class can be added", async () => {
+  open("Class", undefined, newCharacter(engine()));
+  expect(rail().getByRole("button", { name: "Class, 1 pick left" })).toBeTruthy();
+  const classes = builder().getByRole("region", { name: /^Class/ });
+  expect(within(classes).getAllByRole("heading")[0].textContent).toBe("Class,1 left");
+  // No class row: only the class to add. A wizard needs INT 13 as a multiclass, but not as the first class.
+  expect(within(classes).queryByRole("combobox", { name: "Class 1" })).toBeNull();
+  await pickOption(within(classes).getByRole("combobox", { name: "Add a class" }), "Wizard");
+  fireEvent.click(within(classes).getByRole("button", { name: "Add class" }));
+  expect(within(builder().getByRole("region", { name: /^Class/ })).getAllByRole("heading")[0].textContent).toBe("Class,Done");
+  expect(cardLines()).toMatchObject({ Class: "Wizard 1", Level: "1", "Hit points": "7" });
+  expect(rail().getByRole("button", { name: "Class" })).toBeTruthy();
+});
+
+test("without a step, the builder opens the first step with a mark, or Class when no step has one", () => {
+  // The engine's barbarian has its class and no background.
+  open();
+  expect(title().textContent).toBe("Background");
+  cleanup();
+  // The new character has a mark on Class; Name never has one.
+  open(undefined, undefined, newCharacter(engine()));
+  expect(title().textContent).toBe("Class");
+  cleanup();
+  // A character with no pick to make: each step is done.
+  open(undefined, undefined, engine().autofill(engine().emptyCharacter(), { seed: 7 }) as StrictEntity);
+  expect(title().textContent).toBe("Class");
 });
 
 test("Open the full sheet opens the sheet in a panel with the focus in it, and Close and Escape give the focus back", async () => {

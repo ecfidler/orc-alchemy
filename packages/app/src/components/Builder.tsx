@@ -5,7 +5,7 @@
 // card beside the step and the full sheet panel are ORC-341 ("The summary card").
 import { Button, ButtonLink, SidePanel, StepRail, Toast, Toggle, ToggleGroup } from "@orc-alchemy/ui";
 import { createContext, type ReactElement, type ReactNode, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
-import { type BuilderOption, type BuilderSelection, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
+import { type BuilderOption, type BuilderSelection, openingStep, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
@@ -14,6 +14,7 @@ import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
+import { NameStep } from "./NameStep.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 import { SummaryCard } from "./SummaryCard.tsx";
 
@@ -42,17 +43,22 @@ const BuilderStatus = createContext<(text: string) => void>(() => {});
 export const useBuilderStatus = () => useContext(BuilderStatus);
 
 /**
- * `step`: the name of the step that shows first, for example `SPELLS_STEP`. The Race step by default, until ORC-342
- * sets which step opens. It is read only at the start: a later change of step does not change it, so the URL keeps
- * its `?step=` and a reload goes back to that step. A name that is not a step gives the first step.
+ * `step`: the name of the step that shows first, for example `SPELLS_STEP`. Without it, the first step with picks to
+ * make or to remove shows, or Class when no step has one (spec, "The step that opens"): the Edit button of a sheet. A
+ * new character opens with `step` "Name", and then the name field has the focus. `step` is read only at the start: a
+ * later change of step does not change it, so the URL keeps its `?step=` and a reload goes back to that step. A name
+ * that is not a step gives the first step.
  * `sheetLink`: the link element of "Go to the sheet" on the Description step, for example the router's link to the
  * sheet of the character. Without it, the step has no "Go to the sheet".
  */
-export function Builder({ step: firstStep = "Race", sheetLink }: { step?: string; sheetLink?: ReactElement }) {
+export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLink?: ReactElement }) {
   const { selections, sheet, content } = useOpenCharacter();
   // The ten steps, with Name and Description. Before the character loads there are no steps at all.
   const steps = useBuilderSteps(selections, content, sheet);
-  const [stepName, setStepName] = useState(firstStep);
+  // Without a step from the URL, the step that opens is set when the steps are there, in the same render, so
+  // nothing shows before it.
+  const [stepName, setStepName] = useState<string | null>(firstStep ?? null);
+  if (stepName === null && steps.length > 0) setStepName(openingStep(steps));
   const index = Math.max(
     steps.findIndex((s) => s.name === stepName),
     0,
@@ -64,7 +70,10 @@ export function Builder({ step: firstStep = "Race", sheetLink }: { step?: string
   // After Next or Back, the focus goes to the step title (spec, "Keyboard and screen reader").
   const title = useRef<HTMLHeadingElement>(null);
   const focusTitle = useRef(false);
+  // The name field gets the focus only when the builder opens on Name, as a new character does.
+  const focusName = useRef(firstStep === "Name");
   useEffect(() => {
+    if (stepName !== "Name") focusName.current = false;
     if (!focusTitle.current) return;
     focusTitle.current = false;
     title.current?.focus();
@@ -106,7 +115,7 @@ export function Builder({ step: firstStep = "Race", sheetLink }: { step?: string
                     if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
                     return <Selection key={key} selection={selection} />;
                   })}
-                {step.name === "Name" && <p>The character name is on the Description step.</p>}
+                {step.name === "Name" && <NameStep autoFocus={focusName.current} onEnter={() => go("Class")} />}
                 {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
                 {step.name === SPELLS_STEP && <PreparedSpells />}
                 {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
