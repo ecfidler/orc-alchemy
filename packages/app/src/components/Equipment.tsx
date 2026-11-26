@@ -31,7 +31,7 @@ const MAX_ATTUNED = 3;
 export function Inventory({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { entity } = useOpenCharacter();
-  const [, run] = useMutation();
+  const run = useMutation();
   const list = selection.key;
   const customKey = CUSTOM_VALUES[list];
   const items = useMemo(() => storedItems(entity!, list), [entity, list]);
@@ -137,7 +137,7 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
 export function Hands({ lists }: { lists: BuilderSelection[] }) {
   const id = useId();
   const { entity, sheet } = useOpenCharacter();
-  const [, run] = useMutation();
+  const run = useMutation();
   if (!sheet) return null;
   const { armorClassOptions, equipment, weaponAttacks } = sheet;
   const all = [...equipment.weapons, ...equipment.armor, ...equipment.magicItems];

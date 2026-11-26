@@ -1,11 +1,13 @@
 // The question before a change that removes picks (ORC-344, docs/design/character-builder.md "A change that removes
 // picks"): the ui AlertDialog, with the change in its title, the line "These picks go:" and the list of the picks, and
 // the buttons Cancel and the action. A change that removes no pick asks nothing. After the action, the picks go and
-// then the engine gets the change, through useMutation, so a refusal shows in the status toast.
+// then the engine gets the change, through useMutation, so a refusal shows in the status toast. When the character
+// changed while the question was open, the change is planned again for it, and it is made only when it removes no
+// pick that the question did not list.
 import { useConfirm } from "@orc-alchemy/ui";
 import type { ReactNode, RefObject } from "react";
 import { engine } from "../engine/engine.ts";
-import { type PickChange, planChange, type RemovedRow } from "../engine/removed-picks.ts";
+import { type ChangePlan, type PickChange, planChange, type RemovedRow } from "../engine/removed-picks.ts";
 import { useCharacter, useCharacterContent } from "../state/character.ts";
 import { useBuilderStatus } from "./builder-context.tsx";
 import { useMutation } from "./Classes.tsx";
@@ -44,23 +46,37 @@ export function RemovedPicks({ rows }: { rows: RemovedRow[] }) {
  */
 export function useChangeQuestion(): [change: (change: PickChange, finalFocus?: RefObject<HTMLElement | null>) => Promise<void>, dialog: ReactNode] {
   const [confirm, dialog] = useConfirm();
-  const [, run] = useMutation();
+  const run = useMutation();
   const content = useCharacterContent();
   const say = useBuilderStatus();
 
-  async function change(change: PickChange, finalFocus?: RefObject<HTMLElement | null>) {
+  /** The plan of the change for the stored character, or null when there is no character or the plan throws. */
+  function plan(change: PickChange): ChangePlan | null {
     const entity = useCharacter.getState().entity;
-    if (entity === null) return;
-    let plan: ReturnType<typeof planChange>;
+    if (entity === null) return null;
     try {
-      plan = planChange({ engine: engine(), entity, content }, change);
+      return planChange({ engine: engine(), entity, content }, change);
     } catch (e) {
       say(e instanceof Error ? e.message : String(e));
-      return;
+      return null;
     }
-    const { question, apply } = plan;
+  }
+
+  async function change(change: PickChange, finalFocus?: RefObject<HTMLElement | null>) {
+    const first = plan(change);
+    if (first === null) return;
+    const { question } = first;
     if (question !== null && !(await confirm(question.title, question.action, undefined, { body: <RemovedPicks rows={question.rows} />, finalFocus }))) return;
-    run((_, current) => apply(current));
+    // The stored character can change while the question is open: then the plan is made again for it.
+    let chosen = first;
+    if (useCharacter.getState().entity !== first.entity) {
+      const next = plan(change);
+      const listed = new Set(first.removed.map((path) => path.join("/")));
+      // The player did not agree to a pick that the question did not list.
+      if (next === null || next.removed.some((path) => !listed.has(path.join("/")))) return;
+      chosen = next;
+    }
+    run(() => chosen.apply());
   }
   return [change, dialog];
 }

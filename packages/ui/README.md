@@ -112,6 +112,15 @@ bun run test       # vitest
     give it an `aria-label`. With `disabled`, it takes no input and has the
     look of a disabled button: muted text and a `--rule-strong` border.
     Styles: `src/number-field.css`.
+  - `TextInput`: Base UI Input, a boxed one-line text field. Its role is
+    textbox. It is controlled by `value` and `onValueChange`, which gets
+    the whole text after each change. `width` is "normal" (the default, up
+    to 26rem), "short" (up to 7rem) or "full". `onBlur` and `onKeyDown`
+    reach the input, for example to write the text on blur or on Enter.
+    With `autoFocus`, the input gets the focus when it first shows; a
+    later render does not move the focus. Put it in a label, or give it an
+    `aria-label`. `TextArea` is the same for more than one line, as a
+    native textarea with `rows`. Styles: `src/field.css`.
   - `AmountField` and `useAmount()`: a NumberField for an amount of 0 or
     more, with its state. `useAmount(initial)` gives the state: `value`,
     `onValueChange`, `note`, and `submit(act)`, which gives the amount to

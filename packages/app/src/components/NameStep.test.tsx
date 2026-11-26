@@ -69,3 +69,23 @@ test("the field does not get the focus when the builder opens on another step", 
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(document.activeElement).not.toBe(field());
 });
+
+test("when the write of the name fails, Enter shows the refusal in the status toast, and the player stays on Name", async () => {
+  open("name-refused", "Name");
+  const { update } = useCharacter.getState();
+  // The store refuses the next write, as the engine refuses a change.
+  useCharacter.setState({
+    update: () => {
+      throw new Error("The engine refuses the name.");
+    },
+  });
+  try {
+    fireEvent.change(field(), { target: { value: "Brannor" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+  } finally {
+    useCharacter.setState({ update });
+  }
+  expect(stored()).toBe("");
+  expect(title().textContent).toBe("Name");
+  await waitFor(() => expect(document.querySelector("[data-toast-status]")?.textContent).toBe("The engine refuses the name."));
+});

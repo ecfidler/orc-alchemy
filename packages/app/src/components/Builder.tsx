@@ -4,12 +4,11 @@
 // are ORC-340 (docs/design/character-builder.md, "The step rail"). The summary
 // card beside the step and the full sheet panel are ORC-341 ("The summary card").
 import { Button, ButtonLink, SidePanel, StepRail } from "@orc-alchemy/ui";
-import { type ReactElement, useEffect, useId, useMemo, useRef, useState } from "react";
-import { type BuilderSelection, openingStep, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
-import { pickSources, sectionNames, topSources } from "../engine/selection-control.ts";
+import { type ReactElement, useEffect, useId, useRef, useState } from "react";
+import { type BuilderSelection, NAME_STEP, openingStep, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
-import { BuilderStatusToast, StepFrameContext } from "./builder-context.tsx";
+import { BuilderStatusToast, StepFrameProvider } from "./builder-context.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { Classes, Heading, HitPoints, Improvements } from "./Classes.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
@@ -24,6 +23,9 @@ import { SummaryCard } from "./SummaryCard.tsx";
 /** The name of the builder's Spells step, for example for a link to it (`/build/{id}?step=Spells`). */
 export const SPELLS_STEP: StepName = "Spells";
 
+/** The step that Enter in the name field goes to. */
+const CLASS_STEP: StepName = "Class";
+
 /** The one line of a step that has nothing to pick for this character (spec, "The step rail"). */
 const EMPTY_LINE: Partial<Record<StepName, string>> = {
   Class: "This character has no class to pick.",
@@ -36,12 +38,10 @@ const EMPTY_LINE: Partial<Record<StepName, string>> = {
   Equipment: "This character has no equipment to pick.",
 };
 
-export { BuilderStatusToast, useBuilderStatus } from "./builder-context.tsx";
-
 /**
  * `step`: the name of the step that shows first, for example `SPELLS_STEP`. Without it, the first step with picks to
  * make or to remove shows, or Class when no step has one (spec, "The step that opens"): the Edit button of a sheet. A
- * new character opens with `step` "Name", and then the name field has the focus. `step` is read only at the start: a
+ * new character opens with `step` NAME_STEP, and then the name field has the focus. `step` is read only at the start: a
  * later change of step does not change it, so the URL keeps its `?step=` and a reload goes back to that step. A name
  * that is not a step gives the first step.
  * `sheetLink`: the link element of "Go to the sheet" on the Description step, for example the router's link to the
@@ -61,20 +61,15 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
   );
   const step = steps[index];
   const counts = remainingByStep(steps);
-  // The heading names of the open step's sections, and where the character's picks come from (ORC-343).
-  const tops = useMemo(() => topSources(steps), [steps]);
-  const picks = useMemo(() => pickSources(steps), [steps]);
-  const names = useMemo(() => sectionNames(step?.selections ?? []), [step]);
-  const frame = useMemo(() => ({ names, tops, picks }), [names, tops, picks]);
   const rail = steps.map((s, i) => ({ value: s.name, label: s.name, left: counts[i].toDo, over: counts[i].tooMany, dimmed: s.empty }));
 
   // After Next or Back, the focus goes to the step title (spec, "Keyboard and screen reader").
   const title = useRef<HTMLHeadingElement>(null);
   const focusTitle = useRef(false);
   // The name field gets the focus only when the builder opens on Name, as a new character does.
-  const focusName = useRef(firstStep === "Name");
+  const focusName = useRef(firstStep === NAME_STEP);
   useEffect(() => {
-    if (stepName !== "Name") focusName.current = false;
+    if (stepName !== NAME_STEP) focusName.current = false;
     if (!focusTitle.current) return;
     focusTitle.current = false;
     title.current?.focus();
@@ -96,7 +91,8 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
         {/* The step at the left, and the summary card at the right. Under 720px the card does not show. */}
         <div className="grid items-start gap-7 min-[720px]:grid-cols-[minmax(0,1fr)_250px]">
           <section aria-label="Builder" className="min-w-0 space-y-4">
-            <StepFrameContext.Provider value={frame}>
+            {/* The heading names of the open step's sections, and where the character's picks come from (ORC-343). */}
+            <StepFrameProvider steps={steps} step={step}>
               {step && (
                 <>
                   <div className="flex items-baseline justify-between gap-3 border-b border-rule-strong pb-1.5">
@@ -117,7 +113,7 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                       if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
                       return <Selection key={key} selection={selection} />;
                     })}
-                  {step.name === "Name" && <NameStep autoFocus={focusName.current} onEnter={() => go("Class")} />}
+                  {step.name === NAME_STEP && <NameStep autoFocus={focusName.current} onEnter={() => go(CLASS_STEP)} />}
                   {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
                   {step.name === SPELLS_STEP && <PreparedSpells />}
                   {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
@@ -145,7 +141,7 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                   </div>
                 </>
               )}
-            </StepFrameContext.Provider>
+            </StepFrameProvider>
           </section>
           <div className="sticky top-4 max-[720px]:hidden">{sheet && <SummaryCard sheet={sheet} onOpenSheet={() => setSheetOpen(true)} />}</div>
         </div>

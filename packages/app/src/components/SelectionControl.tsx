@@ -2,15 +2,15 @@
 // selection"): option cards to 6 options, the ui Picker with tokens from 7 options with more than one pick, and a
 // Choose button with the ui ListModal from 7 options with one pick. An option that the character cannot take is not
 // available, with its reason ("A pick that the character cannot take"). A refusal of the engine shows in the status
-// toast, through useMutation. A pick of a race or a background that removes picks asks first (ORC-344, "A change that
-// removes picks").
+// toast, through useMutation. A pick of a race, a subrace or a background that removes picks asks first (ORC-344, "A
+// change that removes picks").
 import { Button, type ListItem, ListModal, Picker, Toggle, ToggleGroup, Token } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useId, useMemo, useRef, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { engine } from "../engine/engine.ts";
 import { controlKind, hasSearch, shownOptions, unavailableOptions } from "../engine/selection-control.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { useStepFrame } from "./builder-context.tsx";
+import { useSectionName, useStepFrame } from "./builder-context.tsx";
 import { useChangeQuestion } from "./ChangeQuestion.tsx";
 import { useMutation } from "./Classes.tsx";
 
@@ -22,11 +22,6 @@ export function useUnavailable(selection: BuilderSelection): Map<string, string>
     () => (entity === null || built === null ? new Map() : unavailableOptions({ engine: engine(), entity, built, content, tops, picks }, selection)),
     [entity, built, content, tops, picks, selection],
   );
-}
-
-/** The heading name of the selection on the open step. */
-export function useSectionName(selection: BuilderSelection): string {
-  return useStepFrame().names.get(selection) ?? selection.name;
 }
 
 // The text of the add button of a picker, by the kind of the selection.
@@ -52,13 +47,20 @@ export function SelectionControl({ selection }: { selection: BuilderSelection })
 
 type ControlProps = { selection: BuilderSelection; options: BuilderOption[]; unavailable?: Map<string, string> };
 
-// The selections whose pick asks first when it removes picks: the race and the background. The Class step asks in
-// its own controls.
+// The top-level selections whose pick asks first when it removes picks: the race and the background. The subrace
+// under a race asks too. The Class step asks in its own controls.
 const ASKS_FIRST = ["race", "background"];
 
+/** True when a pick in the selection asks first when it removes picks: a race, a subrace or a background. */
+function asksFirst({ actualPath, multiselect }: BuilderSelection): boolean {
+  if (multiselect) return false;
+  if (actualPath.length === 1) return ASKS_FIRST.includes(actualPath[0]);
+  return actualPath.length === 3 && actualPath[0] === "race" && actualPath[2] === "subrace";
+}
+
 /**
- * Selects the option, or deselects it from a selection that takes more than one pick. A pick of the race or the
- * background asks first when it removes picks; `dialog` is the element of that question, for the control to render.
+ * Selects the option, or deselects it from a selection that takes more than one pick. A pick of the race, a subrace or
+ * the background asks first when it removes picks; `dialog` is the element of that question, for the control to render.
  * `finalFocus` gets the focus when the question closes; without it, the focus goes back to where it was.
  */
 function usePick(
@@ -70,10 +72,10 @@ function usePick(
   replace: (old: string | undefined, key: string) => void;
   dialog: ReactNode;
 } {
-  const [, run] = useMutation();
+  const run = useMutation();
   const [change, dialog] = useChangeQuestion();
   const { actualPath } = selection;
-  const asks = actualPath.length === 1 && ASKS_FIRST.includes(actualPath[0]) && !selection.multiselect;
+  const asks = asksFirst(selection);
   const select = (key: string) =>
     asks ? void change({ kind: "pick", path: actualPath, to: key }, finalFocus) : run((e, entity, opts) => e.select(entity, actualPath, key, opts));
   return {

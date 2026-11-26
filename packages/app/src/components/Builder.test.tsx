@@ -11,7 +11,8 @@ import { STEP_NAMES } from "../engine/builder.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { newCharacter } from "../engine/new-character.ts";
 import { useCharacter } from "../state/character.ts";
-import { Builder, BuilderStatusToast, useBuilderStatus } from "./Builder.tsx";
+import { Builder } from "./Builder.tsx";
+import { BuilderStatusToast, useBuilderStatus } from "./builder-context.tsx";
 import { pickIn, section } from "./test-pick.ts";
 import { closeSheetPanel, openSheetPanel, summaryCard } from "./test-sheet-panel.ts";
 

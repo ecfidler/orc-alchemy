@@ -277,6 +277,15 @@ homebrew forms. They have no game words: the app gives the lists.
   window less its 16px margins, and its body has no padding and no
   scroll: the owner lays it out, for example as two panes that scroll
   apart (ORC-285).
+* **AlertDialog** (ORC-163): a question with a Cancel button and an action
+  button, which `confirm()` shows. Cancel has the focus when it opens. It
+  can have a body below the question (ORC-344), for example the list of
+  the picks that a change removes. The body describes the dialog, and it
+  scrolls when it is long, so the buttons stay in view. When it closes,
+  the focus goes back to where it was when it opened. The owner can give
+  `finalFocus`, the control that gets the focus at the close, when that
+  place is gone, for example a list that closed when its pick opened the
+  question.
 * **SidePanel** (ORC-341): a modal panel at the right side of the
   window, over the page. It is the full height of the window and up to
   440px wide. Under 720px it is the full width. It has a title row with a

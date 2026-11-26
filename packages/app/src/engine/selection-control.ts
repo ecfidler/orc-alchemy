@@ -2,7 +2,7 @@
 // selection"), and the options that the character cannot take ("A pick that the character cannot take"): which
 // options show, which control they get, and the reason of each option that is not available.
 
-import type { BuilderOption, BuilderSelection, BuilderStep } from "./builder.ts";
+import { type BuilderOption, type BuilderSelection, type BuilderStep, treeNodes } from "./builder.ts";
 import type { Built2014, Content, Engine, StrictEntity } from "./engine.ts";
 import { withoutOption } from "./reconcile.ts";
 
@@ -42,8 +42,11 @@ export function controlKind(selection: BuilderSelection, count = shownOptions(se
 /** True when a picker or a list of `count` options has a search field. */
 export const hasSearch = (count: number) => count > SEARCH_ABOVE;
 
-/** "A", "A and B", "A, B and C". */
-const listText = (items: string[]) => (items.length <= 2 ? items.join(" and ") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
+/** "A", "A and B", "A, B and C"; with `serialComma`, "A, B, and C", as the old builder's text of the Spells step. */
+export function listText(items: string[], { serialComma = false } = {}): string {
+  if (items.length <= 2) return items.join(" and ");
+  return `${items.slice(0, -1).join(", ")}${serialComma ? "," : ""} and ${items.at(-1)}`;
+}
 
 /**
  * The reason text of a prerequisite label of the engine, as a sentence: "Requires Strength 13" is "It needs Strength
@@ -99,27 +102,17 @@ export function topSources(steps: BuilderStep[]): TopSource[] {
   );
 }
 
-/** Each selection of the steps, and the selections that their picks open, once. */
-function allNodes(steps: BuilderStep[]): BuilderSelection[] {
-  const all = new Set<BuilderSelection>();
-  const walk = (list: BuilderSelection[]) => {
-    for (const node of list) {
-      if (all.has(node)) continue;
-      all.add(node);
-      for (const option of node.options) if (option.selected) walk(option.selections);
-    }
-  };
-  walk(steps.flatMap((step) => step.selections));
-  return [...all];
-}
-
 /**
  * The sources of each skill, tool and language that the character picked in a selection, by "{kind}:{key}": the
  * sources of that selection, or its name when it has none. The engine builds a picked skill with no source name.
  */
 export function pickSources(steps: BuilderStep[]): Map<string, string[]> {
   const picks = new Map<string, string[]>();
-  for (const node of allNodes(steps)) {
+  // Each selection of the steps, and the selections that their picks open, once.
+  for (const node of treeNodes(
+    steps.flatMap((step) => step.selections),
+    { picked: true },
+  )) {
     const kind = proficiencyKind(node);
     if (kind === null) continue;
     for (const key of node.selected) {
@@ -244,15 +237,7 @@ export function unavailableOptions(input: AvailabilityInput, selection: BuilderS
  * "Text").
  */
 export function sectionNames(selections: BuilderSelection[]): Map<BuilderSelection, string> {
-  const all: BuilderSelection[] = [];
-  const walk = (list: BuilderSelection[]) => {
-    for (const node of list) {
-      if (all.includes(node)) continue;
-      all.push(node);
-      for (const option of node.options) if (option.selected) walk(option.selections);
-    }
-  };
-  walk(selections);
+  const all = treeNodes(selections, { picked: true });
   const count = new Map<string, number>();
   for (const node of all) count.set(node.name, (count.get(node.name) ?? 0) + 1);
   return new Map(

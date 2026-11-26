@@ -5,6 +5,7 @@
 import { Checkbox, Select } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
+import { listText } from "../engine/selection-control.ts";
 import { ordinal } from "../engine/sheet.ts";
 import { prepareCounts, prepareSpells } from "../engine/spell-prepare.ts";
 import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
@@ -16,9 +17,6 @@ import { PrepareCountText } from "./PrepareCount.tsx";
 import { OptionCards } from "./SelectionControl.tsx";
 
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
-
-/** The old list-print: "A", "A and B", "A, B, and C". */
-const listPrint = (items: string[]) => (items.length <= 2 ? items.join(" and ") : `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`);
 
 /** A spell selection: its chosen spells, a level filter and a search, then the cards that pass them. */
 export function SpellSelection({ selection }: { selection: BuilderSelection }) {
@@ -92,7 +90,7 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
 export function PreparedSpells() {
   const { sheet } = useOpenCharacter();
   const lookup = useSpellLookup();
-  const [, run] = useMutation();
+  const run = useMutation();
   const spellcasting = sheet?.spellcasting;
   if (!spellcasting) return null;
   // As the old known-mode-info: those classes know their whole spell list.
@@ -103,7 +101,8 @@ export function PreparedSpells() {
     <>
       {knowAll.length > 0 && (
         <p>
-          Except for cantrips, {listPrint(knowAll)} do not need to select known spells since they can prepare any spell available in their class spell lists.
+          Except for cantrips, {listText(knowAll, { serialComma: true })} do not need to select known spells since they can prepare any spell available in their
+          class spell lists.
         </p>
       )}
       {prepareCounts(spellcasting, sheet.classes).map((count) => {

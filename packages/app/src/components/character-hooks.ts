@@ -24,8 +24,8 @@ export function useCreateCharacter() {
       await restorePacks(); // so its summary builds with the stored packs
       const entity = random ? e.autofill(e.emptyCharacter(), useHomebrew.getState().content) : newCharacter(e);
       navigate(`/build/${await addCharacter(entity, "2014", null)}?step=${NAME_STEP}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
     }
   }
 

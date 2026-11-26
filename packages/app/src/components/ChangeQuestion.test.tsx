@@ -3,22 +3,28 @@
 // Cancel changes nothing, and the action removes the picks and then makes the change.
 import "fake-indexeddb/auto";
 import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { addFirstClass, newCharacter } from "../engine/new-character.ts";
+import { RACE_PACK, TAGGED_SUBRACES, WOOD_KIN } from "../engine/test-races.ts";
 import { useCharacter } from "../state/character.ts";
+import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
 import { pickIn, section } from "./test-pick.ts";
 
 beforeAll(() => loadEngine());
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
+});
 
 /** A new character with the class and these picks, open in the builder at the step. */
 function open(step: string, classKey: string, picks: [path: string[], key: string][]) {
   const e = engine();
-  const start = addFirstClass(e, newCharacter(e), classKey);
-  const entity = picks.reduce((entity, [path, key]) => e.select(entity, path, key) as StrictEntity, start);
+  const content = useHomebrew.getState().content;
+  const start = addFirstClass(e, newCharacter(e), classKey, content);
+  const entity = picks.reduce((entity, [path, key]) => e.select(entity, path, key, content) as StrictEntity, start);
   useCharacter.getState().load("change-question", entity);
   render(<Builder step={step} />);
   return entity;
@@ -27,7 +33,7 @@ function open(step: string, classKey: string, picks: [path: string[], key: strin
 const current = () => useCharacter.getState().entity!;
 const selectionAt = (path: string) =>
   engine()
-    .evaluate(current())
+    .evaluate(current(), useHomebrew.getState().content)
     .selections.find((s) => s.path.join("/") === path);
 
 /** The rows of the open question: each place, and its lines. */
@@ -50,7 +56,7 @@ test("a Cleric with Insight and Religion that takes Acolyte is asked, and Cancel
   fireEvent.click(acolyte);
   const dialog = await screen.findByRole("alertdialog", { name: "Change to Acolyte?" });
   expect(within(dialog).getByText("These picks go:")).toBeTruthy();
-  expect(questionRows(dialog)).toEqual([["Proficiencies", "Skill Proficiency: Insight, Religion"]]);
+  expect(questionRows(dialog)).toEqual([["Proficiencies", "Skills: Insight, Religion"]]);
   expect(
     within(dialog)
       .getAllByRole("button")
@@ -83,7 +89,7 @@ test("a different race for a Half-Elf with its picks made: Replace Half-Elf with
   ]);
   await pickIn(section("Race"), "Dwarf");
   const dialog = await screen.findByRole("alertdialog", { name: "Replace Half-Elf with Dwarf?" });
-  expect(questionRows(dialog)).toEqual([["Proficiencies", "Skill Proficiency: Perception, Stealth"]]);
+  expect(questionRows(dialog)).toEqual([["Proficiencies", "Skills: Perception, Stealth"]]);
   expect(await answerConfirmDialog("Replace")).toBe("Replace Half-Elf with Dwarf?");
   expect(selectionAt("race")?.selected).toEqual(["dwarf"]);
   expect(engine().evaluate(current()).built["skill-profs"] ?? {}).toEqual({});
@@ -105,4 +111,43 @@ test("after the list of the race closes on a pick, Cancel of the question gives 
   await answerConfirmDialog("Cancel");
   expect(current()).toBe(entity);
   await waitFor(() => expect(document.activeElement).toBe(within(section("Race")).getByRole("button", { name: "Change Race" })));
+});
+
+const halfElfSkill: [string[], string] = [["race", "half-elf", "skill-proficiency"], "perception"];
+
+test("when the character changes while the question is open, the change is planned again, and made when it removes only the listed picks", async () => {
+  open("Race", "fighter", [[["race"], "half-elf"], halfElfSkill]);
+  await pickIn(section("Race"), "Dwarf");
+  await screen.findByRole("alertdialog", { name: "Replace Half-Elf with Dwarf?" });
+  // Another change, which removes no pick: the name.
+  act(() => useCharacter.getState().update((entity) => engine().setValue(entity, "character-name", "Ash")));
+  await answerConfirmDialog("Replace");
+  expect(selectionAt("race")?.selected).toEqual(["dwarf"]);
+  expect(engine().evaluate(current()).built["character-name"]).toBe("Ash");
+});
+
+test("when the character changes while the question is open and the change then removes a pick that it did not list, nothing changes", async () => {
+  open("Race", "fighter", [[["race"], "half-elf"], halfElfSkill]);
+  await pickIn(section("Race"), "Dwarf");
+  await screen.findByRole("alertdialog", { name: "Replace Half-Elf with Dwarf?" });
+  // A second Half-Elf skill, which the question does not list.
+  act(() => useCharacter.getState().update((entity) => engine().select(entity, halfElfSkill[0], "stealth")));
+  const changed = current();
+  await answerConfirmDialog("Replace");
+  expect(current()).toBe(changed);
+  expect(selectionAt("race")?.selected).toEqual(["half-elf"]);
+});
+
+test("a different subrace asks: Replace High Elf with Wood Kin?, with the cantrip of High Elf", async () => {
+  await useHomebrew.getState().saveItem(RACE_PACK, TAGGED_SUBRACES, WOOD_KIN);
+  open("Race", "wizard", [
+    [["race"], "elf"],
+    [["race", "elf", "subrace"], "high-elf"],
+    [["race", "elf", "subrace", "high-elf", "high-elf-cantrips-known"], "fire-bolt"],
+  ]);
+  await pickIn(section("Subrace"), "Wood Kin");
+  const dialog = await screen.findByRole("alertdialog", { name: "Replace High Elf with Wood Kin?" });
+  expect(questionRows(dialog)).toEqual([["Spells", "High Elf Cantrips Known: Fire Bolt"]]);
+  await answerConfirmDialog("Replace");
+  expect(selectionAt("race/elf/subrace")?.selected).toEqual(["wood-kin"]);
 });

@@ -5,6 +5,7 @@ import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { type PickChange, planChange } from "./removed-picks.ts";
+import { WOOD_KIN_PACKS } from "./test-races.ts";
 
 beforeAll(() => loadEngine());
 
@@ -47,14 +48,14 @@ test("a Cleric with Insight and Religion that takes Acolyte: the question lists 
   expect(question).toEqual({
     title: "Change to Acolyte?",
     action: "Change",
-    rows: [{ place: "Proficiencies", selection: "Skill Proficiency", picks: ["Insight", "Religion"] }],
+    rows: [{ place: "Proficiencies", selection: "Skills", picks: ["Insight", "Religion"] }],
   });
   expect(removed).toEqual([
     [...CLERIC_SKILLS, "insight"],
     [...CLERIC_SKILLS, "religion"],
   ]);
 
-  const changed = apply(entity);
+  const changed = apply();
   const cleric = one(changed, "class/cleric/skill-proficiency");
   expect(cleric.selected).toEqual([]);
   expect(cleric.remaining).toBe(2);
@@ -87,13 +88,13 @@ test("a different race for a Half-Elf with its picks made: each Half-Elf pick go
     action: "Replace",
     rows: [
       { place: "Abilities", selection: "Ability Score Improvement", picks: ["Strength", "Constitution"] },
-      { place: "Proficiencies", selection: "Skill Proficiency", picks: ["Perception", "Stealth"] },
+      { place: "Proficiencies", selection: "Skills", picks: ["Perception", "Stealth"] },
       // The languages of the race and the background are one selection: Acolyte keeps two, and the last pick goes.
       { place: "Proficiencies", selection: "Languages", picks: ["Goblin"] },
     ],
   });
 
-  const changed = apply(entity);
+  const changed = apply();
   expect(one(changed, "race").selected).toEqual(["dwarf"]);
   expect(one(changed, "background/acolyte/languages")).toMatchObject({ selected: ["giant", "gnomish"], remaining: 0 });
   expect(selections(changed).filter((s) => s.remaining < 0)).toEqual([]);
@@ -108,7 +109,7 @@ test("a different race that gives a language that the player picked for the back
   const { question, apply } = plan(entity, { kind: "pick", path: ["race"], to: "dwarf" });
   // Human has a language pick of its own with no pick made, so the only pick that goes is Dwarvish, which Dwarf gives.
   expect(question).toEqual({ title: "Change to Dwarf?", action: "Change", rows: [{ place: "Proficiencies", selection: "Languages", picks: ["Dwarvish"] }] });
-  expect(one(apply(entity), "background/acolyte/languages").selected).toEqual([]);
+  expect(one(apply(), "background/acolyte/languages").selected).toEqual([]);
 });
 
 test("a change in two rows lists the picks of both, and its action is Replace", () => {
@@ -123,11 +124,11 @@ test("a change in two rows lists the picks of both, and its action is Replace", 
     title: "Replace Half-Elf with Half-Orc?",
     action: "Replace",
     rows: [
-      { place: "Proficiencies", selection: "Skill Proficiency (Half-Elf)", picks: ["Perception"] },
-      { place: "Proficiencies", selection: "Skill Proficiency (Fighter)", picks: ["Intimidation"] },
+      { place: "Proficiencies", selection: "Skills (Half-Elf)", picks: ["Perception"] },
+      { place: "Proficiencies", selection: "Skills (Fighter)", picks: ["Intimidation"] },
     ],
   });
-  const changed = apply(entity);
+  const changed = apply();
   expect(one(changed, "class/fighter/skill-proficiency")).toMatchObject({ selected: [], remaining: 2 });
 });
 
@@ -143,10 +144,10 @@ test("a different class in the place of a class: each pick of the class on each 
   expect(question?.action).toBe("Replace");
   expect(question?.rows.map(({ place, selection, picks }) => [place, selection, picks.length])).toEqual([
     ["Class", "Fighting Style", 1],
-    ["Proficiencies", "Skill Proficiency", 1],
+    ["Proficiencies", "Skills", 1],
     ["Equipment", expect.stringMatching(/Armor/), 1],
   ]);
-  expect(one(apply(entity), "class").selected).toEqual(["rogue"]);
+  expect(one(apply(), "class").selected).toEqual(["rogue"]);
 });
 
 /** A fighter 5 with the hit points of each level, and an improvement at level 4. */
@@ -160,18 +161,17 @@ function fighter5(): StrictEntity {
   return e.select(entity, ["class", "fighter", "levels", "level-4", "asi-or-feat"], "ability-score-improvement", content) as StrictEntity;
 }
 
-test("a lower level: the picks of the levels that go, by level", () => {
+test("a lower level: the picks of the levels that go, by level; the hit-point method of a level is not a pick", () => {
   const entity = fighter5();
-  const { question, apply } = plan(entity, { kind: "lower-level", classKey: "fighter", level: 3 });
+  const { question, removed, apply } = plan(entity, { kind: "lower-level", classKey: "fighter", level: 3 });
   expect(question?.title).toBe("Lower Fighter to level 3?");
   expect(question?.action).toBe("Remove");
-  expect(question?.rows).toEqual([
-    { place: "Level 4", selection: "Hit Points: Fighter 4", picks: ["Average"] },
-    { place: "Level 4", selection: "Ability Score Improvement or Feat", picks: ["Ability Score Improvement"] },
-    { place: "Level 5", selection: "Hit Points: Fighter 5", picks: ["Average"] },
-  ]);
-  const changed = apply(entity);
+  expect(question?.rows).toEqual([{ place: "Level 4", selection: "Ability Score Improvement or Feat", picks: ["Ability Score Improvement"] }]);
+  expect(removed.filter((path) => path.includes("hit-points"))).toEqual([]);
+  const changed = apply();
   expect(one(changed, "class/fighter/levels").selected).toEqual(["level-1", "level-2", "level-3"]);
+  // A level with only its hit points asks nothing.
+  expect(plan(entity, { kind: "lower-level", classKey: "fighter", level: 4 }).question).toBeNull();
 });
 
 test("a removed class: each pick of the class goes", () => {
@@ -181,7 +181,8 @@ test("a removed class: each pick of the class goes", () => {
   const { question, apply } = plan(entity, { kind: "remove-class", classKey: "rogue" });
   expect(question).toMatchObject({ title: "Remove Rogue?", action: "Remove" });
   expect(question?.rows.find((row) => row.picks.includes("Stealth"))?.place).toBe("Proficiencies");
-  expect(one(apply(entity), "class").selected).toEqual(["fighter"]);
+  expect(question?.rows.some((row) => row.selection.startsWith("Hit Points"))).toBe(false);
+  expect(one(apply(), "class").selected).toEqual(["fighter"]);
 });
 
 test("a change that removes no pick asks nothing, and apply makes the change", () => {
@@ -193,10 +194,57 @@ test("a change that removes no pick asks nothing, and apply makes the change", (
     const { question, removed, apply } = plan(entity, change);
     expect(question).toBeNull();
     expect(removed).toEqual([]);
-    expect(one(apply(entity), change.path.join("/")).selected).toEqual([change.to]);
+    expect(one(apply(), change.path.join("/")).selected).toEqual([change.to]);
   }
   // A race in the place of a race with no pick, and a class at level 1 with no pick.
   const dwarf = engine().select(entity, ["race"], "dwarf", content) as StrictEntity;
   expect(plan(dwarf, { kind: "pick", path: ["race"], to: "elf" }).question).toBeNull();
   expect(plan(entity, { kind: "replace-class", from: "fighter", to: "rogue" }).question).toBeNull();
+});
+
+test("the picks of a row are in the order of the selection's picks, from each group: a Half-Elf with Perception and Stealth takes Elf", () => {
+  const entity = character("fighter", [
+    [["race"], "half-elf"],
+    [["race", "half-elf", "skill-proficiency"], "perception"],
+    [["race", "half-elf", "skill-proficiency"], "stealth"],
+  ]);
+  const { question, removed } = plan(entity, { kind: "pick", path: ["race"], to: "elf" });
+  // Elf gives Perception, so that pick goes before the change, and Stealth goes with Half-Elf: two groups, one row.
+  expect(removed.map((path) => path.at(-1))).toEqual(["stealth", "perception"]);
+  expect(question?.rows).toEqual([{ place: "Proficiencies", selection: "Skills", picks: ["Perception", "Stealth"] }]);
+});
+
+test("a tool and an expertise selection have the name of their kind in a row, and two rows of one name are one", () => {
+  const e = engine();
+  let monk = character("monk", [[["class", "monk", "tool-selection"], "artisans-tools"]]);
+  const tool = selections(monk).find((s) => s.key.startsWith("tool-selection--"))!;
+  monk = e.select(monk, tool.actualPath, "smiths-tools", content) as StrictEntity;
+  // The tool choice and the tool that it opens have one name and one source: one row.
+  expect(plan(monk, { kind: "replace-class", from: "monk", to: "fighter" }).question?.rows).toEqual([
+    { place: "Proficiencies", selection: "Tools", picks: ["Artisans Tools", "Smith's Tools"] },
+  ]);
+  const rogue = character("rogue", [[["class", "rogue", "expertise"], "two-skills"]]);
+  expect(plan(rogue, { kind: "replace-class", from: "rogue", to: "fighter" }).question?.rows).toEqual([
+    { place: "Proficiencies", selection: "Expertise", picks: ["Two Skills"] },
+  ]);
+});
+
+const SUBRACE_CONTENT = { homebrew: WOOD_KIN_PACKS };
+
+test("a different subrace: each pick of the old subrace goes, and the title names the two subraces", () => {
+  const e = engine();
+  const subrace = ["race", "elf", "subrace"];
+  let entity = addFirstClass(e, newCharacter(e), "wizard", SUBRACE_CONTENT);
+  entity = e.select(entity, ["race"], "elf", SUBRACE_CONTENT) as StrictEntity;
+  entity = e.select(entity, subrace, "high-elf", SUBRACE_CONTENT) as StrictEntity;
+  const cantrip = e.evaluate(entity, SUBRACE_CONTENT).selections.find((s) => s.key === "high-elf-cantrips-known")!;
+  entity = e.select(entity, cantrip.actualPath, "fire-bolt", SUBRACE_CONTENT) as StrictEntity;
+  const { question, apply } = planChange({ engine: e, entity, content: SUBRACE_CONTENT }, { kind: "pick", path: subrace, to: "wood-kin" });
+  expect(question).toEqual({
+    title: "Replace High Elf with Wood Kin?",
+    action: "Replace",
+    rows: [{ place: "Spells", selection: "High Elf Cantrips Known", picks: ["Fire Bolt"] }],
+  });
+  const changed = e.evaluate(apply(), SUBRACE_CONTENT).selections;
+  expect(changed.find((s) => s.path.join("/") === subrace.join("/"))?.selected).toEqual(["wood-kin"]);
 });

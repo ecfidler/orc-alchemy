@@ -30,7 +30,7 @@ test("a Cleric with Insight and Religion takes Acolyte: the question lists the t
   await expect(question).toBeVisible();
   await expect(question.getByText("These picks go:")).toBeVisible();
   await expect(question.getByRole("term")).toHaveText(["Proficiencies"]);
-  await expect(question.getByRole("definition")).toHaveText(["Skill Proficiency: Insight, Religion"]);
+  await expect(question.getByRole("definition")).toHaveText(["Skills: Insight, Religion"]);
   // The question is over the page and takes no space in it.
   expect(await builderBox(page)).toEqual(before);
 

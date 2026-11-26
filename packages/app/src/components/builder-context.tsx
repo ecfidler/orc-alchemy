@@ -3,9 +3,9 @@
 // is a module of its own, so that Classes.tsx and the control of a selection can read it without an import cycle
 // with Builder.tsx.
 import { Toast } from "@orc-alchemy/ui";
-import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
-import type { BuilderSelection } from "../engine/builder.ts";
-import type { TopSource } from "../engine/selection-control.ts";
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import type { BuilderSelection, BuilderStep } from "../engine/builder.ts";
+import { pickSources, sectionNames, type TopSource, topSources } from "../engine/selection-control.ts";
 
 /**
  * Shows a text in the status toast of the builder page (spec, "No layout shift"): a text that comes and goes, for
@@ -33,19 +33,36 @@ export function BuilderStatusToast({ children }: { children: ReactNode }) {
   );
 }
 
-/** What the open step tells its sections. */
+/** What the builder tells the sections of the open step. */
 export interface StepFrame {
-  /** The heading name of each section of the step (sectionNames). A selection that is not in it has its own name. */
+  /** The heading name of each section of the open step (sectionNames). A selection that is not in it has its own name. */
   names: Map<BuilderSelection, string>;
-  /** The selected race, background and classes (topSources). */
+  /** The selected race, background and classes of the whole character, on all steps (topSources). */
   tops: TopSource[];
-  /** The sources of each skill, tool and language that the character picked (pickSources). */
+  /** The sources of each skill, tool and language that the character picked, on all steps (pickSources). */
   picks: Map<string, string[]>;
 }
 
 const EMPTY_FRAME: StepFrame = { names: new Map(), tops: [], picks: new Map() };
 
-export const StepFrameContext = createContext<StepFrame>(EMPTY_FRAME);
+const StepFrameContext = createContext<StepFrame>(EMPTY_FRAME);
+
+/**
+ * The frame for the sections of `step`, the open step of `steps`, in `children`. The heading names come from the open
+ * step, and the sources from all the steps.
+ */
+export function StepFrameProvider({ steps, step, children }: { steps: BuilderStep[]; step: BuilderStep | undefined; children: ReactNode }) {
+  const tops = useMemo(() => topSources(steps), [steps]);
+  const picks = useMemo(() => pickSources(steps), [steps]);
+  const names = useMemo(() => sectionNames(step?.selections ?? []), [step]);
+  const frame = useMemo(() => ({ names, tops, picks }), [names, tops, picks]);
+  return <StepFrameContext.Provider value={frame}>{children}</StepFrameContext.Provider>;
+}
 
 /** The frame of the open step. Outside the builder, no section has another name and no pick has a source. */
 export const useStepFrame = () => useContext(StepFrameContext);
+
+/** The heading name of the selection on the open step: its name, with its sources when another section has the name. */
+export function useSectionName(selection: BuilderSelection): string {
+  return useStepFrame().names.get(selection) ?? selection.name;
+}
