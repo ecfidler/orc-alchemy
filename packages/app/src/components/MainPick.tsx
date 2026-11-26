@@ -1,24 +1,52 @@
-// The main pick of the Background step (ORC-347, docs/design/character-builder.md "The Background and Race steps"):
-// the list with a detail panel (ui ListPanel), and after the pick the block that takes its place, with About,
-// Customize and Change, the Choices of the option, and "Picked on other steps". The Race step gets the same parts in
-// ORC-348: it gives its own detail, its Choices, a fixed last row and its guided edit.
-import { Button, Dialog, LeftMark, ListPanel, type ListPanelItem, type ListPanelPlace, LockIcon, PixelIcon } from "@orc-alchemy/ui";
-import { type ReactNode, type RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
+// The main pick of the Background and Race steps (ORC-347, ORC-348, docs/design/character-builder.md "The Background
+// and Race steps"): the list with a detail panel (ui ListPanel), and after the pick the block that takes its place,
+// with About, Customize and Change, the Choices of the option, and "Picked on other steps". The race has a fixed last
+// row, Custom Origin, and its guided edit.
+import { Button, Dialog, LeftMark, ListPanel, type ListPanelItem, type ListPanelPlace, LockIcon, PixelIcon, type PixelIconName } from "@orc-alchemy/ui";
+import { type ComponentType, type ReactNode, type RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
+import { BACKGROUND_TYPE } from "../engine/content.ts";
+import { RACE_TYPE } from "../engine/custom-origin.ts";
 import type { ContentType } from "../engine/engine.ts";
 import { otherStepLines, stepMark } from "../engine/other-steps.ts";
 import { hasSearch, notAvailableText, shownOptions } from "../engine/selection-control.ts";
 import { useOpenStep, useSectionName, useStepFrame } from "./builder-context.tsx";
 import { HEADING_CLASSES } from "./Classes.tsx";
 import { type Customizable, type GuidedEdit, useCustomize } from "./CustomizeDialog.tsx";
-import { useOptionPack } from "./OptionDetail.tsx";
+import { BackgroundDetail, type DetailProps, RaceDetail, useOptionPack } from "./OptionDetail.tsx";
 import { usePick, useUnavailable } from "./SelectionControl.tsx";
 
-/** The top-level selections whose main pick is a list with a detail panel. The race comes in ORC-348. */
-const MAIN_PICKS = ["background"];
+/** The parts of a main pick that its kind gives: the word for one option, the content type, and the detail. */
+export type MainPickParts = Pick<MainPickProps, "noun" | "contentType" | "detail">;
 
-/** True when the selection is the main pick of its step: the top-level background. */
-export const isMainPick = ({ actualPath }: BuilderSelection) => actualPath.length === 1 && MAIN_PICKS.includes(actualPath[0]);
+/** The detail of a main pick from its component of OptionDetail.tsx. */
+const detailWith =
+  (Detail: ComponentType<DetailProps>): MainPickProps["detail"] =>
+  (option, pack, place) => <Detail optionKey={option.key} name={option.name} pack={pack} place={place} />;
+
+/** The top-level selections whose main pick is a list with a detail panel, and their parts. */
+const MAIN_PICKS: Record<string, MainPickParts> = {
+  background: { noun: "background", contentType: BACKGROUND_TYPE, detail: detailWith(BackgroundDetail) },
+  race: { noun: "race", contentType: RACE_TYPE, detail: detailWith(RaceDetail) },
+};
+
+/** The parts of the main pick of the selection, or null when it is not the main pick of its step: the top-level background or race. */
+export const mainPickParts = ({ actualPath }: BuilderSelection): MainPickParts | null =>
+  (actualPath.length === 1 && Object.hasOwn(MAIN_PICKS, actualPath[0]) && MAIN_PICKS[actualPath[0]]) || null;
+
+/** True when the selection is the main pick of its step: the top-level background or race. */
+export const isMainPick = (selection: BuilderSelection) => mainPickParts(selection) !== null;
+
+/** A fixed last row of the list that is not an option, such as Custom Origin: its name, its icon, its detail and its action. */
+export interface MainPickRow {
+  label: string;
+  icon?: PixelIconName;
+  detail: (place: ListPanelPlace) => ReactNode;
+  action: (place: ListPanelPlace) => ReactNode;
+}
+
+/** The value of the fixed row in the ListPanel. An option key is the key of a name, which has no space. */
+const FIXED_ROW = "fixed row";
 
 export interface MainPickProps {
   selection: BuilderSelection;
@@ -32,7 +60,12 @@ export interface MainPickProps {
   customizable?: Customizable;
   /** The dialog that edits a copy in place of the Customize dialog, such as the Custom Origin dialog. */
   guided?: GuidedEdit;
-  /** The sections of the selections that the picked option opens on this step: the section Choices of the block. */
+  /** The fixed last row of the list, such as Custom Origin. */
+  fixedRow?: MainPickRow;
+  /**
+   * The sections of the selections that the picked option opens on this step: the section Choices of the block. The
+   * block has no Choices without it.
+   */
   choices?: ReactNode;
 }
 
@@ -42,7 +75,7 @@ export interface MainPickProps {
  * the place of the list, and the focus goes to its Change button. Change opens the list again on the picked option,
  * with a Cancel that puts the block back.
  */
-export function MainPick({ selection, noun, contentType, detail, customizable, guided, choices }: MainPickProps) {
+export function MainPick({ selection, noun, contentType, detail, customizable, guided, fixedRow, choices }: MainPickProps) {
   const name = useSectionName(selection);
   const options = shownOptions(selection);
   const picked = options.find((option) => option.selected) ?? null;
@@ -51,12 +84,15 @@ export function MainPick({ selection, noun, contentType, detail, customizable, g
   const packOf = useOptionPack(contentType);
 
   const changeButton = useRef<HTMLButtonElement>(null);
-  const chooseButton = useRef<HTMLButtonElement>(null);
-  // The focus after the question of a pick: the Change button of the block after the pick, or else the Choose button.
+  // The Choose button of each place: the panel, and the modal of a narrow part. The panel of a narrow part does not show.
+  const chooseButtons = useRef<Record<ListPanelPlace, HTMLButtonElement | null>>({ panel: null, modal: null });
+  // The focus after the question of a pick: the Change button of the block after the pick, or else the Choose button
+  // that shows, in the modal or in the panel. With none, the focus goes back to where it was.
   const afterQuestion = useMemo(
     () => ({
       get current() {
-        return changeButton.current ?? chooseButton.current;
+        const shows = (button: HTMLButtonElement | null) => (button?.isConnected && (button.checkVisibility?.() ?? true) ? button : null);
+        return changeButton.current ?? shows(chooseButtons.current.modal) ?? shows(chooseButtons.current.panel);
       },
     }),
     [],
@@ -113,7 +149,8 @@ export function MainPick({ selection, noun, contentType, detail, customizable, g
             noun={noun}
             packOf={packOf}
             detail={detail}
-            chooseButton={chooseButton}
+            fixedRow={fixedRow}
+            chooseButtons={chooseButtons}
             onChoose={select}
           />
         </div>
@@ -147,12 +184,13 @@ interface OptionListProps {
   noun: string;
   packOf: (key: string) => string | undefined;
   detail: MainPickProps["detail"];
-  chooseButton: RefObject<HTMLButtonElement>;
+  fixedRow?: MainPickRow;
+  chooseButtons: { current: Record<ListPanelPlace, HTMLButtonElement | null> };
   onChoose: (key: string) => void;
 }
 
-/** The options in the ui ListPanel, in the order of the names, with the action row of the panel. */
-function OptionList({ selection, options, picked, noun, packOf, detail, chooseButton, onChoose }: OptionListProps) {
+/** The options in the ui ListPanel, in the order of the names, with the action row of the panel, and the fixed row. */
+function OptionList({ selection, options, picked, noun, packOf, detail, fixedRow, chooseButtons, onChoose }: OptionListProps) {
   const unavailable = useUnavailable(selection);
   const id = useId();
   const byKey = new Map(options.map((option) => [option.key, option]));
@@ -164,6 +202,7 @@ function OptionList({ selection, options, picked, noun, packOf, detail, chooseBu
     });
 
   function action(item: ListPanelItem<string>, place: ListPanelPlace) {
+    if (fixedRow && item.value === FIXED_ROW) return fixedRow.action(place);
     if (picked?.key === item.value)
       return (
         <span className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] font-semibold">
@@ -186,7 +225,14 @@ function OptionList({ selection, options, picked, noun, packOf, detail, chooseBu
       );
     }
     return (
-      <Button ref={chooseButton} variant="solid" icon="check" onClick={() => onChoose(item.value)}>
+      <Button
+        ref={(button) => {
+          chooseButtons.current[place] = button;
+        }}
+        variant="solid"
+        icon="check"
+        onClick={() => onChoose(item.value)}
+      >
         Choose {item.label}
       </Button>
     );
@@ -198,8 +244,13 @@ function OptionList({ selection, options, picked, noun, packOf, detail, chooseBu
       items={items}
       defaultCurrent={picked?.key ?? null}
       picked={picked?.key ?? null}
+      fixedRow={fixedRow && { value: FIXED_ROW, label: fixedRow.label, icon: fixedRow.icon }}
       search={hasSearch(options.length) ? { placeholder: `Search ${options.length} ${noun}s` } : undefined}
-      detail={(item, place) => detail(byKey.get(item.value)!, item.aside, place)}
+      detail={(item, place) => {
+        const option = byKey.get(item.value);
+        if (option) return detail(option, item.aside, place);
+        return fixedRow && item.value === FIXED_ROW ? fixedRow.detail(place) : null;
+      }}
       action={action}
       emptyText={`Select a ${noun} to read about it.`}
     />
@@ -230,13 +281,13 @@ interface PickBlockProps {
 function PickBlock({ selection, option, name, noun, pack, detail, customizable, guided, changeButton, onChange, children }: PickBlockProps) {
   const block = useRef<HTMLDivElement>(null);
   const [about, setAbout] = useState(false);
-  const hasChoices = option.selections.length > 0;
+  const hasChoices = children !== undefined && children !== null && children !== false;
   return (
     <div ref={block} className="border border-rule-strong bg-paper-raised">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-rule-strong px-3 py-2.5">
         <h3 className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
           <span className="min-w-0 text-[24px] leading-tight font-semibold">
-            {option.name}
+            <span data-pick-name="">{option.name}</span>
             {pack && <small className="ml-2.5 font-sans text-[12px] font-medium text-ink-muted">{pack}</small>}
             <span className="text-[1px] opacity-0">,</span>
           </span>

@@ -79,6 +79,8 @@ test("the list and the panel keep their size and place while the shown backgroun
   for (const name of ["Acolyte", "Weaver", "Night Watch", "Acolyte"]) {
     await row(page, name).click();
     await expect(panel(page).getByRole("heading", { level: 4 })).toHaveText(name);
+    // The facts load after the name: measure once they show.
+    await expect(panel(page).getByRole("term").first()).toHaveText("Skills");
     expect([await box(list(page)), await box(panel(page)), await box(title), await box(heading)]).toEqual(before);
   }
   // The Choose row stays at the bottom of the panel, inside its 1px border.

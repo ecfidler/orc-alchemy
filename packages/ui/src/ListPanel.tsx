@@ -9,7 +9,7 @@ export type ListPanelItem<T> = {
   value: T;
   /** The name. It shows on the row and names the row's button. The `aside` and the `unavailable` text describe the button. */
   label: string;
-  /** A short text small at the right of the row, for example the name of the content pack of the option. */
+  /** A short text small at the right of the row, for example the name of the collection that the item comes from. */
   aside?: string;
   /**
    * Why the option cannot be picked. The row then has the lock icon and a dimmed name, and the text describes its
@@ -22,7 +22,7 @@ export type ListPanelItem<T> = {
 export type ListPanelPlace = "panel" | "modal";
 
 export type ListPanelProps<T> = {
-  /** The name of the list, for example "Backgrounds". */
+  /** The name of the list, for example "Recipes". */
   label: string;
   /** The rows, in the order they show. */
   items: readonly ListPanelItem<T>[];
@@ -35,13 +35,13 @@ export type ListPanelProps<T> = {
   defaultCurrent?: T | null;
   /** The value of the picked row: it is bold and has the check icon. */
   picked?: T | null;
-  /** A search field above the list, which filters by name. `placeholder` gives the count, for example "Search 42 backgrounds". */
+  /** A search field above the list, which filters by name. `placeholder` gives the count, for example "Search 42 recipes". */
   search?: { placeholder: string };
   /** The content of the panel for an item: the name, the text and the facts. It scrolls. In the modal, the title names the item. */
   detail: (item: ListPanelItem<T>, place: ListPanelPlace) => ReactNode;
   /** The row at the bottom of the panel for an item, for example a reason and a Choose button. It does not scroll. */
   action: (item: ListPanelItem<T>, place: ListPanelPlace) => ReactNode;
-  /** The text of the panel before a click on a row, for example "Select a background to read about it." */
+  /** The text of the panel before a click on a row, for example "Select a recipe to read about it." */
   emptyText: string;
 };
 

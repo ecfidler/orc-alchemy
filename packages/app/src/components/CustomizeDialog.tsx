@@ -426,12 +426,12 @@ export function useCustomize(selection: BuilderSelection, customizable: Customiz
 
 /**
  * Under a selection's option cards: one line for each selected option, with its name and a small Customize button, or
- * Edit custom for a copy (useCustomize). The button is not in the card, because a card is a toggle. The Feats step and
- * the Race step have these lines; the Background step has the button in its block (ORC-347).
+ * Edit custom for a copy (useCustomize). The button is not in the card, because a card is a toggle. The Feats step has
+ * these lines; the Background and Race steps have the button in their block (ORC-347, ORC-348).
  */
-export function CustomizeLines({ selection, customizable, guided }: { selection: BuilderSelection; customizable: Customizable; guided?: GuidedEdit }) {
+export function CustomizeLines({ selection, customizable }: { selection: BuilderSelection; customizable: Customizable }) {
   const lines = useRef<HTMLUListElement>(null);
-  const customize = useCustomize(selection, customizable, lines, guided);
+  const customize = useCustomize(selection, customizable, lines);
   const selected = selection.options.filter((o) => o.selected);
   return (
     <>

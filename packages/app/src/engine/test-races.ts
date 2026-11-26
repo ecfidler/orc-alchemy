@@ -56,6 +56,19 @@ export const WOOD_KIN = {
   "~:traits": [],
 };
 
+/** A pack subrace of the SRD race Dwarf, by its key: +1 Strength. With it, Dwarf has two subraces, Hill Dwarf and Ash Dwarf (ORC-348). */
+export const ASH_DWARF = {
+  "~:key": "~:ash-dwarf",
+  "~:name": "Ash Dwarf",
+  "~:option-pack": RACE_PACK,
+  "~:race": "~:dwarf",
+  "~:abilities": { "~:orcpub.dnd.e5.character/str": 1 },
+  "~:traits": [],
+};
+
+/** The homebrew with ASH_DWARF alone. */
+export const ASH_DWARF_PACKS = { [RACE_PACK]: { [TAGGED_SUBRACES]: { "~:ash-dwarf": ASH_DWARF } } };
+
 /** The homebrew with WOOD_KIN alone. */
 export const WOOD_KIN_PACKS = { [RACE_PACK]: { [TAGGED_SUBRACES]: { "~:wood-kin": WOOD_KIN } } };
 

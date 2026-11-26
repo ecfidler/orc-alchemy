@@ -210,8 +210,17 @@ test("Customize the SRD race: the note shows with no line of removed picks, and 
 // ORC-138: the guided Custom Origin dialog, with the keyboard only.
 test("Custom Origin with the keyboard: move a bonus, swap a language and a skill, save, see the sheet, and Edit shows the picks", async ({ page }) => {
   const builder = await openStep(page, /^Race/);
+  // Change opens the race list on the Human (ORC-348). End goes to its fixed last row, Custom Origin, and Enter shows
+  // its panel. Tab goes to the button of the panel, which opens the dialog.
+  await builder.getByRole("button", { name: "Change Race", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(builder.getByRole("button", { name: "Human", exact: true })).toBeFocused();
+  await page.keyboard.press("End");
   const entry = builder.getByRole("button", { name: "Custom Origin", exact: true });
-  await entry.focus();
+  await expect(entry).toBeFocused();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await expect(builder.getByRole("button", { name: "Start a custom origin", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
 
   const dialog = page.getByRole("dialog", { name: "Custom Origin" });

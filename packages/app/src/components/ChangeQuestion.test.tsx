@@ -106,7 +106,7 @@ test("a change that removes no pick asks nothing", async () => {
   expect(screen.queryByRole("alertdialog")).toBeNull();
 });
 
-test("after the list of the race closes on a pick, Cancel of the question gives the focus back to the Change button", async () => {
+test("after a pick in the list of the race, Cancel of the question keeps the list, with the focus on the Choose button", async () => {
   const entity = open("Race", "fighter", [
     [["race"], "half-elf"],
     [["race", "half-elf", "skill-proficiency"], "perception"],
@@ -114,7 +114,8 @@ test("after the list of the race closes on a pick, Cancel of the question gives 
   await pickIn(section("Race"), "Dwarf");
   await answerConfirmDialog("Cancel");
   expect(current()).toBe(entity);
-  await waitFor(() => expect(document.activeElement).toBe(within(section("Race")).getByRole("button", { name: "Change Race" })));
+  // The list with a detail panel stays open (ORC-348): the Choose button of the panel has the focus.
+  await waitFor(() => expect(document.activeElement).toBe(within(section("Race")).getByRole("button", { name: "Choose Dwarf" })));
 });
 
 const halfElfSkill: [string[], string] = [["race", "half-elf", "skill-proficiency"], "perception"];

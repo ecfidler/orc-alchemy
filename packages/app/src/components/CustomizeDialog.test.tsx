@@ -486,14 +486,17 @@ test("Edit custom of a background copy: new gold gives the copy's starting equip
 
 // The race (ORC-136). fighter-20 is a Human, of the subrace Illuskan and the variant Standard Human.
 
-/** fighter-20 on the Race step, a Human, or with `entity` another character, with the pack race Sylvar and its subrace Deep Sylvar loaded. */
+/**
+ * fighter-20 on the Race step, a Human, or with `entity` another character, with the pack race Sylvar and its subrace
+ * Deep Sylvar loaded. It gives the section of the race: the block of the pick, whose header has Customize (ORC-348).
+ */
 async function openRace(entity: StrictEntity = fighter20()) {
   await useHomebrew.getState().saveItem(RACE_PACK, TAGGED_RACES, SYLVAR);
   await useHomebrew.getState().saveItem(RACE_PACK, TAGGED_SUBRACES, DEEP_SYLVAR);
   act(() => useCharacter.getState().load("customize", entity));
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ }));
-  return screen.getByRole("list", { name: "Customize Race" });
+  return screen.getByRole("region", { name: "Race" });
 }
 const race = () =>
   evaluate()
@@ -504,7 +507,7 @@ const ORIGIN_NOTE =
 
 test("Customize on a pack race makes '<Name> (Custom)', selects it, and the sheet shows its ability bonuses, speed, languages and the feature with its uses", async () => {
   const lines = await openRace(withSylvar());
-  expect(within(lines).getByRole("listitem")).toHaveTextContent("SylvarCustomize");
+  expect(within(lines).getByRole("button", { name: "Customize Sylvar" })).toHaveTextContent("Customize");
   fireEvent.click(within(lines).getByRole("button", { name: "Customize Sylvar" }));
   const dialog = await dialogNamed("Customize Sylvar");
   expect(field(dialog, "Name").value).toBe("Sylvar (Custom)");

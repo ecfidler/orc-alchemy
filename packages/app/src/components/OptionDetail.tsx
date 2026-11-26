@@ -1,13 +1,14 @@
-// The detail of an option of the Background step (ORC-347, docs/design/character-builder.md "The list and the
-// panel"), as the detail panel, the modal of a narrow page and the About modal show it: the name, the pack, the
+// The detail of an option of the Background and Race steps (ORC-347, ORC-348, docs/design/character-builder.md "The
+// list and the panel"), as the detail panel, the modal of a narrow page and the About modal show it: the name, the pack, the
 // description, the facts in a definition list, and the feature. The rules of what it shows are in
 // engine/origin-detail.ts.
 import { useEffect, useMemo, useState } from "react";
 import { templateShape } from "../engine/builder.ts";
 import { BACKGROUND_TYPE } from "../engine/content.ts";
 import { CUSTOM_PACK, optionOrigin } from "../engine/custom.ts";
+import { RACE_TYPE } from "../engine/custom-origin.ts";
 import type { ContentType } from "../engine/engine.ts";
-import { backgroundDetail, nameLookup, type OptionDetail, plainRecord, srdBackgrounds, srdItemNames } from "../engine/origin-detail.ts";
+import { backgroundDetail, nameLookup, type OptionDetail, plainRecord, raceDetail, srdBackgrounds, srdItemNames, srdRaces } from "../engine/origin-detail.ts";
 import { proficiencyNames } from "../engine/proficiencies.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
@@ -25,38 +26,71 @@ export function useOptionPack(contentType: ContentType): (key: string) => string
   };
 }
 
-/** The SRD lists that the panel reads, once they load: the SRD backgrounds, and the names of the items. */
-type Lists = { backgrounds: Record<string, unknown>[]; items: Map<string, string> };
+/** The SRD lists that the panel reads, once they load: the SRD backgrounds and races, and the names of the items. */
+type Lists = { backgrounds: Record<string, unknown>[]; races: Record<string, unknown>[]; items: Map<string, string> };
 let loaded: Lists | null = null;
+
+/** The SRD lists, once they load (null before). They load once for the app. */
+function useSrdLists(): Lists | null {
+  const [lists, setLists] = useState(loaded);
+  useEffect(() => {
+    if (lists !== null) return;
+    let live = true;
+    Promise.all([srdBackgrounds(), srdRaces(), srdItemNames()])
+      .then(([backgrounds, races, items]) => {
+        loaded = { backgrounds, races, items };
+        if (live) setLists(loaded);
+      })
+      // Offline, a pack option still shows its text, with the names of the keys.
+      .catch(() => live && setLists({ backgrounds: [], races: [], items: new Map() }));
+    return () => {
+      live = false;
+    };
+  }, [lists]);
+  return lists;
+}
+
+/**
+ * The plain record of the option of the content type with the key: its item in a pack or in the character's custom
+ * content, or else its record in the SRD list. Undefined for a key with no record, such as the engine's "Custom" option.
+ */
+function useRecord(contentType: ContentType, key: string, srd: Record<string, unknown>[] | undefined): Record<string, unknown> | undefined {
+  const homebrew = useHomebrew((state) => state.content.homebrew);
+  const custom = useCharacter((state) => state.custom);
+  const origin = optionOrigin(homebrew, custom, contentType, key);
+  return origin.from === "built-in" ? srd?.find((r) => r.key === key) : (plainRecord(origin.item) as Record<string, unknown>);
+}
 
 /**
  * The detail of the background with the key: from its item in a pack or in the character's custom content, or from
  * the SRD list. Null while the SRD lists load, and for a key with no record, such as the engine's "Custom" option.
  */
 export function useBackgroundDetail(key: string): OptionDetail | null {
-  const homebrew = useHomebrew((state) => state.content.homebrew);
-  const custom = useCharacter((state) => state.custom);
   const { content } = useOpenCharacter();
-  const [lists, setLists] = useState(loaded);
-  useEffect(() => {
-    if (lists !== null) return;
-    let live = true;
-    Promise.all([srdBackgrounds(), srdItemNames()])
-      .then(([backgrounds, items]) => {
-        loaded = { backgrounds, items };
-        if (live) setLists(loaded);
-      })
-      // Offline, a pack background still shows its text, with the names of the keys.
-      .catch(() => live && setLists({ backgrounds: [], items: new Map() }));
-    return () => {
-      live = false;
-    };
-  }, [lists]);
+  const lists = useSrdLists();
   const names = useMemo(() => proficiencyNames(templateShape(content)), [content]);
+  const record = useRecord(BACKGROUND_TYPE, key, lists?.backgrounds);
   if (lists === null) return null;
-  const origin = optionOrigin(homebrew, custom, BACKGROUND_TYPE, key);
-  const record = origin.from === "built-in" ? lists.backgrounds.find((b) => b.key === key) : (plainRecord(origin.item) as Record<string, unknown>);
   return record ? backgroundDetail(record, nameLookup(names, lists.items)) : null;
+}
+
+/**
+ * The detail of the race with the key (ORC-348): from its record, as useBackgroundDetail finds it, and its option of
+ * the template, which has its choices and its subraces. Null while the SRD lists load, and for a key with no record.
+ */
+export function useRaceDetail(key: string): OptionDetail | null {
+  const { content } = useOpenCharacter();
+  const lists = useSrdLists();
+  const option = useMemo(
+    () =>
+      templateShape(content)
+        .find((s) => s.key === "race")
+        ?.options.find((o) => o.key === key),
+    [content, key],
+  );
+  const record = useRecord(RACE_TYPE, key, lists?.races);
+  if (lists === null) return null;
+  return record ? raceDetail(record, option) : null;
 }
 
 /**
@@ -96,7 +130,20 @@ export function OptionDetailView({ name, pack, detail, place }: { name: string; 
   );
 }
 
+/** What the detail of an option of a main pick takes: the key and the name of the option, its pack, and the place. */
+export interface DetailProps {
+  optionKey: string;
+  name: string;
+  pack?: string;
+  place: "panel" | "modal";
+}
+
 /** The detail of the background option with the key and the name. */
-export function BackgroundDetail({ optionKey, name, pack, place }: { optionKey: string; name: string; pack?: string; place: "panel" | "modal" }) {
+export function BackgroundDetail({ optionKey, name, pack, place }: DetailProps) {
   return <OptionDetailView name={name} pack={pack} detail={useBackgroundDetail(optionKey)} place={place} />;
+}
+
+/** The detail of the race option with the key and the name (ORC-348). */
+export function RaceDetail({ optionKey, name, pack, place }: DetailProps) {
+  return <OptionDetailView name={name} pack={pack} detail={useRaceDetail(optionKey)} place={place} />;
 }

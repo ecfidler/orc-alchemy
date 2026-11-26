@@ -46,6 +46,9 @@ export const listOpener = (scope: Locator) =>
     .or(scope.locator(".ui-add-button"))
     .first();
 
+/** The Change button of the block of a main pick, "Change Race": a Change button in its Choices has another name. */
+export const changeOf = async (scope: Locator) => scope.getByRole("button", { name: `Change ${await scope.getAttribute("aria-label")}`, exact: true });
+
 /**
  * Picks the option `name` in the list with a detail panel of a main pick (ORC-347), such as the background: Change
  * opens the list again after a pick, then a click on the row shows the option in the panel, or in a modal on a narrow
@@ -53,7 +56,7 @@ export const listOpener = (scope: Locator) =>
  */
 export async function pickInList(scope: Locator, name: string) {
   const list = scope.locator(".ui-list-panel");
-  if ((await list.count()) === 0) await scope.getByRole("button", { name: /^Change / }).click();
+  if ((await list.count()) === 0) await (await changeOf(scope)).click();
   await list.getByRole("button", { name, exact: true }).click();
   // The panel, or the modal of a narrow page: the hidden panel is not in the page's roles.
   await scope
@@ -81,5 +84,19 @@ export async function pickIn(scope: Locator, name: string) {
   await pickFromPicker(listOpener(scope), name);
 }
 
-/** The picks that a selection's control shows: its pressed option cards and its tokens, as a locator for toHaveText. */
-export const picksIn = (scope: Locator) => scope.locator('[aria-pressed="true"], .ui-token-label');
+/**
+ * The picks that a selection's control shows: its pressed option cards, its tokens, and the name in the block of a
+ * main pick (ORC-348), as a locator for toHaveText.
+ */
+export const picksIn = (scope: Locator) => scope.locator('[aria-pressed="true"], .ui-token-label, [data-pick-name]');
+
+/**
+ * Opens the Custom Origin dialog from the fixed last row of the race list (ORC-348): Change opens the list after a
+ * pick, a click on the row shows its panel, or its modal on a narrow page, and "Start a custom origin" opens the
+ * dialog. Its Vitest twin is startCustomOrigin in src/components/test-pick.ts.
+ */
+export async function startCustomOrigin(race: Locator) {
+  if ((await race.locator(".ui-list-panel").count()) === 0) await (await changeOf(race)).click();
+  await race.getByRole("button", { name: "Custom Origin", exact: true }).click();
+  await race.page().getByRole("button", { name: "Start a custom origin", exact: true }).click();
+}

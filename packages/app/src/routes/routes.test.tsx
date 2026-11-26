@@ -133,9 +133,9 @@ test("New character opens the builder on Name with the focus in the field, with 
   openStep("Race");
   await pickIn(section("Race"), "Dwarf");
   expect(picksIn(section("Race"))).toEqual(["Dwarf"]);
-  expect(within(summary).getByText("Dwarf")).toBeTruthy();
-  // Dwarf opens its subrace, as a section of its own after the race.
-  expect(section("Subrace")).toBeTruthy();
+  // The Dwarf has one subrace: the pick picks it too, and the block has no Subrace row (ORC-348).
+  expect(within(summary).getByText("Dwarf (Hill Dwarf)")).toBeTruthy();
+  expect(screen.queryByRole("region", { name: /^Subrace/ })).toBeNull();
 });
 
 test("Save stores the changes now, and the status says when they are saved", async () => {

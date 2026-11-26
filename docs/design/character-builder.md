@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T11:17:39Z }
+generated: { by: claude-code/agent, at: 2026-11-26T11:53:01Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -484,6 +484,17 @@ The main pick of each step is a list with a detail panel.[^orc-332]
   panel.[^orc-347]
 * Above the list, the heading of the selection has the left mark:
   "Background" and "1 left".[^orc-347]
+* The facts of a race are Ability scores, "Size, speed", Languages and
+  Subrace, each only when the race gives it. A choice of the player shows
+  after the fixed part: "Charisma +2; +1 to two of your choice". The
+  ability scores show the largest first. Darkvision is the first
+  trait.[^orc-348]
+* The pick of a race with one subrace also picks the subrace. The engine's
+  Custom subrace does not count. The Subrace fact shows the name of the
+  subrace with its ability scores and its traits: "Hill Dwarf: Wisdom +1".
+  A character that has the race and not its one subrace, such as a
+  character from before this rule, keeps the Subrace row in Choices until
+  the player picks the subrace.[^orc-348]
 
 ## After the pick
 
@@ -511,9 +522,9 @@ with the look of the class block.
   gives no pick on another step shows one line that says so.
 * A line shows the picks when no pick is left, and else the left mark.
   The Languages selection that a race and a background share is one
-  selection, so its line shows all its picks and all its picks that are
-  left. Other kinds of line are Expertise and Other proficiencies to
-  Proficiencies, and Spells to Spells.[^orc-347]
+  selection, so its line counts the picks of all its sources. Other
+  kinds of line are Expertise and Other proficiencies to Proficiencies,
+  and Spells to Spells.[^orc-347]
 * In the list that Change opens, the heading is "Background: Acolyte",
   with the left mark of the step and Cancel. The picked option has the
   focus. Its panel has the check icon and "The background of this
@@ -531,12 +542,17 @@ with the look of the class block.
   saved to your homebrew content." The button "Start a custom origin"
   opens the Custom Origin dialog.
 * The Background list has no such row.
+* The panel of the row has the name "Custom Origin" as its heading. The
+  row has the `plus` icon of theme.md because it makes a new record. The
+  button "Start a custom origin" has no icon, as in the prototype. After
+  the save, the block of the copy has "Edit custom origin", and the
+  focus goes to that button.[^orc-348]
 
 ## A narrow page
 
-When the page is narrower than 720px, the list has the full width and a
-height of 400px. A tap on a name opens the detail in a modal, with the
-Choose button.
+When the part of the step is narrower than 560px, the list has the full
+width and a height of 400px. A tap on a name opens the detail in a modal,
+with the Choose button. See [The list and the panel](#the-list-and-the-panel).
 
 # The Abilities step
 
@@ -786,3 +802,4 @@ one depends only on parts of the frame.
 [^orc-345]: The ability score control, <https://linear.app/orc-alchemy/issue/ORC-345/the-ability-score-control>
 [^orc-346]: The Proficiencies step, <https://linear.app/orc-alchemy/issue/ORC-346/the-proficiencies-step>
 [^orc-347]: The list with a detail panel, and the Background step, <https://linear.app/orc-alchemy/issue/ORC-347/the-list-with-a-detail-panel-and-the-background-step>
+[^orc-348]: The Race step, with Custom Origin, <https://linear.app/orc-alchemy/issue/ORC-348/the-race-step-with-custom-origin>

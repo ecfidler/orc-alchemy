@@ -1,12 +1,12 @@
-// Custom Origin (ORC-138): the last entry of the race cards opens a guided
-// dialog. The user picks a base race, moves its ability score increases,
+// Custom Origin (ORC-138): the fixed last row of the race list (ORC-348)
+// shows what a custom origin is, and its button opens a guided dialog. The user picks a base race, moves its ability score increases,
 // and swaps its languages and proficiencies. Save writes a copy of the race
 // into the character's custom content and selects it, as Customize does
 // (CustomizeDialog.tsx). The logic is in engine/custom-origin.ts.
 // docs/design/homebrew-forms.md, "Custom Origin", is the spec.
 
 import { Button, Dialog, type ListItem, ListModal, Select, Token, Tokens, useConfirm } from "@orc-alchemy/ui";
-import { type ReactNode, useCallback, useId, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import type { BuilderChoices, Choice } from "../engine/builder-choices.ts";
 import { sameRecord } from "../engine/content.ts";
@@ -40,6 +40,7 @@ import { Help, type ItemRecord, Section, SKILLS, WithChoices } from "./builders/
 import { TOOL_ITEMS } from "./builders/modifier-kinds.tsx";
 import { type GuidedEdit, removedPickNames, useRemovedPicks } from "./CustomizeDialog.tsx";
 import { useUnloadWarning } from "./leave-guard.tsx";
+import type { MainPickRow } from "./MainPick.tsx";
 
 /** The base race of the dialog: its key and name, its record, and the names of its choices that the copy does not have. */
 export interface OriginBase {
@@ -76,6 +77,10 @@ function originLists(lists: BuilderChoices): OriginLists {
     weapon: lists.weapons.map((w) => ({ ...w, group: "Weapons" })),
   };
 }
+
+/** What the panel of the Custom Origin row says a custom origin is (docs/design/character-builder.md, "Custom Origin"). */
+const ROW_TEXT =
+  "Make a copy of a race for this character. Move its ability score increases, and swap its languages and proficiencies for others. The copy is the race of this character.";
 
 /** A list of more than this many options has a search field (docs/design/homebrew-forms.md, "Picker"). */
 const SEARCH_FROM = 20;
@@ -415,9 +420,9 @@ interface Session {
 }
 
 export interface CustomOriginParts {
-  /** The Custom Origin entry, after the race cards. */
-  card: ReactNode;
-  /** The line's button for a Custom Origin copy (CustomizeLines). */
+  /** The fixed last row of the race list, with its detail and the button that opens the dialog (MainPick). */
+  row: MainPickRow;
+  /** The button of the block of a Custom Origin copy, "Edit custom origin" (MainPick). */
   guided: GuidedEdit;
   /** The dialog, and an alert when it cannot open. */
   dialog: ReactNode;
@@ -425,10 +430,11 @@ export interface CustomOriginParts {
 
 /**
  * The parts of Custom Origin for the race selection, or null for another
- * selection. The entry opens the dialog with no base race; Edit custom
- * origin opens it on the copy, with the picks that the copy holds
- * (originPicks). Save replaces the character's race with the copy
- * (saveCustomOrigin) and gives the focus to the line's button.
+ * selection. "Start a custom origin" in the panel of the row opens the
+ * dialog with no base race; Edit custom origin opens it on the copy, with
+ * the picks that the copy holds (originPicks). Save replaces the
+ * character's race with the copy (saveCustomOrigin) and gives the focus to
+ * the Edit custom origin button of the block.
  */
 export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts | null {
   const content = useHomebrew((state) => state.content);
@@ -436,8 +442,7 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
   const entity = useCharacter((state) => state.entity);
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const describe = useId();
-  // The key of the line's button that gets the focus when the dialog closes; null for the entry.
+  // The key of the block's button that gets the focus when the dialog closes; null for the button of the row.
   const focusKey = useRef<string | null>(null);
   const { actualPath } = selection;
   const selected = selection.options.find((o) => o.selected)?.key;
@@ -511,33 +516,42 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
     setSession({ ...session, open: false });
   }
 
+  // The button of the row: the one in the modal of a narrow part, or else the one in the panel.
   const finalFocus = () =>
-    document.querySelector<HTMLElement>(focusKey.current === null ? "[data-custom-origin]" : `[data-customize="${CSS.escape(focusKey.current)}"]`);
+    focusKey.current === null
+      ? (document.querySelector<HTMLElement>('[data-custom-origin="modal"]') ?? document.querySelector<HTMLElement>('[data-custom-origin="panel"]'))
+      : document.querySelector<HTMLElement>(`[data-customize="${CSS.escape(focusKey.current)}"]`);
 
-  const card = (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-      <Button
-        data-custom-origin=""
-        aria-label="Custom Origin"
-        aria-haspopup="dialog"
-        aria-describedby={describe}
-        onClick={() => {
-          setError(null);
-          focusKey.current = null;
-          start(EMPTY);
-        }}
-        className="h-full w-full border-dashed p-2 text-left"
-      >
-        <span className="block font-semibold">Custom Origin</span>
-        <span id={describe} className="block text-[14px] leading-snug font-normal text-ink-muted">
-          Move the bonuses, languages and proficiencies of a race
-        </span>
-      </Button>
-    </div>
+  const startButton = (place: string) => (
+    <Button
+      variant="solid"
+      data-custom-origin={place}
+      aria-haspopup="dialog"
+      onClick={() => {
+        setError(null);
+        focusKey.current = null;
+        start(EMPTY);
+      }}
+    >
+      Start a custom origin
+    </Button>
   );
 
+  const row: MainPickRow = {
+    label: "Custom Origin",
+    icon: "plus",
+    detail: (place) => (
+      <div className="space-y-2.5">
+        {place === "panel" && <h4 className="text-[24px] leading-tight font-semibold">Custom Origin</h4>}
+        <p className="text-[16px]">{ROW_TEXT}</p>
+        <p className="text-[16px]">A custom origin is not saved to your homebrew content.</p>
+      </div>
+    ),
+    action: startButton,
+  };
+
   return {
-    card,
+    row,
     guided: {
       label: "Edit custom origin",
       owns: (key) => customOriginBase(homebrew, custom, key) !== undefined,

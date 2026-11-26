@@ -15,7 +15,7 @@ import {
   type StepName,
   useBuilderSteps,
 } from "../engine/builder.ts";
-import { BACKGROUND_TYPE } from "../engine/content.ts";
+import { choiceSelections } from "../engine/race-step.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityIncreases, AbilityScores } from "./AbilityScores.tsx";
 import { BuilderStatusToast, OpenStepProvider, SectionLevelProvider, StepFrameProvider } from "./builder-context.tsx";
@@ -25,9 +25,8 @@ import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
-import { isMainPick, MainPick } from "./MainPick.tsx";
+import { MainPick, mainPickParts } from "./MainPick.tsx";
 import { NameStep } from "./NameStep.tsx";
-import { BackgroundDetail } from "./OptionDetail.tsx";
 import { ProficienciesStep } from "./ProficienciesStep.tsx";
 import { SelectionControl } from "./SelectionControl.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
@@ -192,36 +191,42 @@ function Options({ selection }: { selection: BuilderSelection }) {
   // The classes are rows, not cards. They stay here, not in Selection, because
   // each class's choices open after the rows as any selected option's do.
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
-  // A feat or a race has a Customize line under the control (ORC-134, ORC-136). A background has the button in its block (ORC-347).
+  // A feat has a Customize line under the control (ORC-134). A background and a race have the button in their block (ORC-347, ORC-348).
   const customizable = customizableFor(selection);
-  // The race has the Custom Origin entry after its control (ORC-138).
+  // The race has the Custom Origin row at the end of its list (ORC-138, ORC-348).
   const origin = useCustomOrigin(selection);
+  const mainPick = mainPickParts(selection);
 
   // Classes in the entity's order, as their rows.
   const opened = (isClass ? selection.selected.map((key) => selection.options.find((o) => o.key === key)!) : selection.options).filter(
     (o) => o.selected && o.selections.length > 0,
   );
-  const sections = opened.flatMap((option) => option.selections.map((child) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />));
-  // The background is a list with a detail panel, and then a block with its choices in it (ORC-347).
-  if (isMainPick(selection))
+  const section = (child: BuilderSelection) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />;
+  // The background and the race are a list with a detail panel, and then a block with their choices in it (ORC-347,
+  // ORC-348). The one subrace of a race is a fact of its panel, not a row of Choices (choiceSelections).
+  if (mainPick) {
+    const choices = opened.flatMap(choiceSelections).map(section);
     return (
-      <MainPick
-        selection={selection}
-        noun="background"
-        contentType={BACKGROUND_TYPE}
-        detail={(option, pack, place) => <BackgroundDetail optionKey={option.key} name={option.name} pack={pack} place={place} />}
-        customizable={customizable}
-        choices={<SectionLevelProvider level={4}>{sections}</SectionLevelProvider>}
-      />
+      <>
+        <MainPick
+          selection={selection}
+          {...mainPick}
+          customizable={customizable}
+          guided={origin?.guided}
+          fixedRow={origin?.row}
+          choices={choices.length > 0 ? <SectionLevelProvider level={4}>{choices}</SectionLevelProvider> : undefined}
+        />
+        {origin?.dialog}
+      </>
     );
+  }
+  const sections = opened.flatMap((option) => option.selections.map(section));
   return (
     <>
       <section aria-labelledby={id} className="space-y-2">
         <Heading id={id} selection={selection} />
         {isClass ? <Classes selection={selection} /> : !selection.sequential && <SelectionControl selection={selection} />}
-        {origin?.card}
-        {customizable && <CustomizeLines selection={selection} customizable={customizable} guided={origin?.guided} />}
-        {origin?.dialog}
+        {customizable && <CustomizeLines selection={selection} customizable={customizable} />}
       </section>
       {sections}
     </>

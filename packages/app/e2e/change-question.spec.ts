@@ -57,6 +57,29 @@ test("a Cleric with Insight and Religion takes Acolyte: the question lists the t
   await expect(picksIn(skills)).toHaveText(["Medicine"]);
 });
 
+test("on a 390px page, a pick from the modal asks; Cancel keeps the focus in the modal, and Change makes the pick with the focus on Change", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await clericWithInsightAndReligion(page);
+  await section(page, "Background").getByRole("button", { name: "Acolyte", exact: true }).click();
+  const modal = page.getByRole("dialog", { name: "Acolyte" });
+  const choose = modal.getByRole("button", { name: "Choose Acolyte", exact: true });
+  await choose.click();
+  const question = page.getByRole("alertdialog", { name: "Change to Acolyte?" });
+  await question.getByRole("button", { name: "Cancel" }).click();
+  await expect(question).toBeHidden();
+  // The modal stays open, and its Choose button has the focus.
+  await expect(choose).toBeFocused();
+  await expect(modal).toBeVisible();
+
+  await choose.click();
+  await page.getByRole("alertdialog", { name: "Change to Acolyte?" }).getByRole("button", { name: "Change" }).click();
+  await expect(modal).toBeHidden();
+  await expect(section(page, "Background").getByRole("heading", { level: 3 })).toHaveText(/^Acolyte/);
+  await expect(section(page, "Background").getByRole("button", { name: "Change Background" })).toBeFocused();
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/change-question.spec.ts -g orc-344 --trace off
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");

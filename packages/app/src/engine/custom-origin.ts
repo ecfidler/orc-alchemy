@@ -23,11 +23,11 @@ import {
   saveCopy,
   srdRaceCopy,
   storedCopy,
-  subraceOptions,
   subracePick,
   withPickedSubrace,
 } from "./custom.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
+import { pickableSubraces } from "./race-step.ts";
 import { hasOption, picksUnder, withoutOption } from "./reconcile.ts";
 import { ABILITIES, ABILITY_NAMES, type Ability } from "./sheet.ts";
 
@@ -337,10 +337,7 @@ export function originPicks(base: Record<string, unknown>, copy: Record<string, 
 }
 
 /** The subraces of a race option (raceOption), without the engine's Custom subrace, whose picks a copy does not hold. */
-const subracesOf = (race: ReturnType<typeof raceOption>) =>
-  subraceOptions(race)
-    .filter((o) => o.key !== "custom")
-    .map((o) => ({ key: o.key, name: o.name }));
+const subracesOf = (race: ReturnType<typeof raceOption>) => pickableSubraces(race);
 
 /** The subraces of the race with the key that the dialog offers (subracesOf). content is the loaded content, without custom. */
 export const baseSubraces = (key: string, content: Content): { key: string; name: string }[] => subracesOf(raceOption(key, content.homebrew));

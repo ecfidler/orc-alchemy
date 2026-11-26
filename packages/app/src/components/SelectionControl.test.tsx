@@ -164,15 +164,18 @@ test("the engine's Custom option does not show, unless the character has it", as
   expect(within(section("Skills: Custom")).getByRole("button", { name: "Add a skill" })).toBeTruthy();
 });
 
-test("the selections that a pick opens are flat sections after it, each with its own heading and mark", async () => {
+test("the selections that a pick opens are flat sections in Choices, each with its own heading and mark", async () => {
+  // A Dwarf with no subrace, as before ORC-348: its Subrace row stays, so that the player can pick Hill Dwarf.
   open("Race", [[["race"], "dwarf"]]);
-  const race = section("Race");
+  const choices = screen.getByRole("region", { name: "Choices" });
   const subrace = section("Subrace");
-  // The subrace is not inside the race's section, and nothing has a rule at the left.
-  expect(race.contains(subrace)).toBe(false);
-  expect(race.parentElement).toBe(subrace.parentElement);
+  // The subrace is a section of Choices in the block of the race, not a block in a block, and nothing has a rule at the left.
+  expect(choices.contains(subrace)).toBe(true);
+  expect(subrace.querySelector("[data-main-pick], .border")).toBeNull();
   expect(within(subrace).getByRole("heading").textContent).toBe("Subrace,1 left");
   expect(document.querySelector(".border-l")).toBeNull();
   await pickIn(subrace, "Hill Dwarf");
-  expect(within(section("Subrace")).getByRole("heading").textContent).toBe("Subrace,Done");
+  // Now the Dwarf has its one subrace: it is a fact of the panel, and the block has no Choices.
+  expect(screen.queryByRole("region", { name: /^Subrace/ })).toBeNull();
+  expect(within(section("Race")).getAllByRole("heading")[0].textContent).toBe("Dwarf,Done");
 });
