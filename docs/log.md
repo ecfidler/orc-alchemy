@@ -1,5 +1,9 @@
 # Bundle update log
 
+## 2026-11-26
+
+* **Creation**: Added the [Character builder spec](design/character-builder.md) with its four prototypes, and pointed the [Theme spec](design/theme.md) and the [Homebrew forms spec](design/homebrew-forms.md) to it (ORC-334).
+
 ## 2026-11-23
 
 * **Update**: Added the Experimental section of the Preferences page, with the 2024 rules preview, to the [Theme spec](design/theme.md), and the preview to the seam to the app of the [2024 engine spec](design/2024-engine.md) (ORC-308).

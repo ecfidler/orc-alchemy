@@ -1,0 +1,434 @@
+<meta charset="utf-8">
+<title>Race and Background List</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400..700&display=swap">
+<style>
+/* PROTOTYPE (ORC-338), throwaway. The list with a detail panel for the main pick of the Race and Background steps.
+   Paper theme (docs/design/theme.md). Light is the default; dark is only the Theme toggle here. Hash: #a, #b or #c. */
+:root {
+  --paper: #fffcf5; --paper-raised: #ffffff; --ink: #222222; --ink-muted: #595959;
+  --rule: #e3dece; --rule-strong: #8a8578; --danger: #c2271d; --success: #1f7a3a; --info: #1e5fb4;
+  --note: #ffe45c; --note-ink: #222222;
+  --panel: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --wash: color-mix(in srgb, var(--ink) 40%, transparent);
+  --shadow: rgba(60, 45, 0, 0.22);
+  --proto-bg: #1c2b4a; --proto-fg: #ffffff;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:root[data-proto-theme="dark"] {
+  color-scheme: dark; --paper: #000000; --paper-raised: #0a0a0a; --ink: #ffffff; --ink-muted: #adadad;
+  --rule: #222222; --rule-strong: #6b6b6b; --danger: #ff5c52; --success: #4ed07a; --info: #5ea2ff;
+  --note-ink: #000000; --wash: rgba(255, 255, 255, 0.22); --shadow: rgba(255, 255, 255, 0.12);
+  --proto-bg: #dfe8ff; --proto-fg: #0b1430;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-serif); font-size: 17px; line-height: 1.5;
+  font-weight: 450; font-variant-numeric: lining-nums tabular-nums; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, h4, p, ul, ol, dl, dd { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+svg.px { display: inline-block; vertical-align: -3px; flex: none; }
+
+/* ---------- prototype chrome (not part of the design) ---------- */
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.proto-top { font-family: var(--font-sans); font-size: 12.5px; background: var(--proto-bg); color: var(--proto-fg);
+  padding-block: 8px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.proto-group { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.proto-group > span { opacity: .75; margin-right: 2px; }
+.proto-top button { background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.proto-top button[aria-pressed="true"] { background: var(--proto-fg); color: var(--proto-bg); }
+.proto-notes { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; background: var(--panel); border-bottom: 1px solid var(--rule); padding-block: 8px; }
+.proto-notes b { font-weight: 600; }
+.proto-notes p { max-width: 110ch; }
+
+/* ---------- the builder frame (decided in the stepper prototype) ---------- */
+.stagewrap { padding-block: 18px 80px; }
+.stage { position: relative; width: 100%; max-width: 1120px; margin: 0 auto; }
+.stage.phone { max-width: 390px; outline: 1px dashed var(--rule-strong); outline-offset: 8px; }
+.sans { font-family: var(--font-sans); }
+.btn { font-family: var(--font-sans); font-size: 13.5px; font-weight: 500; border: 1px solid var(--ink); background: var(--paper-raised); padding: 7px 14px; border-radius: 0; white-space: nowrap; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.btn:hover { background: var(--panel); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn.solid:hover { background: color-mix(in srgb, var(--ink) 85%, var(--paper)); }
+.btn.ghost { border-color: transparent; background: none; text-decoration: underline; text-underline-offset: 3px; padding-inline: 6px; }
+.btn.small { min-height: 30px; padding: 3px 10px; font-size: 13px; }
+.btn.sq { width: 34px; min-height: 34px; padding: 0; }
+.btn:disabled { opacity: .35; cursor: default; }
+.count { display: inline-block; font-family: var(--font-sans); font-size: 11.5px; font-weight: 600; line-height: 18px; min-width: 18px; padding: 0 5px; text-align: center;
+  background: var(--note); color: var(--note-ink); border-radius: 9px; }
+.rail { display: flex; border-bottom: 1px solid var(--rule-strong); margin-bottom: 18px; overflow-x: auto; scrollbar-width: thin; }
+.rail li { flex: 1 0 auto; }
+.rail span.s { display: flex; border-bottom: 3px solid transparent; padding: 8px 9px 7px; font-family: var(--font-sans); font-size: 13.5px; font-weight: 500;
+  color: var(--ink-muted); align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.rail span.s.cur { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+.rail span.s.dim { opacity: .5; }
+.rail .n { font-size: 11px; opacity: .7; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 28px; align-items: start; }
+.phone .two { grid-template-columns: 1fr; }
+.phone .sum { display: none; }
+.sum { position: sticky; top: 8px; }
+.h2row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule-strong); padding-bottom: 6px; margin-bottom: 14px; }
+.h2row h2 { font-size: 26px; font-weight: 600; line-height: 1.2; }
+.h2row .of { font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); white-space: nowrap; }
+.lab { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px; }
+.sheet { border: 1.5px solid var(--rule-strong); border-radius: 6px; background: var(--paper-raised); padding: 12px 14px; font-size: 15px; }
+.sheet .nm { font-size: 22px; font-weight: 500; line-height: 1.2; border-bottom: 1.5px solid var(--rule-strong); min-height: 31px; }
+.sheet li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--rule); padding: 3px 0; min-height: 29px; }
+.sheet li span:first-child { font-family: var(--font-sans); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); align-self: center; }
+.sheet li span:last-child { text-align: right; min-width: 0; }
+.navrow { display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 22px; }
+
+/* ---------- the class cards ---------- */
+.selhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.selhead h3 { font-family: var(--font-sans); font-size: 15px; font-weight: 700; }
+.selhead .st { font-family: var(--font-sans); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.tiles.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tiles.c3, .phone .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tile { border: 1px solid var(--rule-strong); background: var(--paper-raised); height: 92px; padding: 8px 4px 6px; display: grid; grid-template-rows: 36px auto 14px; justify-items: center; align-items: center; gap: 2px;
+  font-family: var(--font-sans); font-size: 13.5px; font-weight: 600; }
+.tile:hover:not(:disabled) { background: var(--panel); }
+.tile[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: -2px; background: var(--panel); }
+.tile small { font-size: 10.5px; font-weight: 500; color: var(--ink-muted); line-height: 1.15; text-align: center; }
+.dlg .tile { height: 106px; grid-template-rows: 36px auto 26px; }
+.tile:disabled { cursor: default; }
+.tile:disabled > svg, .tile:disabled > span { opacity: .4; }
+.pickA { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 18px; align-items: start; }
+
+/* the detail of a class or a subclass */
+.detail { border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 14px 16px; }
+.detail.fixed { height: 392px; padding: 0; }
+.detail.fixed > .detail-in { height: 100%; display: flex; flex-direction: column; }
+.detail.fixed .scroll { flex: 1; min-height: 0; overflow: auto; padding: 14px 16px 8px; }
+.detail.fixed .act { margin: 0; padding: 10px 16px; border-top: 1px solid var(--rule-strong); }
+.detail.fixed > .empty { padding: 14px 16px; }
+.detail .empty { color: var(--ink-muted); font-family: var(--font-sans); font-size: 13.5px; }
+.detail h3 { font-size: 24px; font-weight: 600; line-height: 1.2; display: flex; align-items: center; gap: 10px; }
+.detail .d { margin: 6px 0 10px; font-size: 16px; }
+.detail dl { display: grid; grid-template-columns: 104px 1fr; gap: 2px 10px; font-size: 15px; margin-bottom: 10px; }
+.detail dt { font-family: var(--font-sans); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); padding-top: 4px; }
+.detail h4 { font-family: var(--font-sans); font-size: 12.5px; font-weight: 700; margin: 8px 0 2px; }
+.detail .fl li { display: grid; grid-template-columns: 56px 1fr; font-size: 15px; border-top: 1px solid var(--rule); padding: 2px 0; }
+.detail .fl { margin-top: 10px; }
+.detail .fl li.hd { border-top: 0; font-family: var(--font-sans); font-size: 12.5px; font-weight: 700; padding-bottom: 3px; }
+.detail .fl li.hd span:first-child { color: var(--ink); font-size: 12.5px; padding-top: 0; }
+.detail .fl li span:first-child { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); padding-top: 3px; }
+.detail .act { margin-top: 12px; display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ---------- a class block ---------- */
+.cls { border: 1px solid var(--rule-strong); background: var(--paper-raised); margin-bottom: 14px; }
+.clshead { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--rule-strong); flex-wrap: wrap; }
+.clshead .nm { font-size: 24px; font-weight: 600; line-height: 1.1; display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
+.clshead .nm .count { margin-left: 2px; }
+.lv { display: inline-flex; align-items: center; gap: 0; font-family: var(--font-sans); font-size: 13px; }
+.lv > span { margin-right: 8px; font-weight: 600; }
+.lv input { width: 46px; height: 34px; text-align: center; border: 1px solid var(--ink); border-left: 0; border-right: 0; background: var(--paper-raised); font-family: var(--font-serif); font-size: 19px; font-weight: 500; border-radius: 0; -moz-appearance: textfield; }
+.lv input::-webkit-outer-spin-button, .lv input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.clsbody { padding: 4px 12px 12px; }
+.cls.closed .clsbody { display: none; }
+.cls.closed .clshead { border-bottom: 0; }
+.sec { margin-top: 12px; }
+.sec > h4 { font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px; }
+.lvl { display: grid; grid-template-columns: 62px minmax(0, 1fr); border-top: 1px solid var(--rule-strong); }
+.lvl:last-child { border-bottom: 1px solid var(--rule-strong); }
+.lvl > .ll { font-family: var(--font-sans); font-size: 12.5px; font-weight: 600; padding-top: 11px; }
+.row + .row { border-top: 1px solid var(--rule); }
+.rowhead { width: 100%; background: none; border: 0; text-align: left; display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr) 16px; gap: 10px; align-items: center; min-height: 42px; padding: 6px 4px 6px 0; }
+.rowhead:hover { background: var(--panel); }
+.rowhead .cn { font-family: var(--font-sans); font-size: 14px; font-weight: 600; }
+.rowhead .pv { text-align: right; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rowhead .pv.left { font-family: var(--font-sans); font-size: 12.5px; font-weight: 600; }
+.rowhead .chev { font-family: var(--font-sans); font-size: 11px; color: var(--ink-muted); }
+.rowbody { padding: 2px 0 12px; }
+.phone .rowhead { grid-template-columns: minmax(0, 1fr) 16px; gap: 0 10px; min-height: 54px; }
+.phone .rowhead .pv { grid-row: 2; grid-column: 1; text-align: left; }
+.phone .rowhead .chev { grid-row: 1 / 3; grid-column: 2; }
+.phone .rowhead .pv.none { min-height: 24px; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.phone .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.card { font-family: var(--font-sans); font-size: 14px; text-align: left; border: 1px solid var(--rule-strong); background: var(--paper-raised); padding: 9px 10px; min-height: 40px; }
+.card:hover { background: var(--panel); }
+.card[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tokens { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.token { font-family: var(--font-sans); font-size: 13px; border: 1px solid var(--rule-strong); background: var(--panel); padding: 3px 8px; }
+.goto { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 15.5px; border: 1px dashed var(--rule-strong); padding: 6px 10px; min-height: 48px; }
+.seg { display: inline-flex; }
+.seg button { font-family: var(--font-sans); font-size: 13px; font-weight: 500; border: 1px solid var(--ink); background: var(--paper-raised); padding: 5px 12px; min-height: 32px; }
+.seg button + button { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.hp { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); padding: 8px 0; }
+.hp .tot { margin-left: auto; font-size: 17px; }
+.hp .tot b { font-size: 22px; font-weight: 600; }
+.hp .die { font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); }
+.hp .tot small { letter-spacing: .06em; text-transform: uppercase; margin-right: 4px; }
+.hp .tot small { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); }
+.hpgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; padding: 10px 0 2px; }
+.hpcell { display: grid; grid-template-columns: 1fr 30px; border: 1px solid var(--rule-strong); }
+.hpcell label { grid-column: 1 / 3; font-family: var(--font-sans); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); padding: 2px 6px 0; }
+.hpcell input { width: 100%; border: 0; background: none; font-size: 18px; padding: 0 6px 2px; min-width: 0; -moz-appearance: textfield; }
+.hpcell input::-webkit-outer-spin-button, .hpcell input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.hpcell button { border: 0; border-left: 1px solid var(--rule); background: none; padding: 0; display: grid; place-items: center; }
+.hpcell button:hover { background: var(--panel); }
+.hpcell .fx { font-family: var(--font-sans); font-size: 10px; color: var(--ink-muted); display: grid; place-items: center; border-left: 1px solid var(--rule); }
+.other li + li { border-top: 1px solid var(--rule); }
+.other { border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); }
+.other button { width: 100%; background: none; border: 0; text-align: left; display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 38px; padding: 4px 4px 4px 0; }
+.phone .other button { grid-template-columns: 112px minmax(0, 1fr) auto; }
+.other button:hover { background: var(--panel); }
+.other .k { font-family: var(--font-sans); font-size: 14px; font-weight: 600; }
+.other .v { font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.other .v.left { font-family: var(--font-sans); font-size: 12.5px; font-weight: 600; }
+.other .to { font-family: var(--font-sans); font-size: 12.5px; color: var(--ink-muted); white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
+.add { width: 100%; border: 1px dashed var(--ink); background: none; min-height: 44px; font-family: var(--font-sans); font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.add:hover { background: var(--panel); }
+
+/* ---------- drawer, dialog, toast ---------- */
+.wash { position: fixed; inset: 0; background: var(--wash); z-index: 40; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--paper); border-left: 1px solid var(--ink); box-shadow: -6px 0 0 var(--shadow); z-index: 41; padding: 14px 16px; overflow: auto; }
+.drawer .top, .dlg .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; }
+.drawer .detail { border: 0; padding: 0; background: none; }
+.dlg { position: fixed; z-index: 41; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(820px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; background: var(--paper); border: 1px solid var(--ink); box-shadow: 6px 6px 0 var(--shadow); padding: 16px 18px; }
+.dlg.narrow { width: min(460px, calc(100% - 24px)); }
+.dlg.mid { width: min(540px, calc(100% - 24px)); }
+.detail.bare { border: 0; padding: 0; background: none; }
+.dlg h3.t { font-size: 22px; font-weight: 600; }
+.dlg .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.phonemode .dlg .cols { grid-template-columns: 1fr; }
+.dlg .list { border: 1px solid var(--rule-strong); background: var(--paper-raised); }
+.dlg .list button { width: 100%; background: none; border: 0; text-align: left; padding: 8px 12px; font-family: var(--font-sans); font-size: 14px; display: flex; justify-content: space-between; gap: 8px; min-height: 40px; align-items: center; }
+.dlg .list button + button { border-top: 1px solid var(--rule); }
+.dlg .list button:hover { background: var(--panel); }
+.dlg .list button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.dlg .list small { opacity: .7; font-size: 11.5px; }
+.dlg .lose { margin: 10px 0 14px; border-top: 1px solid var(--rule-strong); }
+.dlg .lose li { border-bottom: 1px solid var(--rule); padding: 4px 0; font-size: 16px; display: flex; gap: 10px; }
+.dlg .lose li span { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); min-width: 62px; padding-top: 4px; }
+.dlg .act { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 50; background: var(--ink); color: var(--paper); font-family: var(--font-sans); font-size: 13.5px; padding: 8px 14px; box-shadow: 4px 4px 0 var(--shadow); max-width: calc(100% - 24px); }
+/* ---------- ORC-338: the list with a detail panel ---------- */
+.lp { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 14px; height: 440px; }
+.phone .lp { grid-template-columns: 1fr; height: 400px; }
+.lst { border: 1px solid var(--rule-strong); background: var(--paper-raised); display: flex; flex-direction: column; min-height: 0; }
+.lst .find { border: 0; border-bottom: 1px solid var(--rule-strong); background: none; padding: 8px 12px; font-family: var(--font-sans); font-size: 14px; width: 100%; min-height: 40px; border-radius: 0; }
+.lst .find::placeholder { color: var(--ink-muted); }
+.lst .rows { flex: 1; min-height: 0; overflow: auto; }
+.lst .rows button, .lst .pin { width: 100%; background: none; border: 0; text-align: left; padding: 6px 12px; font-family: var(--font-sans); font-size: 14px; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; min-height: 38px; align-items: center; }
+.lst .rows button + button { border-top: 1px solid var(--rule); }
+.lst .rows button:hover, .lst .pin:hover { background: var(--panel); }
+.lst button[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lst button[aria-current="true"]:hover { background: var(--ink); }
+.lst button.picked { font-weight: 700; }
+.lst button.no > span { opacity: .5; }
+.lst small { font-size: 11px; opacity: .7; white-space: nowrap; }
+.lst .none { font-family: var(--font-sans); font-size: 13.5px; color: var(--ink-muted); padding: 10px 12px; }
+.lst .pin { border-top: 1px solid var(--rule-strong); }
+.lst .cnt { font-family: var(--font-sans); font-size: 11.5px; color: var(--ink-muted); padding: 4px 12px; border-top: 1px solid var(--rule); }
+.lp .detail.fixed { height: 100%; }
+.detail .src { font-family: var(--font-sans); font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+.detail .tl li { font-size: 15.5px; border-top: 1px solid var(--rule); padding: 5px 0; }
+.detail .tl b { font-family: var(--font-sans); font-size: 13.5px; font-weight: 700; }
+.detail .act { align-items: center; flex-wrap: wrap; }
+.detail .act .say { margin-right: auto; font-family: var(--font-sans); font-size: 13px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
+.detail .act .say.why { font-weight: 500; color: var(--ink-muted); }
+.mark { font-family: var(--font-sans); font-size: 12.5px; font-weight: 600; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
+.below { margin-top: 4px; }
+.cls .nm small { font-family: var(--font-sans); font-size: 12px; font-weight: 500; color: var(--ink-muted); }
+.plain { font-family: var(--font-sans); font-size: 13.5px; color: var(--ink-muted); border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); padding: 8px 0; }
+</style>
+
+<div class="proto-top gut">
+  <span class="proto-group" id="g-variant"><span>Variant</span></span>
+  <span class="proto-group" id="g-step"><span>Step</span></span>
+  <span class="proto-group" id="g-pack"><span>Content</span></span>
+  <span class="proto-group" id="g-char"><span>Character</span></span>
+  <span class="proto-group" id="g-width"><span>Width</span></span>
+  <span class="proto-group" id="g-theme"><span>Theme</span></span>
+</div>
+<div class="proto-notes gut"><p id="note"></p></div>
+<div class="stagewrap gut"><div class="stage" id="stage"></div></div>
+<div id="over"></div>
+
+<script>
+// PROTOTYPE (ORC-338), throwaway. State is in memory only. The rules data is a small sample, not the engine.
+const ICONS = {"plus":[".......++.......",".......##.......",".......##.......",".......##.......",".......##.......",".......##.......",".++++++##++++++.",".##############.",".##############.",".oooooo##oooooo.",".......##.......",".......##.......",".......##.......",".......##.......",".......##.......",".......oo......."],"x":[".++..........++.",".##..........##.",".##++......++##.",".oo##......##oo.","...##++..++##...","...oo##..##oo...",".....##++##.....",".....oo##oo.....",".....++##++.....",".....##oo##.....","...++##..##++...","...##oo..oo##...",".++##......##++.",".##oo......oo##.",".##..........##.",".oo..........oo."],"check":[".............++.",".............##.","............+##.","............##o.","...........+##..","...........##o..",".++.......+##...",".##.......##o...",".##++....+##....",".oo##....##o....","...##++.+##.....","...oo##.##o.....",".....##.##......",".....oo##o......",".......##.......",".......oo......."],"lock":[".....++++++.....",".....######.....","...++######++...","...##oooooo##...","...##......##...","...##......##...",".++##++++++##++.",".##############.",".##############.",".######oo######.",".######..######.",".######..######.",".######++######.",".##############.",".##############.",".oooooooooooooo."],"pencil":[".++++...........",".####...........",".####++.........",".##..##.........",".##..##++.......",".oo##..##.......","...##..##++.....","...oo##..##.....",".....##..##++...",".....oo##..##...",".......##..##...",".......oo##..++.",".........##..++.",".........oo++++.","...........++++.","+++++++++++++++."]};
+const TONES = [["#", 1], ["+", 0.75], ["o", 0.25]];
+function px(name, size = 16) {
+  const rows = ICONS[name]; let out = "";
+  for (const [ch, op] of TONES) {
+    let d = "";
+    rows.forEach((row, y) => { let x = 0; while (x < 16) { if (row[x] === ch) { let n = 1; while (row[x + n] === ch) n++; d += `M${x} ${y}h${n}v1h-${n}z`; x += n; } else x++; } });
+    out += `<path d="${d}" opacity="${op}"/>`;
+  }
+  return `<svg class="px" aria-hidden="true" viewBox="0 0 16 16" width="${size}" height="${size}" fill="currentColor" shape-rendering="crispEdges">${out}</svg>`;
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+// ---------- sample data (not the engine) ----------
+const PACK = "Vale of Ash";
+const R = (n, d, facts, traits, ch = [], oth = [], x = {}) => ({ n, d, facts, traits, ch, oth, ...x });
+const ANC = ["Black", "Blue", "Brass", "Bronze", "Copper", "Gold", "Green", "Red", "Silver", "White"];
+const lang1 = ["Languages", 1, "Proficiencies", "Elvish"];
+const RACES = [
+  R("Dragonborn", "Born of dragons, with the breath of one.", [["Ability scores", "Strength +2, Charisma +1"], ["Size, speed", "Medium, 30 ft."], ["Languages", "Common, Draconic"]], [["Draconic Ancestry", "Select a type of dragon. It gives the damage type of your breath and your resistance."], ["Breath Weapon", "Use your action to breathe out energy."], ["Damage Resistance", "Resistance to the damage type of your ancestry."]], [["anc", "Draconic Ancestry", ANC]]),
+  R("Dwarf", "Bold and hardy, at home under the mountains.", [["Ability scores", "Constitution +2"], ["Size, speed", "Medium, 25 ft."], ["Languages", "Common, Dwarvish"]], [["Darkvision", "See in dim light within 60 feet as in bright light."], ["Dwarven Resilience", "Advantage on saving throws against poison."], ["Dwarven Combat Training", "Proficiency with four axes and hammers."], ["Tool Proficiency", "One set of artisan's tools from three."], ["Stonecunning", "Double proficiency on History checks about stonework."]], [], [["Tools", 1, "Proficiencies", "Smith's tools"]], { sub: ["Hill Dwarf", "Wisdom +1, Dwarven Toughness", "Ash Dwarf"] }),
+  R("Elf", "Graceful people of long years and keen senses.", [["Ability scores", "Dexterity +2"], ["Size, speed", "Medium, 30 ft."], ["Languages", "Common, Elvish"]], [["Darkvision", "See in dim light within 60 feet as in bright light."], ["Keen Senses", "Proficiency in Perception."], ["Fey Ancestry", "Advantage against charm. Magic cannot put you to sleep."], ["Trance", "Meditate for 4 hours in place of sleep."]], [], [["Cantrip", 1, "Spells", "Light"], lang1], { sub: ["High Elf", "Intelligence +1, Elf Weapon Training, a cantrip, a language"] }),
+  R("Gnome", "Small, curious and full of energy.", [["Ability scores", "Intelligence +2"], ["Size, speed", "Small, 25 ft."], ["Languages", "Common, Gnomish"]], [["Darkvision", "See in dim light within 60 feet as in bright light."], ["Gnome Cunning", "Advantage on Intelligence, Wisdom and Charisma saves against magic."]], [], [], { sub: ["Rock Gnome", "Constitution +1, Artificer's Lore, Tinker"] }),
+  R("Half-Elf", "Between two worlds, with gifts of each.", [["Ability scores", "Charisma +2, and +1 to two others"], ["Size, speed", "Medium, 30 ft."], ["Languages", "Common, Elvish, one of your choice"]], [["Darkvision", "See in dim light within 60 feet as in bright light."], ["Fey Ancestry", "Advantage against charm. Magic cannot put you to sleep."], ["Skill Versatility", "Proficiency in two skills of your choice."]], [], [["Ability scores", 2, "Abilities", "Dexterity +1, Constitution +1"], ["Skills", 2, "Proficiencies", "Perception, Stealth"], ["Languages", 1, "Proficiencies", "Dwarvish"]]),
+  R("Half-Orc", "Strong and hard to put down.", [["Ability scores", "Strength +2, Constitution +1"], ["Size, speed", "Medium, 30 ft."], ["Languages", "Common, Orc"]], [["Darkvision", "See in dim light within 60 feet as in bright light."], ["Menacing", "Proficiency in Intimidation."], ["Relentless Endurance", "Drop to 1 hit point instead of 0, one time for each long rest."], ["Savage Attacks", "One more damage die on a critical hit with a melee weapon."]]),
+  R("Halfling", "Small, lucky and brave.", [["Ability scores", "Dexterity +2"], ["Size, speed", "Small, 25 ft."], ["Languages", "Common, Halfling"]], [["Lucky", "Roll again when you roll a 1 on an attack, a check or a save."], ["Brave", "Advantage on saves against fear."], ["Halfling Nimbleness", "Move through the space of a larger creature."]], [], [], { sub: ["Lightfoot", "Charisma +1, Naturally Stealthy"] }),
+  R("Human", "The most adaptable of the common peoples.", [["Ability scores", "+1 to each"], ["Size, speed", "Medium, 30 ft."], ["Languages", "Common, one of your choice"]], [], [], [["Languages", 1, "Proficiencies", "Dwarvish"]]),
+  R("Tiefling", "Marked by an infernal bloodline.", [["Ability scores", "Charisma +2, Intelligence +1"], ["Size, speed", "Medium, 30 ft."], ["Languages", "Common, Infernal"]], [["Darkvision", "See in dim light within 60 feet as in bright light."], ["Hellish Resistance", "Resistance to fire damage."], ["Infernal Legacy", "Thaumaturgy now, more spells at levels 3 and 5."]]),
+];
+const PRACES = ["Ashborn", "Cinderkin", "Emberfolk", "Marshling", "Saltwalker", "Thornling"].map((n, i) => R(n, "An invented race for this prototype. The real panel shows the text of the content pack.", [["Ability scores", ["Constitution +2", "Dexterity +2", "Wisdom +2"][i % 3]], ["Size, speed", "Medium, 30 ft."], ["Languages", "Common, one of your choice"]], [["Sample trait", "The traits of the race, one line each."]], [], [lang1], { src: 1 }));
+const SK = ["Athletics", "History", "Insight", "Nature", "Perception", "Persuasion", "Sleight of Hand", "Survival", "Stealth", "Medicine", "Investigation", "Animal Handling"];
+const BGS = [R("Acolyte", "You spent your life in the service of a temple.", [["Skills", "Insight, Religion"], ["Languages", "Two of your choice"], ["Equipment", "A holy symbol, a prayer book, 5 sticks of incense, vestments, common clothes, 15 gp"]], [["Shelter of the Faithful", "You and your party get free healing and care at a temple of your faith."]], [], [["Languages", 2, "Proficiencies", "Dwarvish, Elvish"]])];
+const PBGS = ["Apprentice Scribe", "Archivist", "Bargehand", "Beekeeper", "Bell Ringer", "Bonesetter", "Border Scout", "Caravan Guard", "Cartographer", "Chandler", "Charcoal Burner", "Court Clerk", "Ferryman", "Field Medic", "Fishmonger", "Gamekeeper", "Glassblower", "Gravedigger", "Herbalist", "Innkeeper", "Lamplighter", "Mason", "Messenger", "Miller", "Miner", "Minstrel", "Night Watch", "Oathbound Squire", "Pilgrim", "Quartermaster", "Ratcatcher", "Salt Trader", "Shepherd", "Shipwright", "Smuggler", "Stablehand", "Tax Collector", "Tinker", "Toll Keeper", "Weaver", "Woodcutter"]
+  .map((n, i) => R(n, "An invented background for this prototype. The real panel shows the text of the content pack.", [["Skills", `${SK[i % 12]}, ${SK[(i * 5 + 3) % 12]}`], [i % 2 ? "Languages" : "Tools", i % 2 ? "One of your choice" : "One set of artisan's tools"], ["Equipment", "The tools of the trade, common clothes, 10 gp"]], [["Feature", "The feature of the background, in one or two lines."]], [], [i % 2 ? lang1 : ["Tools", 1, "Proficiencies", "Weaver's tools"]], { src: 1, need: n === "Oathbound Squire" ? "It needs the class Paladin." : "" }));
+const CUSTOM = R("Custom origin", "Make a race of your own for this character: you set the ability scores, the size, the speed, the languages and the traits. A custom origin is not saved to your homebrew content.", [], [], [], [], { custom: 1 });
+const STEPS = { race: ["Race", 4], bg: ["Background", 3] };
+const opts = (step = S.step) => { const base = step === "race" ? RACES : BGS, more = step === "race" ? PRACES : PBGS; return (S.pack ? [...base, ...more] : base).slice().sort((a, b) => a.n.localeCompare(b.n)); };
+const byName = (n, step = S.step) => n === CUSTOM.n ? CUSTOM : [...RACES, ...PRACES, ...BGS, ...PBGS].find((o) => o.n === n);
+const chOf = (o) => [...(o.sub && S.pack && o.sub[2] ? [["sub", "Subrace", [o.sub[0], o.sub[2]]]] : []), ...o.ch];
+const VARIANTS = {
+  a: ["A. Button in the panel", "<b>A. The button in the panel makes the pick.</b> A click on a name shows the option in the panel. The panel has the button that makes the pick. The list and the panel stay open after the pick, so the player can read the other options with no change to the character."],
+  b: ["B. As A, then the list closes (chosen)", "<b>B. As A, but the list closes after the pick.</b> The owner chose this variant on 2026-11-26. The step then shows a block with the name and the buttons About, Customize and Change, as the Class step does. Change opens the list and the panel again."],
+  c: ["C. A click picks", "<b>C. A click on a name is the pick.</b> The panel shows the option that the character has. It is the fastest. But when the option has picks, each click on a different name asks first, because the picks would go."],
+};
+const fresh = () => ({ pick: null, view: null, picks: {}, oth: {}, changing: false });
+const S = { variant: "b", step: "race", pack: false, char: "new", phone: false, dark: false, q: "", race: fresh(), bg: fresh(), over: null, toast: "" };
+const st = () => S[S.step];
+const leftN = (step) => { const s = S[step]; if (!s.pick) return 1; const o = byName(s.pick, step); return chOf(o).filter((c) => !s.picks[c[0]]).length; };
+const lost = (step = S.step) => { const s = S[step]; if (!s.pick) return []; const o = byName(s.pick, step); return [...chOf(o).filter((c) => s.picks[c[0]]).map((c) => ["This step", `${c[1]}: ${s.picks[c[0]]}`]), ...o.oth.filter((x) => s.oth[x[0]]).map((x) => [x[2], `${x[0]}: ${s.oth[x[0]]}`])]; };
+
+// ---------- parts ----------
+function action(o) {
+  const s = st(), noun = STEPS[S.step][0].toLowerCase();
+  if (o.custom) return `<button class="btn solid" data-goto="the Custom origin form">Start a custom origin</button>`;
+  if (o.need) return `<span class="say why">${px("lock")}Not available. ${o.need}</span><button class="btn solid" disabled>Choose ${esc(o.n)}</button>`;
+  if (s.pick === o.n) return `<span class="say">${px("check")}The ${noun} of this character</span><button class="btn" data-goto="the Customize form">Customize</button>`;
+  if (S.variant === "c") return `<button class="btn solid" data-choose="${esc(o.n)}">${px("check")}Choose ${esc(o.n)}</button>`;
+  return `<button class="btn solid" data-choose="${esc(o.n)}">${px("check")}Choose ${esc(o.n)}</button>`;
+}
+function detail(o, act = action(o)) {
+  const sub = o.sub && !(S.pack && o.sub[2]) ? `<dt>Subrace</dt><dd>${o.sub[0]}: ${o.sub[1]}</dd>` : "";
+  return `<div class="detail-in"><div class="scroll"><h3>${esc(o.n)}</h3>${o.src ? `<p class="src">From ${PACK}</p>` : ""}<p class="d">${esc(o.d)}</p>
+    <dl>${o.facts.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}${sub}</dl>
+    <ol class="tl">${o.traits.map(([a, b]) => `<li><b>${esc(a)}.</b> ${esc(b)}</li>`).join("")}</ol></div>${act ? `<div class="act">${act}</div>` : ""}</div>`;
+}
+function rows() {
+  const s = st(), q = S.q.trim().toLowerCase(), all = opts(), list = all.filter((o) => !q || o.n.toLowerCase().includes(q));
+  const cur = S.phone ? null : s.view;
+  return (list.length ? list.map((o) => `<button data-opt="${esc(o.n)}" class="${s.pick === o.n ? "picked" : ""} ${o.need ? "no" : ""}" aria-current="${cur === o.n}">${s.pick === o.n ? px("check") : o.need ? px("lock") : "<i></i>"}<span>${esc(o.n)}</span>${o.src ? `<small>${PACK}</small>` : ""}</button>`).join("")
+    : `<p class="none">No ${STEPS[S.step][0].toLowerCase()} has this text.</p>`);
+}
+function listPanel() {
+  const s = st(), all = opts(), o = s.view ? byName(s.view) : null, noun = STEPS[S.step][0].toLowerCase();
+  const list = `<div class="lst">${all.length > 20 ? `<input class="find" type="search" placeholder="Search ${all.length} ${noun}s" aria-label="Search" value="${esc(S.q)}" data-find>` : ""}
+    <div class="rows" id="rows">${rows()}</div>${S.step === "race" ? `<button class="pin" data-opt="${CUSTOM.n}" aria-current="${!S.phone && s.view === CUSTOM.n}">${px("plus")}<span>Custom origin</span></button>` : ""}</div>`;
+  if (S.phone) return `<div class="lp">${list}</div>`;
+  return `<div class="lp">${list}<div class="detail fixed">${o ? detail(o) : `<p class="empty">Select a ${noun} to read about it.</p>`}</div></div>`;
+}
+function below() {
+  const s = st(), o = s.pick && byName(s.pick); if (!o) return "";
+  const chs = chOf(o);
+  const crow = ([id, name, list]) => { const v = s.picks[id];
+    return `<div class="row"><div class="rowhead" style="grid-template-columns:minmax(0,auto) minmax(0,1fr)"><span class="cn">${name}</span><span class="pv ${v ? "" : "left"}">${v ? esc(v) : `<span class="count">1 left</span>`}</span></div>
+      <div class="rowbody">${list.length <= 6 ? `<div class="cards">${list.map((x) => `<button class="card" aria-pressed="${v === x}" data-pick="${id}|${esc(x)}">${esc(x)}</button>`).join("")}</div>` : `<button class="btn" data-list="${id}">${v ? "Change" : "Choose"}</button>`}</div></div>`; };
+  return `<div class="below">${chs.length ? `<div class="sec"><h4>Choices</h4><div style="border-top:1px solid var(--rule-strong);border-bottom:1px solid var(--rule-strong)">${chs.map(crow).join("")}</div></div>` : ""}
+    <div class="sec"><h4>Picked on other steps</h4>${o.oth.length ? `<ul class="other">${o.oth.map(([k, n, to]) => { const v = s.oth[k]; return `<li><button data-goto="the ${to} step"><span class="k">${k}</span><span class="v ${v ? "" : "left"}">${v ? esc(v) : `<span class="count">${n} left</span>`}</span><span class="to">${to}</span></button></li>`; }).join("")}</ul>` : `<p class="plain">This ${STEPS[S.step][0].toLowerCase()} gives no pick on another step.</p>`}</div></div>`;
+}
+function body() {
+  const s = st(), name = STEPS[S.step][0], left = leftN(S.step);
+  const mark = s.pick ? (left ? `<span class="count">${left} left</span>` : `<span class="mark">${px("check")}Done</span>`) : `<span class="count">1 left</span>`;
+  if (S.variant === "b" && s.pick && !s.changing) {
+    const o = byName(s.pick);
+    return `<section class="cls"><div class="clshead"><div class="nm"><span>${esc(o.n)}</span>${o.src ? `<small>${PACK}</small>` : ""}</div>${mark}
+      <span style="display:inline-flex;gap:2px;align-items:center"><button class="btn ghost small" data-about="${esc(o.n)}">About</button><button class="btn ghost small" data-goto="the Customize form">Customize</button><button class="btn ghost small" data-change>Change</button></span></div>
+      <div class="clsbody">${below()}</div></section>`;
+  }
+  const about = S.phone && S.variant === "c" && s.pick ? `<button class="btn ghost small" data-about="${esc(s.pick)}">About ${esc(s.pick)}</button>` : "";
+  return `<div class="selhead"><h3>${name}${s.pick ? `: ${esc(s.pick)}` : ""}</h3><span style="display:inline-flex;gap:8px;align-items:center">${about}${s.changing ? `<button class="btn ghost small" data-cancel>Cancel</button>` : ""}${mark}</span></div>${listPanel()}${S.variant === "b" ? "" : below()}`;
+}
+function page() {
+  const [name, no] = STEPS[S.step];
+  const steps = [["Name", ""], ["Class", ""], ["Background", leftN("bg") || ""], ["Race", leftN("race") || ""], ["Abilities", ""], ["Proficiencies", 3], ["Feats", "dim"], ["Spells", "dim"], ["Equipment", 2], ["Description", ""]];
+  const rail = `<nav aria-label="Steps"><ol class="rail">${steps.map(([n, m], i) => `<li><span class="s ${n === name ? "cur" : ""} ${m === "dim" ? "dim" : ""}"><span class="n">${i + 1}</span>${n}${m && m !== "dim" ? `<span class="count">${m}</span>` : ""}</span></li>`).join("")}</ol></nav>`;
+  const sum = `<aside class="sum"><p class="lab">Summary</p><div class="sheet"><div class="nm">Mira Thorn</div><ul><li><span>Class</span><span>Fighter 1</span></li><li><span>Level</span><span>1</span></li><li><span>Hit points</span><span>12</span></li><li><span>Background</span><span>${esc(S.bg.pick ?? "") || "&nbsp;"}</span></li><li><span>Race</span><span>${esc(S.race.pick ?? "") || "&nbsp;"}</span></li></ul></div><p style="margin-top:8px"><button class="btn" style="width:100%" data-goto="the full sheet">Open the full sheet</button></p></aside>`;
+  const [prev, next] = S.step === "bg" ? ["Class", "Race"] : ["Background", "Abilities"];
+  return `${rail}<div class="two"><section><div class="h2row"><h2>${name}</h2><span class="of">Step ${no} of 10</span></div>${body()}
+    <div class="navrow"><button class="btn" data-goto="the ${prev} step">Back</button>${S.phone ? '<button class="btn" data-goto="the full sheet">Sheet</button>' : ""}<button class="btn solid" data-goto="the ${next} step">Next: ${next}</button></div></section>${sum}</div>`;
+}
+function overlay() {
+  const o = S.over; if (!o) return "";
+  const wash = `<div class="wash" data-close></div>`;
+  if (o.type === "about") { const x = byName(o.key); return `${wash}<div class="dlg mid" role="dialog" aria-label="${esc(x.n)}"><div class="top"><p class="lab">${STEPS[S.step][0]}</p><button class="btn small" data-close>${px("x")}Close</button></div><div class="detail bare">${detail(x, o.read ? "" : action(x))}</div></div>`; }
+  if (o.type === "list") { const s = st(), c = chOf(byName(s.pick)).find((x) => x[0] === o.id);
+    return `${wash}<div class="dlg narrow" role="dialog" aria-label="${c[1]}"><div class="top"><h3 class="t">${c[1]}</h3><button class="btn small" data-close>${px("x")}Close</button></div>
+      <div class="list">${c[2].map((x) => `<button aria-pressed="${s.picks[o.id] === x}" data-pick="${o.id}|${esc(x)}"><span>${esc(x)}</span><small>${s.picks[o.id] === x ? "" : "Choose"}</small></button>`).join("")}</div></div>`; }
+  if (o.type === "confirm") return `${wash}<div class="dlg narrow" role="alertdialog" aria-label="${esc(o.title)}"><h3 class="t">${esc(o.title)}</h3><p style="margin-top:6px">These picks go:</p>
+      <ul class="lose">${o.lose.map(([l, t]) => `<li><span style="min-width:96px">${l}</span>${esc(t)}</li>`).join("")}</ul><div class="act"><button class="btn" data-close>Cancel</button><button class="btn solid" data-yes>Replace</button></div></div>`;
+  return "";
+}
+
+// ---------- actions ----------
+let toastT;
+function toast(t) { S.toast = t; clearTimeout(toastT); toastT = setTimeout(() => { S.toast = ""; render(); }, 2600); }
+function choose(n) {
+  const s = st(); if (s.pick === n) { s.view = n; return; }
+  const run = () => { s.pick = n; s.view = n; s.picks = {}; s.oth = {}; s.changing = false; };
+  const lose = lost();
+  if (lose.length) S.over = { type: "confirm", title: `Replace ${s.pick} with ${n}?`, lose, run }; else { run(); S.over = null; }
+}
+function load(v) {
+  S.char = v; S.race = fresh(); S.bg = fresh();
+  if (v === "picks") { Object.assign(S.race, { pick: "Half-Elf", view: "Half-Elf", oth: { "Ability scores": "Dexterity +1, Constitution +1", Skills: "Perception, Stealth", Languages: "Dwarvish" } }); Object.assign(S.bg, { pick: "Acolyte", view: "Acolyte", oth: { Languages: "Dwarvish, Elvish" } }); }
+}
+function render() {
+  document.getElementById("stage").className = `stage ${S.phone ? "phone" : ""}`;
+  const sc = document.getElementById("rows")?.scrollTop ?? 0;
+  document.getElementById("stage").innerHTML = page();
+  if (document.getElementById("rows")) document.getElementById("rows").scrollTop = sc;
+  document.getElementById("over").className = S.phone ? "phonemode" : "";
+  document.getElementById("over").innerHTML = overlay() + (S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : "");
+  document.getElementById("note").innerHTML = VARIANTS[S.variant][1] + " On a phone, the list has the full width and the detail opens in a modal. Use <b>Content: with a content pack</b> for a long list with search, and <b>Character: with picks</b> to see the question before a change removes picks. \"Oathbound Squire\" (Background, with the pack) is an example of an option that is not available.";
+  document.documentElement.dataset.protoTheme = S.dark ? "dark" : "light";
+  for (const [id, cur] of [["g-variant", S.variant], ["g-step", S.step], ["g-pack", S.pack ? "pack" : "srd"], ["g-char", S.char], ["g-width", S.phone ? "phone" : "desktop"], ["g-theme", S.dark ? "dark" : "light"]])
+    for (const b of document.getElementById(id).querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.v === cur));
+}
+function group(id, items, on) {
+  const g = document.getElementById(id);
+  for (const [v, label] of items) { const b = document.createElement("button"); b.dataset.v = v; b.textContent = label; b.onclick = () => { on(v); S.over = null; S.q = ""; render(); }; g.append(b); }
+}
+group("g-variant", Object.entries(VARIANTS).map(([k, v]) => [k, v[0]]), (v) => { S.variant = v; S.race.changing = S.bg.changing = false; history.replaceState(null, "", "#" + v); });
+group("g-step", [["race", "Race"], ["bg", "Background"]], (v) => { S.step = v; });
+group("g-pack", [["srd", "SRD only"], ["pack", "With a content pack"]], (v) => { S.pack = v === "pack"; load(S.char); });
+group("g-char", [["new", "New"], ["picks", "With picks"]], load);
+group("g-width", [["desktop", "Desktop"], ["phone", "Phone"]], (v) => { S.phone = v === "phone"; });
+group("g-theme", [["light", "Light"], ["dark", "Dark"]], (v) => { S.dark = v === "dark"; });
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-close],[data-opt],[data-choose],[data-pick],[data-list],[data-goto],[data-about],[data-change],[data-cancel],[data-yes]");
+  if (!t || t.closest(".proto-top")) return; const d = t.dataset, s = st();
+  if ("close" in d) S.over = null;
+  else if (d.opt) { const o = byName(d.opt);
+    if (S.variant === "c" && !o.need && !o.custom) choose(d.opt);
+    else if (S.phone) S.over = { type: "about", key: d.opt };
+    else s.view = d.opt; }
+  else if (d.choose) { S.over = null; choose(d.choose); }
+  else if (d.pick) { const [id, v] = d.pick.split("|"); s.picks[id] = v; if (S.over?.type === "list") S.over = null; }
+  else if (d.list) S.over = { type: "list", id: d.list };
+  else if (d.goto) toast(`In the app, this opens ${d.goto}.`);
+  else if (d.about) S.over = { type: "about", key: d.about, read: S.variant !== "b" ? false : true };
+  else if ("change" in d) { s.changing = true; s.view = s.pick; }
+  else if ("cancel" in d) s.changing = false;
+  else if ("yes" in d) { const run = S.over.run; S.over = null; run(); }
+  render();
+});
+document.addEventListener("input", (e) => { if (!("find" in e.target.dataset)) return; S.q = e.target.value; document.getElementById("rows").innerHTML = rows(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.over) { S.over = null; render(); } });
+const h = location.hash.slice(1); if (VARIANTS[h]) S.variant = h;
+render();
+</script>

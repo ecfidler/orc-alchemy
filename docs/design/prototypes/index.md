@@ -1,6 +1,6 @@
 # Prototypes
 
-Copies of the throwaway HTML prototypes that the design decisions come from. Open a file in a browser. The [Theme spec](../theme.md), the [Homebrew forms spec](../homebrew-forms.md), the [Spells panel spec](../spells-panel.md) and the [Sheet interactivity spec](../sheet-interactivity.md) say which view of each prototype is the choice. A spec wins where a prototype disagrees with it.
+Copies of the throwaway HTML prototypes that the design decisions come from. Open a file in a browser. The [Theme spec](../theme.md), the [Homebrew forms spec](../homebrew-forms.md), the [Spells panel spec](../spells-panel.md) the [Sheet interactivity spec](../sheet-interactivity.md) and the [Character builder spec](../character-builder.md) say which view of each prototype is the choice. A spec wins where a prototype disagrees with it.
 
 * [Palette](orc-144-palette-prototype.html) - The palette in light and dark (ORC-144).
 * [Character sheet](orc-145-sheet-prototype.html) - The sheet layouts (ORC-145, ORC-153).
@@ -16,3 +16,7 @@ Copies of the throwaway HTML prototypes that the design decisions come from. Ope
 * [Rest dialogs](orc-309-rest-prototype.html) - The Rest button and the Short rest, Long rest and Dawn dialogs (ORC-309).
 * [Cast button](orc-311-cast-prototype.html) - The Cast button and the level menu in the spell view (ORC-311).
 * [Sheet layout](orc-312-sheet-layout-prototype.html) - The play controls on the sheet, with the Conditions and statuses box (ORC-312).
+* [Stepper](orc-330-stepper-prototype.html) - The step rail, the marks for the picks that are left and the summary card (ORC-330).
+* [Ability scores](orc-331-ability-scores-prototype.html) - The ability score control with its four methods (ORC-331).
+* [Class step](orc-336-class-step-prototype.html) - The class cards, the modal of a class and the class block (ORC-336).
+* [Race and Background list](orc-338-list-panel-prototype.html) - The list with a detail panel for the Race and Background steps (ORC-338).

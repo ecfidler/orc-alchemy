@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-24T17:36:53Z }
+generated: { by: claude-code/agent, at: 2026-11-26T05:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -730,6 +730,10 @@ section says so.
 * The button is **Customize** for a pack item or an SRD option. It is
   **Edit custom** for a copy. For a Custom Origin copy, it is **Edit
   custom origin** (see [Custom Origin](#custom-origin)).
+* The [Character builder spec](character-builder.md#after-the-pick)
+  (ORC-334) moves the button of a background and a race. It is in the
+  header of the block of the Background step and the Race step, and
+  those steps have no line. A feat keeps the line.
 * Each place that picks the option shows the line. For a feat, that is the
   Feats step and the "Ability Score Improvement or Feat" choice of a class
   level. For a background, that is the Background step. For a race, that
@@ -1000,6 +1004,12 @@ Added in ORC-138. A guided dialog makes a race copy with the optional rule
 uses our own words, because the book is not SRD content.
 
 ### The entry
+
+The [Character builder spec](character-builder.md#custom-origin)
+(ORC-334) replaces the race cards with a list. Custom Origin is then the
+fixed last row of the Race list, and its button is in the detail panel.
+The copy shows in the header of the Race block, with **Edit custom
+origin**. The rules below describe the builder before that change.
 
 * **Custom Origin** is the last entry of the race cards. It is a button,
   not a toggle, with a dashed border and the line "Move the bonuses,
