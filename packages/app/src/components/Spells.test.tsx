@@ -45,7 +45,7 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   open("spells-wizard-1", caster("wizard"));
   const cantrips = region("Wizard Cantrips Known");
   // The picks to make are an inline note in the heading.
-  expect(cantrips.getByRole("heading").textContent).toBe("Wizard Cantrips Known 3 to choose");
+  expect(cantrips.getByRole("heading").textContent).toBe("Wizard Cantrips Known,3 left");
   fireEvent.click(cantrips.getByRole("button", { name: "Acid Splash" }));
   expect(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("list", { name: "Chosen: Wizard Cantrips Known" }).textContent).toBe("Acid Splash");
@@ -136,4 +136,12 @@ test("a cleric at the limit can prepare one more spell: the count is red and say
   expect(preparedSpells(entity())).toEqual({ Cleric: new Set(["bane", "bless", "command"]) });
   fireEvent.click(box("Bless"));
   expect(counts()).toEqual([["at", "2 of 2 prepared"]]);
+});
+
+test("the Spells step of a paladin 2 is not empty: it has no spell to pick, but it has spells to prepare", () => {
+  open("spells-paladin-2", caster("paladin", 2));
+  const spells = within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Spells/ });
+  expect(spells.hasAttribute("data-dimmed")).toBe(false);
+  expect(screen.queryByText("This character has no spell to pick.")).toBeNull();
+  expect(screen.getByRole("region", { name: /^Prepared spells: Paladin/ })).toBeTruthy();
 });

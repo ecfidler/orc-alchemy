@@ -44,10 +44,10 @@ import { useStorage } from "../storage/characters.ts";
  * open and built, under one row of buttons: Back to List on the left; on the
  * right, the save status, Save while it has unsaved changes to show (a sheet
  * change on its way to the record is not one), then the page's
- * `actions`, which get the sheet. A note under the row says when unsaved
+ * `actions`, which get the id and the sheet, as `children` do. A note under the row says when unsaved
  * changes were recovered from a draft on open.
  */
-function OpenCharacter({ actions, children }: { actions: (id: string, sheet: Sheet) => ReactNode; children: (sheet: Sheet) => ReactNode }) {
+function OpenCharacter({ actions, children }: { actions: (id: string, sheet: Sheet) => ReactNode; children: (id: string, sheet: Sheet) => ReactNode }) {
   const { id } = useParams() as { id: string };
   const openId = useCharacter((state) => state.id);
   const { sheet, dirty, unsaved } = useOpenCharacter();
@@ -138,7 +138,7 @@ function OpenCharacter({ actions, children }: { actions: (id: string, sheet: She
           </AlertNote>
         </AlertNotes>
       )}
-      {children(sheet)}
+      {children(id, sheet)}
     </>
   );
 }
@@ -274,7 +274,7 @@ function SheetPage() {
         </>
       )}
     >
-      {(sheet) => (
+      {(_id, sheet) => (
         <>
           <ExportMessageLine message={exportMessage} className="mb-4" />
           <OpenCharacterGaps characterName={sheet.name ?? "Unnamed character"} />
@@ -335,7 +335,7 @@ function SheetPage() {
   );
 }
 
-/** The builder. `?step=Spells` opens it at that step, for example from the Spells panel (ORC-285). */
+/** The builder. `?step=Spells` opens it at that step, for example from the Spells panel (ORC-285). Its last step links to the sheet. */
 function BuildPage() {
   const [params] = useSearchParams();
   return (
@@ -346,7 +346,7 @@ function BuildPage() {
         </ButtonLink>
       )}
     >
-      {() => <Builder step={params.get("step") ?? undefined} />}
+      {(id) => <Builder step={params.get("step") ?? undefined} sheetLink={<Link to={`/sheet/${id}`} />} />}
     </OpenCharacter>
   );
 }

@@ -2,7 +2,7 @@
 // class rows, and the hit points and ability score improvements each level
 // asks for. Each change is an engine mutation, as in Selection. It also holds
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
-import { Button, InlineNote, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
+import { Button, LeftMark, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
@@ -117,22 +117,26 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
 }
 
 /**
- * A selection's name and its picks to make or remove, as an inline note in
- * the heading: yellow for picks to make, red for too many. The heading grows
- * to fit the note, so the note covers nothing.
+ * A selection's name and its left mark at the right (docs/design/character-builder.md, "Marks, not sentences"): "2
+ * left", "Remove 1" or "Done". The mark has a fixed place, so a pick does not move the heading or change its size.
+ * The mark is a part of the heading text: "Languages, 2 left". `mark={false}` gives the heading with no mark, for a
+ * part that is no selection with picks, such as an inventory list.
  */
-export function Heading({ id, selection }: { id: string; selection: BuilderSelection }) {
-  const { remaining } = selection;
+export function Heading({ id, selection, mark = true }: { id: string; selection: BuilderSelection; mark?: boolean }) {
   return (
-    <h3 id={id} className="flex flex-wrap items-center gap-y-1 font-bold">
-      {selection.name}
-      {/* A flex row shows no space, but the space keeps the words apart in the heading's name. */}
-      {remaining !== 0 && " "}
-      {remaining > 0 && <InlineNote>{remaining} to choose</InlineNote>}
-      {remaining < 0 && <InlineNote tone="failed">{-remaining} too many</InlineNote>}
+    <h3 id={id} className={HEADING_CLASSES}>
+      <span className="min-w-0">
+        {selection.name}
+        {/* A comma for a screen reader: "Languages, 2 left". It is in the line, so no space comes before it. */}
+        {mark && <span className="text-[1px] opacity-0">,</span>}
+      </span>
+      {mark && <LeftMark left={selection.remaining} />}
     </h3>
   );
 }
+
+/** The classes of a selection heading: the name at the left, and the mark, when it has one, at the right. */
+export const HEADING_CLASSES = "flex items-center gap-3 font-sans text-[15px] font-bold leading-6";
 
 /** A level's hit points: the average or a roll of the class's hit die, or a number typed in. */
 export function HitPoints({ selection }: { selection: BuilderSelection }) {

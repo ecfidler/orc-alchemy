@@ -85,23 +85,26 @@ test("the half-elf's improvement takes two different abilities, and shows the en
   expect(asi.getByRole("button", { name: "Increase INT" }).hasAttribute("disabled")).toBe(false);
 });
 
-// Picks to make are a yellow inline note in the heading; too many picks are a red one (Ethan, PR #65).
-test("a selection heading: a yellow note for picks to make, a red note for too many, and neither when done", () => {
+// The left mark of a heading (ORC-340, docs/design/character-builder.md "Marks, not sentences"): "2 left" in yellow,
+// "Remove 1" in red, and a check with "Done", in the heading text.
+test("a selection heading: 2 left in yellow, Remove 1 in red, and Done when no pick is left", () => {
   const selection = (remaining: number) => ({ key: "languages", name: "Languages", remaining }) as BuilderSelection;
   const { rerender } = render(<Heading id="h" selection={selection(2)} />);
-  expect(screen.getByRole("heading").textContent).toBe("Languages 2 to choose");
-  expect(screen.getByText("2 to choose").dataset.tone).toBe("act");
+  // (jsdom drops the space at the end of an inline span; a browser reads "Languages, 2 left".)
+  expect(screen.getByRole("heading", { name: /^Languages, ?2 left$/ })).toBeTruthy();
+  expect(screen.getByText("2 left").dataset.tone).toBe("act");
   rerender(<Heading id="h" selection={selection(-1)} />);
-  expect(screen.getByRole("heading").textContent).toBe("Languages 1 too many");
-  expect(screen.getByText("1 too many").dataset.tone).toBe("failed");
+  expect(screen.getByRole("heading").textContent).toBe("Languages,Remove 1");
+  expect(screen.getByText("Remove 1").dataset.tone).toBe("failed");
   rerender(<Heading id="h" selection={selection(0)} />);
+  expect(screen.getByRole("heading").textContent).toBe("Languages,Done");
+  rerender(<Heading id="h" selection={selection(2)} mark={false} />);
   expect(screen.getByRole("heading").textContent).toBe("Languages");
 });
 
-test("a step with only picks to remove shows them as a red note count on the step bar", () => {
+test("a step with only picks to remove shows the red mark on the step rail, and its name says so", () => {
   // fighter-3-wizard-2's half-elf has one language too many, which is on the Proficiencies step.
   open(fighter3Wizard2(), "Proficiencies");
-  const proficiencies = within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Proficiencies/ });
-  expect(proficiencies.textContent).toBe("Proficiencies (1 too many)1 too many");
-  expect(within(proficiencies).getByText("1 too many").dataset.tone).toBe("failed");
+  const proficiencies = within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: "Proficiencies, remove 1 pick" });
+  expect(within(proficiencies).getByText("Remove 1").dataset.tone).toBe("failed");
 });

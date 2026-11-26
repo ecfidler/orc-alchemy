@@ -35,7 +35,7 @@ const built = () => {
 
 test("Standard Scores is the default, and a swap moves a score to its neighbour", () => {
   open(dwarf());
-  expect(screen.getByRole("heading", { name: "Base Ability Scores" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: /^Base Ability Scores, ?Done$/ })).toBeTruthy();
   expect(method("Standard Scores").getAttribute("aria-pressed")).toBe("true");
   expect(method("Point Buy").getAttribute("aria-pressed")).toBe("false");
   expect(row("Race")).toEqual(["0", "0", "+2", "0", "0", "0"]);

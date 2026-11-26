@@ -6,6 +6,8 @@
 import type { AvailableSelection, TemplateSelection } from "@pubdoor/dmv";
 import { useMemo } from "react";
 import { type Content, engine } from "./engine.ts";
+import type { SheetClass, Spellcasting } from "./sheet.ts";
+import { prepareCounts } from "./spell-prepare.ts";
 
 export interface BuilderOption {
   key: string;
@@ -41,6 +43,13 @@ export interface BuilderSelection {
    */
   sources: string[];
   options: BuilderOption[];
+  /**
+   * The selections that moved to a step from under this selection's options,
+   * such as the tool of a background: shown on that step, not here. pickName
+   * finds a pick in them; nodes does not walk them, so that each selection
+   * shows once.
+   */
+  moved: BuilderSelection[];
 }
 
 /** The ten steps of the builder, in the order of the step rail (spec, "The step rail"). */
@@ -54,7 +63,8 @@ export interface BuilderStep {
    * The step has nothing to pick for this character: no selection, or only
    * selections that allow no pick and have none, such as the feats of a
    * character with no feat to take. Name and Description are never empty,
-   * because they hold fields.
+   * because they hold fields. Spells is not empty when a class of the
+   * character prepares spells, because it has spells to prepare.
    */
   empty: boolean;
 }
@@ -88,11 +98,6 @@ const TOP_LEVEL_STEP: [tag: string, step: StepName][] = [
   ["race", "Race"],
   ["equipment", "Equipment"],
 ];
-
-// The selections that moved to a step from under each selection's options,
-// so that pickName still finds a pick in them, such as the tool of a
-// background. Kept apart from the tree, which shows each selection once.
-const movedFrom = new WeakMap<BuilderSelection, BuilderSelection[]>();
 
 /** The step that a selection with these tags moves to, if any. */
 function movedStep(tags: string[]): StepName | undefined {
@@ -184,6 +189,7 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
         tags,
         sources: [],
         options,
+        moved: [],
       };
       orders.set(node, template.order);
       if (s.ref) byRef.set(JSON.stringify(s.actualPath), node);
@@ -213,7 +219,7 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
       // of its positions, but shows on its step once.
       const step = steps.find((x) => x.name === target)!;
       if (!step.selections.includes(node)) step.selections.push(node);
-      if (parent) movedFrom.set(parent, [...(movedFrom.get(parent) ?? []), node]);
+      if (parent && !parent.moved.includes(node)) parent.moved.push(node);
       if (!homes.has(node)) homes.set(node, target);
     }
   }
@@ -255,7 +261,10 @@ function nodes(selections: BuilderSelection[], seen = new Set<BuilderSelection>(
   });
 }
 
-/** The selections with picks to make or remove, as the old validate-selections: each merged selection once, in tree order. */
+/**
+ * The selections with picks to make or remove, as the old validate-selections: each merged selection once, in tree
+ * order. Only tests use it now, as the count of the old validate-selections.
+ */
 export function unfilled(steps: BuilderStep[]): BuilderSelection[] {
   return nodes(steps.flatMap((step) => step.selections)).filter((node) => node.remaining !== 0);
 }
@@ -272,7 +281,7 @@ export function pickName(selection: BuilderSelection, path: string[]): string {
   const parent = path.slice(0, -1).join("/");
   // With the selections that moved to a step from under the tree's options.
   const tree = (list: BuilderSelection[], seen = new Set<BuilderSelection>()): BuilderSelection[] =>
-    nodes(list, seen).flatMap((node) => [node, ...tree(movedFrom.get(node) ?? [], seen)]);
+    nodes(list, seen).flatMap((node) => [node, ...tree(node.moved, seen)]);
   const node = tree([selection]).find((s) => s.actualPath.join("/") === parent);
   const option = node?.options.find((o) => o.key === key);
   return node && option ? `${node.name} (${option.name})` : key;
@@ -296,9 +305,29 @@ export function remainingByStep(steps: BuilderStep[]): { toDo: number; tooMany: 
   );
 }
 
-/** The builder steps for the open character's selections; the template is built once per content. */
-export function useBuilderSteps(selections: AvailableSelection[] | null, content: Content = { homebrew: undefined }): BuilderStep[] {
+/** What withSpellsToPrepare takes from the sheet. */
+type PrepareSheet = { spellcasting: Spellcasting | null; classes: Pick<SheetClass, "name">[] };
+
+/**
+ * The steps with the Spells step not empty when a class of the character prepares spells: the step then has spells
+ * to prepare, even with no spell to pick (spec, "The step rail"). A step that changes is a copy; steps does not change.
+ */
+export function withSpellsToPrepare(steps: BuilderStep[], sheet: PrepareSheet | null): BuilderStep[] {
+  const prepares = sheet?.spellcasting ? prepareCounts(sheet.spellcasting, sheet.classes).length > 0 : false;
+  return prepares ? steps.map((step) => (step.name === "Spells" && step.empty ? { ...step, empty: false } : step)) : steps;
+}
+
+/**
+ * The builder steps for the open character's selections; the template is built once per content. `sheet` is the open
+ * character's sheet, for the Spells step of a class that prepares spells (withSpellsToPrepare).
+ */
+export function useBuilderSteps(
+  selections: AvailableSelection[] | null,
+  content: Content = { homebrew: undefined },
+  sheet: PrepareSheet | null = null,
+): BuilderStep[] {
   const { homebrew, magicItems } = content;
   const shape = useMemo(() => engine().buildTemplate(homebrew, { magicItems }).shape, [homebrew, magicItems]);
-  return useMemo(() => (selections === null ? [] : builderSteps(selections, shape)), [selections, shape]);
+  const steps = useMemo(() => (selections === null ? [] : builderSteps(selections, shape)), [selections, shape]);
+  return useMemo(() => withSpellsToPrepare(steps, sheet), [steps, sheet]);
 }

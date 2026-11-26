@@ -20,7 +20,7 @@ test("a background made in the background form is a background choice of a new c
   const preview = page.getByRole("region", { name: "Preview" });
   await page
     .getByRole("navigation", { name: "Steps" })
-    .getByRole("button", { name: /^Background( \(\d+ to do\))?$/ })
+    .getByRole("button", { name: /^Background(, .*)?$/ })
     .click();
   await builder.getByRole("button", { name: "Spy", exact: true }).click();
   await expect(preview.getByLabel("Background", { exact: true })).toHaveText("Spy");

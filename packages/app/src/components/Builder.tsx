@@ -1,9 +1,11 @@
 // The builder (ORC-55): the open character's selections as steps of option
 // cards, beside its sheet as a live preview. Each pick is an engine mutation
-// through useCharacter's update, so it autosaves.
-import { Button, NoteCount, Toggle, ToggleGroup } from "@orc-alchemy/ui";
-import { useId, useState } from "react";
-import { type BuilderOption, type BuilderSelection, remainingByStep, type StepName, unfilled, useBuilderSteps } from "../engine/builder.ts";
+// through useCharacter's update, so it autosaves. The step rail, the step
+// title, Back and Next, and the left marks are ORC-340
+// (docs/design/character-builder.md, "The step rail").
+import { Button, ButtonLink, StepRail, Toast, Toggle, ToggleGroup } from "@orc-alchemy/ui";
+import { createContext, type ReactElement, type ReactNode, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
+import { type BuilderOption, type BuilderSelection, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
@@ -17,94 +19,133 @@ import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 /** The name of the builder's Spells step, for example for a link to it (`/build/{id}?step=Spells`). */
 export const SPELLS_STEP: StepName = "Spells";
 
+/** The one line of a step that has nothing to pick for this character (spec, "The step rail"). */
+const EMPTY_LINE: Partial<Record<StepName, string>> = {
+  Class: "This character has no class to pick.",
+  Background: "This character has no background to pick.",
+  Race: "This character has no race to pick.",
+  Abilities: "This character has no ability score to pick.",
+  Proficiencies: "This character has no proficiency to pick.",
+  Feats: "This character has no feat to pick.",
+  Spells: "This character has no spell to pick.",
+  Equipment: "This character has no equipment to pick.",
+};
+
 /**
- * `step`: the name of the step that shows first, for example `SPELLS_STEP`. The Race step by default, until the step
- * rail sets which step opens (ORC-340, ORC-342). It is read only
- * at the start: a later change of step does not change it, so the URL keeps its `?step=` and a reload goes back to
- * that step. A name that is not a step gives the first step.
+ * Shows a text in the status toast of the builder page (spec, "No layout shift"): a text that comes and goes, for
+ * example the result of an action. Each call shows the text again, also the same text. "" hides it.
  */
-export function Builder({ step: firstStep = "Race" }: { step?: string }) {
+const BuilderStatus = createContext<(text: string) => void>(() => {});
+
+/** The function that shows a text in the status toast of the builder. Outside the builder it does nothing. */
+export const useBuilderStatus = () => useContext(BuilderStatus);
+
+/**
+ * `step`: the name of the step that shows first, for example `SPELLS_STEP`. The Race step by default, until ORC-342
+ * sets which step opens. It is read only at the start: a later change of step does not change it, so the URL keeps
+ * its `?step=` and a reload goes back to that step. A name that is not a step gives the first step.
+ * `sheetLink`: the link element of "Go to the sheet" on the Description step, for example the router's link to the
+ * sheet of the character. Without it, the step has no "Go to the sheet".
+ */
+export function Builder({ step: firstStep = "Race", sheetLink }: { step?: string; sheetLink?: ReactElement }) {
   const { selections, sheet, content } = useOpenCharacter();
   // The ten steps, with Name and Description. Before the character loads there are no steps at all.
-  const steps = useBuilderSteps(selections, content);
+  const steps = useBuilderSteps(selections, content, sheet);
   const [stepName, setStepName] = useState(firstStep);
-  const step = steps.find((s) => s.name === stepName) ?? steps[0];
+  const index = Math.max(
+    steps.findIndex((s) => s.name === stepName),
+    0,
+  );
+  const step = steps[index];
   const counts = remainingByStep(steps);
-  // As the old validate-selections: starting equipment is not flagged.
-  const messages = unfilled(steps)
-    .filter((s) => !s.tags.includes("starting-equipment"))
-    .map(({ name, remaining: n }) => {
-      const noun = Math.abs(n) === 1 ? "selection" : "selections";
-      return n > 0
-        ? { text: `You have ${n} more '${name}' ${noun} to make.`, tooMany: false }
-        : { text: `You must remove ${-n} '${name}' ${noun}.`, tooMany: true };
-    });
+  const rail = steps.map((s, i) => ({ value: s.name, label: s.name, left: counts[i].toDo, over: counts[i].tooMany, dimmed: s.empty }));
 
+  // After Next or Back, the focus goes to the step title (spec, "Keyboard and screen reader").
+  const title = useRef<HTMLHeadingElement>(null);
+  const focusTitle = useRef(false);
+  useEffect(() => {
+    if (!focusTitle.current) return;
+    focusTitle.current = false;
+    title.current?.focus();
+  }, [stepName]);
+  const go = (to: StepName) => {
+    focusTitle.current = true;
+    setStepName(to);
+  };
+
+  const back = steps[index - 1];
+  const next = steps[index + 1];
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <section aria-label="Builder" className="space-y-4">
-        <section aria-label="Still to do">
-          {messages.length === 0 ? (
-            <p>Every choice is made.</p>
-          ) : (
-            <ul className="list-disc pl-5">
-              {messages.map((message, i) => (
-                <li key={i} className={message.tooMany ? "text-danger" : undefined}>
-                  {message.text}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-        <nav aria-label="Steps">
-          <ol className="flex flex-wrap gap-2">
-            {steps.map((s, i) => {
-              const { toDo, tooMany } = counts[i];
-              // Picks to make are a yellow note count; picks to remove are a red one.
-              return (
-                <li key={s.name}>
-                  <Button aria-current={s === step ? "step" : undefined} onClick={() => setStepName(s.name)}>
-                    {s.name}
-                    {toDo > 0 && (
-                      <>
-                        <span className="sr-only"> ({toDo} to do)</span>
-                        <NoteCount>{toDo}</NoteCount>
-                      </>
-                    )}
-                    {tooMany > 0 && (
-                      <>
-                        <span className="sr-only"> ({tooMany} too many)</span>
-                        <NoteCount tone="failed">{tooMany} too many</NoteCount>
-                      </>
-                    )}
-                  </Button>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-        {step && (
-          <>
-            <h2 className="text-xl font-bold">{step.name}</h2>
-            {step.selections.map((selection) => {
-              // A class and a background can have starting equipment with the same key.
-              const key = JSON.stringify(selection.actualPath);
-              if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
-              if (isList(selection)) return <Inventory key={key} selection={selection} />;
-              if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
-              return <Selection key={key} selection={selection} />;
-            })}
-            {step.name === "Name" && <p>The character name is on the Description step.</p>}
-            {step.name === SPELLS_STEP && <PreparedSpells />}
-            {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
-            {step.name === "Description" && <Description />}
-          </>
-        )}
-      </section>
-      <section aria-label="Preview" className="border-t border-rule-strong pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-        {sheet && <CharacterSheet sheet={sheet} preview />}
-      </section>
-    </div>
+    <BuilderStatusToast>
+      <div className="space-y-5">
+        {step && <StepRail steps={rail} current={step.name} onStepChange={setStepName} />}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <section aria-label="Builder" className="min-w-0 space-y-4">
+            {step && (
+              <>
+                <div className="flex items-baseline justify-between gap-3 border-b border-rule-strong pb-1.5">
+                  <h2 ref={title} tabIndex={-1} className="text-[26px] leading-tight font-semibold">
+                    {step.name}
+                  </h2>
+                  <span className="font-sans text-[12.5px] whitespace-nowrap text-ink-muted">
+                    Step {index + 1} of {steps.length}
+                  </span>
+                </div>
+                {step.empty && <p className="font-sans text-[13.5px] text-ink-muted">{EMPTY_LINE[step.name]}</p>}
+                {!step.empty &&
+                  step.selections.map((selection) => {
+                    // A class and a background can have starting equipment with the same key.
+                    const key = JSON.stringify(selection.actualPath);
+                    if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
+                    if (isList(selection)) return <Inventory key={key} selection={selection} />;
+                    if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
+                    return <Selection key={key} selection={selection} />;
+                  })}
+                {step.name === "Name" && <p>The character name is on the Description step.</p>}
+                {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
+                {step.name === SPELLS_STEP && <PreparedSpells />}
+                {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
+                {step.name === "Description" && <Description />}
+                {/* Back and Next. The Name step has no Back, and Next stays at the right. */}
+                <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
+                  {back ? <Button onClick={() => go(back.name)}>Back</Button> : <span />}
+                  {next ? (
+                    <Button variant="solid" onClick={() => go(next.name)}>
+                      Next: {next.name}
+                    </Button>
+                  ) : (
+                    sheetLink && (
+                      <ButtonLink variant="solid" render={sheetLink}>
+                        Go to the sheet
+                      </ButtonLink>
+                    )
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+          <section aria-label="Preview" className="border-t border-rule-strong pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+            {sheet && <CharacterSheet sheet={sheet} preview />}
+          </section>
+        </div>
+      </div>
+    </BuilderStatusToast>
+  );
+}
+
+/**
+ * The status toast of the builder page (ui `Toast`), for the texts that `useBuilderStatus` gives in `children`. It is
+ * at the bottom of the screen and takes no space in the page.
+ */
+export function BuilderStatusToast({ children }: { children: ReactNode }) {
+  // Each text has a new key, so the toast shows a text that is the same as the last one again.
+  const [status, setStatus] = useState({ text: "", key: 0 });
+  const say = useCallback((text: string) => setStatus((last) => ({ text, key: last.key + 1 })), []);
+  return (
+    <BuilderStatus.Provider value={say}>
+      {children}
+      <Toast status={status.text} statusKey={status.key} />
+    </BuilderStatus.Provider>
   );
 }
 

@@ -132,13 +132,13 @@ test("Save stores the changes now, and the status says when they are saved", asy
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
   await screen.findByRole("region", { name: "Preview" }, { timeout: 5000 });
-  expect(screen.getByRole("status").textContent).toBe("Saved");
+  expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved");
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 
   fireEvent.click(within(screen.getByRole("region", { name: /^Race/ })).getByRole("button", { name: "Halfling" }));
-  expect(screen.getByRole("status").textContent).toBe("Unsaved changes");
+  expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Unsaved changes");
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Saved"));
+  await waitFor(() => expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved"));
   const id = useCharacter.getState().id!;
   expect(engine().evaluate((await getCharacter(id))!.entity).built.race).toBe("Halfling");
   expect(await getDraft(id)).toBeUndefined();
@@ -151,7 +151,7 @@ test("a sheet change leaves the status at Saved with no Save button, and a faile
 
   act(() => useCharacter.getState().sheetChange((entity) => engine().setValue(entity, "character-name", "Pike")));
   expect(useCharacter.getState().dirty).toBe(true);
-  expect(screen.getByRole("status").textContent).toBe("Saved");
+  expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved");
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 
   vi.spyOn(IDBObjectStore.prototype, "get").mockImplementationOnce(() => {
@@ -159,9 +159,9 @@ test("a sheet change leaves the status at Saved with no Save button, and a faile
   });
   await act(() => flushAutosave().catch(() => {}));
   vi.restoreAllMocks();
-  expect(screen.getByRole("status").textContent).toBe("Unsaved changes");
+  expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Unsaved changes");
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Saved"));
+  await waitFor(() => expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved"));
   expect((await getCharacter(useCharacter.getState().id!))?.name).toBe("Pike");
 });
 

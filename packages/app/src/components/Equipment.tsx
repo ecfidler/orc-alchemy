@@ -21,7 +21,7 @@ import {
 } from "../engine/equipment.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
-import { Heading, useMutation } from "./Classes.tsx";
+import { HEADING_CLASSES, Heading, useMutation } from "./Classes.tsx";
 
 const MAGIC_LISTS = ["magic-weapons", "magic-armor", "other-magic-items"];
 /** As the SRD: a character can attune to no more than 3 magic items at once. */
@@ -44,7 +44,8 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
 
   return (
     <section aria-labelledby={id} className="space-y-2">
-      <Heading id={id} selection={selection} />
+      {/* An inventory list has no picks to make, so it has no mark. */}
+      <Heading id={id} selection={selection} mark={false} />
       {error && <p role="alert">{error}</p>}
       <Combobox
         aria-label={`Add an item to ${selection.name}`}
@@ -172,7 +173,7 @@ export function Hands({ lists }: { lists: BuilderSelection[] }) {
   );
   return (
     <section aria-labelledby={id} className="space-y-2">
-      <h3 id={id} className="font-bold">
+      <h3 id={id} className={HEADING_CLASSES}>
         Equipped Items
       </h3>
       {error && <p role="alert">{error}</p>}

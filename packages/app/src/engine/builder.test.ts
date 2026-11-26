@@ -2,8 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
-import { type BuilderSelection, builderSteps, pickName, remainingByStep, remainingOf, unfilled } from "./builder.ts";
+import { type BuilderSelection, builderSteps, pickName, remainingByStep, remainingOf, unfilled, withSpellsToPrepare } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import type { Spellcaster, Spellcasting } from "./sheet.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 const charactersDir = join(fixturesDir, "characters");
@@ -63,6 +64,32 @@ test("a step with nothing to pick stays, flagged empty, and Name and Description
   expect(empty(readFixture("warlock-10-drow"))).toEqual([]);
   const name = step(engine().emptyCharacter(), "Name");
   expect(name).toEqual({ name: "Name", selections: [], empty: false });
+});
+
+test("the Spells step is not empty when a class of the character prepares spells", () => {
+  // A barbarian 1 has no spell to pick, so its Spells step is empty.
+  const steps = stepsOf(engine().emptyCharacter());
+  const spellsEmpty = (list: typeof steps) => list.find((s) => s.name === "Spells")!.empty;
+  const caster = (prepares: boolean): Spellcaster => ({
+    name: "Paladin",
+    ability: "cha",
+    saveDc: 11,
+    attackBonus: 3,
+    prepares,
+    canPrepare: prepares ? 2 : null,
+  });
+  const sheet = (prepares: boolean) => ({
+    spellcasting: { casters: [caster(prepares)], byLevel: [] } as unknown as Spellcasting,
+    classes: [{ name: "Paladin" }],
+  });
+  expect(spellsEmpty(withSpellsToPrepare(steps, null))).toBe(true);
+  expect(spellsEmpty(withSpellsToPrepare(steps, { spellcasting: null, classes: [] }))).toBe(true);
+  expect(spellsEmpty(withSpellsToPrepare(steps, sheet(false)))).toBe(true);
+  const prepared = withSpellsToPrepare(steps, sheet(true));
+  expect(spellsEmpty(prepared)).toBe(false);
+  // The other steps are the same, and the steps given do not change.
+  expect(prepared.filter((s) => s.empty).map((s) => s.name)).toEqual(["Feats"]);
+  expect(spellsEmpty(steps)).toBe(true);
 });
 
 test("wizard-20 has each selection on its step, with its source", () => {

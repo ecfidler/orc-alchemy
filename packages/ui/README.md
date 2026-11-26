@@ -39,8 +39,9 @@ bun run test       # vitest
   the list modal, token, picker, number toggle, segmented toggle and chips styles
   (`src/picker.css`),
   the paper pattern, stuck note, note line and use bubble styles
-  (`src/paper.css`), the tabs styles (`src/tabs.css`), and the toast
-  styles (`src/toast.css`).
+  (`src/paper.css`), the tabs styles (`src/tabs.css`), the step rail and
+  left mark styles (`src/rail.css`), and the toast styles
+  (`src/toast.css`).
 - `.`: the components and hooks.
   - `Button`: Base UI Button with `variant` ("ghost", "solid", "link",
     "plain" or "bare"),
@@ -435,6 +436,29 @@ bun run test       # vitest
     stuck, the page scrolls back so the new panel starts under the row.
     Left and Right, Home and End move between the tabs. Styles:
     `src/tabs.css`.
+  - `StepRail`: the steps of a free stepper, as one row across the top: a
+    `<nav>` named `label` ("Steps" by default) with a list of buttons. Each
+    of its `steps` (`RailStep`: `value`, `label`, `left`, `over`,
+    `dimmed`) shows its number and its label. The step with the value
+    `current` has a strong underline and `aria-current="step"`. A click
+    calls `onStepChange` with the value. `left` above 0 shows the number as
+    a yellow `NoteCount`, and `over` above 0 shows a red "Remove 1". The
+    marks are hidden from a screen reader, and the name of the button has
+    them in words: "Class, 2 picks left", "Class, remove 1 pick". A
+    `dimmed` step has nothing to pick: its number and label are faded, and
+    it still opens. The row does not wrap: when it is wider than its
+    column, it scrolls sideways, and the current step scrolls into view
+    in the row (the page does not scroll). Styles: `src/rail.css`.
+  - `LeftMark`: the mark of a selection at the right of its heading.
+    `left` above 0 gives "2 left" as a yellow `InlineNote`, below 0 gives
+    "Remove 1" as a red one, and 0 gives the check icon and "Done" in
+    muted text. Each mark is in the same box, of a fixed height and a
+    minimum width, so the heading does not move or change its size when
+    the mark changes. Put it last in a heading that is a flex row. Its
+    text is a part of the heading text: end the name with a comma that does
+    not show and stays in the line (not `sr-only`, which a browser reads
+    with a space before it), so a screen reader reads "Languages, 2 left".
+    Styles: `src/rail.css`.
   - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
   - `Toast`: a region fixed at the bottom centre of the screen, 16px
     above the bottom edge and the safe area, in a portal at the end of the

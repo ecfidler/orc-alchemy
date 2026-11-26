@@ -24,6 +24,7 @@
 @import "./src/picker.css";
 @import "./src/paper.css";
 @import "./src/tabs.css";
+@import "./src/rail.css";
 @import "./src/toast.css";
 
 /* Tailwind resolves this path from this file, so each app finds the package's classes. */

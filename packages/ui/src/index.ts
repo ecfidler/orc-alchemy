@@ -23,6 +23,7 @@ export { Select, SelectBox, type SelectBoxProps, type SelectOption, type SelectP
 export { type FlagColor, FlagTab, FlagTabs, Shell } from "./Shell.tsx";
 export { SmallPopup, type SmallPopupProps } from "./SmallPopup.tsx";
 export { SplitButton, type SplitButtonItem, type SplitButtonProps } from "./SplitButton.tsx";
+export { LeftMark, type RailStep, StepRail } from "./StepRail.tsx";
 export { InlineNote, NoteCount, StuckNote } from "./StuckNote.tsx";
 export { type StoredValue, type StoredValueOptions, storedValue, useStoredValue } from "./stored-value.ts";
 export { type Tab, Tabs } from "./Tabs.tsx";
