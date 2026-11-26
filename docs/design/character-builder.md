@@ -73,6 +73,9 @@ In this document:
 * A **pick** is one option that the player took in a selection.
 * The **main pick** of the Class, Background and Race steps is the
   class, the background or the race.
+* A **modal** shows the detail of one option at the center of the page,
+  over the page. A **dialog** holds controls: a list, the class cards or
+  a question. The two are the ui `Dialog`.
 * A **source** is the class, the background, the race or the feat that
   gives a selection.
 
@@ -106,8 +109,9 @@ A pick must not move the other parts of the page.[^orc-328]
   The builder page gets the same toast.
 * A control that cannot be used stays in its place, disabled.
 * A part that the player opens can grow the page below the part. The
-  open of a choice row, the "By level" hit points and the block that
-  takes the place of a list are such parts.
+  open of a choice row and the "By level" hit points are such parts.
+* The main pick of the Background and Race steps is the one exception.
+  After the pick, a block takes the place of the list and the panel.
 
 Each build ticket checks this with a test that measures the part before
 and after the change.
@@ -145,7 +149,8 @@ A change that removes picks asks first.[^orc-333] [^orc-335]
 * The body is the line "These picks go:" and a list. Each row has the
   step or the level at the left, and the selection and the pick at the
   right: "Proficiencies", "Skills: Perception, Stealth".
-* The buttons are Cancel and the action: Replace, Remove or Change.
+* The buttons are Cancel and the action. The table below gives the
+  action of each change.
 * A change that removes no pick asks nothing.
 * After the action, the builder removes those picks from the entity
   before it gives the new pick to the engine. The step that had a
@@ -154,13 +159,16 @@ A change that removes picks asks first.[^orc-333] [^orc-335]
 
 These changes ask:
 
-| Change | Picks that go |
-|---|---|
-| A different class in the place of a class | Each pick of the class on each step |
-| A lower level | The picks of the levels that go |
-| Remove a class | Each pick of the class on each step |
-| A different background or race | Each pick of the old one on each step |
-| A background or a race that gives a skill, a language or a tool that the player picked for a different source | Those picks |
+| Change | Picks that go | Title | Action |
+|---|---|---|---|
+| A different class in the place of a class, at each level | Each pick of the class on each step | "Replace Fighter with Rogue?" | Replace |
+| A lower level | The picks of the levels that go | "Lower Fighter to level 3?" | Remove |
+| Remove a class | Each pick of the class on each step | "Remove Rogue?" | Remove |
+| A different background or race | Each pick of the old one on each step | "Replace Half-Elf with Dwarf?" | Replace |
+| A background or a race that gives a skill, a language or a tool that the player picked for a different source | Those picks | "Change to Acolyte?" | Change |
+
+When one change is in two rows, the dialog lists the picks of the two
+rows, and the action is Replace.
 
 The last row is the way out of the dead end of the research:[^orc-329]
 a Cleric that has Insight and Religion, and then takes Acolyte. The
@@ -233,8 +241,8 @@ step.[^orc-330]
 The step that opens:[^orc-333]
 
 * A new character opens on Name.
-* The Edit button of a sheet opens the first step with picks left. If no
-  step has a mark, it opens Class.
+* The Edit button of a sheet opens the first step with a left mark or a
+  red mark. If no step has a mark, it opens Class.
 
 ## The summary card
 
@@ -638,8 +646,9 @@ The changes are in the same pull request as this document.
   class and the header of a class block.
 * **Stuck note:** the inline notes of the builder are the left marks of
   this document.
-* **Small screens:** the builder has no preview. It has the summary card
-  and the full sheet panel.
+* **Small screens:** the builder has no preview beside the steps. It
+  has the summary card and the full sheet panel, and the rules of the
+  builder preview apply to the panel.
 
 **[Homebrew forms spec](homebrew-forms.md):** the Customize button of a
 background and a race is in the header of the block of the Background

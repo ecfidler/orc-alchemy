@@ -734,10 +734,11 @@ section says so.
   (ORC-334) moves the button of a background and a race. It is in the
   header of the block of the Background step and the Race step, and
   those steps have no line. A feat keeps the line.
-* Each place that picks the option shows the line. For a feat, that is the
-  Feats step and the "Ability Score Improvement or Feat" choice of a class
-  level. For a background, that is the Background step. For a race, that
-  is the Race step.
+* Before ORC-334, each place that picks the option shows the line. For a
+  feat, that is the Feats step and the "Ability Score Improvement or
+  Feat" choice of a class level. For a background, that is the Background
+  step. For a race, that is the Race step. After ORC-334, only the Feats
+  step shows the line, because a feat is picked only there.
 * The copy shows in the list of cards by its name only, with no badge. The
   original stays in the list.
 

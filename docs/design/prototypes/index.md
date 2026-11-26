@@ -1,6 +1,6 @@
 # Prototypes
 
-Copies of the throwaway HTML prototypes that the design decisions come from. Open a file in a browser. The [Theme spec](../theme.md), the [Homebrew forms spec](../homebrew-forms.md), the [Spells panel spec](../spells-panel.md) the [Sheet interactivity spec](../sheet-interactivity.md) and the [Character builder spec](../character-builder.md) say which view of each prototype is the choice. A spec wins where a prototype disagrees with it.
+Copies of the throwaway HTML prototypes that the design decisions come from. Open a file in a browser. The [Theme spec](../theme.md), the [Homebrew forms spec](../homebrew-forms.md), the [Spells panel spec](../spells-panel.md), the [Sheet interactivity spec](../sheet-interactivity.md) and the [Character builder spec](../character-builder.md) say which view of each prototype is the choice. A spec wins where a prototype disagrees with it.
 
 * [Palette](orc-144-palette-prototype.html) - The palette in light and dark (ORC-144).
 * [Character sheet](orc-145-sheet-prototype.html) - The sheet layouts (ORC-145, ORC-153).

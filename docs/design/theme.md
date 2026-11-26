@@ -471,8 +471,8 @@ the same yellow in dark mode.
   grows to fit it, so it covers nothing. The builder step rail shows its
   count of picks left as an inline note. A selection with picks left
   has "n left" as an inline note at the right of its heading. See
-  [Marks, not sentences](character-builder.md#marks-not-sentences). Too many choices
-  picked is a red (`--note-red`) inline note, on the step bar and in the
+  [Marks, not sentences](character-builder.md#marks-not-sentences). Too many picks
+  is a red (`--note-red`) inline note, on the step rail and in the
   heading (Ethan, on PR #65).
 * Information that needs no action, such as an import-log warning, stays as
   `--warning` text.
@@ -873,9 +873,9 @@ The phone layout of the character sheet is ORC-173. These rules apply:
   starts under the row. There are no swipe gestures.
 * The builder has no preview beside the steps. It has the summary card
   and the full sheet panel of the
-  [Character builder spec](character-builder.md#the-summary-card). The
-  panel is the builder preview of this document. It has no tabs, and it
-  keeps one long column.
+  [Character builder spec](character-builder.md#the-summary-card).
+  Where this document says "the builder preview", read "the full sheet
+  panel". The panel has no tabs, and it keeps one long column.
 * In one column, the AC, initiative and speed boxes share the width, up to
   112px each.
 * When the sheet is narrower than 720px, the attacks table has no

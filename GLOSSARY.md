@@ -159,7 +159,7 @@ the worn armor. It does not change the equipment.
 _Avoid_: AC override, equipped armor, loadout
 
 **Step**:
-One page of the character builder, for example Class or Proficiencies. The
+One part of the character builder, for example Class or Proficiencies. The
 builder has ten steps in a fixed order, and each step opens at any time.
 _Avoid_: Tab, page, stage
 
@@ -180,7 +180,7 @@ character, and it has no control.
 _Avoid_: Preview, mini sheet, sidebar
 
 **Detail panel**:
-The panel that shows the full content of the option that the user selected
+The panel that shows the full content of the option that the player clicked
 in a list, with the button that makes the pick.
 _Avoid_: Preview pane, info box, tooltip
 
