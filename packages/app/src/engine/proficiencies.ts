@@ -42,11 +42,17 @@ export function groupOf(selection: BuilderSelection): GroupName {
   return "Other proficiencies";
 }
 
-/** The class level of a selection that a class level opens directly, such as the Expertise of a rogue 6; else null. */
+/**
+ * The class level of a selection under a class level, such as the Expertise of a rogue 6 or the bonus skills of a
+ * bard college, which is deeper; else null.
+ */
 function classLevel({ actualPath }: BuilderSelection): string | null {
-  if (actualPath.length !== 5 || actualPath[0] !== "class" || actualPath[2] !== "levels") return null;
-  return actualPath[3].match(/^level-(\d+)$/)?.[1] ?? null;
+  if (actualPath[0] !== "class" || actualPath[2] !== "levels") return null;
+  return actualPath[3]?.match(/^level-(\d+)$/)?.[1] ?? null;
 }
+
+/** The class level for the heading: only for a selection that its class level opens directly ("Expertise: Rogue 6"). */
+const headingLevel = (selection: BuilderSelection) => (selection.actualPath.length === 5 ? classLevel(selection) : null);
 
 /**
  * The heading name of a section of the step: what it gives and its sources, "Skills: Fighter", "Languages: Acolyte,
@@ -58,7 +64,7 @@ export function proficiencySectionName(selection: BuilderSelection): string {
   const group = groupOf(selection);
   const what = isExpertise(selection) ? "Expertise" : proficiencyKind(selection) !== null ? group : selection.name;
   if (selection.sources.length === 0) return what;
-  const level = isExpertise(selection) ? classLevel(selection) : null;
+  const level = isExpertise(selection) ? headingLevel(selection) : null;
   return `${what}: ${selection.sources.join(", ")}${level ? ` ${level}` : ""}`;
 }
 
@@ -127,6 +133,8 @@ export interface GroupsInput {
 export function proficiencyGroups(selections: BuilderSelection[], { fixed, tops, classes, names }: GroupsInput): ProficiencyGroup[] {
   const rankOfName = new Map(tops.map(({ path, name }) => [name, SOURCE_ORDER.indexOf(path[0])]));
   const rank = (selection: BuilderSelection) => {
+    // A feat sits under the path of what gave it, such as a class level (class/fighter/levels/level-4/asi-or-feat/feat/feats): it is a feat.
+    if (selection.actualPath.includes("feats")) return SOURCE_ORDER.indexOf("feats");
     const own = SOURCE_ORDER.indexOf(selection.actualPath[0]);
     if (own !== -1) return own;
     // A merged top-level selection, such as ["languages"]: the rank of its first source.

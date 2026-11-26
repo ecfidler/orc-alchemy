@@ -182,6 +182,7 @@ export function abilityIncreases(built: Built2014, selections: AvailableSelectio
       if (ability in by) by[ability][source]++;
     }
   }
+  // A feat with fixed increases (no asi selection) shows its points as "Other": the engine gives no source for them.
   for (const a of ABILITIES) {
     const known = INCREASE_SOURCES.reduce((sum, source) => sum + by[a][source], 0);
     by[a].Other += total[a] - base[a] - known;

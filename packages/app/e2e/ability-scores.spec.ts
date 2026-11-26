@@ -40,7 +40,8 @@ const boxes = (page: Page) =>
     }),
   );
 
-for (const width of [1280, 390]) {
+// 1280px: six in a row. 660px, a little narrower than the breakpoint with no rail, and 390px: three in a row.
+for (const width of [1280, 660, 390]) {
   test(`the boxes do not move or change their size at a change of method or of a score, ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await abilitiesStep(page, { halfElf: true });
@@ -48,13 +49,15 @@ for (const width of [1280, 390]) {
     const before = await boxes(page);
     // Six boxes, the strip, the control and the half-elf's section, and the row of Back and Next.
     expect(before.length).toBe(10);
-    // Six in a row on a wide page, three in a row at 390px.
+    // Six in a row on a wide page, three in a row on the narrower ones.
     const rows = new Set(before.slice(0, 6).map(([, y]) => y));
-    expect(rows.size).toBe(width === 390 ? 2 : 1);
+    expect(rows.size).toBe(width === 1280 ? 1 : 2);
 
     const same = async () => expect(await boxes(page)).toEqual(before);
-    // A swap by two clicks.
+    // A chip held, so the strip shows the longer hint, and a swap by two clicks.
     await chip(page, "Strength").click();
+    await expect(control(page).locator("[data-strip]")).toHaveText(/Now pick the score to swap with/);
+    await same();
     await chip(page, "Wisdom").click();
     await expect(totals(page).first()).toHaveText(/10$/);
     await same();
@@ -62,6 +65,10 @@ for (const width of [1280, 390]) {
       await method(page, name).click();
       await expect(method(page, name)).toHaveAttribute("aria-pressed", "true");
       await same();
+      if (name === "Standard Roll") {
+        await control(page).getByRole("button", { name: "Re-roll" }).click();
+        await same();
+      }
     }
     // A score in point buy, then a point of the half-elf: a token shows in the box, and nothing moves.
     await box(page, "Strength").getByRole("button", { name: "Increase Strength" }).click();
@@ -181,6 +188,7 @@ test.describe("screenshots", () => {
   const shoot = (page: Page, name: string) =>
     page.getByRole("region", { name: "Builder" }).screenshot({ path: join(dir, `orc-345-${name}.png`), animations: "disabled" });
 
+  // 1280px: six in a row. 660px, a little narrower than the breakpoint with no rail, and 390px: three in a row.
   for (const theme of ["light", "dark"])
     for (const width of [1280, 390]) {
       const size = width === 390 ? "390" : "desktop";

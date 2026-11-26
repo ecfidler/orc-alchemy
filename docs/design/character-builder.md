@@ -531,9 +531,10 @@ On a page narrower than 720px, they are three in a row.
 * The token area of a box holds two tokens. With more sources, the
   second token is the sum of the others, "+3 more". The full list is in
   the box for a screen reader.[^orc-345]
-* The boxes are six in a row when the control is 600px wide or more. So
-  on a page a little wider than 720px, where the summary card takes
-  space, they are three in a row too.[^orc-345]
+* The boxes are six in a row only when the control is 728px wide or
+  more. Then each box has space for the point-buy buttons and for a
+  "+2 Improvement" token. So on a page narrower than about 1250px, where
+  the summary card takes space, they are three in a row too.[^orc-345]
 
 The base score for each method:
 
@@ -560,7 +561,10 @@ tool.[^orc-332] [^orc-333] The Class, Background and Race steps do not
 show these selections. They show a line in "Picked on other steps".
 
 * The step has three groups, each with a heading: Skills, Languages,
-  Tools. A group with no selection for this character does not show.
+  Tools. A fourth group, "Other proficiencies", shows only for a
+  selection that gives no skill, language or tool, such as the armor
+  and weapon selections of the "Custom" options. A group with no
+  selection for this character does not show.
 * A group has one section for each source, with the source in the
   heading and the left mark: "Skills: Fighter", "Languages: Acolyte".
   The sections are in the order of the steps: class, background, race,
@@ -594,7 +598,9 @@ show these selections. They show a line in "Picked on other steps".
   gives no source for a language, and for some fixed skills and tools.
   Then the source is the race, the background or the class without
   which the character does not have the item. A token with no source
-  found shows the name only.[^orc-346]
+  found shows the name only. An item that the character picked shows
+  only when a fixed source gives it too, for example the Perception of a
+  rogue who picked it and then became an elf.[^orc-346]
 
 # The Feats step
 

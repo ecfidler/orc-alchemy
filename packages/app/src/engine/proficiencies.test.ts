@@ -4,9 +4,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderStep, builderSteps, remainingByStep, treeNodes } from "./builder.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
 import { proficiencyGroups, proficiencyNames, proficiencySectionName, proficiencySectionNames } from "./proficiencies.ts";
 import { fixedProficiencies, pickSources, topSources, unavailableOptions } from "./selection-control.ts";
+import { FEAT_PACK, SKILL_EXPERT } from "./test-feats.ts";
 
 beforeAll(() => loadEngine());
 
@@ -14,13 +15,13 @@ const fixture = (name: string): StrictEntity =>
   JSON.parse(readFileSync(join(import.meta.dirname, "../../../../fixtures/characters", `${name}.strict.json`), "utf8"));
 
 /** The steps of the entity, the input of unavailableOptions, and the groups of its Proficiencies step. */
-function build(entity: StrictEntity) {
+function build(entity: StrictEntity, homebrew?: Homebrew) {
   const e = engine();
-  const { built, selections } = e.evaluate(entity);
-  const shape = e.buildTemplate(undefined).shape;
+  const { built, selections } = e.evaluate(entity, { homebrew });
+  const shape = e.buildTemplate(homebrew).shape;
   const steps = builderSteps(selections, shape);
   const tops = topSources(steps);
-  const input = { engine: e, entity, built, content: { homebrew: undefined }, tops, picks: pickSources(steps) };
+  const input = { engine: e, entity, built, content: { homebrew }, tops, picks: pickSources(steps) };
   const step = steps.find((s) => s.name === "Proficiencies")!;
   const groups = proficiencyGroups(step.selections, { fixed: fixedProficiencies(input), tops, classes: built.classes, names: proficiencyNames(shape) });
   const names = proficiencySectionNames(step.selections);
@@ -89,6 +90,43 @@ test("the sections are in the order class, background, race; two classes in the 
     ["Skills", ["Skills: Fighter", "Skills: Half-Elf"]],
     ["Languages", ["Languages: Acolyte, Half-Elf"]],
   ]);
+});
+
+/** A pack feat with one language of the character's choice. */
+const LINGUIST = { ...SKILL_EXPERT, "~:key": "~:linguist", "~:name": "Linguist", "~:props": { "~:language-choice": 1 } };
+
+test("a feat is a source after the class, the background and the race, also for a feat of a class level", () => {
+  // A rogue 4 half-elf acolyte who takes the pack feat Linguist at level 4.
+  const homebrew = { [FEAT_PACK]: { "~:orcpub.dnd.e5/feats": { "~:linguist": LINGUIST } } } as Homebrew;
+  const options = { homebrew };
+  let entity = select(select(rogue(4), ["race"], "half-elf"), ["background"], "acolyte");
+  entity = engine().select(entity, ["class", "rogue", "levels", "level-4", "asi-or-feat"], "feat", options) as StrictEntity;
+  entity = engine().select(entity, ["feats"], "linguist", options) as StrictEntity;
+  const { step, groups, names } = build(entity, homebrew);
+  expect(groups.map((g) => [g.name, g.sections.map((s) => names.get(s))])).toEqual([
+    ["Skills", ["Skills: Rogue", "Skills: Half-Elf", "Expertise: Rogue"]],
+    ["Languages", ["Languages: Acolyte, Half-Elf, Linguist"]],
+  ]);
+  // A skill section of a feat under the path of a class level: after the race's section, before the Expertise.
+  const race = step.selections.find((s) => s.actualPath[0] === "race" && s.key === "skill-proficiency")!;
+  const feat = {
+    ...race,
+    actualPath: ["class", "rogue", "levels", "level-4", "asi-or-feat", "feat", "feats", "linguist", "skill-proficiency"],
+    sources: ["Linguist"],
+  };
+  const sections = proficiencyGroups([feat, ...step.selections], { fixed: [], tops: topSources([step]), classes: ["rogue"], names: new Map() })[0].sections;
+  expect(sections.map((s) => s.actualPath.slice(0, 2).join("/"))).toEqual(["class/rogue", "race/half-elf", "class/rogue", "class/rogue"]);
+  expect(sections.map(proficiencySectionName)).toEqual(["Skills: Rogue", "Skills: Half-Elf", "Skills: Linguist", "Expertise: Rogue"]);
+});
+
+test("a selection deeper under a class level sorts by its level too, such as the bonus skills of a bard college", () => {
+  let entity = engine().setClass(engine().emptyCharacter(), 0, "bard") as StrictEntity;
+  for (let i = 1; i < 3; i++) entity = engine().addLevel(entity, "bard") as StrictEntity;
+  entity = select(entity, ["class", "bard", "levels", "level-3", "bard-college"], "college-of-lore");
+  const { step, input } = build(entity);
+  // In the opposite order of the template: the level puts the college's skills after the skills of level 1.
+  const [skills] = proficiencyGroups([...step.selections].reverse(), { fixed: [], tops: input.tops, classes: ["bard"], names: new Map() });
+  expect(skills.sections.map(proficiencySectionName)).toEqual(["Skills: Bard", "Skills: College of Lore", "Expertise: Bard"]);
 });
 
 test("a selection that gives no single kind keeps its own name before its source", () => {

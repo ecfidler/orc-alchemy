@@ -207,19 +207,63 @@ export interface FixedProficiency {
   sources: string[];
 }
 
+// The character without its picks of the last entity and content (withoutPicks).
+let withoutPicksMemo: { entity: StrictEntity; content: Content; result: { entity: StrictEntity; ids: Set<string> } | null } | null = null;
+
 /**
- * Each skill, tool and language that the character has and that no selection picked, with its sources (spec, "The
- * Proficiencies step": "Already has"). The sources of a skill and a tool are the names in the built proficiencies;
- * for a language, and in the place of a "nil", they are the top-level options that give it.
+ * The character with no pick of a skill, a tool or a language that input.picks holds, and what it then has, by
+ * "{kind}:{key}". The engine names no source of a picked skill ("nil"), as it names none for some fixed ones, such
+ * as the Perception of an elf: so only this build tells a fixed source of a picked item. Null when nothing is
+ * picked, or when the engine fails.
+ */
+function withoutPicks(input: AvailabilityInput): { entity: StrictEntity; ids: Set<string> } | null {
+  const { engine, entity, content, picks } = input;
+  if (withoutPicksMemo !== null && withoutPicksMemo.entity === entity && withoutPicksMemo.content === content) return withoutPicksMemo.result;
+  const picked = new Set([...picks.keys()].map((id) => id.split(/:(.*)/s)[1]));
+  let result: { entity: StrictEntity; ids: Set<string> } | null = null;
+  if (picked.size > 0) {
+    try {
+      let stripped = entity;
+      // Each pick of such a key in a selection that is not the race, the background or a class itself.
+      for (const selection of engine.evaluate(entity, content).selections) {
+        if (selection.actualPath.length === 1 && TOP_SOURCES.includes(selection.actualPath[0])) continue;
+        for (const key of selection.selected) if (picked.has(key)) stripped = withoutOption(stripped, [...selection.actualPath, key]);
+      }
+      result = { entity: stripped, ids: proficiencyIds(engine.evaluate(stripped, content).built) };
+    } catch {
+      result = null;
+    }
+  }
+  withoutPicksMemo = { entity, content, result };
+  return result;
+}
+
+/**
+ * Each skill, tool and language that the character has from a fixed source, with its sources (spec, "The
+ * Proficiencies step": "Already has"). An item that a selection picked shows only when the character also has it
+ * without its picks (withoutPicks), such as the Perception of a rogue who picked it and then became an elf; its
+ * sources are then the givers in the character without its picks. The sources of a skill and a tool are the names in
+ * the built proficiencies; for a language, and in the place of a "nil", they are the top-level options that give it.
  */
 export function fixedProficiencies(input: AvailabilityInput): FixedProficiency[] {
-  return [...proficiencyIds(input.built)]
-    .filter((id) => !input.picks.has(id))
-    .map((id) => {
-      const [kind, key] = id.split(/:(.*)/s) as [ProficiencyKind, string];
+  const stripped = input.picks.size > 0 ? withoutPicks(input) : null;
+  return [...proficiencyIds(input.built)].flatMap((id): FixedProficiency[] => {
+    const [kind, key] = id.split(/:(.*)/s) as [ProficiencyKind, string];
+    if (!input.picks.has(id)) {
       const sources = kind === "language" ? languageSources(input, key) : (proficiencySources(input, kind, key) ?? []);
-      return { kind, key, sources };
+      return [{ kind, key, sources }];
+    }
+    if (stripped === null || !stripped.ids.has(id)) return [];
+    // Without the picks: the givers of that character, as the "nil" of a picked skill is not the pick's.
+    const sources = input.tops.filter(({ path }) => {
+      try {
+        return !proficiencyIds(input.engine.evaluate(withoutOption(stripped.entity, path), input.content).built).has(id);
+      } catch {
+        return false;
+      }
     });
+    return [{ kind, key, sources: sources.map(({ name }) => name) }];
+  });
 }
 
 /**

@@ -60,8 +60,10 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
   const increases = useMemo(() => abilityIncreases(built!, selections!, scores), [built, selections, scores]);
   // The chip that the player picked up, for a swap by two clicks or by the keyboard.
   const [held, setHeld] = useState<Ability | null>(null);
-  // The text of the live region: the result of a swap, or a chip picked up or put down.
-  const [said, setSaid] = useState("");
+  // The text of the live region: the result of a swap, or a chip picked up or put down. `count` changes with each
+  // message, so that the same text two times in a row is said again (as in SpellsPanel).
+  const [announce, setAnnounce] = useState({ text: "", count: 0 });
+  const setSaid = (text: string) => setAnnounce((last) => ({ text, count: last.count + 1 }));
   const drag = useChipDrag((from, to) => swap(from, to));
 
   const write = (to: Method, next: Scores) => run((_e, entity, opts) => setBaseScores(entity, to, next, opts));
@@ -165,7 +167,9 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
         className="grid-cols-2 @min-[560px]/abilities:grid-cols-4"
       />
       <Strip method={method} scores={scores} held={held !== null} hintId={hintId} onReroll={() => method && write(method, rollScores())} />
-      <div data-ability-boxes="" className="grid grid-cols-3 gap-2.5 @min-[600px]/abilities:grid-cols-6">
+      {/* Six in a row only when each box has room for a "+2 Improvement" token (102px) with the 4px padding of the token
+          area at each side, and so for the point-buy grid (98px): 6 × (110px + 3px of border) + 5 gaps of 10px = 728px. */}
+      <div data-ability-boxes="" className="grid grid-cols-3 gap-2.5 @min-[728px]/abilities:grid-cols-6">
         {ABILITIES.map((ability) => {
           const cost = method === "point-buy" ? nextPointCost(scores, ability) : null;
           return (
@@ -203,7 +207,9 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
         })}
       </div>
       <p role="status" className="sr-only">
-        {said}
+        {/* A no-break space on every second message makes the same text a new message. */}
+        {announce.text}
+        {announce.count > 0 && announce.count % 2 === 0 && "\u00a0"}
       </p>
     </section>
   );
@@ -367,6 +373,10 @@ function useChipDrag(onDrop: (from: Ability, to: Ability) => void) {
         if (to !== null && to !== s.ability) onDrop(s.ability, to);
       },
       onPointerCancel: end,
+      // The browser took the capture away, for example when the chip left the page: the drag ends with no drop.
+      onLostPointerCapture(e: ReactPointerEvent<HTMLElement>) {
+        if (start.current?.pointer === e.pointerId) end();
+      },
     }),
   };
 }
@@ -386,7 +396,7 @@ export function AbilityIncreases({ selection }: { selection: BuilderSelection })
   return (
     <section aria-labelledby={id} className="@container/increases space-y-2">
       <Heading id={id} selection={selection} name={increaseSectionName(selection)} />
-      <ul className="grid grid-cols-3 gap-2.5 @min-[600px]/increases:grid-cols-6">
+      <ul className="grid grid-cols-3 gap-2.5 @min-[728px]/increases:grid-cols-6">
         {ABILITIES.map((ability) => {
           const name = ABILITY_NAMES[ability];
           const count = selection.selected.filter((key) => unqualify(key) === ability).length;

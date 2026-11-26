@@ -32,7 +32,11 @@ const chip = (name: string) => within(box(name)).getByRole("button", { name: new
 /** A text of each box, by its data attribute: the total, the modifier, the cost of the next point, or the tokens. */
 const read = (attribute: string) => NAMES.map((name) => [...box(name).querySelectorAll(`[${attribute}]`)].map((e) => e.textContent).join(" | "));
 const totals = () => read("data-total").map((text) => text.replace("Total ", ""));
-const status = () => within(control()).getByRole("status").textContent;
+/** The text of the live region, without the no-break space that marks every second message as new. */
+const status = () =>
+  within(control())
+    .getByRole("status")
+    .textContent!.replace(/\u00a0$/, "");
 const strip = () => control().querySelector("[data-strip]")!.textContent;
 const built = () => {
   const abilities = engine().evaluate(useCharacter.getState().entity!).built.abilities;
@@ -77,6 +81,29 @@ test("two clicks swap two scores, and a live region says the result; a second cl
       .filter((b) => b.dataset.chip),
   ).toEqual([]);
   expect(totals()).toEqual(["8", "14", "15", "12", "10", "15"]);
+});
+
+test("every second message of the live region ends with a no-break space, so the same text two times in a row is said again", () => {
+  open(dwarf());
+  const live = () => within(control()).getByRole("status").textContent;
+  const said: (string | null)[] = [];
+  for (let i = 0; i < 3; i++) {
+    fireEvent.click(chip("Strength"));
+    said.push(live());
+  }
+  expect(said).toEqual(["Strength 15 picked up.", "Strength 15 put down.\u00a0", "Strength 15 picked up."]);
+});
+
+test("a drag ends with no drop when the chip loses the pointer capture", () => {
+  open(dwarf());
+  const pointer = { pointerId: 3, button: 0 };
+  fireEvent.pointerDown(chip("Strength"), { ...pointer, clientX: 10, clientY: 10 });
+  fireEvent.pointerMove(chip("Strength"), { ...pointer, clientX: 40, clientY: 30 });
+  expect(chip("Strength").style.transform).not.toBe("");
+  fireEvent.lostPointerCapture(chip("Strength"), pointer);
+  expect(chip("Strength").style.transform).toBe("");
+  fireEvent.pointerUp(chip("Strength"), { ...pointer, clientX: 40, clientY: 30 });
+  expect(built()).toEqual([15, 14, 15, 12, 10, 8]);
 });
 
 test("the keyboard: Enter picks a chip up, Escape puts it down, Space on a second chip swaps, and the focus stays there", () => {
