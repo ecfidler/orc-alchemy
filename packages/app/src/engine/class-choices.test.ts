@@ -3,17 +3,9 @@
 // or Feat", and the subclass detail of the dialog.
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderOption, type BuilderStep, builderSteps } from "./builder.ts";
-import {
-  asksBeforeClassPick,
-  choiceLevels,
-  hitPointSelections,
-  IMPROVEMENT_OPTION,
-  improvementLine,
-  opensAtStart,
-  pointsText,
-  rowPicks,
-} from "./class-choices.ts";
+import { asksBeforeClassPick, choiceLevels, IMPROVEMENT_OPTION, improvementLine, opensAtStart, pointsText, rowPicks } from "./class-choices.ts";
 import { subclassChoice, subclassDescription, subclassFeatures } from "./class-detail.ts";
+import { hitPointSelections } from "./classes.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { controlKind } from "./selection-control.ts";
@@ -52,7 +44,7 @@ test("a Fighter 4 has Fighting Style at level 1, Martial Archetype at 3, and the
   expect(rowsText(option)).toEqual(["1: Fighting Style (control)", "3: Martial Archetype (subclass)", "4: Ability Score Improvement or Feat (improvement)"]);
   // Only a level with a choice has a group.
   expect(choiceLevels(option).map((l) => l.level)).toEqual([1, 3, 4]);
-  // The hit points of the levels after 1 stay out of the rows: the block shows them after Choices.
+  // The hit points of the levels after 1 stay out of the rows: they are the section Hit points.
   expect(hitPointSelections(option).map((s) => s.name)).toEqual(["Hit Points: Fighter 2", "Hit Points: Fighter 3", "Hit Points: Fighter 4"]);
   // Fighting Style has 6 options: cards. Each row has a pick to make, so each is open at the start, and shows its mark.
   const rows = choiceLevels(option).flatMap((l) => l.rows);
@@ -132,6 +124,16 @@ test("the line of the improvement: before the pick none, then the points on Abil
 
   ({ steps, option } = build(character("fighter", 4, [[FIGHTER_4, "feat"]])));
   expect(improvementLine(row(option), steps)).toEqual({ step: "Feats", text: "Pick the feat on the Feats step", picks: [], remaining: 1 });
+
+  // Two feat rows share the one selection of the feats, with two picks in all: each line says "the feats".
+  const FIGHTER_6 = ["class", "fighter", "levels", "level-6", "asi-or-feat"];
+  ({ steps, option } = build(
+    character("fighter", 6, [
+      [FIGHTER_4, "feat"],
+      [FIGHTER_6, "feat"],
+    ]),
+  ));
+  expect(improvementLine(row(option), steps)).toEqual({ step: "Feats", text: "Pick the feats on the Feats step", picks: [], remaining: 2 });
 });
 
 test("the points as text, in the order of the abilities", () => {
@@ -147,7 +149,7 @@ test("the subclass detail: its choice and level, its features by level, and its 
   // The features that the class gives are not in the table of the subclass.
   const fiend = subclassFeatures({ engine: engine(), content }, "warlock", "the-fiend");
   expect(fiend[0]).toEqual({ level: 1, names: ["Dark One's Blessing"] });
-  expect(subclassDescription("champion")).toBe("A fighter who trains the body to deadly perfection.");
+  expect(subclassDescription("champion")).toBe("Raw physical power, made deadly by training.");
   expect(subclassDescription("champion", " A pack text. ")).toBe("A pack text.");
   expect(subclassDescription("no-such-subclass")).toBe("");
 });

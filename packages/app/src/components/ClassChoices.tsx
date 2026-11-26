@@ -27,6 +27,9 @@ export function ClassChoices({ option }: { option: BuilderOption }) {
   // The open rows, by row id. A row that shows for the first time, also after a pick or a new level, gets its state then.
   const opened = useRef(new Map<string, boolean>());
   const [, rendered] = useReducer((n: number) => n + 1, 0);
+  // A row that goes, such as after a lower level, loses its state: when it shows again, it gets its state fresh.
+  const shown = new Set(levels.flatMap(({ rows }) => rows.map((row) => row.id)));
+  for (const id of opened.current.keys()) if (!shown.has(id)) opened.current.delete(id);
   for (const { rows } of levels) for (const row of rows) if (!opened.current.has(row.id)) opened.current.set(row.id, opensAtStart(row.selection));
   const toggle = (id: string) => {
     opened.current.set(id, !opened.current.get(id));

@@ -6,7 +6,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { storedHitPoints } from "../engine/classes.ts";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { addFirstClass, newCharacter } from "../engine/new-character.ts";
 import { CLASS_PACK, runeKnightOrcbrew } from "../engine/test-classes.ts";
@@ -14,13 +15,27 @@ import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
 import { resetBuilder } from "./test-builder.tsx";
-import { changeClass, chooseFirstClass, classCard, section } from "./test-pick.ts";
+import {
+  addClass,
+  changeClass,
+  chooseFirstClass,
+  classCard,
+  hitPointsOf,
+  hitPointsTotal,
+  levelHitPoints,
+  removeClass,
+  section,
+  setHitPointsMethod,
+} from "./test-pick.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 const fixture = (name: string): StrictEntity => JSON.parse(readFileSync(join(charactersDir, `${name}.strict.json`), "utf8"));
 
 beforeAll(() => loadEngine());
-afterEach(resetBuilder);
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await resetBuilder();
+});
 
 /** Opens the entity in the builder, on the Class step. */
 function open(entity: StrictEntity) {
@@ -233,14 +248,15 @@ test("a character with two classes has a block for each, and Remove of the first
   }
   expect(levelField("Fighter").value).toBe("3");
   expect(levelField("Wizard").value).toBe("2");
-  // The body of each block has the choices of its levels.
-  expect(within(block("Wizard")).getByRole("region", { name: /^Hit Points: Wizard 2/ })).toBeTruthy();
+  // The body of each block has Choices, Hit points and Picked on other steps.
+  for (const name of ["Choices", "Hit points", "Picked on other steps"])
+    expect(within(block("Wizard")).getByRole("region", { name: new RegExp(`^${name}`) })).toBeTruthy();
 
-  // Removing the first class removes the picks of the fighter, and the wizard returns to level 1.
-  fireEvent.click(screen.getByRole("button", { name: "Remove Fighter" }));
+  // Removing the first class removes the picks of the fighter, and the engine returns the wizard to level 1.
+  removeClass("Fighter");
   expect(await answerConfirmDialog("Cancel")).toBe("Remove Fighter?");
   expect(levels()).toEqual({ fighter: 3, wizard: 2 });
-  fireEvent.click(screen.getByRole("button", { name: "Remove Fighter" }));
+  removeClass("Fighter");
   await answerConfirmDialog("Remove");
   await waitFor(() => expect(levels()).toEqual({ wizard: 1 }));
   // With one class, there is no Remove button.
@@ -283,8 +299,147 @@ test("after Remove of a class, the focus goes to the Change button of the block 
   fireEvent.click(remove);
   await answerConfirmDialog("Cancel");
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Remove Fighter" })));
-  fireEvent.click(screen.getByRole("button", { name: "Remove Fighter" }));
+  removeClass("Fighter");
   await answerConfirmDialog("Remove");
   await waitFor(() => expect(levels()).toEqual({ wizard: 1 }));
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change Wizard" })));
+  // The wizard is now the first class: its level 1 has the maximum of the die, as on the sheet.
+  await waitFor(() => expect(hitPointsTotal("Wizard")).toBe(built()["max-hit-points"]));
+});
+
+// ORC-351: the section Hit points, "Picked on other steps", "Add a class", Remove and the button that closes a block.
+
+const WIZARD_2 = ["class", "wizard", "levels", "level-2", "hit-points"];
+const stored = (path: string[]) => storedHitPoints(useCharacter.getState().entity!, path);
+
+test("Hit points, Average: the toggle, the hit die and the total of each class, which add up to the sheet", () => {
+  open(fixture("fighter-3-wizard-2"));
+  const wizard = within(hitPointsOf("Wizard"));
+  expect(wizard.getByRole("button", { name: "Average" }).getAttribute("aria-pressed")).toBe("true");
+  expect(wizard.getByText("Hit die d6, and +2 from Constitution at each level")).toBeTruthy();
+  expect([hitPointsTotal("Fighter"), hitPointsTotal("Wizard")]).toEqual([28, 12]);
+  expect(hitPointsTotal("Fighter") + hitPointsTotal("Wizard")).toBe(built()["max-hit-points"]);
+  // Average has no number fields.
+  expect(screen.queryByRole("textbox", { name: /hit points$/ })).toBeNull();
+});
+
+test("Hit points, By level: a field for each level, a roll, Roll all and a typed number; level 1 of the first class is fixed", async () => {
+  open(fixture("fighter-3-wizard-2"));
+  setHitPointsMethod("Fighter", "By level");
+  await waitFor(() => expect(levelHitPoints("Fighter", 1).value).toBe("10"));
+  // Level 1 of the first class is the maximum of the die, and it cannot change. It has no roll button.
+  expect(levelHitPoints("Fighter", 1).disabled).toBe(true);
+  expect(screen.queryByRole("button", { name: "Roll Fighter level 1" })).toBeNull();
+  expect(levelHitPoints("Fighter", 2).value).toBe("6");
+
+  setHitPointsMethod("Wizard", "By level");
+  await waitFor(() => expect(stored(WIZARD_2)).toEqual({ method: "manual-entry", value: 4 }));
+  expect(levelHitPoints("Wizard", 1).disabled).toBe(false);
+  // A roll of a d6 with 0.5 is 4, and with 0.99 it is 6.
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  fireEvent.click(screen.getByRole("button", { name: "Roll Wizard level 2" }));
+  await waitFor(() => expect(stored(WIZARD_2)).toEqual({ method: "roll", value: 6 }));
+  expect(levelHitPoints("Wizard", 2).value).toBe("6");
+  // A typed number from 1 to the die counts; another number does not.
+  fireEvent.change(levelHitPoints("Wizard", 2), { target: { value: "9" } });
+  expect(stored(WIZARD_2)).toEqual({ method: "roll", value: 6 });
+  fireEvent.change(levelHitPoints("Wizard", 2), { target: { value: "3" } });
+  await waitFor(() => expect(stored(WIZARD_2)).toEqual({ method: "manual-entry", value: 3 }));
+  fireEvent.blur(levelHitPoints("Wizard", 2));
+  vi.spyOn(Math, "random").mockReturnValue(0);
+  fireEvent.click(within(hitPointsOf("Wizard")).getByRole("button", { name: "Roll all" }));
+  await waitFor(() => expect([levelHitPoints("Wizard", 1).value, levelHitPoints("Wizard", 2).value]).toEqual(["1", "1"]));
+  // 1 + 1 + 2 × 2 from Constitution; the totals still add up to the sheet.
+  expect(hitPointsTotal("Wizard")).toBe(6);
+  expect(hitPointsTotal("Fighter") + hitPointsTotal("Wizard")).toBe(built()["max-hit-points"]);
+
+  // Average writes the averages again, and the fields go.
+  setHitPointsMethod("Wizard", "Average");
+  await waitFor(() => expect(stored(WIZARD_2)).toEqual({ method: "average", value: 4 }));
+  expect(screen.queryByRole("textbox", { name: "Wizard level 2 hit points" })).toBeNull();
+});
+
+test("a new level gets the average with the method Average, and an empty field, left, with By level", async () => {
+  const e = engine();
+  open(e.addLevel(addFirstClass(e, newCharacter(e), "fighter"), "fighter") as StrictEntity);
+  const FIGHTER_2 = ["class", "fighter", "levels", "level-2", "hit-points"];
+  // A level that the engine gave no hit points: the class is By level, and its field is empty, with the mark.
+  expect(levelHitPoints("Fighter", 2).value).toBe("");
+  expect(within(hitPointsOf("Fighter")).getByText("1 left")).toBeTruthy();
+  setHitPointsMethod("Fighter", "Average");
+  await waitFor(() => expect(stored(FIGHTER_2)).toEqual({ method: "average", value: 6 }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a Fighter level" }));
+  await waitFor(() => expect(stored(["class", "fighter", "levels", "level-3", "hit-points"])).toEqual({ method: "average", value: 6 }));
+  setHitPointsMethod("Fighter", "By level");
+  await waitFor(() => expect(levelHitPoints("Fighter", 3).value).toBe("6"));
+  fireEvent.click(screen.getByRole("button", { name: "Add a Fighter level" }));
+  await waitFor(() => expect(levelHitPoints("Fighter", 4).value).toBe(""));
+  expect(stored(["class", "fighter", "levels", "level-4", "hit-points"])).toBeNull();
+});
+
+test("Picked on other steps: a line for each kind that the class gives, with the picks or the mark, opens its step", async () => {
+  open(fixture("fighter-3-wizard-2"));
+  const lines = (name: string) =>
+    within(within(block(name)).getByRole("list", { name: "Picked on other steps" }))
+      .getAllByRole("button")
+      .map((line) => line.getAttribute("aria-label"));
+  expect(lines("Fighter")).toEqual([
+    "Skills, Athletics, Perception, Proficiencies",
+    "Starting equipment, Chain Mail, Martial Weapon and Shield, Longsword, Two Handaxes, Dungeoneer's Pack, Equipment",
+  ]);
+  expect(lines("Wizard")[0]).toBe("Cantrip, Acid Splash, Chill Touch, Dancing Lights, Spells");
+  fireEvent.click(within(block("Wizard")).getByRole("button", { name: /^Spells, / }));
+  await waitFor(() => expect(within(screen.getByRole("region", { name: "Builder" })).getByRole("heading", { level: 2 }).textContent).toBe("Spells"));
+});
+
+test("Add a class: the cards of the other classes, a class that the character cannot take dimmed with its need, and Add", async () => {
+  open(fixture("fighter-3-wizard-2"));
+  fireEvent.click(screen.getByRole("button", { name: "Add a class" }));
+  const dialog = await screen.findByRole("dialog", { name: "Add a class" });
+  // The cards do not show a class of the character.
+  expect(within(dialog).queryAllByRole("button", { name: "Fighter" })).toEqual([]);
+  const monk = classCard(dialog, "Monk");
+  expect(monk.hasAttribute("data-unavailable")).toBe(true);
+  expect(monk.textContent).toContain("Needs Wis 13 and Dex 13");
+  expect(classCard(dialog, "Rogue").hasAttribute("data-unavailable")).toBe(false);
+  // The modal of a class that the character cannot take has the reason beside a disabled Add.
+  fireEvent.click(monk);
+  const modal = await screen.findByRole("dialog", { name: "Monk" });
+  expect(within(modal).getByText("Not available. It needs Wis 13 and Dex 13.")).toBeTruthy();
+  expect(within(modal).getByRole("button", { name: "Add Monk" }).hasAttribute("disabled")).toBe(true);
+  fireEvent.keyDown(modal, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Monk" })).toBeNull());
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+  // Add Rogue adds the class at level 1 with the average hit points, and the focus goes to its Change button.
+  await addClass("Rogue");
+  await waitFor(() => expect(levels()).toEqual({ fighter: 3, wizard: 2, rogue: 1 }));
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change Rogue" })));
+  expect(stored(["class", "rogue", "levels", "level-1", "hit-points"])).toEqual({ method: "average", value: 5 });
+});
+
+test("Add a class is disabled at character level 20", async () => {
+  const e = engine();
+  let entity = addFirstClass(e, newCharacter(e), "fighter");
+  for (let n = 1; n < 20; n++) entity = e.addLevel(entity, "fighter") as StrictEntity;
+  open(entity);
+  expect(screen.getByRole("button", { name: "Add a class" }).hasAttribute("disabled")).toBe(true);
+});
+
+test("with two classes, a block closes and opens; a closed block shows its left mark", async () => {
+  const e = engine();
+  open(e.addClass(addFirstClass(e, newCharacter(e), "fighter"), "rogue") as StrictEntity);
+  const close = screen.getByRole("button", { name: "Close Rogue" });
+  expect(close.getAttribute("aria-expanded")).toBe("true");
+  fireEvent.click(close);
+  const open_ = screen.getByRole("button", { name: "Open Rogue" });
+  expect(open_.getAttribute("aria-expanded")).toBe("false");
+  expect(document.getElementById(open_.getAttribute("aria-controls")!)?.hidden).toBe(true);
+  // The rogue has its hit points of level 1, its Expertise rows... left: the header shows the sum of its marks.
+  const header = block("Rogue").querySelector("h3")!.parentElement!;
+  expect(within(header).getByText(/^\d+ left$/)).toBeTruthy();
+  fireEvent.click(open_);
+  expect(screen.getByRole("button", { name: "Close Rogue" }).getAttribute("aria-expanded")).toBe("true");
+  expect(within(block("Rogue").querySelector("h3")!.parentElement!).queryByText(/left$/)).toBeNull();
 });

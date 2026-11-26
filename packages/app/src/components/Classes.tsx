@@ -1,14 +1,11 @@
 // The parts of the builder that each selection uses (ORC-58): useMutation, which makes an engine mutation, and Heading,
-// the name and the left mark of a selection, and the hit points that each level of a class asks for. The class cards
-// and the class blocks of the Class step are in ClassStep.tsx (ORC-349). The ability score improvements are on the
+// the name and the left mark of a selection. The class cards and the class blocks of the Class step, with their hit
+// points, are in ClassStep.tsx (ORC-349, ORC-351). The ability score improvements are on the
 // Abilities step (AbilityScores.tsx). A refusal of the engine shows in the status toast of the builder (ORC-343).
-import { LeftMark, Toggle, ToggleGroup } from "@orc-alchemy/ui";
-import { useId, useMemo } from "react";
+import { LeftMark } from "@orc-alchemy/ui";
 import type { BuilderSelection } from "../engine/builder.ts";
-import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
 import { type Content, type Engine, engine, type StrictEntity } from "../engine/engine.ts";
-import { useCharacter, useCharacterContent, useOpenCharacter } from "../state/character.ts";
-import { BoundedNumberField } from "./AbilityScores.tsx";
+import { useCharacter, useCharacterContent } from "../state/character.ts";
 import { useBuilderStatus, useSectionLevel, useSectionName } from "./builder-context.tsx";
 
 type Mutation = (e: Engine, entity: StrictEntity, options: Content) => StrictEntity;
@@ -60,32 +57,3 @@ export function Heading({ id, selection, mark = true, name: own }: { id: string;
 
 /** The classes of a selection heading: the name at the left, and the mark, when it has one, at the right. */
 export const HEADING_CLASSES = "flex items-center gap-3 font-sans text-[15px] font-bold leading-6";
-
-/** A level's hit points: the average or a roll of the class's hit die, or a number typed in. */
-export function HitPoints({ selection }: { selection: BuilderSelection }) {
-  const id = useId();
-  const { entity, sheet } = useOpenCharacter();
-  const run = useMutation();
-  const { actualPath } = selection;
-  // The path is ["class", <class>, "levels", <level>, "hit-points"].
-  const die = sheet?.classes.find((c) => c.key === actualPath[1])?.hitDie ?? 0;
-  const stored = useMemo(() => storedHitPoints(entity!, actualPath), [entity, actualPath]);
-  const write = (method: HitPointsMethod, n: number) => run((e, entity, opts) => e.setField(entity, [...actualPath, method], n, opts));
-  const toggle = (method: HitPointsMethod, text: string, n: () => number) => (
-    <Toggle value={method} onPressedChange={() => write(method, n())}>
-      {text}
-    </Toggle>
-  );
-  return (
-    <section aria-labelledby={id} className="space-y-2">
-      <Heading id={id} selection={selection} />
-      <div className="flex flex-wrap items-center gap-2">
-        <ToggleGroup aria-label="Hit point method" value={stored ? [stored.method] : []} className="flex gap-2">
-          {toggle("average", `Average (${averageHitPoints(die)})`, () => averageHitPoints(die))}
-          {toggle("roll", `Roll (1d${die})`, () => rollHitPoints(die))}
-        </ToggleGroup>
-        <BoundedNumberField label="Hit points" min={1} value={stored?.value ?? null} onCommit={(n) => write("manual-entry", n)} />
-      </div>
-    </section>
-  );
-}

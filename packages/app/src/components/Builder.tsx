@@ -15,20 +15,18 @@ import {
   type StepName,
   useBuilderSteps,
 } from "../engine/builder.ts";
-import { hitPointSelections } from "../engine/class-choices.ts";
 import { choiceSelections } from "../engine/race-step.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityIncreases, AbilityScores } from "./AbilityScores.tsx";
 import { BuilderStatusToast, OpenStepProvider, SectionLevelProvider, StepFrameProvider } from "./builder-context.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
-import { ClassChoices } from "./ClassChoices.tsx";
-import { Heading, HitPoints } from "./Classes.tsx";
+import { Heading } from "./Classes.tsx";
 import { ClassStep } from "./ClassStep.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
-import { BlockSection, MainPick, mainPickParts } from "./MainPick.tsx";
+import { MainPick, mainPickParts } from "./MainPick.tsx";
 import { NameStep } from "./NameStep.tsx";
 import { ProficienciesStep } from "./ProficienciesStep.tsx";
 import { SelectionControl } from "./SelectionControl.tsx";
@@ -179,11 +177,10 @@ const isList = (selection: BuilderSelection) => selection.actualPath.length === 
 /**
  * A selection's control, then the selections its selected options open, as flat sections after it, each with its own
  * heading and mark (docs/design/character-builder.md, "The control for each kind of selection"). A sequential one,
- * such as levels, shows only the latter. The classes, hit points and ability score improvements have their own
- * controls.
+ * such as levels, shows only the latter. The classes, with their hit points, and the ability score improvements have
+ * their own controls.
  */
 export function Selection({ selection }: { selection: BuilderSelection }) {
-  if (selection.key === "hit-points" && selection.requireValue) return <HitPoints selection={selection} />;
   if (selection.key === "asi") return <AbilityIncreases selection={selection} />;
   return <Options selection={selection} />;
 }
@@ -201,22 +198,8 @@ function Options({ selection }: { selection: BuilderSelection }) {
 
   const opened = selection.options.filter((o) => o.selected && o.selections.length > 0);
   const section = (child: BuilderSelection) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />;
-  // The body of a class block is Choices (ORC-350), and the hit points of each level after it, until ORC-351 makes
-  // them the section Hit points.
-  if (isClass)
-    return (
-      <ClassStep
-        selection={selection}
-        body={(option) => (
-          <>
-            <BlockSection title="Choices">
-              <ClassChoices option={option} />
-            </BlockSection>
-            <SectionLevelProvider level={4}>{hitPointSelections(option).map(section)}</SectionLevelProvider>
-          </>
-        )}
-      />
-    );
+  // The class blocks have Choices (ORC-350), Hit points and "Picked on other steps" (ORC-351).
+  if (isClass) return <ClassStep selection={selection} />;
   // The background and the race are a list with a detail panel, and then a block with their choices in it (ORC-347,
   // ORC-348). The one subrace of a race is a fact of its panel, not a row of Choices (choiceSelections).
   if (mainPick) {

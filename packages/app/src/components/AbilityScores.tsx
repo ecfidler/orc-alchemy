@@ -379,12 +379,15 @@ export function BoundedNumberField({
   max,
   value,
   onCommit,
+  className = "w-14 text-center",
 }: {
   label: string;
   min: number;
   max?: number;
   value: number | null;
   onCommit: (value: number) => void;
+  /** The classes of the field, for its size and look. */
+  className?: string;
 }) {
   return (
     <NumberField
@@ -395,7 +398,7 @@ export function BoundedNumberField({
       onValueChange={(n) => {
         if (n !== null && n >= min && (max === undefined || n <= max) && n !== value) onCommit(n);
       }}
-      className="w-14 text-center"
+      className={className}
     />
   );
 }

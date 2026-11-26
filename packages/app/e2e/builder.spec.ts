@@ -2,7 +2,19 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
-import { addFirstClass, changeClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
+import {
+  addClass,
+  addFirstClass,
+  changeClass,
+  hitPointsTotal,
+  newCharacter,
+  openStep,
+  pickIn,
+  picksIn,
+  removeClass,
+  section,
+  stepButton,
+} from "./builder-helpers.ts";
 import { closeSheetPanel, openSheetPanel, summaryCard } from "./sheet-panel.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
@@ -116,26 +128,20 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await expect(builder.getByRole("button", { name: "Remove a Fighter level" })).toBeDisabled();
   // With one class, there is no Remove button.
   await expect(builder.getByRole("button", { name: "Remove Fighter", exact: true })).toHaveCount(0);
+  // The new levels get the average, 6: the method of the hit points is Average.
   await builder.getByRole("button", { name: "Add a Fighter level" }).click();
   await builder.getByRole("button", { name: "Add a Fighter level" }).click();
   await expect(klass).toHaveText("Fighter 3");
-  for (const level of [2, 3]) {
-    const average = region(`Hit Points: Fighter ${level}`).getByRole("button", { name: "Average (6)" });
-    await average.click();
-    await expect(average).toHaveAttribute("aria-pressed", "true");
-  }
+  await expect(hitPointsTotal(page, "Fighter")).toHaveText("25");
   await pickIn(section(page, "Martial Archetype"), "Champion");
   await expect(picksIn(section(page, "Martial Archetype"))).toHaveText(["Champion"]);
   await expect(hp).toHaveText("25");
 
   // A wizard's hit die is d6: the average is 4.
-  await pickOption(builder.getByLabel("Add a class", { exact: true }), "Wizard");
-  await builder.getByRole("button", { name: "Add class" }).click();
+  await addClass(page, "Wizard");
   await expect(klass).toHaveText("Fighter 3, Wizard 1");
   await expect(builder.getByRole("heading", { level: 3, name: "Wizard", exact: true })).toBeVisible();
-  await region("Hit Points: Wizard 1").getByRole("button", { name: "Average (4)" }).click();
   await builder.getByRole("button", { name: "Add a Wizard level" }).click();
-  await region("Hit Points: Wizard 2").getByRole("button", { name: "Average (4)" }).click();
   await pickIn(section(page, "Arcane Tradition"), "School of Evocation");
   await expect(picksIn(section(page, "Arcane Tradition"))).toHaveText(["School of Evocation"]);
   await expect(klass).toHaveText("Fighter 3, Wizard 2");
@@ -146,7 +152,7 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await builder.getByRole("button", { name: "Remove a Wizard level" }).click();
   await page.getByRole("alertdialog", { name: "Lower Wizard to level 1?" }).getByRole("button", { name: "Remove" }).click();
   await expect(klass).toHaveText("Fighter 3, Wizard 1");
-  await builder.getByRole("button", { name: "Remove Wizard", exact: true }).click();
+  await removeClass(page, "Wizard");
   await expect(klass).toHaveText("Fighter 3");
   await expect(hp).toHaveText("25");
   await expect(builder.getByRole("heading", { level: 3, name: "Wizard", exact: true })).toHaveCount(0);

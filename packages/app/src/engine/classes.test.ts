@@ -1,8 +1,21 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
-import { averageHitPoints, rollHitPoints, storedHitPoints } from "./classes.ts";
+import { type BuilderOption, builderSteps } from "./builder.ts";
+import {
+  averageHitPoints,
+  changeableLevels,
+  classHitPoints,
+  hitDieText,
+  rollHitPoints,
+  rollLevels,
+  setHitPointsMethod,
+  storedHitPoints,
+  typeHitPoints,
+  withAverageHitPoints,
+} from "./classes.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { addFirstClass, newCharacter } from "./new-character.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 const readJson = (file: string) => JSON.parse(readFileSync(join(charactersDir, file), "utf8"));
@@ -98,4 +111,114 @@ test("the average is half the hit die plus 1, and a roll is from 1 to the die", 
   expect([6, 8, 10, 12].map(averageHitPoints)).toEqual([4, 5, 6, 7]);
   expect(rollHitPoints(10, () => 0)).toBe(1);
   expect(rollHitPoints(10, () => 0.999)).toBe(10);
+});
+
+// The section Hit points of a class block (ORC-351, docs/design/character-builder.md "Hit points").
+
+const content = { homebrew: undefined };
+
+/** The Hit points section of each class of the entity, and the engine's hit point maximum. */
+function sections(entity: StrictEntity) {
+  const e = engine();
+  const { built, selections } = e.evaluate(entity, content);
+  const classSelection = builderSteps(selections, e.buildTemplate(undefined).shape)
+    .find((s) => s.name === "Class")!
+    .selections.find((s) => s.key === "class")!;
+  const options = classSelection.selected.map((key) => classSelection.options.find((o) => o.key === key)!) as BuilderOption[];
+  return { hp: classHitPoints(entity, built, options), max: built["max-hit-points"] };
+}
+
+/** A new character with the class at the level; the engine gives the new levels no hit points. */
+function classAt(classKey: string, level: number): StrictEntity {
+  const e = engine();
+  let entity = addFirstClass(e, newCharacter(e), classKey, content);
+  for (let n = 1; n < level; n++) entity = e.addLevel(entity, classKey, content) as StrictEntity;
+  return entity;
+}
+
+test("Average: each level has the average, level 1 of the first class the die; the totals are the sheet's maximum", () => {
+  const { hp, max } = sections(readJson("fighter-3-wizard-2.strict.json"));
+  const [fighter, wizard] = hp;
+  expect(fighter.method).toBe("average");
+  // Level 1 of the first class cannot change: it has the maximum of the die.
+  expect(fighter.levels).toEqual([
+    { level: 1, path: null, value: 10, stored: null },
+    { level: 2, path: ["class", "fighter", "levels", "level-2", "hit-points"], value: 6, stored: "average" },
+    { level: 3, path: ["class", "fighter", "levels", "level-3", "hit-points"], value: 6, stored: "average" },
+  ]);
+  // Con 14 is +2 at each level: 10 + 6 + 6 + 3 × 2 = 28, and 4 + 4 + 2 × 2 = 12.
+  expect([fighter.total, wizard.total]).toEqual([28, 12]);
+  expect(fighter.total + wizard.total).toBe(max);
+  expect(wizard.levels.map((l) => l.path === null)).toEqual([false, false]);
+  expect(hitDieText(fighter)).toBe("Hit die d10, and +2 from Constitution at each level");
+  expect(changeableLevels(fighter)).toEqual([2, 3]);
+});
+
+test("By level: the averages become typed numbers, a typed number and a roll count, and Average writes the averages again", () => {
+  const e = engine();
+  let entity: StrictEntity = readJson("fighter-3-wizard-2.strict.json");
+  const wizard = () => sections(entity).hp[1];
+  entity = setHitPointsMethod(e, entity, wizard(), "by-level", content);
+  expect(wizard().method).toBe("by-level");
+  expect(wizard().levels.map((l) => [l.stored, l.value])).toEqual([
+    ["manual-entry", 4],
+    ["manual-entry", 4],
+  ]);
+  // The total does not change with the method.
+  expect(wizard().total).toBe(12);
+
+  entity = typeHitPoints(e, entity, wizard().levels[0].path!, 6, content);
+  // A roll with a given random number is exact: 0.5 of a d6 is 4, and 0 is 1.
+  entity = rollLevels(e, entity, wizard(), [2], () => 0, content);
+  expect(wizard().levels.map((l) => [l.stored, l.value])).toEqual([
+    ["manual-entry", 6],
+    ["roll", 1],
+  ]);
+  let { hp, max } = sections(entity);
+  expect(hp[1].total).toBe(6 + 1 + 2 * 2);
+  expect(hp[0].total + hp[1].total).toBe(max);
+  // Roll all rolls each level that can change.
+  entity = rollLevels(e, entity, wizard(), changeableLevels(wizard()), () => 0.5, content);
+  expect(wizard().levels.map((l) => l.value)).toEqual([4, 4]);
+
+  entity = setHitPointsMethod(e, entity, wizard(), "average", content);
+  expect(wizard().method).toBe("average");
+  expect(wizard().levels.map((l) => [l.stored, l.value])).toEqual([
+    ["average", 4],
+    ["average", 4],
+  ]);
+  ({ hp, max } = sections(entity));
+  expect(hp[0].total + hp[1].total).toBe(max);
+});
+
+test("a new level has no hit points: it is left, the class is By level, and the average fills it", () => {
+  const e = engine();
+  let entity = classAt("fighter", 3);
+  let [fighter] = sections(entity).hp;
+  expect(fighter.method).toBe("by-level");
+  expect(fighter.left).toBe(2);
+  expect(fighter.levels.map((l) => l.value)).toEqual([10, null, null]);
+  entity = withAverageHitPoints(e, entity, "fighter", content);
+  const after = sections(entity);
+  [fighter] = after.hp;
+  expect([fighter.method, fighter.left, fighter.levels.map((l) => l.value)]).toEqual(["average", 0, [10, 6, 6]]);
+  expect(fighter.total).toBe(10 + 6 + 6 + 3 * fighter.constitution);
+  expect(fighter.total).toBe(after.max);
+  // A first class at level 1 has no level that can change: it has no method.
+  expect(sections(classAt("wizard", 1)).hp[0]).toMatchObject({ method: null, left: 0, levels: [{ level: 1, path: null, value: 6, stored: null }] });
+});
+
+test("a bonus of each level other than Constitution counts in the class, and the text names it", () => {
+  const e = engine();
+  // A hill dwarf has 1 more hit point at each level.
+  const entity = withAverageHitPoints(
+    e,
+    e.select(e.select(classAt("fighter", 2), ["race"], "dwarf", content), ["race", "dwarf", "subrace"], "hill-dwarf", content) as StrictEntity,
+    "fighter",
+    content,
+  );
+  const { hp, max } = sections(entity);
+  expect(hp[0].otherPerLevel).toBe(1);
+  expect(hp[0].total).toBe(max);
+  expect(hitDieText(hp[0])).toMatch(/^Hit die d10, [+−]\d from Constitution and \+1 from other bonuses at each level$/);
 });

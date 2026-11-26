@@ -3,11 +3,29 @@
 // first (ORC-344), the level field and its buttons, the header of a block that does not move, a character with two
 // classes, and the screenshots of the PR. ORC-350 ("Choices"): the choice rows open and closed, a pick that keeps its
 // row open and moves no row below, the subclass dialog, the row "Ability Score Improvement or Feat", and a class with
-// no choice.
+// no choice. ORC-351 ("Hit points", "Picked on other steps", "A second class"): Average and By level, the lines to
+// other steps, Add a class, Remove, and a block that closes.
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { addFirstClass, changeClass, classCard, newCharacter, openStep, pickIn, picksIn, rowHead, section, stepButton } from "./builder-helpers.ts";
+import {
+  addClass,
+  addFirstClass,
+  changeClass,
+  classCard,
+  hitPointsOf,
+  hitPointsTotal,
+  levelHitPoints,
+  newCharacter,
+  openStep,
+  pickIn,
+  picksIn,
+  removeClass,
+  rowHead,
+  section,
+  setHitPointsMethod,
+  stepButton,
+} from "./builder-helpers.ts";
 import { summaryCard } from "./sheet-panel.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
@@ -215,7 +233,7 @@ test("a pick in an open row does not move the rows below it", async ({ page }) =
   const below = [
     expanded(page, "Martial Archetype"),
     expanded(page, IMPROVEMENT),
-    builder(page).getByRole("region", { name: /^Hit Points: Fighter 2/ }),
+    hitPointsOf(page, "Fighter"),
     builder(page).getByRole("button", { name: "Next: Background" }),
   ];
   const before = await Promise.all(below.map(box));
@@ -241,7 +259,7 @@ test("the subclass dialog has the names, the detail of the selected subclass, an
   await row.getByRole("button", { name: "Choose Martial Archetype" }).click();
   const dialog = page.getByRole("dialog", { name: "Martial Archetype" });
   await expect(dialog.locator(".ui-list-panel").getByRole("button", { name: "Champion", exact: true })).toBeVisible();
-  await expect(dialog.getByText("A fighter who trains the body to deadly perfection.")).toBeVisible();
+  await expect(dialog.getByText("Raw physical power, made deadly by training.")).toBeVisible();
   await expect(dialog.getByRole("columnheader")).toHaveText(["Level", "Features"], { timeout: 15_000 });
   await expect(dialog.getByRole("row").nth(1)).toHaveText("7Remarkable Athlete");
   await dialog.getByRole("button", { name: "Choose Champion" }).click();
@@ -283,6 +301,131 @@ test("the improvement or feat: two cards, then a line to the Abilities step or t
 test("a class with no choice at its levels shows: No choice at this level.", async ({ page }) => {
   await classAt(page, "Druid", 1);
   await expect(builder(page).getByRole("region", { name: "Choices" })).toContainText("No choice at this level.");
+});
+
+test("at 390px, Choose in the modal of the subclass dialog gives the focus to the Change button of the row", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await classAt(page, "Fighter", 3);
+  const row = section(page, "Martial Archetype");
+  await row.getByRole("button", { name: "Choose Martial Archetype" }).click();
+  const dialog = page.getByRole("dialog", { name: "Martial Archetype" });
+  // Under 560px the list fills the dialog, and a name opens the detail in a modal over it.
+  await dialog.locator(".ui-list-panel").getByRole("button", { name: "Champion", exact: true }).click();
+  await page.getByRole("button", { name: "Choose Champion" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(picksIn(row)).toHaveText(["Champion"]);
+  await expect(row.getByRole("button", { name: "Change Martial Archetype" })).toBeFocused();
+});
+
+/** The hit points on the summary card, or on the full sheet panel under 720px. */
+const sheetHitPoints = (page: Page) => summaryCard(page).getByLabel("Hit points", { exact: true });
+
+test("Hit points: Average, then By level with a roll, Roll all and a typed number; the totals are the sheet's", async ({ page }) => {
+  await importOnClass(page, "fighter-3-wizard-2.strict.json");
+  await expect(hitPointsTotal(page, "Fighter")).toHaveText("28");
+  await expect(hitPointsTotal(page, "Wizard")).toHaveText("12");
+  await expect(sheetHitPoints(page)).toHaveText("40");
+  await expect(hitPointsOf(page, "Wizard")).toContainText("Hit die d6, and +2 from Constitution at each level");
+
+  // By level of the fighter: level 1 of the first class is the maximum of the die, and it cannot change.
+  const next = builder(page).getByRole("button", { name: "Next: Background" });
+  await setHitPointsMethod(page, "Fighter", "By level");
+  await expect(levelHitPoints(page, "Fighter", 1)).toHaveValue("10");
+  await expect(levelHitPoints(page, "Fighter", 1)).toBeDisabled();
+  await expect(builder(page).getByRole("button", { name: "Roll Fighter level 1" })).toHaveCount(0);
+  await expect(levelHitPoints(page, "Fighter", 2)).toHaveValue("6");
+
+  // A typed number and a roll change the total and the sheet, and move nothing.
+  const parts = [hitPointsOf(page, "Wizard"), next, hitPointsTotal(page, "Fighter")];
+  const before = await Promise.all(parts.map(box));
+  await levelHitPoints(page, "Fighter", 2).fill("10");
+  await levelHitPoints(page, "Fighter", 2).press("Tab");
+  await expect(hitPointsTotal(page, "Fighter")).toHaveText("32");
+  await expect(sheetHitPoints(page)).toHaveText("44");
+  await builder(page).getByRole("button", { name: "Roll Fighter level 3" }).click();
+  await hitPointsOf(page, "Fighter").getByRole("button", { name: "Roll all" }).click();
+  const rolled = async () => {
+    const values = await Promise.all([2, 3].map((level) => levelHitPoints(page, "Fighter", level).inputValue()));
+    return 10 + values.reduce((sum, v) => sum + Number(v), 0) + 3 * 2;
+  };
+  await expect(async () => expect(await hitPointsTotal(page, "Fighter").textContent()).toBe(String(await rolled()))).toPass();
+  await expect(async () => expect(Number(await sheetHitPoints(page).textContent())).toBe((await rolled()) + 12)).toPass();
+  expect(await Promise.all(parts.map(box))).toEqual(before);
+
+  // Average writes the averages again.
+  await setHitPointsMethod(page, "Fighter", "Average");
+  await expect(levelHitPoints(page, "Fighter", 2)).toHaveCount(0);
+  await expect(hitPointsTotal(page, "Fighter")).toHaveText("28");
+  await expect(sheetHitPoints(page)).toHaveText("40");
+});
+
+test("Picked on other steps: the lines of each class, with the picks or the mark, open their step", async ({ page }) => {
+  await newCharacter(page);
+  await addFirstClass(page, "Rogue");
+  const lines = block(page, "Rogue").getByRole("list", { name: "Picked on other steps" }).getByRole("button");
+  await expect(lines).toHaveText([/^Skills\s*4 left\s*Proficiencies$/, /^Expertise\s*\d left\s*Proficiencies$/, /^Starting equipment\s*\d left\s*Equipment$/]);
+  await lines.filter({ hasText: "Expertise" }).click();
+  await expect(builder(page).getByRole("heading", { level: 2 })).toHaveText("Proficiencies");
+});
+
+test("Add a class: the cards in a dialog, a class that the character cannot take dimmed with its need, and Add", async ({ page }) => {
+  await importOnClass(page, "fighter-3-wizard-2.strict.json");
+  await builder(page).getByRole("button", { name: "Add a class", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a class" });
+  await expect(dialog.locator("[data-class-card]")).toHaveCount(10);
+  const monk = classCard(dialog, "Monk");
+  await expect(monk).toHaveAttribute("data-unavailable", "");
+  await expect(monk).toContainText("Needs Wis 13 and Dex 13");
+  await monk.click();
+  const modal = page.getByRole("dialog", { name: "Monk", exact: true });
+  await expect(modal.getByText("Not available. It needs Wis 13 and Dex 13.")).toBeVisible();
+  await expect(modal.getByRole("button", { name: "Add Monk" })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(modal).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+
+  await addClass(page, "Rogue");
+  await expect(classLine(page)).toHaveText("Fighter 3, Wizard 2, Rogue 1");
+  await expect(builder(page).getByRole("button", { name: "Change Rogue" })).toBeFocused();
+  // The rogue's hit points are the average: 5 and +2 from Constitution.
+  await expect(hitPointsTotal(page, "Rogue")).toHaveText("7");
+  await expect(sheetHitPoints(page)).toHaveText("47");
+});
+
+test("Remove asks first; a closed block shows its left mark, and the fixture has two blocks", async ({ page }) => {
+  await importOnClass(page, "fighter-3-wizard-2.strict.json");
+  await expect(builder(page).locator("[data-class-block]")).toHaveCount(2);
+  await addClass(page, "Rogue");
+  // A Rogue 3 has its Roguish Archetype to pick; its new levels get the average hit points.
+  await builder(page).getByRole("button", { name: "Add a Rogue level" }).click();
+  await builder(page).getByRole("button", { name: "Add a Rogue level" }).click();
+  await expect(levelField(page, "Rogue")).toHaveValue("3");
+  // Close and open: a real button with aria-expanded; the closed block shows the picks left of its Choices and hit points.
+  const close = builder(page).getByRole("button", { name: "Close Rogue" });
+  await expect(close).toHaveAttribute("aria-expanded", "true");
+  await close.click();
+  const open = builder(page).getByRole("button", { name: "Open Rogue" });
+  await expect(open).toHaveAttribute("aria-expanded", "false");
+  await expect(block(page, "Rogue").getByRole("region", { name: "Choices" })).toBeHidden();
+  const header = block(page, "Rogue").locator("h3").locator("..");
+  await expect(header.locator(".ui-left-mark")).toHaveText("1 left");
+  await open.click();
+  await expect(header.locator(".ui-left-mark")).toHaveCount(0);
+  await expect(block(page, "Rogue").getByRole("region", { name: "Choices" })).toBeVisible();
+
+  // Remove of a class with picks asks first; Cancel keeps it, and the focus goes back to Remove.
+  await removeClass(page, "Wizard");
+  const question = page.getByRole("alertdialog", { name: "Remove Wizard?" });
+  await expect(question).toContainText("Arcane Tradition: School of Evocation");
+  await question.getByRole("button", { name: "Cancel" }).click();
+  await expect(builder(page).getByRole("button", { name: "Remove Wizard" })).toBeFocused();
+  await removeClass(page, "Wizard");
+  await question.getByRole("button", { name: "Remove" }).click();
+  await expect(classLine(page)).toHaveText("Fighter 3, Rogue 3");
+  await expect(builder(page).getByRole("button", { name: "Change Rogue" })).toBeFocused();
+  // 28 for the fighter, and 3 × (5 + 2) for the rogue.
+  await expect(sheetHitPoints(page)).toHaveText("49");
 });
 
 // Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/class-step.spec.ts -g orc-349 --trace off
@@ -367,6 +510,43 @@ test.describe("screenshots", () => {
         await pickIn(section(page, "Metamagic"), "Careful Spell");
         await ready(page);
         await shot(section(page, "Metamagic"), "picker");
+      });
+
+      // PR_SCREENSHOTS=1 bunx playwright test e2e/class-step.spec.ts -g orc-351 --trace off
+      test(`orc-351 hit points, other steps and a second class, ${size}, ${theme}`, async ({ page }) => {
+        mkdirSync(dir, { recursive: true });
+        const shot = (locator: Locator, what: string) =>
+          locator.screenshot({ path: join(dir, `orc-351-${what}-${size}-${theme}.png`), animations: "disabled" });
+        const full = (what: string) => page.screenshot({ path: join(dir, `orc-351-${what}-${size}-${theme}.png`), animations: "disabled" });
+        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+        await page.setViewportSize({ width, height: 900 });
+        await importOnClass(page, "fighter-3-wizard-2.strict.json");
+        // The section Hit points in both methods, and the lines to other steps.
+        await ready(page);
+        await shot(hitPointsOf(page, "Fighter"), "hit-points-average");
+        await setHitPointsMethod(page, "Fighter", "By level");
+        await expect(levelHitPoints(page, "Fighter", 3)).toHaveValue("6");
+        await levelHitPoints(page, "Fighter", 3).fill("9");
+        await levelHitPoints(page, "Fighter", 3).press("Tab");
+        await expect(hitPointsTotal(page, "Fighter")).toHaveText("31");
+        await ready(page);
+        await shot(hitPointsOf(page, "Fighter"), "hit-points-by-level");
+        await shot(block(page, "Wizard").getByRole("region", { name: "Picked on other steps" }), "other-steps");
+        // The dialog of Add a class, with the classes that the character cannot take dimmed.
+        await builder(page).getByRole("button", { name: "Add a class", exact: true }).click();
+        await expect(classCard(page.getByRole("dialog", { name: "Add a class" }), "Monk")).toContainText("Needs");
+        await ready(page);
+        await full("add-a-class");
+        await classCard(page.getByRole("dialog", { name: "Add a class" }), "Monk").click();
+        await expect(page.getByRole("button", { name: "Add Monk" })).toBeDisabled();
+        await ready(page);
+        await full("add-a-class-modal");
+        await page.keyboard.press("Escape");
+        await page.keyboard.press("Escape");
+        // Two blocks, the first one closed.
+        await builder(page).getByRole("button", { name: "Close Fighter" }).click();
+        await ready(page);
+        await shot(builder(page).getByRole("region", { name: "Class", exact: true }), "two-blocks");
       });
     }
 });

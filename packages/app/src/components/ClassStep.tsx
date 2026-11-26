@@ -1,25 +1,37 @@
-// The class selection of the Class step (ORC-349, docs/design/character-builder.md "The class cards" and "The class
-// block"). A character with no class picks its first class from the class cards: a click on a card opens the class in
-// a modal, and "Choose {class}" picks it. After the pick, each class is a class block: the header has the icon, the
-// name, the level control, About and Change, and the body has the sections that the builder gives it. Change opens the
-// cards in a dialog, and the modal of a card there has "Change to {class}". A change of class and a lower level ask
-// first when they remove picks (useChangeQuestion, ORC-344).
-//
-// Until ORC-351 builds "Add a class" and the Remove button of a block, a row below the blocks adds and removes a class
-// as the Class step did before.
-import { Button, Dialog, NumberField, PixelIcon, Select } from "@orc-alchemy/ui";
+// The class selection of the Class step (ORC-349, ORC-351, docs/design/character-builder.md "The class cards", "The
+// class block" and "A second class"). A character with no class picks its first class from the class cards: a click on
+// a card opens the class in a modal, and "Choose {class}" picks it. After the pick, each class is a class block: the
+// header has the icon, the name, the level control, About and Change, and with two or more classes Remove and a button
+// that closes or opens the block. The body has Choices (ORC-350), Hit points and "Picked on other steps". Change opens
+// the cards in a dialog, and the modal of a card there has "Change to {class}". "Add a class" below the blocks opens the
+// cards of the other classes, and the modal has "Add {class}". A change of class, a lower level and Remove ask first
+// when they remove picks (useChangeQuestion, ORC-344).
+import { Button, Dialog, LeftMark, type ListPanelItem, NumberField, PixelIcon } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
+import { blockMark, canAddClass, classStepLines, needsReason, needsText, unavailableClasses } from "../engine/class-block.ts";
 import { CLASS_TYPE } from "../engine/class-detail.ts";
+import {
+  type ClassHitPoints,
+  type ClassHitPointsMethod,
+  classHitPoints,
+  rollLevels,
+  setHitPointsMethod,
+  typeHitPoints,
+  withAverageHitPoints,
+} from "../engine/classes.ts";
+import { engine } from "../engine/engine.ts";
 import { addAClass, addFirstClass } from "../engine/new-character.ts";
 import { shownOptions } from "../engine/selection-control.ts";
 import { classesOf } from "../engine/strict.ts";
-import { useCharacter } from "../state/character.ts";
-import { useBuilderStatus } from "./builder-context.tsx";
+import { useCharacter, useOpenCharacter } from "../state/character.ts";
+import { useBuilderStatus, useStepFrame } from "./builder-context.tsx";
 import { useChangeQuestion } from "./ChangeQuestion.tsx";
+import { ClassChoices } from "./ClassChoices.tsx";
 import { Heading, useMutation } from "./Classes.tsx";
+import { ClassHitPointsSection } from "./ClassHitPoints.tsx";
 import { classIcon } from "./class-icons.ts";
-import { BlockFrame } from "./MainPick.tsx";
+import { BlockFrame, BlockSection, ChooseAction, OtherSteps } from "./MainPick.tsx";
 import { ClassDetail, useOptionPack } from "./OptionDetail.tsx";
 
 /** The highest level of a class. */
@@ -28,24 +40,25 @@ export const MAX_CLASS_LEVEL = 20;
 /** The number of levels of the class option: the picks of its levels selection. */
 const levelOf = (option: BuilderOption) => option.selections.find((s) => s.key === "levels")?.selected.length ?? 1;
 
-interface ClassStepProps {
-  selection: BuilderSelection;
-  /** The sections of the body of the block of a class: Choices (ORC-350), then the hit points of each level until ORC-351. */
-  body: (option: BuilderOption) => ReactNode;
-}
-
 /**
  * The class selection: the class cards while the character has no class, and else a class block for each class, in the
- * entity's order. After a pick or a change of class, the focus goes to the Change button of the block of the class.
+ * entity's order, and "Add a class". After a pick, a change of class or an added class, the focus goes to the Change
+ * button of the block of the class.
  */
-export function ClassStep({ selection, body }: ClassStepProps) {
+export function ClassStep({ selection }: { selection: BuilderSelection }) {
   const headingId = useId();
   const run = useMutation();
   const say = useBuilderStatus();
   const [change, question] = useChangeQuestion();
+  const { entity, built } = useOpenCharacter();
   const options = shownOptions(selection);
   const optionOf = (key: string) => selection.options.find((o) => o.key === key)!;
   const free = options.filter((o) => !o.selected);
+  const picked = useMemo(() => selection.selected.map((key) => selection.options.find((o) => o.key === key)!), [selection]);
+  const hitPoints = useMemo(() => (entity === null || built === null ? [] : classHitPoints(entity, built, picked)), [entity, built, picked]);
+  // The method that the player set for a class with no level that can change: the stored levels give no method then.
+  const [chosen, setChosen] = useState<Record<string, ClassHitPointsMethod>>({});
+  const methodOf = (hp: ClassHitPoints): ClassHitPointsMethod => hp.method ?? chosen[hp.classKey] ?? "average";
 
   // The Change button of each block, by the class key, and the class whose Change gets the focus after the next render.
   const changeButtons = useRef(new Map<string, HTMLButtonElement>());
@@ -67,17 +80,36 @@ export function ClassStep({ selection, body }: ClassStepProps) {
   const levelFields = useRef(new Map<string, HTMLInputElement>());
   /** The classes of the stored character, after a change. */
   const storedClasses = () => {
-    const entity = useCharacter.getState().entity;
-    return entity === null ? [] : classesOf(entity);
+    const stored = useCharacter.getState().entity;
+    return stored === null ? [] : classesOf(stored);
   };
 
   function chooseFirst(key: string) {
     if (run((e, entity, opts) => addFirstClass(e, entity, key, opts))) setFocusClass(key);
   }
 
+  /** Adds a second class at level 1, with the average hit points (the method of a new class is Average). */
+  function add(key: string) {
+    if (run((e, entity, opts) => withAverageHitPoints(e, addAClass(e, entity, key, opts), key, opts))) setFocusClass(key);
+  }
+
   async function replace(from: string, to: string) {
     await change({ kind: "replace-class", from, to }, changeOf(from));
-    setFocusClass(storedClasses().includes(to) ? to : from);
+    const classes = storedClasses();
+    // A new class that is not the first has hit points at level 1: the average, the method of a new class.
+    if (classes.indexOf(to) > 0) run((e, entity, opts) => withAverageHitPoints(e, entity, to, opts));
+    setFocusClass(classes.includes(to) ? to : from);
+  }
+
+  /** Removes the class; then the focus goes to the Change button of the next block, or of the one before the last. */
+  async function remove(key: string) {
+    const list = selection.selected;
+    const at = list.indexOf(key);
+    const stays = list[at + 1] ?? list[at - 1];
+    const before = useCharacter.getState().entity;
+    await change({ kind: "remove-class", classKey: key });
+    // After Cancel, the focus goes back to the Remove button.
+    if (useCharacter.getState().entity !== before) setFocusClass(stays);
   }
 
   /** Lowers the class to the level. At level 1 the minus button is disabled, so after the change the focus goes to the field. */
@@ -87,8 +119,11 @@ export function ClassStep({ selection, body }: ClassStepProps) {
     if (level === 1 && useCharacter.getState().entity !== before) levelFields.current.get(key)?.focus();
   }
 
-  /** Sets the level of the class: up with the engine's addLevel, down through the question of a lower level. */
-  function setLevel(key: string, level: number, now: number) {
+  /**
+   * Sets the level of the class: up with the engine's addLevel, down through the question of a lower level. With the
+   * method Average, the new levels get the average; By level leaves their fields empty.
+   */
+  function setLevel(key: string, level: number, now: number, method: ClassHitPointsMethod) {
     if (!Number.isInteger(level) || level < 1 || level > MAX_CLASS_LEVEL) {
       say(`A class level is from 1 to ${MAX_CLASS_LEVEL}.`);
       return;
@@ -98,7 +133,7 @@ export function ClassStep({ selection, body }: ClassStepProps) {
       run((e, entity, opts) => {
         let next = entity;
         for (let n = now; n < level; n++) next = e.addLevel(next, key, opts);
-        return next;
+        return method === "average" ? withAverageHitPoints(e, next, key, opts) : next;
       });
   }
 
@@ -124,17 +159,23 @@ export function ClassStep({ selection, body }: ClassStepProps) {
       </section>
     );
 
+  const many = selection.selected.length > 1;
+  const characterLevel = picked.reduce((sum, option) => sum + levelOf(option), 0);
   return (
     <section aria-label={selection.name} className="space-y-3.5">
-      {selection.selected.map((key) => {
+      {selection.selected.map((key, index) => {
         const option = optionOf(key);
         const level = levelOf(option);
+        const hp = hitPoints[index];
+        const method = hp ? methodOf(hp) : "average";
         return (
           <ClassBlock
             key={key}
+            selection={selection}
             option={option}
             level={level}
             others={free}
+            many={many}
             changeButton={(button) => {
               if (button) changeButtons.current.set(key, button);
               else changeButtons.current.delete(key);
@@ -143,21 +184,104 @@ export function ClassStep({ selection, body }: ClassStepProps) {
               if (field) levelFields.current.set(key, field);
               else levelFields.current.delete(key);
             }}
-            onLevel={(n) => setLevel(key, n, level)}
+            onLevel={(n) => setLevel(key, n, level, method)}
             onReplace={(to) => void replace(key, to)}
-          >
-            {body(option)}
-          </ClassBlock>
+            onRemove={() => void remove(key)}
+            hitPoints={
+              hp && (
+                <ClassHitPointsSection
+                  name={option.name}
+                  hp={hp}
+                  method={method}
+                  onMethod={(to) => {
+                    setChosen((all) => ({ ...all, [key]: to }));
+                    run((e, entity, opts) => setHitPointsMethod(e, entity, hp, to, opts));
+                  }}
+                  onRoll={(levels) => run((e, entity, opts) => rollLevels(e, entity, hp, levels, Math.random, opts))}
+                  onType={(path, n) => run((e, entity, opts) => typeHitPoints(e, entity, path, n, opts))}
+                />
+              )
+            }
+          />
         );
       })}
-      <AddRemoveRow selection={selection} free={free} onRemoved={setFocusClass} />
+      <AddClass options={free} disabled={free.length === 0 || !canAddClass(characterLevel)} onAdd={add} />
       {question}
     </section>
   );
 }
 
+/**
+ * "Add a class" (spec, "A second class"): a full-width dashed button with the plus icon below the blocks. It opens the
+ * cards of the classes that the character does not have in a dialog; a class that the character cannot take is dimmed
+ * and shows what it needs. A card opens the modal of the class, with "Add {class}". At the highest character level, or
+ * with each class taken, the button is disabled.
+ */
+function AddClass({ options, disabled, onAdd }: { options: BuilderOption[]; disabled: boolean; onAdd: (key: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button
+        variant="bare"
+        icon="plus"
+        aria-haspopup="dialog"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        className="flex min-h-[44px] w-full items-center justify-center gap-2 border border-dashed border-ink font-sans text-[14px] font-medium hover:bg-panel disabled:border-rule-strong disabled:text-ink-muted disabled:hover:bg-transparent"
+      >
+        Add a class
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen} title="Add a class" footer={false}>
+        {open && (
+          <AddClassCards
+            options={options}
+            onAdd={(key) => {
+              setOpen(false);
+              onAdd(key);
+            }}
+          />
+        )}
+      </Dialog>
+    </>
+  );
+}
+
+/** The cards of the dialog of "Add a class", with what each class that the character cannot take needs. */
+function AddClassCards({ options, onAdd }: { options: BuilderOption[]; onAdd: (key: string) => void }) {
+  const id = useId();
+  const { entity, content } = useOpenCharacter();
+  const needs = useMemo(
+    () => (entity === null ? new Map<string, string>() : unavailableClasses(engine(), entity, content, options)),
+    [entity, content, options],
+  );
+  return (
+    <ClassCards
+      options={options}
+      needs={needs}
+      action={(option, close) => {
+        const need = needs.get(option.key);
+        const item: ListPanelItem<string> = { value: option.key, label: option.name, ...(need !== undefined && { unavailable: needsReason(need) }) };
+        return (
+          <ChooseAction
+            item={item}
+            verb="Add"
+            reasonId={`${id}-reason`}
+            pickedText={null}
+            onChoose={(key) => {
+              close();
+              onAdd(key);
+            }}
+          />
+        );
+      }}
+    />
+  );
+}
+
 interface ClassCardsProps {
   options: BuilderOption[];
+  /** The classes that the character cannot take, by key, with what each needs (unavailableClasses): "Str 13". */
+  needs?: Map<string, string>;
   /** The button of the modal of a card that makes the pick, with the function that closes the modal. */
   action: (option: BuilderOption, close: () => void) => ReactNode;
 }
@@ -165,9 +289,12 @@ interface ClassCardsProps {
 /**
  * The class cards (spec, "The class cards"): 6 in a row, and 3 in a row when the part is narrower than 560px. A card
  * shows the class icon at 32px and the name; a class with no icon shows the name only, at the same size. A click on a
- * card opens the class in a modal, with the action. The modal gives the focus back to its card when it closes.
+ * card opens the class in a modal, with the action. The modal gives the focus back to its card when it closes. A class
+ * in `needs` cannot be taken: its card is dimmed, with what it needs below the name ("Needs Str 13"), and its card is a
+ * little higher for two lines of that text (ORC-351).
  */
-export function ClassCards({ options, action }: ClassCardsProps) {
+export function ClassCards({ options, action, needs }: ClassCardsProps) {
+  const id = useId();
   const [shown, setShown] = useState<BuilderOption | null>(null);
   const [open, setOpen] = useState(false);
   return (
@@ -175,21 +302,28 @@ export function ClassCards({ options, action }: ClassCardsProps) {
       <ul aria-label="Classes" className="grid grid-cols-3 gap-2 @min-[560px]/classes:grid-cols-6">
         {options.map((option) => {
           const icon = classIcon(option.key);
+          const need = needs?.get(option.key);
+          const needId = `${id}-${option.key}`;
           return (
             <li key={option.key}>
               <Button
                 variant="bare"
                 data-class-card=""
+                data-unavailable={need === undefined ? undefined : ""}
                 aria-haspopup="dialog"
+                aria-label={need === undefined ? undefined : option.name}
+                aria-describedby={need === undefined ? undefined : needId}
                 onClick={() => {
                   setShown(option);
                   setOpen(true);
                 }}
-                className="grid h-[92px] w-full grid-rows-[36px_auto_14px] place-items-center gap-0.5 border border-rule-strong bg-paper-raised px-1 pt-2 pb-1.5 text-center font-sans text-[13.5px] leading-tight font-semibold hover:bg-panel"
+                className={`grid w-full place-items-center gap-0.5 border border-rule-strong bg-paper-raised px-1 pt-2 pb-1.5 text-center font-sans text-[13.5px] leading-tight font-semibold hover:bg-panel ${needs ? "h-[106px] grid-rows-[36px_auto_26px]" : "h-[92px] grid-rows-[36px_auto_14px]"}`}
               >
-                {icon ? <PixelIcon name={icon} className="me-0 size-8" /> : <span />}
-                <span className="max-w-full min-w-0 [overflow-wrap:anywhere]">{option.name}</span>
-                <span />
+                {icon ? <PixelIcon name={icon} className={`me-0 size-8 ${need === undefined ? "" : "opacity-40"}`} /> : <span />}
+                <span className={`max-w-full min-w-0 [overflow-wrap:anywhere] ${need === undefined ? "" : "opacity-40"}`}>{option.name}</span>
+                <small id={needId} className="self-start text-[10.5px] leading-[1.15] font-medium text-ink-muted">
+                  {need === undefined ? "" : needsText(need)}
+                </small>
               </Button>
             </li>
           );
@@ -219,43 +353,58 @@ function ClassModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={option.name} size="narrow" footer={false}>
       <ClassDetail optionKey={option.key} name={option.name} pack={pack} />
-      {action && <div className="mt-3 flex justify-end border-t border-rule-strong pt-3">{action}</div>}
+      {action && <div className="mt-3 flex items-center justify-end gap-3 border-t border-rule-strong pt-3">{action}</div>}
     </Dialog>
   );
 }
 
 interface ClassBlockProps {
+  /** The class selection, for the lines of "Picked on other steps". */
+  selection: BuilderSelection;
   option: BuilderOption;
   level: number;
   /** The classes that Change can give in the place of this one: those the character does not have. */
   others: BuilderOption[];
+  /** The character has two or more classes: the header has Remove and the button that closes or opens the block. */
+  many: boolean;
   changeButton: (button: HTMLButtonElement | null) => void;
   levelField: (field: HTMLInputElement | null) => void;
   onLevel: (level: number) => void;
   onReplace: (key: string) => void;
-  /** The sections of the body. */
-  children: ReactNode;
+  onRemove: () => void;
+  /** The section Hit points. */
+  hitPoints: ReactNode;
 }
 
 /**
  * A class block (spec, "The class block"): the header has the icon, the name (an h3), the level control, and the ghost
- * buttons About and Change; the body has the children. The parts of the header have fixed places, so a change of level
- * or of class does not move it.
+ * buttons About and Change; with two or more classes also Remove and a button that closes or opens the block. A closed
+ * block shows its left mark after the name. The body has Choices, Hit points and "Picked on other steps". The parts of
+ * the header have fixed places, so a change of level or of class does not move it. The block keeps its closed state
+ * while the step is open; with one class it is open, as it has no button to open it.
  */
-function ClassBlock({ option, level, others, changeButton, levelField, onLevel, onReplace, children }: ClassBlockProps) {
+function ClassBlock({ selection, option, level, others, many, changeButton, levelField, onLevel, onReplace, onRemove, hitPoints }: ClassBlockProps) {
   const nameId = useId();
+  const bodyId = useId();
   const icon = classIcon(option.key);
   const [about, setAbout] = useState(false);
   const [changing, setChanging] = useState(false);
+  const [closedState, setClosed] = useState(false);
+  const closed = many && closedState;
   return (
     <section aria-labelledby={nameId} data-class-block={option.key}>
       <BlockFrame
+        closed={closed}
+        bodyId={bodyId}
         header={
           <>
-            <h3 id={nameId} className="flex min-w-0 flex-[1_1_12rem] items-center gap-2.5 text-[24px] leading-tight font-semibold">
-              {icon && <PixelIcon name={icon} className="me-0 size-8" />}
-              <span className="min-w-0 truncate">{option.name}</span>
-            </h3>
+            <div className="flex min-w-0 flex-[1_1_12rem] items-center gap-2.5">
+              <h3 id={nameId} className="flex min-w-0 items-center gap-2.5 text-[24px] leading-tight font-semibold">
+                {icon && <PixelIcon name={icon} className="me-0 size-8" />}
+                <span className="min-w-0 truncate">{option.name}</span>
+              </h3>
+              {closed && <LeftMark left={blockMark(option)} />}
+            </div>
             <span className="ml-auto inline-flex flex-wrap items-center gap-x-3 gap-y-1">
               <LevelControl name={option.name} level={level} onLevel={onLevel} field={levelField} />
               <span className="inline-flex items-center gap-0.5">
@@ -265,12 +414,34 @@ function ClassBlock({ option, level, others, changeButton, levelField, onLevel, 
                 <Button ref={changeButton} variant="ghost" size="small" aria-label={`Change ${option.name}`} onClick={() => setChanging(true)}>
                   Change
                 </Button>
+                {many && (
+                  <>
+                    <Button variant="ghost" size="small" aria-label={`Remove ${option.name}`} onClick={onRemove}>
+                      Remove
+                    </Button>
+                    <Button
+                      aria-label={`${closed ? "Open" : "Close"} ${option.name}`}
+                      aria-expanded={!closed}
+                      aria-controls={bodyId}
+                      onClick={() => setClosed(!closed)}
+                      className="grid size-[34px] place-items-center p-0 font-sans text-[12px]"
+                    >
+                      <span aria-hidden="true">{closed ? "▾" : "▴"}</span>
+                    </Button>
+                  </>
+                )}
               </span>
             </span>
           </>
         }
       >
-        {children}
+        <BlockSection title="Choices">
+          <ClassChoices option={option} />
+        </BlockSection>
+        {hitPoints}
+        <BlockSection title="Picked on other steps">
+          <ClassLines selection={selection} classKey={option.key} />
+        </BlockSection>
       </BlockFrame>
       <ClassModal option={option} open={about} onOpenChange={setAbout} />
       <Dialog open={changing} onOpenChange={setChanging} title={`Change ${option.name}`} footer={false}>
@@ -293,6 +464,13 @@ function ClassBlock({ option, level, others, changeButton, levelField, onLevel, 
       </Dialog>
     </section>
   );
+}
+
+/** "Picked on other steps" of one class (classStepLines). */
+function ClassLines({ selection, classKey }: { selection: BuilderSelection; classKey: string }) {
+  const { steps } = useStepFrame();
+  const lines = useMemo(() => classStepLines(selection, steps, classKey), [selection, steps, classKey]);
+  return <OtherSteps selection={selection} noun="class" lines={lines} />;
 }
 
 /**
@@ -381,58 +559,5 @@ function LevelControl({
         className="grid size-[34px] place-items-center p-0"
       />
     </span>
-  );
-}
-
-/**
- * The way of the Class step before ORC-349 to add a class and to remove one, until ORC-351 builds "Add a class" and the
- * Remove button of a block: a class to add with "Add class", and with two or more classes a Remove button for each.
- * Removing a class asks first when it removes picks. After it, the focus goes to the Change button of a block that stays.
- */
-function AddRemoveRow({
-  selection,
-  free,
-  onRemoved,
-}: {
-  selection: BuilderSelection;
-  free: BuilderOption[];
-  /** Called with the class whose Change button gets the focus after a class is removed. */
-  onRemoved: (stays: string) => void;
-}) {
-  const run = useMutation();
-  const [change, question] = useChangeQuestion();
-  const [adding, setAdding] = useState("");
-  const toAdd = free.find((o) => o.key === adding) ?? free[0];
-  const names = useMemo(() => new Map(selection.options.map((o) => [o.key, o.name])), [selection]);
-  const many = selection.selected.length > 1;
-  /** Removes the class; then the focus goes to the Change button of the next block, or of the one before the last. */
-  async function remove(key: string) {
-    const list = selection.selected;
-    const at = list.indexOf(key);
-    const stays = list[at + 1] ?? list[at - 1];
-    const before = useCharacter.getState().entity;
-    await change({ kind: "remove-class", classKey: key });
-    // After Cancel, the focus goes back to the Remove button.
-    if (useCharacter.getState().entity !== before) onRemoved(stays);
-  }
-  if (!toAdd && !many) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {toAdd && (
-        <>
-          <Select aria-label="Add a class" value={toAdd.key} options={free.map((o) => [o.key, o.name])} onValueChange={setAdding} />
-          <Button icon="plus" onClick={() => run((e, entity, opts) => addAClass(e, entity, toAdd.key, opts))} size="small">
-            Add class
-          </Button>
-        </>
-      )}
-      {many &&
-        selection.selected.map((key) => (
-          <Button key={key} icon="trash" size="small" onClick={() => void remove(key)}>
-            Remove {names.get(key)}
-          </Button>
-        ))}
-      {question}
-    </div>
   );
 }

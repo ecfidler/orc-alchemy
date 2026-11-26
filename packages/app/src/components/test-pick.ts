@@ -113,3 +113,36 @@ export async function changeClass(from: string, to: string): Promise<void> {
   fireEvent.click(classCard(await screen.findByRole("dialog", { name: `Change ${from}` }), to));
   fireEvent.click(await screen.findByRole("button", { name: `Change to ${to}` }));
 }
+
+/**
+ * Adds the class `name` as a second class (ORC-351): "Add a class" opens the class cards in a dialog, a click on a card
+ * opens its modal, and "Add {name}" adds it. Its Playwright twin is addClass in e2e/builder-helpers.ts.
+ */
+export async function addClass(name: string): Promise<void> {
+  fireEvent.click(screen.getByRole("button", { name: "Add a class" }));
+  fireEvent.click(classCard(await screen.findByRole("dialog", { name: "Add a class" }), name));
+  fireEvent.click(await screen.findByRole("button", { name: `Add ${name}` }));
+}
+
+/**
+ * Starts Remove of the class `name` (ORC-351): the Remove button of its block, which removes the class or asks first.
+ * Its Playwright twin is removeClass in e2e/builder-helpers.ts.
+ */
+export function removeClass(name: string): void {
+  fireEvent.click(screen.getByRole("button", { name: `Remove ${name}` }));
+}
+
+/** The section Hit points of the block of the class `name` (ORC-351). */
+export const hitPointsOf = (name: string) => within(screen.getByRole("region", { name })).getByRole("region", { name: /^Hit points/ });
+
+/** The total of the section Hit points of the class `name`, as a number. */
+export const hitPointsTotal = (name: string) =>
+  Number(within(hitPointsOf(name)).getByRole("group", { name: "Total" }).querySelector("[data-hit-points-total]")?.textContent);
+
+/** Sets the method of the hit points of the class `name`: "Average" or "By level" (ORC-351). */
+export function setHitPointsMethod(name: string, method: "Average" | "By level"): void {
+  fireEvent.click(within(screen.getByRole("group", { name: `${name} hit point method` })).getByRole("button", { name: method }));
+}
+
+/** The number field of the hit points of a level of the class `name`, By level (ORC-351). */
+export const levelHitPoints = (name: string, level: number) => screen.getByRole<HTMLInputElement>("textbox", { name: `${name} level ${level} hit points` });

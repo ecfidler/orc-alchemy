@@ -55,9 +55,9 @@ test("a Fighter 4 has a row for each choice, in groups by level; the rows with p
       .getAllByRole("button", { pressed: false })
       .map((b) => b.textContent),
   ).toEqual(["Ability Score Improvement", "Feat"]);
-  // The hit points of each level stay in the block, after Choices, until ORC-351.
-  expect(screen.getByRole("region", { name: /^Hit Points: Fighter 4/ })).toBeTruthy();
-  expect(within(choices()).queryByRole("region", { name: /^Hit Points/ })).toBeNull();
+  // The hit points of the levels are the section Hit points after Choices, not rows (ORC-351).
+  expect(screen.getByRole("region", { name: /^Hit points/ })).toBeTruthy();
+  expect(within(choices()).queryByRole("region", { name: /^Hit points/i })).toBeNull();
 });
 
 test("a row stays open after a pick and shows the pick; a click on the head closes and opens it, and keeps the focus", async () => {
@@ -75,6 +75,18 @@ test("a row stays open after a pick and shows the pick; a click on the head clos
   fireEvent.click(rowHead(row("Fighting Style")));
   expect(expanded("Fighting Style")).toBe("true");
   expect(document.activeElement).toBe(rowHead(row("Fighting Style")));
+});
+
+test("a row that goes with a lower level gets its state fresh when it shows again", async () => {
+  open("fighter", 4);
+  fireEvent.click(rowHead(row("Ability Score Improvement or Feat")));
+  expect(expanded("Ability Score Improvement or Feat")).toBe("false");
+  // The improvement has no pick, so the lower level asks nothing.
+  fireEvent.click(screen.getByRole("button", { name: "Remove a Fighter level" }));
+  await waitFor(() => expect(screen.queryByRole("region", { name: /^Ability Score Improvement or Feat/ })).toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Add a Fighter level" }));
+  // The row has a pick left, so it is open again.
+  await waitFor(() => expect(expanded("Ability Score Improvement or Feat")).toBe("true"));
 });
 
 test("a row with its picks made is closed when the step opens", () => {
@@ -96,7 +108,7 @@ test("the subclass dialog: the names, the detail of the selected subclass, and C
   const list = dialog.querySelector<HTMLElement>(".ui-list-panel")!;
   expect(within(list).getAllByRole("button", { name: "Champion" })).toHaveLength(1);
   expect(within(list).queryByRole("button", { name: "Custom" })).toBeNull();
-  expect(within(dialog).getByText("A fighter who trains the body to deadly perfection.")).toBeTruthy();
+  expect(within(dialog).getByText("Raw physical power, made deadly by training.")).toBeTruthy();
   // The features table of the subclass builds trial characters: under load it takes some seconds.
   const table = await within(dialog).findByRole("table", undefined, { timeout: 20_000 });
   expect(within(table).getAllByRole("row")[1].textContent).toBe("7Remarkable Athlete");

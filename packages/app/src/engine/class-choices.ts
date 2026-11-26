@@ -1,9 +1,10 @@
 // The rules of the section Choices of a class block (ORC-350, docs/design/character-builder.md "Choices"): which
 // selections of a class are choice rows, their groups by level, what the head of a row shows, which rows are open when
 // the step opens, and the line of the row "Ability Score Improvement or Feat" to the step that has its pick. The hit
-// points of each level are not choice rows: the block shows them after Choices (ORC-351 makes them a section).
+// points of each level are not choice rows: they are the section Hit points (engine/classes.ts, ORC-351).
 
 import { type BuilderOption, type BuilderSelection, type BuilderStep, levelOfKey, movedStep, type StepName, treeNodes } from "./builder.ts";
+import { isHitPoints } from "./classes.ts";
 import { unqualify } from "./content.ts";
 import { ABILITY_NAMES, type Ability } from "./sheet.ts";
 
@@ -30,9 +31,6 @@ export interface ChoiceLevel {
   level: number;
   rows: ChoiceRow[];
 }
-
-/** True for the hit points of a class level: they are not a choice row. */
-export const isHitPoints = (selection: BuilderSelection) => selection.key === "hit-points" && selection.requireValue;
 
 /** True for the subclass selection of a class, such as Martial Archetype. */
 export const isSubclass = (selection: Pick<BuilderSelection, "tags">) => selection.tags.includes("subclass");
@@ -73,13 +71,6 @@ export function choiceLevels(option: BuilderOption): ChoiceLevel[] {
   return [...byLevel.entries()].sort(([a], [b]) => a - b).map(([level, list]) => ({ level, rows: list }));
 }
 
-/** The hit points of each picked level of the class option, in the order of the levels. */
-export function hitPointSelections(option: BuilderOption): BuilderSelection[] {
-  return option.selections
-    .filter((s) => s.sequential)
-    .flatMap((levels) => levels.options.filter((o) => o.selected).flatMap((o) => o.selections.filter(isHitPoints)));
-}
-
 /**
  * What the head of a row shows at the right: the names of its picks when it has no pick to make or to remove, or else
  * null, for the left mark. A row with no pick and none to make shows null too: the mark "Done".
@@ -103,7 +94,7 @@ export function asksBeforeClassPick({ actualPath, multiselect, max, tags }: Buil
 /** The line of the row "Ability Score Improvement or Feat" after its pick: the step that has the pick, and its state. */
 export interface ImprovementLine {
   step: StepName;
-  /** "Place 2 points on the Abilities step", or "Pick the feat on the Feats step". */
+  /** "Place 2 points on the Abilities step", or "Pick the feat on the Feats step" ("the feats" for more than one pick). */
   text: string;
   /** The picks on that step, such as ["+1 Strength", "+1 Dexterity"] or ["Grappler"]. */
   picks: string[];
@@ -136,5 +127,7 @@ export function improvementLine(selection: BuilderSelection, steps: BuilderStep[
     return { step, text: `Place ${n} ${n === 1 ? "point" : "points"} on the ${step} step`, picks: pointsText(node.selected), remaining: node.remaining };
   }
   const picks = node.selected.map((key) => node.options.find((o) => o.key === key)?.name ?? key);
-  return { step, text: `Pick the feat on the ${step} step`, picks, remaining: node.remaining };
+  // The one selection of the feats can have more than one pick in all, such as two rows of a Fighter 6.
+  const many = (node.max ?? node.min ?? 1) > 1;
+  return { step, text: `Pick the ${many ? "feats" : "feat"} on the ${step} step`, picks, remaining: node.remaining };
 }

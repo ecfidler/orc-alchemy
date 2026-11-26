@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import type { BuilderSelection } from "../engine/builder.ts";
-import { storedHitPoints } from "../engine/classes.ts";
 import { loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
@@ -24,31 +23,6 @@ function open(entity: StrictEntity, step: string) {
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: new RegExp(`^${step}`) }));
 }
-
-const region = (name: string) => screen.getByRole("region", { name: new RegExp(`^${name}`) });
-
-test("hit points by roll or typed in", () => {
-  open(fighter3Wizard2(), "Class");
-  const path = ["class", "wizard", "levels", "level-2", "hit-points"];
-  const hp = within(region("Hit Points: Wizard 2"));
-  expect(hp.getByRole("button", { name: "Average (4)" }).getAttribute("aria-pressed")).toBe("true");
-  vi.spyOn(Math, "random").mockReturnValue(0.5);
-  fireEvent.click(hp.getByRole("button", { name: "Roll (1d6)" }));
-  expect(storedHitPoints(useCharacter.getState().entity!, path)).toEqual({ method: "roll", value: 4 });
-  expect(hp.getByRole("button", { name: "Roll (1d6)" }).getAttribute("aria-pressed")).toBe("true");
-  // A press of Roll while it is pressed rolls again.
-  vi.spyOn(Math, "random").mockReturnValue(0.99);
-  fireEvent.click(hp.getByRole("button", { name: "Roll (1d6)" }));
-  expect(storedHitPoints(useCharacter.getState().entity!, path)).toEqual({ method: "roll", value: 6 });
-  vi.spyOn(Math, "random").mockReturnValue(0.5);
-  fireEvent.click(hp.getByRole("button", { name: "Roll (1d6)" }));
-  // A cleared field is not written.
-  fireEvent.change(hp.getByLabelText("Hit points"), { target: { value: "" } });
-  fireEvent.change(hp.getByLabelText("Hit points"), { target: { value: "0" } });
-  expect(storedHitPoints(useCharacter.getState().entity!, path)).toEqual({ method: "roll", value: 4 });
-  fireEvent.change(hp.getByLabelText("Hit points"), { target: { value: "2" } });
-  expect(storedHitPoints(useCharacter.getState().entity!, path)).toEqual({ method: "manual-entry", value: 2 });
-});
 
 // The left mark of a heading (ORC-340, docs/design/character-builder.md "Marks, not sentences"): "2 left" in yellow,
 // "Remove 1" in red, and a check with "Done", in the heading text.
