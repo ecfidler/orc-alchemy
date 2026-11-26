@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { optionNames, pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { storedValue } from "../engine/description.ts";
@@ -25,8 +26,39 @@ const field = (label: string) => builder().getByLabelText(label) as HTMLInputEle
 test("the step has no name field; the name is on the Name step", () => {
   open("description-no-name");
   expect(builder().queryByLabelText(/Character Name/i)).toBeNull();
-  // The first field is the player name; the other fields stay.
+  // The first text field is the player name; the other fields stay.
   expect(builder().getAllByRole("textbox")[0]).toBe(field("Player Name"));
+});
+
+test("Alignment is the first field, a ui Select with its left mark in its name; a pick writes it and the mark is Done (ORC-352)", async () => {
+  open("description-alignment");
+  const alignment = builder().getByRole("combobox", { name: /^Alignment, ?1 left$/ });
+  // It is before each text field.
+  expect(alignment.compareDocumentPosition(field("Player Name")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(alignment.className).toContain("ui-select");
+  expect(await optionNames(alignment)).toHaveLength(9);
+  await pickOption(alignment, "Lawful Good");
+  expect(engine().evaluate(useCharacter.getState().entity!).built.alignment).toBe("Lawful Good");
+  expect(builder().getByRole("combobox", { name: /^Alignment, ?Done$/ }).textContent).toBe("Lawful Good");
+  // A pick in the place of the first one replaces it.
+  await pickOption(builder().getByRole("combobox", { name: /^Alignment, ?Done$/ }), "Chaotic Neutral");
+  expect(engine().evaluate(useCharacter.getState().entity!).built.alignment).toBe("Chaotic Neutral");
+  // The step has no pick left, so its button in the rail has no mark.
+  expect(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: "Description" })).toBeTruthy();
+});
+
+test("the other 18 fields are ui TextInput and TextArea fields with the label above the field (ORC-352)", () => {
+  open("description-fields");
+  const boxes = builder().getAllByRole("textbox");
+  expect(boxes).toHaveLength(18);
+  expect(field("Player Name").className).toContain("ui-input");
+  expect(field("Bonds").className).toContain("ui-textarea");
+  // The label is above the field: the field is in the label, after the label text.
+  for (const box of boxes) {
+    const label = box.closest("label")!;
+    expect(label.className).toContain("ui-field-label");
+    expect(label.firstElementChild!.className).toBe("ui-label");
+  }
 });
 
 test("a player name is written on blur", () => {

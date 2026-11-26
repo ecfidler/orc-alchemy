@@ -4,9 +4,9 @@
 // cycle with Builder.tsx.
 import { Toast } from "@orc-alchemy/ui";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
-import { type BuilderSelection, type BuilderStep, PROFICIENCIES_STEP, type StepName } from "../engine/builder.ts";
+import { type BuilderSelection, type BuilderStep, FEATS_STEP, PROFICIENCIES_STEP, type StepName } from "../engine/builder.ts";
 import { proficiencySectionNames } from "../engine/proficiencies.ts";
-import { type PickSource, pickSources, sectionNames, type TopSource, topSources } from "../engine/selection-control.ts";
+import { featSectionNames, type PickSource, pickSources, sectionNames, type TopSource, topSources } from "../engine/selection-control.ts";
 
 /**
  * Shows a text in the status toast of the builder page (spec, "No layout shift"): a text that comes and goes, for
@@ -58,7 +58,12 @@ export function StepFrameProvider({ steps, step, children }: { steps: BuilderSte
   const tops = useMemo(() => topSources(steps), [steps]);
   const picks = useMemo(() => pickSources(steps), [steps]);
   // The sections of the Proficiencies step each name their source: "Skills: Fighter" (ORC-346).
-  const names = useMemo(() => (step?.name === PROFICIENCIES_STEP ? proficiencySectionNames(step.selections) : sectionNames(step?.selections ?? [])), [step]);
+  // The feat sections each name their source too: "Feats: Variant Human" (ORC-352).
+  const names = useMemo(() => {
+    const selections = step?.selections ?? [];
+    if (step?.name === PROFICIENCIES_STEP) return proficiencySectionNames(selections);
+    return step?.name === FEATS_STEP ? featSectionNames(selections) : sectionNames(selections);
+  }, [step]);
   const frame = useMemo(() => ({ steps, names, tops, picks }), [steps, names, tops, picks]);
   return <StepFrameContext.Provider value={frame}>{children}</StepFrameContext.Provider>;
 }

@@ -6,11 +6,12 @@
 // picks together (the dead end of the ORC-329 research: a Cleric with Insight and Religion takes Acolyte).
 
 import { type BuilderSelection, type BuilderStep, builderSteps, levelOfKey, STEP_NAMES, type StepName, templateShape, treeNodes } from "./builder.ts";
+import { replaceClass } from "./class-block.ts";
 import type { Content, Engine, StrictEntity } from "./engine.ts";
 import { isSoleSubracePick, withSoleSubrace } from "./race-step.ts";
 import { withoutOption } from "./reconcile.ts";
 import { proficiencyKind } from "./selection-control.ts";
-import { classesOf, keyOf, optionsOf, rootOf, type StrictNode, selectionsOf } from "./strict.ts";
+import { keyOf, optionsOf, rootOf, type StrictNode, selectionsOf } from "./strict.ts";
 
 /** A change that can remove picks. Each key is an option key, as the engine takes it. */
 export type PickChange =
@@ -119,7 +120,7 @@ function mutate(e: Engine, entity: StrictEntity, content: Content, change: PickC
     case "pick":
       return withSoleSubrace(e, e.select(entity, change.path, change.to, content) as StrictEntity, change.path, change.to, content);
     case "replace-class":
-      return e.setClass(entity, classesOf(entity).indexOf(change.from), change.to, content) as StrictEntity;
+      return replaceClass(e, entity, change.from, change.to, content);
     case "remove-class":
       return e.removeClass(entity, change.classKey, content) as StrictEntity;
     case "lower-level": {

@@ -2,7 +2,7 @@
 // filter and a name search, and the prepared spells of each class that
 // prepares, with the prepare rules of the Spells panel (ORC-288). Each pick
 // is an engine mutation, as in Options in Builder.tsx.
-import { Checkbox, Select } from "@orc-alchemy/ui";
+import { Checkbox, Label, Select } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { listText } from "../engine/selection-control.ts";
@@ -18,6 +18,12 @@ import { HEADING_CLASSES, Heading } from "./selection-heading.tsx";
 import { useMutation } from "./use-mutation.ts";
 
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
+
+/** The heights of 1, 2 and 3 lines of the chosen spells: a line of text-sm leading-5 is 20px. */
+const CHOSEN_HEIGHTS = ["min-h-5", "min-h-10", "min-h-15"];
+
+/** The lines that the chosen spells keep: about 4 names on a line, from 1 to 3 lines. */
+const chosenLines = (selection: BuilderSelection) => Math.min(3, Math.max(1, Math.ceil((selection.max ?? selection.selected.length) / 4)));
 
 /** A spell selection: its chosen spells, a level filter and a search, then the cards that pass them. */
 export function SpellSelection({ selection }: { selection: BuilderSelection }) {
@@ -35,13 +41,16 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   return (
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
-      {chosen.length > 0 && (
-        <ul aria-label={`Chosen: ${name}`} className="flex flex-wrap gap-x-3 text-sm">
+      {/* The chosen spells, also those that the filter hides. The line keeps the place of the lines that the most picks
+      take, about 4 names on a line, up to 3 lines, so a pick does not move the filter and the cards (ORC-352). */}
+      <div className={`flex items-baseline gap-3 ${CHOSEN_HEIGHTS[chosenLines(selection) - 1]}`}>
+        <Label>Chosen</Label>
+        <ul aria-label={`Chosen: ${name}`} className="flex flex-wrap gap-x-3 text-sm leading-5">
           {chosen.map((o) => (
             <li key={o.key}>{o.name}</li>
           ))}
         </ul>
-      )}
+      </div>
       <div className="flex flex-wrap gap-2">
         {levels.length > 1 && (
           <Select

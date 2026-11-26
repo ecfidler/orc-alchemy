@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T15:02:45Z }
+generated: { by: claude-code/agent, at: 2026-11-26T15:45:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -821,6 +821,10 @@ show these selections. They show a line in "Picked on other steps".
 * The selections that a feat opens are flat sections below it. A skill,
   a language or a tool is on the Proficiencies step. An ability score is
   on the Abilities step.
+* The engine has one feat selection for all sources. Its heading names
+  each source, also when no other section has its name, in the order
+  class, background, race, feat: "Feats: Fighter, Variant Human". A feat
+  selection with no source keeps the name "Feats".[^orc-352]
 
 # The Spells and Equipment steps
 
@@ -835,6 +839,11 @@ later project.
 * A starting equipment selection gets the control of
   [The control for each kind of selection](#the-control-for-each-kind-of-selection).
 * The inventory lists, the hands and the prepared spells do not change.
+* Under the heading of a spell selection, the line "Chosen" lists the
+  picked spells, also those that the filter hides. The line is there
+  before the first pick. It keeps the height of the lines that the most
+  picks take, about 4 names on a line and up to 3 lines, so a pick does
+  not move the filter and the cards.[^orc-352]
 
 # The Description step
 
@@ -844,6 +853,11 @@ later project.
 * The other 18 fields stay. They use the ui `TextInput` and `TextArea`,
   with the label above the field.
 * The step has "Go to the sheet" in the place of Next.
+* The left mark of Alignment is at the right of its label, in a fixed
+  place, and is a part of the name of the select: "Alignment, 1
+  left".[^orc-352]
+* The one-line fields are three in a row on a wide step and one on a
+  phone. A text area and a URL field have the full width.[^orc-352]
 
 # Keyboard and screen reader
 
@@ -962,3 +976,4 @@ one depends only on parts of the frame.
 [^orc-349]: Class step: the class cards, the modal and the class block, <https://linear.app/orc-alchemy/issue/ORC-349/class-step-the-class-cards-the-modal-and-the-class-block>
 [^orc-350]: Class step: the choice rows, the subclass dialog and the improvement or feat row, <https://linear.app/orc-alchemy/issue/ORC-350/class-step-the-choice-rows-the-subclass-dialog-and-the-improvement-or>
 [^orc-351]: Class step: hit points, the picks on other steps and a second class, <https://linear.app/orc-alchemy/issue/ORC-351/class-step-hit-points-the-picks-on-other-steps-and-a-second-class>
+[^orc-352]: The Feats, Spells, Equipment and Description steps in the new frame, <https://linear.app/orc-alchemy/issue/ORC-352/the-feats-spells-equipment-and-description-steps-in-the-new-frame>

@@ -128,7 +128,8 @@ bun run test       # vitest
     With `autoFocus`, the input gets the focus when it first shows; a
     later render does not move the focus. Put it in a label, or give it an
     `aria-label`. `TextArea` is the same for more than one line, as a
-    native textarea with `rows`. Styles: `src/field.css`.
+    native textarea with `rows`. It takes `onBlur` too, but no `onKeyDown`:
+    Enter in it is a new line. Styles: `src/field.css`.
   - `AmountField` and `useAmount()`: a NumberField for an amount of 0 or
     more, with its state. `useAmount(initial)` gives the state: `value`,
     `onValueChange`, `note`, and `submit(act)`, which gives the amount to

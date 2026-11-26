@@ -689,8 +689,10 @@ test("fighter-1 built from New character through the steps matches its expected 
   // off-hand list offers only dual-wield weapons. The values below do not change.
   await pickOption(builder.getByLabel("Main hand"), "Longsword");
   await stepButton(page, "Description").click();
-  await pickIn(section(page, "Alignment"), "Lawful Good");
-  await expect(picksIn(section(page, "Alignment"))).toHaveText(["Lawful Good"]);
+  // Alignment is the first field, a select (ORC-352).
+  const alignment = builder.getByRole("combobox", { name: /^Alignment/ });
+  await pickOption(alignment, "Lawful Good");
+  await expect(alignment).toHaveText("Lawful Good");
 
   await expect(preview.getByLabel("Name", { exact: true })).toHaveText(expected["character-name"]);
   // The worn chain mail and the wielded shield: 19.

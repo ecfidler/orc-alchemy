@@ -187,6 +187,20 @@ export function setHitPointsMethod(
   return next;
 }
 
+/**
+ * The levels that a later change back to By level puts back (`kept` of setHitPointsMethod), after a change of the
+ * method from `from` to `to`: at a change from By level to Average, the levels of now, with their rolled or typed
+ * numbers; else the levels kept before.
+ */
+export function keptLevels(
+  kept: LevelHitPoints[] | undefined,
+  hp: ClassHitPoints,
+  from: ClassHitPointsMethod,
+  to: ClassHitPointsMethod,
+): LevelHitPoints[] | undefined {
+  return from === "by-level" && to === "average" ? hp.levels : kept;
+}
+
 /** The entity with a number typed in for the level at `path`. */
 export const typeHitPoints = (e: Engine, entity: StrictEntity, path: string[], value: number, content?: Content) =>
   write(e, entity, path, "manual-entry", value, content);

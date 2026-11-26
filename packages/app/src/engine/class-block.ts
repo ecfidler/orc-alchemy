@@ -9,6 +9,7 @@ import { type ClassHitPointsMethod, hitPointSelections, withAverageHitPoints } f
 import type { Content, Engine, StrictEntity } from "./engine.ts";
 import { type OtherStepLine, otherStepLines, stepMark } from "./other-steps.ts";
 import { listText, reasonText, refusalLabels, requiredText } from "./selection-control.ts";
+import { classesOf } from "./strict.ts";
 
 /** The highest character level: the sum of the levels of the classes. */
 export const MAX_CHARACTER_LEVEL = 20;
@@ -62,6 +63,17 @@ export function raiseLevel(
   let next = entity;
   for (let n = from; n < to; n++) next = e.addLevel(next, classKey, content) as StrictEntity;
   return method === "average" ? withAverageHitPoints(e, next, classKey, content) : next;
+}
+
+/**
+ * The entity with the class `from` replaced by the class `to`, with the engine's setClass. A new class that is not the
+ * first gets the average hit points at each level, as a class added with "Add a class": Average is the method of a new
+ * class. The first class needs none at level 1, which has the maximum of the die.
+ */
+export function replaceClass(e: Engine, entity: StrictEntity, from: string, to: string, content?: Content): StrictEntity {
+  const at = classesOf(entity).indexOf(from);
+  const next = e.setClass(entity, at, to, content) as StrictEntity;
+  return at > 0 ? withAverageHitPoints(e, next, to, content) : next;
 }
 
 /**

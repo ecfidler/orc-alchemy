@@ -44,6 +44,24 @@ const labelled = (label: string) => document.querySelector<HTMLElement>(`[aria-l
 const type = (label: string, value: string) => fireEvent.change(labelled(label), { target: { value } });
 const choose = (label: string, name: string) => pickOption(labelled(label), name);
 
+test("a starting equipment selection has the control of its rule: option cards to 6 options, then a Choose button (ORC-352)", () => {
+  open(engine().emptyCharacter());
+  // The barbarian's martial weapon: 3 options, so option cards, with the source in the name and the left mark.
+  const weapon = region("Starting Equipment: Martial Weapon");
+  expect(weapon.getByRole("heading").textContent).toBe("Starting Equipment: Martial Weapon,1 left");
+  expect(weapon.getAllByRole("button").map((b) => b.textContent)).toEqual(["<none>", "Any Martial Weapon", "Greataxe"]);
+  fireEvent.click(weapon.getByRole("button", { name: "Any Martial Weapon" }));
+  // The pick opens a flat section below it: one pick of more than 6 options, a Choose button.
+  const any = screen.getAllByRole("region", { name: /^Starting Equipment: Martial Weapon/ })[1];
+  expect(
+    within(any)
+      .getByRole("button", { name: /^Choose / })
+      .getAttribute("aria-haspopup"),
+  ).toBe("dialog");
+  // The inventory lists do not change: they have no mark.
+  expect(region("Armor").getByRole("heading").textContent).toBe("Armor");
+});
+
 test("fighter-20 equipped through the Equipment step has its AC, hit points and attacks", async () => {
   open(unequippedFighter20());
   expect(sheet().armorClass).toBe(18);

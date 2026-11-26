@@ -67,6 +67,12 @@ export const CLASS_STEP: StepName = "Class";
 /** The step of the skills, the expertise, the languages and the tools (ORC-346). */
 export const PROFICIENCIES_STEP: StepName = "Proficiencies";
 
+/** The step of the feats (ORC-352). Each feat selection names its sources in its heading. */
+export const FEATS_STEP: StepName = "Feats";
+
+/** The step of Alignment and the other description fields, the last step (ORC-352). */
+export const DESCRIPTION_STEP: StepName = "Description";
+
 /** The class level of a key of the path under a class's "levels", such as "6" for "level-6"; else null. */
 export const levelOfKey = (key: string | undefined): string | null => key?.match(/^level-(\d+)$/)?.[1] ?? null;
 

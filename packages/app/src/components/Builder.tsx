@@ -8,6 +8,7 @@ import { type ReactElement, useEffect, useId, useRef, useState } from "react";
 import {
   type BuilderSelection,
   CLASS_STEP,
+  DESCRIPTION_STEP,
   NAME_STEP,
   openingStep,
   PROFICIENCIES_STEP,
@@ -119,6 +120,8 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                     {!step.empty && step.name === PROFICIENCIES_STEP && (
                       <ProficienciesStep step={step} section={(selection) => <Selection selection={selection} />} />
                     )}
+                    {/* Alignment is the first field of the Description step (ORC-352). */}
+                    {step.name === DESCRIPTION_STEP && <Description alignment={step.selections.find(isAlignment)} />}
                     {!step.empty &&
                       step.name !== PROFICIENCIES_STEP &&
                       step.selections.map((selection) => {
@@ -127,13 +130,13 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                         if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
                         if (isList(selection)) return <Inventory key={key} selection={selection} />;
                         if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
+                        if (step.name === DESCRIPTION_STEP && isAlignment(selection)) return null;
                         return <Selection key={key} selection={selection} />;
                       })}
                     {step.name === NAME_STEP && <NameStep autoFocus={focusName.current} onEnter={() => go(CLASS_STEP)} />}
                     {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
                     {step.name === SPELLS_STEP && <PreparedSpells />}
                     {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
-                    {step.name === "Description" && <Description />}
                     {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 720px the Sheet button is
                   between them. */}
                     <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
@@ -170,6 +173,9 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
     </BuilderStatusToast>
   );
 }
+
+/** The alignment selection, which the Description step shows as a ui Select (ORC-352). */
+const isAlignment = (selection: BuilderSelection) => selection.actualPath.length === 1 && selection.key === "alignment";
 
 /** An inventory list, such as Armor: top-level equipment, not a starting equipment choice. */
 const isList = (selection: BuilderSelection) => selection.actualPath.length === 1 && selection.tags.includes("equipment");

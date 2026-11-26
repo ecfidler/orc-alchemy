@@ -7,11 +7,13 @@ import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { fixedProficiencies } from "./proficiencies.ts";
 import {
   controlKind,
+  featSectionNames,
   fromText,
   hasSearch,
   notAvailableText,
   pickSources,
   reasonText,
+  refusalLabels,
   refusalReason,
   sectionNames,
   shownOptions,
@@ -82,6 +84,17 @@ test("the reason texts", () => {
   expect(fromText(["Acolyte"])).toBe("From Acolyte");
   expect(fromText(["Acolyte", "Half-Elf"])).toBe("From Acolyte and Half-Elf");
   expect(notAvailableText("It needs Strength 13.")).toBe("Not available. It needs Strength 13.");
+});
+
+test("the labels of a refusal split only before a label that starts with Requires, so a comma in a label stays (ORC-352)", () => {
+  const labels = (text: string) => refusalLabels(`Cannot add Rune Knight: it requires ${text}.`);
+  expect(labels("Requires STR 13 or higher, Requires DEX 13 or higher")).toEqual(["Requires STR 13 or higher", "Requires DEX 13 or higher"]);
+  expect(labels("Requires Strength 13, or Dexterity 13")).toEqual(["Requires Strength 13, or Dexterity 13"]);
+  expect(labels("Requires a level in Druid, Cleric or Ranger, requires Wisdom 13")).toEqual([
+    "Requires a level in Druid, Cleric or Ranger",
+    "requires Wisdom 13",
+  ]);
+  expect(refusalLabels("Cannot add Rune Knight: no selections remain.")).toBeNull();
 });
 
 /** The steps of the entity, and the input of unavailableOptions. */
@@ -168,4 +181,18 @@ test("two sections of a step with the same name name their sources in the headin
   expect(names).toEqual(expect.arrayContaining(["Skill Proficiency: Half-Elf", "Skill Proficiency: Barbarian", "Languages"]));
   // A name that is there one time stays as it is.
   expect([...sectionNames(steps.find((s) => s.name === "Race")!.selections).values()]).toEqual(["Race"]);
+});
+
+test("each feat section names its sources, also when no other section has its name (ORC-352)", () => {
+  const e = engine();
+  let entity = e.select(e.emptyCharacter(), ["race"], "human") as StrictEntity;
+  entity = e.select(entity, ["race", "human", "variant"], "variant-human") as StrictEntity;
+  const feats = () => build(entity).steps.find((s) => s.name === "Feats")!.selections;
+  expect([...featSectionNames(feats()).values()]).toEqual(["Feats: Variant Human"]);
+  // The feat of a Fighter 4 is in the same selection of the engine: its heading names the two sources, the class first.
+  for (let level = 1; level < 4; level++) entity = e.addLevel(entity, "barbarian") as StrictEntity;
+  entity = e.select(entity, ["class", "barbarian", "levels", "level-4", "asi-or-feat"], "feat") as StrictEntity;
+  expect([...featSectionNames(feats()).values()]).toEqual(["Feats: Barbarian, Variant Human"]);
+  // On another step, a name that is there one time stays as it is.
+  expect([...sectionNames(feats()).values()]).toEqual(["Feats"]);
 });

@@ -46,6 +46,8 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   const cantrips = region("Wizard Cantrips Known");
   // The picks to make are an inline note in the heading.
   expect(cantrips.getByRole("heading").textContent).toBe("Wizard Cantrips Known,3 left");
+  // The line of the chosen spells is there before the first pick, so the pick does not move the cards (ORC-352).
+  expect(screen.getByRole("list", { name: "Chosen: Wizard Cantrips Known" }).textContent).toBe("");
   fireEvent.click(cantrips.getByRole("button", { name: "Acid Splash" }));
   expect(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("list", { name: "Chosen: Wizard Cantrips Known" }).textContent).toBe("Acid Splash");
