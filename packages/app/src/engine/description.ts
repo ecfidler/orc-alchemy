@@ -9,7 +9,8 @@ export interface DescriptionField {
   /** The value key, without its namespace. */
   key: string;
   label: string;
-  kind: "text" | "number" | "textarea" | "url";
+  /** A one-line field, a text area, or a one-line field with the image at its URL. XP is a one-line field too (normalized). */
+  kind: "text" | "textarea" | "url";
   /** The alt text of the image a url field shows. */
   alt?: string;
 }
@@ -21,7 +22,7 @@ export const NAME_KEY = "character-name";
 export const DESCRIPTION_FIELDS: DescriptionField[] = [
   { key: NAME_KEY, label: "Character Name", kind: "text" },
   { key: "player-name", label: "Player Name", kind: "text" },
-  { key: "xps", label: "Experience Points", kind: "number" },
+  { key: "xps", label: "Experience Points", kind: "text" },
   { key: "age", label: "Age", kind: "text" },
   { key: "sex", label: "Sex", kind: "text" },
   { key: "height", label: "Height", kind: "text" },

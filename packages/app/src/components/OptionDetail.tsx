@@ -11,6 +11,7 @@ import { RACE_TYPE } from "../engine/custom-origin.ts";
 import type { ContentType } from "../engine/engine.ts";
 import { backgroundDetail, nameLookup, type OptionDetail, plainRecord, raceDetail, srdBackgrounds, srdItemNames, srdRaces } from "../engine/origin-detail.ts";
 import { proficiencyNames } from "../engine/proficiencies.ts";
+import { raceDetailGives } from "../engine/race-gives.ts";
 import { templateRace } from "../engine/race-step.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
@@ -77,16 +78,20 @@ export function useBackgroundDetail(key: string): OptionDetail | null {
 }
 
 /**
- * The detail of the race with the key (ORC-348): from its record, as useBackgroundDetail finds it, and its option of
- * the template, which has its choices and its subraces. Null while the SRD lists load, and for a key with no record.
+ * The detail of the race with the key (ORC-348, ORC-355): from its record, as useBackgroundDetail finds it, its option
+ * of the template, which has its choices and its subraces, and what the engine gives the race (raceDetailGives, made
+ * once for each race and content). Null while the SRD lists load, and for a key with no record.
  */
 export function useRaceDetail(key: string): OptionDetail | null {
   const { content } = useOpenCharacter();
   const lists = useSrdLists();
   const option = useMemo(() => templateRace(key, content), [content, key]);
+  const names = useMemo(() => proficiencyNames(templateShape(content)), [content]);
   const record = useRecord(RACE_TYPE, key, lists?.races);
+  const hasRecord = record !== undefined;
+  const gives = useMemo(() => (hasRecord ? raceDetailGives(key, content) : undefined), [hasRecord, key, content]);
   if (lists === null) return null;
-  return record ? raceDetail(record, option) : null;
+  return record ? raceDetail(record, option, { engine: gives, nameOf: nameLookup(names, lists.items) }) : null;
 }
 
 /**

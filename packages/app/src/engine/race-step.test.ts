@@ -3,12 +3,14 @@
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderSelection, builderSteps, treeNodes } from "./builder.ts";
 import { engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
-import { plainRecord, raceDetail, srdRaces } from "./origin-detail.ts";
+import { nameLookup, plainRecord, raceDetail, srdItemNames, srdRaces } from "./origin-detail.ts";
 import { lineKind, otherStepLines } from "./other-steps.ts";
+import { proficiencyNames } from "./proficiencies.ts";
+import { raceDetailGives } from "./race-gives.ts";
 import { choiceSelections, isSubraceFact, pickableSubraces, soleSubrace, templateRace } from "./race-step.ts";
 import { picksUnder } from "./reconcile.ts";
 import { planChange } from "./removed-picks.ts";
-import { ASH_DWARF_PACKS, SYLVAR } from "./test-races.ts";
+import { ASH_DWARF_PACKS, RACE_PACK, SYLVAR, TAGGED_RACES } from "./test-races.ts";
 
 beforeAll(() => loadEngine());
 
@@ -133,6 +135,7 @@ test("the panel of the SRD races: the facts, the one subrace as a fact, the choi
       { label: "Ability scores", value: "Constitution +2" },
       { label: "Size, speed", value: "Medium, 25 ft." },
       { label: "Languages", value: "Common, Dwarvish" },
+      { label: "Tools", value: "One of Brewer's Supplies, Mason's Tools, Smith's Tools" },
       { label: "Subrace", value: "Hill Dwarf: Wisdom +1" },
     ],
     traits: [
@@ -142,17 +145,145 @@ test("the panel of the SRD races: the facts, the one subrace as a fact, the choi
     ],
   });
   // With a pack subrace, the Dwarf has two subraces: no Subrace fact.
-  expect(detail("dwarf", ASH_DWARF_PACKS).facts.map((f) => f.label)).toEqual(["Ability scores", "Size, speed", "Languages"]);
+  expect(detail("dwarf", ASH_DWARF_PACKS).facts.map((f) => f.label)).toEqual(["Ability scores", "Size, speed", "Languages", "Tools"]);
   expect(detail("half-elf").facts).toEqual([
     { label: "Ability scores", value: "Charisma +2; +1 to two of your choice" },
     { label: "Size, speed", value: "Medium, 30 ft." },
     { label: "Languages", value: "Common, Elvish; One of your choice" },
+    { label: "Skills", value: "Two of your choice" },
   ]);
   expect(detail("dragonborn").facts[0]).toEqual({ label: "Ability scores", value: "Strength +2, Charisma +1" });
   expect(detail("tiefling").facts[0]).toEqual({ label: "Ability scores", value: "Charisma +2, Intelligence +1" });
-  expect(detail("gnome").facts.at(-1)).toEqual({ label: "Subrace", value: "Rock Gnome: Constitution +1, Artificer's Lore, Tinker" });
+  // The traits of the one subrace are in the list of traits, after those of the race.
+  expect(detail("gnome").facts.at(-1)).toEqual({ label: "Subrace", value: "Rock Gnome: Constitution +1" });
+  expect(detail("gnome").traits.map((t) => t.name)).toEqual(["Darkvision", "Gnome Cunning", "Artificer's Lore", "Tinker"]);
   // Human has nine subraces: no Subrace fact.
   expect(detail("human").facts.map((f) => f.label)).not.toContain("Subrace");
+});
+
+/** The detail of the race with the key with what the engine gives it (ORC-355), against the homebrew. */
+async function fullDetail(key: string, homebrew?: Homebrew, record?: Record<string, unknown>) {
+  const content = { homebrew };
+  const nameOf = nameLookup(proficiencyNames(engine().buildTemplate(homebrew).shape), await srdItemNames());
+  const of = record ?? (await srdRaces()).find((r) => r.key === key)!;
+  return raceDetail(of, templateRace(key, content), { engine: raceDetailGives(key, content), nameOf });
+}
+
+test("Dragonborn: the panel has the Breath Weapon and the Damage Resistance, with a text that needs no ancestry", async () => {
+  const detail = await fullDetail("dragonborn");
+  expect(detail.traits).toEqual([
+    {
+      name: "Breath Weapon",
+      text:
+        "Each creature in the area makes a saving throw, DC 8 + your CON modifier + your proficiency bonus. " +
+        "It takes 2d6 damage on a failed save, and half on a success. The damage is 3d6 at level 6, 4d6 at level 11 and 5d6 at level 16. " +
+        "Your Draconic Ancestry gives the area, the saving throw and the damage type. " +
+        "The Breath Weapon takes an action. You can use it again after a short or long rest.",
+    },
+    { name: "Damage Resistance", text: "You have resistance to the damage type of your Draconic Ancestry." },
+  ]);
+});
+
+test("Hill Dwarf: the panel of the Dwarf has the hit points of its one subrace, and the tool, the weapons and the subrace as facts", async () => {
+  const detail = await fullDetail("dwarf");
+  expect(detail.facts.slice(3)).toEqual([
+    { label: "Tools", value: "One of Brewer's Supplies, Mason's Tools, Smith's Tools" },
+    { label: "Weapons", value: "Battleaxe, Handaxe, Light hammer, Warhammer" },
+    { label: "Subrace", value: "Hill Dwarf: Wisdom +1" },
+  ]);
+  // The text of Dwarven Resilience names the poison resistance, so it has no trait of its own.
+  expect(detail.traits.map((t) => t.name)).toEqual(["Darkvision", "Dwarven Resilience", "Stonecunning", "Hit Points"]);
+  expect(detail.traits.at(-1)).toEqual({ name: "Hit Points", text: "Your hit point maximum increases by 1 for each of your levels." });
+});
+
+test("Tiefling: the panel has Hellish Resistance and Infernal Legacy, with each spell and the level that gives it", async () => {
+  const detail = await fullDetail("tiefling");
+  expect(detail.traits).toEqual([
+    { name: "Darkvision", text: "You see in dim light within 60 feet as in bright light." },
+    { name: "Hellish Resistance", text: "Resistance to fire damage" },
+    {
+      name: "Infernal Legacy",
+      text:
+        "You know thaumaturgy and can cast Hellish Rebuke and Darkness once per day. CHA is the spellcasting ability. " +
+        "You get Hellish Rebuke at level 3 and Darkness at level 5.",
+    },
+  ]);
+});
+
+test("the other SRD races: the skills and the weapons that the engine gives are facts, and the record has each trait", async () => {
+  const elf = await fullDetail("elf");
+  expect(elf.facts.slice(2)).toEqual([
+    // The extra language and the weapons are those of High Elf, the one subrace.
+    { label: "Languages", value: "Common, Elvish; One of your choice" },
+    { label: "Skills", value: "Perception" },
+    { label: "Weapons", value: "Longbow, Longsword, Shortbow, Shortsword" },
+    // The cantrip choice of High Elf. Its line in "Picked on other steps" has the kind Cantrip too.
+    { label: "Cantrip", value: "One of your choice" },
+    { label: "Subrace", value: "High Elf: Intelligence +1" },
+  ]);
+  expect(elf.traits.map((t) => t.name)).toEqual(["Darkvision", "Fey Ancestry", "Trance"]);
+  expect((await fullDetail("half-orc")).facts.at(-1)).toEqual({ label: "Skills", value: "Intimidation" });
+  expect((await fullDetail("half-elf")).facts.at(-1)).toEqual({ label: "Skills", value: "Two of your choice" });
+  expect((await fullDetail("gnome")).facts.slice(-2)).toEqual([
+    { label: "Tools", value: "Tinker's Tools" },
+    { label: "Subrace", value: "Rock Gnome: Constitution +1" },
+  ]);
+  for (const key of ["gnome", "half-elf", "half-orc", "halfling", "human"]) {
+    const srd = (await srdRaces()).find((r) => r.key === key)!;
+    expect((await fullDetail(key)).traits, key).toEqual(raceDetail(srd, templateRace(key, { homebrew: undefined })).traits);
+  }
+});
+
+test("a pack race by the same rule: a resistance, hit points and spells that no trait names get a trait, and a skill is a fact", async () => {
+  const sylvar = {
+    ...SYLVAR,
+    "~:props": {
+      "~:weapon-prof": { "~:longbow": true },
+      "~:damage-resistance": { "~:cold": true },
+      "~:max-hp-bonus": 1,
+      "~:skill-prof": { "~:stealth": true },
+    },
+    "~:spells": [
+      { "~:level": 1, "~:value": { "~:level": 0, "~:ability": "~:orcpub.dnd.e5.character/wis", "~:key": "~:druidcraft" } },
+      { "~:level": 3, "~:value": { "~:level": 1, "~:ability": "~:orcpub.dnd.e5.character/wis", "~:key": "~:entangle" } },
+    ],
+  };
+  const homebrew = { [RACE_PACK]: { [TAGGED_RACES]: { "~:sylvar": sylvar } } };
+  const detail = await fullDetail("sylvar", homebrew, plainRecord(sylvar) as Record<string, unknown>);
+  expect(detail.facts.slice(3)).toEqual([
+    { label: "Skills", value: "Stealth" },
+    { label: "Weapons", value: "Longbow" },
+  ]);
+  expect(detail.traits).toEqual([
+    { name: "Darkvision", text: "You see in dim light within 60 feet as in bright light." },
+    { name: "Leafstep", text: "You step from one tree to another." },
+    { name: "Damage Resistance", text: "You have resistance to cold damage." },
+    { name: "Hit Points", text: "Your hit point maximum increases by 1 for each of your levels." },
+    { name: "Spells", text: "You know Druidcraft. You get Entangle at level 3. Wisdom is the spellcasting ability for these spells." },
+  ]);
+});
+
+test("a pack race: a trait names a resistance only when it says resist, the hit points only as the hit point maximum, and a spell as a word", async () => {
+  // As the Customize copy of a red Dragonborn: its Breath Weapon names fire damage, but no trait names the resistance.
+  const drake = {
+    ...SYLVAR,
+    "~:key": "~:drake",
+    "~:name": "Drake",
+    "~:props": { "~:damage-resistance": { "~:fire": true }, "~:max-hp-bonus": 1 },
+    "~:spells": [{ "~:level": 1, "~:value": { "~:level": 1, "~:ability": "~:orcpub.dnd.e5.character/int", "~:key": "~:shield" } }],
+    "~:traits": [
+      { "~:name": "Breath Weapon", "~:description": "Each creature in a 15 ft. cone takes 2d6 fire damage on a failed DEX save." },
+      { "~:name": "Relentless", "~:description": "When you drop to 1 hit point, you can stand up again." },
+      { "~:name": "Scales", "~:description": "Your scales are shielding you." },
+    ],
+  };
+  const homebrew = { [RACE_PACK]: { [TAGGED_RACES]: { "~:drake": drake } } };
+  const detail = await fullDetail("drake", homebrew, plainRecord(drake) as Record<string, unknown>);
+  expect(detail.traits.slice(4)).toEqual([
+    { name: "Damage Resistance", text: "You have resistance to fire damage." },
+    { name: "Hit Points", text: "Your hit point maximum increases by 1 for each of your levels." },
+    { name: "Spells", text: "You know Shield. Intelligence is the spellcasting ability for these spells." },
+  ]);
 });
 
 test("a pack race: the Transit marks go, and the languages of its set show in the order of the alphabet", () => {

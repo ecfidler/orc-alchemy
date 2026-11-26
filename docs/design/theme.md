@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T14:28:58Z }
+generated: { by: claude-code/agent, at: 2026-11-26T16:50:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -944,7 +944,8 @@ The phone layout of the character sheet is ORC-173. These rules apply:
   [Character builder spec](character-builder.md#the-summary-card).
   Where this document says "the builder preview", read "the full sheet
   panel". The panel has no tabs, and it keeps one long column. Under
-  720px the summary card does not show, and the panel is the full width.
+  860px the summary card does not show, and under 720px the panel is the
+  full width.
 * In one column, the AC, initiative and speed boxes share the width, up to
   112px each.
 * When the sheet is narrower than 720px, the attacks table has no

@@ -8,6 +8,7 @@ import { type ReactElement, useEffect, useId, useRef, useState } from "react";
 import {
   type BuilderSelection,
   CLASS_STEP,
+  DESCRIPTION_STEP,
   NAME_STEP,
   openingStep,
   PROFICIENCIES_STEP,
@@ -89,7 +90,7 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
     setStepName(to);
   };
 
-  // The full sheet panel. Its two openers are the button below the summary card and, under 720px, the Sheet button.
+  // The full sheet panel. Its two openers are the button below the summary card and, under 860px, the Sheet button.
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const back = steps[index - 1];
@@ -98,8 +99,10 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
     <BuilderStatusToast>
       <div className="space-y-5">
         {step && <StepRail steps={rail} current={step.name} onStepChange={setStepName} />}
-        {/* The step at the left, and the summary card at the right. Under 720px the card does not show. */}
-        <div className="grid items-start gap-7 min-[720px]:grid-cols-[minmax(0,1fr)_250px]">
+        {/* The step at the left, and the summary card at the right. At 860px, beside the app rail and the card, the step
+        is 338px wide, a little more than the 323px that its controls need. Under 860px the card does not show, so the
+        step does not get narrower than its controls (ORC-353). */}
+        <div className="grid items-start gap-7 min-[860px]:grid-cols-[minmax(0,1fr)_250px]">
           <section aria-label="Builder" className="min-w-0 space-y-4">
             {/* The heading names of the open step's sections, and where the character's picks come from (ORC-343). */}
             <StepFrameProvider steps={steps} step={step}>
@@ -119,6 +122,8 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                     {!step.empty && step.name === PROFICIENCIES_STEP && (
                       <ProficienciesStep step={step} section={(selection) => <Selection selection={selection} />} />
                     )}
+                    {/* Alignment is the first field of the Description step (ORC-352). */}
+                    {step.name === DESCRIPTION_STEP && <Description alignment={step.selections.find(isAlignment)} />}
                     {!step.empty &&
                       step.name !== PROFICIENCIES_STEP &&
                       step.selections.map((selection) => {
@@ -127,19 +132,19 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                         if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
                         if (isList(selection)) return <Inventory key={key} selection={selection} />;
                         if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
+                        if (step.name === DESCRIPTION_STEP && isAlignment(selection)) return null;
                         return <Selection key={key} selection={selection} />;
                       })}
                     {step.name === NAME_STEP && <NameStep autoFocus={focusName.current} onEnter={() => go(CLASS_STEP)} />}
                     {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
                     {step.name === SPELLS_STEP && <PreparedSpells />}
                     {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
-                    {step.name === "Description" && <Description />}
-                    {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 720px the Sheet button is
+                    {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 860px the Sheet button is
                   between them. */}
                     <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
                       {back ? <Button onClick={() => go(back.name)}>Back</Button> : <span />}
                       {sheet && (
-                        <Button className="min-[720px]:hidden" onClick={() => setSheetOpen(true)}>
+                        <Button className="min-[860px]:hidden" onClick={() => setSheetOpen(true)}>
                           Sheet
                         </Button>
                       )}
@@ -160,7 +165,7 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
               </OpenStepProvider>
             </StepFrameProvider>
           </section>
-          <div className="sticky top-4 max-[720px]:hidden">{sheet && <SummaryCard sheet={sheet} onOpenSheet={() => setSheetOpen(true)} />}</div>
+          <div className="sticky top-4 max-[860px]:hidden">{sheet && <SummaryCard sheet={sheet} onOpenSheet={() => setSheetOpen(true)} />}</div>
         </div>
       </div>
       {/* The sheet as the preview: the play controls cannot change. */}
@@ -170,6 +175,9 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
     </BuilderStatusToast>
   );
 }
+
+/** The alignment selection, which the Description step shows as a ui Select (ORC-352). */
+const isAlignment = (selection: BuilderSelection) => selection.actualPath.length === 1 && selection.key === "alignment";
 
 /** An inventory list, such as Armor: top-level equipment, not a starting equipment choice. */
 const isList = (selection: BuilderSelection) => selection.actualPath.length === 1 && selection.tags.includes("equipment");

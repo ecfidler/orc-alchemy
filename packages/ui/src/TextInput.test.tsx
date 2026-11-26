@@ -65,6 +65,17 @@ test("a text area is a native textarea with its rows, and gives the whole text o
   expect(change).toHaveBeenCalledWith("On land.");
 });
 
+test("a text area gives its blur, for example to write the text when the user leaves it", () => {
+  const blur = vi.fn();
+  render(
+    <FieldLabel label="Bonds">
+      <TextArea value="My ship" onValueChange={() => {}} onBlur={blur} />
+    </FieldLabel>,
+  );
+  fireEvent.blur(screen.getByRole("textbox", { name: "Bonds" }));
+  expect(blur).toHaveBeenCalledTimes(1);
+});
+
 test("a text input gives its blur and its key down, and with autoFocus it gets the focus when it first shows", () => {
   const blur = vi.fn();
   const keyDown = vi.fn();

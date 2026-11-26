@@ -128,7 +128,8 @@ bun run test       # vitest
     With `autoFocus`, the input gets the focus when it first shows; a
     later render does not move the focus. Put it in a label, or give it an
     `aria-label`. `TextArea` is the same for more than one line, as a
-    native textarea with `rows`. Styles: `src/field.css`.
+    native textarea with `rows`. It takes `onBlur` too, but no `onKeyDown`:
+    Enter in it is a new line. Styles: `src/field.css`.
   - `AmountField` and `useAmount()`: a NumberField for an amount of 0 or
     more, with its state. `useAmount(initial)` gives the state: `value`,
     `onValueChange`, `note`, and `submit(act)`, which gives the amount to
@@ -466,13 +467,6 @@ bun run test       # vitest
     and its 10px top padding, so it is not mounted again when a note comes
     or goes.
     `packages/app/e2e/stuck-note.spec.ts` measures this in a browser.
-  - `InlineNote`: a small tilted note in the line of text, for example
-    after a heading. `tone` is "act" (yellow, the default) when the user
-    must act, or "failed" (red) when something is wrong. The line grows to
-    fit it, so it never covers anything.
-  - `NoteCount`: an `InlineNote` that is only a mark, such as a count on a
-    step button. It is hidden from screen readers, so give the count in
-    words too.
   - `NoteLine`: a flat yellow line of text in the flow of a form, for
     something the user can act on there, such as a suggestion. It is not
     tilted and has no shadow. `action` (`label`, `onClick`, and `name`
@@ -510,7 +504,7 @@ bun run test       # vitest
     `dimmed`) shows its number and its label. The step with the value
     `current` has a strong underline and `aria-current="step"`. A click
     calls `onStepChange` with the value. `left` above 0 shows the number as
-    a yellow `NoteCount`, and `over` above 0 shows a red "Remove 1". The
+    a small tilted yellow note, and `over` above 0 shows a red "Remove 1". The
     marks are hidden from a screen reader, and the name of the button has
     them in words: "Class, 2 picks left", "Class, remove 1 pick". A
     `dimmed` step has nothing to pick: its number and label are faded, and
@@ -518,7 +512,7 @@ bun run test       # vitest
     column, it scrolls sideways, and the current step scrolls into view
     in the row (the page does not scroll). Styles: `src/rail.css`.
   - `LeftMark`: the mark of a selection at the right of its heading.
-    `left` above 0 gives "2 left" as a yellow `InlineNote`, below 0 gives
+    `left` above 0 gives "2 left" as a small tilted yellow note, below 0 gives
     "Remove 1" as a red one, and 0 gives the check icon and "Done" in
     muted text. Each mark is in the same box, of a fixed height and a
     minimum width, so the heading does not move or change its size when

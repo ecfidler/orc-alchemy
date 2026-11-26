@@ -236,7 +236,7 @@ test("Open the full sheet opens the sheet in a panel with the focus in it, and C
   await closeSheetPanel();
   await waitFor(() => expect(document.activeElement).toBe(opener));
 
-  // The Sheet button between Back and Next (only under 720px in a browser) opens the same panel. Escape closes it.
+  // The Sheet button between Back and Next (only under 860px in a browser) opens the same panel. Escape closes it.
   const sheet = builder().getByRole("button", { name: "Sheet" });
   sheet.focus();
   fireEvent.click(sheet);

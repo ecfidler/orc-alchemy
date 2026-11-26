@@ -4,7 +4,7 @@
 // rules and the writes are in engine/classes.ts.
 import { Button, NumberField, PixelIcon, SegmentedToggle } from "@orc-alchemy/ui";
 import { useId, useRef } from "react";
-import { type ClassHitPoints, type ClassHitPointsMethod, changeableLevels, hitDieText, type LevelHitPoints } from "../engine/classes.ts";
+import { type ClassHitPoints, type ClassHitPointsMethod, changeableLevels, hitDieText, keptLevels, type LevelHitPoints } from "../engine/classes.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
 import { BlockSection } from "./MainPick.tsx";
 
@@ -20,8 +20,8 @@ interface ClassHitPointsProps {
   /** The method that shows: the stored one, or the one that the player set for a class with no level that can change. */
   method: ClassHitPointsMethod;
   /**
-   * Sets the method. For By level, `kept` are the levels from before the last change to Average, while the section
-   * shows: their rolled or typed numbers come back (setHitPointsMethod).
+   * Sets the method. `kept` are the levels from before the last change to Average, while the section shows: for By
+   * level, their rolled or typed numbers come back (setHitPointsMethod, keptLevels).
    */
   onMethod: (method: ClassHitPointsMethod, kept?: LevelHitPoints[]) => void;
   /** Rolls the die for the levels: one level, or each level that can change for Roll all. */
@@ -42,8 +42,8 @@ export function ClassHitPointsSection({ name, hp, method, onMethod, onRoll, onTy
   // The levels from before the last change to Average.
   const kept = useRef<LevelHitPoints[] | undefined>(undefined);
   const change = (to: ClassHitPointsMethod) => {
-    if (to === "average") kept.current = byLevel ? hp.levels : kept.current;
-    onMethod(to, to === "by-level" ? kept.current : undefined);
+    kept.current = keptLevels(kept.current, hp, method, to);
+    onMethod(to, kept.current);
   };
   return (
     <BlockSection title="Hit points" mark={byLevel || hp.left > 0 ? hp.left : null}>

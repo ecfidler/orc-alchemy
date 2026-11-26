@@ -73,6 +73,16 @@ async function dialogNamed(name: string) {
 }
 const closed = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
+test("the Feats step has one section for the feat selection, with its source and left mark in its heading, and the Customize line below its control (ORC-352)", async () => {
+  const lines = await open();
+  const section = screen.getByRole("region", { name: /^Feats: Fighter/ });
+  // (jsdom drops the space at the end of an inline span; a browser reads "Feats: Fighter, Done".)
+  expect(within(section).getByRole("heading", { level: 3 }).textContent).toBe("Feats: Fighter,Done");
+  const control = within(section).getByRole("group", { name: "Feats" });
+  expect(section.contains(lines)).toBe(true);
+  expect(control.compareDocumentPosition(lines) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
 test("Customize on a pack feat makes '<Name> (Custom)', selects it, and keeps the feat's choices; the original stays in the list", async () => {
   const lines = await open(true);
   expect(within(lines).getByRole("listitem")).toHaveTextContent("Skill ExpertCustomize");

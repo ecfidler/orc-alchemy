@@ -52,9 +52,10 @@ async function expectButtonsInBoxes(page: Page) {
   }
 }
 
-// 1280px: six in a row. 660px, a little narrower than the breakpoint with no rail, and 390px: three in a row. 760px,
-// with the rail and the summary card: a control of about 240px, two in a row.
-for (const width of [1280, 760, 660, 390]) {
+// 1280px: six in a row. 860px, the narrowest page with the rail and the summary card (a control of 338px), 760px,
+// with the rail and no summary card (ORC-353), 660px, a little narrower than the breakpoint with no rail, and 390px:
+// three in a row. 320px: a control of 288px, two in a row.
+for (const width of [1280, 860, 760, 660, 390, 320]) {
   test(`the boxes do not move or change their size at a change of method or of a score, ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await abilitiesStep(page, { halfElf: true });
@@ -62,9 +63,9 @@ for (const width of [1280, 760, 660, 390]) {
     const before = await boxes(page);
     // Six boxes, the strip, the control and the half-elf's section, and the row of Back and Next.
     expect(before.length).toBe(10);
-    // Six in a row on a wide page, three in a row on the narrower ones, and two in a row in a control of about 240px.
+    // Six in a row on a wide page, three in a row on the narrower ones, and two in a row in a control of 288px.
     const rows = new Set(before.slice(0, 6).map(([, y]) => y));
-    expect(rows.size).toBe(width === 1280 ? 1 : width === 760 ? 3 : 2);
+    expect(rows.size).toBe(width === 1280 ? 1 : width === 320 ? 3 : 2);
 
     const same = async () => expect(await boxes(page)).toEqual(before);
     // A chip held, so the strip shows the longer hint, and a swap by two clicks.

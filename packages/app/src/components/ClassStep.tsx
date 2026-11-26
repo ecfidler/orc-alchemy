@@ -33,8 +33,7 @@ import {
 import { engine } from "../engine/engine.ts";
 import { addAClass, addFirstClass } from "../engine/new-character.ts";
 import { shownOptions } from "../engine/selection-control.ts";
-import { classesOf } from "../engine/strict.ts";
-import { useCharacter, useOpenCharacter } from "../state/character.ts";
+import { useOpenCharacter } from "../state/character.ts";
 import { useBuilderStatus, useStepFrame } from "./builder-context.tsx";
 import { useChangeQuestion } from "./ChangeQuestion.tsx";
 import { ClassCards, ClassModal } from "./ClassCards.tsx";
@@ -84,11 +83,6 @@ export function ClassStep({ selection }: { selection: BuilderSelection }) {
   });
   // The level field of each block, by the class key: the focus goes there after a lower level that disables the minus button.
   const levelFields = useRef(new Map<string, HTMLInputElement>());
-  /** The classes of the stored character, after a change. */
-  const storedClasses = () => {
-    const stored = useCharacter.getState().entity;
-    return stored === null ? [] : classesOf(stored);
-  };
 
   function chooseFirst(key: string) {
     if (run((e, entity, opts) => addFirstClass(e, entity, key, opts))) setFocusClass(key);
@@ -100,9 +94,8 @@ export function ClassStep({ selection }: { selection: BuilderSelection }) {
   }
 
   async function replace(from: string, to: string) {
+    // A new class that is not the first gets the average hit points in the same change (replaceClass).
     const changed = await change({ kind: "replace-class", from, to }, changeOf(from));
-    // A new class that is not the first has hit points at level 1: the average, the method of a new class.
-    if (changed && storedClasses().indexOf(to) > 0) run((e, entity, opts) => withAverageHitPoints(e, entity, to, opts));
     setFocusClass(changed ? to : from);
   }
 

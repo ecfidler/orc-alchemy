@@ -4,7 +4,7 @@
 // the character's skills, tools and languages come from, which the "Already has" line of the Proficiencies step
 // reads (fixedProficiencies in proficiencies.ts).
 
-import { type BuilderOption, type BuilderSelection, type BuilderStep, treeNodes } from "./builder.ts";
+import { type BuilderOption, type BuilderSelection, type BuilderStep, sourcedHeading, treeNodes } from "./builder.ts";
 import type { Built2014, Content, Engine, StrictEntity } from "./engine.ts";
 import { withoutOption } from "./reconcile.ts";
 
@@ -87,11 +87,17 @@ export function refusalReason(message: string): string | null {
 
 /**
  * The prerequisite labels of an engine refusal, which the engine joins with ", ": "Cannot add X: it requires Requires
- * Str 13, Requires Dex 13." gives ["Requires Str 13", "Requires Dex 13"]. Null for another refusal.
+ * Str 13, Requires Dex 13." gives ["Requires Str 13", "Requires Dex 13"]. A label can have a comma in it, so the text
+ * splits only before a label that starts with "Requires": "Requires Str 13, or Dex 13" stays one label. Null for
+ * another refusal.
  */
 export function refusalLabels(message: string): string[] | null {
   const part = requiresPart(message);
-  return part === null ? null : trimmed(part).split(", ").map(trimmed);
+  return part === null
+    ? null
+    : trimmed(part)
+        .split(/, (?=requires\b)/i)
+        .map(trimmed);
 }
 
 /** A top-level option of the character that can give a language: its path in the entity and its name. */
@@ -312,4 +318,16 @@ export function sectionNames(selections: BuilderSelection[]): Map<BuilderSelecti
   return new Map(
     all.map((node) => [node, (count.get(node.name) ?? 0) > 1 && node.sources.length > 0 ? `${node.name}: ${node.sources.join(", ")}` : node.name]),
   );
+}
+
+/**
+ * The heading name of each section on the Feats step (docs/design/character-builder.md, "The Feats step"): as
+ * sectionNames, but each feat selection of the step names its sources, also when no other section has its name:
+ * "Feats: Fighter, Variant Human". A feat selection with no source, such as the top-level feats of an imported
+ * character, keeps its name. The sections that a feat opens are named as on another step.
+ */
+export function featSectionNames(selections: BuilderSelection[]): Map<BuilderSelection, string> {
+  const names = sectionNames(selections);
+  for (const selection of selections) if (selection.sources.length > 0) names.set(selection, sourcedHeading(selection.name, selection.sources));
+  return names;
 }

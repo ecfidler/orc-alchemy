@@ -7,6 +7,7 @@ import {
   changeableLevels,
   classHitPoints,
   hitDieText,
+  keptLevels,
   rollHitPoints,
   rollLevels,
   setHitPointsMethod,
@@ -189,6 +190,29 @@ test("By level: the averages become typed numbers, a typed number and a roll cou
   ]);
   ({ hp, max } = sections(entity));
   expect(hp[0].total + hp[1].total).toBe(max);
+});
+
+test("the rolled numbers come back after Average and then By level; Average with kept levels still writes the averages (ORC-352)", () => {
+  const e = engine();
+  let entity: StrictEntity = readJson("fighter-3-wizard-2.strict.json");
+  const wizard = () => sections(entity).hp[1];
+  entity = setHitPointsMethod(e, entity, wizard(), "by-level", content);
+  entity = rollLevels(e, entity, wizard(), [1, 2], () => 0, content);
+  // By level to Average keeps the levels of now; another change keeps what was kept.
+  let kept = keptLevels(undefined, wizard(), "by-level", "average");
+  expect(kept).toEqual(wizard().levels);
+  entity = setHitPointsMethod(e, entity, wizard(), "average", content, kept);
+  expect(wizard().levels.map((l) => [l.stored, l.value])).toEqual([
+    ["average", 4],
+    ["average", 4],
+  ]);
+  kept = keptLevels(kept, wizard(), "average", "by-level");
+  entity = setHitPointsMethod(e, entity, wizard(), "by-level", content, kept);
+  expect(wizard().levels.map((l) => [l.stored, l.value])).toEqual([
+    ["roll", 1],
+    ["roll", 1],
+  ]);
+  expect(keptLevels(undefined, wizard(), "average", "average")).toBeUndefined();
 });
 
 test("a new level has no hit points: it is left, the class is By level, and the average fills it", () => {

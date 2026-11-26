@@ -46,14 +46,17 @@ export function TextInput({ value, onValueChange, "aria-label": ariaLabel, width
 export type TextAreaProps = TextProps & {
   /** The height in lines. The user can make it taller. */
   rows?: number;
+  /** The text area's blur, for example to write the text when the user leaves the field. */
+  onBlur?: FocusEventHandler<HTMLTextAreaElement>;
 };
 
 /** A boxed text area of the full width, as TextInput. It stays a native textarea. */
-export function TextArea({ value, onValueChange, "aria-label": ariaLabel, rows = 4, className }: TextAreaProps) {
+export function TextArea({ value, onValueChange, "aria-label": ariaLabel, rows = 4, className, onBlur }: TextAreaProps) {
   return (
     <textarea
       value={value}
       onChange={(e) => onValueChange(e.target.value)}
+      onBlur={onBlur}
       aria-label={ariaLabel}
       rows={rows}
       className={className ? `ui-textarea ${className}` : "ui-textarea"}

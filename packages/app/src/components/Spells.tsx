@@ -2,7 +2,7 @@
 // filter and a name search, and the prepared spells of each class that
 // prepares, with the prepare rules of the Spells panel (ORC-288). Each pick
 // is an engine mutation, as in Options in Builder.tsx.
-import { Checkbox, Select } from "@orc-alchemy/ui";
+import { Checkbox, Label, Select } from "@orc-alchemy/ui";
 import { useId, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { listText } from "../engine/selection-control.ts";
@@ -19,6 +19,22 @@ import { useMutation } from "./use-mutation.ts";
 
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
 
+/** The heights of 1 to 5 lines of the chosen spells on a step narrower than 560px: a line of text-sm leading-5 is 20px. */
+const NARROW_HEIGHTS = ["min-h-5", "min-h-10", "min-h-15", "min-h-20", "min-h-25"];
+
+/** The heights of 1 to 3 lines of the chosen spells on a step 560px wide or more. */
+const WIDE_HEIGHTS = ["@min-[560px]/spells:min-h-5", "@min-[560px]/spells:min-h-10", "@min-[560px]/spells:min-h-15"];
+
+/**
+ * The classes of the height that the chosen spells keep: the lines that the most picks take, with about 2 names on a
+ * line of a narrow step (up to 5 lines) and 4 on a wide step (up to 3 lines). A selection with no maximum keeps 3
+ * lines, so that a pick does not start a new line.
+ */
+export function chosenHeight(max: number | null): string {
+  const lines = (perLine: number, most: number) => (max === null ? 3 : Math.min(most, Math.max(1, Math.ceil(max / perLine))));
+  return `${NARROW_HEIGHTS[lines(2, NARROW_HEIGHTS.length) - 1]} ${WIDE_HEIGHTS[lines(4, WIDE_HEIGHTS.length) - 1]}`;
+}
+
 /** A spell selection: its chosen spells, a level filter and a search, then the cards that pass them. */
 export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   const id = useId();
@@ -33,15 +49,18 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   const chosen = selection.options.filter((o) => o.selected);
 
   return (
-    <section aria-labelledby={id} className="space-y-2">
+    <section aria-labelledby={id} className="@container/spells space-y-2">
       <Heading id={id} selection={selection} />
-      {chosen.length > 0 && (
-        <ul aria-label={`Chosen: ${name}`} className="flex flex-wrap gap-x-3 text-sm">
+      {/* The chosen spells, also those that the filter hides. The line keeps the place of the lines that the most picks
+      take (chosenHeight), so a pick does not move the filter and the cards (ORC-352). */}
+      <div className={`flex items-baseline gap-3 ${chosenHeight(selection.max)}`}>
+        <Label>Chosen</Label>
+        <ul aria-label={`Chosen: ${name}`} className="flex flex-wrap gap-x-3 text-sm leading-5">
           {chosen.map((o) => (
             <li key={o.key}>{o.name}</li>
           ))}
         </ul>
-      )}
+      </div>
       <div className="flex flex-wrap gap-2">
         {levels.length > 1 && (
           <Select

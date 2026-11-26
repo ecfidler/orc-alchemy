@@ -1,7 +1,14 @@
 // Helpers for the e2e specs that make a new character in the builder (ORC-342): a new character has no class, and
 // it opens on the Name step.
+import { join } from "node:path";
 import { pickFromPicker } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page } from "@playwright/test";
+
+/** The ten steps of the builder, in the order of the rail. */
+export const STEPS = ["Name", "Class", "Background", "Race", "Abilities", "Proficiencies", "Feats", "Spells", "Equipment", "Description"];
+
+/** The part of the page that holds the open step: the step title, its sections, Back and Next. */
+export const builder = (page: Page) => page.getByRole("region", { name: "Builder" });
 
 /** A step button of the rail. Its name ends with its count of picks left, when it has some: "Class, 2 picks left". */
 export const stepButton = (page: Page, name: string) =>
@@ -21,22 +28,36 @@ export async function newCharacter(page: Page) {
   await expect(page.getByRole("region", { name: "Builder" }).getByRole("heading", { level: 2 })).toHaveText("Name");
 }
 
+const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
+
+/** Imports the fixture character of fixtures/characters and opens it in the builder on the step. */
+export async function openFixture(page: Page, fixture: string, step: string) {
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles(join(charactersDir, `${fixture}.strict.json`));
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
+  await openStep(page, step);
+}
+
 /** The class card `name` in `scope` (ORC-349). */
 export const classCard = (scope: Locator, name: string) => scope.locator("[data-class-card]").and(scope.getByRole("button", { name, exact: true }));
 
 /**
- * Opens the Class step of a character with no class, and adds its first class (ORC-349): a click on its card opens its
+ * Picks the first class of a character with no class on the open Class step (ORC-349): a click on its card opens its
  * modal, and "Choose {name}" picks it. Its Vitest twin is chooseFirstClass in src/components/test-pick.ts.
  */
-export async function addFirstClass(page: Page, name: string) {
-  await openStep(page, "Class");
-  const builder = page.getByRole("region", { name: "Builder" });
-  await classCard(builder, name).click();
+export async function chooseClass(page: Page, name: string) {
+  await classCard(builder(page), name).click();
   await page
     .getByRole("dialog", { name, exact: true })
     .getByRole("button", { name: `Choose ${name}`, exact: true })
     .click();
-  await expect(builder.getByRole("button", { name: `Change ${name}`, exact: true })).toBeVisible();
+  await expect(builder(page).getByRole("button", { name: `Change ${name}`, exact: true })).toBeVisible();
+}
+
+/** Opens the Class step of a character with no class, and adds its first class (chooseClass). */
+export async function addFirstClass(page: Page, name: string) {
+  await openStep(page, "Class");
+  await chooseClass(page, name);
 }
 
 /**

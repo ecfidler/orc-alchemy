@@ -59,7 +59,7 @@ test("Dwarf with one subrace: the panel shows Hill Dwarf as a fact, the pick pic
 test("Dwarf with two subraces (a pack subrace): no Subrace fact, and the Subrace row in Choices", async () => {
   await useHomebrew.getState().saveItem(RACE_PACK, TAGGED_SUBRACES, ASH_DWARF);
   open();
-  expect((await facts("Dwarf")).map(([term]) => term)).toEqual(["Ability scores", "Size, speed", "Languages"]);
+  expect((await facts("Dwarf")).map(([term]) => term)).toEqual(["Ability scores", "Size, speed", "Languages", "Tools", "Weapons"]);
   fireEvent.click(within(race()).getByRole("button", { name: "Choose Dwarf" }));
   await waitFor(() => expect(header()).toBe("Dwarf,1 left"));
   expect(subracePicks()).toEqual([[]]);

@@ -5,6 +5,7 @@ import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { loadSpellContent, preparedSpells } from "../engine/spells.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
+import { chosenHeight } from "./Spells.tsx";
 
 // The prepare boxes wait for the spell records (ORC-288), so the records load first.
 beforeAll(async () => {
@@ -46,6 +47,8 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   const cantrips = region("Wizard Cantrips Known");
   // The picks to make are an inline note in the heading.
   expect(cantrips.getByRole("heading").textContent).toBe("Wizard Cantrips Known,3 left");
+  // The line of the chosen spells is there before the first pick, so the pick does not move the cards (ORC-352).
+  expect(screen.getByRole("list", { name: "Chosen: Wizard Cantrips Known" }).textContent).toBe("");
   fireEvent.click(cantrips.getByRole("button", { name: "Acid Splash" }));
   expect(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("list", { name: "Chosen: Wizard Cantrips Known" }).textContent).toBe("Acid Splash");
@@ -144,4 +147,11 @@ test("the Spells step of a paladin 2 is not empty: it has no spell to pick, but 
   expect(spells.hasAttribute("data-dimmed")).toBe(false);
   expect(screen.queryByText("This character has no spell to pick.")).toBeNull();
   expect(screen.getByRole("region", { name: /^Prepared spells: Paladin/ })).toBeTruthy();
+});
+
+test("the chosen line keeps the lines that the most picks take: 2 names on a line of a narrow step and 4 on a wide one; 3 lines with no maximum", () => {
+  expect(chosenHeight(3)).toBe("min-h-10 @min-[560px]/spells:min-h-5");
+  expect(chosenHeight(6)).toBe("min-h-15 @min-[560px]/spells:min-h-10");
+  expect(chosenHeight(20)).toBe("min-h-25 @min-[560px]/spells:min-h-15");
+  expect(chosenHeight(null)).toBe("min-h-15 @min-[560px]/spells:min-h-15");
 });

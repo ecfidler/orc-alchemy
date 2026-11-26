@@ -14,7 +14,7 @@ import type { Content, ContentType, Engine, StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { countWord, type DetailFact, type OptionDetail } from "./origin-detail.ts";
 import { listText } from "./selection-control.ts";
-import { ABILITIES, ABILITY_NAMES, abilityOfKey, keyToName, SKILLS } from "./sheet.ts";
+import { ABILITIES, ABILITY_NAMES, abilityOfKey, capitalized, keyToName, SKILLS } from "./sheet.ts";
 
 /** The content type of the classes. */
 export const CLASS_TYPE: ContentType = "orcpub.dnd.e5/classes";
@@ -90,8 +90,7 @@ export function armorWeaponsText(armorProfs: string[], weaponProfs: string[]): s
   ];
   const groups = WEAPON_GROUPS.filter((g) => weaponProfs.includes(g));
   const weapons = [...(groups.length > 0 ? [`${listText(groups)} weapons`] : []), ...weaponProfs.filter((w) => !WEAPON_GROUPS.includes(w)).map(keyToName)];
-  const text = [armorParts.length > 0 ? armorParts.join(", ") : "no armor", ...(weapons.length > 0 ? [weapons.join(", ")] : [])].join("; ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  return capitalized([armorParts.length > 0 ? armorParts.join(", ") : "no armor", ...(weapons.length > 0 ? [weapons.join(", ")] : [])].join("; "));
 }
 
 /** The skill choice of a class option: "Two of Athletics, History", or "Three of your choice" when it has all the skills. Null with none. */

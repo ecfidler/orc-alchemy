@@ -16,6 +16,7 @@ import {
   needsReason,
   needsText,
   raiseLevel,
+  replaceClass,
   unavailableClasses,
 } from "./class-block.ts";
 import { classHitPoints, storedHitPoints, withAverageHitPoints } from "./classes.ts";
@@ -130,6 +131,19 @@ test("a higher level: the new levels get the average with the method Average, an
   ]);
   const byLevel = raiseLevel(e, entity, "fighter", 1, 3, "by-level", content);
   expect([2, 3].map((level) => storedHitPoints(byLevel, path(level)))).toEqual([null, null]);
+});
+
+test("a class that is not the first, replaced, gets the average hit points in the same change (ORC-352)", () => {
+  const e = engine();
+  const entity = replaceClass(e, fixture(), "wizard", "rogue", content);
+  expect(build(entity).selection.selected).toEqual(["fighter", "rogue"]);
+  // The new class is at level 1. A d8: the average is 5.
+  expect(storedHitPoints(entity, ["class", "rogue", "levels", "level-1", "hit-points"])).toEqual({ method: "average", value: 5 });
+  // The first class, replaced, has the maximum at level 1, and gets no hit points written.
+  const first = replaceClass(e, fixture(), "fighter", "rogue", content);
+  expect(first).toEqual(e.setClass(fixture(), 0, "rogue", content));
+  // The planned change of the question writes the same entity.
+  expect(planChange({ engine: e, entity: fixture(), content }, { kind: "replace-class", from: "wizard", to: "rogue" }).apply()).toEqual(entity);
 });
 
 test("the left mark of a block counts its Choices and its hit points left", () => {
