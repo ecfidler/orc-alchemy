@@ -1,26 +1,13 @@
 {
   "e2eTests": 400,
-  "unitTestFiles": 125,
+  "unitTestFiles": 136,
   "unitTestFileSeconds": 40,
   "bundleJsKB": 4600,
   "sourceLines": {
     "max": 600,
     "exceptions": {
       "packages/app/e2e/builder.spec.ts": 708,
-      "packages/app/e2e/spells-panel.spec.ts": 898,
-      "packages/app/src/components/CharacterSheet.test.tsx": 1093,
-      "packages/app/src/components/CharacterSheet.tsx": 1204,
-      "packages/app/src/components/CustomizeDialog.test.tsx": 683,
-      "packages/app/src/components/SpellsPanel.tsx": 639,
-      "packages/app/src/components/builders/MagicItemForm.test.tsx": 666,
-      "packages/app/src/components/builders/MagicItemForm.tsx": 683,
-      "packages/app/src/components/builders/fields.tsx": 806,
-      "packages/app/src/engine/custom.test.tsx": 1173,
-      "packages/app/src/engine/custom.ts": 667,
-      "packages/app/src/engine/sheet.ts": 899,
-      "packages/engine/src/rules2024/built.ts": 614,
-      "packages/engine/src/rules2024/fighter.test.ts": 653,
-      "packages/engine/src/rules2024/records.ts": 626
+      "packages/app/src/components/SpellsPanel.tsx": 639
     }
   },
   "fileKB": {
