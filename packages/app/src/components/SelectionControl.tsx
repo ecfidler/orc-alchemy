@@ -48,7 +48,8 @@ export function SelectionControl({ selection }: { selection: BuilderSelection })
 type ControlProps = { selection: BuilderSelection; options: BuilderOption[]; unavailable?: Map<string, string> };
 
 // The top-level selections whose pick asks first when it removes picks: the race and the background. The subrace
-// under a race asks too. The Class step asks in its own controls.
+// under a race asks too. The Class step asks in its own controls. The background and the race have the list with a
+// detail panel (MainPick.tsx), which picks with usePick too.
 const ASKS_FIRST = ["race", "background"];
 
 /** True when a pick in the selection asks first when it removes picks: a race, a subrace or a background. */
@@ -63,7 +64,7 @@ function asksFirst({ actualPath, multiselect }: BuilderSelection): boolean {
  * the background asks first when it removes picks; `dialog` is the element of that question, for the control to render.
  * `finalFocus` gets the focus when the question closes; without it, the focus goes back to where it was.
  */
-function usePick(
+export function usePick(
   selection: BuilderSelection,
   finalFocus?: RefObject<HTMLElement | null>,
 ): {

@@ -11,11 +11,30 @@ export function listOpener(scope: HTMLElement): HTMLElement | null {
   return within(scope).queryByRole("button", { name: /^(Choose|Change) / }) ?? scope.querySelector<HTMLElement>(".ui-add-button");
 }
 
+/** The Change button of the block of a main pick, "Change Race": a Change button in its Choices has another name. */
+export const changeOf = (scope: HTMLElement) => within(scope).getByRole("button", { name: `Change ${scope.getAttribute("aria-label")}` });
+
 /**
- * Picks the option `name` in the selection of `scope` (its section): a click on its option card, or a pick in the
- * list that its Choose, Change or add button opens. Resolves once a list has closed.
+ * Picks the option `name` in the list with a detail panel of a main pick (ORC-347), such as the background: Change
+ * opens the list again after a pick, then a click on the row shows the option, and "Choose {name}" picks it.
+ */
+export function pickInList(scope: HTMLElement, name: string): void {
+  if (!scope.querySelector(".ui-list-panel")) fireEvent.click(changeOf(scope));
+  const list = scope.querySelector<HTMLElement>(".ui-list-panel")!;
+  fireEvent.click(within(list).getByRole("button", { name }));
+  fireEvent.click(within(list).getByRole("button", { name: `Choose ${name}` }));
+}
+
+/**
+ * Picks the option `name` in the selection of `scope` (its section): a click on its option card, a pick in the list
+ * with a detail panel of a main pick, or a pick in the list that its Choose, Change or add button opens. Resolves once
+ * a list has closed.
  */
 export async function pickIn(scope: HTMLElement, name: string): Promise<void> {
+  if (scope.hasAttribute("data-main-pick")) {
+    pickInList(scope, name);
+    return;
+  }
   const card = within(scope)
     .queryAllByRole("button", { name })
     .find((button) => button.classList.contains("ui-button") && button.closest('[role="group"]') !== null);
@@ -28,9 +47,19 @@ export async function pickIn(scope: HTMLElement, name: string): Promise<void> {
   await pickFromPicker(opener, name);
 }
 
-/** The picks that a selection's control shows: its pressed option cards, or its tokens. */
+/** The picks that a selection's control shows: its pressed option cards, its tokens, or the name in the block of a main pick. */
 export function picksIn(scope: HTMLElement): string[] {
   const pressed = [...scope.querySelectorAll<HTMLElement>("[data-pressed]")].map((button) => button.getAttribute("aria-label") ?? button.textContent ?? "");
-  const tokens = [...scope.querySelectorAll(".ui-token-label")].map((label) => label.textContent ?? "");
+  const tokens = [...scope.querySelectorAll(".ui-token-label, [data-pick-name]")].map((label) => label.textContent ?? "");
   return [...pressed, ...tokens];
+}
+
+/**
+ * Opens the Custom Origin dialog from the fixed last row of the race list (ORC-348): Change opens the list after a
+ * pick, a click on the row shows its panel, and "Start a custom origin" opens the dialog.
+ */
+export function startCustomOrigin(race: HTMLElement): void {
+  if (!race.querySelector(".ui-list-panel")) fireEvent.click(changeOf(race));
+  fireEvent.click(within(race).getByRole("button", { name: "Custom Origin" }));
+  fireEvent.click(within(race).getByRole("button", { name: "Start a custom origin" }));
 }

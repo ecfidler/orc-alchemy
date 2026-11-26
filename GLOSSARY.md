@@ -189,6 +189,13 @@ The panel that shows the full content of the option that the player clicked
 in a list, with the button that makes the pick.
 _Avoid_: Preview pane, info box, tooltip
 
+**Pick block**:
+The block that takes the place of the list and the detail panel after the
+main pick of the Background or Race step. Its header has the name, the left
+mark, About, Customize and Change; its body has Choices and "Picked on other
+steps".
+_Avoid_: Card, summary (the summary card is the column at the right of a step)
+
 **Class block**:
 The block of one class on the Class step, with its level, its choices, its
 hit points and its picks on other steps.

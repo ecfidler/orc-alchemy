@@ -4,7 +4,7 @@ title: Homebrew forms spec
 description: The settled design of the homebrew content forms for M9 - layout, field styling, modifiers added from a list, pickers and tokens, feature uses with a sheet preview, suggested uses for imported content, engine 0.4.0, and the Customize dialog of M5.1 for feats, backgrounds and races, with the guided Custom Origin dialog.
 tags: [design, homebrew, forms]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T05:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T12:08:23Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-180/map-improve-the-homebrew-content-forms-and-feature-uses
 sources:
   - id: orc-180
@@ -1006,20 +1006,15 @@ uses our own words, because the book is not SRD content.
 
 ### The entry
 
-The [Character builder spec](character-builder.md#custom-origin)
-(ORC-334) replaces the race cards with a list. Custom Origin is then the
-fixed last row of the Race list, and its button is in the detail panel.
-The copy shows in the header of the Race block, with **Edit custom
-origin**. The rules below describe the builder before that change.
-
-* **Custom Origin** is the last entry of the race cards. It is a button,
-  not a toggle, with a dashed border and the line "Move the bonuses,
-  languages and proficiencies of a race".
-* The entry opens the dialog. It selects nothing until Save.
-* After Save, the line under the cards shows the copy, "{Base race}
-  (Custom Origin)", and a button **Edit custom origin**. The button opens
-  the guided dialog again, with the earlier picks.
-* A Custom Origin copy has only the guided dialog. The line does not
+* **Custom Origin** is the fixed last row of the Race list, with the
+  plus icon (ORC-348). Its detail panel says what a custom origin is,
+  and has the button **Start a custom origin**. See the
+  [Character builder spec](character-builder.md#custom-origin).
+* The button opens the dialog. It selects nothing until Save.
+* After Save, the block of the Race step shows the copy, "{Base race}
+  (Custom Origin)", and a button **Edit custom origin** in its header.
+  The button opens the guided dialog again, with the earlier picks.
+* A Custom Origin copy has only the guided dialog. The block does not
   offer the race form for it. To edit the copy as a race form, the user
   makes a Customize copy of a race instead.
 

@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T10:42:53Z }
+generated: { by: claude-code/agent, at: 2026-11-26T12:38:24Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -469,6 +469,39 @@ The main pick of each step is a list with a detail panel.[^orc-332]
 * A race with one subrace has no Subrace choice. The panel shows the
   subrace as one of the facts. A race with more than one subrace gets a
   Subrace row in Choices.
+* The list and the panel are side by side only when the part is 560px
+  wide or more. A narrower part is narrow, as in
+  [A narrow page](#a-narrow-page). The width of the part counts, not the
+  width of the page: on a page from 720px to about 860px, the summary
+  card takes space, and the step is narrower than 560px.[^orc-347]
+* The facts of a background are Skills, Languages, Tools and Equipment,
+  each only when the background gives it. A choice of the player shows
+  as "Two of your choice".[^orc-347]
+* A row of an option that is not available has the lock icon and a
+  dimmed name. The pack stays at the right of the row. The reason is the
+  description of the row, and the panel shows it beside the disabled
+  Choose button. A click on the row shows the option in the
+  panel.[^orc-347]
+* Above the list, the heading of the selection has the left mark:
+  "Background" and "1 left".[^orc-347]
+* The facts of a race are Ability scores, "Size, speed", Languages and
+  Subrace, each only when the race gives it. A choice of the player shows
+  after the fixed part: "Charisma +2; +1 to two of your choice". The
+  ability scores show the largest first. Darkvision is the first
+  trait.[^orc-348]
+* The pick of a race with one subrace also picks the subrace. The engine's
+  Custom subrace does not count. The Subrace fact shows the name of the
+  subrace with its ability scores and its traits: "Hill Dwarf: Wisdom +1".
+  A character that has the race and not its one subrace, such as a
+  character from before this rule, keeps the Subrace row in Choices until
+  the player picks the subrace.[^orc-348]
+* The traits of the panel are those of the record of the race: the
+  item of its pack, or the race of the engine's content list. The panel
+  does not show a trait that only the engine gives, as a modifier, an
+  attack or a trait of the built character. Examples are the Breath
+  Weapon and the damage resistance of the Dragonborn, the Dwarven
+  Toughness of the Hill Dwarf, and the traits of the
+  Tiefling.[^orc-348]
 
 ## After the pick
 
@@ -494,6 +527,19 @@ with the look of the class block.
   Abilities, Skills, Languages and Tools to Proficiencies, Cantrip to
   Spells, Feat to Feats, Starting equipment to Equipment. An option that
   gives no pick on another step shows one line that says so.
+* A line shows the picks when no pick is left, and else the left mark.
+  The Languages selection that a race and a background share is one
+  selection, so its line counts the picks of all its sources. Other
+  kinds of line are Expertise and Other proficiencies to Proficiencies,
+  and Spells to Spells.[^orc-347]
+* In the list that Change opens, the heading is "Background: Acolyte",
+  with the left mark of the step and Cancel. The picked option has the
+  focus. Its panel has the check icon and "The background of this
+  character" in the place of the Choose button. After Cancel, the focus
+  goes to the Change button.[^orc-347]
+* The name in the header of the block is an `<h3>`. The titles Choices
+  and "Picked on other steps" are `<h4>`. The modal of About has a Close
+  button and no Choose button.[^orc-347]
 
 ## Custom Origin
 
@@ -502,13 +548,23 @@ with the look of the class block.
 * Its panel says what a custom origin is, and "A custom origin is not
   saved to your homebrew content." The button "Start a custom origin"
   opens the Custom Origin dialog.
+* The text of the panel is, word for word: "Make a copy of a race for
+  this character. Move its ability score increases, and swap its
+  languages and proficiencies for others. The copy is the race of this
+  character." Then a second paragraph: "A custom origin is not saved to
+  your homebrew content."[^orc-348]
 * The Background list has no such row.
+* The panel of the row has the name "Custom Origin" as its heading. The
+  row has the `plus` icon of theme.md because it makes a new record. The
+  button "Start a custom origin" has no icon, as in the prototype. After
+  the save, the block of the copy has "Edit custom origin", and the
+  focus goes to that button.[^orc-348]
 
 ## A narrow page
 
-When the page is narrower than 720px, the list has the full width and a
-height of 400px. A tap on a name opens the detail in a modal, with the
-Choose button.
+When the part of the step is narrower than 560px, the list has the full
+width and a height of 400px. A tap on a name opens the detail in a modal,
+with the Choose button. See [The list and the panel](#the-list-and-the-panel).
 
 # The Abilities step
 
@@ -757,3 +813,5 @@ one depends only on parts of the frame.
 [^orc-338]: The list with a detail panel for Race and Background, <https://linear.app/orc-alchemy/issue/ORC-338/the-list-with-a-detail-panel-for-race-and-background>
 [^orc-345]: The ability score control, <https://linear.app/orc-alchemy/issue/ORC-345/the-ability-score-control>
 [^orc-346]: The Proficiencies step, <https://linear.app/orc-alchemy/issue/ORC-346/the-proficiencies-step>
+[^orc-347]: The list with a detail panel, and the Background step, <https://linear.app/orc-alchemy/issue/ORC-347/the-list-with-a-detail-panel-and-the-background-step>
+[^orc-348]: The Race step, with Custom Origin, <https://linear.app/orc-alchemy/issue/ORC-348/the-race-step-with-custom-origin>

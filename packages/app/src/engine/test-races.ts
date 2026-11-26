@@ -5,6 +5,7 @@
 // of his Human.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { toEdn } from "../components/builders/test-review-pack.ts";
 import { type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { fighter20 } from "./test-feats.ts";
 
@@ -55,6 +56,22 @@ export const WOOD_KIN = {
   "~:abilities": { "~:orcpub.dnd.e5.character/wis": 1 },
   "~:traits": [],
 };
+
+/** A pack subrace of the SRD race Dwarf, by its key: +1 Strength. With it, Dwarf has two subraces, Hill Dwarf and Ash Dwarf (ORC-348). */
+export const ASH_DWARF = {
+  "~:key": "~:ash-dwarf",
+  "~:name": "Ash Dwarf",
+  "~:option-pack": RACE_PACK,
+  "~:race": "~:dwarf",
+  "~:abilities": { "~:orcpub.dnd.e5.character/str": 1 },
+  "~:traits": [],
+};
+
+/** ASH_DWARF in the pack with the name, as the text of an .orcbrew file, for the e2e specs (ORC-348). */
+export const ashDwarfOrcbrew = (pack = RACE_PACK) => toEdn({ [TAGGED_SUBRACES]: { "~:ash-dwarf": { ...ASH_DWARF, "~:option-pack": pack } } });
+
+/** The homebrew with ASH_DWARF alone. */
+export const ASH_DWARF_PACKS = { [RACE_PACK]: { [TAGGED_SUBRACES]: { "~:ash-dwarf": ASH_DWARF } } };
 
 /** The homebrew with WOOD_KIN alone. */
 export const WOOD_KIN_PACKS = { [RACE_PACK]: { [TAGGED_SUBRACES]: { "~:wood-kin": WOOD_KIN } } };

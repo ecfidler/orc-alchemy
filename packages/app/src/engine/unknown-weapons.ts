@@ -5,8 +5,9 @@
 // and when it loads the stored packs, and logs each key that it removes.
 // Engine 0.4.1 also skips unknown keys.
 
-import type { ContentItem, ContentType } from "@pubdoor/dmv";
+import type { ContentType } from "@pubdoor/dmv";
 import { isMap, itemsAt, tag, untag } from "./content.ts";
+import { srdList } from "./srd-lists.ts";
 
 const RACES_TYPE: ContentType = "orcpub.dnd.e5/races";
 const RACES = tag(RACES_TYPE);
@@ -41,13 +42,10 @@ let known: Promise<KnownWeapon> | undefined;
  * Loaded once.
  */
 export function knownWeapons(): Promise<KnownWeapon> {
-  const list = (mod: { default: unknown }) => mod.default as ContentItem[];
-  known ??= Promise.all([import("@pubdoor/dmv/content/weapons.json").then(list), import("@pubdoor/dmv/content/magic-items.json").then(list)]).then(
-    ([weapons, magicItems]) => {
-      const keys = new Set([...weapons, ...magicItems.filter((item) => item["orcpub.dnd.e5.magic-items/type"] === "weapon")].map((item) => item.key));
-      return (key) => keys.has(key);
-    },
-  );
+  known ??= Promise.all([srdList("weapons"), srdList("magic-items")]).then(([weapons, magicItems]) => {
+    const keys = new Set([...weapons, ...magicItems.filter((item) => item["orcpub.dnd.e5.magic-items/type"] === "weapon")].map((item) => item.key));
+    return (key) => keys.has(key);
+  });
   return known;
 }
 

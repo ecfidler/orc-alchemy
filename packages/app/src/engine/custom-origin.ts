@@ -18,16 +18,14 @@ import {
   isCustomCopy,
   optionOrigin,
   type RaceCopy,
-  raceOption,
   type SavedCopy,
   saveCopy,
   srdRaceCopy,
   storedCopy,
-  subraceOptions,
-  subracePick,
   withPickedSubrace,
 } from "./custom.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
+import { pickableSubraces, subracePick, templateRace } from "./race-step.ts";
 import { hasOption, picksUnder, withoutOption } from "./reconcile.ts";
 import { ABILITIES, ABILITY_NAMES, type Ability } from "./sheet.ts";
 
@@ -336,14 +334,11 @@ export function originPicks(base: Record<string, unknown>, copy: Record<string, 
   });
 }
 
-/** The subraces of a race option (raceOption), without the engine's Custom subrace, whose picks a copy does not hold. */
-const subracesOf = (race: ReturnType<typeof raceOption>) =>
-  subraceOptions(race)
-    .filter((o) => o.key !== "custom")
-    .map((o) => ({ key: o.key, name: o.name }));
-
-/** The subraces of the race with the key that the dialog offers (subracesOf). content is the loaded content, without custom. */
-export const baseSubraces = (key: string, content: Content): { key: string; name: string }[] => subracesOf(raceOption(key, content.homebrew));
+/**
+ * The subraces of the race with the key that the dialog offers (pickableSubraces): without the engine's Custom subrace,
+ * whose picks a copy does not hold. content is the loaded content, without custom.
+ */
+export const baseSubraces = (key: string, content: Content): { key: string; name: string }[] => pickableSubraces(templateRace(key, content));
 
 /**
  * The race with the key, as a Custom Origin copy starts from it: a pack
@@ -369,7 +364,7 @@ export async function baseRace(
   entity: StrictEntity | null,
   subrace?: string | null,
 ): Promise<RaceCopy | undefined> {
-  const option = raceOption(key, content.homebrew);
+  const option = templateRace(key, content);
   if (option === undefined) return undefined;
   const e = engine();
   const path = ["race", key];
@@ -378,7 +373,7 @@ export async function baseRace(
   const built = own ? characterContent(content, custom) : content;
   let probe = own ? entity : e.select(e.emptyCharacter(), ["race"], key, built);
   const current = heldSubrace(picksUnder(probe, path));
-  const subraces = subracesOf(option);
+  const subraces = pickableSubraces(option);
   const wanted = subrace !== undefined ? subrace : (current ?? (subraces.length === 1 ? subraces[0].key : null));
   if (wanted !== current) {
     if (current !== null) probe = withoutOption(probe, [...path, "subrace", current]);
@@ -438,7 +433,7 @@ export function lostChoices(baseKey: string, copy: Record<string, unknown>, cont
   const kept = raceChoices(key, withCopy);
   const heldChoices = new Set(held.map((p) => p.slice(2, -1).join("/")));
   // A subrace that the content does not have now has no choices to compare.
-  const subrace = subracesOf(raceOption(baseKey, content.homebrew)).find((o) => o.key === heldSubrace(held))?.key ?? null;
+  const subrace = baseSubraces(baseKey, content).find((o) => o.key === heldSubrace(held))?.key ?? null;
   return [...raceChoices(baseKey, content, subrace)]
     .filter(([choice]) => !kept.has(choice.slice(choice.lastIndexOf("/") + 1)) && !heldChoices.has(choice))
     .map(([, name]) => name);

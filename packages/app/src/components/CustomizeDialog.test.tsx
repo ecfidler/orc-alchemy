@@ -241,21 +241,29 @@ test("a copy that the character no longer selects does not block its name: Custo
 
 // The background (ORC-135). fighter-20 has the SRD background Acolyte.
 
-/** fighter-20 on the Background step, with Acolyte, or with `pack` the pack background Sage and Smith's Tools for its artisan's tool. */
+/**
+ * fighter-20 on the Background step, with Acolyte, or with `pack` the pack background Sage and Smith's Tools for its
+ * artisan's tool. It gives the section of the background: the block of the pick, whose header has Customize (ORC-347).
+ */
 async function openBackground(pack = false) {
   await useHomebrew.getState().saveItem(BACKGROUND_PACK, TAGGED_BACKGROUNDS, SAGE);
   const entity: StrictEntity = pack ? withSage() : fighter20();
   act(() => useCharacter.getState().load("customize", entity));
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Background/ }));
-  return screen.getByRole("list", { name: "Customize Background" });
+  return backgroundBlock();
 }
+const backgroundBlock = () => screen.getByRole("region", { name: "Background" });
 const background = () => evaluate().selections.find((s) => s.key === "background")!.selected;
-const backgroundCards = () => within(within(screen.getByRole("region", { name: "Builder" })).getByRole("group", { name: "Background" })).getAllByRole("button");
+/** The names in the list of backgrounds, which Change opens. */
+function backgroundNames() {
+  fireEvent.click(within(backgroundBlock()).getByRole("button", { name: "Change Background" }));
+  return [...backgroundBlock().querySelectorAll(".ui-list-panel-name")].map((name) => name.textContent);
+}
 
 test("Customize on a pack background makes '<Name> (Custom)', selects it by the engine's key, and the sheet shows its skills, tools, languages and equipment", async () => {
   const lines = await openBackground(true);
-  expect(within(lines).getByRole("listitem")).toHaveTextContent("SageCustomize");
+  expect(within(lines).getByRole("heading", { level: 3 })).toHaveTextContent(`Sage${BACKGROUND_PACK}`);
   fireEvent.click(within(lines).getByRole("button", { name: "Customize Sage" }));
   const dialog = await dialogNamed("Customize Sage");
   expect(field(dialog, "Name").value).toBe("Sage (Custom)");
@@ -297,7 +305,7 @@ test("Customize on a pack background makes '<Name> (Custom)', selects it by the 
     expect(within(bubble).getByRole("img", { name: "Researcher uses spent: 0 of 1" }).querySelectorAll(".ui-slot-circle")).toHaveLength(1);
     expect(within(bubble).getByText("Long rest")).toBeTruthy();
   });
-  expect(backgroundCards().map((card) => card.textContent)).toEqual(expect.arrayContaining(["Sage", "Sage (Custom)", "Acolyte"]));
+  expect(backgroundNames()).toEqual(expect.arrayContaining(["Sage", "Sage (Custom)", "Acolyte"]));
   // Another character, without this custom content, has the original and not the copy.
   const others = engine()
     .buildTemplate(useHomebrew.getState().content.homebrew)
@@ -362,7 +370,7 @@ test("Customize with no edits keeps an inventory that the user changed, with eac
   const before = evaluate().built;
   expect(before.equipment?.incense["orcpub.dnd.e5.character.equipment/quantity"]).toBe(7);
 
-  fireEvent.click(within(screen.getByRole("list", { name: "Customize Background" })).getByRole("button", { name: "Customize Acolyte" }));
+  fireEvent.click(within(backgroundBlock()).getByRole("button", { name: "Customize Acolyte" }));
   fireEvent.click(save(await dialogNamed("Customize Acolyte")));
   await closed();
   const after = evaluate().built;
@@ -400,7 +408,7 @@ test("Customize on a pack background whose stored key is not the key of its name
   act(() => useCharacter.getState().load("customize", e.select(fighter20(), ["background"], "sage", options)));
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Background/ }));
-  fireEvent.click(within(screen.getByRole("list", { name: "Customize Background" })).getByRole("button", { name: "Customize Sage" }));
+  fireEvent.click(within(backgroundBlock()).getByRole("button", { name: "Customize Sage" }));
   const dialog = await dialogNamed("Customize Sage");
   expect(field(dialog, "Description").value).toBe(SAGE["~:help"]);
   expect(within(dialog).getByRole<HTMLInputElement>("textbox", { name: "Feature 1 name" }).value).toBe("Researcher");
@@ -471,20 +479,24 @@ test("Edit custom of a background copy: new gold gives the copy's starting equip
     "smiths-tools",
   ]);
   expect(within(lines).getByRole("button", { name: "Edit custom Loremaster" })).toBeTruthy();
-  expect(backgroundCards().map((card) => card.textContent)).toEqual(expect.arrayContaining(["Sage", "Loremaster"]));
-  expect(backgroundCards().map((card) => card.textContent)).not.toContain("Sage (Custom)");
+  const names = backgroundNames();
+  expect(names).toEqual(expect.arrayContaining(["Sage", "Loremaster"]));
+  expect(names).not.toContain("Sage (Custom)");
 });
 
 // The race (ORC-136). fighter-20 is a Human, of the subrace Illuskan and the variant Standard Human.
 
-/** fighter-20 on the Race step, a Human, or with `entity` another character, with the pack race Sylvar and its subrace Deep Sylvar loaded. */
+/**
+ * fighter-20 on the Race step, a Human, or with `entity` another character, with the pack race Sylvar and its subrace
+ * Deep Sylvar loaded. It gives the section of the race: the block of the pick, whose header has Customize (ORC-348).
+ */
 async function openRace(entity: StrictEntity = fighter20()) {
   await useHomebrew.getState().saveItem(RACE_PACK, TAGGED_RACES, SYLVAR);
   await useHomebrew.getState().saveItem(RACE_PACK, TAGGED_SUBRACES, DEEP_SYLVAR);
   act(() => useCharacter.getState().load("customize", entity));
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ }));
-  return screen.getByRole("list", { name: "Customize Race" });
+  return screen.getByRole("region", { name: "Race" });
 }
 const race = () =>
   evaluate()
@@ -495,7 +507,7 @@ const ORIGIN_NOTE =
 
 test("Customize on a pack race makes '<Name> (Custom)', selects it, and the sheet shows its ability bonuses, speed, languages and the feature with its uses", async () => {
   const lines = await openRace(withSylvar());
-  expect(within(lines).getByRole("listitem")).toHaveTextContent("SylvarCustomize");
+  expect(within(lines).getByRole("button", { name: "Customize Sylvar" })).toHaveTextContent("Customize");
   fireEvent.click(within(lines).getByRole("button", { name: "Customize Sylvar" }));
   const dialog = await dialogNamed("Customize Sylvar");
   expect(field(dialog, "Name").value).toBe("Sylvar (Custom)");

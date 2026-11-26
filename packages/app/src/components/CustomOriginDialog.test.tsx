@@ -1,4 +1,4 @@
-// Custom Origin (ORC-138): the entry after the race cards, the guided
+// Custom Origin (ORC-138): the fixed last row of the race list (ORC-348), the guided
 // dialog, the save that replaces the character's race with the copy, and
 // Edit custom origin, which opens the dialog with the earlier picks.
 import "fake-indexeddb/auto";
@@ -14,6 +14,7 @@ import { SYLVAR, TAGGED_RACES, withHillDwarf, withSylvar } from "../engine/test-
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
+import { changeOf, picksIn, section, startCustomOrigin } from "./test-pick.ts";
 import { withSheetPanel } from "./test-sheet-panel.ts";
 
 beforeAll(() => loadEngine());
@@ -29,6 +30,9 @@ function openRace(entity: StrictEntity = fighter20()) {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Race/ }));
 }
 
+/** The section of the race: the list with a detail panel, or the block of the pick. */
+const raceSection = () => section("Race");
+
 const evaluate = () => {
   const { entity, custom } = useCharacter.getState();
   return engine().evaluate(entity!, characterContent(useHomebrew.getState().content, custom));
@@ -41,9 +45,9 @@ const save = (dialog: HTMLElement) => within(dialog).getByRole<HTMLButtonElement
 const closed = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 const baseSelect = (dialog: HTMLElement) => within(dialog).getByRole("combobox", { name: "Base race" });
 
-/** Opens the dialog from the entry, once its first control shows. */
+/** Opens the dialog from the Custom Origin row of the race list, once its first control shows. */
 async function openEntry() {
-  fireEvent.click(screen.getByRole("button", { name: "Custom Origin" }));
+  startCustomOrigin(raceSection());
   const dialog = await screen.findByRole("dialog", { name: "Custom Origin" });
   await within(dialog).findByRole("combobox", { name: "Base race" });
   return dialog;
@@ -85,9 +89,10 @@ async function movedHalfOrc() {
 test("Custom Origin on the SRD Half-Orc with the bonuses moved, a language and a skill swapped: the sheet shows them, and Edit opens the earlier picks", async () => {
   openRace();
   const before = evaluate().built.abilities;
-  // The entry is after the race cards. It opens the dialog and selects nothing.
-  const entry = screen.getByRole("button", { name: "Custom Origin" });
-  expect(entry).toHaveAccessibleDescription("Move the bonuses, languages and proficiencies of a race");
+  // The row is the last of the race list. Its panel says what a custom origin is; its button opens the dialog and selects nothing.
+  fireEvent.click(changeOf(raceSection()));
+  fireEvent.click(within(raceSection()).getByRole("button", { name: "Custom Origin" }));
+  expect(raceSection()).toHaveTextContent("A custom origin is not saved to your homebrew content.");
   const dialog = await openEntry();
   expect(race()).toEqual([
     ["race", ["human"]],
@@ -130,10 +135,10 @@ test("Custom Origin on the SRD Half-Orc with the bonuses moved, a language and a
   expected = withoutOption(expected, ["race", "human", "variant", "standard-human"]);
   expect(useCharacter.getState().entity).toEqual(remapOption(expected, ["race", "human"], "half-orc-custom-origin"));
 
-  // The line under the cards names the copy, and its button opens the guided dialog, not the race form.
-  const lines = screen.getByRole("list", { name: "Customize Race" });
-  expect(within(lines).getByRole("listitem")).toHaveTextContent("Half-Orc (Custom Origin)Edit custom origin");
-  const edit = within(lines).getByRole("button", { name: "Edit custom origin Half-Orc (Custom Origin)" });
+  // The block names the copy, and its button opens the guided dialog, not the race form.
+  expect(picksIn(raceSection())).toEqual(["Half-Orc (Custom Origin)"]);
+  const edit = within(raceSection()).getByRole("button", { name: "Edit custom origin Half-Orc (Custom Origin)" });
+  expect(edit).toHaveTextContent("Edit custom origin");
   await waitFor(() => expect(document.activeElement).toBe(edit));
 
   // The sheet: the Human's +1 to each ability goes; +2 Dexterity and +1 Wisdom come.

@@ -18,30 +18,30 @@ test("a new character becomes a dwarf acolyte fighter 1, and the summary card fo
   await expect(hp).toHaveText("");
   await expect(preview.getByLabel("CON", { exact: true })).toHaveText("13 +1");
 
-  // Race: a dwarf has Con +2 and a speed of 25 ft.
+  // Race: a dwarf has Con +2 and a speed of 25 ft. The pick of the Dwarf picks its one subrace, Hill Dwarf, too (ORC-348).
   await openStep(page, "Race");
   await pickIn(section(page, "Race"), "Dwarf");
   await expect(picksIn(section(page, "Race"))).toHaveText(["Dwarf"]);
-  await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
+  await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Dwarf (Hill Dwarf)");
   await expect(preview.getByLabel("Speed", { exact: true })).toHaveText("25 ft.");
   await expect(preview.getByLabel("CON", { exact: true })).toHaveText("15 +2");
-  // Picking another race replaces it, and the dwarf's subrace opens after it.
+  // Picking another race replaces it, with its one subrace, and asks nothing. No Subrace row opens.
   await pickIn(section(page, "Race"), "Elf");
-  await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Elf");
+  await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Elf (High Elf)");
   await pickIn(section(page, "Race"), "Dwarf");
-  await expect(builder.getByRole("region", { name: /^Subrace/ })).toBeVisible();
-  await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
+  await expect(builder.getByRole("region", { name: /^Subrace/ })).toHaveCount(0);
+  await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Dwarf (Hill Dwarf)");
 
   await stepButton(page, "Background").click();
-  await builder.getByRole("button", { name: "Acolyte", exact: true }).click();
+  await pickIn(section(page, "Background"), "Acolyte");
   await expect(preview.getByLabel("Background", { exact: true })).toHaveText("Acolyte");
   await expect(await openSheetPanel(page)).toContainText("Shelter the Faithful");
   await closeSheetPanel(page);
 
-  // Class: a fighter's hit die is d10, so 10 + Con +2.
+  // Class: a fighter's hit die is d10, so 10 + Con +2, and +1 of the Hill Dwarf.
   await addFirstClass(page, "Fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
-  await expect(hp).toHaveText("12");
+  await expect(hp).toHaveText("13");
   await expect(builder.getByRole("region", { name: /^Fighting Style/ })).toBeVisible();
 
   // The builder links to the sheet, which shows the same character.
@@ -50,7 +50,7 @@ test("a new character becomes a dwarf acolyte fighter 1, and the summary card fo
   // The URL changes before the page does, and the builder has a Class region too.
   await expect(page.getByRole("region", { name: "Builder" })).toHaveCount(0);
   await expect(page.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
-  await expect(page.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
+  await expect(page.getByLabel("Race", { exact: true })).toHaveText("Dwarf (Hill Dwarf)");
   // Edit opens the first step with a mark: the fighting style is still to pick.
   await page.getByRole("link", { name: "Edit" }).click();
   await expect(page).toHaveURL(/\/build\/[0-9a-f-]+$/);
@@ -252,7 +252,8 @@ test("the rail and the headings show the picks left as marks, and a pick changes
 
   await pickIn(section(page, "Race"), "Human");
   await expect(summaryCard(page).getByLabel("Race", { exact: true })).toHaveText("Human");
-  await expect(builder.getByRole("heading", { name: "Race, Done", exact: true })).toBeVisible();
+  // The block of the Human (ORC-348) has the left mark of the step.
+  await expect(builder.getByRole("heading", { name: "Human, 2 left", exact: true })).toBeVisible();
   // The human's subrace and its choices are new picks on the same step.
   await expect(stepButton(page, "Race")).toHaveAccessibleName("Race, 2 picks left");
 
@@ -367,17 +368,17 @@ test("a pick does not move the lines of the summary card, and a long name does n
   // The race and the speed get a value; nothing in the card moves.
   await openStep(page, "Race");
   await pickIn(section(page, "Race"), "Dwarf");
-  await expect(card.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
+  await expect(card.getByLabel("Race", { exact: true })).toHaveText("Dwarf (Hill Dwarf)");
   await expect(card.getByLabel("Speed", { exact: true })).toHaveText("25 ft.");
   expect(await boxes()).toEqual(before);
   await stepButton(page, "Background").click();
-  await builder.getByRole("button", { name: "Acolyte", exact: true }).click();
+  await pickIn(section(page, "Background"), "Acolyte");
   await expect(card.getByLabel("Background", { exact: true })).toHaveText("Acolyte");
   expect(await boxes()).toEqual(before);
 
   // A class gives the class, the level and the hit points; nothing in the card moves.
   await addFirstClass(page, "Fighter");
-  await expect(card.getByLabel("Hit points", { exact: true })).toHaveText("12");
+  await expect(card.getByLabel("Hit points", { exact: true })).toHaveText("13");
   expect(await boxes()).toEqual(before);
 
   // A long name is cut on its one line: the card keeps its size, and its lines their places in it.
@@ -474,7 +475,7 @@ test("a reload mid-edit asks first, then recovers the draft", async ({ page }) =
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Saved");
   await openStep(page, "Race");
   await pickIn(section(page, "Race"), "Dwarf");
-  await expect(race).toHaveText("Dwarf");
+  await expect(race).toHaveText("Dwarf (Hill Dwarf)");
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Unsaved changes");
   await expect.poll(() => draftCount(page)).toBe(1);
 
@@ -488,7 +489,7 @@ test("a reload mid-edit asks first, then recovers the draft", async ({ page }) =
   expect(dialogType).toBe("beforeunload");
   await expect(page.getByText("Unsaved changes from your last visit were recovered.")).toBeVisible();
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Unsaved changes");
-  await expect(race).toHaveText("Dwarf");
+  await expect(race).toHaveText("Dwarf (Hill Dwarf)");
 });
 
 test("Save stores the changes now, and leaving the builder saves them too", async ({ page }) => {
@@ -505,7 +506,7 @@ test("Save stores the changes now, and leaving the builder saves them too", asyn
   // Nothing is pending, so a reload does not ask (Playwright would dismiss the prompt and stay). The reload opens
   // the step of the URL, Name, and the field has the focus again.
   await page.reload();
-  await expect(race).toHaveText("Dwarf");
+  await expect(race).toHaveText("Dwarf (Hill Dwarf)");
   await expect(builder.getByRole("textbox", { name: "Character name" })).toBeFocused();
   await openStep(page, "Race");
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Saved");
@@ -513,7 +514,7 @@ test("Save stores the changes now, and leaving the builder saves them too", asyn
 
   // A move to the list saves at once: the list shows the change before autosave would have run.
   await pickIn(section(page, "Race"), "Elf");
-  await expect(race).toHaveText("Elf");
+  await expect(race).toHaveText("Elf (High Elf)");
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
   // A character with no class shows its race only.
   await expect(page.getByRole("listitem", { name: "Unnamed character" }).locator("p")).toHaveText("Elf", { timeout: 3000 });
@@ -657,7 +658,7 @@ test("fighter-1 built from New character through the steps matches its expected 
   await pickIn(section(page, "Subrace"), "Damaran");
   await pick("Standard Human");
   await openStep(page, "Background");
-  await pick("Acolyte");
+  await pickIn(section(page, "Background"), "Acolyte");
   await addFirstClass(page, "Fighter");
   await expect(preview.getByLabel("Class", { exact: true })).toHaveText("Fighter 1");
   await pick("Defense");

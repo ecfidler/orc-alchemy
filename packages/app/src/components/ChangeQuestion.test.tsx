@@ -51,9 +51,11 @@ const clericSkills: [string[], string][] = [
 
 test("a Cleric with Insight and Religion that takes Acolyte is asked, and Cancel changes nothing", async () => {
   const entity = open("Background", "cleric", clericSkills);
-  const acolyte = within(section("Background")).getByRole("button", { name: "Acolyte" });
-  acolyte.focus();
-  fireEvent.click(acolyte);
+  // The list with a detail panel (ORC-347): a click on the name shows Acolyte, and its Choose button picks it.
+  fireEvent.click(within(section("Background")).getByRole("button", { name: "Acolyte" }));
+  const choose = within(section("Background")).getByRole("button", { name: "Choose Acolyte" });
+  choose.focus();
+  fireEvent.click(choose);
   const dialog = await screen.findByRole("alertdialog", { name: "Change to Acolyte?" });
   expect(within(dialog).getByText("These picks go:")).toBeTruthy();
   expect(questionRows(dialog)).toEqual([["Proficiencies", "Skills: Insight, Religion"]]);
@@ -68,7 +70,7 @@ test("a Cleric with Insight and Religion that takes Acolyte is asked, and Cancel
   await answerConfirmDialog("Cancel");
   expect(current()).toBe(entity);
   // The focus goes back to the control that opened the question.
-  await waitFor(() => expect(document.activeElement).toBe(within(section("Background")).getByRole("button", { name: "Acolyte" })));
+  await waitFor(() => expect(document.activeElement).toBe(within(section("Background")).getByRole("button", { name: "Choose Acolyte" })));
 });
 
 test("after Change, the Cleric skills go before Acolyte comes, and the Cleric picks 2 again", async () => {
@@ -79,6 +81,8 @@ test("after Change, the Cleric skills go before Acolyte comes, and the Cleric pi
   expect(selectionAt("class/cleric/skill-proficiency")).toMatchObject({ selected: [], remaining: 2 });
   // The step that had the picks shows its new count: the 2 Cleric skills, and the 2 languages of Acolyte.
   expect(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: "Proficiencies, 4 picks left" })).toBeTruthy();
+  // The block of Acolyte takes the place of the list, and the focus goes to its Change button.
+  await waitFor(() => expect(document.activeElement).toBe(within(section("Background")).getByRole("button", { name: "Change Background" })));
 });
 
 test("a different race for a Half-Elf with its picks made: Replace Half-Elf with Dwarf?, with the picks of each step", async () => {
@@ -102,7 +106,7 @@ test("a change that removes no pick asks nothing", async () => {
   expect(screen.queryByRole("alertdialog")).toBeNull();
 });
 
-test("after the list of the race closes on a pick, Cancel of the question gives the focus back to the Change button", async () => {
+test("after a pick in the list of the race, Cancel of the question keeps the list, with the focus on the Choose button", async () => {
   const entity = open("Race", "fighter", [
     [["race"], "half-elf"],
     [["race", "half-elf", "skill-proficiency"], "perception"],
@@ -110,7 +114,8 @@ test("after the list of the race closes on a pick, Cancel of the question gives 
   await pickIn(section("Race"), "Dwarf");
   await answerConfirmDialog("Cancel");
   expect(current()).toBe(entity);
-  await waitFor(() => expect(document.activeElement).toBe(within(section("Race")).getByRole("button", { name: "Change Race" })));
+  // The list with a detail panel stays open (ORC-348): the Choose button of the panel has the focus.
+  await waitFor(() => expect(document.activeElement).toBe(within(section("Race")).getByRole("button", { name: "Choose Dwarf" })));
 });
 
 const halfElfSkill: [string[], string] = [["race", "half-elf", "skill-proficiency"], "perception"];

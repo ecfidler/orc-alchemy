@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T10:42:53Z }
+generated: { by: claude-code/agent, at: 2026-11-26T12:38:24Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -254,6 +254,16 @@ homebrew forms. They have no game words: the app gives the lists.
   has the lock icon and a dimmed `--ink-muted` name, and the reason in
   12.5px muted Inter at its right, in the place of the mark. It keeps
   the focus and the arrow keys, and a click picks nothing.
+* **ListPanel:** a list with a detail panel (ORC-347), for the main pick
+  of the Background and Race steps. The list is 250px wide at the left,
+  the panel is at the right, and the two have one fixed height of 440px.
+  A row has a 16px place for the check of the picked row or the lock,
+  the name in 14px Inter, and a short aside in 11px muted Inter at its
+  right, for example the pack. The current row has the ink fill of a
+  ListModal row. The panel content scrolls, and its action row stays at
+  the bottom on a `--rule-strong` line. Both parts are `--paper-raised`
+  with a `--rule-strong` border. A part narrower than 560px has the list
+  at the full width, 400px high, and the detail opens in a Dialog.
 * **Dialog:** a modal for a form or other content, added for Customize
   (ORC-134). It has a title, a body that scrolls, and a footer. The footer
   shows Cancel, then the owner's actions, for example a solid Save. It is
@@ -270,7 +280,9 @@ homebrew forms. They have no game words: the app gives the lists.
   the Spells panel (ORC-270). The owner can then give its own header in
   place of the title row; the title still names the dialog for a screen
   reader. The footer is optional. A wide Dialog with no footer closes
-  with an X in its header, 44px at 600px and less (ORC-284). When it
+  with an X in its header, 44px at 600px and less (ORC-284). A Dialog of
+  another size can have no footer too, for content to read, such as the
+  About modal of the builder (ORC-347). When it
   opens, the focus goes to the first control of the body if there is
   one, else to the X. The owner can also set the control that gets the
   focus when it opens. With `fill`, a wide Dialog is the height of the
@@ -411,7 +423,7 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | Icon | Use |
 | --- | --- |
 | `pencil` | A control that opens the builder, a Customize dialog, or a homebrew form: a place where content changes. |
-| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. Also the mark of the Inspiration box, until inspiration has an icon of its own (ORC-324), and the "Done" left mark of a builder selection (ORC-340). |
+| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. Also the mark of the Inspiration box, until inspiration has an icon of its own (ORC-324), and the "Done" left mark of a builder selection (ORC-340). In a list with a detail panel, the mark of the picked row, the mark before "The {noun} of this character" in the panel of the picked option, and the button "Choose {name}" of the panel, which picks and closes the list (ORC-347). |
 | `x` | A control that closes and does not keep the changes: Cancel. |
 | `sparkles` | A control for spellcasting: All spells, Prepare spells, and the Cast button of a spell (ORC-320). |
 | `external` | A link that opens a page of another site: Send feedback. |

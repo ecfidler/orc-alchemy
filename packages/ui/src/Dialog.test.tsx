@@ -358,3 +358,28 @@ test("the types: a wide dialog with no footer takes no actions, and a normal dia
   // @ts-expect-error: fill only with the wide size.
   void (<Dialog open={false} onOpenChange={close} title="T" fill children={null} />);
 });
+
+test("a normal dialog with no footer has an X named Close and no Cancel, and the X closes it", async () => {
+  function Read() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button onClick={() => setOpen(true)}>Open</button>
+        <Dialog open={open} onOpenChange={setOpen} title="Read" footer={false}>
+          <p>Some text</p>
+        </Dialog>
+      </>
+    );
+  }
+  render(<Read />);
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  const dialog = await screen.findByRole("dialog", { name: "Read" });
+  expect(within(dialog).queryByRole("button", { name: "Cancel" })).toBeNull();
+  const x = within(dialog).getByRole("button", { name: "Close" });
+  await waitFor(() => expect(document.activeElement).toBe(x));
+  fireEvent.click(x);
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  const close = () => {};
+  // @ts-expect-error: no footer, so no actions.
+  void (<Dialog open={false} onOpenChange={close} title="T" footer={false} actions={<button>Save</button>} children={null} />);
+});

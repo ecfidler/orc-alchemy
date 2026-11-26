@@ -11,6 +11,7 @@
 import type { ContentItem } from "@pubdoor/dmv";
 import { useEffect, useMemo, useState } from "react";
 import { classDisplayName, disabledInFile, itemsAt, tag, untag } from "./content.ts";
+import { srdList } from "./srd-lists.ts";
 
 export interface Choice {
   key: string;
@@ -55,23 +56,18 @@ interface Srd {
 
 let loading: Promise<Srd> | undefined;
 
-/** Loads the SRD lists once, as their own chunks. */
+/** The SRD lists that the choices read (srdList), once they load. */
 function loadSrd(): Promise<Srd> {
-  const list = (mod: { default: unknown }) => mod.default as ContentItem[];
   const choice = ({ key, name }: ContentItem): Choice => ({ key, name });
-  loading ??= Promise.all([
-    import("@pubdoor/dmv/content/races.json").then(list),
-    import("@pubdoor/dmv/content/classes.json").then(list),
-    import("@pubdoor/dmv/content/languages.json").then(list),
-    import("@pubdoor/dmv/content/weapons.json").then(list),
-    import("@pubdoor/dmv/content/spells.json").then(list),
-  ]).then(([races, classes, languages, weapons, spells]) => ({
-    races,
-    classes: classes.map(choice),
-    languages: languages.map(choice),
-    weapons: weapons.map(choice),
-    spells: spells.map((s) => ({ key: s.key, name: s.name, level: Number(s.level) })),
-  }));
+  loading ??= Promise.all([srdList("races"), srdList("classes"), srdList("languages"), srdList("weapons"), srdList("spells")]).then(
+    ([races, classes, languages, weapons, spells]) => ({
+      races,
+      classes: classes.map(choice),
+      languages: languages.map(choice),
+      weapons: weapons.map(choice),
+      spells: spells.map((s) => ({ key: s.key, name: s.name, level: Number(s.level) })),
+    }),
+  );
   return loading;
 }
 

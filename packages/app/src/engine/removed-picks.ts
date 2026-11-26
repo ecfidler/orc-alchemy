@@ -7,6 +7,7 @@
 
 import { type BuilderSelection, type BuilderStep, builderSteps, levelOfKey, STEP_NAMES, type StepName, templateShape, treeNodes } from "./builder.ts";
 import type { Content, Engine, StrictEntity } from "./engine.ts";
+import { isSoleSubracePick, withSoleSubrace } from "./race-step.ts";
 import { withoutOption } from "./reconcile.ts";
 import { proficiencyKind } from "./selection-control.ts";
 import { classesOf, keyOf, optionsOf, rootOf, type StrictNode, selectionsOf } from "./strict.ts";
@@ -111,8 +112,9 @@ const isInventory = (node: BuilderSelection) => node.actualPath.length === 1 && 
 /** The engine's change, with no pick removed first. */
 function mutate(e: Engine, entity: StrictEntity, content: Content, change: PickChange): StrictEntity {
   switch (change.kind) {
+    // The pick of a race with one subrace picks the subrace too (ORC-348).
     case "pick":
-      return e.select(entity, change.path, change.to, content) as StrictEntity;
+      return withSoleSubrace(e, e.select(entity, change.path, change.to, content) as StrictEntity, change.path, change.to, content);
     case "replace-class":
       return e.setClass(entity, classesOf(entity).indexOf(change.from), change.to, content) as StrictEntity;
     case "remove-class":
@@ -236,9 +238,10 @@ export function planChange(input: ChangeInput, change: PickChange): ChangePlan {
   // The option that the change takes away, which the question names in its title.
   const old = change.kind === "pick" ? nodes.get(pathKey(change.path))?.selected[0] : change.kind === "replace-class" ? change.from : change.classKey;
   const target = change.kind === "pick" ? (old === undefined ? null : [...change.path, old]) : ["class", old!];
+  // The one subrace of a race is part of the race, not a pick of the player (ORC-348).
   const counts = (path: string[]) => {
     const node = nodes.get(pathKey(path.slice(0, -1)));
-    return node !== undefined && !isInventory(node) && node.key !== "levels" && node.key !== "hit-points";
+    return node !== undefined && !isInventory(node) && node.key !== "levels" && node.key !== "hit-points" && !isSoleSubracePick(path, content);
   };
 
   // The picks of a skill, a tool or a language, and the fixed ones that the change gives.

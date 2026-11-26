@@ -3,6 +3,7 @@ import { Input } from "@base-ui/react/input";
 import { type KeyboardEvent, type RefObject, useId, useRef, useState } from "react";
 import { LockIcon, PixelIcon } from "./Icon.tsx";
 import { ListRow } from "./ListRow.tsx";
+import { ListNone, moveInList } from "./list-keys.tsx";
 import { useRefocus } from "./refocus.ts";
 
 /** One row of a ListModal or one option of a Picker. */
@@ -145,18 +146,7 @@ function ListBody<T>({
     onPick(value);
     if (!props.stayOpen) onOpenChange(false);
   };
-  const onKeyDown = (event: KeyboardEvent) => {
-    const rows = [...(popup.current?.querySelectorAll<HTMLElement>(ROW) ?? [])];
-    const target = event.target as HTMLElement;
-    const at = rows.indexOf(target);
-    const fromSearch = target.classList.contains("ui-list-search") && event.key === "ArrowDown";
-    if (rows.length === 0 || (at < 0 && !fromSearch)) return;
-    const next = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: rows.length - 1 }[event.key];
-    if (next === undefined) return;
-    event.preventDefault();
-    if (next < 0) popup.current?.querySelector<HTMLElement>(".ui-list-search")?.focus();
-    else rows[Math.min(next, rows.length - 1)]!.focus();
-  };
+  const onKeyDown = (event: KeyboardEvent) => moveInList(event, popup.current, ROW, "ui-list-search");
   let row = 0;
   // Stable keys, so a picked row's button unmounts and the focus moves on to the next row. A run's key counts the earlier runs of its group, and a row's key counts the earlier rows with its group and label.
   const seen = new Map<string, number>();
@@ -181,7 +171,7 @@ function ListBody<T>({
         </div>
       )}
       <div className="ui-list-body" onKeyDown={onKeyDown} onClickCapture={(e) => refocus(e.target)}>
-        {runs.length === 0 && <p className="ui-list-none">{items.length > 0 ? "Nothing matches. Try another word." : emptyText}</p>}
+        {runs.length === 0 && <ListNone hasItems={items.length > 0} emptyText={emptyText} />}
         {runs.map((run, r) => {
           const headingId = `${id}-g${r}`;
           const group = run.group ?? "";

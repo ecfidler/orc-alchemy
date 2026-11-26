@@ -122,7 +122,8 @@ test("a selection heading has its left mark, and a pick changes it", async () =>
   open("Race");
   expect(within(section("Race")).getAllByRole("heading")[0].textContent).toBe("Race,1 left");
   await pickIn(section("Race"), "Human");
-  expect(within(section("Race")).getAllByRole("heading")[0].textContent).toBe("Race,Done");
+  // The block of the race (ORC-348) has the left mark of the step: the subrace and the variant of the Human are left.
+  expect(within(section("Race")).getAllByRole("heading")[0].textContent).toBe("Human,2 left");
 });
 
 test("a part in the builder's status toast shows a text in it; outside it the function does nothing", () => {
@@ -179,7 +180,8 @@ test("the summary card has the same lines on each step, with the values of the c
   fireEvent.click(rail().getByRole("button", { name: /^Race/ }));
   expect(cardLines()).toEqual(before);
   await pickIn(section("Race"), "Dwarf");
-  expect(cardLines()).toMatchObject({ Race: "Dwarf", Speed: "25 ft.", "Hit points": "14", CON: "15 +2" });
+  // The pick of the Dwarf picks its one subrace, Hill Dwarf, too (ORC-348): +1 hit point for each level.
+  expect(cardLines()).toMatchObject({ Race: "Dwarf (Hill Dwarf)", Speed: "25 ft.", "Hit points": "15", CON: "15 +2" });
 });
 
 test("a character with no class and no race shows in the card and in the full sheet panel with no error", async () => {
