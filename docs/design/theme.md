@@ -250,7 +250,10 @@ homebrew forms. They have no game words: the app gives the lists.
   with a group show under a small heading; the modifier list gives no
   groups. The owner sets `open`, so a caller can open and close it itself,
   for example for one slot of a table. Its backdrop is a 40% ink wash, as
-  in the prototypes.
+  in the prototypes. A row that cannot be picked is locked (ORC-343): it
+  has the lock icon and a dimmed `--ink-muted` name, and the reason in
+  12.5px muted Inter at its right, in the place of the mark. It keeps
+  the focus and the arrow keys, and a click picks nothing.
 * **Dialog:** a modal for a form or other content, added for Customize
   (ORC-134). It has a title, a body that scrolls, and a footer. The footer
   shows Cancel, then the owner's actions, for example a solid Save. It is
@@ -305,7 +308,10 @@ homebrew forms. They have no game words: the app gives the lists.
   muted, cut with "…", and on a second line that wraps in a button that is
   narrower than 520px.
 * **Picker:** Tokens, in the order of the options, then an AddButton that
-  opens a ListModal with `stayOpen`.
+  opens a ListModal with `stayOpen`. A locked option is a locked row and
+  is not in the count. The app can reserve a number of token lines (28px
+  each, 6px apart): the token line then keeps that height before the
+  first pick, so a pick does not move the add button (ORC-343).
 * **SegmentedToggle:** a segmented toggle for a short list of words, for
   example None / Fixed / Scaled, on ToggleGroup. The options are a prop.
 * **NumberToggle:** a SegmentedToggle of numbers, for example

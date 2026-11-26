@@ -12,6 +12,7 @@ import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { newCharacter } from "../engine/new-character.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder, BuilderStatusToast, useBuilderStatus } from "./Builder.tsx";
+import { pickIn, section } from "./test-pick.ts";
 import { closeSheetPanel, openSheetPanel, summaryCard } from "./test-sheet-panel.ts";
 
 beforeAll(() => loadEngine());
@@ -116,12 +117,11 @@ test("a step with nothing to pick is dimmed in the rail, still opens, and shows 
   expect(builder().queryByRole("group", { name: "Feats" })).toBeNull();
 });
 
-test("a selection heading has its left mark, and a pick changes it", () => {
+test("a selection heading has its left mark, and a pick changes it", async () => {
   open("Race");
-  const race = builder().getByRole("region", { name: /^Race/ });
-  expect(within(race).getAllByRole("heading")[0].textContent).toBe("Race,1 left");
-  fireEvent.click(within(race).getByRole("button", { name: "Human" }));
-  expect(within(builder().getByRole("region", { name: /^Race/ })).getAllByRole("heading")[0].textContent).toBe("Race,Done");
+  expect(within(section("Race")).getAllByRole("heading")[0].textContent).toBe("Race,1 left");
+  await pickIn(section("Race"), "Human");
+  expect(within(section("Race")).getAllByRole("heading")[0].textContent).toBe("Race,Done");
 });
 
 test("a part in the builder's status toast shows a text in it; outside it the function does nothing", () => {
@@ -149,7 +149,7 @@ test("the builder page has the status toast", () => {
   expect(document.querySelector("[data-toast-status]")).toBeTruthy();
 });
 
-test("the summary card has the same lines on each step, with the values of the character", () => {
+test("the summary card has the same lines on each step, with the values of the character", async () => {
   open("Class");
   const before = cardLines();
   // emptyCharacter is a level 1 barbarian with no race and no background, and the standard scores.
@@ -177,7 +177,7 @@ test("the summary card has the same lines on each step, with the values of the c
   ).toEqual(["Open the full sheet"]);
   fireEvent.click(rail().getByRole("button", { name: /^Race/ }));
   expect(cardLines()).toEqual(before);
-  fireEvent.click(builder().getByRole("button", { name: "Dwarf" }));
+  await pickIn(section("Race"), "Dwarf");
   expect(cardLines()).toMatchObject({ Race: "Dwarf", Speed: "25 ft.", "Hit points": "14", CON: "15 +2" });
 });
 

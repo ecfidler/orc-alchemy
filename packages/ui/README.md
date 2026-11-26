@@ -67,7 +67,8 @@ bun run test       # vitest
     `aria-current` it has the ink fill, paper text and a paper focus ring,
     as a current ghost button is solid. The rows of `ListModal` are
     ListRows. It gives a ref. `className` is for layout and spacing, for
-    example the padding. Styles: `src/picker.css`.
+    example the padding. With `disabled` and `focusableWhenDisabled`, the
+    row keeps the focus and a click does nothing. Styles: `src/picker.css`.
   - `Toggle`: Base UI Toggle, a button that is on or off. It has the
     ghost button look and is solid while it is pressed. On its own it
     takes `pressed` and `onPressedChange`. It takes `className` as
@@ -270,7 +271,10 @@ bun run test       # vitest
     `items` that scrolls. Each item is `{ value, label, example?, group? }`.
     Each row is a button named by its `label` and described by its
     `example`, with a mark: "Add", or the text of `mark`, for example
-    "Choose". The owner sets `open` and gets
+    "Choose". An item with `unavailable` (a reason text) is a locked row:
+    the lock icon, a dimmed name and the reason small at the right in the
+    place of the mark. It is disabled but keeps the focus, the reason
+    describes its button, and a click picks nothing. The owner sets `open` and gets
     `onOpenChange`. The X, Escape and a click outside close it. At 600px
     and less it fills the screen. By default a pick calls `onPick` and
     closes the modal. With `stayOpen`, it stays open: the caller takes the
@@ -327,7 +331,11 @@ bun run test       # vitest
     items). The picks show as Tokens in the order of `options`, then an
     AddButton opens a ListModal with `stayOpen`, and `search` and
     `pickedText` when the app gives them. `onValueChange` gets the new
-    list: a pick goes at the end, and a value that is no option stays.
+    list: a pick goes at the end, and a value that is no option stays. An
+    option with `unavailable` is a locked row, and it is not in the count
+    of the add button. `reserve` is a number of token lines (28px each)
+    that the token line keeps, also with no pick, so a pick does not move
+    the add button or what is below it.
   - `SegmentedToggle`: a segmented toggle on ToggleGroup for one of
     `options` (`[value, label]` pairs), for example None / Fixed / Scaled.
     A `value` that is no option presses no segment. `size="small"` fits in

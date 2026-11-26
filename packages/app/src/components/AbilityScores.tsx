@@ -1,7 +1,7 @@
 // The Abilities step (ORC-57): the base scores, set by one of the old
 // builder's four methods, and the increases the engine adds, read-only.
 import { Button, NumberField, Toggle, ToggleGroup } from "@orc-alchemy/ui";
-import { type ReactNode, useId, useMemo, useState } from "react";
+import { type ReactNode, useId, useMemo } from "react";
 import {
   abilityRows,
   baseScores,
@@ -21,6 +21,7 @@ import {
 import type { BuilderSelection } from "../engine/builder.ts";
 import { ABILITIES, type Ability, bonusStr } from "../engine/sheet.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
+import { useBuilderStatus } from "./builder-context.tsx";
 import { Heading } from "./Classes.tsx";
 
 const abbr = (ability: Ability) => ability.toUpperCase();
@@ -29,16 +30,16 @@ const abbr = (ability: Ability) => ability.toUpperCase();
 export function AbilityScores({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { entity, built, selections, content } = useOpenCharacter();
-  const [error, setError] = useState<string | null>(null);
+  // A refusal of the engine shows in the status toast (ORC-343).
+  const say = useBuilderStatus();
   const { method, scores } = useMemo(() => baseScores(entity!), [entity]);
   const rows = useMemo(() => abilityRows(built!, selections!), [built, selections]);
 
   function write(to: Method, next: Scores) {
-    setError(null);
     try {
       useCharacter.getState().update((e) => setBaseScores(e, to, next, content));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      say(e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -102,7 +103,6 @@ export function AbilityScores({ selection }: { selection: BuilderSelection }) {
   return (
     <section aria-labelledby={id} className="space-y-2">
       <Heading id={id} selection={selection} />
-      {error && <p role="alert">{error}</p>}
       <ToggleGroup aria-label={selection.name} value={method ? [method] : []} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {selection.options.map((option) => (
           <Toggle key={option.key} value={option.key} onPressedChange={() => pick(option.key as Method)} className="h-full w-full p-2 text-left">

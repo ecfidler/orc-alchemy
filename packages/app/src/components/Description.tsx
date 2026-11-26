@@ -12,11 +12,10 @@ const FIELDS = DESCRIPTION_FIELDS.filter((field) => field.key !== NAME_KEY);
 
 export function Description() {
   const { entity } = useOpenCharacter();
-  const [error, run] = useMutation();
+  const [, run] = useMutation();
   if (!entity) return null;
   return (
     <div className="space-y-3">
-      {error && <p role="alert">{error}</p>}
       {FIELDS.map((field) => (
         <TextField
           key={field.key}

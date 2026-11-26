@@ -1,5 +1,5 @@
 import { Button as BaseButton } from "@base-ui/react/button";
-import { forwardRef, useId, useRef, useState } from "react";
+import { type CSSProperties, forwardRef, useId, useRef, useState } from "react";
 import { PixelIcon } from "./Icon.tsx";
 import { type ListItem, ListModal } from "./ListModal.tsx";
 import { Token, Tokens } from "./Token.tsx";
@@ -79,6 +79,13 @@ export type PickerProps<T> = {
   search?: boolean;
   /** The modal's footer text for the number of picks, as on ListModal. By default it is "3 picked". */
   pickedText?: (picked: number) => string;
+  /**
+   * The number of token lines that the picker keeps a place for, also with
+   * no pick, so that a pick does not move the add button or what is below
+   * the picker. A token line is 28px high. More tokens than fit still wrap
+   * to a new line.
+   */
+  reserve?: number;
   /** Layout classes. */
   className?: string;
 };
@@ -87,25 +94,39 @@ export type PickerProps<T> = {
  * Some values from a long list: the picks as Tokens, in the order of
  * `options` (not of the clicks), then an AddButton with the number of
  * options that remain. The button opens a ListModal that stays open; a
- * picked option leaves its list. Values are compared with `Object.is`.
+ * picked option leaves its list. An option with `unavailable` is a locked
+ * row, and it is not in the count. With `reserve`, the token line keeps its
+ * height before the first pick. Values are compared with `Object.is`.
  * For other uses, such as one slot that a caller fills, use ListModal and
  * Token directly.
  */
-export function Picker<T>({ label, title, options, value, onValueChange, search, pickedText, className }: PickerProps<T>) {
+export function Picker<T>({ label, title, options, value, onValueChange, search, pickedText, reserve, className }: PickerProps<T>) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const has = (v: T) => value.some((picked) => Object.is(picked, v));
   // Each token keeps the place of its option in `options` as its key, so the X of a removed token unmounts.
   const picked = options.map((option, at) => ({ option, at })).filter(({ option }) => has(option.value));
   const left = options.filter((option) => !has(option.value));
+  const lines = reserve !== undefined && reserve > 0 ? reserve : undefined;
   return (
-    <div className={className ? `ui-picker ${className}` : "ui-picker"}>
+    <div
+      className={className ? `ui-picker ${className}` : "ui-picker"}
+      data-reserve={lines === undefined ? undefined : ""}
+      style={lines === undefined ? undefined : ({ "--token-lines": lines } as CSSProperties)}
+    >
       <Tokens>
         {picked.map(({ option, at }) => (
           <Token key={at} label={option.label} onRemove={() => onValueChange(value.filter((v) => !Object.is(v, option.value)))} />
         ))}
       </Tokens>
-      <AddButton ref={button} label={label} remaining={left.length} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)} />
+      <AddButton
+        ref={button}
+        label={label}
+        remaining={left.filter((option) => option.unavailable === undefined).length}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+      />
       <ListModal
         open={open}
         onOpenChange={setOpen}

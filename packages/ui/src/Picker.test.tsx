@@ -122,3 +122,19 @@ test("the picker passes pickedText to its modal", async () => {
   fireEvent.click(addButton());
   expect(within(await screen.findByRole("dialog")).getByRole("status").textContent).toBe("1 on the form");
 });
+
+test("a locked option is a locked row and is not in the count; reserve keeps the place of the token line before a pick", async () => {
+  const options = [...FRUIT.slice(0, 3), { value: "quince", label: "Quince", unavailable: "Out of season." }];
+  render(<Picker label="Add a fruit" options={options} value={[]} onValueChange={() => {}} reserve={2} />);
+  expect(document.getElementById(addButton().getAttribute("aria-describedby")!)?.textContent).toBe("3 more");
+  const picker = document.querySelector<HTMLElement>(".ui-picker")!;
+  expect([picker.dataset.reserve, picker.style.getPropertyValue("--token-lines")]).toEqual(["", "2"]);
+  fireEvent.click(addButton());
+  const dialog = await screen.findByRole("dialog");
+  expect(within(dialog).getByRole("button", { name: "Quince" }).getAttribute("aria-disabled")).toBe("true");
+});
+
+test("a picker with no reserve has no reserved place", () => {
+  render(<Fruit />);
+  expect(document.querySelector<HTMLElement>(".ui-picker")!.hasAttribute("data-reserve")).toBe(false);
+});

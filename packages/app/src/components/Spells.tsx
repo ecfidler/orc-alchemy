@@ -10,9 +10,10 @@ import { prepareCounts, prepareSpells } from "../engine/spell-prepare.ts";
 import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
-import { OptionCards, Selection } from "./Builder.tsx";
+import { Selection } from "./Builder.tsx";
 import { HEADING_CLASSES, Heading, useMutation } from "./Classes.tsx";
 import { PrepareCountText } from "./PrepareCount.tsx";
+import { OptionCards } from "./SelectionControl.tsx";
 
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
 
@@ -91,7 +92,7 @@ export function SpellSelection({ selection }: { selection: BuilderSelection }) {
 export function PreparedSpells() {
   const { sheet } = useOpenCharacter();
   const lookup = useSpellLookup();
-  const [error, run] = useMutation();
+  const [, run] = useMutation();
   const spellcasting = sheet?.spellcasting;
   if (!spellcasting) return null;
   // As the old known-mode-info: those classes know their whole spell list.
@@ -105,7 +106,6 @@ export function PreparedSpells() {
           Except for cantrips, {listPrint(knowAll)} do not need to select known spells since they can prepare any spell available in their class spell lists.
         </p>
       )}
-      {error && <p role="alert">{error}</p>}
       {prepareCounts(spellcasting, sheet.classes).map((count) => {
         const name = count.className;
         return (

@@ -76,9 +76,11 @@ test("the half-elf's improvement takes two different abilities, and shows the en
   expect(asi.getByRole("button", { name: "Increase CHA" }).hasAttribute("disabled")).toBe(true);
   fireEvent.click(asi.getByRole("button", { name: "Increase STR" }));
   fireEvent.click(asi.getByRole("button", { name: "Increase STR" }));
-  expect(asi.getByRole("alert").textContent).toMatch(/different abilities/);
-  fireEvent.click(asi.getByRole("button", { name: "Increase DEX" }));
+  // The refusal shows in the status toast, a polite live region, and not in the section.
+  const toast = document.querySelector<HTMLElement>("[data-toast-status]")!;
+  expect([toast.getAttribute("role"), toast.textContent]).toEqual(["status", expect.stringMatching(/different abilities/)]);
   expect(asi.queryByRole("alert")).toBeNull();
+  fireEvent.click(asi.getByRole("button", { name: "Increase DEX" }));
   expect(asi.getByRole("button", { name: "Increase INT" }).hasAttribute("disabled")).toBe(true);
   fireEvent.click(asi.getByRole("button", { name: "Decrease STR" }));
   expect(asi.getByRole("button", { name: "Decrease STR" }).hasAttribute("disabled")).toBe(true);

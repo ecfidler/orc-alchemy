@@ -13,6 +13,8 @@ export interface BuilderOption {
   key: string;
   name: string;
   selected: boolean;
+  /** How many prerequisites the template gives the option (TemplateOption prereqs); 0 for none. */
+  prereqs: number;
   /** The selections this option opens, when it is selected. */
   selections: BuilderSelection[];
 }
@@ -164,7 +166,7 @@ export function builderSteps(selections: AvailableSelection[], shape: TemplateSe
     if (template === undefined) continue;
     const tags = template.tags ?? [];
     const options = template.options.map((o) => {
-      const option: BuilderOption = { key: o.key, name: o.name, selected: s.selected.includes(o.key), selections: [] };
+      const option: BuilderOption = { key: o.key, name: o.name, selected: s.selected.includes(o.key), prereqs: o.prereqs ?? 0, selections: [] };
       orders.set(option, o.order);
       return option;
     });

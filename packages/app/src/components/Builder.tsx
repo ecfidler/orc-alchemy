@@ -1,20 +1,23 @@
-// The builder (ORC-55): the open character's selections as steps of option
-// cards. Each pick is an engine mutation through useCharacter's update, so it
+// The builder (ORC-55): the open character's selections as steps, each selection
+// with the control of its rule (ORC-343). Each pick is an engine mutation through useCharacter's update, so it
 // autosaves. The step rail, the step title, Back and Next, and the left marks
 // are ORC-340 (docs/design/character-builder.md, "The step rail"). The summary
 // card beside the step and the full sheet panel are ORC-341 ("The summary card").
-import { Button, ButtonLink, SidePanel, StepRail, Toast, Toggle, ToggleGroup } from "@orc-alchemy/ui";
-import { createContext, type ReactElement, type ReactNode, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
-import { type BuilderOption, type BuilderSelection, openingStep, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
+import { Button, ButtonLink, SidePanel, StepRail } from "@orc-alchemy/ui";
+import { type ReactElement, useEffect, useId, useMemo, useRef, useState } from "react";
+import { type BuilderSelection, openingStep, remainingByStep, type StepName, useBuilderSteps } from "../engine/builder.ts";
+import { pickSources, sectionNames, topSources } from "../engine/selection-control.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityScores } from "./AbilityScores.tsx";
+import { BuilderStatusToast, StepFrameContext } from "./builder-context.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
-import { Classes, Heading, HitPoints, Improvements, useMutation } from "./Classes.tsx";
+import { Classes, Heading, HitPoints, Improvements } from "./Classes.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
 import { NameStep } from "./NameStep.tsx";
+import { SelectionControl } from "./SelectionControl.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 import { SummaryCard } from "./SummaryCard.tsx";
 
@@ -33,14 +36,7 @@ const EMPTY_LINE: Partial<Record<StepName, string>> = {
   Equipment: "This character has no equipment to pick.",
 };
 
-/**
- * Shows a text in the status toast of the builder page (spec, "No layout shift"): a text that comes and goes, for
- * example the result of an action. Each call shows the text again, also the same text. "" hides it.
- */
-const BuilderStatus = createContext<(text: string) => void>(() => {});
-
-/** The function that shows a text in the status toast of the builder. Outside the builder it does nothing. */
-export const useBuilderStatus = () => useContext(BuilderStatus);
+export { BuilderStatusToast, useBuilderStatus } from "./builder-context.tsx";
 
 /**
  * `step`: the name of the step that shows first, for example `SPELLS_STEP`. Without it, the first step with picks to
@@ -65,6 +61,11 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
   );
   const step = steps[index];
   const counts = remainingByStep(steps);
+  // The heading names of the open step's sections, and where the character's picks come from (ORC-343).
+  const tops = useMemo(() => topSources(steps), [steps]);
+  const picks = useMemo(() => pickSources(steps), [steps]);
+  const names = useMemo(() => sectionNames(step?.selections ?? []), [step]);
+  const frame = useMemo(() => ({ names, tops, picks }), [names, tops, picks]);
   const rail = steps.map((s, i) => ({ value: s.name, label: s.name, left: counts[i].toDo, over: counts[i].tooMany, dimmed: s.empty }));
 
   // After Next or Back, the focus goes to the step title (spec, "Keyboard and screen reader").
@@ -95,54 +96,56 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
         {/* The step at the left, and the summary card at the right. Under 720px the card does not show. */}
         <div className="grid items-start gap-7 min-[720px]:grid-cols-[minmax(0,1fr)_250px]">
           <section aria-label="Builder" className="min-w-0 space-y-4">
-            {step && (
-              <>
-                <div className="flex items-baseline justify-between gap-3 border-b border-rule-strong pb-1.5">
-                  <h2 ref={title} tabIndex={-1} className="text-[26px] leading-tight font-semibold">
-                    {step.name}
-                  </h2>
-                  <span className="font-sans text-[12.5px] whitespace-nowrap text-ink-muted">
-                    Step {index + 1} of {steps.length}
-                  </span>
-                </div>
-                {step.empty && <p className="font-sans text-[13.5px] text-ink-muted">{EMPTY_LINE[step.name]}</p>}
-                {!step.empty &&
-                  step.selections.map((selection) => {
-                    // A class and a background can have starting equipment with the same key.
-                    const key = JSON.stringify(selection.actualPath);
-                    if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
-                    if (isList(selection)) return <Inventory key={key} selection={selection} />;
-                    if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
-                    return <Selection key={key} selection={selection} />;
-                  })}
-                {step.name === "Name" && <NameStep autoFocus={focusName.current} onEnter={() => go("Class")} />}
-                {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
-                {step.name === SPELLS_STEP && <PreparedSpells />}
-                {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
-                {step.name === "Description" && <Description />}
-                {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 720px the Sheet button is
+            <StepFrameContext.Provider value={frame}>
+              {step && (
+                <>
+                  <div className="flex items-baseline justify-between gap-3 border-b border-rule-strong pb-1.5">
+                    <h2 ref={title} tabIndex={-1} className="text-[26px] leading-tight font-semibold">
+                      {step.name}
+                    </h2>
+                    <span className="font-sans text-[12.5px] whitespace-nowrap text-ink-muted">
+                      Step {index + 1} of {steps.length}
+                    </span>
+                  </div>
+                  {step.empty && <p className="font-sans text-[13.5px] text-ink-muted">{EMPTY_LINE[step.name]}</p>}
+                  {!step.empty &&
+                    step.selections.map((selection) => {
+                      // A class and a background can have starting equipment with the same key.
+                      const key = JSON.stringify(selection.actualPath);
+                      if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
+                      if (isList(selection)) return <Inventory key={key} selection={selection} />;
+                      if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
+                      return <Selection key={key} selection={selection} />;
+                    })}
+                  {step.name === "Name" && <NameStep autoFocus={focusName.current} onEnter={() => go("Class")} />}
+                  {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
+                  {step.name === SPELLS_STEP && <PreparedSpells />}
+                  {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
+                  {step.name === "Description" && <Description />}
+                  {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 720px the Sheet button is
                   between them. */}
-                <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
-                  {back ? <Button onClick={() => go(back.name)}>Back</Button> : <span />}
-                  {sheet && (
-                    <Button className="min-[720px]:hidden" onClick={() => setSheetOpen(true)}>
-                      Sheet
-                    </Button>
-                  )}
-                  {next ? (
-                    <Button variant="solid" onClick={() => go(next.name)}>
-                      Next: {next.name}
-                    </Button>
-                  ) : (
-                    sheetLink && (
-                      <ButtonLink variant="solid" render={sheetLink}>
-                        Go to the sheet
-                      </ButtonLink>
-                    )
-                  )}
-                </div>
-              </>
-            )}
+                  <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
+                    {back ? <Button onClick={() => go(back.name)}>Back</Button> : <span />}
+                    {sheet && (
+                      <Button className="min-[720px]:hidden" onClick={() => setSheetOpen(true)}>
+                        Sheet
+                      </Button>
+                    )}
+                    {next ? (
+                      <Button variant="solid" onClick={() => go(next.name)}>
+                        Next: {next.name}
+                      </Button>
+                    ) : (
+                      sheetLink && (
+                        <ButtonLink variant="solid" render={sheetLink}>
+                          Go to the sheet
+                        </ButtonLink>
+                      )
+                    )}
+                  </div>
+                </>
+              )}
+            </StepFrameContext.Provider>
           </section>
           <div className="sticky top-4 max-[720px]:hidden">{sheet && <SummaryCard sheet={sheet} onOpenSheet={() => setSheetOpen(true)} />}</div>
         </div>
@@ -155,29 +158,14 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
   );
 }
 
-/**
- * The status toast of the builder page (ui `Toast`), for the texts that `useBuilderStatus` gives in `children`. It is
- * at the bottom of the screen and takes no space in the page.
- */
-export function BuilderStatusToast({ children }: { children: ReactNode }) {
-  // Each text has a new key, so the toast shows a text that is the same as the last one again.
-  const [status, setStatus] = useState({ text: "", key: 0 });
-  const say = useCallback((text: string) => setStatus((last) => ({ text, key: last.key + 1 })), []);
-  return (
-    <BuilderStatus.Provider value={say}>
-      {children}
-      <Toast status={status.text} statusKey={status.key} />
-    </BuilderStatus.Provider>
-  );
-}
-
 /** An inventory list, such as Armor: top-level equipment, not a starting equipment choice. */
 const isList = (selection: BuilderSelection) => selection.actualPath.length === 1 && selection.tags.includes("equipment");
 
 /**
- * A selection's option cards, then the selections its selected options open.
- * A sequential one, such as levels, shows only the latter. The classes, hit
- * points and ability score improvements have their own controls.
+ * A selection's control, then the selections its selected options open, as flat sections after it, each with its own
+ * heading and mark (docs/design/character-builder.md, "The control for each kind of selection"). A sequential one,
+ * such as levels, shows only the latter. The classes, hit points and ability score improvements have their own
+ * controls.
  */
 export function Selection({ selection }: { selection: BuilderSelection }) {
   if (selection.key === "hit-points" && selection.requireValue) return <HitPoints selection={selection} />;
@@ -189,11 +177,11 @@ function Options({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { actualPath } = selection;
   // The classes are rows, not cards. They stay here, not in Selection, because
-  // each class's choices open below the rows as any selected option's do.
+  // each class's choices open after the rows as any selected option's do.
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
-  // A feat, a background or a race has a Customize line under the cards (ORC-134, ORC-135, ORC-136).
+  // A feat, a background or a race has a Customize line under the control (ORC-134, ORC-135, ORC-136).
   const customizable = customizableFor(selection);
-  // The race has the Custom Origin entry after its cards (ORC-138).
+  // The race has the Custom Origin entry after its control (ORC-138).
   const origin = useCustomOrigin(selection);
 
   // Classes in the entity's order, as their rows.
@@ -201,52 +189,15 @@ function Options({ selection }: { selection: BuilderSelection }) {
     (o) => o.selected && o.selections.length > 0,
   );
   return (
-    <section aria-labelledby={id} className="space-y-2">
-      <Heading id={id} selection={selection} />
-      {isClass ? <Classes selection={selection} /> : !selection.sequential && <OptionCards selection={selection} options={selection.options} />}
-      {origin?.card}
-      {customizable && <CustomizeLines selection={selection} customizable={customizable} guided={origin?.guided} />}
-      {origin?.dialog}
-      {opened.map((option) => (
-        <div key={option.key} className="ml-2 space-y-4 border-l border-rule-strong pl-4">
-          <h4 className="italic">{option.name}</h4>
-          {option.selections.map((child) => (
-            <Selection key={JSON.stringify(child.actualPath)} selection={child} />
-          ))}
-        </div>
-      ))}
-    </section>
-  );
-}
-
-/**
- * A selection's option cards, or some of them: a pick selects the option, or
- * deselects it from a multiselect. The engine's refusal shows above them.
- */
-export function OptionCards({ selection, options }: { selection: BuilderSelection; options: BuilderOption[] }) {
-  const [error, run] = useMutation();
-  const { actualPath } = selection;
-
-  function pick(option: BuilderOption) {
-    if (option.selected && !selection.multiselect) return;
-    run((e, entity, opts) => (option.selected ? e.deselect(entity, actualPath, option.key, opts) : e.select(entity, actualPath, option.key, opts)));
-  }
-
-  return (
     <>
-      {error && <p role="alert">{error}</p>}
-      <ToggleGroup
-        aria-label={selection.name}
-        value={options.filter((option) => option.selected).map((option) => option.key)}
-        multiple={selection.multiselect}
-        className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-      >
-        {options.map((option) => (
-          <Toggle key={option.key} value={option.key} onPressedChange={() => pick(option)} className="h-full w-full p-2 text-left">
-            {option.name}
-          </Toggle>
-        ))}
-      </ToggleGroup>
+      <section aria-labelledby={id} className="space-y-2">
+        <Heading id={id} selection={selection} />
+        {isClass ? <Classes selection={selection} /> : !selection.sequential && <SelectionControl selection={selection} />}
+        {origin?.card}
+        {customizable && <CustomizeLines selection={selection} customizable={customizable} guided={origin?.guided} />}
+        {origin?.dialog}
+      </section>
+      {opened.flatMap((option) => option.selections.map((child) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />))}
     </>
   );
 }

@@ -330,3 +330,22 @@ test("a list that closes on a click can have a search field and its own row mark
   await closed();
   await waitFor(() => expect(document.activeElement).toBe(button));
 });
+
+test("a row with unavailable is locked: the lock icon, the reason in the place of the mark, and a click picks nothing", async () => {
+  const pick = vi.fn();
+  const items: ListItem<string>[] = [...BASKETS, { value: "quince", label: "Quinces", unavailable: "Out of season." }];
+  render(<ListModal open onOpenChange={() => {}} title="Add a basket" items={items} onPick={pick} mark="Choose" />);
+  const dialog = await screen.findByRole("dialog");
+  const quinces = within(dialog).getByRole("button", { name: "Quinces" });
+  expect([quinces.dataset.unavailable, quinces.getAttribute("aria-disabled"), quinces.textContent]).toEqual(["", "true", "QuincesOut of season."]);
+  expect(quinces.querySelector(".ui-list-lock")).toBeTruthy();
+  expect(quinces.querySelector(".ui-list-add")).toBeNull();
+  expect(document.getElementById(quinces.getAttribute("aria-describedby")!)?.textContent).toBe("Out of season.");
+  fireEvent.click(quinces);
+  expect(pick).not.toHaveBeenCalled();
+  // The locked row keeps its place in the arrow keys.
+  const plums = within(dialog).getByRole("button", { name: "Plums" });
+  plums.focus();
+  fireEvent.keyDown(plums, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(quinces);
+});

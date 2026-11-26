@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { addFirstClass, newCharacter, openStep } from "./builder-helpers.ts";
+import { addFirstClass, section as builderSection, newCharacter, openStep, pickIn } from "./builder-helpers.ts";
 import { featureCard as card } from "./homebrew-helpers.ts";
 import { summaryCard } from "./sheet-panel.ts";
 
@@ -38,7 +38,7 @@ test("a feature with fixed uses and one with scaled uses show their bubbles on t
   // A level 1 character: a fighter, for its level.
   await addFirstClass(page, "Fighter");
   await openStep(page, "Race");
-  await page.getByRole("region", { name: "Builder" }).getByRole("button", { name: "Tidecaller", exact: true }).click();
+  await pickIn(builderSection(page, "Race"), "Tidecaller");
   await expect(summaryCard(page).getByLabel("Race", { exact: true })).toHaveText("Tidecaller");
   await page.getByRole("link", { name: "Done" }).click();
   await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);

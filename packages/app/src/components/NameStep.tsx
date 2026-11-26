@@ -13,7 +13,7 @@ import { useMutation } from "./Classes.tsx";
  */
 export function NameStep({ autoFocus, onEnter }: { autoFocus: boolean; onEnter: () => void }) {
   const { entity } = useOpenCharacter();
-  const [error, run] = useMutation();
+  const [, run] = useMutation();
   const stored = entity ? storedValue(entity, NAME_KEY) : "";
   const [text, setText] = useState(stored);
   const [seen, setSeen] = useState(stored);
@@ -40,7 +40,6 @@ export function NameStep({ autoFocus, onEnter }: { autoFocus: boolean; onEnter: 
   };
   return (
     <div className="space-y-2">
-      {error && <p role="alert">{error}</p>}
       {/* The wrapper takes the blur and the Enter of the field, which TextInput does not take as props. */}
       <div ref={field} onBlur={commit} onKeyDown={onKeyDown}>
         <FieldLabel label="Character name">

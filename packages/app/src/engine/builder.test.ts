@@ -206,7 +206,7 @@ test("fighter-3-wizard-2's starting equipment is in the Equipment step, not unde
 test("each option comes from the template, with its selected state", () => {
   const [race] = step(engine().emptyCharacter(), "Race").selections;
   expect(race.options).toHaveLength(10);
-  expect(race.options.find((o) => o.key === "human")).toEqual({ key: "human", name: "Human", selected: false, selections: [] });
+  expect(race.options.find((o) => o.key === "human")).toEqual({ key: "human", name: "Human", selected: false, prereqs: 0, selections: [] });
   // Custom has order 1000, so it goes last.
   expect(race.options.at(-1)!.key).toBe("custom");
 

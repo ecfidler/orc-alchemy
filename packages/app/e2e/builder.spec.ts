@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
-import { addFirstClass, newCharacter, openStep, stepButton } from "./builder-helpers.ts";
+import { addFirstClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
 import { closeSheetPanel, openSheetPanel, summaryCard } from "./sheet-panel.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
@@ -20,15 +20,15 @@ test("a new character becomes a dwarf acolyte fighter 1, and the summary card fo
 
   // Race: a dwarf has Con +2 and a speed of 25 ft.
   await openStep(page, "Race");
-  await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
-  await expect(builder.getByRole("button", { name: "Dwarf", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await pickIn(section(page, "Race"), "Dwarf");
+  await expect(picksIn(section(page, "Race"))).toHaveText(["Dwarf"]);
   await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
   await expect(preview.getByLabel("Speed", { exact: true })).toHaveText("25 ft.");
   await expect(preview.getByLabel("CON", { exact: true })).toHaveText("15 +2");
-  // Picking another race replaces it, and the dwarf's subrace opens under it.
-  await builder.getByRole("button", { name: "Elf", exact: true }).click();
+  // Picking another race replaces it, and the dwarf's subrace opens after it.
+  await pickIn(section(page, "Race"), "Elf");
   await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Elf");
-  await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
+  await pickIn(section(page, "Race"), "Dwarf");
   await expect(builder.getByRole("region", { name: /^Subrace/ })).toBeVisible();
   await expect(preview.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
 
@@ -57,14 +57,15 @@ test("a new character becomes a dwarf acolyte fighter 1, and the summary card fo
   await expect(page.getByRole("region", { name: "Builder" }).getByRole("heading", { level: 2 })).toHaveText("Class");
 });
 
-test("a pick the engine refuses shows its reason at the selection", async ({ page }) => {
+test("a pick the engine refuses shows its reason in the status toast", async ({ page }) => {
   await newCharacter(page);
   const builder = page.getByRole("region", { name: "Builder" });
   // A barbarian picks 2 skills: a third is refused.
   await addFirstClass(page, "Barbarian");
   await openStep(page, "Proficiencies");
   for (const skill of ["Athletics", "Intimidation", "Survival"]) await builder.getByRole("button", { name: skill, exact: true }).click();
-  await expect(builder.getByRole("alert")).toHaveText(/no selections remain/);
+  await expect(page.getByRole("status").and(page.locator("[data-toast-status]"))).toHaveText(/no selections remain/);
+  await expect(builder.getByRole("alert")).toHaveCount(0);
   await expect(summaryCard(page).getByLabel("Class", { exact: true })).toHaveText("Barbarian 1");
 });
 
@@ -103,7 +104,7 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
 
   // The half-elf's improvement, on the Abilities step: INT 12 + 1 is 13, as a wizard needs.
   await openStep(page, "Race");
-  await builder.getByRole("button", { name: "Half-Elf", exact: true }).click();
+  await pickIn(section(page, "Race"), "Half-Elf");
   await stepButton(page, "Abilities").click();
   const asi = region("Ability Score Improvement");
   await asi.getByRole("button", { name: "Increase STR" }).click();
@@ -249,7 +250,7 @@ test("the rail and the headings show the picks left as marks, and a pick changes
   await openStep(page, "Race");
   await expect(builder.getByRole("heading", { name: "Race, 1 left", exact: true })).toBeVisible();
 
-  await builder.getByRole("button", { name: "Human", exact: true }).click();
+  await pickIn(section(page, "Race"), "Human");
   await expect(summaryCard(page).getByLabel("Race", { exact: true })).toHaveText("Human");
   await expect(builder.getByRole("heading", { name: "Race, Done", exact: true })).toBeVisible();
   // The human's subrace and its choices are new picks on the same step.
@@ -365,7 +366,7 @@ test("a pick does not move the lines of the summary card, and a long name does n
   const before = await boxes();
   // The race and the speed get a value; nothing in the card moves.
   await openStep(page, "Race");
-  await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
+  await pickIn(section(page, "Race"), "Dwarf");
   await expect(card.getByLabel("Race", { exact: true })).toHaveText("Dwarf");
   await expect(card.getByLabel("Speed", { exact: true })).toHaveText("25 ft.");
   expect(await boxes()).toEqual(before);
@@ -469,11 +470,10 @@ const draftCount = (page: Page) =>
 
 test("a reload mid-edit asks first, then recovers the draft", async ({ page }) => {
   await newCharacter(page);
-  const builder = page.getByRole("region", { name: "Builder" });
   const race = summaryCard(page).getByLabel("Race", { exact: true });
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Saved");
   await openStep(page, "Race");
-  await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
+  await pickIn(section(page, "Race"), "Dwarf");
   await expect(race).toHaveText("Dwarf");
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Unsaved changes");
   await expect.poll(() => draftCount(page)).toBe(1);
@@ -496,7 +496,7 @@ test("Save stores the changes now, and leaving the builder saves them too", asyn
   const builder = page.getByRole("region", { name: "Builder" });
   const race = summaryCard(page).getByLabel("Race", { exact: true });
   await openStep(page, "Race");
-  await builder.getByRole("button", { name: "Dwarf", exact: true }).click();
+  await pickIn(section(page, "Race"), "Dwarf");
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Unsaved changes");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("status", { name: "Save status" })).toHaveText("Saved");
@@ -512,7 +512,7 @@ test("Save stores the changes now, and leaving the builder saves them too", asyn
   await expect(page.getByText(/were recovered/)).toHaveCount(0);
 
   // A move to the list saves at once: the list shows the change before autosave would have run.
-  await builder.getByRole("button", { name: "Elf", exact: true }).click();
+  await pickIn(section(page, "Race"), "Elf");
   await expect(race).toHaveText("Elf");
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Characters" }).click();
   // A character with no class shows its race only.
@@ -525,8 +525,8 @@ test("fighter-1's scores by hand: a standard human with the standard scores, the
   const builder = page.getByRole("region", { name: "Builder" });
   const str = summaryCard(page).getByLabel("STR", { exact: true });
   await openStep(page, "Race");
-  await builder.getByRole("button", { name: "Human", exact: true }).click();
-  await builder.getByRole("button", { name: "Damaran", exact: true }).click();
+  await pickIn(section(page, "Race"), "Human");
+  await pickIn(section(page, "Subrace"), "Damaran");
   await builder.getByRole("button", { name: "Standard Human", exact: true }).click();
   await expect(builder.getByRole("button", { name: "Standard Human", exact: true })).toHaveAttribute("aria-pressed", "true");
 
@@ -652,7 +652,9 @@ test("fighter-1 built from New character through the steps matches its expected 
   await name.press("Enter");
   await expect(builder.getByRole("heading", { level: 2 })).toHaveText("Class");
   await openStep(page, "Race");
-  await pick("Human", "Damaran", "Standard Human");
+  await pickIn(section(page, "Race"), "Human");
+  await pickIn(section(page, "Subrace"), "Damaran");
+  await pick("Standard Human");
   await openStep(page, "Background");
   await pick("Acolyte");
   await addFirstClass(page, "Fighter");
@@ -660,20 +662,27 @@ test("fighter-1 built from New character through the steps matches its expected 
   await pick("Defense");
   // The human knows one language more and the acolyte two more: one selection, with the fighter's skills.
   await stepButton(page, "Proficiencies").click();
-  await pick("Dwarvish", "Elvish", "Giant", "Athletics", "Perception");
+  for (const language of ["Dwarvish", "Elvish", "Giant"]) await pickIn(section(page, "Languages"), language);
+  for (const skill of ["Athletics", "Perception"]) await pickIn(section(page, "Skill Proficiency"), skill);
+  await expect(picksIn(section(page, "Languages"))).toHaveText(["Dwarvish", "Elvish", "Giant"]);
+  await expect(picksIn(section(page, "Skill Proficiency"))).toHaveText(["Athletics", "Perception"]);
   // The standard scores are the default.
   await stepButton(page, "Abilities").click();
   await expect(builder.getByRole("button", { name: "Standard Scores" })).toHaveAttribute("aria-pressed", "true");
   await stepButton(page, "Equipment").click();
   // The starting equipment of the class and the background is on this step.
-  await pick("Amulet", "Prayer Book", "Chain Mail", "Martial Weapon and Shield", "Longsword", "Two Handaxes", "Dungeoneer's Pack");
+  await pick("Amulet", "Prayer Book", "Chain Mail", "Martial Weapon and Shield");
+  // The martial weapon is one pick of 27: a list behind a Choose button, with a search field.
+  await pickIn(section(page, "Starting Equipment: Martial Weapon"), "Longsword");
+  await pick("Two Handaxes", "Dungeoneer's Pack");
   await pickOption(builder.getByLabel("Worn armor"), "Chain mail");
   await pickOption(builder.getByLabel("Wielded shield"), "Shield");
   // The main hand sets the off hand to none. The golden has the shield there, but the
   // off-hand list offers only dual-wield weapons. The values below do not change.
   await pickOption(builder.getByLabel("Main hand"), "Longsword");
   await stepButton(page, "Description").click();
-  await pick("Lawful Good");
+  await pickIn(section(page, "Alignment"), "Lawful Good");
+  await expect(picksIn(section(page, "Alignment"))).toHaveText(["Lawful Good"]);
 
   await expect(preview.getByLabel("Name", { exact: true })).toHaveText(expected["character-name"]);
   // The worn chain mail and the wielded shield: 19.

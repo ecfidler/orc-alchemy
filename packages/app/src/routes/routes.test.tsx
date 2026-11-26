@@ -5,6 +5,7 @@ import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { pickIn, picksIn, section } from "../components/test-pick.ts";
 import { openSheetPanel } from "../components/test-sheet-panel.ts";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { addCharacter, flushAutosave, useCharacter } from "../state/character.ts";
@@ -130,12 +131,11 @@ test("New character opens the builder on Name with the focus in the field, with 
   expect(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: "Class, 1 pick left" })).toBeTruthy();
 
   openStep("Race");
-  const race = screen.getByRole("region", { name: /^Race/ });
-  fireEvent.click(within(race).getByRole("button", { name: "Dwarf" }));
-  expect(within(race).getByRole("button", { name: "Dwarf" }).getAttribute("aria-pressed")).toBe("true");
+  await pickIn(section("Race"), "Dwarf");
+  expect(picksIn(section("Race"))).toEqual(["Dwarf"]);
   expect(within(summary).getByText("Dwarf")).toBeTruthy();
-  // Dwarf opens its subrace.
-  expect(within(race).getByRole("region", { name: /^Subrace/ })).toBeTruthy();
+  // Dwarf opens its subrace, as a section of its own after the race.
+  expect(section("Subrace")).toBeTruthy();
 });
 
 test("Save stores the changes now, and the status says when they are saved", async () => {
@@ -146,7 +146,7 @@ test("Save stores the changes now, and the status says when they are saved", asy
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 
   openStep("Race");
-  fireEvent.click(within(screen.getByRole("region", { name: /^Race/ })).getByRole("button", { name: "Halfling" }));
+  await pickIn(section("Race"), "Halfling");
   expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Unsaved changes");
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() => expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved"));
@@ -181,7 +181,7 @@ test("leaving the character after a failed save asks first", async () => {
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
   const summary = await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
   openStep("Race");
-  fireEvent.click(within(screen.getByRole("region", { name: /^Race/ })).getByRole("button", { name: "Elf" }));
+  await pickIn(section("Race"), "Elf");
   useStorage.setState({ failed: true });
 
   fireEvent.click(screen.getByRole("link", { name: "Alchemy 5e" }));
