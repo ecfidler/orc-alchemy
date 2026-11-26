@@ -143,7 +143,7 @@ function cached(input: AvailabilityInput, key: string, find: () => string | null
 }
 
 /** The kind of proficiency that a selection's options give, by its tags; an expertise selection gives none. */
-function proficiencyKind(selection: BuilderSelection): "skill" | "tool" | "language" | null {
+export function proficiencyKind(selection: BuilderSelection): "skill" | "tool" | "language" | null {
   if (selection.key.includes("expertise")) return null;
   if (selection.tags.includes("skill-profs")) return "skill";
   if (selection.tags.includes("tool-profs")) return "tool";

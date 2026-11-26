@@ -156,13 +156,20 @@ bun run test       # vitest
     `src/flash.css`.
   - `useConfirm()`: the themed stand-in for `window.confirm`. It returns
     `[confirm, dialog]`. Render `dialog` in the component, and call
-    `await confirm(question, action, cancel)`: it is true when the user
-    picks the action button, and false on the cancel button or Escape.
-    `action` is the button text, "OK" by default. `cancel` is the text of
-    the button that says no, "Cancel" by default. The cancel button has
-    the focus when the dialog opens.
+    `await confirm(question, action, cancel, options)`: it is true when
+    the user picks the action button, and false on the cancel button or
+    Escape. `action` is the button text, "OK" by default. `cancel` is the
+    text of the button that says no, "Cancel" by default. `options` can
+    give `body`, an element below the question such as a list, and
+    `finalFocus`, as on `AlertDialog`. The cancel button has the focus
+    when the dialog opens.
   - `AlertDialog`: the dialog that `useConfirm()` shows. The owner sets
-    `open`, and closes it from `onAnswer`. Styles: `src/dialog.css`.
+    `open`, and closes it from `onAnswer`. Its `children` are the body
+    below the question: the body describes the dialog, and it scrolls
+    when it is long. When it closes, the focus goes back to where it was
+    when it opened, or to `finalFocus` (a ref) when that is given, for
+    example when the place of the focus closed with the dialog's open.
+    Styles: `src/dialog.css`.
   - `Dialog`: Base UI Dialog, a modal with a `title`, a body (`children`)
     that scrolls, and a footer: Cancel, then the owner's `actions`. It is
     up to 720px wide, and at 600px and less it fills the screen. When it

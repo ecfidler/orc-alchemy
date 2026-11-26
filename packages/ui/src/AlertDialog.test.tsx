@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { AlertDialog, useConfirm } from "./AlertDialog.tsx";
 import { answerConfirmDialog } from "./testing/index.ts";
@@ -87,4 +87,66 @@ test("AlertDialog alone is named by its message and reports each answer", async 
   fireEvent.click(within(dialog).getByRole("button", { name: "Clear" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
   expect(answer.mock.calls).toEqual([[true], [false]]);
+});
+
+test("a body shows below the question and describes the dialog, and confirm gives it", async () => {
+  function Ask() {
+    const [confirm, dialog] = useConfirm();
+    return (
+      <>
+        <button
+          onClick={() =>
+            confirm("Clear the list?", "Clear", undefined, {
+              body: (
+                <ul>
+                  <li>Apples</li>
+                  <li>Pears</li>
+                </ul>
+              ),
+            })
+          }
+        >
+          Ask
+        </button>
+        {dialog}
+      </>
+    );
+  }
+  render(<Ask />);
+  fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+  const dialog = await screen.findByRole("alertdialog", { name: "Clear the list?" });
+  const body = document.getElementById(dialog.getAttribute("aria-describedby") ?? "");
+  expect(body?.className).toBe("ui-dialog-body");
+  expect(
+    within(body!)
+      .getAllByRole("listitem")
+      .map((item) => item.textContent),
+  ).toEqual(["Apples", "Pears"]);
+  expect(await answerConfirmDialog("Clear")).toBe("Clear the list?");
+});
+
+test("with no body, the dialog has no description", async () => {
+  render(<AlertDialog open message="Clear the list?" action="Clear" onAnswer={() => {}} />);
+  const dialog = await screen.findByRole("alertdialog");
+  expect(dialog.querySelector(".ui-dialog-body")).toBeNull();
+});
+
+test("with finalFocus, the focus goes there when the dialog closes", async () => {
+  function Ask() {
+    const [confirm, dialog] = useConfirm();
+    const target = useRef<HTMLInputElement>(null);
+    return (
+      <>
+        <input ref={target} aria-label="Target" />
+        <button onClick={() => confirm("Go on?", "Go", undefined, { finalFocus: target })}>Ask</button>
+        {dialog}
+      </>
+    );
+  }
+  render(<Ask />);
+  const ask = screen.getByRole("button", { name: "Ask" });
+  ask.focus();
+  fireEvent.click(ask);
+  await answerConfirmDialog("Cancel");
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Target" })));
 });

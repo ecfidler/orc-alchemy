@@ -2,14 +2,16 @@
 // selection"): option cards to 6 options, the ui Picker with tokens from 7 options with more than one pick, and a
 // Choose button with the ui ListModal from 7 options with one pick. An option that the character cannot take is not
 // available, with its reason ("A pick that the character cannot take"). A refusal of the engine shows in the status
-// toast, through useMutation.
+// toast, through useMutation. A pick of a race or a background that removes picks asks first (ORC-344, "A change that
+// removes picks").
 import { Button, type ListItem, ListModal, Picker, Toggle, ToggleGroup, Token } from "@orc-alchemy/ui";
-import { useId, useMemo, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useId, useMemo, useRef, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { engine } from "../engine/engine.ts";
 import { controlKind, hasSearch, shownOptions, unavailableOptions } from "../engine/selection-control.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useStepFrame } from "./builder-context.tsx";
+import { useChangeQuestion } from "./ChangeQuestion.tsx";
 import { useMutation } from "./Classes.tsx";
 
 /** The reason of each option of the selection that the character cannot take, by option key. */
@@ -50,18 +52,41 @@ export function SelectionControl({ selection }: { selection: BuilderSelection })
 
 type ControlProps = { selection: BuilderSelection; options: BuilderOption[]; unavailable?: Map<string, string> };
 
-/** Selects the option, or deselects it from a selection that takes more than one pick. */
-function usePick(selection: BuilderSelection) {
+// The selections whose pick asks first when it removes picks: the race and the background. The Class step asks in
+// its own controls.
+const ASKS_FIRST = ["race", "background"];
+
+/**
+ * Selects the option, or deselects it from a selection that takes more than one pick. A pick of the race or the
+ * background asks first when it removes picks; `dialog` is the element of that question, for the control to render.
+ * `finalFocus` gets the focus when the question closes; without it, the focus goes back to where it was.
+ */
+function usePick(
+  selection: BuilderSelection,
+  finalFocus?: RefObject<HTMLElement | null>,
+): {
+  select: (key: string) => void;
+  deselect: (key: string) => void;
+  replace: (old: string | undefined, key: string) => void;
+  dialog: ReactNode;
+} {
   const [, run] = useMutation();
+  const [change, dialog] = useChangeQuestion();
   const { actualPath } = selection;
+  const asks = actualPath.length === 1 && ASKS_FIRST.includes(actualPath[0]) && !selection.multiselect;
+  const select = (key: string) =>
+    asks ? void change({ kind: "pick", path: actualPath, to: key }, finalFocus) : run((e, entity, opts) => e.select(entity, actualPath, key, opts));
   return {
-    select: (key: string) => run((e, entity, opts) => e.select(entity, actualPath, key, opts)),
+    select,
     deselect: (key: string) => run((e, entity, opts) => e.deselect(entity, actualPath, key, opts)),
     /** The pick of a selection of one pick in the place of the old one. */
     replace: (old: string | undefined, key: string) =>
-      run((e, entity, opts) =>
-        e.select(old !== undefined && selection.multiselect ? e.deselect(entity, actualPath, old, opts) : entity, actualPath, key, opts),
-      ),
+      asks
+        ? select(key)
+        : run((e, entity, opts) =>
+            e.select(old !== undefined && selection.multiselect ? e.deselect(entity, actualPath, old, opts) : entity, actualPath, key, opts),
+          ),
+    dialog,
   };
 }
 
@@ -74,7 +99,7 @@ function usePick(selection: BuilderSelection) {
  */
 export function OptionCards({ selection, options, unavailable }: ControlProps) {
   const id = useId();
-  const { select, deselect } = usePick(selection);
+  const { select, deselect, dialog } = usePick(selection);
   // A reason can come and go in this selection, so each card keeps its line. The Spells step gives no reasons.
   const reasonLine = unavailable !== undefined && selection.options.some((option) => option.prereqs > 0);
 
@@ -85,35 +110,38 @@ export function OptionCards({ selection, options, unavailable }: ControlProps) {
   }
 
   return (
-    <ToggleGroup
-      aria-label={selection.name}
-      value={options.filter((option) => option.selected).map((option) => option.key)}
-      multiple={selection.multiselect}
-      className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-    >
-      {options.map((option, i) => {
-        const reason = unavailable?.get(option.key);
-        const reasonId = `${id}-${i}`;
-        return (
-          <Toggle
-            key={option.key}
-            value={option.key}
-            disabled={reason !== undefined}
-            aria-label={reasonLine ? option.name : undefined}
-            aria-describedby={reason !== undefined ? reasonId : undefined}
-            onPressedChange={() => pick(option)}
-            className="flex h-full w-full flex-col items-start justify-start p-2 text-left"
-          >
-            <span>{option.name}</span>
-            {reasonLine && (
-              <span id={reasonId} data-reason="" className="block min-h-4 font-sans text-[12.5px] leading-4 font-normal text-ink-muted">
-                {reason}
-              </span>
-            )}
-          </Toggle>
-        );
-      })}
-    </ToggleGroup>
+    <>
+      <ToggleGroup
+        aria-label={selection.name}
+        value={options.filter((option) => option.selected).map((option) => option.key)}
+        multiple={selection.multiselect}
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+      >
+        {options.map((option, i) => {
+          const reason = unavailable?.get(option.key);
+          const reasonId = `${id}-${i}`;
+          return (
+            <Toggle
+              key={option.key}
+              value={option.key}
+              disabled={reason !== undefined}
+              aria-label={reasonLine ? option.name : undefined}
+              aria-describedby={reason !== undefined ? reasonId : undefined}
+              onPressedChange={() => pick(option)}
+              className="flex h-full w-full flex-col items-start justify-start p-2 text-left"
+            >
+              <span>{option.name}</span>
+              {reasonLine && (
+                <span id={reasonId} data-reason="" className="block min-h-4 font-sans text-[12.5px] leading-4 font-normal text-ink-muted">
+                  {reason}
+                </span>
+              )}
+            </Toggle>
+          );
+        })}
+      </ToggleGroup>
+      {dialog}
+    </>
   );
 }
 
@@ -130,25 +158,28 @@ const listItems = (options: BuilderOption[], unavailable: Map<string, string>): 
  * line, up to 3 lines, so the first picks do not move the add button or the page below.
  */
 function PickerControl({ selection, options, unavailable = new Map() }: ControlProps) {
-  const { select, deselect } = usePick(selection);
+  const { select, deselect, dialog } = usePick(selection);
   const name = useSectionName(selection);
   const label = ADD_LABELS.find(([tag]) => selection.tags.includes(tag))?.[1] ?? "Add a choice";
   const reserve = Math.min(3, Math.max(1, Math.ceil((selection.max ?? 3) / 3)));
   return (
-    <Picker
-      label={label}
-      title={name}
-      options={listItems(options, unavailable)}
-      value={selection.selected}
-      onValueChange={(next) => {
-        const added = next.find((key) => !selection.selected.includes(key));
-        const removed = selection.selected.find((key) => !next.includes(key));
-        if (added !== undefined) select(added);
-        else if (removed !== undefined) deselect(removed);
-      }}
-      search={hasSearch(options.length)}
-      reserve={reserve}
-    />
+    <>
+      <Picker
+        label={label}
+        title={name}
+        options={listItems(options, unavailable)}
+        value={selection.selected}
+        onValueChange={(next) => {
+          const added = next.find((key) => !selection.selected.includes(key));
+          const removed = selection.selected.find((key) => !next.includes(key));
+          if (added !== undefined) select(added);
+          else if (removed !== undefined) deselect(removed);
+        }}
+        search={hasSearch(options.length)}
+        reserve={reserve}
+      />
+      {dialog}
+    </>
   );
 }
 
@@ -160,7 +191,8 @@ function PickerControl({ selection, options, unavailable = new Map() }: ControlP
 function ChooseControl({ selection, options, unavailable = new Map() }: ControlProps) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
-  const { replace } = usePick(selection);
+  // The list closes on the pick, so the question gives the focus to the button after it.
+  const { replace, dialog } = usePick(selection, button);
   const name = useSectionName(selection);
   const current = options.find((option) => option.selected);
   // A selection of one pick that has more than one, as an imported character can, shows each.
@@ -186,6 +218,7 @@ function ChooseControl({ selection, options, unavailable = new Map() }: ControlP
         search={hasSearch(options.length)}
         finalFocus={button}
       />
+      {dialog}
     </div>
   );
 }
