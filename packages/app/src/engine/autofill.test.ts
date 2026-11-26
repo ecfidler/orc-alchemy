@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { Homebrew } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { builderSteps, unfilled } from "./builder.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "./engine.ts";
 
 // These tests are apart from builder.test.ts because each one evaluates a
 // whole character. vitest runs files in parallel, but the tests in one file
@@ -13,8 +13,7 @@ const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
 
 beforeAll(() => loadEngine());
 
-const stepsOf = (entity: StrictEntity, homebrew?: Homebrew) =>
-  builderSteps(engine().evaluate(entity, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
+const stepsOf = (entity: StrictEntity, homebrew?: Homebrew) => builderSteps(engine().evaluate(entity, { homebrew }).selections, buildTemplate(homebrew).shape);
 
 test.each(Array.from({ length: 20 }, (_, i) => i + 1))("autofill with seed %i leaves nothing unfilled", (seed) => {
   const entity = engine().autofill(engine().emptyCharacter(), { seed });

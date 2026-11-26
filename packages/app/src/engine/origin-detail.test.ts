@@ -1,7 +1,7 @@
 // The detail panel of the Background step (ORC-347, docs/design/character-builder.md "The list and the panel"): the
 // description, the facts and the feature of an SRD background and of a pack background.
 import { beforeAll, expect, test } from "vitest";
-import { engine, loadEngine } from "./engine.ts";
+import { buildTemplate, loadEngine } from "./engine.ts";
 import { backgroundDetail, countWord, nameLookup, plainRecord, srdBackgrounds, srdItemNames } from "./origin-detail.ts";
 import { proficiencyNames } from "./proficiencies.ts";
 import { SAGE, SAGE_PACKS } from "./test-backgrounds.ts";
@@ -10,7 +10,7 @@ beforeAll(() => loadEngine());
 
 test("the SRD Acolyte: its description, its skills, two languages of the player's choice, its equipment and its feature", async () => {
   const acolyte = (await srdBackgrounds()).find((b) => b.key === "acolyte")!;
-  const nameOf = nameLookup(proficiencyNames(engine().buildTemplate().shape), await srdItemNames());
+  const nameOf = nameLookup(proficiencyNames(buildTemplate().shape), await srdItemNames());
   expect(backgroundDetail(acolyte, nameOf)).toEqual({
     description: "Your life has been devoted to serving a god or gods.",
     facts: [
@@ -25,7 +25,7 @@ test("the SRD Acolyte: its description, its skills, two languages of the player'
 test("a pack background: the Transit marks go, and a fixed tool and a tool of the player's choice are one fact", async () => {
   const sage = plainRecord(SAGE) as Record<string, unknown>;
   expect(sage.key).toBe("sage");
-  const nameOf = nameLookup(proficiencyNames(engine().buildTemplate(SAGE_PACKS).shape), await srdItemNames());
+  const nameOf = nameLookup(proficiencyNames(buildTemplate(SAGE_PACKS).shape), await srdItemNames());
   expect(backgroundDetail(sage, nameOf)).toEqual({
     description: "You spent years learning the lore of the multiverse.",
     facts: [

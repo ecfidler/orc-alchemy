@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderStep, builderSteps, remainingByStep, treeNodes } from "./builder.ts";
-import { engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
 import { fixedProficiencies, proficiencyGroups, proficiencyNames, proficiencySectionName, proficiencySectionNames } from "./proficiencies.ts";
 import { pickSources, topSources, unavailableOptions } from "./selection-control.ts";
 import { FEAT_PACK, SKILL_EXPERT } from "./test-feats.ts";
@@ -18,7 +18,7 @@ const fixture = (name: string): StrictEntity =>
 function build(entity: StrictEntity, homebrew?: Homebrew) {
   const e = engine();
   const { built, selections } = e.evaluate(entity, { homebrew });
-  const shape = e.buildTemplate(homebrew).shape;
+  const shape = buildTemplate(homebrew).shape;
   const steps = builderSteps(selections, shape);
   const tops = topSources(steps);
   const input = { engine: e, entity, built, content: { homebrew }, tops, picks: pickSources(steps) };

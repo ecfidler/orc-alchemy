@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { type BuilderSelection, builderSteps } from "../../engine/builder.ts";
 import { itemAt } from "../../engine/content.ts";
-import { engine, loadEngine } from "../../engine/engine.ts";
+import { buildTemplate, engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 
@@ -80,7 +80,7 @@ test("the eldritch invocation is stored as the old save stores it, Edit loads it
   const { homebrew } = useHomebrew.getState().content;
   let character = engine().setClass(engine().emptyCharacter(), 0, "warlock", { homebrew });
   character = engine().addLevel(character, "warlock", { homebrew });
-  const steps = builderSteps(engine().evaluate(character, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
+  const steps = builderSteps(engine().evaluate(character, { homebrew }).selections, buildTemplate(homebrew).shape);
   const choices = find(
     steps.flatMap((s) => s.selections),
     "eldritch-invocations",

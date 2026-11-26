@@ -2,7 +2,19 @@
 // app loads the engine through here and treats the strict entity as opaque.
 
 import type * as Dmv from "@pubdoor/dmv";
-import type { Built2014, ContentType, Evaluation, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity, ValidationProblem } from "@pubdoor/dmv";
+import type {
+  Built2014,
+  BuiltTemplate,
+  ContentType,
+  Evaluation,
+  Homebrew,
+  MagicItems,
+  MagicItemsOptions,
+  ParsedOrcbrew,
+  Rules,
+  StrictEntity,
+  ValidationProblem,
+} from "@pubdoor/dmv";
 import { useMemo } from "react";
 
 export type { Built2014, ContentType, Homebrew, MagicItems, ParsedOrcbrew, Rules, StrictEntity, ValidationProblem };
@@ -42,4 +54,31 @@ export function engine(): Engine {
  */
 export function useEvaluation(entity: StrictEntity | null, content?: Content): Evaluation | null {
   return useMemo(() => (entity === null ? null : engine().evaluate(entity, content)), [entity, content]);
+}
+
+/** The templates kept by buildTemplate. A character's content changes seldom, so a few are enough. */
+const TEMPLATES_KEPT = 8;
+const templates = new Map<string, BuiltTemplate>();
+
+/**
+ * The engine's buildTemplate, kept for the last few contents by their JSON
+ * text (ORC-361). The engine builds the template again on each call, and a
+ * build takes 100 to 300 ms. The JSON text of a large pack takes a few ms.
+ * The result is shared, so a caller must not change it. A content that does
+ * not build throws on each call, as the engine does.
+ */
+export function buildTemplate(homebrew?: Homebrew, options?: MagicItemsOptions): BuiltTemplate {
+  // All of options is in the key, so a new option also gets its own template.
+  const key = JSON.stringify([homebrew ?? null, options ?? {}]);
+  const kept = templates.get(key);
+  if (kept !== undefined) {
+    // To the end of the map, so the oldest template goes first.
+    templates.delete(key);
+    templates.set(key, kept);
+    return kept;
+  }
+  const built = engine().buildTemplate(homebrew, options);
+  templates.set(key, built);
+  if (templates.size > TEMPLATES_KEPT) templates.delete(templates.keys().next().value as string);
+  return built;
 }

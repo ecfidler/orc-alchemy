@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
 import { applyResolutions, conflictSources, conflictsToChoose, internalCopies, type KeyConflict, type Resolution, settledBy } from "./conflicts.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { missingContent } from "./reconcile.ts";
 
 beforeAll(() => loadEngine());
@@ -44,7 +44,7 @@ describe("Rename all on duplicate-external-a then -b", () => {
       "duplicate-external-b: artillerist -> artillerist-duplicate-external-b",
       "duplicate-external-b: custom-lineage -> custom-lineage-duplicate-external-b",
     ]);
-    expect(engine().buildTemplate(resolved).content.races).toEqual(expect.arrayContaining(["custom-lineage", "custom-lineage-duplicate-external-b"]));
+    expect(buildTemplate(resolved).content.races).toEqual(expect.arrayContaining(["custom-lineage", "custom-lineage-duplicate-external-b"]));
     // patch D4: the renamed subclass points at its pack's renamed class.
     expect(item(resolved, "duplicate-external-b", "subclasses", "artillerist-duplicate-external-b")?.["~:class"]).toBe("~:artificer-duplicate-external-b");
     expect(item(resolved, "duplicate-external-a", "races", "custom-lineage")).toBeDefined();
@@ -63,7 +63,7 @@ describe("Skip all on duplicate-external-a then -b", () => {
       expect(item(resolved, "duplicate-external-b", type, c.key), c.key).toBeUndefined();
       expect(item(resolved, "duplicate-external-a", type, c.key), c.key).toBeDefined();
     }
-    expect(engine().buildTemplate(resolved).content.races).toContain("custom-lineage");
+    expect(buildTemplate(resolved).content.races).toContain("custom-lineage");
     expect(reparse(resolved).conflicts).toEqual([]);
   });
 });
@@ -248,6 +248,6 @@ describe.skipIf(!existsSync(privateExport))("the owner's real export", () => {
     expect(shared.length).toBeGreaterThan(0);
     expect(renames.filter((r) => r.pack === onPack && shared.some((c) => c.key === r.from && c["content-type"] === r.contentType))).toEqual([]);
     expect(reparse(resolved).conflicts).toEqual([]);
-    expect(() => engine().buildTemplate(resolved)).not.toThrow();
+    expect(() => buildTemplate(resolved)).not.toThrow();
   }, 120_000); // the export is 2 MB: parsing it twice takes seconds
 });

@@ -6,7 +6,7 @@ import { type BuilderOption, type BuilderStep, builderSteps } from "./builder.ts
 import { asksBeforeClassPick, choiceLevels, IMPROVEMENT_OPTION, improvementLine, opensAtStart, pointsText, rowPicks } from "./class-choices.ts";
 import { subclassChoice, subclassDescription, subclassFeatureSteps } from "./class-detail.ts";
 import { hitPointSelections } from "./classes.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { controlKind } from "./selection-control.ts";
 import { allSteps } from "./test-classes.ts";
@@ -26,7 +26,7 @@ function character(classKey: string, level: number, picks: [path: string[], key:
 /** The steps of the entity, and its picked class option. */
 function build(entity: StrictEntity): { steps: BuilderStep[]; option: BuilderOption } {
   const e = engine();
-  const steps = builderSteps(e.evaluate(entity, content).selections, e.buildTemplate(undefined).shape);
+  const steps = builderSteps(e.evaluate(entity, content).selections, buildTemplate(undefined).shape);
   const option = steps
     .find((s) => s.name === "Class")!
     .selections.find((s) => s.key === "class")!

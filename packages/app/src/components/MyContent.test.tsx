@@ -7,7 +7,7 @@ import { IDBFactory } from "fake-indexeddb";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { CONTENT_TYPES } from "../engine/content.ts";
-import { engine, loadEngine } from "../engine/engine.ts";
+import { buildTemplate, engine, loadEngine } from "../engine/engine.ts";
 import { missingContent } from "../engine/reconcile.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { listPacks, type PackRecord } from "../storage/packs.ts";
@@ -95,7 +95,7 @@ test("the old app's off flag in a file shows as off, and turning the item or pac
   const keenMind = within(section).getByRole("checkbox", { name: "Keen Mind" });
   expect(pack).not.toBeChecked();
   expect(keenMind).not.toBeChecked();
-  const feats = () => engine().buildTemplate(useHomebrew.getState().homebrew).content.feats;
+  const feats = () => buildTemplate(useHomebrew.getState().homebrew).content.feats;
   expect(feats()).not.toContain("keen-mind");
 
   fireEvent.click(pack);

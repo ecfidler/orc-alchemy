@@ -28,7 +28,7 @@ import {
   withPickedSubrace,
   withSubrace,
 } from "./custom.ts";
-import { type Content, engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, type Content, engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { missingContent, remapOption, withoutOption } from "./reconcile.ts";
 import { ARTISAN, BACKGROUND_PACK, SAGE, SAGE_PACKS, TAGGED_BACKGROUNDS, withSage } from "./test-backgrounds.ts";
 import { FEAT_PACK, fighter20, SKILL, SKILL_EXPERT } from "./test-feats.ts";
@@ -215,9 +215,7 @@ test("customizeOption writes the copy and selects it in place of the pack feat, 
   expect(feats(result.entity, result.custom)).toEqual(["skill-expert-custom"]);
   expect(skills(result.entity, result.custom)).toContain("arcana");
   // The original is still a feat to pick.
-  const template = engine()
-    .buildTemplate(characterContent({ homebrew: PACKS }, result.custom).homebrew)
-    .shape.find((s) => s.key === "feats")!;
+  const template = buildTemplate(characterContent({ homebrew: PACKS }, result.custom).homebrew).shape.find((s) => s.key === "feats")!;
   expect(template.options.map((o) => o.key)).toEqual(expect.arrayContaining(["skill-expert", "skill-expert-custom", "grappler"]));
 });
 
@@ -307,7 +305,7 @@ test("copyKey gives a background copy the engine's key of its name, with its das
   // The engine gives the option the key of the name and ignores the stored key.
   for (const stored of ["sage-custom", "sage-custom-"]) {
     const custom = { [TAGGED_BACKGROUNDS]: { [`~:${stored}`]: { ...SAGE, "~:key": `~:${stored}`, "~:name": "Sage (Custom)", "~:option-pack": CUSTOM_PACK } } };
-    const shape = engine().buildTemplate(characterContent({ homebrew: undefined }, custom).homebrew).shape;
+    const shape = buildTemplate(characterContent({ homebrew: undefined }, custom).homebrew).shape;
     expect(shape.find((s) => s.key === "background")!.options.map((o) => o.key)).toContain("sage-custom-");
     expect(shape.find((s) => s.key === "background")!.options.map((o) => o.key)).not.toContain("sage-custom");
   }
@@ -370,8 +368,7 @@ test("customizeOption selects a background copy by the engine's key; its tool ch
   expect(pruneCustom(renamed.entity, renamed.custom)).toBe(renamed.custom);
   // The original stays a background to pick.
   expect(
-    engine()
-      .buildTemplate(characterContent({ homebrew: SAGE_PACKS }, renamed.custom).homebrew)
+    buildTemplate(characterContent({ homebrew: SAGE_PACKS }, renamed.custom).homebrew)
       .shape.find((s) => s.key === "background")!
       .options.map((o) => o.key),
   ).toEqual(expect.arrayContaining(["sage", "loremaster-", "acolyte"]));
@@ -509,8 +506,7 @@ test("a race copy has the key of its name without the dashes, and the engine key
   expect(copyKey(RACE_TYPE, "Dwarf")).toBe("dwarf");
   // The stored key, not the key of the name, is the option's key.
   const custom = { [TAGGED_RACES]: { "~:other-key": { ...SYLVAR, "~:key": "~:other-key", "~:name": "Sylvar (Custom)", "~:option-pack": CUSTOM_PACK } } };
-  const keys = engine()
-    .buildTemplate(characterContent({ homebrew: undefined }, custom).homebrew)
+  const keys = buildTemplate(characterContent({ homebrew: undefined }, custom).homebrew)
     .shape.find((s) => s.key === "race")!
     .options.map((o) => o.key);
   expect(keys).toContain("other-key");

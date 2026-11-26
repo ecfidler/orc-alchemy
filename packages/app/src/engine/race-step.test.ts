@@ -2,7 +2,7 @@
 // section Choices of the block of a race, the facts of the detail panel, and the lines to other steps.
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderSelection, builderSteps, treeNodes } from "./builder.ts";
-import { engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
 import { nameLookup, plainRecord, raceDetail, srdItemNames, srdRaces } from "./origin-detail.ts";
 import { lineKind, otherStepLines } from "./other-steps.ts";
 import { proficiencyNames } from "./proficiencies.ts";
@@ -23,7 +23,7 @@ const withRace = (race: string, homebrew?: Homebrew) =>
 /** The steps of the entity, and its top-level race selection. */
 function build(entity: StrictEntity, homebrew?: Homebrew) {
   const e = engine();
-  const steps = builderSteps(e.evaluate(entity, { homebrew }).selections, e.buildTemplate(homebrew).shape);
+  const steps = builderSteps(e.evaluate(entity, { homebrew }).selections, buildTemplate(homebrew).shape);
   const race = steps.find((s) => s.name === "Race")!.selections.find((s) => s.key === "race")!;
   return { steps, race, picked: race.options.find((o) => o.selected)! };
 }
@@ -164,7 +164,7 @@ test("the panel of the SRD races: the facts, the one subrace as a fact, the choi
 /** The detail of the race with the key with what the engine gives it (ORC-355), against the homebrew. */
 async function fullDetail(key: string, homebrew?: Homebrew, record?: Record<string, unknown>) {
   const content = { homebrew };
-  const nameOf = nameLookup(proficiencyNames(engine().buildTemplate(homebrew).shape), await srdItemNames());
+  const nameOf = nameLookup(proficiencyNames(buildTemplate(homebrew).shape), await srdItemNames());
   const of = record ?? (await srdRaces()).find((r) => r.key === key)!;
   return raceDetail(of, templateRace(key, content), { engine: raceDetailGives(key, content), nameOf });
 }
