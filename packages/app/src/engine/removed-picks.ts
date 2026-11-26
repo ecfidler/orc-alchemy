@@ -190,18 +190,18 @@ function rowsOf(paths: string[][], steps: BuilderStep[], own: string | null): Re
     group.keys.push(path.at(-1)!);
     groups.set(node, group);
   }
-  // Two rows of one place and one name, such as two skill selections, name the sources of each, when their sources
-  // are not the same.
-  const sources = new Map<string, Set<string>>();
-  const nameKey = (node: BuilderSelection, place: string) => `${place}|${rowName(node)}`;
-  for (const [node, { place }] of groups) sources.set(nameKey(node, place), (sources.get(nameKey(node, place)) ?? new Set()).add(node.sources.join(", ")));
   // An option of an expertise selection, such as "Two Skills", is not a row's pick when a pick of the selection that
   // it opens goes too: the row names the skills.
   const named = (node: BuilderSelection, key: string) =>
     !isExpertise(node) || !node.options.find((option) => option.key === key)?.selections.some((under) => groups.has(under));
   for (const [node, group] of groups) group.keys = group.keys.filter((key) => named(node, key));
-  const rows = [...groups]
-    .filter(([, { keys }]) => keys.length > 0)
+  const shown = [...groups].filter(([, { keys }]) => keys.length > 0);
+  // Two rows of one place and one name, such as two skill selections, name the sources of each, when their sources
+  // are not the same. A group with no pick left after the filter above is not a row, so it does not count.
+  const sources = new Map<string, Set<string>>();
+  const nameKey = (node: BuilderSelection, place: string) => `${place}|${rowName(node)}`;
+  for (const [node, { place }] of shown) sources.set(nameKey(node, place), (sources.get(nameKey(node, place)) ?? new Set()).add(node.sources.join(", ")));
+  const rows = shown
     .sort(([, a], [, b]) => a.rank - b.rank || a.order - b.order)
     .map(([node, { place, keys }]): RemovedRow => {
       const name = rowName(node);
@@ -304,7 +304,8 @@ export function planChange(input: ChangeInput, change: PickChange): ChangePlan {
       // such as the languages of a High Elf at ["languages"]: its max is then 0.
       const picks = now?.selected ?? was!.selected.filter((key) => left.has(pathKey([...was!.actualPath, key])));
       // A selection that has more picks than its max after the change loses its last picks, as many as the change adds.
-      const extra = over(picks.length, now === undefined ? 0 : now.max) - (was === undefined ? 0 : over(was.selected.length, was.max));
+      // A selection that the change closes loses each of its picks, also when it had more picks than its max before.
+      const extra = now === undefined ? picks.length : over(picks.length, now.max) - (was === undefined ? 0 : over(was.selected.length, was.max));
       if (extra > 0) overMax.push(...picks.slice(-extra).map((key) => [...(now ?? was)!.actualPath, key]));
     }
     overMax = overMax.filter((path) => counts(path));

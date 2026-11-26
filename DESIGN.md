@@ -158,7 +158,7 @@ The app shell is a binder. A margin rail on the left holds the logo and the navi
 
 The Dark theme is not dark paper. It is OLED black and white: a pure black page, white text, and accents that shift to suit black. The notes and the flag tabs stay bright in the Dark theme, with black text.
 
-The authority for each value and rule in this file is `docs/design/theme.md`. When this file and `theme.md` disagree, `theme.md` wins. The homebrew forms are in `docs/design/homebrew-forms.md`, the Spells panel is in `docs/design/spells-panel.md`, and the play controls of the sheet are in `docs/design/sheet-interactivity.md`.
+The authority for each value and rule in this file is `docs/design/theme.md`. When this file and `theme.md` disagree, `theme.md` wins. The homebrew forms are in `docs/design/homebrew-forms.md`, the Spells panel is in `docs/design/spells-panel.md`, the play controls of the sheet are in `docs/design/sheet-interactivity.md`, and the character builder is in `docs/design/character-builder.md`.
 
 **Key Characteristics:**
 
@@ -241,24 +241,26 @@ The theme spec sets these sizes only. Each component sets the other sizes that i
 
 - **Shell:** a 200px left rail holds the logo and the flag tabs. A double margin rule (1.5px, then 1px at 45%) separates the rail from the page. At 680px and less, the rail is a strip at the top, with the rule along its bottom and the tabs in a row on the rule. A beta build with a feedback form shows a "Send feedback" link after the logo: Inter 12px, weight 600, `--ink-muted`, with an underline. It opens the form in a new tab. In the rail it sits under the logo. In the strip it sits at the right end of the logo row. A build without a form has no link.
 - **Character sheet:** two columns at about 1 : 2, with a maximum width of 960px. The left column is 320px wide or more. Under 720px, the sections go in four tabs (Stats, Spells, Features, More) and the tab row sticks to the top. The action row above the sheet has the save status, Save, a Rest button with the moon icon, a solid Edit and a ghost Export. Rest opens a menu with Short rest, Long rest and Dawn. Narrower than 720px, these buttons show their labels only, so that the row stays on one line at 390px.
+- **Character builder:** the action row, the step rail across the top, then two columns: the open step at the left and the summary card, 250px wide, at the right, 28px apart. The card sticks to the top when the step scrolls, and the button "Open the full sheet" under it opens the sheet in a side panel. Under 860px the card does not show, and a Sheet button between Back and Next opens the panel: beside the shell rail and the card, the step would be narrower than 338px, and its controls need 323px. A part of a step sets its own columns from its own width, not from the page: six ability boxes in a row from 728px and three from 323px, six class cards in a row from 560px and three below, and the list with a detail panel side by side from 560px.
 - **Home:** one column: the title row, the tagline, the buttons, three facts, the beta note, then Recent characters.
+- **Side panel:** the full height of the window at its right side, up to 440px wide. Under 720px it is the full width.
 - **Dialogs:** a Dialog is 720px wide at most. A narrow Dialog (`size="narrow"`, for a short form or list such as the rest dialogs) is 520px wide at most. A wide Dialog (`size="wide"`, for the Spells panel) is 1100px wide at most. With `fill`, a wide Dialog is the height of the window less its 16px margins, and the owner lays out its body, for example as two panes that scroll apart. At 600px and less, a Dialog and a ListModal fill the screen.
 - **Density:** the sheet is dense, as a paper sheet is. Boxes are sized to their content. Forms are one column of labelled fields, with the label above the control.
 - The page never scrolls sideways. Long values truncate with an ellipsis or wrap.
 
 ### Named Rules
 
-**The No Layout Shift Rule.** A change to the play state does not move the other parts of the sheet or change the size of a dialog. A box keeps the space for a mark, a caption or a tag before it shows. A control that cannot be used stays in its place, disabled. The Conditions and statuses box is the one exception: it can get one more line of tokens. The full rules are in `docs/design/sheet-interactivity.md`, "No layout shift".
+**The No Layout Shift Rule.** A change to the play state does not move the other parts of the sheet or change the size of a dialog. A box keeps the space for a mark, a caption or a tag before it shows. A control that cannot be used stays in its place, disabled. The Conditions and statuses box is the one exception: it can get one more line of tokens. The full rules are in `docs/design/sheet-interactivity.md`, "No layout shift". The builder obeys the same rule: a pick does not move a heading, a mark, a list or the lines of the summary card, and a text that comes and goes shows in the status toast. The full rules are in `docs/design/character-builder.md`, "No layout shift".
 
 ## Elevation & Depth
 
-The system is flat. Depth comes from borders, from Raised Paper on Paper, and from the shaded Panel. Only things that are on top of the page cast a shadow: the notes, the current flag tab, a modal, a small popup or the menu of a split button, and the toast. The backdrop of a Dialog and of a ListModal is a 40% Ink wash.
+The system is flat. Depth comes from borders, from Raised Paper on Paper, and from the shaded Panel. Only things that are on top of the page cast a shadow: the notes, the current flag tab, a modal, the side panel, a small popup or the menu of a split button, and the toast. The backdrop of a Dialog and of a ListModal is a 40% Ink wash.
 
 ### Shadow Vocabulary
 
 - **Tab shadow** (`0 3px 6px -4px var(--note-shadow)`): the current flag tab.
 - **Note shadow** (`0 4px 8px -5px var(--note-shadow)`, and `0 2px 3px -1px var(--note-shadow)` for an inline note): alert notes and inline notes. `--note-shadow` is `rgba(60, 45, 0, 0.2)`, and `rgba(255, 255, 255, 0.1)` in the Dark theme.
-- **Modal shadow** (`0 22px 50px -18px var(--note-shadow)`): the Dialog and the ListModal.
+- **Modal shadow** (`0 22px 50px -18px var(--note-shadow)`): the Dialog and the ListModal. The side panel has an offset shadow in the same `--note-shadow` color.
 - **Stuck note:** a `drop-shadow` filter, because the folded corner is a `clip-path`. The note of the toast has the same filter.
 
 ### Named Rules
@@ -291,6 +293,8 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 
 - **Token:** one pick on a form, as a small box with its name and an X. Its label has one of three modes: a plain text, a button that opens a list for a new value, or a button that opens a small popup under the token. The popup can also open when a mouse is over the token, with no focus move. A token can have a short muted note after its name. It can have a dashed border, for a token that the app adds by itself, or the Bubble fill with an Info Blue border. A small token has Inter 600, 13px text, for a row of status tokens in a box. Slot circles that change in a token are 15px, with a 24px tap area.
 - **Chips:** number chips with an X, and a dashed "+ Add" button.
+- **Source tag:** a small box that only says where a value comes from, for example "+2 Race" in an ability box of the builder: Inter 11.5px Ink text on Raised Paper, with a 1px Strong Rule border. It has no X and no action. The lighter border keeps it apart from a Token, which is a pick.
+- **Picker:** the picks of a selection as tokens, with an add button that opens a ListModal. The token line can keep the height of a number of lines (28px each, 6px apart) before the first pick, so a pick does not move the add button.
 
 ### Cards / Containers
 
@@ -312,6 +316,8 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 
 - **Flag tabs:** Inter 600, 13.5px, uppercase, in Flag Ink. A tab has a pale body (55% of its color on white) and a solid end at the rule. The current tab sticks out further, is solid and has a small shadow. Hover moves a tab out a little, but not under `prefers-reduced-motion: reduce`.
 - **Home** has no tab. The logo in the rail links to it.
+- **Step rail:** the steps of the builder, as one row of buttons on a rule, in a `<nav>` named "Steps" with a list. A button shows the step number in 11px, then the name, in Inter 500, 13.5px, Muted Ink, at least 40px high. The current step has Ink text, a 3px Ink underline on the rule and `aria-current="step"`. The weight does not change, so the row does not move. A step with picks left shows the count as a yellow inline note after its name, and a step with picks to remove a red "Remove 1". The name of the button has the mark in words: "Class, 2 picks left". A step with nothing to pick is faded, and it still opens. The row does not wrap: it scrolls sideways, and the current step scrolls into view.
+- **Left mark:** the mark at the right of a selection heading, in one box 22px high and 92px wide or more: "2 left" as a yellow inline note, "Remove 1" as a red one, or the check icon and "Done" in Muted Ink Inter 12.5px. The mark is a part of the heading text for a screen reader: "Languages, 2 left".
 
 ### Menu and small popup
 
@@ -328,9 +334,19 @@ The components are in `@orc-alchemy/ui` (`packages/ui`). The app imports control
 - **Motion:** a text fades in from 8px below in 0.16s, and the status text fades out in 0.2s. Under `prefers-reduced-motion: reduce`, the toast does not fade or move.
 - **Live regions:** the status text and the note are polite status regions.
 
+### Dialogs and the side panel
+
+- **AlertDialog:** a question with Cancel and an action button. Cancel has the focus at the open. A body below the question, for example the list of the picks that a change removes, describes the dialog and scrolls when it is long, so the buttons stay in view. At the close the focus goes back to where it was, or to a control that the owner names when that place is gone.
+- **Dialog with no footer:** content to read, such as the About modal of the builder.
+- **Side panel:** a modal panel at the right side of the window with a title row, a Close button and a body that scrolls. It has the Paper fill and a 1.5px Ink border on its left, over the 40% Ink wash. Close has the focus at the open. Close, Escape and a click outside close it, and the focus goes back to its opener. The full sheet panel of the builder uses it.
+
 ### List rows
 
-A ListRow is a row of a list as a button: the full width, flat, with a Rule hairline under it, and an optional part at its end. Hover and focus give it the Panel fill. The current row (`aria-current`) has an Ink fill and Paper text, and its focus ring is Paper, inside the row, as a current ghost button turns solid. The rows of the ListModal are ListRows.
+A ListRow is a row of a list as a button: the full width, flat, with a Rule hairline under it, and an optional part at its end. Hover and focus give it the Panel fill. The current row (`aria-current`) has an Ink fill and Paper text, and its focus ring is Paper, inside the row, as a current ghost button turns solid. The rows of the ListModal are ListRows. A row that cannot be picked is locked: the lock icon, a dimmed Muted Ink name, and the reason in 12.5px Muted Ink Inter at its right. It keeps the focus and the arrow keys, and a click picks nothing.
+
+### List with a detail panel
+
+The main pick of the Background and Race steps. The list is 250px wide at the left and the panel is at the right, both 440px high, on Raised Paper with a Strong Rule border. A row has a 16px place for the check of the picked row or the lock, the name in Inter 14px, and a short aside in Inter 11px Muted Ink, for example the pack. The current row has the Ink fill of a ListRow. The panel content scrolls, and its action row stays at the bottom on a Strong Rule line. A part narrower than 560px has the list at the full width, 400px high, and the detail opens in a Dialog.
 
 ### Stuck note, alert note and note line
 
@@ -363,7 +379,7 @@ The icons are pixel icons, from Ethan's sprite sheet. The art is a grid of 16 by
 Each icon has one use:
 
 - **pencil:** a control that opens the builder, a Customize dialog or a homebrew form.
-- **check:** a control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog.
+- **check:** a control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. Also the mark of the Inspiration box, the "Done" left mark of a builder selection, and in a list with a detail panel the mark of the picked row and the button "Choose {name}".
 - **x:** a control that closes and does not keep the changes: Cancel.
 - **download:** a control that writes a file to the device: each Export button.
 - **import:** a control that reads a file or pasted text into the app.
@@ -373,11 +389,11 @@ Each icon has one use:
 - **left:** a control that goes back: Back to List and each "Back to" link.
 - **plus** and **minus:** plus is for a control that makes a new record, adds to a list or increases a number. Minus is for a button that decreases a number.
 - **trash:** a control that deletes a record or removes an item from a list: Delete and Remove.
-- **dice:** a control that makes a random result: Random character and Re-roll.
+- **dice:** a control that makes a random result: Random character, Re-roll, and the roll buttons and "Roll all" of the hit points of a class in the builder.
 - **save:** the Save button of the action row, which writes the character and closes nothing.
 - **lock:** a value that cannot change, for example an always-prepared spell. `LockIcon` draws it with no space after it.
 - **up** and **down:** no use at this time. They are for a control that moves or sorts.
-- **Class icons:** each SRD class has one icon, with the name of its drawing: `anger` (Barbarian), `note` (Bard), `sun` (Cleric), `leaf` (Druid), `helmet` (Fighter), `figure` (Monk), `shield` (Paladin), `arrow` (Ranger), `dagger` (Rogue), `spiral` (Sorcerer), `chain` (Warlock) and `book` (Wizard). A class icon goes only with the name of its class, in the Class step of the builder, which is not built.
+- **Class icons:** each SRD class has one icon, with the name of its drawing: `anger` (Barbarian), `note` (Bard), `sun` (Cleric), `leaf` (Druid), `helmet` (Fighter), `figure` (Monk), `shield` (Paladin), `arrow` (Ranger), `dagger` (Rogue), `spiral` (Sorcerer), `chain` (Warlock) and `book` (Wizard). A class icon goes only with the name of its class, in the Class step of the builder: in a class card (32px), in the modal of a class and in the header of a class block.
 
 A confirm dialog shows the check and the x only when its cancel text is "Cancel". A control with no entry in this list has no icon. The full rules are in `docs/design/theme.md`, "Icons".
 
@@ -395,7 +411,8 @@ The potion bottle, 16 × 16 pixel art. Show it only at a whole power-of-two scal
 - **Do** make each page work in the Light theme and the Dark theme, and at 390px wide.
 - **Do** show a current / max pair as the current value at full size, then `/ max` in Muted Ink.
 - **Do** obey `prefers-reduced-motion: reduce` for each motion.
-- **Do** keep the space for a mark, a caption or a tag before it shows, so that a change to the play state moves nothing.
+- **Do** keep the space for a mark, a caption or a tag before it shows, so that a change to the play state or a pick in the builder moves nothing.
+- **Do** set the columns of a part from the width of the part (a container query), not from the width of the page.
 
 ### Don't:
 

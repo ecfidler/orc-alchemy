@@ -4,6 +4,7 @@ import type { AvailableSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
+import { withoutOption } from "./reconcile.ts";
 import { type PickChange, planChange } from "./removed-picks.ts";
 import { SAGE_PACKS } from "./test-backgrounds.ts";
 import { WOOD_KIN_PACKS } from "./test-races.ts";
@@ -365,4 +366,42 @@ test("a removed Rogue with Expertise: the Expertise picks go", () => {
   const { question, apply } = plan(entity, { kind: "remove-class", classKey: "rogue" });
   expect(question?.rows).toContainEqual({ place: "Proficiencies", selection: "Expertise", picks: ["Athletics", "Stealth"] });
   expect(JSON.stringify(apply())).not.toContain("~:skill-expertise");
+});
+
+test("a selection that the change closes loses each of its picks, also when it had more picks than its max before", () => {
+  // High Elf gives one language pick and Acolyte two: three picks. Without the background the max is 1, and the three
+  // picks stay in the entity at ["languages"]. Wood Kin then closes the selection: each of the three picks goes.
+  const e = engine();
+  const three = e.select(
+    highElf([
+      [["background"], "acolyte"],
+      [["languages"], "giant"],
+    ]),
+    ["languages"],
+    "goblin",
+    SUBRACE_CONTENT,
+  ) as StrictEntity;
+  const over = withoutOption(three, ["background", "acolyte"]);
+  const languages = e.evaluate(over, SUBRACE_CONTENT).selections.find((s) => s.actualPath.join("/") === "languages")!;
+  expect([languages.selected.length, languages.max]).toEqual([3, 1]);
+  const { question, apply } = subracePlan(over, { kind: "pick", path: ["race", "elf", "subrace"], to: "wood-kin" });
+  expect(question?.rows).toEqual([{ place: "Proficiencies", selection: "Languages", picks: ["Halfling", "Giant", "Goblin"] }]);
+  const changed = apply();
+  for (const key of ["halfling", "giant", "goblin"]) expect(JSON.stringify(changed)).not.toContain(`~:${key}`);
+});
+
+test("a new option that opens the same top-level selection keeps the pick of the old option: High Elf to Human asks nothing about the language", () => {
+  // The engine does not record the source of a pick at ["languages"]. The Human gives one language pick too, so the
+  // pick of the High Elf stays, as the pick of the Human: max 1 and 1 pick.
+  const { question, apply } = plan(
+    character("wizard", [
+      [["race"], "elf"],
+      [["race", "elf", "subrace"], "high-elf"],
+      [["languages"], "halfling"],
+    ]),
+    { kind: "pick", path: ["race"], to: "human" },
+  );
+  expect(question?.rows ?? []).not.toContainEqual(expect.objectContaining({ selection: "Languages" }));
+  const languages = selections(apply()).filter((s) => s.actualPath.join("/") === "languages");
+  expect(languages.map(({ selected, max }) => [selected, max])).toEqual([[["halfling"], 1]]);
 });

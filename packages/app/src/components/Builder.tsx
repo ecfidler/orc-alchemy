@@ -90,7 +90,7 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
     setStepName(to);
   };
 
-  // The full sheet panel. Its two openers are the button below the summary card and, under 720px, the Sheet button.
+  // The full sheet panel. Its two openers are the button below the summary card and, under 860px, the Sheet button.
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const back = steps[index - 1];
@@ -99,8 +99,9 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
     <BuilderStatusToast>
       <div className="space-y-5">
         {step && <StepRail steps={rail} current={step.name} onStepChange={setStepName} />}
-        {/* The step at the left, and the summary card at the right. Under 720px the card does not show. */}
-        <div className="grid items-start gap-7 min-[720px]:grid-cols-[minmax(0,1fr)_250px]">
+        {/* The step at the left, and the summary card at the right. Under 860px the card does not show: beside the app
+        rail and the card, the step would be narrower than 338px, and its controls need that width (ORC-353). */}
+        <div className="grid items-start gap-7 min-[860px]:grid-cols-[minmax(0,1fr)_250px]">
           <section aria-label="Builder" className="min-w-0 space-y-4">
             {/* The heading names of the open step's sections, and where the character's picks come from (ORC-343). */}
             <StepFrameProvider steps={steps} step={step}>
@@ -137,12 +138,12 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                     {/* A class that prepares from its whole list can have no spell to pick, and still spells to prepare. */}
                     {step.name === SPELLS_STEP && <PreparedSpells />}
                     {step.name === "Equipment" && <Hands lists={step.selections.filter(isList)} />}
-                    {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 720px the Sheet button is
+                    {/* Back and Next. The Name step has no Back, and Next stays at the right. Under 860px the Sheet button is
                   between them. */}
                     <div className="flex flex-wrap justify-between gap-2 border-t border-rule pt-3">
                       {back ? <Button onClick={() => go(back.name)}>Back</Button> : <span />}
                       {sheet && (
-                        <Button className="min-[720px]:hidden" onClick={() => setSheetOpen(true)}>
+                        <Button className="min-[860px]:hidden" onClick={() => setSheetOpen(true)}>
                           Sheet
                         </Button>
                       )}
@@ -163,7 +164,7 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
               </OpenStepProvider>
             </StepFrameProvider>
           </section>
-          <div className="sticky top-4 max-[720px]:hidden">{sheet && <SummaryCard sheet={sheet} onOpenSheet={() => setSheetOpen(true)} />}</div>
+          <div className="sticky top-4 max-[860px]:hidden">{sheet && <SummaryCard sheet={sheet} onOpenSheet={() => setSheetOpen(true)} />}</div>
         </div>
       </div>
       {/* The sheet as the preview: the play controls cannot change. */}

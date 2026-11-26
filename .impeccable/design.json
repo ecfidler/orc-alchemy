@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-25T21:15:00Z",
+  "generatedAt": "2026-11-26T16:55:00Z",
   "title": "Design System: Alchemy 5e",
   "extensions": {
     "colorMeta": {
@@ -681,7 +681,12 @@
       },
       {
         "name": "sheet-tabs",
-        "value": "720px"
+        "value": "720px",
+        "purpose": "Under 720px the sheet goes in tabs and the side panel is the full width."
+      },
+      {
+        "name": "builder-card",
+        "value": "860px"
       }
     ]
   },
@@ -850,7 +855,7 @@
       },
       {
         "name": "The No Layout Shift Rule",
-        "body": "A change to the play state does not move the other parts of the sheet or change the size of a dialog. A box keeps the space for a mark, a caption or a tag before it shows. A control that cannot be used stays in its place, disabled. The Conditions and statuses box is the one exception: it can get one more line of tokens. The full rules are in `docs/design/sheet-interactivity.md`, \"No layout shift\".",
+        "body": "A change to the play state does not move the other parts of the sheet or change the size of a dialog. A box keeps the space for a mark, a caption or a tag before it shows. A control that cannot be used stays in its place, disabled. The Conditions and statuses box is the one exception: it can get one more line of tokens. The full rules are in `docs/design/sheet-interactivity.md`, \"No layout shift\". The builder obeys the same rule: a pick does not move a heading, a mark, a list or the lines of the summary card, and a text that comes and goes shows in the status toast. The full rules are in `docs/design/character-builder.md`, \"No layout shift\".",
         "section": "layout"
       },
       {
@@ -866,7 +871,8 @@
       "Do make each page work in the Light theme and the Dark theme, and at 390px wide.",
       "Do show a current / max pair as the current value at full size, then `/ max` in Muted Ink.",
       "Do obey `prefers-reduced-motion: reduce` for each motion.",
-      "Do keep the space for a mark, a caption or a tag before it shows, so that a change to the play state moves nothing."
+      "Do keep the space for a mark, a caption or a tag before it shows, so that a change to the play state or a pick in the builder moves nothing.",
+      "Do set the columns of a part from the width of the part (a container query), not from the width of the page."
     ],
     "donts": [
       "Don't let a stuck note cover the content of the box that it marks.",

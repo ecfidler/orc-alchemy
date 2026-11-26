@@ -433,7 +433,7 @@ test("Open the full sheet opens the panel with the keyboard; Escape closes it an
   await expect(panel).toHaveCount(0);
 });
 
-test("under 720px there is no card, and the Sheet button between Back and Next opens the panel at the full width", async ({ page }) => {
+test("under 860px there is no card, and the Sheet button between Back and Next opens the panel, at the full width under 720px", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await newCharacter(page);
   await openStep(page, "Class");
@@ -451,8 +451,8 @@ test("under 720px there is no card, and the Sheet button between Back and Next o
   await panel.getByRole("button", { name: "Close" }).click();
   await expect(panel).toHaveCount(0);
   await expect(sheet).toBeFocused();
-  // At 720px the card shows and the Sheet button does not.
-  await page.setViewportSize({ width: 720, height: 844 });
+  // At 860px the card shows and the Sheet button does not (ORC-353).
+  await page.setViewportSize({ width: 860, height: 844 });
   await expect(summaryCard(page)).toBeVisible();
   await expect(sheet).toBeHidden();
 });

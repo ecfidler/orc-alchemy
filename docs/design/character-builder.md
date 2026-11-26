@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T16:45:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T16:50:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -185,6 +185,14 @@ picks that the old option accounts for:[^orc-354]
   that cannot stay. A High Elf acolyte with two of its three languages
   picked keeps the two when the subrace changes, and the question asks
   nothing.
+* A selection that the change closes loses each of its picks, also when
+  it had more picks than its max before the change.[^orc-353]
+* A new option that opens the same top-level selection keeps the picks
+  of the old option, and the question does not list them. A High Elf
+  that becomes a Human keeps its extra language: the Human gives one
+  language pick too, so the selection has a max of 1 and 1 pick. The
+  engine does not record the source of a pick, so the builder cannot
+  tell the two picks apart. This is the accepted behaviour.[^orc-353]
 * An Expertise row names the skills, such as "Expertise: Stealth,
   Perception", not the option "Two Skills". The row names the option
   only when no skill of the option is picked.
@@ -299,9 +307,14 @@ The card has the same lines on each step:
   the sheet as the preview of today does: the play controls cannot
   change. The panel has a Close button, and Escape and a click outside
   close it.
-* When the page is narrower than 720px, the card does not show. A Sheet
-  button is between Back and Next, and it opens the same panel at the
-  full width.
+* When the page is narrower than 860px, the card does not show. A Sheet
+  button is between Back and Next, and it opens the same panel. Under
+  720px the panel has the full width.[^orc-353]
+* The bound comes from a measure. Beside the app rail and the card, the
+  step is 522px narrower than the page. The controls of a step need
+  323px: the ability score boxes are three in a row from that width. At
+  860px the step is 338px wide. From 720px to 859px, with no card, the
+  step is 476px to 615px wide.[^orc-353]
 
 # The control for each kind of selection
 
@@ -635,8 +648,9 @@ The main pick of each step is a list with a detail panel.[^orc-332]
 * The list and the panel are side by side only when the part is 560px
   wide or more. A narrower part is narrow, as in
   [A narrow page](#a-narrow-page). The width of the part counts, not the
-  width of the page: on a page from 720px to about 860px, the summary
+  width of the page: on a page from 860px to about 1080px, the summary
   card takes space, and the step is narrower than 560px.[^orc-347]
+  [^orc-353]
 * The facts of a background are Skills, Languages, Tools and Equipment,
   each only when the background gives it. A choice of the player shows
   as "Two of your choice".[^orc-347]
@@ -746,6 +760,17 @@ When the part of the step is narrower than 560px, the list has the full
 width and a height of 400px. A tap on a name opens the detail in a modal,
 with the Choose button. See [The list and the panel](#the-list-and-the-panel).
 
+The page of the builder is narrow below 860px.[^orc-353]
+
+* The summary card does not show, and the Sheet button between Back and
+  Next opens the full sheet panel. See [The summary card](#the-summary-card).
+* So the step keeps the width that its controls need. From 720px to
+  860px, the app rail is at the left, and the step is 476px to 615px
+  wide. Below 720px the app rail is a strip at the top.
+* At 390px each step fits in the page: no control goes past the step, the
+  rail scrolls sideways, the ability score boxes and the class cards are
+  three in a row, and each modal and dialog fits in the window.
+
 # The Abilities step
 
 The ability score control is six boxes, one for each ability.[^orc-331]
@@ -775,9 +800,9 @@ narrower one. The last bullet of the list below gives the widths.
 * The boxes are three in a row only when the control is 323px wide or
   more, so that each box has space for the point-buy buttons. A
   narrower control has two boxes in a row, and under 212px one box in a
-  row. The points from other sources use the same widths. On a page
-  from 720px to about 860px, the app rail and the summary card both
-  show, and the control is only 198px to 338px wide.[^orc-345]
+  row. The points from other sources use the same widths. The summary
+  card shows only on a page 860px wide or more, so the control is 323px
+  wide or more on each page from 390px.[^orc-345] [^orc-353]
 
 The base score for each method:
 
@@ -1017,5 +1042,6 @@ one depends only on parts of the frame.
 [^orc-350]: Class step: the choice rows, the subclass dialog and the improvement or feat row, <https://linear.app/orc-alchemy/issue/ORC-350/class-step-the-choice-rows-the-subclass-dialog-and-the-improvement-or>
 [^orc-351]: Class step: hit points, the picks on other steps and a second class, <https://linear.app/orc-alchemy/issue/ORC-351/class-step-hit-points-the-picks-on-other-steps-and-a-second-class>
 [^orc-352]: The Feats, Spells, Equipment and Description steps in the new frame, <https://linear.app/orc-alchemy/issue/ORC-352/the-feats-spells-equipment-and-description-steps-in-the-new-frame>
+[^orc-353]: Builder: the end-to-end pass, the narrow page and the docs, <https://linear.app/orc-alchemy/issue/ORC-353>
 [^orc-354]: The question before a change removes picks: the picks in a top-level selection stay, <https://linear.app/orc-alchemy/issue/ORC-354/the-question-before-a-change-removes-picks-the-picks-in-a-top-level>
 [^orc-355]: The race panel shows the traits that the engine gives, <https://linear.app/orc-alchemy/issue/ORC-355>
