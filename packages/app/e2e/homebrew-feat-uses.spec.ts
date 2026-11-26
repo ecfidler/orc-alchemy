@@ -1,7 +1,7 @@
-import { mkdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 // ORC-205: a feat's own uses and its features, made in the feat form, show on a character's sheet.
 
@@ -64,43 +64,4 @@ test("a feat with 3 uses for each long rest and two features shows its bubble an
   const gait = section(page, "Bonus Actions").getByRole("group", { name: "Rolling Gait" });
   await expect(gait.getByRole("slider", { name: "Rolling Gait" }).locator(".ui-slot-circle")).toHaveCount(1);
   await expect(gait.getByText("Short rest")).toBeVisible();
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- homebrew-feat-uses.spec.ts -g orc-205
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-205 uses of the feat and its features, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (locator: Locator, what: string) => locator.screenshot({ path: join(dir, `orc-205-${what}-${theme}.png`) });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1100, height: 900 });
-
-      await makeStormcaller(page);
-      await page.evaluate(() => document.fonts.ready);
-      const uses = group(page, "Uses of the feat");
-      await shot(uses, "fixed-uses");
-      await shot(group(page, "Features"), "features");
-
-      // Scaled by the character level, with the sentence.
-      await group(page, "Feat Uses").getByRole("button", { name: "Scaled" }).click();
-      await pickOption(combobox(page, "Feat equal to"), "Character level × n");
-      await pickOption(combobox(page, "Feat n"), "2");
-      await expect(uses.getByText("Uses equal 2 × your character level. A level 5 character gets 10.")).toBeVisible();
-      await shot(uses, "scaled-uses");
-
-      // Back to 3 uses for each long rest, saved, on a character's sheet.
-      await group(page, "Feat Uses").getByRole("button", { name: "Fixed" }).click();
-      await pickOption(combobox(page, "Feat amount"), "3");
-      await page.getByRole("button", { name: "Save" }).click();
-      await expect(page).toHaveURL(/\/content$/);
-      await importWithFeat(page, "stormcaller");
-      const features = page.getByRole("group", { name: "Features & traits" });
-      await expect(features.getByRole("group", { name: "Stormcaller" })).toBeVisible();
-      await page.evaluate(() => document.fonts.ready);
-      await shot(features, "sheet");
-    });
-  }
 });

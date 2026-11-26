@@ -1,5 +1,3 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { showSpellView as show } from "./spell-view-page.ts";
 
@@ -54,26 +52,4 @@ test("a line of the description holds about 70 characters", async ({ page }) => 
   });
   expect(perLine).toBeGreaterThan(62);
   expect(perLine).toBeLessThan(78);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- spell-view.spec.ts
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-284 the spell view in a wide dialog, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = async (key: string, name: string, what: string) => {
-        await show(page, key, name, { theme });
-        await page.screenshot({ path: join(dir, `orc-284-${what}-${theme}.png`) });
-      };
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await shot("bless", "Bless", "bless");
-      await shot("hunters-mark", "Hunter's Mark", "concentration-higher-levels");
-      await shot("tsunami", "Tsunami", "no-record");
-      await page.setViewportSize({ width: 390, height: 844 });
-      await shot("bless", "Bless", "bless-phone");
-    });
-  }
 });

@@ -1,10 +1,8 @@
 // The control of a builder selection in a browser (ORC-343, docs/design/character-builder.md "The control for each
 // kind of selection", "No layout shift"): a pick in a picker or in a list moves nothing above or below the selection.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { pickFromPicker } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
-import { addFirstClass, listOpener, newCharacter, openStep, pickIn, picksIn, section } from "./builder-helpers.ts";
+import { addFirstClass, newCharacter, openStep, pickIn, picksIn, section } from "./builder-helpers.ts";
 
 /** A new human fighter on the Proficiencies step: 2 skills of 8 in a picker, and 1 language of 16 in a list. */
 async function humanFighter(page: Page) {
@@ -84,84 +82,4 @@ test("the list of one pick works with the keyboard, and a locked row cannot be p
   await expect(dialog).toHaveCount(0);
   await expect(picksIn(languages)).toHaveText([name!]);
   await expect(languages.getByRole("button", { name: "Change Languages" })).toBeFocused();
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/selection-control.spec.ts -g orc-343 --trace off
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const ready = async (page: Page) => {
-    await page.evaluate(() => document.fonts.ready);
-    await page.mouse.move(0, 0);
-  };
-
-  /** A half-elf acolyte barbarian on the Proficiencies step, with Perception picked for the half-elf. */
-  async function halfElfBarbarian(page: Page, theme: string) {
-    await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-    await page.setViewportSize({ width: 1280, height: 1000 });
-    await newCharacter(page);
-    await addFirstClass(page, "Barbarian");
-    await openStep(page, "Race");
-    await pickIn(section(page, "Race"), "Half-Elf");
-    await openStep(page, "Background");
-    await pickIn(section(page, "Background"), "Acolyte");
-    await openStep(page, "Proficiencies");
-    await pickIn(section(page, "Skills: Half-Elf"), "Perception");
-  }
-
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-343 option cards with an option that is not available, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await halfElfBarbarian(page, theme);
-      const cards = section(page, "Skills: Barbarian");
-      await expect(cards.getByRole("button", { name: "Perception" })).toBeDisabled();
-      await ready(page);
-      await cards.screenshot({ path: join(dir, `orc-343-cards-not-available-${theme}.png`) });
-    });
-
-    test(`orc-343 a picker with tokens and its list with a locked row, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await halfElfBarbarian(page, theme);
-      const picker = section(page, "Skills: Half-Elf");
-      await expect(picksIn(picker)).toHaveText(["Perception"]);
-      await ready(page);
-      await picker.screenshot({ path: join(dir, `orc-343-picker-tokens-${theme}.png`) });
-      await listOpener(picker).click();
-      await expect(page.getByRole("dialog").getByRole("button", { name: "Insight", exact: true })).toContainText("From Acolyte");
-      await ready(page);
-      await page.screenshot({ path: join(dir, `orc-343-picker-list-locked-${theme}.png`) });
-    });
-
-    test(`orc-343 a Choose row, its list, and the row after the pick with Change, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await humanFighter(page);
-      const languages = section(page, "Languages");
-      await ready(page);
-      await languages.screenshot({ path: join(dir, `orc-343-choose-before-${theme}.png`) });
-      await languages.getByRole("button", { name: "Choose Languages" }).click();
-      await expect(page.getByRole("dialog").getByRole("button", { name: "Common", exact: true })).toContainText("From Human");
-      await ready(page);
-      await page.screenshot({ path: join(dir, `orc-343-choose-list-${theme}.png`) });
-      await page.getByRole("dialog").getByRole("button", { name: "Dwarvish", exact: true }).click();
-      await expect(languages.getByRole("button", { name: "Change Languages" })).toBeVisible();
-      await ready(page);
-      await languages.screenshot({ path: join(dir, `orc-343-choose-after-${theme}.png`) });
-    });
-
-    test(`orc-343 flat sections after a pick, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await newCharacter(page);
-      await addFirstClass(page, "Fighter");
-      await openStep(page, "Race");
-      await pickIn(section(page, "Race"), "Human");
-      await expect(section(page, "Subrace")).toBeVisible();
-      await ready(page);
-      await page.getByRole("region", { name: "Builder" }).screenshot({ path: join(dir, `orc-343-flat-sections-${theme}.png`) });
-    });
-  }
 });

@@ -1,6 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { pickFromPicker, removeToken } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
@@ -113,48 +111,4 @@ test("tokens wrap on one line, and a long name wraps inside its token", async ({
   expect(new Set(tokens.map((t) => Math.round(t.top))).size).toBeGreaterThan(1);
   for (const t of tokens) expect(t.right).toBeLessThanOrEqual(line.x + line.width + 0.5);
   expect(tokens[2]!.height).toBeGreaterThan(40);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- picker.spec.ts
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2, viewport: { width: 760, height: 820 } });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const shot = (what: string, theme: string) => join(dir, `orc-196-${what}-${theme}.png`);
-  for (const theme of ["light", "dark"] as const) {
-    test(`the picker controls, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const main = page.locator("main");
-      await show(page, "picker", theme);
-      await main.screenshot({ path: shot("picker-closed", theme) });
-      await page.getByRole("button", { name: "Add a fruit" }).click();
-      await page.getByRole("button", { name: "Banana" }).click();
-      await page.getByRole("button", { name: "Banana" }).waitFor({ state: "detached" });
-      await page.screenshot({ path: shot("picker-modal", theme) });
-
-      await show(page, "list", theme);
-      await page.getByRole("button", { name: "Add a basket" }).click();
-      await page.getByRole("dialog").waitFor();
-      await page.screenshot({ path: shot("list-modal", theme) });
-
-      await page.setViewportSize({ width: 480, height: 400 });
-      await show(page, "tokens", theme);
-      await main.screenshot({ path: shot("tokens", theme) });
-
-      await show(page, "toggle", theme);
-      await main.screenshot({ path: shot("number-toggle", theme) });
-
-      await page.setViewportSize({ width: 760, height: 520 });
-      await show(page, "chips", theme);
-      await page.getByRole("button", { name: "Add a row" }).click();
-      await page.getByRole("menu").waitFor();
-      await page.screenshot({ path: shot("chips-menu", theme) });
-
-      await page.setViewportSize({ width: 390, height: 760 });
-      await show(page, "picker", theme);
-      await page.getByRole("button", { name: "Add a fruit" }).click();
-      await page.getByRole("dialog").waitFor();
-      await page.screenshot({ path: shot("picker-phone", theme) });
-    });
-  }
 });

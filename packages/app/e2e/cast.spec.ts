@@ -5,7 +5,6 @@
 // the concentration mark with its question, the
 // Concentrate button, and the pact slots of a warlock. ORC-321: the spells
 // with their own uses, Mystic Arcanum and the invocation spells.
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { openWithValues, statusLine, storedValues } from "./play-helpers.ts";
@@ -79,9 +78,6 @@ const layout = (page: Page) =>
       return [x - origin.x, y - origin.y, width, height].map((n) => Math.round(n * 10) / 10).join(" ");
     });
   });
-
-/** Takes the focus off the focused element, so that a screenshot shows no focus ring. */
-const blur = (page: Page) => page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
 test("Cast beside the name spends a slot of the spell level; the hint and the toast say it, and nothing moves", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -384,92 +380,4 @@ test("a cast note with uses that the app cannot link has no Cast button, only th
   const dialog = await showUnlinked(page);
   await expect(dialog.locator("[data-cast-control]")).toHaveText("This spell has its own uses (Fey Step). Spend the use on the sheet.");
   await expect(dialog.getByRole("button", { name: /Cast/ })).toHaveCount(0);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/cast.spec.ts -g orc-320
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-320 Cast, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-320-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openWithValues(page, CLERIC, { [CONCENTRATION]: "~:bless" });
-        await openSpell(page, "Cure Wounds");
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-cast-control`) });
-        await arrow(page).click();
-        await expect(menu(page)).toBeVisible();
-        await page.screenshot({ path: shot(`${size}-menu-amounts`) });
-        await menu(page)
-          .getByRole("menuitem", { name: /^3rd level/ })
-          .click();
-        await expect(status(page)).not.toHaveText("");
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-status`) });
-        await openSpell(page, "Spiritual Weapon");
-        await arrow(page).click();
-        await expect(menu(page)).toBeVisible();
-        await page.screenshot({ path: shot(`${size}-menu-text`) });
-        await page.keyboard.press("Escape");
-        await openSpell(page, "Shield of Faith");
-        await castButton(page, "Shield of Faith").click();
-        const ask = page.getByRole("dialog", { name: "Cast Shield of Faith?" });
-        await expect(ask).toBeVisible();
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-concentration-dialog`) });
-        await ask.getByRole("button", { name: "Cancel" }).click();
-        await expect(ask).toBeHidden();
-        await openWithValues(page, WARLOCK);
-        await openSpell(page, "Vampiric Touch");
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-warlock`) });
-      }
-    });
-  }
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/cast.spec.ts -g orc-321
-test.describe("screenshots of the spells with their own uses", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-321 own uses, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-321-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openWithValues(page, WARLOCK);
-        await openSpell(page, "Mass Suggestion");
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-mystic-arcanum`) });
-        await openSpell(page, "Bane");
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-invocation`) });
-        await castButton(page, "Bane").click();
-        await expect(castButton(page, "Bane")).toBeDisabled();
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-spent`) });
-        await closePanel(page);
-        if (size === "phone") await page.getByRole("tab", { name: "Features" }).click();
-        await useCircles(page, "Eldritch Invocation: Thief of Five Fates").scrollIntoViewIfNeeded();
-        await page.screenshot({ path: shot(`${size}-sheet-bubble`) });
-        await showUnlinked(page, theme);
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-unlinked`) });
-      }
-    });
-  }
 });

@@ -1,8 +1,5 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { SUGGESTION_PACK } from "../src/components/builders/test-suggestion-pack.ts";
-import { featureCard as card } from "./homebrew-helpers.ts";
 
 // ORC-206: the form reads the text of a feature and suggests uses and a type. One click fills the control.
 
@@ -52,40 +49,4 @@ test("the feat's own section shows the line of the feat's description", async ({
   await usesButton.click();
   await expect(group(page, "Feat Uses").getByRole("button", { name: "Fixed" })).toHaveAttribute("aria-pressed", "true");
   await expect(usesButton).toHaveCount(0);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- homebrew-suggested-uses.spec.ts -g orc-206
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-206 suggested uses, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (locator: Locator, what: string) => locator.screenshot({ path: join(dir, `orc-206-${what}-${theme}.png`) });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1100, height: 900 });
-
-      await addSongOfCourage(page);
-      await page.evaluate(() => document.fonts.ready);
-      await shot(card(page, 1), "uses-line");
-
-      // After "Use this" for the uses: the control is filled, and the type line stays.
-      await page.getByRole("button", { name: "Feature 1 uses: Use this" }).click();
-      await expect(combobox(page, "Feature 1 equal to")).toHaveText("Charisma modifier");
-      await shot(card(page, 1), "type-line");
-
-      await page.getByRole("button", { name: "Feature 1 type: Use this" }).click();
-      await expect(combobox(page, "Feature 1 type")).toHaveText("Bonus Action");
-      await shot(card(page, 1), "after-use-this");
-
-      // The feat's own section.
-      await page.goto("/content/new/feat");
-      await page.getByRole("textbox", { name: "Name", exact: true }).fill("Tide-Touched");
-      await page.getByRole("textbox", { name: "Description", exact: true }).fill(text("Tidal Surge"));
-      await expect(page.getByRole("button", { name: "Feat uses: Use this" })).toBeVisible();
-      await page.evaluate(() => document.fonts.ready);
-      await shot(group(page, "Uses of the feat"), "feat-line");
-    });
-  }
 });

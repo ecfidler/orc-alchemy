@@ -3,7 +3,6 @@
 // the menu entry, the token with six circles and an X, the popup of the
 // effects, the speed and the hit point maximum with their captions, Dead at
 // level 6, and no layout shift outside the box.
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { aboveBox, layout, openWithValues, statusLine, storedValues } from "./play-helpers.ts";
@@ -273,55 +272,3 @@ for (const [width, height] of [
     }
   });
 }
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/exhaustion.spec.ts -g orc-323
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-323 Exhaustion, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-323-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openSheet(page);
-        const panel = page.locator(".ui-panel").filter({ has: hitPoints(page) });
-        const still = async () => {
-          await page.mouse.move(0, 0);
-          await expect(effects(page)).toHaveCount(0);
-          await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        };
-        await addExhaustion(page);
-        await still();
-        await panel.screenshot({ path: shot(`${size}-level-1`) });
-        for (const level of [2, 3, 4, 5, 6]) {
-          await oneMore(page, level);
-          await still();
-          if (level !== 3) await panel.screenshot({ path: shot(`${size}-level-${level}`) });
-        }
-        await circles(page).locator(".ui-slot-circle").first().click();
-        await expect(circles(page)).toHaveAttribute("aria-valuetext", "level 5 of 6");
-        for (const level of [4, 3]) {
-          await circles(page).locator(".ui-slot-circle").first().click();
-          await expect(circles(page)).toHaveAttribute("aria-valuetext", `level ${level} of 6`);
-        }
-        await token(page).locator(".ui-slot-circles").hover();
-        await expect(effects(page)).toBeVisible();
-        await page.screenshot({ path: shot(`${size}-effects`) });
-        await openWithValues(page, FIGHTER, {
-          [EXHAUSTION]: 2,
-          "~:orc-alchemy.play/concentration": "~:bless",
-          "~:orc-alchemy.play/conditions": { "~#set": ["~:poisoned", "~:prone"] },
-        });
-        await expect(box(page)).toBeVisible();
-        await still();
-        await panel.screenshot({ path: shot(`${size}-with-tokens`) });
-      }
-    });
-  }
-});

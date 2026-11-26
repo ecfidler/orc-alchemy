@@ -2,7 +2,6 @@
 // "The status toast"): the text of the last action and the concentration note
 // show at the bottom of the screen, and take no space in the sheet. A text that
 // comes and goes moves nothing, and the vitals panel keeps no empty space for it.
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { concentrationNote, layoutOf, openWithValues, pauseClock, statusLine, toast, vitals } from "./play-helpers.ts";
@@ -246,45 +245,4 @@ test("a menu that the user opens after the text is over the toast", async ({ pag
   expect(bottom - top).toBeGreaterThan(8);
   const onTop = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("[role=menu]") !== null, [(left + right) / 2, (top + bottom) / 2]);
   expect(onTop).toBe(true);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/status-toast.spec.ts -g orc-326 --trace off
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-326 status toast, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-326-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      // Takes the focus away, and waits for the fade in of the toast to end.
-      const blur = async () => {
-        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        await page.waitForFunction(() => (document.querySelector(".ui-toast")?.getAnimations({ subtree: true }).length ?? 0) === 0);
-      };
-      for (const [size, width, height] of SIZES) {
-        await page.setViewportSize({ width, height });
-        await openSheet(page);
-        await blur();
-        await vitals(page).screenshot({ path: shot(`${size}-vitals-panel`) });
-        await hitPointsAct(page, "12", "Damage");
-        await expect(statusLine(page)).toHaveText("12 damage.");
-        await blur();
-        await page.screenshot({ path: shot(`${size}-status-toast`) });
-        await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
-        await hitPointsAct(page, "24", "Damage");
-        await expect(concentrationNote(page)).not.toHaveText("");
-        await blur();
-        await page.screenshot({ path: shot(`${size}-concentration-note`) });
-        await openWithValues(page, CLERIC);
-        await openSpell(page, "Cure Wounds");
-        await spellView(page).getByRole("group", { name: "Cast Cure Wounds" }).getByRole("button").first().click();
-        await expect(statusLine(page)).not.toHaveText("");
-        await page.mouse.move(0, 0);
-        await blur();
-        await page.screenshot({ path: shot(`${size}-cast`) });
-      }
-    });
-  }
 });

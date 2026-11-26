@@ -1,8 +1,6 @@
 // The ability score control in a browser (ORC-345, docs/design/character-builder.md "The Abilities step", "No layout
 // shift", "Keyboard and screen reader"): six boxes that do not move or change their size, a swap of two scores by a
 // drag (mouse and touch), by two clicks and by the keyboard, and the increases of a half-elf in a section below.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { newCharacter, openStep, pickIn, section } from "./builder-helpers.ts";
 
@@ -189,58 +187,4 @@ test("the half-elf's increases: a token in the box, the left mark, and a plus th
   await increases.getByRole("button", { name: "Increase Wisdom" }).click();
   await expect(box(page, "Wisdom").locator("[data-token]")).toHaveText(["+1 Race"]);
   await expect(increases.getByRole("heading")).toHaveText(/1 left$/);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/ability-scores.spec.ts -g orc-345 --trace off
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const ready = async (page: Page) => {
-    await page.evaluate(() => document.fonts.ready);
-    await page.mouse.move(0, 0);
-  };
-  const shoot = (page: Page, name: string) =>
-    page.getByRole("region", { name: "Builder" }).screenshot({ path: join(dir, `orc-345-${name}.png`), animations: "disabled" });
-
-  // 1280px: six in a row. 660px, a little narrower than the breakpoint with no rail, and 390px: three in a row.
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390]) {
-      const size = width === 390 ? "390" : "desktop";
-      test(`orc-345 each method, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 1000 });
-        await abilitiesStep(page, { halfElf: true });
-        const increases = section(page, "Ability Score Increase: Half-Elf");
-        await increases.getByRole("button", { name: "Increase Strength" }).click();
-        for (const [key, name] of [
-          ["standard-scores", "Standard Scores"],
-          ["standard-roll", "Standard Roll"],
-          ["point-buy", "Point Buy"],
-          ["manual-entry", "Manual Entry"],
-        ]) {
-          await method(page, name).click();
-          await expect(method(page, name)).toHaveAttribute("aria-pressed", "true");
-          if (key === "point-buy")
-            for (const ability of ["Strength", "Strength", "Strength", "Dexterity", "Constitution", "Constitution"])
-              await box(page, ability)
-                .getByRole("button", { name: `Increase ${ability}` })
-                .click();
-          await ready(page);
-          await shoot(page, `${key}-${size}-${theme}`);
-        }
-      });
-    }
-
-  for (const theme of ["light", "dark"])
-    test(`orc-345 a chip picked up, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1280, height: 1000 });
-      await abilitiesStep(page, { halfElf: true });
-      await chip(page, "Dexterity").click();
-      await ready(page);
-      await shoot(page, `chip-picked-up-${theme}`);
-    });
 });

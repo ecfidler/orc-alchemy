@@ -3,7 +3,6 @@
 // "Concentration"): add and remove a condition, the rule popup, speed 0 with
 // its caption, the Unconscious token at 0 hit points, the token of the
 // concentration mark, and the concentration note after Damage.
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { aboveBox, concentrationNote, layout, layoutOf, openWithValues, pauseClock, statusLine, storedValues, vitals } from "./play-helpers.ts";
@@ -315,54 +314,4 @@ test("on a phone the box is on the Stats tab, under the hit points, and a rule p
   await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: "Features" }).click();
   await expect(box(page)).toBeHidden();
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- conditions.spec.ts -g orc-322
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-322 Conditions and statuses, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-322-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openSheet(page, FIGHTER, { [CONCENTRATION]: "~:bless" });
-        const panel = vitals(page);
-        await box(page).getByRole("button", { name: "Stop concentrating on Bless" }).click();
-        await page.mouse.move(0, 0);
-        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        await panel.screenshot({ path: shot(`${size}-empty`) });
-        await addButton(page).click();
-        await expect(menu(page)).toBeVisible();
-        await page.screenshot({ path: shot(`${size}-menu`) });
-        await page.keyboard.press("Escape");
-        await page.reload();
-        await expect(box(page)).toBeVisible();
-        await page.evaluate(() => document.fonts.ready);
-        await add(page, "Restrained");
-        await panel.screenshot({ path: shot(`${size}-speed-0`) });
-        await add(page, "Poisoned");
-        await add(page, "Prone");
-        await openWithValues(page, FIGHTER, { [CONCENTRATION]: "~:bless", [CONDITIONS]: { "~#set": ["~:poisoned", "~:prone", "~:restrained"] } });
-        await expect(box(page)).toBeVisible();
-        await panel.screenshot({ path: shot(`${size}-tokens`) });
-        await box(page).getByRole("button", { name: "Restrained", exact: true }).click();
-        await expect(page.getByRole("dialog", { name: "Restrained" })).toBeVisible();
-        await page.screenshot({ path: shot(`${size}-rule`) });
-        await page.keyboard.press("Escape");
-        await hitPointsAct(page, "24", "Damage");
-        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        await panel.screenshot({ path: shot(`${size}-note`) });
-        await hitPointsAct(page, "0", "Set HP");
-        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        await panel.screenshot({ path: shot(`${size}-zero`) });
-      }
-    });
-  }
 });

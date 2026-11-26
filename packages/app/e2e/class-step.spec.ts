@@ -1,11 +1,10 @@
 // The Class step, in a browser (ORC-349, docs/design/character-builder.md "The class cards", "The class block", "No
 // layout shift"): the pick of a first class from the cards and the modal, a change of class and a lower level that ask
 // first (ORC-344), the level field and its buttons, the header of a block that does not move, a character with two
-// classes, and the screenshots of the PR. ORC-350 ("Choices"): the choice rows open and closed, a pick that keeps its
+// classes. ORC-350 ("Choices"): the choice rows open and closed, a pick that keeps its
 // row open and moves no row below, the subclass dialog, the row "Ability Score Improvement or Feat", and a class with
 // no choice. ORC-351 ("Hit points", "Picked on other steps", "A second class"): Average and By level, the lines to
 // other steps, Add a class, Remove, and a block that closes.
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import {
@@ -443,127 +442,4 @@ test("Remove asks first; a closed block shows its left mark, and the fixture has
   await expect(builder(page).getByRole("button", { name: "Change Rogue" })).toBeFocused();
   // 28 for the fighter, and 3 × (5 + 2) for the rogue.
   await expect(sheetHitPoints(page)).toHaveText("49");
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/class-step.spec.ts -g orc-349 --trace off
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const ready = async (page: Page) => {
-    await page.evaluate(() => document.fonts.ready);
-    await page.mouse.move(0, 0);
-  };
-
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390]) {
-      const size = width === 390 ? "390" : "desktop";
-      test(`orc-349 the Class step, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        const shot = (locator: Locator, what: string) =>
-          locator.screenshot({ path: join(dir, `orc-349-${what}-${size}-${theme}.png`), animations: "disabled" });
-        const full = (what: string) => page.screenshot({ path: join(dir, `orc-349-${what}-${size}-${theme}.png`), animations: "disabled" });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        await newCharacter(page);
-        await openStep(page, "Class");
-        await ready(page);
-        await shot(builder(page), "cards");
-        await classCard(builder(page), "Fighter").click();
-        const modal = page.getByRole("dialog", { name: "Fighter", exact: true });
-        await expect(modal.getByRole("columnheader")).toHaveText(["Level", "Features"]);
-        await ready(page);
-        await full("modal");
-        await modal.getByRole("button", { name: "Choose Fighter" }).click();
-        await builder(page).getByRole("button", { name: "Add a Fighter level" }).click();
-        await builder(page).getByRole("button", { name: "Add a Fighter level" }).click();
-        // Under 720px the summary card does not show.
-        await expect(levelField(page, "Fighter")).toHaveValue("3");
-        await expect(builder(page).getByRole("region", { name: /^Martial Archetype/ })).toBeVisible();
-        await ready(page);
-        await shot(builder(page), "block");
-        await builder(page).getByRole("button", { name: "Change Fighter" }).click();
-        await expect(page.getByRole("dialog", { name: "Change Fighter" })).toBeVisible();
-        await ready(page);
-        await full("change");
-      });
-
-      // PR_SCREENSHOTS=1 bunx playwright test e2e/class-step.spec.ts -g orc-350 --trace off
-      test(`orc-350 the choice rows, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        const shot = (locator: Locator, what: string) =>
-          locator.screenshot({ path: join(dir, `orc-350-${what}-${size}-${theme}.png`), animations: "disabled" });
-        const full = (what: string) => page.screenshot({ path: join(dir, `orc-350-${what}-${size}-${theme}.png`), animations: "disabled" });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        // The rows of a Fighter 4, open with their picks left.
-        await classAt(page, "Fighter", 4);
-        await pickIn(section(page, "Fighting Style"), "Defense");
-        await ready(page);
-        await shot(builder(page).getByRole("region", { name: "Fighter", exact: true }), "fighter-4");
-        // The subclass dialog, with the features table of the subclass.
-        await section(page, "Martial Archetype").getByRole("button", { name: "Choose Martial Archetype" }).click();
-        const dialog = page.getByRole("dialog", { name: "Martial Archetype" });
-        if (width === 390) await dialog.locator(".ui-list-panel").getByRole("button", { name: "Champion", exact: true }).click();
-        await expect(page.getByRole("columnheader", { name: "Features" })).toBeVisible({ timeout: 15_000 });
-        await ready(page);
-        await full("subclass-dialog");
-        await page.getByRole("button", { name: "Choose Champion" }).click();
-        await expect(picksIn(section(page, "Martial Archetype"))).toHaveText(["Champion"]);
-        // The improvement or feat before and after its pick.
-        const improvement = section(page, IMPROVEMENT);
-        await ready(page);
-        await shot(improvement, "improvement-before");
-        await pickIn(improvement, "Ability Score Improvement");
-        await expect(improvement.getByRole("button", { name: /^Place 2 points/ })).toBeVisible();
-        await ready(page);
-        await shot(improvement, "improvement-points");
-        await pickIn(improvement, "Feat");
-        await expect(improvement.getByRole("button", { name: /^Pick the feat/ })).toBeVisible();
-        await ready(page);
-        await shot(improvement, "improvement-feat");
-        // An open row with 7 options or more: the Metamagic picker of a Sorcerer 3.
-        await classAt(page, "Sorcerer", 3);
-        await pickIn(section(page, "Metamagic"), "Careful Spell");
-        await ready(page);
-        await shot(section(page, "Metamagic"), "picker");
-      });
-
-      // PR_SCREENSHOTS=1 bunx playwright test e2e/class-step.spec.ts -g orc-351 --trace off
-      test(`orc-351 hit points, other steps and a second class, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        const shot = (locator: Locator, what: string) =>
-          locator.screenshot({ path: join(dir, `orc-351-${what}-${size}-${theme}.png`), animations: "disabled" });
-        const full = (what: string) => page.screenshot({ path: join(dir, `orc-351-${what}-${size}-${theme}.png`), animations: "disabled" });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        await importOnClass(page, "fighter-3-wizard-2.strict.json");
-        // The section Hit points in both methods, and the lines to other steps.
-        await ready(page);
-        await shot(hitPointsOf(page, "Fighter"), "hit-points-average");
-        await setHitPointsMethod(page, "Fighter", "By level");
-        await expect(levelHitPoints(page, "Fighter", 3)).toHaveValue("6");
-        await levelHitPoints(page, "Fighter", 3).fill("9");
-        await levelHitPoints(page, "Fighter", 3).press("Tab");
-        await expect(hitPointsTotal(page, "Fighter")).toHaveText("31");
-        await ready(page);
-        await shot(hitPointsOf(page, "Fighter"), "hit-points-by-level");
-        await shot(block(page, "Wizard").getByRole("region", { name: "Picked on other steps" }), "other-steps");
-        // The dialog of Add a class, with the classes that the character cannot take dimmed.
-        await builder(page).getByRole("button", { name: "Add a class", exact: true }).click();
-        await expect(classCard(page.getByRole("dialog", { name: "Add a class" }), "Monk")).toContainText("Needs");
-        await ready(page);
-        await full("add-a-class");
-        await classCard(page.getByRole("dialog", { name: "Add a class" }), "Monk").click();
-        await expect(page.getByRole("button", { name: "Add Monk" })).toBeDisabled();
-        await ready(page);
-        await full("add-a-class-modal");
-        await page.keyboard.press("Escape");
-        await page.keyboard.press("Escape");
-        // Two blocks, the first one closed.
-        await builder(page).getByRole("button", { name: "Close Fighter" }).click();
-        await ready(page);
-        await shot(builder(page).getByRole("region", { name: "Class", exact: true }), "two-blocks");
-      });
-    }
 });

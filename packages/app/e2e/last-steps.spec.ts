@@ -1,9 +1,7 @@
 // The Feats, Spells, Equipment and Description steps in the new frame, in a browser (ORC-352,
 // docs/design/character-builder.md "The Feats step", "The Spells and Equipment steps", "The Description step" and "No
 // layout shift"): a pick does not move a spell selection or a starting equipment selection, the feat section names its
-// source, Alignment is the first field of the Description step, and the screenshots of the PR.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+// source, and Alignment is the first field of the Description step.
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { addFirstClass, builder, newCharacter, openFixture, openStep, section, stepButton } from "./builder-helpers.ts";
@@ -116,59 +114,4 @@ test("the one-line fields of the Description step are three in a row on a wide s
     await expect(builder(page).getByLabel("Player Name")).toBeVisible();
     expect(await descriptionColumns(page), `${width}px`).toEqual({ columns, overflow: false });
   }
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/last-steps.spec.ts -g orc-352 --trace off
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const ready = async (page: Page) => {
-    await page.evaluate(() => document.fonts.ready);
-    await page.mouse.move(0, 0);
-  };
-
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390]) {
-      const size = width === 390 ? "390" : "desktop";
-      test(`orc-352 the Feats, Spells, Equipment and Description steps, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        const shot = (locator: Locator, what: string) =>
-          locator.screenshot({ path: join(dir, `orc-352-${what}-${size}-${theme}.png`), animations: "disabled" });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-
-        // Feats: fighter-20 takes Grappler.
-        await openFixture(page, "fighter-20", "Feats");
-        await expect(section(page, "Feats: Fighter").getByRole("list", { name: "Customize Feats" })).toBeVisible();
-        await ready(page);
-        await shot(builder(page), "feats");
-        // Description: the alignment and the fields of fighter-20.
-        await openStep(page, "Description");
-        await expect(builder(page).getByRole("combobox", { name: /^Alignment/ })).toBeVisible();
-        await ready(page);
-        await shot(builder(page), "description");
-
-        // Spells and Equipment: a new wizard 1 with one cantrip, and its starting equipment with picks left.
-        await newCharacter(page);
-        await addFirstClass(page, "Wizard");
-        await openStep(page, "Spells");
-        await section(page, "Wizard Cantrips Known").getByRole("button", { name: "Fire Bolt", exact: true }).click();
-        await expect(section(page, "Wizard Cantrips Known").getByRole("list", { name: /^Chosen/ })).toHaveText("Fire Bolt");
-        await ready(page);
-        await shot(section(page, "Wizard Cantrips Known"), "spells");
-        await openStep(page, "Equipment");
-        await section(page, "Starting Equipment: Melee Weapon").getByRole("button", { name: "Quarterstaff", exact: true }).click();
-        await ready(page);
-        // The starting equipment selections, above the inventory lists.
-        const first = (await section(page, "Starting Equipment").boundingBox())!;
-        const armor = (await section(page, "Armor").boundingBox())!;
-        await page.screenshot({
-          path: join(dir, `orc-352-equipment-${size}-${theme}.png`),
-          animations: "disabled",
-          fullPage: true,
-          clip: { x: 0, y: Math.max(0, first.y - 120), width, height: armor.y + armor.height - first.y + 140 },
-        });
-      });
-    }
 });
