@@ -1,18 +1,67 @@
+# The checks of each pull request (ORC-358).
+#
+# - A pull request that changes only docs/, .claude/ or Markdown files runs
+#   only the static job. The scope job decides that. docs/guides/ is not in
+#   that set, because a unit test of the app reads a guide.
+# - A push to main starts no run: the pull request ran on the same changes.
+#   One full run on main each night finds a fault that only shows on main.
+#
+# Three jobs run at the same time, so a run takes as long as its longest job:
+# - static: the docs check, lint, the typechecks and the small test suites.
+# - unit: the unit tests of the app, in shards.
+# - e2e: the Playwright tests of the app, in shards.
+#
+# To change the number of shards of a job, change its matrix.
+
 name: CI
 
 on:
-    push:
-        branches: [main]
+    # Each pull request, not only those into main: a stack of pull requests
+    # merges in one operation, so each one must be checked (ORC-359).
     pull_request:
-        branches: [main]
+    schedule:
+        # Each night at 09:17 UTC, on main.
+        - cron: "17 9 * * *"
     workflow_dispatch:
+
+# A new push to a pull request cancels the run of the push before.
+concurrency:
+    group: ci-${{ github.event.pull_request.number || github.sha }}
+    cancel-in-progress: true
 
 permissions:
     contents: read
 
 jobs:
-    ci:
+    scope:
         runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            pull-requests: read
+        outputs:
+            code: ${{ steps.files.outputs.code }}
+        steps:
+            - id: files
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR: ${{ github.event.pull_request.number }}
+              run: |
+                  # A run that is not for a pull request is a full run.
+                  if [ -z "$PR" ]; then
+                    echo "code=true" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+                  files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[].filename')
+                  if echo "$files" | grep -qE '^docs/guides/' || echo "$files" | grep -qvE '^(docs/|\.claude/)|\.md$'; then
+                    echo "code=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "::notice::Only docs changed: the unit and e2e jobs do not run."
+                    echo "code=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+    static:
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
         steps:
             - uses: actions/checkout@v7
               with:
@@ -41,10 +90,6 @@ jobs:
               working-directory: packages/app
               run: bun run typecheck
 
-            - name: Unit tests
-              working-directory: packages/app
-              run: bun run test
-
             - name: UI package typecheck
               working-directory: packages/ui
               run: bun run typecheck
@@ -69,10 +114,64 @@ jobs:
               working-directory: tools/exporter-bookmarklet
               run: bun run test
 
+    unit:
+        needs: scope
+        if: needs.scope.outputs.code == 'true'
+        name: unit (${{ matrix.shard }}/${{ strategy.job-total }})
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3]
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version-file: package.json
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - run: bun install --frozen-lockfile
+
+            - name: Unit tests
+              working-directory: packages/app
+              run: bunx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+    e2e:
+        needs: scope
+        if: needs.scope.outputs.code == 'true'
+        name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3, 4]
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version-file: package.json
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - run: bun install --frozen-lockfile
+
             - name: Install Playwright Chromium
               working-directory: packages/app
               run: bunx playwright install --with-deps chromium
 
-            - name: Playwright smoke
+            - name: Playwright
               working-directory: packages/app
-              run: bun run e2e
+              run: bunx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}

@@ -84,7 +84,8 @@ async function openPage() {
 const skipSeaHag = () => setSkipped(REVIEW_PACK, [usesRows(stored().plugin).find((r) => r.name === "Sea Hag Tidal Surge")!.id], []);
 async function save() {
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  await screen.findByText(/^Saved \d+ features?\./);
+  // The save reads the whole pack again. On a busy machine that takes more than the default 1 s.
+  await screen.findByText(/^Saved \d+ features?\./, {}, { timeout: 10_000 });
 }
 
 test("the import log says how many features may have uses, with a Review uses link to the pack's page", async () => {

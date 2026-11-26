@@ -955,9 +955,10 @@ Ticket 1 is first. Tickets 2, 4, 8, 12 and 13 need only ticket 1, so
 they can run at the same time. The project can run beside the 2024
 engine build.
 
-**Review:** each ticket that changes a page attaches Playwright
-screenshots to its PR, light first and then dark. A ticket that changes
-the phone views adds screenshots at a phone width. Each ticket has a
+**Review:** the screenshot rules are in `project-workflow`, section
+"Screenshots": light mode at desktop width, with a dark or a 390 px
+screenshot only for a ticket that changes theme colors or the phone
+layout (ORC-359). Each ticket has a
 test for the rule [No layout shift](#no-layout-shift).
 
 # Out of scope
