@@ -17,7 +17,7 @@ import { levelSlots, pactSlotGroup, type ShownSlots, slotColumns, slotEntries, s
 import type { SpentSlotGroups } from "../engine/spells.ts";
 
 /** The attribute that marks the Spell slots block. */
-export const SLOTS_BLOCK = "data-slots-block";
+const SLOTS_BLOCK = "data-slots-block";
 
 /**
  * One group of slots that the user changes: circles, or diamonds for the

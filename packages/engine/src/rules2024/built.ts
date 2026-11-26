@@ -341,11 +341,6 @@ export function traitKey(source: string, name: string): string {
   return `${source}/${nameToKey(name)}`;
 }
 
-/** A feature with its key (`traitKey`). */
-export function feature(source: string, name: string, summary: string, more: Pick<Feature, "level" | "uses"> = {}): Feature {
-  return { key: traitKey(source, name), name, summary, source, ...more };
-}
-
 /** A value for each ability. */
 export function forEachAbility(value: (ability: Ability) => number): AbilityScores {
   return Object.fromEntries(ABILITIES.map((ability) => [ability, value(ability)])) as AbilityScores;

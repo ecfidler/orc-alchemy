@@ -88,6 +88,9 @@ jobs:
             - name: Lint and format check
               run: bun run lint
 
+            - name: Unused files, exports and dependencies (Knip)
+              run: bun run knip
+
             - name: Script tests
               run: bun run test:scripts
 

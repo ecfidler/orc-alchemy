@@ -97,6 +97,7 @@ function selectionOption(context: Context, from: SelectionOption, path: IssuePat
 export function effectParts(context: Context, effects: readonly Effect[], path: IssuePath): Parts {
   return merge(
     EMPTY,
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
     ...effects.map((effect, i): Parts => {
       const at = [...path, i];
       if ("set" in effect || "add" in effect || "push" in effect) return { modifiers: [changeModifier(context, effect, at)], selections: [] };

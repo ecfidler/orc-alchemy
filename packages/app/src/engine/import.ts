@@ -137,6 +137,7 @@ const isEnvelope = (value: unknown): value is Record<string, unknown> => isObjec
  * it, so a file that the app wrote imports the same. undefined when no item
  * is left.
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
 export function checkCustom(custom: unknown): { custom: object | undefined; problems: string[] } {
   if (custom === undefined || custom === null) return { custom: undefined, problems: [] };
   if (!isObject(custom)) return { custom: undefined, problems: ["The custom options were left out: they are not a map."] };

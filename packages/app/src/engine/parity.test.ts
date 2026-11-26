@@ -90,6 +90,7 @@ const optionsOf = (s: Selection | undefined) => s?.[OPTIONS] ?? (s?.[OPTION] ? [
 const plain = (x: object) => JSON.parse(JSON.stringify(x));
 
 /** Replays the golden with the builder's writes. Returns the entity, the refused picks, the removed items and the skipped values. */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
 function rebuild(golden: Entity, opts: Content) {
   const e = engine();
   let entity = plain(e.emptyCharacter()) as Entity;
@@ -98,6 +99,7 @@ function rebuild(golden: Entity, opts: Content) {
   let refused: { path: string[]; option: Option }[] = [];
   const removed: string[] = [];
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
   function replay(s: Selection, path: string[]) {
     const key = unkeyword(s[KEY]);
     const at = [...path, key];

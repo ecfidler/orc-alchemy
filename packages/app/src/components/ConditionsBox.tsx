@@ -56,42 +56,44 @@ export function ConditionsBox({ sheet, onAction, popupWidthOf }: ConditionsBoxPr
     <div ref={box} data-conditions-box className="grid">
       <FramedBox label="Conditions and statuses">
         <Tokens className="min-h-7">
-          {tokens.map((token) =>
-            token.kind === "concentration" ? (
-              <ConcentrationToken key="concentration" spell={token.spell} onAction={onAction} />
-            ) : token.kind === "exhaustion" ? (
-              <ExhaustionToken
-                key="exhaustion"
-                level={token.level}
-                open={rule === EXHAUSTION}
-                onOpenChange={(open) => setRule(open ? EXHAUSTION : null)}
-                popupWidthOf={popupWidthOf}
-                onAction={onAction}
-              />
-            ) : (
-              <Token
-                key={`${token.condition}${token.auto ? "-auto" : ""}`}
-                label={conditionName(token.condition)}
-                size="small"
-                groupName={token.auto ? `${conditionName(token.condition)}, 0 hit points` : conditionName(token.condition)}
-                look={token.auto ? "dashed" : "plain"}
-                note={token.auto ? "0 hit points" : undefined}
-                popup={{
-                  open: rule === token.condition,
-                  onOpenChange: (open) => setRule(open ? token.condition : null),
-                  title: conditionName(token.condition),
-                  widthOf: popupWidthOf,
-                  children: (
-                    <ul className="grid list-disc gap-1 pl-5 font-sans text-[13.5px] leading-snug">
-                      {CONDITION_TEXTS[token.condition].map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ul>
-                  ),
-                }}
-                onRemove={!token.auto && onAction ? () => onAction({ kind: "remove", condition: token.condition }) : undefined}
-              />
-            ),
+          {tokens.map(
+            // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
+            (token) =>
+              token.kind === "concentration" ? (
+                <ConcentrationToken key="concentration" spell={token.spell} onAction={onAction} />
+              ) : token.kind === "exhaustion" ? (
+                <ExhaustionToken
+                  key="exhaustion"
+                  level={token.level}
+                  open={rule === EXHAUSTION}
+                  onOpenChange={(open) => setRule(open ? EXHAUSTION : null)}
+                  popupWidthOf={popupWidthOf}
+                  onAction={onAction}
+                />
+              ) : (
+                <Token
+                  key={`${token.condition}${token.auto ? "-auto" : ""}`}
+                  label={conditionName(token.condition)}
+                  size="small"
+                  groupName={token.auto ? `${conditionName(token.condition)}, 0 hit points` : conditionName(token.condition)}
+                  look={token.auto ? "dashed" : "plain"}
+                  note={token.auto ? "0 hit points" : undefined}
+                  popup={{
+                    open: rule === token.condition,
+                    onOpenChange: (open) => setRule(open ? token.condition : null),
+                    title: conditionName(token.condition),
+                    widthOf: popupWidthOf,
+                    children: (
+                      <ul className="grid list-disc gap-1 pl-5 font-sans text-[13.5px] leading-snug">
+                        {CONDITION_TEXTS[token.condition].map((point) => (
+                          <li key={point}>{point}</li>
+                        ))}
+                      </ul>
+                    ),
+                  }}
+                  onRemove={!token.auto && onAction ? () => onAction({ kind: "remove", condition: token.condition }) : undefined}
+                />
+              ),
           )}
           {onAction && menu.length > 0 && (
             <Menu

@@ -53,6 +53,7 @@ export function autofill<S, E extends StrictEntity<NoInfer<S>>>(template: Templa
   let steps = 0;
   let furthest = { entity, open: Number.POSITIVE_INFINITY };
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
   const fill = (current: E): E | null => {
     steps += 1;
     const built = build(current, template);

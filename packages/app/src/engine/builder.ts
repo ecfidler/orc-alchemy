@@ -161,6 +161,7 @@ export function remainingOf(min: number | null, max: number | null, count: numbe
  * or on the step of MOVED_TO_STEP. Top-level selections whose tags match no
  * step are left out, and so are selections the template does not have.
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
 export function builderSteps(selections: AvailableSelection[], shape: TemplateSelection[]): BuilderStep[] {
   const byPath = new Map<string, BuilderSelection>();
   const byRef = new Map<string, BuilderSelection>();

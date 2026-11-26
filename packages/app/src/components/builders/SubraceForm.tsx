@@ -29,12 +29,12 @@ import {
 } from "./fields.tsx";
 import {
   armorModifier,
+  CONDITION_CHOICES,
   choiceModifier,
   DAMAGE_CHOICES,
   hitPointsModifier,
   propModifier,
   RESISTANCE_CHOICES,
-  SAVING_THROW_CHOICES,
   toolModifier,
   weaponChoices,
 } from "./modifier-kinds.tsx";
@@ -64,7 +64,7 @@ function subraceModifiers(edit: Edit, lists: BuilderChoices, race: RaceChoice | 
       add: "Add a damage resistance",
     }),
     propModifier(edit, "damage-immunity", "Damage Immunities", "Poison, necrotic …", DAMAGE_CHOICES, { add: "Add a damage immunity" }),
-    propModifier(edit, "saving-throw-advantage", "Saving Throw Advantage", "Advantage on saves against being charmed, poisoned …", SAVING_THROW_CHOICES, {
+    propModifier(edit, "saving-throw-advantage", "Saving Throw Advantage", "Advantage on saves against being charmed, poisoned …", CONDITION_CHOICES, {
       add: "Add a condition",
     }),
     propModifier(edit, "weapon-prof", "Weapon Proficiencies", "Longsword, shortbow, all simple weapons …", weaponChoices(lists), {

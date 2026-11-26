@@ -1,5 +1,3 @@
-// The golden characters (ORC-237), with the harness that checks them.
+// The golden characters (ORC-237). The harness that checks them is in harness.ts.
 
 export { GOLDEN_CHARACTERS } from "./characters/index.ts";
-export { defineGolden, type GoldenCharacter, type GoldenCheck } from "./define.ts";
-export { checkGolden, describeMismatch, type Mismatch } from "./harness.ts";
