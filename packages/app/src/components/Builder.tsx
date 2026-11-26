@@ -16,12 +16,16 @@ import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
 import { NameStep } from "./NameStep.tsx";
+import { ProficienciesStep } from "./ProficienciesStep.tsx";
 import { SelectionControl } from "./SelectionControl.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 import { SummaryCard } from "./SummaryCard.tsx";
 
 /** The name of the builder's Spells step, for example for a link to it (`/build/{id}?step=Spells`). */
 export const SPELLS_STEP: StepName = "Spells";
+
+/** The step of the skills, the expertise, the languages and the tools (ORC-346). */
+const PROFICIENCIES_STEP: StepName = "Proficiencies";
 
 /** The step that Enter in the name field goes to. */
 const CLASS_STEP: StepName = "Class";
@@ -104,7 +108,12 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                     </span>
                   </div>
                   {step.empty && <p className="font-sans text-[13.5px] text-ink-muted">{EMPTY_LINE[step.name]}</p>}
+                  {/* The Proficiencies step has its selections in groups (ORC-346). */}
+                  {!step.empty && step.name === PROFICIENCIES_STEP && (
+                    <ProficienciesStep step={step} section={(selection) => <Selection selection={selection} />} />
+                  )}
                   {!step.empty &&
+                    step.name !== PROFICIENCIES_STEP &&
                     step.selections.map((selection) => {
                       // A class and a background can have starting equipment with the same key.
                       const key = JSON.stringify(selection.actualPath);

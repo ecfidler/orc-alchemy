@@ -5,6 +5,7 @@
 import { Toast } from "@orc-alchemy/ui";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import type { BuilderSelection, BuilderStep } from "../engine/builder.ts";
+import { proficiencySectionNames } from "../engine/proficiencies.ts";
 import { pickSources, sectionNames, type TopSource, topSources } from "../engine/selection-control.ts";
 
 /**
@@ -54,7 +55,8 @@ const StepFrameContext = createContext<StepFrame>(EMPTY_FRAME);
 export function StepFrameProvider({ steps, step, children }: { steps: BuilderStep[]; step: BuilderStep | undefined; children: ReactNode }) {
   const tops = useMemo(() => topSources(steps), [steps]);
   const picks = useMemo(() => pickSources(steps), [steps]);
-  const names = useMemo(() => sectionNames(step?.selections ?? []), [step]);
+  // The sections of the Proficiencies step each name their source: "Skills: Fighter" (ORC-346).
+  const names = useMemo(() => (step?.name === "Proficiencies" ? proficiencySectionNames(step.selections) : sectionNames(step?.selections ?? [])), [step]);
   const frame = useMemo(() => ({ names, tops, picks }), [names, tops, picks]);
   return <StepFrameContext.Provider value={frame}>{children}</StepFrameContext.Provider>;
 }
@@ -66,3 +68,9 @@ export const useStepFrame = () => useContext(StepFrameContext);
 export function useSectionName(selection: BuilderSelection): string {
   return useStepFrame().names.get(selection) ?? selection.name;
 }
+
+/**
+ * The level of the section headings in `children`: 3 by default, under the step title, and 4 under a group heading,
+ * as on the Proficiencies step.
+ */
+export const SectionLevel = createContext<3 | 4>(3);

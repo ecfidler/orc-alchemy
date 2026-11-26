@@ -136,7 +136,7 @@ function cached(input: AvailabilityInput, key: string, find: () => string | null
 }
 
 /** The kind of proficiency that a selection's options give, by its tags; an expertise selection gives none. */
-export function proficiencyKind(selection: BuilderSelection): "skill" | "tool" | "language" | null {
+export function proficiencyKind(selection: BuilderSelection): ProficiencyKind | null {
   if (selection.key.includes("expertise")) return null;
   if (selection.tags.includes("skill-profs")) return "skill";
   if (selection.tags.includes("tool-profs")) return "tool";
@@ -144,28 +144,82 @@ export function proficiencyKind(selection: BuilderSelection): "skill" | "tool" |
   return null;
 }
 
+/** The kinds of proficiency that a character has from fixed sources and from picks. */
+export type ProficiencyKind = "skill" | "tool" | "language";
+
+/** The ids ("{kind}:{key}") of each skill, tool and language that the built character has. */
+function proficiencyIds(built: Built2014): Set<string> {
+  return new Set([
+    ...Object.keys(built["skill-profs"] ?? {}).map((key) => `skill:${key}`),
+    ...Object.keys(built["tool-profs"] ?? {}).map((key) => `tool:${key}`),
+    ...(built.languages ?? []).map((key) => `language:${key}`),
+  ]);
+}
+
+// The givers of the last entity and content: one evaluate for each top-level option, and not one for each item.
+let giversMemo: { entity: StrictEntity; content: Content; givers: Map<string, string[]> } | null = null;
+
 /**
- * The names of the sources of a skill or a tool that the character has, from the built proficiencies, with the
- * sources of a pick in the place of the engine's "nil"; null when it does not have it.
+ * The top-level options (the race, the background, each class) without which the character does not have the skill,
+ * the tool or the language, by "{kind}:{key}". The engine gives no source name for a language, and "nil" for some
+ * fixed skills and tools, such as the Perception of an elf, so the builder finds the source in this way.
+ */
+function givers(input: AvailabilityInput): Map<string, string[]> {
+  const { engine, entity, built, content, tops } = input;
+  if (giversMemo !== null && giversMemo.entity === entity && giversMemo.content === content) return giversMemo.givers;
+  const all = proficiencyIds(built);
+  const map = new Map<string, string[]>();
+  for (const { path, name } of tops) {
+    let without: Set<string>;
+    try {
+      without = proficiencyIds(engine.evaluate(withoutOption(entity, path), content).built);
+    } catch {
+      continue;
+    }
+    for (const id of all) if (!without.has(id)) map.set(id, [...(map.get(id) ?? []), name]);
+  }
+  giversMemo = { entity, content, givers: map };
+  return map;
+}
+
+/**
+ * The names of the sources of a skill or a tool that the character has, from the built proficiencies. In the place
+ * of the engine's "nil", the sources of a pick, or else the top-level options that give it (givers). Null when it
+ * does not have it.
  */
 function proficiencySources(input: AvailabilityInput, kind: "skill" | "tool", key: string): string[] | null {
   const sources = input.built[kind === "skill" ? "skill-profs" : "tool-profs"]?.[key];
   if (!sources) return null;
-  const picked = input.picks.get(`${kind}:${key}`) ?? [];
-  return [...new Set(Object.keys(sources).flatMap((name) => (name === "nil" ? picked : [name])))];
+  const nil = () => input.picks.get(`${kind}:${key}`) ?? givers(input).get(`${kind}:${key}`) ?? [];
+  return [...new Set(Object.keys(sources).flatMap((name) => (name === "nil" ? nil() : [name])))];
 }
 
 /** The top-level options without which the character does not have the language: they give it. */
 function languageSources(input: AvailabilityInput, key: string): string[] {
-  const { engine, entity, content, tops } = input;
-  return tops.flatMap(({ path, name }) => {
-    try {
-      const languages = engine.evaluate(withoutOption(entity, path), content).built.languages ?? [];
-      return languages.includes(key) ? [] : [name];
-    } catch {
-      return [];
-    }
-  });
+  return givers(input).get(`language:${key}`) ?? [];
+}
+
+/** A skill, a tool or a language that the character has from a fixed source, not from a pick. */
+export interface FixedProficiency {
+  kind: ProficiencyKind;
+  key: string;
+  /** The names of its sources, such as ["Acolyte"]; empty when the builder cannot find one. */
+  sources: string[];
+}
+
+/**
+ * Each skill, tool and language that the character has and that no selection picked, with its sources (spec, "The
+ * Proficiencies step": "Already has"). The sources of a skill and a tool are the names in the built proficiencies;
+ * for a language, and in the place of a "nil", they are the top-level options that give it.
+ */
+export function fixedProficiencies(input: AvailabilityInput): FixedProficiency[] {
+  return [...proficiencyIds(input.built)]
+    .filter((id) => !input.picks.has(id))
+    .map((id) => {
+      const [kind, key] = id.split(/:(.*)/s) as [ProficiencyKind, string];
+      const sources = kind === "language" ? languageSources(input, key) : (proficiencySources(input, kind, key) ?? []);
+      return { kind, key, sources };
+    });
 }
 
 /**

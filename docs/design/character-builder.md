@@ -579,6 +579,22 @@ show these selections. They show a line in "Picked on other steps".
   background into one selection. The step shows one section for the
   merged selection, with each source in the heading: "Languages:
   Acolyte, Half-Elf".
+* Each section names its source, also when no other section has its
+  name. Two classes are in the order of the character, and the sections
+  of one class are in the order of the levels. An Expertise section of a
+  class level has the level: "Expertise: Rogue 6".[^orc-346]
+* The group heading is an `<h3>`, and the section headings are
+  `<h4>`.[^orc-346]
+* A selection that gives no skill, language or tool, such as the armor
+  of the engine's "Custom" race, is in a fourth group, "Other
+  proficiencies", after Tools. A selection that gives tools and
+  languages, such as "Tool / Language Proficiencies" of the "Custom"
+  background, is in Tools.[^orc-346]
+* The tokens of "Already has" are in the order of the names. The engine
+  gives no source for a language, and for some fixed skills and tools.
+  Then the source is the race, the background or the class without
+  which the character does not have the item. A token with no source
+  found shows the name only.[^orc-346]
 
 # The Feats step
 
@@ -730,3 +746,4 @@ one depends only on parts of the frame.
 [^orc-336]: The new Class step, <https://linear.app/orc-alchemy/issue/ORC-336/the-new-class-step>
 [^orc-338]: The list with a detail panel for Race and Background, <https://linear.app/orc-alchemy/issue/ORC-338/the-list-with-a-detail-panel-for-race-and-background>
 [^orc-345]: The ability score control, <https://linear.app/orc-alchemy/issue/ORC-345/the-ability-score-control>
+[^orc-346]: The Proficiencies step, <https://linear.app/orc-alchemy/issue/ORC-346/the-proficiencies-step>

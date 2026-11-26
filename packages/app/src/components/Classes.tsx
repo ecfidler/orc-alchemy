@@ -4,14 +4,14 @@
 // useMutation and Heading, which Options in Builder.tsx uses for each selection.
 // A refusal of the engine shows in the status toast of the builder (ORC-343).
 import { Button, LeftMark, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
-import { useId, useMemo, useState } from "react";
+import { useContext, useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
 import { type Content, type Engine, engine, type StrictEntity } from "../engine/engine.ts";
 import { addAClass } from "../engine/new-character.ts";
 import { useCharacter, useCharacterContent, useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
-import { useBuilderStatus, useSectionName } from "./builder-context.tsx";
+import { SectionLevel, useBuilderStatus, useSectionName } from "./builder-context.tsx";
 
 const MAX_LEVEL = 20;
 
@@ -129,21 +129,23 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
  * The mark is a part of the heading text: "Languages, 2 left". `mark={false}` gives the heading with no mark, for a
  * part that is no selection with picks, such as an inventory list. When the open step has another section of the same
  * name, the name has the sources of the selection (spec, "Text"). `name` replaces the name, for a section that names
- * its source in its own way, such as "Ability Score Improvement: Fighter 4".
+ * its source in its own way, such as "Ability Score Improvement: Fighter 4". The heading is an h3, or an h4 under a
+ * group heading (SectionLevel).
  */
 export function Heading({ id, selection, mark = true, name: own }: { id: string; selection: BuilderSelection; mark?: boolean; name?: string }) {
   // On a step with two sections of one name, the name has the source: "Skill Proficiency: Fighter".
   const sectionName = useSectionName(selection);
   const name = own ?? sectionName;
+  const H = useContext(SectionLevel) === 4 ? "h4" : "h3";
   return (
-    <h3 id={id} className={HEADING_CLASSES}>
+    <H id={id} className={HEADING_CLASSES}>
       <span className="min-w-0">
         {name}
         {/* A comma for a screen reader: "Languages, 2 left". It is in the line, so no space comes before it. */}
         {mark && <span className="text-[1px] opacity-0">,</span>}
       </span>
       {mark && <LeftMark left={selection.remaining} />}
-    </h3>
+    </H>
   );
 }
 

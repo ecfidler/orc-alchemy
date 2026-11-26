@@ -269,22 +269,22 @@ test("a pick does not move the heading of its selection, or change its size", as
   const builder = page.getByRole("region", { name: "Builder" });
   await addFirstClass(page, "Barbarian");
   await openStep(page, "Proficiencies");
-  const skills = builder.getByRole("region", { name: /^Skill Proficiency/ }).first();
+  const skills = builder.getByRole("region", { name: /^Skills: Barbarian/ }).first();
   const heading = skills.getByRole("heading").first();
-  await expect(heading).toHaveAccessibleName("Skill Proficiency, 2 left");
+  await expect(heading).toHaveAccessibleName("Skills: Barbarian, 2 left");
   const before = await heading.boundingBox();
   // 2 left, then 1 left, then Done: the same box each time.
   await skills.getByRole("button", { name: "Athletics", exact: true }).click();
-  await expect(heading).toHaveAccessibleName("Skill Proficiency, 1 left");
+  await expect(heading).toHaveAccessibleName("Skills: Barbarian, 1 left");
   expect(await heading.boundingBox()).toEqual(before);
   await skills.getByRole("button", { name: "Survival", exact: true }).click();
-  await expect(heading).toHaveAccessibleName("Skill Proficiency, Done");
+  await expect(heading).toHaveAccessibleName("Skills: Barbarian, Done");
   expect(await heading.boundingBox()).toEqual(before);
   // The rail and the step title do not move either.
   const title = builder.getByRole("heading", { level: 2 });
   const titleBox = await title.boundingBox();
   await skills.getByRole("button", { name: "Survival", exact: true }).click();
-  await expect(heading).toHaveAccessibleName("Skill Proficiency, 1 left");
+  await expect(heading).toHaveAccessibleName("Skills: Barbarian, 1 left");
   expect(await heading.boundingBox()).toEqual(before);
   expect(await title.boundingBox()).toEqual(titleBox);
 });
@@ -664,9 +664,9 @@ test("fighter-1 built from New character through the steps matches its expected 
   // The human knows one language more and the acolyte two more: one selection, with the fighter's skills.
   await stepButton(page, "Proficiencies").click();
   for (const language of ["Dwarvish", "Elvish", "Giant"]) await pickIn(section(page, "Languages"), language);
-  for (const skill of ["Athletics", "Perception"]) await pickIn(section(page, "Skill Proficiency"), skill);
+  for (const skill of ["Athletics", "Perception"]) await pickIn(section(page, "Skills: Fighter"), skill);
   await expect(picksIn(section(page, "Languages"))).toHaveText(["Dwarvish", "Elvish", "Giant"]);
-  await expect(picksIn(section(page, "Skill Proficiency"))).toHaveText(["Athletics", "Perception"]);
+  await expect(picksIn(section(page, "Skills: Fighter"))).toHaveText(["Athletics", "Perception"]);
   // The standard scores are the default.
   await stepButton(page, "Abilities").click();
   await expect(builder.getByRole("button", { name: "Standard Scores" })).toHaveAttribute("aria-pressed", "true");

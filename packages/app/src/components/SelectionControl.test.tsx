@@ -27,7 +27,7 @@ const toast = () => document.querySelector<HTMLElement>("[data-toast-status]")!;
 test("a selection of 6 options has option cards that show only the name", () => {
   open("Proficiencies");
   // The barbarian picks 2 of 6 skills.
-  const skills = section("Skill Proficiency");
+  const skills = section("Skills: Barbarian");
   const cards = within(skills).getAllByRole("button");
   expect(cards.map((card) => card.getAttribute("aria-label") ?? card.textContent)).toEqual([
     "Animal Handling",
@@ -39,7 +39,7 @@ test("a selection of 6 options has option cards that show only the name", () => 
   ]);
   expect(cards.every((card) => card.hasAttribute("aria-pressed"))).toBe(true);
   fireEvent.click(within(skills).getByRole("button", { name: "Athletics" }));
-  expect(within(section("Skill Proficiency")).getByRole("button", { name: "Athletics" }).getAttribute("aria-pressed")).toBe("true");
+  expect(within(section("Skills: Barbarian")).getByRole("button", { name: "Athletics" }).getAttribute("aria-pressed")).toBe("true");
   expect(Object.keys(built()["skill-profs"] ?? {})).toEqual(["athletics"]);
 });
 
@@ -78,16 +78,16 @@ test("a selection of 7 options or more and two picks has a picker with the picks
   useCharacter.getState().update((entity) => e.setClass(entity, 0, "fighter") as StrictEntity);
   cleanup();
   render(<Builder step="Proficiencies" />);
-  const skills = section("Skill Proficiency");
+  const skills = section("Skills: Fighter");
   const add = within(skills).getByRole("button", { name: "Add a skill" });
   expect(add.getAttribute("aria-haspopup")).toBe("dialog");
   expect(within(skills).queryAllByRole("button", { pressed: false })).toHaveLength(0);
   await pickFromPicker(add, ["Perception", "Acrobatics"]);
   // The tokens are in the order of the options.
-  expect(picksIn(section("Skill Proficiency"))).toEqual(["Acrobatics", "Perception"]);
+  expect(picksIn(section("Skills: Fighter"))).toEqual(["Acrobatics", "Perception"]);
   expect(Object.keys(built()["skill-profs"] ?? {}).sort()).toEqual(["acrobatics", "perception"]);
-  expect(within(section("Skill Proficiency")).getByRole("heading").textContent).toBe("Skill Proficiency,Done");
-  await removeToken(section("Skill Proficiency"), "Acrobatics");
+  expect(within(section("Skills: Fighter")).getByRole("heading").textContent).toBe("Skills: Fighter,Done");
+  await removeToken(section("Skills: Fighter"), "Acrobatics");
   expect(Object.keys(built()["skill-profs"] ?? {})).toEqual(["perception"]);
 });
 
@@ -97,11 +97,11 @@ test("an option that gives what the character has is not available: a locked row
     [["race"], "half-elf"],
     [["background"], "acolyte"],
   ]);
-  const halfElf = section("Skill Proficiency: Half-Elf");
+  const halfElf = section("Skills: Half-Elf");
   // A locked option is not in the count: 18 skills, 2 from Acolyte.
   expect(within(halfElf).getByRole("button", { name: "Add a skill" }).textContent).toBe("Add a skill16 more");
   fireEvent.click(within(halfElf).getByRole("button", { name: "Add a skill" }));
-  const dialog = await screen.findByRole("dialog", { name: "Skill Proficiency: Half-Elf" });
+  const dialog = await screen.findByRole("dialog", { name: "Skills: Half-Elf" });
   const insight = within(dialog).getByRole("button", { name: "Insight" });
   expect([insight.getAttribute("aria-disabled"), insight.querySelector(".ui-list-lock") !== null]).toEqual(["true", true]);
   expect(document.getElementById(insight.getAttribute("aria-describedby")!)?.textContent).toBe("From Acolyte");
@@ -109,10 +109,10 @@ test("an option that gives what the character has is not available: a locked row
   fireEvent.click(within(dialog).getByRole("button", { name: "Perception" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Done" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(picksIn(section("Skill Proficiency: Half-Elf"))).toEqual(["Perception"]);
+  expect(picksIn(section("Skills: Half-Elf"))).toEqual(["Perception"]);
 
   // The barbarian's cards: Perception is the half-elf's now. Its card is disabled, with the reason below the name.
-  const barbarian = section("Skill Proficiency: Barbarian");
+  const barbarian = section("Skills: Barbarian");
   const perception = within(barbarian).getByRole("button", { name: "Perception" });
   expect(perception.hasAttribute("disabled")).toBe(true);
   expect(perception.querySelector("[data-reason]")?.textContent).toBe("From Half-Elf");
@@ -143,7 +143,7 @@ test("an option with a prerequisite that the character does not meet shows the r
 
 test("a refusal of the engine shows in the status toast, not in the page", () => {
   open("Proficiencies");
-  const skills = section("Skill Proficiency");
+  const skills = section("Skills: Barbarian");
   for (const skill of ["Athletics", "Intimidation", "Survival"]) fireEvent.click(within(skills).getByRole("button", { name: skill }));
   expect([toast().getAttribute("role"), toast().textContent]).toEqual(["status", expect.stringMatching(/no selections remain/)]);
   expect(screen.queryByRole("alert")).toBeNull();
@@ -158,7 +158,7 @@ test("the engine's Custom option does not show, unless the character has it", as
   open("Background", [[["background"], "custom"]]);
   expect(within(section("Background")).getByRole("button", { name: "Custom" }).getAttribute("aria-pressed")).toBe("true");
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Proficiencies/ }));
-  expect(within(section("Skill Proficiency: Custom")).getByRole("button", { name: "Add a skill" })).toBeTruthy();
+  expect(within(section("Skills: Custom")).getByRole("button", { name: "Add a skill" })).toBeTruthy();
 });
 
 test("the selections that a pick opens are flat sections after it, each with its own heading and mark", async () => {
