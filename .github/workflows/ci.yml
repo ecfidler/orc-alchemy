@@ -1,4 +1,9 @@
-# The checks of each pull request and of each push to main (ORC-358).
+# The checks of each pull request (ORC-358).
+#
+# - A pull request that changes only docs/, .claude/ or Markdown files runs
+#   only the static job. The scope job decides that.
+# - A push to main starts no run: the pull request ran on the same tree.
+#   One full run on main each night is the safety net.
 #
 # Three jobs run at the same time, so a run takes as long as its longest job:
 # - static: the docs check, lint, the typechecks and the small test suites.
@@ -11,11 +16,12 @@
 name: CI
 
 on:
-    push:
-        branches: [main]
     # Each pull request, not only those into main: a stack of pull requests
     # merges in one operation, so each one must be checked (ORC-359).
     pull_request:
+    schedule:
+        # Each night at 09:17 UTC, on main.
+        - cron: "17 9 * * *"
     workflow_dispatch:
 
 # A new push to a pull request cancels the run of the push before.
@@ -27,6 +33,32 @@ permissions:
     contents: read
 
 jobs:
+    scope:
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            pull-requests: read
+        outputs:
+            code: ${{ steps.files.outputs.code }}
+        steps:
+            - id: files
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR: ${{ github.event.pull_request.number }}
+              run: |
+                  # A run that is not for a pull request is a full run.
+                  if [ -z "$PR" ]; then
+                    echo "code=true" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+                  files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[].filename')
+                  if echo "$files" | grep -qvE '^(docs/|\.claude/)|\.md$'; then
+                    echo "code=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "::notice::Only docs changed: the unit and e2e jobs do not run."
+                    echo "code=false" >> "$GITHUB_OUTPUT"
+                  fi
+
     static:
         runs-on: ubuntu-latest
         timeout-minutes: 10
@@ -83,6 +115,8 @@ jobs:
               run: bun run test
 
     unit:
+        needs: scope
+        if: needs.scope.outputs.code == 'true'
         name: unit (${{ matrix.shard }}/3)
         runs-on: ubuntu-latest
         timeout-minutes: 15
@@ -110,6 +144,8 @@ jobs:
               run: bunx vitest run --shard=${{ matrix.shard }}/3
 
     e2e:
+        needs: scope
+        if: needs.scope.outputs.code == 'true'
         name: e2e (${{ matrix.shard }}/4)
         runs-on: ubuntu-latest
         timeout-minutes: 15
