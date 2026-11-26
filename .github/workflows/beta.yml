@@ -31,7 +31,8 @@ env:
 jobs:
     check:
         # Pull requests from forks get no secrets, so they get no preview.
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
         runs-on: ubuntu-latest
         outputs:
             ready: ${{ steps.secrets.outputs.ready }}

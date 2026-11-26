@@ -10,6 +10,13 @@ fi
 staged=$(git diff --cached --name-only --diff-filter=ACMR)
 [ -z "$staged" ] && exit 0
 
+# The size and image rules of budgets.json (ORC-362). CI applies them to all the files.
+if command -v bun >/dev/null 2>&1; then
+  bun scripts/budgets.ts staged || exit 1
+else
+  echo "pre-commit: Bun is not on the PATH, so the budget check did not run."
+fi
+
 # A file with staged and unstaged changes: a fix would stage the unstaged
 # part too. For such a commit the hook only checks. Biome reads the file
 # from the working tree, so the check includes the unstaged part.

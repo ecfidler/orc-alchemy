@@ -3,7 +3,7 @@
 // number in the box, the table "AC by armor" marks the row that shows, the
 // stored record changes only at the key of the pick, and a pick moves no part
 // of the vitals panel or of the table.
-import { mkdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { layoutOf, openWithValues, statusLine, storedValues, layout as vitalsLayout } from "./play-helpers.ts";
@@ -241,46 +241,3 @@ for (const width of [1280, 390]) {
     expect(await tableLayout(page), "the table").toEqual(rows);
   });
 }
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- ac-pick.spec.ts -g orc-325
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-325 the AC pick, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-325-${what}-${theme}.png`);
-      /** A clip of the whole page around `parts`, with a margin: a screenshot of an element scrolls, and the sticky tabs of a phone cover it. */
-      const clipShot = async (what: string, parts: Array<{ x: number; y: number; width: number; height: number }>) => {
-        const scroll = await page.evaluate(() => window.scrollY);
-        const x = Math.max(0, Math.min(...parts.map((p) => p.x)) - 8);
-        const y = Math.max(0, Math.min(...parts.map((p) => p.y)) - 8) + scroll;
-        const right = Math.min(page.viewportSize()!.width, Math.max(...parts.map((p) => p.x + p.width)) + 8);
-        const bottom = Math.max(...parts.map((p) => p.y + p.height)) + 8 + scroll;
-        await page.screenshot({ path: shot(what), fullPage: true, clip: { x, y, width: right - x, height: bottom - y } });
-      };
-      const vitalsPanel = () => page.locator(".ui-panel").filter({ has: anyAcBox(page) });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openSheet(page);
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await acBox(page, 20).click();
-        await expect(menu(page)).toBeVisible();
-        await page.waitForTimeout(200);
-        await clipShot(`${size}-menu-open`, [(await vitalsPanel().boundingBox())!, (await menu(page).boundingBox())!]);
-        await entry(page, "Chain Mail", 16).click();
-        await expect(acBox(page, 16)).toBeVisible();
-        await page.mouse.move(0, 0);
-        await clipShot(`${size}-picked-box`, [(await vitalsPanel().boundingBox())!]);
-        await tab(page, "More");
-        await table(page).scrollIntoViewIfNeeded();
-        await clipShot(`${size}-picked-table`, [(await page.getByRole("group", { name: "AC by armor" }).boundingBox())!]);
-      }
-    });
-  }
-});

@@ -1,5 +1,3 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
@@ -165,60 +163,4 @@ test("the add button is under the Other modifiers heading; its examples are on o
   expect((await box(examples)).x).toBe((await box(label)).x);
   expect(await examples.evaluate((el) => getComputedStyle(el).whiteSpace)).toBe("normal");
   expect(await examples.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- homebrew-modifiers.spec.ts
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2, viewport: { width: 760, height: 820 } });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`the four forms, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-198-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      const open = async (type: string) => {
-        await page.goto(`/content/new/${type}`);
-        await page.getByRole("button", { name: "Add a modifier" }).waitFor();
-        await page.evaluate(() => document.fonts.ready);
-      };
-      const main = page.locator("main");
-
-      await open("subrace");
-      await main.screenshot({ path: shot("subrace-new") });
-      await open("subclass");
-      await main.screenshot({ path: shot("subclass-new") });
-      await open("magicItem");
-      await main.screenshot({ path: shot("magic-item-new") });
-      await page.getByRole("button", { name: "Add a modifier" }).click();
-      await page.getByRole("dialog", { name: "Add a modifier" }).waitFor();
-      await page.screenshot({ path: shot("magic-item-list") });
-      await open("monster");
-      await main.screenshot({ path: shot("monster-new") });
-      await addModifier(page, "Senses");
-      await page.getByRole("textbox", { name: "Senses" }).fill("darkvision 60 ft.");
-      await page.locator("[data-modifier='senses']").evaluate((el) => el.classList.remove("ui-flash"));
-      await main.screenshot({ path: shot("monster-added") });
-
-      // ORC-212: the heading and the examples, at the width of a desktop and of a phone.
-      const other = page.getByRole("group", { name: "Other modifiers" });
-      for (const [type, name] of [
-        ["feat", "feat"],
-        ["race", "race"],
-        ["subrace", "subrace"],
-        ["subclass", "subclass"],
-        ["magicItem", "magic-item"],
-        ["monster", "monster"],
-      ]) {
-        await page.setViewportSize({ width: 1100, height: 820 });
-        await open(type);
-        await other.scrollIntoViewIfNeeded();
-        await page.screenshot({ path: join(dir, `orc-212-${name}-${theme}.png`) });
-        if (type !== "feat" && type !== "monster") continue;
-        await page.setViewportSize({ width: 390, height: 800 });
-        await other.scrollIntoViewIfNeeded();
-        await page.screenshot({ path: join(dir, `orc-212-${name}-phone-${theme}.png`) });
-      }
-    });
-  }
 });

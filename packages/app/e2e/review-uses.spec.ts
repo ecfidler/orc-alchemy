@@ -1,6 +1,4 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { REVIEW_PACK, REVIEW_PACK_FILE, REVIEW_ROWS, reviewOrcbrew } from "../src/components/builders/test-review-pack.ts";
 
 // ORC-207: the Review uses page. The import log and My Content link to it; Save writes the checked rows, and
@@ -45,39 +43,4 @@ test("the import log links to the page; Save writes the checked rows; a skipped 
   await expect(pack.getByText(`${HINTS.length - 1} features may have uses.`)).toBeVisible();
   await pack.getByRole("link", { name: `Review uses in ${REVIEW_PACK}` }).click();
   await expect(page.getByRole("heading", { name: `Review uses: ${REVIEW_PACK}` })).toBeVisible();
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- review-uses.spec.ts -g orc-207
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-207 review uses, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (locator: Locator, what: string) => locator.screenshot({ path: join(dir, `orc-207-${what}-${theme}.png`) });
-      const view = (what: string) => page.screenshot({ path: join(dir, `orc-207-${what}-${theme}.png`) });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1100, height: 1000 });
-
-      await importPack(page);
-      await page.evaluate(() => document.fonts.ready);
-      await shot(page.getByRole("region", { name: "Import log" }), "import-log");
-
-      await page.goto("/content");
-      await shot(page.getByRole("region", { name: REVIEW_PACK }), "my-content");
-
-      await page.goto(`/content/review-uses/${encodeURIComponent(REVIEW_PACK)}`);
-      await expect(box(page, "Pearl Diver Old Charm")).toBeVisible();
-      await page.evaluate(() => document.fonts.ready);
-      await view("page");
-
-      await box(page, "Sea Hag Song of Courage").click();
-      await page.getByRole("button", { name: "Save", exact: true }).click();
-      await expect(page.getByRole("status")).toContainText("Skipped 1.");
-      await page.getByRole("checkbox", { name: "Show skipped" }).click();
-      await expect(box(page, "Sea Hag Song of Courage")).toBeVisible();
-      await view("after-save");
-    });
-  }
 });

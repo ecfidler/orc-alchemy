@@ -2,8 +2,6 @@
 // Background and Race steps", "No layout shift", "Keyboard and screen reader"): the list and the panel keep their size
 // while the shown option changes, the search of a pack of more than 20 backgrounds, the focus after a pick, the
 // Customize dialog from the block, and the narrow page with the detail in a modal.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { VALE_PACK, valeOrcbrew } from "../src/engine/test-backgrounds.ts";
 import { addFirstClass, newCharacter, openStep, pickIn, section } from "./builder-helpers.ts";
@@ -134,57 +132,4 @@ test("on a 390px page the list has the full width and 400px, and a tap opens the
   await modal.getByRole("button", { name: "Choose Acolyte" }).click();
   await expect(modal).toBeHidden();
   await expect(background(page).getByRole("button", { name: "Change Background" })).toBeFocused();
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/background-step.spec.ts -g orc-347 --trace off
-// A background cannot be not available: the template gives no background a prerequisite, so there is no shot of one.
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const ready = async (page: Page) => {
-    await page.evaluate(() => document.fonts.ready);
-    await page.mouse.move(0, 0);
-  };
-  const step = (page: Page) => page.getByRole("region", { name: "Builder" });
-
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390]) {
-      const size = width === 390 ? "390" : "desktop";
-      test(`orc-347 the Background step, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        const shot = (locator: Locator, what: string) =>
-          locator.screenshot({ path: join(dir, `orc-347-${what}-${size}-${theme}.png`), animations: "disabled" });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        await fighterWithPack(page);
-        await ready(page);
-        if (width === 390) {
-          await shot(step(page), "narrow-list");
-          await row(page, "Acolyte").click();
-          const modal = page.getByRole("dialog", { name: "Acolyte" });
-          await expect(modal).toContainText("Shelter the Faithful");
-          await ready(page);
-          await page.screenshot({ path: join(dir, `orc-347-narrow-modal-${size}-${theme}.png`), animations: "disabled" });
-          await modal.getByRole("button", { name: "Choose Acolyte" }).click();
-        } else {
-          await row(page, "Acolyte").click();
-          await expect(panel(page)).toContainText("Shelter the Faithful");
-          await ready(page);
-          await shot(step(page), "list-panel");
-          await row(page, "Weaver").click();
-          await expect(panel(page)).toContainText(`From ${VALE_PACK}`);
-          await ready(page);
-          await shot(step(page), "list-panel-pack");
-          await row(page, "Acolyte").click();
-          await panel(page).getByRole("button", { name: "Choose Acolyte" }).click();
-        }
-        await expect(background(page).getByRole("button", { name: "Change Background" })).toBeFocused();
-        await ready(page);
-        await shot(step(page), "block");
-        await background(page).getByRole("button", { name: "Change Background" }).click();
-        await ready(page);
-        await shot(step(page), "change");
-      });
-    }
 });
