@@ -198,14 +198,13 @@ bun run test       # vitest
     the open. With `size="narrow"` it is up to 520px wide, for a short
     form or list; at 600px and less it fills the screen too. With
     `size="wide"` it is up to 1100px wide. A dialog of any size takes
-    `footer={false}`: it has no footer, takes no `actions`, and has the X
-    named "Close", for content to read. With `size="wide"`, the owner can
-    then give a `header` in place of the title row: the `title` does not
-    show, and it still names the dialog. `footer={false}` removes the
-    footer and does not take `actions`, and an X named "Close" at the end
-    of the header row closes the dialog. In that dialog, the focus goes to
-    the first control of the body when the body has one; else the X gets
-    the focus. At 600px and less the X is 44px. When `initialFocus` gives
+    `footer={false}`, for content to read: it has no footer and takes no
+    `actions`, and an X named "Close" at the end of the header row closes
+    the dialog. With `size="wide"`, the owner can then give a `header` in
+    place of the title row: the `title` does not show, and it still names
+    the dialog. In a dialog with `footer={false}`, the focus goes to the
+    first control of the body when the body has one; else the X gets the
+    focus. At 600px and less the X is 44px. When `initialFocus` gives
     null or its ref is empty, the focus goes as by default, also to a
     control that the body shows later. The backdrop is the list modal's
     ink wash. A wide dialog with `fill` is the height of the window less

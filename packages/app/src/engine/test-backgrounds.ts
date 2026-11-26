@@ -1,6 +1,7 @@
 // The background fixtures of the Customize tests (ORC-135): a pack
 // background with skills, tools, a language choice, equipment and a
 // feature, and fighter-20 with it in place of the SRD background Acolyte.
+import { toEdn } from "../components/builders/test-review-pack.ts";
 import { engine, type StrictEntity } from "./engine.ts";
 import { fighter20 } from "./test-feats.ts";
 
@@ -51,7 +52,7 @@ export function withSage(): StrictEntity {
 export const VALE_PACK = "Vale of Ash";
 
 /** 24 invented names: with the SRD Acolyte, a list of 25 backgrounds, more than the 20 that get a search field (ORC-347). */
-const VALE_NAMES = [
+export const VALE_NAMES = [
   "Archivist",
   "Bargehand",
   "Beekeeper",
@@ -78,9 +79,12 @@ const VALE_NAMES = [
   "Weaver",
 ];
 
+/** The key of a name, as the engine keys a background. */
+const keyOf = (name: string) => name.toLowerCase().replace(/\W+/g, "-");
+
 /** The backgrounds of VALE_PACK, each with a skill and a description, keyed by the key of its name as the engine keys a background. */
 export const VALE_BACKGROUNDS = VALE_NAMES.map((name) => {
-  const key = name.toLowerCase().replace(/\W+/g, "-");
+  const key = keyOf(name);
   return {
     "~:key": `~:${key}`,
     "~:name": name,
@@ -89,3 +93,26 @@ export const VALE_BACKGROUNDS = VALE_NAMES.map((name) => {
     "~:profs": { "~:skill": { "~:history": true } },
   };
 });
+
+const VALE_SKILLS = ["history", "nature", "survival", "medicine", "stealth", "insight"];
+
+/**
+ * VALE_PACK as the text of an .orcbrew file, for the e2e specs (ORC-347). Each background of VALE_NAMES has a
+ * description, two skills, a language of the player's choice, two items, gold and a feature.
+ */
+export function valeOrcbrew(): string {
+  const background = (name: string, i: number) => ({
+    "~:key": `~:${keyOf(name)}`,
+    "~:name": name,
+    "~:option-pack": VALE_PACK,
+    "~:help": `An invented background for this test. The ${name.toLowerCase()} knows the roads and the people of the vale.`,
+    "~:profs": {
+      "~:skill": { [`~:${VALE_SKILLS[i % 6]}`]: true, [`~:${VALE_SKILLS[(i + 1) % 6]}`]: true },
+      "~:language-options": { "~:choose": 1, "~:options": { "~:any": true } },
+    },
+    "~:equipment": { "~:clothes-common": 1, "~:pouch": 1 },
+    "~:treasure": { "~:gp": 10 },
+    "~:traits": [{ "~:name": "Known Faces", "~:description": "The people of the vale know you, and give you a meal and a bed for the night." }],
+  });
+  return toEdn({ [TAGGED_BACKGROUNDS]: Object.fromEntries(VALE_NAMES.map((name, i) => [`~:${keyOf(name)}`, background(name, i)])) });
+}

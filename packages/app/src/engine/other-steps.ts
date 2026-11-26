@@ -3,7 +3,7 @@
 // that the option gives on another step, with the picks or the left mark and the step.
 
 import { type BuilderSelection, type BuilderStep, type StepName, treeNodes } from "./builder.ts";
-import { proficiencyKind } from "./selection-control.ts";
+import { groupOf, isExpertise } from "./proficiencies.ts";
 
 /** One line of "Picked on other steps": the kind, the picks, the picks left, and the step that has them. */
 export interface OtherStepLine {
@@ -15,23 +15,25 @@ export interface OtherStepLine {
   remaining: number;
 }
 
-// The kinds of line, in their order in the list, by the first rule that matches the selection.
-const KINDS: [kind: string, matches: (selection: BuilderSelection) => boolean][] = [
-  ["Ability scores", ({ tags }) => tags.includes("ability-scores") || tags.includes("asi")],
-  ["Skills", (s) => proficiencyKind(s) === "skill"],
-  ["Expertise", (s) => s.key.includes("expertise")],
-  ["Languages", (s) => proficiencyKind(s) === "language"],
-  ["Tools", (s) => proficiencyKind(s) === "tool"],
-  ["Other proficiencies", ({ tags }) => tags.some((tag) => tag.endsWith("profs"))],
-  ["Cantrip", ({ tags, key, name }) => tags.includes("spells") && /cantrip/i.test(`${key} ${name}`)],
-  ["Spells", ({ tags }) => tags.includes("spells")],
-  ["Feat", ({ tags }) => tags.includes("feats")],
-  ["Starting equipment", ({ tags }) => tags.includes("starting-equipment")],
-];
+// The kinds of line, in their order in the list. The proficiency kinds are the groups of the Proficiencies step.
+const KINDS = ["Ability scores", "Skills", "Expertise", "Languages", "Tools", "Other proficiencies", "Cantrip", "Spells", "Feat", "Starting equipment"];
 
-/** The kind of the line of a selection: the first of KINDS that matches it, or else its name. */
+/**
+ * The kind of the line of a selection: an expertise selection (isExpertise) is Expertise, and a selection of the
+ * Skills, Languages or Tools group of the Proficiencies step (groupOf) has the name of its group. For another
+ * selection, the kind comes from its tags, or else it is its name.
+ */
 export function lineKind(selection: BuilderSelection): string {
-  return KINDS.find(([, matches]) => matches(selection))?.[0] ?? selection.name;
+  const { tags, key, name } = selection;
+  if (tags.includes("ability-scores") || tags.includes("asi")) return "Ability scores";
+  if (isExpertise(selection)) return "Expertise";
+  const group = groupOf(selection);
+  if (group !== "Other proficiencies") return group;
+  if (tags.some((tag) => tag.endsWith("profs"))) return "Other proficiencies";
+  if (tags.includes("spells")) return /cantrip/i.test(`${key} ${name}`) ? "Cantrip" : "Spells";
+  if (tags.includes("feats")) return "Feat";
+  if (tags.includes("starting-equipment")) return "Starting equipment";
+  return name;
 }
 
 /**
@@ -59,7 +61,7 @@ export function otherStepLines(selection: BuilderSelection, steps: BuilderStep[]
     lines.set(kind, { ...line, picks: [...line.picks, ...names], remaining: line.remaining + node.remaining });
   }
   const order = (kind: string) => {
-    const i = KINDS.findIndex(([k]) => k === kind);
+    const i = KINDS.indexOf(kind);
     return i < 0 ? KINDS.length : i;
   };
   return [...lines.values()].sort((a, b) => order(a.kind) - order(b.kind) || a.kind.localeCompare(b.kind));

@@ -24,8 +24,10 @@ import {
   withoutItem,
 } from "./content.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
+import { pickableSubraces, subraceOptions, subracePick, templateRace } from "./race-step.ts";
 import { missingContent, picksUnder, remapOption, withOptionOf, withoutOption } from "./reconcile.ts";
 import type { Resistance } from "./sheet.ts";
+import { srdList } from "./srd-lists.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */
 export const CUSTOM_PACK = "Custom (this character)";
@@ -307,8 +309,7 @@ function formTraits(traits: unknown): unknown[] {
  * character's pick. The SRD list loads once, as its own chunk.
  */
 export async function srdBackgroundRecord(key: string): Promise<Record<string, unknown> | undefined> {
-  const { default: list } = await import("@pubdoor/dmv/content/backgrounds.json");
-  const background = (list as Record<string, unknown>[]).find((b) => b.key === key);
+  const background = (await srdList("backgrounds")).find((b) => b.key === key);
   if (background === undefined) return undefined;
   const { key: _key, traits, "equipment-choices": choices, ...rest } = background;
   const listed = Array.isArray(choices) ? choices : [];
@@ -485,18 +486,10 @@ function breathWeaponTrait(attack: AreaAttack): Record<string, unknown> {
 const KEPT_CHOICES: Record<string, string> = { languages: "language-options", "skill-proficiency": "skill-options" };
 
 /**
- * The option of the race with the key in the engine's template, which has
- * its choices. Without homebrew, the template has the SRD races only.
- * undefined when the template has no such race.
+ * The option of the race with the key in the engine's template (templateRace), which has its choices. Without
+ * homebrew, the template has the SRD races only. undefined when the template has no such race.
  */
-export const raceOption = (key: string, homebrew?: Content["homebrew"]) =>
-  engine()
-    .buildTemplate(homebrew)
-    .shape.find((s) => s.key === "race")
-    ?.options.find((o) => o.key === key);
-
-/** The options of the Subrace choice of a race option (raceOption), as the engine's template has them. [] for a race with no subrace. */
-export const subraceOptions = (race: ReturnType<typeof raceOption>) => race?.selections?.find((s) => s.key === "subrace")?.options ?? [];
+export const raceOption = (key: string, homebrew?: Content["homebrew"]) => templateRace(key, { homebrew });
 
 /**
  * The language choice and the skill choice of the SRD race with the key,
@@ -526,9 +519,6 @@ function raceChoices(key: string, subrace?: string): Record<string, unknown> {
   return choices;
 }
 
-/** The subrace pick among the paths of the picks under a race, such as ["race", "dwarf", "subrace", "hill-dwarf"]. */
-export const subracePick = (paths: string[][]) => paths.find((p) => p.length === 4 && p[2] === "subrace");
-
 /** The picks of a character under its race that a copy of the race holds, and the entity that has only them under the race (racePicks). */
 interface RacePicks {
   /** The entity without the picks under the race that the copy does not hold as values. */
@@ -552,11 +542,7 @@ function racePicks(entity: StrictEntity, key: string): RacePicks | undefined {
   const picks = picksUnder(entity, ["race", key]);
   if (picks.length === 0) return undefined;
   // The engine's custom subrace has picks that the probe does not read, such as a speed, so the copy does not hold it, and Save names it.
-  const srdSubraces = new Set(
-    subraceOptions(raceOption(key))
-      .map((o) => o.key)
-      .filter((k) => k !== "custom"),
-  );
+  const srdSubraces = new Set(pickableSubraces(raceOption(key)).map((o) => o.key));
   const dropped = (path: string[]) => (path[2] === "subrace" ? !srdSubraces.has(path[3]) : KEPT_CHOICES[path[2]] !== undefined);
   const top = picks.filter((p) => p.length === 4 && dropped(p));
   return { entity: top.reduce((result, path) => withoutOption(result, path), entity), held: picks.filter((p) => !dropped(p)) };
@@ -597,8 +583,7 @@ export interface RaceCopy {
  * its own chunk.
  */
 export async function srdRaceCopy(key: string, entity?: StrictEntity | null): Promise<RaceCopy | undefined> {
-  const { default: list } = await import("@pubdoor/dmv/content/races.json");
-  const race = (list as Record<string, unknown>[]).find((r) => r.key === key);
+  const race = (await srdList("races")).find((r) => r.key === key);
   if (race === undefined) return undefined;
   const { key: _key, subraces: _subraces, size, languages, "weapon-proficiencies": weapons, traits, abilities: _abilities, ...rest } = race;
   const picks = entity == null ? undefined : racePicks(entity, key);

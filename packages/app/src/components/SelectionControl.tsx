@@ -48,8 +48,8 @@ export function SelectionControl({ selection }: { selection: BuilderSelection })
 type ControlProps = { selection: BuilderSelection; options: BuilderOption[]; unavailable?: Map<string, string> };
 
 // The top-level selections whose pick asks first when it removes picks: the race and the background. The subrace
-// under a race asks too. The Class step asks in its own controls. The background has the list with a detail panel
-// (MainPick.tsx), which picks with usePick too.
+// under a race asks too. The Class step asks in its own controls. The background and the race have the list with a
+// detail panel (MainPick.tsx), which picks with usePick too.
 const ASKS_FIRST = ["race", "background"];
 
 /** True when a pick in the selection asks first when it removes picks: a race, a subrace or a background. */

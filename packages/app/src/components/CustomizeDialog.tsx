@@ -425,6 +425,36 @@ export function useCustomize(selection: BuilderSelection, customizable: Customiz
 }
 
 /**
+ * The button of a selected option that opens its Customize dialog (useCustomize), with the pencil icon and the text
+ * Customize, Edit custom, or the guided label. Its data-customize is the key of the option, where the focus goes back.
+ */
+export function CustomizeButton({
+  customize,
+  option,
+  variant,
+  size,
+}: {
+  customize: Customize;
+  option: { key: string; name: string };
+  variant: "link" | "ghost";
+  size?: "small";
+}) {
+  const label = customize.label(option.key);
+  return (
+    <Button
+      variant={variant}
+      size={size}
+      icon="pencil"
+      data-customize={option.key}
+      aria-label={`${label} ${option.name}`}
+      onClick={() => customize.open(option.key, option.name)}
+    >
+      {label}
+    </Button>
+  );
+}
+
+/**
  * Under a selection's option cards: one line for each selected option, with its name and a small Customize button, or
  * Edit custom for a copy (useCustomize). The button is not in the card, because a card is a toggle. The Feats step has
  * these lines; the Background and Race steps have the button in their block (ORC-347, ORC-348).
@@ -437,23 +467,12 @@ export function CustomizeLines({ selection, customizable }: { selection: Builder
     <>
       {selected.length > 0 && (
         <ul ref={lines} aria-label={`Customize ${selection.name}`} className="space-y-1 text-[15px]">
-          {selected.map((option) => {
-            const label = customize.label(option.key);
-            return (
-              <li key={option.key} className="flex flex-wrap items-baseline gap-x-3">
-                <span>{option.name}</span>
-                <Button
-                  variant="link"
-                  icon="pencil"
-                  data-customize={option.key}
-                  aria-label={`${label} ${option.name}`}
-                  onClick={() => customize.open(option.key, option.name)}
-                >
-                  {label}
-                </Button>
-              </li>
-            );
-          })}
+          {selected.map((option) => (
+            <li key={option.key} className="flex flex-wrap items-baseline gap-x-3">
+              <span>{option.name}</span>
+              <CustomizeButton customize={customize} option={option} variant="link" />
+            </li>
+          ))}
         </ul>
       )}
       {customize.element}

@@ -4,7 +4,7 @@
 // row in Choices.
 
 import type { TemplateOption } from "@pubdoor/dmv";
-import type { BuilderOption, BuilderSelection } from "./builder.ts";
+import { type BuilderOption, type BuilderSelection, templateShape } from "./builder.ts";
 import type { Content, Engine, StrictEntity } from "./engine.ts";
 import { picksUnder } from "./reconcile.ts";
 import { CUSTOM_KEY, shownOptions } from "./selection-control.ts";
@@ -13,25 +13,35 @@ import { CUSTOM_KEY, shownOptions } from "./selection-control.ts";
 export const SUBRACE_KEY = "subrace";
 
 /** A race option with its selections, as the template has it, or a builder option. */
-type WithSelections = { selections?: { key: string; options: { key: string; name: string }[] }[] };
+type WithSelections<O> = { selections?: { key: string; options: O[] }[] };
+
+/** The options of the Subrace selection of a race option, as the template or the builder has them. [] for a race with no subrace. */
+export const subraceOptions = <O extends { key: string }>(race: WithSelections<O> | undefined): O[] =>
+  race?.selections?.find((s) => s.key === SUBRACE_KEY)?.options ?? [];
 
 /** The subraces of a race option that a player can pick: the options of its Subrace selection, without the engine's Custom subrace. */
-export function pickableSubraces(option: WithSelections | undefined): { key: string; name: string }[] {
-  const subrace = option?.selections?.find((s) => s.key === SUBRACE_KEY);
-  return (subrace?.options ?? []).filter((o) => o.key !== CUSTOM_KEY).map(({ key, name }) => ({ key, name }));
+export function pickableSubraces(option: WithSelections<{ key: string; name: string }> | undefined): { key: string; name: string }[] {
+  return subraceOptions(option)
+    .filter((o) => o.key !== CUSTOM_KEY)
+    .map(({ key, name }) => ({ key, name }));
 }
 
 /** The one subrace of a race option, or null for a race with no subrace or with more than one. */
-export function soleSubrace(option: WithSelections | undefined): { key: string; name: string } | null {
+export function soleSubrace(option: WithSelections<{ key: string; name: string }> | undefined): { key: string; name: string } | null {
   const subraces = pickableSubraces(option);
   return subraces.length === 1 ? subraces[0] : null;
 }
 
-/** The option of the race with the key in the template of the content, with its selections. */
-export const templateRace = (e: Engine, key: string, content: Content): TemplateOption | undefined =>
-  e
-    .buildTemplate(content.homebrew)
-    .shape.find((s) => s.key === "race")
+/** The subrace pick among the paths of the picks under a race, such as ["race", "dwarf", "subrace", "hill-dwarf"]. */
+export const subracePick = (paths: string[][]) => paths.find((p) => p.length === 4 && p[2] === SUBRACE_KEY);
+
+/**
+ * The option of the race with the key in the template of the content (templateShape, built once per content), with its
+ * selections. undefined when the template has no such race.
+ */
+export const templateRace = (key: string, content: Content): TemplateOption | undefined =>
+  templateShape(content)
+    .find((s) => s.key === "race")
     ?.options.find((o) => o.key === key);
 
 /**
@@ -41,9 +51,8 @@ export const templateRace = (e: Engine, key: string, content: Content): Template
  */
 export function withSoleSubrace(e: Engine, entity: StrictEntity, path: string[], race: string, content: Content): StrictEntity {
   if (path.length !== 1 || path[0] !== "race") return entity;
-  const sole = soleSubrace(templateRace(e, race, content));
-  if (sole === null) return entity;
-  if (picksUnder(entity, ["race", race]).some((pick) => pick.length === 4 && pick[2] === SUBRACE_KEY)) return entity;
+  const sole = soleSubrace(templateRace(race, content));
+  if (sole === null || subracePick(picksUnder(entity, ["race", race])) !== undefined) return entity;
   return e.select(entity, ["race", race, SUBRACE_KEY], sole.key, content) as StrictEntity;
 }
 
@@ -52,9 +61,9 @@ export function withSoleSubrace(e: Engine, entity: StrictEntity, path: string[],
  * ["race", "dwarf", "subrace", "hill-dwarf"]. The pick of the race picks it (withSoleSubrace), so the question before a
  * change does not name it as a pick that goes.
  */
-export function isSoleSubracePick(e: Engine, path: string[], content: Content): boolean {
+export function isSoleSubracePick(path: string[], content: Content): boolean {
   if (path.length !== 4 || path[0] !== "race" || path[2] !== SUBRACE_KEY) return false;
-  return soleSubrace(templateRace(e, path[1], content))?.key === path[3];
+  return soleSubrace(templateRace(path[1], content))?.key === path[3];
 }
 
 /**

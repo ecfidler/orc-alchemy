@@ -5,7 +5,7 @@
 // (CustomizeDialog.tsx). The logic is in engine/custom-origin.ts.
 // docs/design/homebrew-forms.md, "Custom Origin", is the spec.
 
-import { Button, Dialog, type ListItem, ListModal, Select, Token, Tokens, useConfirm } from "@orc-alchemy/ui";
+import { Button, Dialog, type ListItem, ListModal, type ListPanelPlace, Select, Token, Tokens, useConfirm } from "@orc-alchemy/ui";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import type { BuilderChoices, Choice } from "../engine/builder-choices.ts";
@@ -34,6 +34,7 @@ import {
   storedBase,
   withPick,
 } from "../engine/custom-origin.ts";
+import type { OptionDetail } from "../engine/origin-detail.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Help, type ItemRecord, Section, SKILLS, WithChoices } from "./builders/fields.tsx";
@@ -41,6 +42,7 @@ import { TOOL_ITEMS } from "./builders/modifier-kinds.tsx";
 import { type GuidedEdit, removedPickNames, useRemovedPicks } from "./CustomizeDialog.tsx";
 import { useUnloadWarning } from "./leave-guard.tsx";
 import type { MainPickRow } from "./MainPick.tsx";
+import { OptionDetailView } from "./OptionDetail.tsx";
 
 /** The base race of the dialog: its key and name, its record, and the names of its choices that the copy does not have. */
 export interface OriginBase {
@@ -81,6 +83,9 @@ function originLists(lists: BuilderChoices): OriginLists {
 /** What the panel of the Custom Origin row says a custom origin is (docs/design/character-builder.md, "Custom Origin"). */
 const ROW_TEXT =
   "Make a copy of a race for this character. Move its ability score increases, and swap its languages and proficiencies for others. The copy is the race of this character.";
+
+/** The detail of the Custom Origin row: ROW_TEXT as its description, with no facts and no traits. */
+const ROW_DETAIL: OptionDetail = { description: ROW_TEXT, facts: [], traits: [] };
 
 /** A list of more than this many options has a search field (docs/design/homebrew-forms.md, "Picker"). */
 const SEARCH_FROM = 20;
@@ -522,7 +527,7 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
       ? (document.querySelector<HTMLElement>('[data-custom-origin="modal"]') ?? document.querySelector<HTMLElement>('[data-custom-origin="panel"]'))
       : document.querySelector<HTMLElement>(`[data-customize="${CSS.escape(focusKey.current)}"]`);
 
-  const startButton = (place: string) => (
+  const startButton = (place: ListPanelPlace) => (
     <Button
       variant="solid"
       data-custom-origin={place}
@@ -541,11 +546,9 @@ export function useCustomOrigin(selection: BuilderSelection): CustomOriginParts 
     label: "Custom Origin",
     icon: "plus",
     detail: (place) => (
-      <div className="space-y-2.5">
-        {place === "panel" && <h4 className="text-[24px] leading-tight font-semibold">Custom Origin</h4>}
-        <p className="text-[16px]">{ROW_TEXT}</p>
+      <OptionDetailView name="Custom Origin" detail={ROW_DETAIL} place={place}>
         <p className="text-[16px]">A custom origin is not saved to your homebrew content.</p>
-      </div>
+      </OptionDetailView>
     ),
     action: startButton,
   };

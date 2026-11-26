@@ -241,7 +241,7 @@ export function planChange(input: ChangeInput, change: PickChange): ChangePlan {
   // The one subrace of a race is part of the race, not a pick of the player (ORC-348).
   const counts = (path: string[]) => {
     const node = nodes.get(pathKey(path.slice(0, -1)));
-    return node !== undefined && !isInventory(node) && node.key !== "levels" && node.key !== "hit-points" && !isSoleSubracePick(e, path, content);
+    return node !== undefined && !isInventory(node) && node.key !== "levels" && node.key !== "hit-points" && !isSoleSubracePick(path, content);
   };
 
   // The picks of a skill, a tool or a language, and the fixed ones that the change gives.

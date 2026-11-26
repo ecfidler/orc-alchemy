@@ -3,6 +3,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState 
 import { Dialog } from "./Dialog.tsx";
 import { LockIcon, PixelIcon, type PixelIconName } from "./Icon.tsx";
 import { ListRow } from "./ListRow.tsx";
+import { ListNone, moveInList } from "./list-keys.tsx";
 
 /** One row of a ListPanel. */
 export type ListPanelItem<T> = {
@@ -91,18 +92,7 @@ export function ListPanel<T>({ label, items, fixedRow, defaultCurrent = null, pi
     if (narrow()) setModal(true);
   }
 
-  const onKeyDown = (event: KeyboardEvent) => {
-    const rows = [...(root.current?.querySelectorAll<HTMLElement>(ROW) ?? [])];
-    const target = event.target as HTMLElement;
-    const at = rows.indexOf(target);
-    const fromSearch = target.classList.contains("ui-list-panel-search") && event.key === "ArrowDown";
-    if (rows.length === 0 || (at < 0 && !fromSearch)) return;
-    const next = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: rows.length - 1 }[event.key];
-    if (next === undefined) return;
-    event.preventDefault();
-    if (next < 0) root.current?.querySelector<HTMLElement>(".ui-list-panel-search")?.focus();
-    else rows[Math.min(next, rows.length - 1)]!.focus();
-  };
+  const onKeyDown = (event: KeyboardEvent) => moveInList(event, root.current, ROW, "ui-list-panel-search");
 
   const row = (i: ListPanelItem<T>, n: number, icon?: PixelIconName) => {
     const locked = i.unavailable !== undefined;
@@ -153,7 +143,7 @@ export function ListPanel<T>({ label, items, fixedRow, defaultCurrent = null, pi
           )}
           <div className="ui-list-panel-rows">
             {shown.length === 0 ? (
-              <p className="ui-list-none">{items.length > 0 ? "Nothing matches. Try another word." : "Nothing to pick."}</p>
+              <ListNone hasItems={items.length > 0} emptyText="Nothing to pick." />
             ) : (
               <ul aria-label={label} className="ui-list-panel-ul">
                 {shown.map((i, n) => (

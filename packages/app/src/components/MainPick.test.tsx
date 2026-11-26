@@ -2,32 +2,20 @@
 // Race steps"): the panel shows a background and picks nothing, Choose picks it, the block takes the place of the list
 // with the focus on Change, Change and Cancel, About, "Picked on other steps", and the search of a long list.
 import "fake-indexeddb/auto";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
-import { addFirstClass, newCharacter } from "../engine/new-character.ts";
+import { engine, loadEngine } from "../engine/engine.ts";
 import { BACKGROUND_PACK, SAGE, TAGGED_BACKGROUNDS, VALE_BACKGROUNDS, VALE_PACK } from "../engine/test-backgrounds.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
-import { Builder } from "./Builder.tsx";
+import { openFighter, resetBuilder } from "./test-builder.tsx";
 import { pickIn, section } from "./test-pick.ts";
 
 beforeAll(() => loadEngine());
-afterEach(async () => {
-  cleanup();
-  useCharacter.setState({ id: null, entity: null, custom: undefined, dirty: false });
-  for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
-});
+afterEach(resetBuilder);
 
 /** A new fighter with these picks, open in the builder on the Background step. */
-function open(picks: [path: string[], key: string][] = []) {
-  const e = engine();
-  const content = useHomebrew.getState().content;
-  const start = addFirstClass(e, newCharacter(e), "fighter", content);
-  const entity = picks.reduce((entity, [path, key]) => e.select(entity, path, key, content) as StrictEntity, start);
-  act(() => useCharacter.getState().load("main-pick", entity));
-  render(<Builder step="Background" />);
-}
+const open = (picks: [path: string[], key: string][] = []) => openFighter("Background", picks);
 
 const background = () => section("Background");
 const picked = () =>

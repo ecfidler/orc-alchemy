@@ -31,7 +31,7 @@ test("Acolyte gives two languages on Proficiencies and its two equipment choices
 test("a picked language shows on its line, and the line counts what is left", () => {
   let entity = select(fighter(), ["background"], "acolyte");
   const { background } = build(entity);
-  const languages = movedOf(background).find((s) => lineKind(s) === "Languages")!;
+  const languages = background.moved.find((s) => lineKind(s) === "Languages")!;
   entity = select(entity, languages.actualPath, "elvish");
   const { steps, background: after } = build(entity);
   expect(otherStepLines(after, steps)[0]).toEqual({ kind: "Languages", step: "Proficiencies", picks: ["Elvish"], remaining: 1 });
@@ -66,5 +66,8 @@ test("the kind of a line comes from the tags of its selection, else its name", (
   expect(lineKind(node("x", "Draconic Ancestry", []))).toBe("Draconic Ancestry");
 });
 
-/** The selections that the picked background opens on other steps. */
-const movedOf = (background: BuilderSelection) => background.moved;
+test("a line kind of a proficiency is the group of the Proficiencies step: the custom background's tool selection is Tools", () => {
+  const node = (key: string, name: string, tags: string[]) => ({ key, name, tags }) as BuilderSelection;
+  expect(lineKind(node("tool-language-proficiencies", "Tool / Language Proficiencies", []))).toBe("Tools");
+  expect(lineKind(node("bonus", "Bonus", ["expertise"]))).toBe("Expertise");
+});

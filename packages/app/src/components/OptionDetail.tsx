@@ -2,7 +2,8 @@
 // list and the panel"), as the detail panel, the modal of a narrow page and the About modal show it: the name, the pack, the
 // description, the facts in a definition list, and the feature. The rules of what it shows are in
 // engine/origin-detail.ts.
-import { useEffect, useMemo, useState } from "react";
+import type { ListPanelPlace } from "@orc-alchemy/ui";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { templateShape } from "../engine/builder.ts";
 import { BACKGROUND_TYPE } from "../engine/content.ts";
 import { CUSTOM_PACK, optionOrigin } from "../engine/custom.ts";
@@ -10,6 +11,7 @@ import { RACE_TYPE } from "../engine/custom-origin.ts";
 import type { ContentType } from "../engine/engine.ts";
 import { backgroundDetail, nameLookup, type OptionDetail, plainRecord, raceDetail, srdBackgrounds, srdItemNames, srdRaces } from "../engine/origin-detail.ts";
 import { proficiencyNames } from "../engine/proficiencies.ts";
+import { templateRace } from "../engine/race-step.ts";
 import { useCharacter, useOpenCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 
@@ -81,13 +83,7 @@ export function useBackgroundDetail(key: string): OptionDetail | null {
 export function useRaceDetail(key: string): OptionDetail | null {
   const { content } = useOpenCharacter();
   const lists = useSrdLists();
-  const option = useMemo(
-    () =>
-      templateShape(content)
-        .find((s) => s.key === "race")
-        ?.options.find((o) => o.key === key),
-    [content, key],
-  );
+  const option = useMemo(() => templateRace(key, content), [content, key]);
   const record = useRecord(RACE_TYPE, key, lists?.races);
   if (lists === null) return null;
   return record ? raceDetail(record, option) : null;
@@ -95,9 +91,22 @@ export function useRaceDetail(key: string): OptionDetail | null {
 
 /**
  * The detail of an option: its name as a heading (in the panel only: the title of a modal names it), the pack as
- * "From {pack}", the description, the facts as a definition list, and the traits, each with its name in bold.
+ * "From {pack}", the description, the facts as a definition list, and the traits, each with its name in bold. The
+ * children show after them, such as the second paragraph of the Custom Origin row.
  */
-export function OptionDetailView({ name, pack, detail, place }: { name: string; pack?: string; detail: OptionDetail | null; place: "panel" | "modal" }) {
+export function OptionDetailView({
+  name,
+  pack,
+  detail,
+  place,
+  children,
+}: {
+  name: string;
+  pack?: string;
+  detail: OptionDetail | null;
+  place: ListPanelPlace;
+  children?: ReactNode;
+}) {
   return (
     <div className="space-y-2.5">
       {(place === "panel" || pack) && (
@@ -126,6 +135,7 @@ export function OptionDetailView({ name, pack, detail, place }: { name: string; 
           ))}
         </ul>
       )}
+      {children}
     </div>
   );
 }
@@ -135,7 +145,7 @@ export interface DetailProps {
   optionKey: string;
   name: string;
   pack?: string;
-  place: "panel" | "modal";
+  place: ListPanelPlace;
 }
 
 /** The detail of the background option with the key and the name. */

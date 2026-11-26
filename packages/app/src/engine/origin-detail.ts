@@ -9,8 +9,9 @@
 
 import type { TemplateOption, TemplateSelection } from "@pubdoor/dmv";
 import { isMap, unqualify } from "./content.ts";
-import { SUBRACE_KEY, soleSubrace } from "./race-step.ts";
+import { SUBRACE_KEY, soleSubrace, subraceOptions } from "./race-step.ts";
 import { ABILITIES, ABILITY_NAMES, abilityOfKey, keyToName } from "./sheet.ts";
+import { srdList } from "./srd-lists.ts";
 
 /** One fact of the panel, a row of its definition list: "Skills", "Insight, Religion". */
 export interface DetailFact {
@@ -202,7 +203,7 @@ export function raceDetail(record: Record<string, unknown>, option: TemplateOpti
   add("Languages", [...fixed(languagesOf(record.languages)), ...raceChoices(option, "language-profs").map(raceChoiceText)]);
   const sole = soleSubrace(option);
   if (sole !== null) {
-    const subrace = option?.selections?.find((s) => s.key === SUBRACE_KEY)?.options.find((o) => o.key === sole.key);
+    const subrace = subraceOptions(option).find((o) => o.key === sole.key);
     const ofRecord = (Array.isArray(record.subraces) ? record.subraces : []).find((s) => isMap(s) && s.name === sole.name);
     const parts = [...(subrace ? modifierAbilities(subrace) : []), ...(isMap(ofRecord) ? traitsOf(ofRecord).map((t) => t.name) : [])];
     add("Subrace", [parts.length > 0 ? `${sole.name}: ${parts.join(", ")}` : sole.name]);
@@ -212,28 +213,17 @@ export function raceDetail(record: Record<string, unknown>, option: TemplateOpti
   return { description: String(record.help ?? "").trim(), facts, traits: [...darkvision, ...traitsOf(record)] };
 }
 
-/** The SRD races of the engine's content list, as plain records. They load once, as their own chunk. */
-let srdRaceList: Promise<Record<string, unknown>[]> | undefined;
-export function srdRaces(): Promise<Record<string, unknown>[]> {
-  srdRaceList ??= import("@pubdoor/dmv/content/races.json").then((mod) => mod.default as Record<string, unknown>[]);
-  return srdRaceList;
-}
+/** The SRD races of the engine's content list (srdList). */
+export const srdRaces = () => srdList("races");
 
-/** The SRD backgrounds of the engine's content list, as plain records. They load once, as their own chunk. */
-let srd: Promise<Record<string, unknown>[]> | undefined;
-export function srdBackgrounds(): Promise<Record<string, unknown>[]> {
-  srd ??= import("@pubdoor/dmv/content/backgrounds.json").then((mod) => mod.default as Record<string, unknown>[]);
-  return srd;
-}
+/** The SRD backgrounds of the engine's content list (srdList). */
+export const srdBackgrounds = () => srdList("backgrounds");
 
-/** The name of each item of the engine's equipment, weapon and armor lists, by key. They load once, as their own chunks. */
+/** The name of each item of the engine's equipment, weapon and armor lists, by key. The map is made once. */
 let itemNames: Promise<Map<string, string>> | undefined;
 export function srdItemNames(): Promise<Map<string, string>> {
-  const list = (mod: { default: unknown }) => mod.default as { key: string; name: string }[];
-  itemNames ??= Promise.all([
-    import("@pubdoor/dmv/content/equipment.json").then(list),
-    import("@pubdoor/dmv/content/weapons.json").then(list),
-    import("@pubdoor/dmv/content/armor.json").then(list),
-  ]).then((lists) => new Map(lists.flat().map(({ key, name }) => [key, name])));
+  itemNames ??= Promise.all([srdList("equipment"), srdList("weapons"), srdList("armor")]).then(
+    (lists) => new Map(lists.flat().map(({ key, name }) => [key, name])),
+  );
   return itemNames;
 }

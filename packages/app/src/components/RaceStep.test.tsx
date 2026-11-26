@@ -2,30 +2,20 @@
 // with a detail panel and the block of the race, Draconic Ancestry in Choices, a Dwarf with one subrace and with two,
 // the lines of a Half-Elf to other steps, and the Custom Origin row.
 import "fake-indexeddb/auto";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
-import { addFirstClass, newCharacter } from "../engine/new-character.ts";
 import { ASH_DWARF, RACE_PACK, TAGGED_SUBRACES } from "../engine/test-races.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
-import { Builder } from "./Builder.tsx";
+import { openFighter, resetBuilder } from "./test-builder.tsx";
 import { pickIn, picksIn, section } from "./test-pick.ts";
 
 beforeAll(() => loadEngine());
-afterEach(async () => {
-  cleanup();
-  useCharacter.setState({ id: null, entity: null, custom: undefined, dirty: false });
-  for (const { id } of useHomebrew.getState().packs) await useHomebrew.getState().remove(id);
-});
+afterEach(resetBuilder);
 
 /** A new fighter, open in the builder on the Race step. */
-function open() {
-  const e = engine();
-  const entity = addFirstClass(e, newCharacter(e), "fighter", useHomebrew.getState().content);
-  act(() => useCharacter.getState().load("race-step", entity));
-  render(<Builder step="Race" />);
-}
+const open = () => openFighter("Race");
 
 const race = () => section("Race");
 const header = () => within(race()).getAllByRole("heading", { level: 3 })[0].textContent;

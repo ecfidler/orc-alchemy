@@ -5,14 +5,14 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { ashDwarfOrcbrew } from "../src/engine/test-races.ts";
 import { addFirstClass, newCharacter, openStep, pickIn, section, startCustomOrigin } from "./builder-helpers.ts";
 import { summaryCard } from "./sheet-panel.ts";
 
 const PACK = "Vale of Ash";
 
 /** A pack with a subrace of the SRD Dwarf: with it, the Dwarf has two subraces, Hill Dwarf and Ash Dwarf. */
-const ORCBREW = `{:orcpub.dnd.e5/subraces {:ash-dwarf {:key :ash-dwarf :name "Ash Dwarf" :option-pack "${PACK}" :race :dwarf
-  :abilities {:orcpub.dnd.e5.character/str 1}}}}`;
+const ORCBREW = ashDwarfOrcbrew(PACK);
 
 /** Makes a new Fighter and opens the Race step; with `pack`, after the load of the pack with Ash Dwarf. */
 async function fighterOnRace(page: Page, pack = false) {

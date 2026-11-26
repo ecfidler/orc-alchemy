@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T11:17:39Z }
+generated: { by: claude-code/agent, at: 2026-11-26T12:38:24Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -423,7 +423,7 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | Icon | Use |
 | --- | --- |
 | `pencil` | A control that opens the builder, a Customize dialog, or a homebrew form: a place where content changes. |
-| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. Also the mark of the Inspiration box, until inspiration has an icon of its own (ORC-324), and the "Done" left mark of a builder selection (ORC-340). In a list with a detail panel, the mark of the picked row, and the button "Choose {name}" of the panel, which picks and closes the list (ORC-347). |
+| `check` | A control that confirms and closes: Save or Done of a dialog, of a homebrew form or of the builder, and the action of a confirm dialog. Also the mark of the Inspiration box, until inspiration has an icon of its own (ORC-324), and the "Done" left mark of a builder selection (ORC-340). In a list with a detail panel, the mark of the picked row, the mark before "The {noun} of this character" in the panel of the picked option, and the button "Choose {name}" of the panel, which picks and closes the list (ORC-347). |
 | `x` | A control that closes and does not keep the changes: Cancel. |
 | `sparkles` | A control for spellcasting: All spells, Prepare spells, and the Cast button of a spell (ORC-320). |
 | `external` | A link that opens a page of another site: Send feedback. |

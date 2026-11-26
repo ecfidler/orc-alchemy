@@ -12,7 +12,7 @@ import { otherStepLines, stepMark } from "../engine/other-steps.ts";
 import { hasSearch, notAvailableText, shownOptions } from "../engine/selection-control.ts";
 import { useOpenStep, useSectionName, useStepFrame } from "./builder-context.tsx";
 import { HEADING_CLASSES } from "./Classes.tsx";
-import { type Customizable, type GuidedEdit, useCustomize } from "./CustomizeDialog.tsx";
+import { type Customizable, CustomizeButton, type GuidedEdit, useCustomize } from "./CustomizeDialog.tsx";
 import { BackgroundDetail, type DetailProps, RaceDetail, useOptionPack } from "./OptionDetail.tsx";
 import { usePick, useUnavailable } from "./SelectionControl.tsx";
 
@@ -33,9 +33,6 @@ const MAIN_PICKS: Record<string, MainPickParts> = {
 /** The parts of the main pick of the selection, or null when it is not the main pick of its step: the top-level background or race. */
 export const mainPickParts = ({ actualPath }: BuilderSelection): MainPickParts | null =>
   (actualPath.length === 1 && Object.hasOwn(MAIN_PICKS, actualPath[0]) && MAIN_PICKS[actualPath[0]]) || null;
-
-/** True when the selection is the main pick of its step: the top-level background or race. */
-export const isMainPick = (selection: BuilderSelection) => mainPickParts(selection) !== null;
 
 /** A fixed last row of the list that is not an option, such as Custom Origin: its name, its icon, its detail and its action. */
 export interface MainPickRow {
@@ -100,25 +97,27 @@ export function MainPick({ selection, noun, contentType, detail, customizable, g
   const { select, dialog } = usePick(selection, afterQuestion);
 
   // A new pick while the list shows closes the list. The focus then goes to Change (spec, "Keyboard and screen reader").
-  const focusChange = useRef(false);
-  const shown = useRef({ pick: picked?.key ?? null, list: listShows });
+  // The pick of the last render is state, so a new pick sets the state during the render, as React permits for the
+  // state of the component itself.
   const pickedKey = picked?.key ?? null;
-  if (shown.current.pick !== pickedKey) {
-    if (pickedKey !== null && shown.current.list) {
-      focusChange.current = true;
-      if (changing) setChanging(false);
+  const [lastPick, setLastPick] = useState(pickedKey);
+  const [focusChange, setFocusChange] = useState(false);
+  if (lastPick !== pickedKey) {
+    setLastPick(pickedKey);
+    // The list showed in the last render when it had no pick, or while the player changed the pick.
+    if (pickedKey !== null && (lastPick === null || changing)) {
+      setFocusChange(true);
+      setChanging(false);
     }
-    shown.current.pick = pickedKey;
   }
   useEffect(() => {
-    shown.current.list = listShows;
-    if (listShows || !focusChange.current) return;
-    focusChange.current = false;
+    if (listShows || !focusChange) return;
+    setFocusChange(false);
     changeButton.current?.focus();
-  });
+  }, [listShows, focusChange]);
 
   const cancel = () => {
-    focusChange.current = true;
+    setFocusChange(true);
     setChanging(false);
   };
 
@@ -298,7 +297,7 @@ function PickBlock({ selection, option, name, noun, pack, detail, customizable, 
           <Button variant="ghost" size="small" aria-label={`About ${option.name}`} onClick={() => setAbout(true)}>
             About
           </Button>
-          {customizable && <CustomizeButton selection={selection} option={option} customizable={customizable} guided={guided} scope={block} />}
+          {customizable && <BlockCustomize selection={selection} option={option} customizable={customizable} guided={guided} scope={block} />}
           <Button ref={changeButton} variant="ghost" size="small" aria-label={`Change ${name}`} onClick={onChange}>
             Change
           </Button>
@@ -317,8 +316,8 @@ function PickBlock({ selection, option, name, noun, pack, detail, customizable, 
   );
 }
 
-/** The Customize button of the block, with the text of the Homebrew forms spec: Customize, Edit custom, or the guided text. */
-function CustomizeButton({
+/** The Customize button of the block (CustomizeButton), with its dialog. */
+function BlockCustomize({
   selection,
   option,
   customizable,
@@ -332,19 +331,9 @@ function CustomizeButton({
   scope: RefObject<HTMLElement | null>;
 }) {
   const customize = useCustomize(selection, customizable, scope, guided);
-  const label = customize.label(option.key);
   return (
     <>
-      <Button
-        variant="ghost"
-        size="small"
-        icon="pencil"
-        data-customize={option.key}
-        aria-label={`${label} ${option.name}`}
-        onClick={() => customize.open(option.key, option.name)}
-      >
-        {label}
-      </Button>
+      <CustomizeButton customize={customize} option={option} variant="ghost" size="small" />
       {customize.element}
     </>
   );
@@ -377,8 +366,8 @@ function OtherSteps({ selection, noun }: { selection: BuilderSelection; noun: st
   return (
     <ul aria-label="Picked on other steps" className="divide-y divide-rule border-y border-rule-strong">
       {lines.map((line) => {
-        const done = line.remaining === 0 && line.picks.length > 0;
-        const value = done ? line.picks.join(", ") : line.remaining > 0 ? `${line.remaining} left` : line.remaining < 0 ? `remove ${-line.remaining}` : "done";
+        const picks = line.remaining === 0 && line.picks.length > 0 ? line.picks.join(", ") : null;
+        const value = picks ?? (line.remaining > 0 ? `${line.remaining} left` : line.remaining < 0 ? `remove ${-line.remaining}` : "done");
         return (
           <li key={line.kind}>
             <Button
@@ -388,7 +377,7 @@ function OtherSteps({ selection, noun }: { selection: BuilderSelection; noun: st
               className="grid min-h-[38px] w-full grid-cols-[112px_minmax(0,1fr)_auto] items-center gap-2.5 py-1 pr-1 text-left hover:bg-panel min-[720px]:grid-cols-[150px_minmax(0,1fr)_auto]"
             >
               <span className="font-sans text-[14px] font-semibold">{line.kind}</span>
-              <span className="min-w-0 truncate text-[15.5px]">{done ? line.picks.join(", ") : <LeftMark left={line.remaining} />}</span>
+              <span className="min-w-0 truncate text-[15.5px]">{picks ?? <LeftMark left={line.remaining} />}</span>
               <span className="font-sans text-[12.5px] whitespace-nowrap text-ink-muted underline underline-offset-3">{line.step}</span>
             </Button>
           </li>

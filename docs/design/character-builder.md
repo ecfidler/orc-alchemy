@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T11:53:01Z }
+generated: { by: claude-code/agent, at: 2026-11-26T12:38:24Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -495,6 +495,13 @@ The main pick of each step is a list with a detail panel.[^orc-332]
   A character that has the race and not its one subrace, such as a
   character from before this rule, keeps the Subrace row in Choices until
   the player picks the subrace.[^orc-348]
+* The traits of the panel are those of the record of the race: the
+  item of its pack, or the race of the engine's content list. The panel
+  does not show a trait that only the engine gives, as a modifier, an
+  attack or a trait of the built character. Examples are the Breath
+  Weapon and the damage resistance of the Dragonborn, the Dwarven
+  Toughness of the Hill Dwarf, and the traits of the
+  Tiefling.[^orc-348]
 
 ## After the pick
 
@@ -541,6 +548,11 @@ with the look of the class block.
 * Its panel says what a custom origin is, and "A custom origin is not
   saved to your homebrew content." The button "Start a custom origin"
   opens the Custom Origin dialog.
+* The text of the panel is, word for word: "Make a copy of a race for
+  this character. Move its ability score increases, and swap its
+  languages and proficiencies for others. The copy is the race of this
+  character." Then a second paragraph: "A custom origin is not saved to
+  your homebrew content."[^orc-348]
 * The Background list has no such row.
 * The panel of the row has the name "Custom Origin" as its heading. The
   row has the `plus` icon of theme.md because it makes a new record. The

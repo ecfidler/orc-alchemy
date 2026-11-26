@@ -5,53 +5,15 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { VALE_PACK, valeOrcbrew } from "../src/engine/test-backgrounds.ts";
 import { addFirstClass, newCharacter, openStep, pickIn, section } from "./builder-helpers.ts";
-
-const PACK = "Vale of Ash";
-
-// 24 invented backgrounds, as in the prototype (ORC-338): with the SRD Acolyte, a list of 25, so it has a search field.
-const NAMES = [
-  "Archivist",
-  "Bargehand",
-  "Beekeeper",
-  "Bell Ringer",
-  "Bonesetter",
-  "Border Scout",
-  "Caravan Guard",
-  "Cartographer",
-  "Chandler",
-  "Ferryman",
-  "Gamekeeper",
-  "Glassblower",
-  "Gravedigger",
-  "Herbalist",
-  "Lamplighter",
-  "Mason",
-  "Messenger",
-  "Miller",
-  "Night Watch",
-  "Pilgrim",
-  "Ratcatcher",
-  "Salt Trader",
-  "Shepherd",
-  "Weaver",
-];
-const SKILLS = ["history", "nature", "survival", "medicine", "stealth", "insight"];
-
-/** The pack as an .orcbrew file: each background has a description, two skills, a language choice, equipment and a feature. */
-const ORCBREW = `{:orcpub.dnd.e5/backgrounds {${NAMES.map((name, i) => {
-  const key = name.toLowerCase().replace(/\W+/g, "-");
-  return `:${key} {:key :${key} :name "${name}" :option-pack "${PACK}"
-    :help "An invented background for this test. The ${name.toLowerCase()} knows the roads and the people of the vale."
-    :profs {:skill {:${SKILLS[i % 6]} true :${SKILLS[(i + 1) % 6]} true} :language-options {:choose 1 :options {:any true}}}
-    :equipment {:clothes-common 1 :pouch 1} :treasure {:gp 10}
-    :traits [{:name "Known Faces" :description "The people of the vale know you, and give you a meal and a bed for the night."}]}`;
-}).join("\n")}}}`;
 
 /** Loads the pack, then makes a new Fighter and opens the Background step. */
 async function fighterWithPack(page: Page) {
   await page.goto("/import");
-  await page.getByLabel("Load homebrew file").setInputFiles({ name: `${PACK}.orcbrew`, mimeType: "application/octet-stream", buffer: Buffer.from(ORCBREW) });
+  await page
+    .getByLabel("Load homebrew file")
+    .setInputFiles({ name: `${VALE_PACK}.orcbrew`, mimeType: "application/octet-stream", buffer: Buffer.from(valeOrcbrew()) });
   await expect(page.getByRole("region", { name: "Import log" })).toBeVisible();
   await newCharacter(page);
   await addFirstClass(page, "Fighter");
@@ -93,7 +55,7 @@ test("a pack of more than 20 backgrounds: the search field has the count, filter
   const search = background(page).getByRole("searchbox", { name: "Search" });
   await expect(search).toHaveAttribute("placeholder", "Search 25 backgrounds");
   await expect(list(page).locator(".ui-list-panel-name")).toHaveCount(25);
-  await expect(row(page, "Weaver").locator(".ui-list-panel-aside")).toHaveText(PACK);
+  await expect(row(page, "Weaver").locator(".ui-list-panel-aside")).toHaveText(VALE_PACK);
   await search.fill("salt");
   await expect(list(page).locator(".ui-list-panel-name")).toHaveText(["Salt Trader"]);
   await search.fill("dragon");
@@ -104,9 +66,9 @@ test("a pack of more than 20 backgrounds: the search field has the count, filter
   await expect(row(page, "Pilgrim")).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(row(page, "Pilgrim")).toHaveAttribute("aria-current", "true");
-  await expect(panel(page)).toContainText(`From ${PACK}`);
+  await expect(panel(page)).toContainText(`From ${VALE_PACK}`);
   await panel(page).getByRole("button", { name: "Choose Pilgrim" }).click();
-  await expect(background(page).getByRole("heading", { level: 3 })).toHaveText(new RegExp(`^Pilgrim${PACK}`));
+  await expect(background(page).getByRole("heading", { level: 3 })).toHaveText(new RegExp(`^Pilgrim${VALE_PACK}`));
 });
 
 test("after a pick the focus goes to Change; Change opens the list on the pick, and Cancel puts the block back with the focus on Change", async ({ page }) => {
@@ -134,7 +96,7 @@ test("after a pick the focus goes to Change; Change opens the list on the pick, 
 
   // A pick from the list of Change replaces the background, with the focus on Change again.
   await pickIn(background(page), "Weaver");
-  await expect(background(page).getByRole("heading", { level: 3 })).toHaveText(new RegExp(`^Weaver${PACK}`));
+  await expect(background(page).getByRole("heading", { level: 3 })).toHaveText(new RegExp(`^Weaver${VALE_PACK}`));
   await expect(change).toBeFocused();
   // A line of "Picked on other steps" opens its step.
   await background(page).getByRole("button", { name: "Languages, 1 left, Proficiencies" }).click();
@@ -211,7 +173,7 @@ test.describe("screenshots", () => {
           await ready(page);
           await shot(step(page), "list-panel");
           await row(page, "Weaver").click();
-          await expect(panel(page)).toContainText(`From ${PACK}`);
+          await expect(panel(page)).toContainText(`From ${VALE_PACK}`);
           await ready(page);
           await shot(step(page), "list-panel-pack");
           await row(page, "Acolyte").click();
