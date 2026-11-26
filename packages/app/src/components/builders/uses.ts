@@ -8,7 +8,9 @@
 // also a short unit or a unit of the old app. The example character and the
 // sentence of the preview are in uses-example.ts.
 import { tag, unqualify, untag } from "../../engine/content.ts";
-import { type Ability, abilityOfKey, DAWN, scaledBase } from "../../engine/sheet.ts";
+import { type Ability } from "../../engine/sheet.ts";
+import { DAWN, scaledBase } from "../../engine/sheet-features.ts";
+import { abilityOfKey } from "../../engine/sheet-text.ts";
 import type { SuggestedUses } from "./suggested-uses.ts";
 
 /** A stored map in verbose Transit-JSON, such as a :frequency or its :amount. */

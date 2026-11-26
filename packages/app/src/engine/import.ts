@@ -10,7 +10,8 @@ import { CUSTOM_PACK, characterContent, hasCustomItems, pruneCustom } from "./cu
 import { type Content, engine, type Rules, type StrictEntity, type ValidationProblem } from "./engine.ts";
 import { importOldUsesSpent } from "./play.ts";
 import { missingContent, type UnresolvedKey } from "./reconcile.ts";
-import { featureUses, toSheet } from "./sheet.ts";
+import { toSheet } from "./sheet.ts";
+import { featureUses } from "./sheet-features.ts";
 
 /**
  * The version of the dmv-character envelope and the dmv-export bundle that

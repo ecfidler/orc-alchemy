@@ -2,7 +2,8 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
-import { type KnownSpell, ordinal, type Sheet, toSheet } from "../engine/sheet.ts";
+import { type KnownSpell, type Sheet, toSheet } from "../engine/sheet.ts";
+import { ordinal } from "../engine/sheet-text.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { sourceMarks } from "./SpellcastingBox.tsx";

@@ -2,7 +2,8 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { expect, test, vi } from "vitest";
 import { engine, loadEngine } from "../engine/engine.ts";
 import { newCharacter } from "../engine/new-character.ts";
-import { bonusStr, toSheet } from "../engine/sheet.ts";
+import { toSheet } from "../engine/sheet.ts";
+import { bonusStr } from "../engine/sheet-text.ts";
 import { CharacterSheet } from "./CharacterSheet.tsx";
 import { expectedOf, playMocks, renderAtWidth, sheet, sheetTestHooks } from "./test-sheet.ts";
 

@@ -1,7 +1,7 @@
 // The spell lookup over the loaded content (ORC-280): the SRD spells, which
 // load as their own chunk, and the enabled packs of the homebrew store.
 import { useMemo } from "react";
-import { keyToName } from "../engine/sheet.ts";
+import { keyToName } from "../engine/sheet-text.ts";
 import { type SpellLookup, spellLookup, spellName } from "../engine/spell-records.ts";
 import { useSpellContent } from "../engine/spells.ts";
 import { useHomebrew } from "./homebrew.ts";

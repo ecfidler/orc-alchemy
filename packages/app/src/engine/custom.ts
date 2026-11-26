@@ -26,7 +26,7 @@ import { buildTemplate, type Content, type ContentType, engine, type StrictEntit
 import { type AreaAttack, breathWeaponText, hasArea, raceGives } from "./race-gives.ts";
 import { pickableSubraces, subraceOptions, subracePick, templateRace } from "./race-step.ts";
 import { missingContent, picksUnder, remapOption, withoutOption } from "./reconcile.ts";
-import { capitalized } from "./sheet.ts";
+import { capitalized } from "./sheet-text.ts";
 import { srdList } from "./srd-lists.ts";
 
 /** The reserved pack name of a character's custom content. An imported or saved pack cannot have it. */

@@ -1,7 +1,8 @@
 // The ability column of the character sheet: the ability boxes, inspiration, saves, skills and passive perception.
 import { type BoxToggleProps, FramedBox, PixelIcon, ShadedPanel, SmallBox, StatBox } from "@orc-alchemy/ui";
 import { type ReactNode, useState } from "react";
-import { ABILITY_NAMES, type Ability, bonusStr, type Sheet, type SheetPlay } from "../engine/sheet.ts";
+import { type Ability, type Sheet, type SheetPlay } from "../engine/sheet.ts";
+import { ABILITY_NAMES, bonusStr } from "../engine/sheet-text.ts";
 import { abbr, Tag } from "./sheet-parts.tsx";
 
 /** The ability highlight of the sheet: the ability whose skills show, and the toggle props of each ability box. */

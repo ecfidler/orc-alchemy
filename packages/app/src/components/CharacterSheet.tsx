@@ -5,7 +5,9 @@
 import { FramedBox, Label, type Tab, Tabs } from "@orc-alchemy/ui";
 import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import { acRowName } from "../engine/ac-pick.ts";
-import { bonusStr, type FeatureSection, modStr, type OpenSpells, type Sheet, type SheetFeature, type SheetPlay, type SpendSlots } from "../engine/sheet.ts";
+import { type OpenSpells, type Sheet, type SheetFeature, type SheetPlay, type SpendSlots } from "../engine/sheet.ts";
+import { type FeatureSection } from "../engine/sheet-features.ts";
+import { bonusStr, modStr } from "../engine/sheet-text.ts";
 import { AbilitiesBlock, useAbilityHighlight } from "./AbilitiesBlock.tsx";
 import { FEATURE_SECTIONS, FeatureGroup, Features } from "./FeatureGroup.tsx";
 import { SheetEquipment } from "./SheetEquipment.tsx";

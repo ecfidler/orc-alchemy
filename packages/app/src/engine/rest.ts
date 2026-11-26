@@ -8,7 +8,9 @@ import { shownMaxHitPoints } from "./conditions.ts";
 import { unqualify } from "./content.ts";
 import { dieName, type HitDie, hitDieHealing, validRoll } from "./hit-dice.ts";
 import { type FeatureUsesKey, rechargeGroup } from "./play.ts";
-import { featureUses, ordinal, type Sheet } from "./sheet.ts";
+import { type Sheet } from "./sheet.ts";
+import { featureUses } from "./sheet-features.ts";
+import { ordinal } from "./sheet-text.ts";
 
 /** An entry of the Rest menu. */
 export type RestKind = "short" | "long" | "dawn";

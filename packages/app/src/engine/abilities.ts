@@ -5,7 +5,8 @@ import type { AvailableSelection, Built2014 } from "@pubdoor/dmv";
 import { levelOfKey, sourcedHeading } from "./builder.ts";
 import { unqualify } from "./content.ts";
 import { type Content, engine, type StrictEntity } from "./engine.ts";
-import { ABILITIES, type Ability } from "./sheet.ts";
+import { type Ability } from "./sheet.ts";
+import { ABILITIES } from "./sheet-text.ts";
 
 export type Scores = Record<Ability, number>;
 

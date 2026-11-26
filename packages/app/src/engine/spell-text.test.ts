@@ -1,5 +1,5 @@
 import { beforeAll, expect, test } from "vitest";
-import { ordinal } from "./sheet.ts";
+import { ordinal } from "./sheet-text.ts";
 import type { SpellRecord } from "./spell-records.ts";
 import { castNoteLine, componentsLine, descriptionParts, durationParts, levelLine } from "./spell-text.ts";
 import { loadSpellContent, type SpellContent } from "./spells.ts";

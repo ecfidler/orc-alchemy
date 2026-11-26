@@ -12,7 +12,7 @@ import { isMap, unqualify } from "./content.ts";
 import { breathWeaponText, breathWeaponUse, type RaceDetailGives, type RaceGives } from "./race-gives.ts";
 import { SUBRACE_KEY, soleSubrace, subraceOptions } from "./race-step.ts";
 import { listText } from "./selection-control.ts";
-import { ABILITIES, ABILITY_NAMES, abilityOfKey, capitalized, keyToName } from "./sheet.ts";
+import { ABILITIES, ABILITY_NAMES, abilityOfKey, capitalized, keyToName } from "./sheet-text.ts";
 import { srdList } from "./srd-lists.ts";
 
 /** One fact of the panel, a row of its definition list: "Skills", "Insight, Religion". */

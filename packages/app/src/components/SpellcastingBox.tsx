@@ -1,7 +1,8 @@
 // The Spellcasting section of the character sheet: the caster boxes, the cantrip lines and the table of spells by level.
 import { Button, FramedBox, Label, ShadedPanel, SlotCircles } from "@orc-alchemy/ui";
 import { Fragment, type ReactNode } from "react";
-import { bonusStr, type OpenSpells, ordinal, type Sheet, type Spellcasting, type SpendSlots } from "../engine/sheet.ts";
+import { type OpenSpells, type Sheet, type Spellcasting, type SpendSlots } from "../engine/sheet.ts";
+import { bonusStr, ordinal } from "../engine/sheet-text.ts";
 import { type ListedSpell, spellGroups } from "../engine/spell-list.ts";
 import { slotGroupsOf, spentText } from "../engine/spell-slots.ts";
 import { useSpellLookup } from "../state/spell-records.ts";

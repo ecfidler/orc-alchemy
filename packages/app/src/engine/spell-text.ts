@@ -3,7 +3,7 @@
 // tag, the components line, the cast note line and the paragraphs of the
 // description. Each function takes the values of a spell record, so other
 // pages can use them.
-import { capitalized, ordinal } from "./sheet.ts";
+import { capitalized, ordinal } from "./sheet-text.ts";
 import type { SpellRecord } from "./spell-records.ts";
 
 /**

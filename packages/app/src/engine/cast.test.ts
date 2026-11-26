@@ -15,7 +15,8 @@ import {
   INVOCATION_SPELLS,
 } from "./cast.ts";
 import { loadEngine, type StrictEntity } from "./engine.ts";
-import { featureUses, toSheet } from "./sheet.ts";
+import { toSheet } from "./sheet.ts";
+import { featureUses } from "./sheet-features.ts";
 import type { SpellRecord } from "./spell-records.ts";
 import { loadSpellContent, type SpellContent } from "./spells.ts";
 

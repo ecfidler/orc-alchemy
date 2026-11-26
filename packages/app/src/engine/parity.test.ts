@@ -8,7 +8,7 @@ import { type Method, type Scores, setBaseScores } from "./abilities.ts";
 import { DESCRIPTION_FIELDS, setDescription } from "./description.ts";
 import { type Content, engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
 import { type Hand, setAttuned, setCarried, setQuantity, storedItems, wield } from "./equipment.ts";
-import { ABILITIES } from "./sheet.ts";
+import { ABILITIES } from "./sheet-text.ts";
 import { setPrepared } from "./spells.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");

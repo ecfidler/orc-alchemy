@@ -11,7 +11,8 @@
 // button.
 import { amountAt, type HigherLevels, higherLevels } from "./higher-levels.ts";
 import type { FeatureUsesKey } from "./play.ts";
-import { type KnownSpell, ordinal, type SheetFeature, type Spellcasting } from "./sheet.ts";
+import { type KnownSpell, type SheetFeature, type Spellcasting } from "./sheet.ts";
+import { ordinal } from "./sheet-text.ts";
 import type { SpellRecord } from "./spell-records.ts";
 import { durationParts } from "./spell-text.ts";
 import type { SlotGroup } from "./spells.ts";

@@ -2,7 +2,7 @@
 // ORC-286; docs/design/spells-panel.md "Spent spell slots"). The Spellcasting
 // table of the sheet, the Spell slots block and the level headings of the
 // panel take the groups, their names and their state from here.
-import { ordinal } from "./sheet.ts";
+import { ordinal } from "./sheet-text.ts";
 import type { SlotGroup, SpentSlotGroups } from "./spells.ts";
 
 /** A group of slots as the sheet and the panel show it: the other slots of a level, or the pact slots. */

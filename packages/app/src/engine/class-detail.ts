@@ -14,7 +14,7 @@ import type { Content, ContentType, Engine, StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { countWord, type DetailFact, type OptionDetail } from "./origin-detail.ts";
 import { listText } from "./selection-control.ts";
-import { ABILITIES, ABILITY_NAMES, abilityOfKey, capitalized, keyToName, SKILLS } from "./sheet.ts";
+import { ABILITIES, ABILITY_NAMES, abilityOfKey, capitalized, keyToName, SKILLS } from "./sheet-text.ts";
 
 /** The content type of the classes. */
 export const CLASS_TYPE: ContentType = "orcpub.dnd.e5/classes";

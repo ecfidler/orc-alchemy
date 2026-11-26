@@ -2,7 +2,9 @@
 // (docs/design/homebrew-forms.md, "Preview"). The numbers of the example
 // come from the engine folder (uses-preview.ts), so the preview and the
 // sentence give the same amount.
-import { ABILITY_NAMES, scaledAmount } from "../../engine/sheet.ts";
+
+import { scaledAmount } from "../../engine/sheet-features.ts";
+import { ABILITY_NAMES } from "../../engine/sheet-text.ts";
 import { exampleNumbers } from "../../engine/uses-preview.ts";
 import { baseAbility, baseOf, plusText, scaledNumber, scaledNumberOrDefault, scaledOf } from "./uses.ts";
 

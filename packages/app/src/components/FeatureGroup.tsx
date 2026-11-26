@@ -1,6 +1,7 @@
 // The "Features & traits" section of the character sheet: its sections, and each feature, in a use bubble when it has uses.
 import { UseBubble } from "@orc-alchemy/ui";
-import { type FeatureSection, recoveryTag, type SheetFeature, type SheetPlay, usesDisplay } from "../engine/sheet.ts";
+import { type SheetFeature, type SheetPlay } from "../engine/sheet.ts";
+import { type FeatureSection, recoveryTag, usesDisplay } from "../engine/sheet-features.ts";
 
 /** The sections of "Features & traits", in the order of the sheet. */
 export const FEATURE_SECTIONS: FeatureSection[] = ["actions", "bonusActions", "reactions", "traits"];

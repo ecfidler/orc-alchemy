@@ -10,7 +10,8 @@
 // hold that presentation.
 import { Button, Label, SlotCircles } from "@orc-alchemy/ui";
 import { type ReactNode, useId } from "react";
-import { ordinal, type SpendSlots } from "../engine/sheet.ts";
+import { type SpendSlots } from "../engine/sheet.ts";
+import { ordinal } from "../engine/sheet-text.ts";
 import { levelHeading } from "../engine/spell-list.ts";
 import { levelSlots, pactSlotGroup, type ShownSlots, slotColumns, slotEntries, spentText } from "../engine/spell-slots.ts";
 import type { SpentSlotGroups } from "../engine/spells.ts";

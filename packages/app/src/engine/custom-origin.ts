@@ -27,7 +27,8 @@ import {
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { pickableSubraces, subracePick, templateRace } from "./race-step.ts";
 import { hasOption, picksUnder, withoutOption } from "./reconcile.ts";
-import { ABILITIES, ABILITY_NAMES, type Ability } from "./sheet.ts";
+import { type Ability } from "./sheet.ts";
+import { ABILITIES, ABILITY_NAMES } from "./sheet-text.ts";
 
 export const RACE_TYPE: ContentType = "orcpub.dnd.e5/races";
 

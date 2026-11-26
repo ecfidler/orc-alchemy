@@ -7,8 +7,9 @@ import { evaluate } from "@orc-alchemy/engine";
 import { GOLDEN_CHARACTERS } from "@orc-alchemy/engine/golden/characters";
 import { describe, expect, test } from "vitest";
 import { editionOf, loadSheet } from "./edition.ts";
-import { recoveryTag, type Sheet } from "./sheet.ts";
+import { type Sheet } from "./sheet.ts";
 import { toSheet2024 } from "./sheet-2024.ts";
+import { recoveryTag } from "./sheet-features.ts";
 
 const fighter = GOLDEN_CHARACTERS.find((character) => character.name.startsWith("Fighter"))!;
 const sheetAt = (level: number): Sheet => {

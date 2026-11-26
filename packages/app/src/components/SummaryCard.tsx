@@ -3,7 +3,8 @@
 // fixed height, and a value is one line that is cut with "…", so a value that comes or goes moves nothing.
 import { Button } from "@orc-alchemy/ui";
 import { useId } from "react";
-import { modStr, type Sheet } from "../engine/sheet.ts";
+import { type Sheet } from "../engine/sheet.ts";
+import { modStr } from "../engine/sheet-text.ts";
 
 /** The lines of the card, as label and value. "" is a line with no value: it keeps its place and shows nothing. */
 export function summaryLines(sheet: Sheet): [string, string][] {
