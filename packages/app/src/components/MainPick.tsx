@@ -202,38 +202,16 @@ function OptionList({ selection, options, picked, noun, packOf, detail, fixedRow
 
   function action(item: ListPanelItem<string>, place: ListPanelPlace) {
     if (fixedRow && item.value === FIXED_ROW) return fixedRow.action(place);
-    if (picked?.key === item.value)
-      return (
-        <span className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] font-semibold">
-          <PixelIcon name="check" />
-          The {noun} of this character
-        </span>
-      );
-    if (item.unavailable !== undefined) {
-      const reasonId = `${id}-${place}`;
-      return (
-        <>
-          <span id={reasonId} className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] text-ink-muted">
-            <LockIcon />
-            {notAvailableText(item.unavailable)}
-          </span>
-          <Button variant="solid" icon="check" disabled aria-describedby={reasonId}>
-            Choose {item.label}
-          </Button>
-        </>
-      );
-    }
     return (
-      <Button
-        ref={(button) => {
+      <ChooseAction
+        item={item}
+        reasonId={`${id}-${place}`}
+        pickedText={picked?.key === item.value ? `The ${noun} of this character` : null}
+        chooseRef={(button) => {
           chooseButtons.current[place] = button;
         }}
-        variant="solid"
-        icon="check"
-        onClick={() => onChoose(item.value)}
-      >
-        Choose {item.label}
-      </Button>
+        onChoose={onChoose}
+      />
     );
   }
 
@@ -253,6 +231,52 @@ function OptionList({ selection, options, picked, noun, packOf, detail, fixedRow
       action={action}
       emptyText={`Select a ${noun} to read about it.`}
     />
+  );
+}
+
+/**
+ * The action row of the panel of an option in a list with a detail panel: for the picked option the check icon and
+ * `pickedText`, for an option that the character cannot take the reason beside a disabled Choose button, and else
+ * "Choose {name}", which calls `onChoose`. The main pick and the subclass dialog (ORC-350) share it.
+ */
+export function ChooseAction({
+  item,
+  reasonId,
+  pickedText,
+  chooseRef,
+  onChoose,
+}: {
+  item: ListPanelItem<string>;
+  /** A unique id for the reason, in each place. */
+  reasonId: string;
+  /** The text of the picked option, or null for an option that is not picked. */
+  pickedText: string | null;
+  chooseRef?: (button: HTMLButtonElement | null) => void;
+  onChoose: (key: string) => void;
+}) {
+  if (pickedText !== null)
+    return (
+      <span className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] font-semibold">
+        <PixelIcon name="check" />
+        {pickedText}
+      </span>
+    );
+  if (item.unavailable !== undefined)
+    return (
+      <>
+        <span id={reasonId} className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] text-ink-muted">
+          <LockIcon />
+          {notAvailableText(item.unavailable)}
+        </span>
+        <Button variant="solid" icon="check" disabled aria-describedby={reasonId}>
+          Choose {item.label}
+        </Button>
+      </>
+    );
+  return (
+    <Button ref={chooseRef} variant="solid" icon="check" onClick={() => onChoose(item.value)}>
+      Choose {item.label}
+    </Button>
   );
 }
 

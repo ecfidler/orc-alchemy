@@ -27,12 +27,17 @@ export function pickInList(scope: HTMLElement, name: string): void {
 
 /**
  * Picks the option `name` in the selection of `scope` (its section): a click on its option card, a pick in the list
- * with a detail panel of a main pick, or a pick in the list that its Choose, Change or add button opens. Resolves once
- * a list has closed.
+ * with a detail panel of a main pick, a pick in the subclass dialog, or a pick in the list that its Choose, Change or
+ * add button opens. A closed choice row of the Class step opens first. Resolves once a list has closed.
  */
 export async function pickIn(scope: HTMLElement, name: string): Promise<void> {
   if (scope.hasAttribute("data-main-pick")) {
     pickInList(scope, name);
+    return;
+  }
+  openChoiceRow(scope);
+  if (scope.getAttribute("data-choice-row") === "subclass") {
+    await pickSubclass(scope, name);
     return;
   }
   const card = within(scope)
@@ -45,6 +50,25 @@ export async function pickIn(scope: HTMLElement, name: string): Promise<void> {
   const opener = listOpener(scope);
   if (!opener) throw new Error(`The selection has no option card ${name} and no list.`);
   await pickFromPicker(opener, name);
+}
+
+/** The head of a choice row of the Class step (ORC-350), the button that opens and closes it. */
+export const rowHead = (row: HTMLElement) => row.querySelector<HTMLElement>("h5 > [aria-expanded]")!;
+
+/** Opens the choice row `scope` of the Class step when it is closed (ORC-350): a click on its head. Else nothing. */
+export function openChoiceRow(scope: HTMLElement): void {
+  if (scope.hasAttribute("data-choice-row") && rowHead(scope).getAttribute("aria-expanded") === "false") fireEvent.click(rowHead(scope));
+}
+
+/**
+ * Picks the subclass `name` in the subclass row `scope` (ORC-350): Choose or Change opens the subclass dialog, a click
+ * on the name shows the subclass, and "Choose {name}" picks it.
+ */
+export async function pickSubclass(scope: HTMLElement, name: string): Promise<void> {
+  fireEvent.click(listOpener(scope)!);
+  const dialog = await screen.findByRole("dialog");
+  fireEvent.click(within(dialog.querySelector<HTMLElement>(".ui-list-panel")!).getByRole("button", { name }));
+  fireEvent.click(await within(dialog).findByRole("button", { name: `Choose ${name}` }));
 }
 
 /** The picks that a selection's control shows: its pressed option cards, its tokens, or the name in the block of a main pick. */

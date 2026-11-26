@@ -246,3 +246,45 @@ test("a character with two classes has a block for each, and Remove of the first
   // With one class, there is no Remove button.
   expect(screen.queryByRole("button", { name: "Remove Wizard" })).toBeNull();
 });
+
+test("Up and Down in the level field set the level from the level of the class, also after a typed level", async () => {
+  open(addFirstClass(engine(), newCharacter(engine()), "fighter"));
+  const field = levelField("Fighter");
+  field.focus();
+  fireEvent.keyDown(field, { key: "ArrowUp" });
+  await waitFor(() => expect(levels()).toEqual({ fighter: 2 }));
+  // A typed level that did not count yet does not count after an arrow: the level is 3, and the loss of the focus keeps it.
+  fireEvent.change(levelField("Fighter"), { target: { value: "5" } });
+  fireEvent.keyDown(levelField("Fighter"), { key: "ArrowUp" });
+  await waitFor(() => expect(levels()).toEqual({ fighter: 3 }));
+  await waitFor(() => expect(levelField("Fighter").value).toBe("3"));
+  expect(document.activeElement).toBe(levelField("Fighter"));
+  fireEvent.blur(levelField("Fighter"));
+  await waitFor(() => expect(levelField("Fighter").value).toBe("3"));
+  expect(levels()).toEqual({ fighter: 3 });
+  fireEvent.keyDown(levelField("Fighter"), { key: "ArrowDown" });
+  await waitFor(() => expect(levels()).toEqual({ fighter: 2 }));
+});
+
+test("after the minus button lowers a class to level 1, the focus goes to the level field", async () => {
+  const e = engine();
+  open(e.addLevel(addFirstClass(e, newCharacter(e), "fighter"), "fighter") as StrictEntity);
+  const minus = screen.getByRole("button", { name: "Remove a Fighter level" });
+  minus.focus();
+  fireEvent.click(minus);
+  await waitFor(() => expect(levels()).toEqual({ fighter: 1 }));
+  await waitFor(() => expect(document.activeElement).toBe(levelField("Fighter")));
+});
+
+test("after Remove of a class, the focus goes to the Change button of the block that stays; after Cancel, back to Remove", async () => {
+  open(fixture("fighter-3-wizard-2"));
+  const remove = screen.getByRole("button", { name: "Remove Fighter" });
+  remove.focus();
+  fireEvent.click(remove);
+  await answerConfirmDialog("Cancel");
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Remove Fighter" })));
+  fireEvent.click(screen.getByRole("button", { name: "Remove Fighter" }));
+  await answerConfirmDialog("Remove");
+  await waitFor(() => expect(levels()).toEqual({ wizard: 1 }));
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Change Wizard" })));
+});

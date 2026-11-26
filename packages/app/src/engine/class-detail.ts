@@ -34,6 +34,25 @@ export const SRD_CLASS_DESCRIPTIONS: Record<string, string> = {
   wizard: "A scholar of magic who keeps spells in a book.",
 };
 
+/** One sentence about each SRD subclass, for the subclass dialog (ORC-350): the engine has no description of a subclass. */
+export const SRD_SUBCLASS_DESCRIPTIONS: Record<string, string> = {
+  "path-of-the-berserker": "A barbarian whose rage is a frenzy of violence.",
+  "college-of-lore": "A bard who collects knowledge and secrets from all sources.",
+  "life-domain": "A cleric of the gods of life, who heals and protects.",
+  "circle-of-the-land": "A druid who keeps the old rites of the land.",
+  champion: "A fighter who trains the body to deadly perfection.",
+  "way-of-the-open-hand": "A monk who masters the martial arts of the open hand.",
+  "oath-of-devotion": "A paladin bound to the ideals of justice, virtue and order.",
+  hunter: "A ranger who learns the ways to fight the threats of the wild.",
+  thief: "A rogue who trains in stealth, theft and quick hands.",
+  "draconic-bloodline": "A sorcerer whose magic comes from the blood of dragons.",
+  "the-fiend": "A warlock who made a pact with a fiend of the lower planes.",
+  "school-of-evocation": "A wizard who studies the magic that makes elemental effects.",
+};
+
+/** The content type of the subclasses. */
+export const SUBCLASS_TYPE: ContentType = "orcpub.dnd.e5/subclasses";
+
 /** The features that a class gets at one level: the row of the features table. */
 export interface ClassFeatureRow {
   level: number;
@@ -199,13 +218,90 @@ const madeTables = new WeakMap<Content, Map<string, ClassFeatureRow[]>>();
 /** The features table of the class with the key for the content, when classFeatureSteps made it already; else undefined. */
 export const knownClassFeatures = (content: Content, key: string): ClassFeatureRow[] | undefined => madeTables.get(content)?.get(key);
 
-/** The features table of the class with the key (classFeatureSteps), all at once, or the one made already. */
-export function classFeatures(input: ClassInput, key: string): ClassFeatureRow[] {
-  const known = knownClassFeatures(input.content, key);
-  if (known !== undefined) return known;
-  const steps = classFeatureSteps(input, key);
+/** The value at the end of the steps, all at once. */
+function allSteps<T>(steps: Generator<void, T>): T {
   for (;;) {
     const step = steps.next();
     if (step.done) return step.value;
   }
 }
+
+/** The features table of the class with the key (classFeatureSteps), all at once, or the one made already. */
+export function classFeatures(input: ClassInput, key: string): ClassFeatureRow[] {
+  return knownClassFeatures(input.content, key) ?? allSteps(classFeatureSteps(input, key));
+}
+
+/** The subclass selection of the class with the key in the template: its key and its level. Null when the class has none. */
+export function subclassChoice(classKey: string, content: Content): { key: string; level: number } | null {
+  for (const [i, level] of levelOptions(templateClass(classKey, content)).entries()) {
+    const subclass = level.selections?.find((s) => (s.tags ?? []).includes("subclass"));
+    if (subclass) return { key: subclass.key, level: i + 1 };
+  }
+  return null;
+}
+
+/** The features tables that subclassFeatureSteps made, by the content and "{class}/{subclass}". */
+const madeSubclassTables = new WeakMap<Content, Map<string, ClassFeatureRow[]>>();
+
+/** The features table of the subclass for the content, when subclassFeatureSteps made it already; else undefined. */
+export const knownSubclassFeatures = (content: Content, classKey: string, subclassKey: string): ClassFeatureRow[] | undefined =>
+  madeSubclassTables.get(content)?.get(`${classKey}/${subclassKey}`);
+
+/**
+ * The features table of a subclass for the subclass dialog (ORC-350), one step for each build: first the features
+ * table of the class (classFeatureSteps), when it is not made, and then a trial character with the class and the
+ * subclass, at each level from the level of the subclass choice to 20. A level has the features that the trial
+ * character has first at the level and that the class does not give (no name of the features table of the class), and
+ * the choices that the subclass opens first at the level, such as Hunter's Prey. A choice whose name starts with the
+ * name of a feature is part of it, as in the table of the class. A trial character that the engine refuses gives the
+ * rows up to that level.
+ */
+export function* subclassFeatureSteps(input: ClassInput, classKey: string, subclassKey: string): Generator<void, ClassFeatureRow[]> {
+  const { engine: e, content } = input;
+  const known = knownSubclassFeatures(content, classKey, subclassKey);
+  if (known !== undefined) return known;
+  const classTable = knownClassFeatures(content, classKey) ?? (yield* classFeatureSteps(input, classKey));
+  const classNames = new Set(classTable.flatMap((row) => row.names));
+  const choice = subclassChoice(classKey, content);
+  const rows: { level: number; choices: string[]; features: string[] }[] = [];
+  const seen = new Set<string>();
+  const seenChoices = new Set<string>();
+  if (choice !== null) {
+    let entity: StrictEntity | null = null;
+    for (let level = 1; level <= 20; level++) {
+      let result: ReturnType<Engine["evaluate"]>;
+      try {
+        entity = entity === null ? trial(input, classKey) : (e.addLevel(entity, classKey, content) as StrictEntity);
+        if (level < choice.level) continue;
+        if (level === choice.level)
+          entity = e.select(entity, ["class", classKey, "levels", `level-${level}`, choice.key], subclassKey, content) as StrictEntity;
+        result = e.evaluate(entity, content);
+      } catch {
+        break;
+      }
+      const under = ["class", classKey, "levels", `level-${choice.level}`, choice.key, subclassKey].join("/");
+      const choices = result.selections
+        .filter((s) => s.path.join("/").startsWith(`${under}/`) && !seenChoices.has(s.path.join("/")))
+        .filter((s) => s.key !== "hit-points" && !/(Cantrips|Spells) Known$/.test(s.name));
+      for (const s of choices) seenChoices.add(s.path.join("/"));
+      const features = featureNames(result.built as Built2014).filter((name) => !seen.has(name) && !classNames.has(name));
+      for (const name of features) seen.add(name);
+      rows.push({ level, choices: choices.map((s) => s.name), features });
+      yield;
+    }
+  }
+  const partOf = (name: string) => [...seen].some((feature) => name !== feature && (name.startsWith(`${feature} `) || name.startsWith(`${feature}:`)));
+  const table = rows
+    .map(({ level, choices, features }) => ({ level, names: [...new Set([...choices.filter((c) => !partOf(c) && !seen.has(c)), ...features])] }))
+    .filter((row) => row.names.length > 0);
+  const made = madeSubclassTables.get(content) ?? new Map<string, ClassFeatureRow[]>();
+  madeSubclassTables.set(content, made.set(`${classKey}/${subclassKey}`, table));
+  return table;
+}
+
+/** The features table of the subclass (subclassFeatureSteps), all at once, or the one made already. */
+export const subclassFeatures = (input: ClassInput, classKey: string, subclassKey: string): ClassFeatureRow[] =>
+  allSteps(subclassFeatureSteps(input, classKey, subclassKey));
+
+/** The description of a subclass: the help of the record of a pack subclass, or else the SRD sentence, or "". */
+export const subclassDescription = (key: string, help?: string): string => (help ?? SRD_SUBCLASS_DESCRIPTIONS[key] ?? "").trim();

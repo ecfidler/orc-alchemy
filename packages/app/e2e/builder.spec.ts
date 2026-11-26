@@ -124,8 +124,8 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
     await average.click();
     await expect(average).toHaveAttribute("aria-pressed", "true");
   }
-  await builder.getByRole("button", { name: "Champion", exact: true }).click();
-  await expect(builder.getByRole("button", { name: "Champion", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await pickIn(section(page, "Martial Archetype"), "Champion");
+  await expect(picksIn(section(page, "Martial Archetype"))).toHaveText(["Champion"]);
   await expect(hp).toHaveText("25");
 
   // A wizard's hit die is d6: the average is 4.
@@ -136,8 +136,8 @@ test("a half-elf fighter 3 adds wizard levels, then removes them", async ({ page
   await region("Hit Points: Wizard 1").getByRole("button", { name: "Average (4)" }).click();
   await builder.getByRole("button", { name: "Add a Wizard level" }).click();
   await region("Hit Points: Wizard 2").getByRole("button", { name: "Average (4)" }).click();
-  await builder.getByRole("button", { name: "School of Evocation", exact: true }).click();
-  await expect(builder.getByRole("button", { name: "School of Evocation", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await pickIn(section(page, "Arcane Tradition"), "School of Evocation");
+  await expect(picksIn(section(page, "Arcane Tradition"))).toHaveText(["School of Evocation"]);
   await expect(klass).toHaveText("Fighter 3, Wizard 2");
   await expect(preview.getByLabel("Level", { exact: true })).toHaveText("5");
   await expect(hp).toHaveText("35");

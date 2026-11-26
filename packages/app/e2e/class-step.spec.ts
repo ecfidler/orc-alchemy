@@ -1,11 +1,13 @@
 // The Class step, in a browser (ORC-349, docs/design/character-builder.md "The class cards", "The class block", "No
 // layout shift"): the pick of a first class from the cards and the modal, a change of class and a lower level that ask
 // first (ORC-344), the level field and its buttons, the header of a block that does not move, a character with two
-// classes, and the screenshots of the PR.
+// classes, and the screenshots of the PR. ORC-350 ("Choices"): the choice rows open and closed, a pick that keeps its
+// row open and moves no row below, the subclass dialog, the row "Ability Score Improvement or Feat", and a class with
+// no choice.
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { addFirstClass, changeClass, classCard, newCharacter, openStep, pickIn, section } from "./builder-helpers.ts";
+import { addFirstClass, changeClass, classCard, newCharacter, openStep, pickIn, picksIn, rowHead, section, stepButton } from "./builder-helpers.ts";
 import { summaryCard } from "./sheet-panel.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../fixtures/characters");
@@ -165,6 +167,124 @@ test("a character with two classes shows a block for each", async ({ page }) => 
   await expect(modal.getByRole("button", { name: /^Choose/ })).toHaveCount(0);
 });
 
+/** A new character with the class at the level, on the Class step. */
+async function classAt(page: Page, name: string, level: number) {
+  await newCharacter(page);
+  await addFirstClass(page, name);
+  for (let n = 1; n < level; n++)
+    await builder(page)
+      .getByRole("button", { name: `Add a ${name} level` })
+      .click();
+  // Under 720px the summary card does not show, so the level field tells.
+  await expect(levelField(page, name)).toHaveValue(String(level));
+}
+
+const IMPROVEMENT = "Ability Score Improvement or Feat";
+const expanded = (page: Page, name: string) => rowHead(section(page, name));
+
+test("the choice rows of a Fighter 4: in groups by level, open with picks left, closed with the picks made", async ({ page }) => {
+  await classAt(page, "Fighter", 4);
+  const choices = builder(page).getByRole("region", { name: "Choices" });
+  await expect(choices.getByRole("group", { name: /^Level \d+$/ })).toHaveCount(3);
+  for (const name of ["Fighting Style", "Martial Archetype", IMPROVEMENT]) await expect(expanded(page, name)).toHaveAttribute("aria-expanded", "true");
+  await expect(choices.getByRole("heading", { level: 5 })).toHaveText([
+    /^Fighting Style,\s?1 left/,
+    /^Martial Archetype,\s?1 left/,
+    /^Ability Score Improvement or Feat,\s?1 left/,
+  ]);
+
+  // A pick keeps its row open, and the head shows it. A click on the head closes the row, and the focus stays on it.
+  await pickIn(section(page, "Fighting Style"), "Defense");
+  await expect(expanded(page, "Fighting Style")).toHaveAttribute("aria-expanded", "true");
+  await expect(expanded(page, "Fighting Style")).toContainText("Defense");
+  await expanded(page, "Fighting Style").click();
+  await expect(expanded(page, "Fighting Style")).toHaveAttribute("aria-expanded", "false");
+  await expect(expanded(page, "Fighting Style")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(expanded(page, "Fighting Style")).toHaveAttribute("aria-expanded", "true");
+
+  // When the step opens again, a row with its picks made is closed, and a row with picks left is open.
+  await openStep(page, "Name");
+  await openStep(page, "Class");
+  await expect(expanded(page, "Fighting Style")).toHaveAttribute("aria-expanded", "false");
+  await expect(expanded(page, "Martial Archetype")).toHaveAttribute("aria-expanded", "true");
+});
+
+test("a pick in an open row does not move the rows below it", async ({ page }) => {
+  await classAt(page, "Fighter", 4);
+  const below = [
+    expanded(page, "Martial Archetype"),
+    expanded(page, IMPROVEMENT),
+    builder(page).getByRole("region", { name: /^Hit Points: Fighter 2/ }),
+    builder(page).getByRole("button", { name: "Next: Background" }),
+  ];
+  const before = await Promise.all(below.map(box));
+  await pickIn(section(page, "Fighting Style"), "Defense");
+  await expect(picksIn(section(page, "Fighting Style"))).toHaveText(["Defense"]);
+  expect(await Promise.all(below.map(box))).toEqual(before);
+
+  // The subclass and the improvement do not move the rows below them either. The line of the improvement has its place.
+  await pickIn(section(page, "Martial Archetype"), "Champion");
+  await expect(picksIn(section(page, "Martial Archetype"))).toHaveText(["Champion"]);
+  expect(await Promise.all(below.map(box))).toEqual(before);
+  await pickIn(section(page, IMPROVEMENT), "Ability Score Improvement");
+  await expect(section(page, IMPROVEMENT).getByRole("button", { name: /^Place 2 points/ })).toBeVisible();
+  expect(await Promise.all(below.map(box))).toEqual(before);
+  await pickIn(section(page, IMPROVEMENT), "Feat");
+  await expect(section(page, IMPROVEMENT).getByRole("button", { name: /^Pick the feat/ })).toBeVisible();
+  expect(await Promise.all(below.map(box))).toEqual(before);
+});
+
+test("the subclass dialog has the names, the detail of the selected subclass, and Choose", async ({ page }) => {
+  await classAt(page, "Fighter", 3);
+  const row = section(page, "Martial Archetype");
+  await row.getByRole("button", { name: "Choose Martial Archetype" }).click();
+  const dialog = page.getByRole("dialog", { name: "Martial Archetype" });
+  await expect(dialog.locator(".ui-list-panel").getByRole("button", { name: "Champion", exact: true })).toBeVisible();
+  await expect(dialog.getByText("A fighter who trains the body to deadly perfection.")).toBeVisible();
+  await expect(dialog.getByRole("columnheader")).toHaveText(["Level", "Features"], { timeout: 15_000 });
+  await expect(dialog.getByRole("row").nth(1)).toHaveText("7Remarkable Athlete");
+  await dialog.getByRole("button", { name: "Choose Champion" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(picksIn(row)).toHaveText(["Champion"]);
+  await expect(rowHead(row)).toContainText("Champion");
+  await expect(row.getByRole("button", { name: "Change Martial Archetype" })).toBeFocused();
+});
+
+test("the improvement or feat: two cards, then a line to the Abilities step or the Feats step with the mark or the pick", async ({ page }) => {
+  await classAt(page, "Fighter", 4);
+  const row = section(page, IMPROVEMENT);
+  await expect(row.locator("[aria-pressed]")).toHaveText(["Ability Score Improvement", "Feat"]);
+  await pickIn(row, "Ability Score Improvement");
+  const points = row.getByRole("button", { name: /^Place 2 points on the Abilities step/ });
+  await expect(points).toContainText("2 left");
+  // The rail counts the points on Abilities.
+  await expect(stepButton(page, "Abilities")).toHaveAccessibleName("Abilities, 2 picks left");
+  await points.click();
+  await expect(builder(page).getByRole("heading", { level: 2 })).toHaveText("Abilities");
+  const asi = section(page, "Ability Score Improvement: Fighter 4");
+  await asi.getByRole("button", { name: "Increase Strength" }).click();
+  await asi.getByRole("button", { name: "Increase Dexterity" }).click();
+  // Back on the Class step, the row has its pick, so it is closed: its head opens it.
+  await openStep(page, "Class");
+  await expect(rowHead(section(page, IMPROVEMENT))).toHaveAttribute("aria-expanded", "false");
+  await rowHead(section(page, IMPROVEMENT)).click();
+  await expect(section(page, IMPROVEMENT).getByRole("button", { name: /^Place 2 points/ })).toContainText("+1 Strength, +1 Dexterity");
+
+  // The feat asks first, because the points go; then the line goes to the Feats step.
+  await section(page, IMPROVEMENT).getByRole("button", { name: "Feat", exact: true }).click();
+  await page.getByRole("alertdialog", { name: "Replace Ability Score Improvement with Feat?" }).getByRole("button", { name: "Replace" }).click();
+  const feat = section(page, IMPROVEMENT).getByRole("button", { name: /^Pick the feat on the Feats step/ });
+  await expect(feat).toContainText("1 left");
+  await feat.click();
+  await expect(builder(page).getByRole("heading", { level: 2 })).toHaveText("Feats");
+});
+
+test("a class with no choice at its levels shows: No choice at this level.", async ({ page }) => {
+  await classAt(page, "Druid", 1);
+  await expect(builder(page).getByRole("region", { name: "Choices" })).toContainText("No choice at this level.");
+});
+
 // Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/class-step.spec.ts -g orc-349 --trace off
 test.describe("screenshots", () => {
   test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
@@ -206,6 +326,47 @@ test.describe("screenshots", () => {
         await expect(page.getByRole("dialog", { name: "Change Fighter" })).toBeVisible();
         await ready(page);
         await full("change");
+      });
+
+      // PR_SCREENSHOTS=1 bunx playwright test e2e/class-step.spec.ts -g orc-350 --trace off
+      test(`orc-350 the choice rows, ${size}, ${theme}`, async ({ page }) => {
+        mkdirSync(dir, { recursive: true });
+        const shot = (locator: Locator, what: string) =>
+          locator.screenshot({ path: join(dir, `orc-350-${what}-${size}-${theme}.png`), animations: "disabled" });
+        const full = (what: string) => page.screenshot({ path: join(dir, `orc-350-${what}-${size}-${theme}.png`), animations: "disabled" });
+        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+        await page.setViewportSize({ width, height: 900 });
+        // The rows of a Fighter 4, open with their picks left.
+        await classAt(page, "Fighter", 4);
+        await pickIn(section(page, "Fighting Style"), "Defense");
+        await ready(page);
+        await shot(builder(page).getByRole("region", { name: "Fighter", exact: true }), "fighter-4");
+        // The subclass dialog, with the features table of the subclass.
+        await section(page, "Martial Archetype").getByRole("button", { name: "Choose Martial Archetype" }).click();
+        const dialog = page.getByRole("dialog", { name: "Martial Archetype" });
+        if (width === 390) await dialog.locator(".ui-list-panel").getByRole("button", { name: "Champion", exact: true }).click();
+        await expect(page.getByRole("columnheader", { name: "Features" })).toBeVisible({ timeout: 15_000 });
+        await ready(page);
+        await full("subclass-dialog");
+        await page.getByRole("button", { name: "Choose Champion" }).click();
+        await expect(picksIn(section(page, "Martial Archetype"))).toHaveText(["Champion"]);
+        // The improvement or feat before and after its pick.
+        const improvement = section(page, IMPROVEMENT);
+        await ready(page);
+        await shot(improvement, "improvement-before");
+        await pickIn(improvement, "Ability Score Improvement");
+        await expect(improvement.getByRole("button", { name: /^Place 2 points/ })).toBeVisible();
+        await ready(page);
+        await shot(improvement, "improvement-points");
+        await pickIn(improvement, "Feat");
+        await expect(improvement.getByRole("button", { name: /^Pick the feat/ })).toBeVisible();
+        await ready(page);
+        await shot(improvement, "improvement-feat");
+        // An open row with 7 options or more: the Metamagic picker of a Sorcerer 3.
+        await classAt(page, "Sorcerer", 3);
+        await pickIn(section(page, "Metamagic"), "Careful Spell");
+        await ready(page);
+        await shot(section(page, "Metamagic"), "picker");
       });
     }
 });

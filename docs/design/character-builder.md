@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T13:13:51Z }
+generated: { by: claude-code/agent, at: 2026-11-26T13:47:06Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -340,7 +340,7 @@ no class equipment.
 ## The class cards
 
 * The cards use the full width of the step: 6 in a row, and 3 in a row
-  when the page is narrower than 720px.
+  when the part is narrower than 560px.
 * A card shows the class icon at 32px and the name. The
   [Theme spec](theme.md#controls) has the icon of each SRD class. A class
   with no icon, for example a homebrew class, shows the name only, at
@@ -353,10 +353,9 @@ no class equipment.
   "Level" and "Features".
 * The modal has the button "Choose {class}" with the check icon. It
   makes the pick and closes the modal.
-* The width of the part counts, not the width of the page: the cards are
-  6 in a row when the part is 560px wide or more, as for the list with a
-  detail panel. Each card has the same size, also a card with no
-  icon.[^orc-349]
+* The width of the part counts, not the width of the page, as for the
+  list with a detail panel. Each card has the same size, also a card with
+  no icon.[^orc-349]
 * The facts and the features table come from a trial character that the
   engine builds with the class: at level 1 for the facts, and at each
   level from 1 to 20 for the table. The same rules thus give the text of
@@ -399,6 +398,14 @@ After the pick, each class is a **class block**.
   nothing, and the status toast says "A class level is from 1 to 20."
   A higher level that the engine refuses shows its reason in the status
   toast.[^orc-349]
+* Up and Down set the level from the level of the class. A typed level
+  that did not count yet does not count after Up or Down, and the field
+  shows the new level.[^orc-350]
+* After a lower level makes the class level 1, the focus goes to the
+  level field, because the minus button is then disabled. After Remove of
+  a class, the focus goes to the Change button of the next block, or of
+  the block before it for the last block. After Cancel of the question,
+  the focus goes back to the button that asked.[^orc-350]
 * The header does not move when the level or the class changes. On a
   narrow part, the level control, About and Change go to a second row
   below the name.[^orc-349]
@@ -424,6 +431,41 @@ After the pick, each class is a **class block**.
   of the class.
 * A class with no choice at its levels shows one row with the text "No
   choice at this level."
+* The choices of the class itself, such as the Fighting Style of a
+  fighter, are at level 1. The choices that a pick in a row opens on this
+  step, such as the Dragon Ancestor of a Draconic Bloodline, are rows
+  after that row, at its level. A choice that two sources share, such as
+  the Fighting Style of a fighter and of a Champion, is one row, at the
+  first place where it shows. The hit points of a level are not a choice
+  row.[^orc-350]
+* The head of a row is a heading with one button in it, with
+  `aria-expanded`. The focus stays on the head when the row opens or
+  closes. The head shows the names of the picks only when the row has no
+  pick to make or to remove; else it shows the left mark. At the right of
+  the head, a small "▴" or "▾" in muted text shows if the row is open.
+  It is a text, not an icon. When the part is narrower than 480px, the
+  pick or the mark is on a second line of the head, at the right, and
+  that line has a fixed height.[^orc-350]
+* A row gets its open or closed state when it first shows: at the open
+  of the step, and also when a pick or a new level adds a row while the
+  step is open. After that, only a click on its head changes it.[^orc-350]
+* A pick in a choice of one pick of a class, such as the subclass or
+  "Ability Score Improvement or Feat", asks first when it removes picks.
+  See [A change that removes picks](#a-change-that-removes-picks).[^orc-350]
+* The subclass dialog shows the pick, or else the first subclass, when it
+  opens. The detail of a subclass is its description and a features
+  table with the column headings "Level" and "Features". The table has
+  the features that a trial character with the subclass gets at each
+  level and that the class does not give, and the choices that the
+  subclass opens. The description of a pack subclass is the description
+  of its record. The engine has no description of an SRD subclass, so the
+  app has one sentence for each. The panel of the picked subclass shows
+  "The subclass of this character". After "Choose {subclass}", the focus
+  goes to the Change button of the row.[^orc-350]
+* The subclass dialog uses the list with a detail panel. When the dialog
+  is narrower than 560px, the list fills the dialog, and a click on a name
+  opens the detail in a modal over it, with "Choose {subclass}". This
+  takes the place of a list above the detail.[^orc-350]
 
 **Ability Score Improvement or Feat.** The row has two option cards,
 "Ability Score Improvement" and "Feat". After the pick, the row shows
@@ -432,6 +474,17 @@ the Abilities step" or "Pick the feat on the Feats step". The line shows
 the left mark of that pick, or the pick. The points are placed in the
 boxes of [The Abilities step](#the-abilities-step). The feat is picked
 on [The Feats step](#the-feats-step).
+
+* The line is one button. The place of the line, of a fixed height, is
+  there before the pick, so that the pick does not move the rows below.
+  A long text wraps to two lines in that place.[^orc-350]
+* The pick of the points is the points that the player placed: "+1
+  Strength, +1 Dexterity". The engine has one selection for the feats of
+  all sources, so the line of a feat shows the picks and the left mark of
+  that one selection.[^orc-350]
+* Until the Hit points section is built, the hit points of each level
+  stay in the block after Choices, as one section for each
+  level.[^orc-350]
 
 ## Hit points
 
@@ -849,3 +902,4 @@ one depends only on parts of the frame.
 [^orc-347]: The list with a detail panel, and the Background step, <https://linear.app/orc-alchemy/issue/ORC-347/the-list-with-a-detail-panel-and-the-background-step>
 [^orc-348]: The Race step, with Custom Origin, <https://linear.app/orc-alchemy/issue/ORC-348/the-race-step-with-custom-origin>
 [^orc-349]: Class step: the class cards, the modal and the class block, <https://linear.app/orc-alchemy/issue/ORC-349/class-step-the-class-cards-the-modal-and-the-class-block>
+[^orc-350]: Class step: the choice rows, the subclass dialog and the improvement or feat row, <https://linear.app/orc-alchemy/issue/ORC-350>

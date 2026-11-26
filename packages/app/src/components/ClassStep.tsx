@@ -30,7 +30,7 @@ const levelOf = (option: BuilderOption) => option.selections.find((s) => s.key =
 
 interface ClassStepProps {
   selection: BuilderSelection;
-  /** The sections of the body of the block of a class: today the selections that the class opens on this step. */
+  /** The sections of the body of the block of a class: Choices (ORC-350), then the hit points of each level until ORC-351. */
   body: (option: BuilderOption) => ReactNode;
 }
 
@@ -63,6 +63,8 @@ export function ClassStep({ selection, body }: ClassStepProps) {
       return changeButtons.current.get(key) ?? null;
     },
   });
+  // The level field of each block, by the class key: the focus goes there after a lower level that disables the minus button.
+  const levelFields = useRef(new Map<string, HTMLInputElement>());
   /** The classes of the stored character, after a change. */
   const storedClasses = () => {
     const entity = useCharacter.getState().entity;
@@ -78,13 +80,20 @@ export function ClassStep({ selection, body }: ClassStepProps) {
     setFocusClass(storedClasses().includes(to) ? to : from);
   }
 
+  /** Lowers the class to the level. At level 1 the minus button is disabled, so after the change the focus goes to the field. */
+  async function lower(key: string, level: number) {
+    const before = useCharacter.getState().entity;
+    await change({ kind: "lower-level", classKey: key, level });
+    if (level === 1 && useCharacter.getState().entity !== before) levelFields.current.get(key)?.focus();
+  }
+
   /** Sets the level of the class: up with the engine's addLevel, down through the question of a lower level. */
   function setLevel(key: string, level: number, now: number) {
     if (!Number.isInteger(level) || level < 1 || level > MAX_CLASS_LEVEL) {
       say(`A class level is from 1 to ${MAX_CLASS_LEVEL}.`);
       return;
     }
-    if (level < now) void change({ kind: "lower-level", classKey: key, level });
+    if (level < now) void lower(key, level);
     else if (level > now)
       run((e, entity, opts) => {
         let next = entity;
@@ -130,6 +139,10 @@ export function ClassStep({ selection, body }: ClassStepProps) {
               if (button) changeButtons.current.set(key, button);
               else changeButtons.current.delete(key);
             }}
+            levelField={(field) => {
+              if (field) levelFields.current.set(key, field);
+              else levelFields.current.delete(key);
+            }}
             onLevel={(n) => setLevel(key, n, level)}
             onReplace={(to) => void replace(key, to)}
           >
@@ -137,7 +150,7 @@ export function ClassStep({ selection, body }: ClassStepProps) {
           </ClassBlock>
         );
       })}
-      <AddRemoveRow selection={selection} free={free} />
+      <AddRemoveRow selection={selection} free={free} onRemoved={setFocusClass} />
       {question}
     </section>
   );
@@ -217,6 +230,7 @@ interface ClassBlockProps {
   /** The classes that Change can give in the place of this one: those the character does not have. */
   others: BuilderOption[];
   changeButton: (button: HTMLButtonElement | null) => void;
+  levelField: (field: HTMLInputElement | null) => void;
   onLevel: (level: number) => void;
   onReplace: (key: string) => void;
   /** The sections of the body. */
@@ -228,7 +242,7 @@ interface ClassBlockProps {
  * buttons About and Change; the body has the children. The parts of the header have fixed places, so a change of level
  * or of class does not move it.
  */
-function ClassBlock({ option, level, others, changeButton, onLevel, onReplace, children }: ClassBlockProps) {
+function ClassBlock({ option, level, others, changeButton, levelField, onLevel, onReplace, children }: ClassBlockProps) {
   const nameId = useId();
   const icon = classIcon(option.key);
   const [about, setAbout] = useState(false);
@@ -243,7 +257,7 @@ function ClassBlock({ option, level, others, changeButton, onLevel, onReplace, c
               <span className="min-w-0 truncate">{option.name}</span>
             </h3>
             <span className="ml-auto inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-              <LevelControl name={option.name} level={level} onLevel={onLevel} />
+              <LevelControl name={option.name} level={level} onLevel={onLevel} field={levelField} />
               <span className="inline-flex items-center gap-0.5">
                 <Button variant="ghost" size="small" aria-label={`About ${option.name}`} onClick={() => setAbout(true)}>
                   About
@@ -285,15 +299,29 @@ function ClassBlock({ option, level, others, changeButton, onLevel, onReplace, c
  * The level control of a class: a minus button, a number field that takes 1 to 20, and a plus button. The buttons have
  * an aria-label. A typed level counts when the field loses the focus, and at Enter, after which the focus stays in the
  * field. Up and Down in the field are the plus and the minus button. The field shows the level of the class: after a
- * typed level that does not count, such as a lower level after Cancel, it shows the level again.
+ * typed level that does not count, such as a lower level after Cancel, it shows the level again. An arrow key sets the
+ * level from the level of the class, and drops a typed level that did not count yet.
  */
-function LevelControl({ name, level, onLevel }: { name: string; level: number; onLevel: (level: number) => void }) {
+function LevelControl({
+  name,
+  level,
+  onLevel,
+  field,
+}: {
+  name: string;
+  level: number;
+  onLevel: (level: number) => void;
+  field?: (input: HTMLInputElement | null) => void;
+}) {
   // The typed level, until it counts. A ref: the field gives it in the same event as the loss of the focus.
   const typed = useRef<number | null>(null);
+  // True while an arrow key drops the typed level: the loss of the focus then does not count it.
+  const dropTyped = useRef(false);
   // A render after each typed level, so that the field shows the level again.
   const [, setShown] = useState(0);
   const commit = () => {
-    const n = typed.current;
+    const n = dropTyped.current ? null : typed.current;
+    dropTyped.current = false;
     typed.current = null;
     setShown((count) => count + 1);
     if (n !== null && n !== level) onLevel(n);
@@ -311,12 +339,20 @@ function LevelControl({ name, level, onLevel }: { name: string; level: number; o
         className="grid size-[34px] place-items-center p-0"
       />
       <label
+        ref={(label) => field?.(label?.querySelector("input") ?? null)}
         onBlur={commit}
         onKeyDownCapture={(event) => {
           const field = event.target;
           if (!(field instanceof HTMLInputElement)) return;
           if (event.key === "ArrowUp" || event.key === "ArrowDown") {
             event.preventDefault();
+            // The arrow sets the level from the level of the class: a typed level that did not count yet does not count.
+            // The loss of the focus makes the field drop its text, and commit drops the level; the focus comes back.
+            if (typed.current !== null) {
+              dropTyped.current = true;
+              field.blur();
+              field.focus();
+            }
             const next = level + (event.key === "ArrowUp" ? 1 : -1);
             if (next >= 1 && next <= MAX_CLASS_LEVEL) onLevel(next);
           } else if (event.key === "Enter") {
@@ -351,15 +387,34 @@ function LevelControl({ name, level, onLevel }: { name: string; level: number; o
 /**
  * The way of the Class step before ORC-349 to add a class and to remove one, until ORC-351 builds "Add a class" and the
  * Remove button of a block: a class to add with "Add class", and with two or more classes a Remove button for each.
- * Removing a class asks first when it removes picks.
+ * Removing a class asks first when it removes picks. After it, the focus goes to the Change button of a block that stays.
  */
-function AddRemoveRow({ selection, free }: { selection: BuilderSelection; free: BuilderOption[] }) {
+function AddRemoveRow({
+  selection,
+  free,
+  onRemoved,
+}: {
+  selection: BuilderSelection;
+  free: BuilderOption[];
+  /** Called with the class whose Change button gets the focus after a class is removed. */
+  onRemoved: (stays: string) => void;
+}) {
   const run = useMutation();
   const [change, question] = useChangeQuestion();
   const [adding, setAdding] = useState("");
   const toAdd = free.find((o) => o.key === adding) ?? free[0];
   const names = useMemo(() => new Map(selection.options.map((o) => [o.key, o.name])), [selection]);
   const many = selection.selected.length > 1;
+  /** Removes the class; then the focus goes to the Change button of the next block, or of the one before the last. */
+  async function remove(key: string) {
+    const list = selection.selected;
+    const at = list.indexOf(key);
+    const stays = list[at + 1] ?? list[at - 1];
+    const before = useCharacter.getState().entity;
+    await change({ kind: "remove-class", classKey: key });
+    // After Cancel, the focus goes back to the Remove button.
+    if (useCharacter.getState().entity !== before) onRemoved(stays);
+  }
   if (!toAdd && !many) return null;
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -373,7 +428,7 @@ function AddRemoveRow({ selection, free }: { selection: BuilderSelection; free: 
       )}
       {many &&
         selection.selected.map((key) => (
-          <Button key={key} icon="trash" size="small" onClick={() => void change({ kind: "remove-class", classKey: key })}>
+          <Button key={key} icon="trash" size="small" onClick={() => void remove(key)}>
             Remove {names.get(key)}
           </Button>
         ))}

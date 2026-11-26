@@ -7,6 +7,7 @@
 import { Button, type ListItem, ListModal, Picker, Toggle, ToggleGroup, Token } from "@orc-alchemy/ui";
 import { type ReactNode, type RefObject, useId, useMemo, useRef, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
+import { asksBeforeClassPick } from "../engine/class-choices.ts";
 import { engine } from "../engine/engine.ts";
 import { controlKind, hasSearch, shownOptions, unavailableOptions } from "../engine/selection-control.ts";
 import { useOpenCharacter } from "../state/character.ts";
@@ -48,12 +49,15 @@ export function SelectionControl({ selection }: { selection: BuilderSelection })
 type ControlProps = { selection: BuilderSelection; options: BuilderOption[]; unavailable?: Map<string, string> };
 
 // The top-level selections whose pick asks first when it removes picks: the race and the background. The subrace
-// under a race asks too. The Class step asks in its own controls. The background and the race have the list with a
+// under a race asks too, and a choice of one pick of a class, such as the subclass (asksBeforeClassPick, ORC-350). The
+// class itself asks in the class block. The background and the race have the list with a
 // detail panel (MainPick.tsx), which picks with usePick too.
 const ASKS_FIRST = ["race", "background"];
 
-/** True when a pick in the selection asks first when it removes picks: a race, a subrace or a background. */
-function asksFirst({ actualPath, multiselect }: BuilderSelection): boolean {
+/** True when a pick in the selection asks first when it removes picks: a race, a subrace, a background or a choice of a class. */
+function asksFirst(selection: BuilderSelection): boolean {
+  const { actualPath, multiselect } = selection;
+  if (asksBeforeClassPick(selection)) return true;
   if (multiselect) return false;
   if (actualPath.length === 1) return ASKS_FIRST.includes(actualPath[0]);
   return actualPath.length === 3 && actualPath[0] === "race" && actualPath[2] === "subrace";

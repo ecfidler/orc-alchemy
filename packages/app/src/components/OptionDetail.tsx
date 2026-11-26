@@ -5,9 +5,19 @@
 // and the features table; its rules are in engine/class-detail.ts.
 import type { ListPanelPlace } from "@orc-alchemy/ui";
 import { PixelIcon } from "@orc-alchemy/ui";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { templateShape } from "../engine/builder.ts";
-import { CLASS_TYPE, type ClassFeatureRow, classFacts, classFeatureSteps, knownClassFeatures } from "../engine/class-detail.ts";
+import {
+  CLASS_TYPE,
+  type ClassFeatureRow,
+  classFacts,
+  classFeatureSteps,
+  knownClassFeatures,
+  knownSubclassFeatures,
+  SUBCLASS_TYPE,
+  subclassDescription,
+  subclassFeatureSteps,
+} from "../engine/class-detail.ts";
 import { BACKGROUND_TYPE } from "../engine/content.ts";
 import { CUSTOM_PACK, optionOrigin } from "../engine/custom.ts";
 import { RACE_TYPE } from "../engine/custom-origin.ts";
@@ -172,16 +182,21 @@ export function RaceDetail({ optionKey, name, pack, place }: DetailProps) {
   return <OptionDetailView name={name} pack={pack} detail={useRaceDetail(optionKey)} place={place} />;
 }
 
+/** The help of the record of a pack option or a custom copy of the content type, or undefined for a built-in option. */
+function usePackHelp(contentType: ContentType, key: string): string | undefined {
+  const homebrew = useHomebrew((state) => state.content.homebrew);
+  const custom = useCharacter((state) => state.custom);
+  const origin = optionOrigin(homebrew, custom, contentType, key);
+  return origin.from === "built-in" ? undefined : String((plainRecord(origin.item) as Record<string, unknown>).help ?? "");
+}
+
 /**
  * The description and the facts of the class with the key (classFacts): the help of the record of a pack class, or
  * else the SRD sentence. One build of a trial character; it is made again only when the class or the content changes.
  */
 export function useClassFacts(key: string): OptionDetail | null {
   const { content } = useOpenCharacter();
-  const homebrew = useHomebrew((state) => state.content.homebrew);
-  const custom = useCharacter((state) => state.custom);
-  const origin = optionOrigin(homebrew, custom, CLASS_TYPE, key);
-  const help = origin.from === "built-in" ? undefined : String((plainRecord(origin.item) as Record<string, unknown>).help ?? "");
+  const help = usePackHelp(CLASS_TYPE, key);
   return useMemo(() => {
     try {
       return classFacts({ engine: engine(), content }, key, help);
@@ -193,30 +208,86 @@ export function useClassFacts(key: string): OptionDetail | null {
 }
 
 /**
- * The features table of the class with the key (classFeatureSteps); null while it is made. It takes a build of a trial
- * character at each level, so it is made in short parts between the frames, and it is kept for the content.
+ * The value that `steps` makes, in short parts between the frames, as a features table that takes a build at each
+ * level: `known` while it is made already, else null until the steps end. `id` names what the steps make: a new id
+ * starts new steps.
  */
-export function useClassFeatures(key: string): ClassFeatureRow[] | null {
-  const { content } = useOpenCharacter();
-  const [made, setMade] = useState<{ key: string; content: unknown; rows: ClassFeatureRow[] } | null>(null);
-  const known = knownClassFeatures(content, key);
+function useMadeInParts<T>(id: string, known: T | undefined, steps: () => Generator<void, T>): T | null {
+  const [made, setMade] = useState<{ id: string; value: T } | null>(null);
+  const start = useRef(steps);
+  start.current = steps;
+  const isKnown = known !== undefined;
   useEffect(() => {
-    if (knownClassFeatures(content, key) !== undefined) return;
-    const steps = classFeatureSteps({ engine: engine(), content }, key);
+    if (isKnown) return;
+    const run = start.current();
     let timer: ReturnType<typeof setTimeout>;
     const part = () => {
       const until = performance.now() + 12;
       for (;;) {
-        const step = steps.next();
-        if (step.done) return setMade({ key, content, rows: step.value });
+        const step = run.next();
+        if (step.done) return setMade({ id, value: step.value });
         if (performance.now() > until) break;
       }
       timer = setTimeout(part, 0);
     };
     timer = setTimeout(part, 0);
     return () => clearTimeout(timer);
-  }, [content, key]);
-  return known ?? (made?.key === key && made.content === content ? made.rows : null);
+  }, [id, isKnown]);
+  return known ?? (made?.id === id ? made.value : null);
+}
+
+/** An id for each content, for the steps that make a table for it. */
+const contentIds = new WeakMap<object, number>();
+let lastContentId = 0;
+const contentId = (content: object) => {
+  if (!contentIds.has(content)) contentIds.set(content, ++lastContentId);
+  return contentIds.get(content)!;
+};
+
+/**
+ * The features table of the class with the key (classFeatureSteps); null while it is made. It takes a build of a trial
+ * character at each level, so it is made in short parts between the frames, and it is kept for the content.
+ */
+export function useClassFeatures(key: string): ClassFeatureRow[] | null {
+  const { content } = useOpenCharacter();
+  return useMadeInParts(`${contentId(content)}:${key}`, knownClassFeatures(content, key), () => classFeatureSteps({ engine: engine(), content }, key));
+}
+
+/**
+ * The features table of the subclass of the class (subclassFeatureSteps, ORC-350); null while it is made, in short
+ * parts between the frames, as the table of a class.
+ */
+export function useSubclassFeatures(classKey: string, subclassKey: string): ClassFeatureRow[] | null {
+  const { content } = useOpenCharacter();
+  return useMadeInParts(`${contentId(content)}:${classKey}/${subclassKey}`, knownSubclassFeatures(content, classKey, subclassKey), () =>
+    subclassFeatureSteps({ engine: engine(), content }, classKey, subclassKey),
+  );
+}
+
+/** The features table of a class or a subclass: the column headings "Level" and "Features", and a row for each level. */
+function FeaturesTable({ rows }: { rows: ClassFeatureRow[] }) {
+  return (
+    <table className="w-full border-collapse text-left">
+      <thead>
+        <tr className="font-sans text-[12.5px] font-bold">
+          <th scope="col" className="w-14 pb-1 font-bold">
+            Level
+          </th>
+          <th scope="col" className="pb-1 font-bold">
+            Features
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(({ level, names }) => (
+          <tr key={level} className="border-t border-rule align-top">
+            <td className="pt-1 font-sans text-[12px] text-ink-muted">{level}</td>
+            <td className="py-0.5 text-[15px]">{names.join(", ")}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 }
 
 /**
@@ -229,28 +300,24 @@ export function ClassDetail({ optionKey, name, pack }: { optionKey: string; name
   const icon = classIcon(optionKey);
   return (
     <OptionDetailView name={name} pack={pack} detail={detail} place="modal" icon={icon && <PixelIcon name={icon} className="me-0 size-8" />}>
-      {features && features.length > 0 && (
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="font-sans text-[12.5px] font-bold">
-              <th scope="col" className="w-14 pb-1 font-bold">
-                Level
-              </th>
-              <th scope="col" className="pb-1 font-bold">
-                Features
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {features.map(({ level, names }) => (
-              <tr key={level} className="border-t border-rule align-top">
-                <td className="pt-1 font-sans text-[12px] text-ink-muted">{level}</td>
-                <td className="py-0.5 text-[15px]">{names.join(", ")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      {features && features.length > 0 && <FeaturesTable rows={features} />}
+    </OptionDetailView>
+  );
+}
+
+/**
+ * The detail of a subclass in the subclass dialog (ORC-350): its name as a heading in the panel, the pack, the
+ * description (the help of the record of a pack subclass, or else the SRD sentence), and the features table of the
+ * subclass, once it is made.
+ */
+export function SubclassDetail({ classKey, optionKey, name, place }: { classKey: string; optionKey: string; name: string; place: ListPanelPlace }) {
+  const help = usePackHelp(SUBCLASS_TYPE, optionKey);
+  const pack = useOptionPack(SUBCLASS_TYPE)(optionKey);
+  const features = useSubclassFeatures(classKey, optionKey);
+  const description = subclassDescription(optionKey, help);
+  return (
+    <OptionDetailView name={name} pack={pack} detail={{ description, facts: [], traits: [] }} place={place}>
+      {features && features.length > 0 && <FeaturesTable rows={features} />}
     </OptionDetailView>
   );
 }

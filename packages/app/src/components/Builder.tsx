@@ -15,18 +15,20 @@ import {
   type StepName,
   useBuilderSteps,
 } from "../engine/builder.ts";
+import { hitPointSelections } from "../engine/class-choices.ts";
 import { choiceSelections } from "../engine/race-step.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { AbilityIncreases, AbilityScores } from "./AbilityScores.tsx";
 import { BuilderStatusToast, OpenStepProvider, SectionLevelProvider, StepFrameProvider } from "./builder-context.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
+import { ClassChoices } from "./ClassChoices.tsx";
 import { Heading, HitPoints } from "./Classes.tsx";
 import { ClassStep } from "./ClassStep.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
 import { Hands, Inventory } from "./Equipment.tsx";
-import { MainPick, mainPickParts } from "./MainPick.tsx";
+import { BlockSection, MainPick, mainPickParts } from "./MainPick.tsx";
 import { NameStep } from "./NameStep.tsx";
 import { ProficienciesStep } from "./ProficienciesStep.tsx";
 import { SelectionControl } from "./SelectionControl.tsx";
@@ -189,7 +191,7 @@ export function Selection({ selection }: { selection: BuilderSelection }) {
 function Options({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { actualPath } = selection;
-  // The classes are the class cards and the class blocks (ORC-349). The sections that a class opens are the body of its block.
+  // The classes are the class cards and the class blocks (ORC-349).
   const isClass = actualPath.length === 1 && actualPath[0] === "class";
   // A feat has a Customize line under the control (ORC-134). A background and a race have the button in their block (ORC-347, ORC-348).
   const customizable = customizableFor(selection);
@@ -199,8 +201,22 @@ function Options({ selection }: { selection: BuilderSelection }) {
 
   const opened = selection.options.filter((o) => o.selected && o.selections.length > 0);
   const section = (child: BuilderSelection) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />;
+  // The body of a class block is Choices (ORC-350), and the hit points of each level after it, until ORC-351 makes
+  // them the section Hit points.
   if (isClass)
-    return <ClassStep selection={selection} body={(option) => <SectionLevelProvider level={4}>{option.selections.map(section)}</SectionLevelProvider>} />;
+    return (
+      <ClassStep
+        selection={selection}
+        body={(option) => (
+          <>
+            <BlockSection title="Choices">
+              <ClassChoices option={option} />
+            </BlockSection>
+            <SectionLevelProvider level={4}>{hitPointSelections(option).map(section)}</SectionLevelProvider>
+          </>
+        )}
+      />
+    );
   // The background and the race are a list with a detail panel, and then a block with their choices in it (ORC-347,
   // ORC-348). The one subrace of a race is a fact of its panel, not a row of Choices (choiceSelections).
   if (mainPick) {

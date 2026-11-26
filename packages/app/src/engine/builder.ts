@@ -119,8 +119,8 @@ const TOP_LEVEL_STEP: [tag: string, step: StepName][] = [
   ["equipment", "Equipment"],
 ];
 
-/** The step that a selection with these tags moves to, if any. */
-function movedStep(tags: string[]): StepName | undefined {
+/** The step that a selection with these tags moves to, if any: else it shows under the option that opens it. */
+export function movedStep(tags: string[]): StepName | undefined {
   return MOVED_TO_STEP.find(([tag]) => tags.includes(tag) && !(tag === "ability-scores" && tags.includes("level")))?.[1];
 }
 

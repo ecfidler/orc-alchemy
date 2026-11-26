@@ -88,15 +88,37 @@ export async function pickInList(scope: Locator, name: string) {
     .click();
 }
 
+/** The head of a choice row of the Class step (ORC-350): the button that opens and closes it. */
+export const rowHead = (row: Locator) => row.locator("h5 > [aria-expanded]");
+
+/**
+ * Picks the subclass `name` in the subclass row `scope` (ORC-350): Choose or Change opens the subclass dialog, a click
+ * on the name shows the subclass in the panel, or in a modal on a narrow page, and "Choose {name}" picks it. Its
+ * Vitest twin is pickSubclass in src/components/test-pick.ts.
+ */
+export async function pickSubclass(scope: Locator, name: string) {
+  await listOpener(scope).click();
+  const page = scope.page();
+  await page.locator(".ui-list-panel").getByRole("button", { name, exact: true }).click();
+  await page.getByRole("button", { name: `Choose ${name}`, exact: true }).click();
+}
+
 /**
  * Picks the option `name` in the selection of `scope` (its section), by its control (ORC-343): a click on its option
- * card, a pick in the list with a detail panel of a main pick (ORC-347), or a pick in the list that its Choose, Change
- * or add button opens. Its Vitest twin is pickIn in src/components/test-pick.ts.
+ * card, a pick in the list with a detail panel of a main pick (ORC-347), a pick in the subclass dialog (ORC-350), or a
+ * pick in the list that its Choose, Change or add button opens. A closed choice row of the Class step opens first. Its
+ * Vitest twin is pickIn in src/components/test-pick.ts.
  */
 export async function pickIn(scope: Locator, name: string) {
   await expect(scope.getByRole("heading").first()).toBeVisible();
   if ((await scope.getAttribute("data-main-pick")) !== null) {
     await pickInList(scope, name);
+    return;
+  }
+  const row = await scope.getAttribute("data-choice-row");
+  if (row !== null && (await rowHead(scope).getAttribute("aria-expanded")) === "false") await rowHead(scope).click();
+  if (row === "subclass") {
+    await pickSubclass(scope, name);
     return;
   }
   const card = scope.locator("[aria-pressed]").and(scope.getByRole("button", { name, exact: true }));
