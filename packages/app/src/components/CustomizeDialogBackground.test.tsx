@@ -15,7 +15,7 @@ import { fighter20 } from "../engine/test-feats.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";
 import { Builder } from "./Builder.tsx";
-import { closed, dialogNamed, evaluate, field, save } from "./test-customize.ts";
+import { closed, dialogNamed, evaluate, field, save } from "./test-customize-dialog.ts";
 import { withSheetPanel } from "./test-sheet-panel.ts";
 
 // A test turns on `fail` to make the load of the SRD background list fail, as offline.

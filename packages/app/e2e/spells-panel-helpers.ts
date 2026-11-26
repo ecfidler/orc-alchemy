@@ -16,7 +16,6 @@ export const rows = (page: Page) => panel(page).locator("[data-spell-row]");
 /** The row of a spell, by its name, which starts the row's accessible name. With two or more sources the source follows it. */
 export const row = (page: Page, name: string) =>
   panel(page).getByRole("button", { name: new RegExp(`^${name}(, [A-Z][a-z]+( [A-Z][a-z]+)?)? ?(Ritual|Concentration)*$`) });
-/** The heading of the spell view. */
 /** The pane of the list, and the pane of the spell view. */
 export const listPane = (page: Page) => panel(page).locator("[data-pane=list]");
 export const spellPane = (page: Page) => panel(page).locator("[data-pane=spell]");

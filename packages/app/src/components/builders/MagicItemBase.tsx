@@ -1,9 +1,9 @@
 // The base weapon or armor section of the magic item form, and the details of a New weapon.
-import { FieldLabel, Fieldset, NumberField, Picker, Select } from "@orc-alchemy/ui";
+import { FieldLabel, Fieldset, NumberField, Select } from "@orc-alchemy/ui";
 import type { Choice } from "../../engine/builder-choices.ts";
 import { tag, untag } from "../../engine/content.ts";
 import { Checks, DAMAGE_TYPES, editor, FieldRow, type FormProps, numberOrNull, numbers, type Options, range, SelectField, title } from "./fields.tsx";
-import { type PickItem, pickedText, withOthers } from "./picker-fields.tsx";
+import { type PickItem, TogglePicker } from "./picker-fields.tsx";
 
 const W = "orcpub.dnd.e5.weapons/";
 
@@ -72,45 +72,6 @@ export const WEAPON_FIELDS = [
 const DICE: Options = [4, 6, 8, 10, 12, 20, 100].map((die) => [die, `d${die}`]);
 
 /** The one key that a picker's change adds or removes. A picker change is one pick or one removed token. */
-const toggledKey = (before: string[], after: string[]) => after.find((key) => !before.includes(key)) ?? before.find((key) => !after.includes(key));
-
-/**
- * A picker whose every pick or removed token toggles one key (onToggle),
- * as the old checkboxes of the form did. value is the stored keys; a key
- * that is no item shows as a token named by its key, and a key stored
- * twice is one token.
- */
-export function TogglePicker({
-  label,
-  items,
-  value,
-  search,
-  onToggle,
-  className,
-}: {
-  label: string;
-  items: PickItem[];
-  value: string[];
-  search?: boolean;
-  onToggle: (key: string) => void;
-  className?: string;
-}) {
-  const keys = [...new Set(value)];
-  return (
-    <Picker
-      label={label}
-      options={withOthers(items, keys).map((item) => ({ value: item.key, label: item.name, group: item.group }))}
-      value={keys}
-      search={search}
-      pickedText={pickedText}
-      onValueChange={(next) => {
-        const key = toggledKey(keys, next);
-        if (key !== undefined) onToggle(key);
-      }}
-      className={className}
-    />
-  );
-}
 
 /**
  * The base weapon or armor: a select of Any, Specific and (for a weapon)

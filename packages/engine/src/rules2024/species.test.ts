@@ -2,7 +2,7 @@
 // ancestry, at character levels 1, 5 and 11. The class is the Wizard of the
 // pack, which has no effects yet, so every value below comes from the
 // species. Each expected number has its arithmetic from SRD 5.2.1 p83 to
-// p86 in a comment. fighter.test.ts checks the Dwarf against the values of
+// p86 in a comment. fighter-levels.test.ts checks the Dwarf against the values of
 // the spike.
 
 import { describe, expect, it } from "vitest";

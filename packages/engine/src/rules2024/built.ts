@@ -1,8 +1,8 @@
-// The built 2024 character and its base: the values before any choice, the
-// values derived from others, and the rules that every character has
-// (ORC-225). This file is the 2024 counterpart of
-// dnd/e5/template_base.cljc. The names are 2024 names: `species`, not
-// `race`. base-rules.ts has the base values and the rules (`base`, `RULES`).
+// The built 2024 character (ORC-225). This file and base-rules.ts are the
+// 2024 counterpart of dnd/e5/template_base.cljc. base-rules.ts has the base
+// (the values before any choice and the values derived from others) and the
+// rules that every character has (`base`, `RULES`). The names are 2024
+// names: `species`, not `race`.
 
 import type { z } from "zod";
 import { type Modifier, modifiersFor } from "../core/modifiers.ts";

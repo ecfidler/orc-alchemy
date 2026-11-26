@@ -403,7 +403,7 @@ test("a known spell's qualifier is its cast note; the domain qualifier and no qu
     "speak-with-animals": "at will",
     slow: "at will",
   });
-  // A Life cleric's domain spell has the qualifier "Domain" (options.cljc cleric-spell). CharacterSheet.test.tsx checks it on a real one.
+  // A Life cleric's domain spell has the qualifier "Domain" (options.cljc cleric-spell). SpellcastingBox.test.tsx checks it on a real one.
   const [[pair, spell]] = built["spells-known"][1]!.__entries;
   const domain = { ...built, "spells-known": { 1: { __entries: [[pair, { ...spell, qualifier: "Domain" }]] } } } as unknown as Built2014;
   expect(toSheet(domain, {}).spellcasting!.byLevel[0]!.spells[0]).toMatchObject({ castNote: null });

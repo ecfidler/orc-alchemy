@@ -145,3 +145,43 @@ export function ChoicePicker({
     </Section>
   );
 }
+
+const toggledKey = (before: string[], after: string[]) => after.find((key) => !before.includes(key)) ?? before.find((key) => !after.includes(key));
+
+/**
+ * A picker whose every pick or removed token toggles one key (onToggle),
+ * as the old checkboxes of the form did. value is the stored keys; a key
+ * that is no item shows as a token named by its key, and a key stored
+ * twice is one token.
+ */
+export function TogglePicker({
+  label,
+  items,
+  value,
+  search,
+  onToggle,
+  className,
+}: {
+  label: string;
+  items: PickItem[];
+  value: string[];
+  search?: boolean;
+  onToggle: (key: string) => void;
+  className?: string;
+}) {
+  const keys = [...new Set(value)];
+  return (
+    <Picker
+      label={label}
+      options={withOthers(items, keys).map((item) => ({ value: item.key, label: item.name, group: item.group }))}
+      value={keys}
+      search={search}
+      pickedText={pickedText}
+      onValueChange={(next) => {
+        const key = toggledKey(keys, next);
+        if (key !== undefined) onToggle(key);
+      }}
+      className={className}
+    />
+  );
+}

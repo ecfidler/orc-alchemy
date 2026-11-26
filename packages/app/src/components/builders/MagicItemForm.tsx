@@ -32,10 +32,11 @@ import {
   title,
   WithChoices,
 } from "./fields.tsx";
-import { BaseItem, NewWeaponDetails, TogglePicker, WEAPON_FIELDS } from "./MagicItemBase.tsx";
+import { BaseItem, NewWeaponDetails, WEAPON_FIELDS } from "./MagicItemBase.tsx";
 import { CONDITION_CHOICES, DAMAGE_CHOICES } from "./modifier-kinds.tsx";
 import { type Modifier, Modifiers, type ModifierValues } from "./modifiers.tsx";
 import type { PickItem } from "./picker-fields.tsx";
+import { TogglePicker } from "./picker-fields.tsx";
 
 const MI = "orcpub.dnd.e5.magic-items/";
 const W = "orcpub.dnd.e5.weapons/";
