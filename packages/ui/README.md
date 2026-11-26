@@ -91,7 +91,9 @@ bun run test       # vitest
     `toBeChecked()`. `tabIndex={-1}` takes the box out of the Tab order,
     for a box that a key on another control also changes, for example
     Space on a row of a list that is one Tab stop; a mouse and a screen
-    reader still reach it. Styles: `src/check.css`.
+    reader still reach it. `aria-describedby` names the element that
+    describes the box, for example the reason that it is disabled.
+    Styles: `src/check.css`.
   - `LockIcon`: a closed lock, the `lock` pixel icon with no space after
     it, for a value that cannot change. It has `aria-hidden`
     and does not shrink in a flex row, so put a text beside it.
@@ -514,7 +516,8 @@ bun run test       # vitest
   - `LeftMark`: the mark of a selection at the right of its heading.
     `left` above 0 gives "2 left" as a small tilted yellow note, below 0 gives
     "Remove 1" as a red one, and 0 gives the check icon and "Done" in
-    muted text. Each mark is in the same box, of a fixed height and a
+    muted text; with `success`, "Done" is green and semibold, for a count
+    that is at its maximum. Each mark is in the same box, of a fixed height and a
     minimum width, so the heading does not move or change its size when
     the mark changes. Put it last in a heading that is a flex row. Its
     text is a part of the heading text: end the name with a comma that does

@@ -99,3 +99,8 @@ test("a left mark: n left in yellow, Remove n in red, and a check with Done, in 
   // The same box holds each mark, so it keeps its place.
   expect(heading.querySelector(".ui-left-mark")).toBe(box);
 });
+
+test("a left mark with success marks its box, so that Done is green", () => {
+  render(<LeftMark left={0} success />);
+  expect(document.querySelector(".ui-left-mark")!.hasAttribute("data-success")).toBe(true);
+});

@@ -5,6 +5,7 @@ import { expect, type Page, test } from "@playwright/test";
 import {
   addClass,
   addFirstClass,
+  addSpells,
   changeClass,
   hitPointsTotal,
   newCharacter,
@@ -171,13 +172,11 @@ test("a new wizard 1 picks a cantrip and a spell on the Spells step, and prepare
   await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells, 9 picks left");
   await stepButton(page, "Spells").click();
 
-  const cantrips = builder.getByRole("region", { name: /^Wizard Cantrips Known/ });
-  await cantrips.getByRole("button", { name: "Fire Bolt", exact: true }).click();
-  await expect(cantrips.getByRole("button", { name: "Fire Bolt", exact: true })).toHaveAttribute("aria-pressed", "true");
+  // A box in the "Add spells" popup of each selection adds the spell (ORC-357).
+  await addSpells(page, "Wizard Cantrips Known", ["Fire Bolt"]);
+  await addSpells(page, "Wizard Spells Known", ["Magic Missile"]);
   const spells = builder.getByRole("region", { name: /^Wizard Spells Known/ });
-  await spells.getByLabel("Search: Wizard Spells Known").fill("magic missile");
-  await spells.getByRole("button", { name: "1 - Magic Missile", exact: true }).click();
-  await expect(spells.getByRole("list", { name: "Chosen: Wizard Spells Known" })).toHaveText("1 - Magic Missile");
+  await expect(spells.getByRole("list", { name: "Chosen: Wizard Spells Known" })).toHaveText("Magic Missile");
   await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells, 7 picks left");
 
   // The standard scores have Int 12: a wizard 1 prepares 2 spells.

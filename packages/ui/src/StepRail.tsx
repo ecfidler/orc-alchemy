@@ -95,11 +95,12 @@ export function StepRail({
  * name. Its text is a part of the heading text. End the name with a comma
  * that does not show and is in the line (not `sr-only`, which a browser
  * reads with a space before it): a screen reader then reads
- * "Languages, 2 left".
+ * "Languages, 2 left". With `success`, "Done" is green, for a count at its
+ * maximum.
  */
-export function LeftMark({ left }: { left: number }) {
+export function LeftMark({ left, success = false }: { left: number; success?: boolean }) {
   return (
-    <span className="ui-left-mark" data-left={left > 0 ? "left" : left < 0 ? "over" : "done"}>
+    <span className="ui-left-mark" data-left={left > 0 ? "left" : left < 0 ? "over" : "done"} data-success={success ? "" : undefined}>
       {left > 0 && <InlineNote>{left} left</InlineNote>}
       {left < 0 && <InlineNote tone="failed">Remove {-left}</InlineNote>}
       {left === 0 && (

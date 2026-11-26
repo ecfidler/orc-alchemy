@@ -1,100 +1,328 @@
-// The Spells step (ORC-60): each spell selection's cards, with a level
-// filter and a name search, and the prepared spells of each class that
-// prepares, with the prepare rules of the Spells panel (ORC-288). Each pick
-// is an engine mutation, as in Options in Builder.tsx.
-import { Checkbox, Label, Select } from "@orc-alchemy/ui";
-import { useId, useState } from "react";
-import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
-import { listText } from "../engine/selection-control.ts";
-import { ordinal } from "../engine/sheet.ts";
+// The Spells step (ORC-60): each spell selection, and the prepared spells of each class that prepares, with the
+// prepare rules of the Spells panel (ORC-288). Each pick is an engine mutation, as in Options in Builder.tsx.
+//
+// A spell selection (ORC-357, docs/design/character-builder.md "The Spells and Equipment steps") shows its heading
+// with the left mark, the names of its picks by level in a space that keeps its size, and an "Add spells" button. The
+// button opens a popup with the parts of the Spells panel of the sheet (SpellPanes): the search, the list by level, a
+// box at the left of each row that adds the spell or removes it, and the spell view. A name opens the popup at its
+// spell.
+import { Button, Checkbox, Dialog, Label, LeftMark, LockIcon } from "@orc-alchemy/ui";
+import { type CSSProperties, Fragment, type RefObject, useId, useRef, useState } from "react";
+import type { BuilderSelection } from "../engine/builder.ts";
+import { listText, notAvailableText } from "../engine/selection-control.ts";
+import type { SpellRef } from "../engine/sheet.ts";
+import { levelHeading, type OptionSpell, optionSpellGroups, type SpellGroup } from "../engine/spell-list.ts";
 import { prepareCounts, prepareSpells } from "../engine/spell-prepare.ts";
-import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts";
+import { setPrepared } from "../engine/spells.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { Selection } from "./Builder.tsx";
+import { useSectionName } from "./builder-context.tsx";
 import { PrepareCountText } from "./PrepareCount.tsx";
-import { OptionCards } from "./SelectionControl.tsx";
-import { HEADING_CLASSES, Heading } from "./selection-heading.tsx";
+import { usePick, useUnavailable } from "./SelectionControl.tsx";
+import { INITIAL_FOCUS, type RowMark } from "./SpellList.tsx";
+import { SpellPanes } from "./SpellPanes.tsx";
+import { SpellView } from "./SpellView.tsx";
+import { Comma, HEADING_CLASSES, Heading } from "./selection-heading.tsx";
 import { useMutation } from "./use-mutation.ts";
 
-const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
+/** The height of a line of the picked names, in px: a line of text-sm leading-6. */
+const LINE_PX = 24;
 
-/** The heights of 1 to 5 lines of the chosen spells on a step narrower than 560px: a line of text-sm leading-5 is 20px. */
-const NARROW_HEIGHTS = ["min-h-5", "min-h-10", "min-h-15", "min-h-20", "min-h-25"];
-
-/** The heights of 1 to 3 lines of the chosen spells on a step 560px wide or more. */
-const WIDE_HEIGHTS = ["@min-[560px]/spells:min-h-5", "@min-[560px]/spells:min-h-10", "@min-[560px]/spells:min-h-15"];
+/** The names on a line of the picked names: on a step narrower than 560px, and on a step 560px wide or more. */
+export const PER_LINE = { narrow: 2, wide: 4 } as const;
 
 /**
- * The classes of the height that the chosen spells keep: the lines that the most picks take, with about 2 names on a
- * line of a narrow step (up to 5 lines) and 4 on a wide step (up to 3 lines). A selection with no maximum keeps 3
- * lines, so that a pick does not start a new line.
+ * The lines that the picked names of a selection can take: `count` names on lines of `perLine` names, a new line at
+ * each of `levels` levels, and, with two levels or more, a line for the heading of each level. A selection whose
+ * options have one level shows no level heading.
  */
-export function chosenHeight(max: number | null): string {
-  const lines = (perLine: number, most: number) => (max === null ? 3 : Math.min(most, Math.max(1, Math.ceil(max / perLine))));
-  return `${NARROW_HEIGHTS[lines(2, NARROW_HEIGHTS.length) - 1]} ${WIDE_HEIGHTS[lines(4, WIDE_HEIGHTS.length) - 1]}`;
+export function pickLines(count: number, levels: number, perLine: number): number {
+  const shown = Math.max(1, Math.min(levels, count));
+  const headings = levels > 1 ? shown : 0;
+  return Math.max(1, Math.ceil(count / perLine) + shown - 1 + headings);
 }
 
-/** A spell selection: its chosen spells, a level filter and a search, then the cards that pass them. */
+/**
+ * The number of names that the space of the picked names keeps: the maximum of the selection, or with no maximum the
+ * picks to make, or the picks when they are more.
+ */
+export const reservedPicks = (selection: Pick<BuilderSelection, "max" | "min" | "selected">) =>
+  selection.max ?? Math.max(selection.min ?? 0, selection.selected.length);
+
+/** The text of a left mark, for the live region of the popup: "2 left", "Remove 1" or "Done". */
+const markText = (left: number) => (left > 0 ? `${left} left` : left < 0 ? `Remove ${-left}` : "Done");
+
+/** The reason of a box that the count disables. */
+export const FULL_REASON = "Remove a spell first.";
+/** The reason of the box of the one pick of a selection of one pick. */
+export const ONE_PICK_REASON = "Pick another spell in its place.";
+
+/**
+ * A spell selection: its heading with the left mark, the names of its picks by level, and the "Add spells" button that
+ * opens the popup. The selections that a picked spell opens are flat sections after it, with their own headings.
+ */
 export function SpellSelection({ selection }: { selection: BuilderSelection }) {
   const id = useId();
-  const content = useSpellContent();
-  const [level, setLevel] = useState("all");
-  const [search, setSearch] = useState("");
-  const { name } = selection;
-  const levelOf = (option: BuilderOption) => spellLevelOf(option.key, option.name, content);
-  const levels = [...new Set(selection.options.map(levelOf).filter((n) => n !== null))].sort((a, b) => a - b);
-  const text = search.trim().toLowerCase();
-  const shown = selection.options.filter((o) => (level === "all" || levelOf(o) === Number(level)) && o.name.toLowerCase().includes(text));
-  const chosen = selection.options.filter((o) => o.selected);
-
+  const name = useSectionName(selection);
+  const lookup = useSpellLookup();
+  const groups = optionSpellGroups(selection, lookup);
+  const [open, setOpen] = useState(false);
+  const [at, setAt] = useState<SpellRef | undefined>(undefined);
+  const openAt = (spell?: OptionSpell) => {
+    setAt(spell && { key: spell.key, source: spell.source });
+    setOpen(true);
+  };
+  const opened = selection.options.filter((option) => option.selected && option.selections.length > 0);
   return (
-    <section aria-labelledby={id} className="@container/spells space-y-2">
-      <Heading id={id} selection={selection} />
-      {/* The chosen spells, also those that the filter hides. The line keeps the place of the lines that the most picks
-      take (chosenHeight), so a pick does not move the filter and the cards (ORC-352). */}
-      <div className={`flex items-baseline gap-3 ${chosenHeight(selection.max)}`}>
-        <Label>Chosen</Label>
-        <ul aria-label={`Chosen: ${name}`} className="flex flex-wrap gap-x-3 text-sm leading-5">
-          {chosen.map((o) => (
-            <li key={o.key}>{o.name}</li>
+    <>
+      <section aria-labelledby={id} className="@container/spells space-y-2">
+        <Heading id={id} selection={selection} />
+        <PickedNames name={name} groups={groups} reserved={reservedPicks(selection)} onOpen={openAt} />
+        <Button icon="sparkles" aria-haspopup="dialog" aria-label={`Add spells: ${name}`} onClick={() => openAt()}>
+          Add spells
+        </Button>
+        <SpellPicker open={open} onOpenChange={setOpen} selection={selection} name={name} groups={groups} at={at} />
+      </section>
+      {opened.map((option) => (
+        <Fragment key={option.key}>
+          {option.selections.map((child) =>
+            child.tags.includes("spells") ? (
+              <SpellSelection key={JSON.stringify(child.actualPath)} selection={child} />
+            ) : (
+              <Selection key={JSON.stringify(child.actualPath)} selection={child} />
+            ),
+          )}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/**
+ * The names of the picks, by level and A to Z in a level, in lines of a fixed height: PER_LINE names on a line, and a
+ * new line with the level heading at each level when the options have two levels or more. The space keeps the lines
+ * that `reserved` names can take (pickLines), so a pick does not move the button and the page below it. A name is a
+ * button that opens the popup at its spell. A long name is cut with an ellipsis; its button has the whole name.
+ */
+function PickedNames({
+  name,
+  groups,
+  reserved,
+  onOpen,
+}: {
+  name: string;
+  groups: SpellGroup<OptionSpell>[];
+  reserved: number;
+  onOpen: (spell: OptionSpell) => void;
+}) {
+  const picked = groups.map((group) => ({ ...group, spells: group.spells.filter((spell) => spell.selected) })).filter((group) => group.spells.length > 0);
+  const withHeadings = groups.length > 1;
+  const height = (perLine: number) => `${pickLines(reserved, groups.length, perLine) * LINE_PX}px`;
+  return (
+    <ul
+      aria-label={`Chosen: ${name}`}
+      style={{ "--narrow": height(PER_LINE.narrow), "--wide": height(PER_LINE.wide) } as CSSProperties}
+      className="grid min-h-(--narrow) auto-rows-[24px] grid-cols-2 gap-x-3 text-sm leading-6 @min-[560px]/spells:min-h-(--wide) @min-[560px]/spells:grid-cols-4"
+    >
+      {picked.map((group) => (
+        <Fragment key={group.level}>
+          {withHeadings && (
+            <li className="col-span-full">
+              <Label>{levelHeading(group.level)}</Label>
+            </li>
+          )}
+          {group.spells.map((spell) => (
+            <li key={spell.key} className="min-w-0">
+              <Button variant="plain" aria-haspopup="dialog" className="max-w-full truncate text-left" onClick={() => onOpen(spell)}>
+                {spell.name}
+              </Button>
+            </li>
           ))}
-        </ul>
+        </Fragment>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The "Add spells" popup of a spell selection: a wide Dialog with the parts of the Spells panel (SpellPanes). The
+ * header has the heading of the selection and its count, as the left mark: "2 left", then a green "Done". A box adds
+ * the spell, or removes it, at once; the builder saves it. At the maximum the boxes of the other spells are disabled,
+ * with the reason. A selection with no maximum does not disable a box. A spell that the character cannot take has the
+ * lock, a dimmed name and its reason. The footer has one "Done" button. Done, the X and Escape close the popup, and the
+ * focus goes back to the control that opened it.
+ */
+function SpellPicker({
+  open,
+  onOpenChange,
+  selection,
+  name,
+  groups,
+  at,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selection: BuilderSelection;
+  name: string;
+  groups: SpellGroup<OptionSpell>[];
+  at: SpellRef | undefined;
+}) {
+  const panes = useRef<HTMLDivElement>(null);
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      size="wide"
+      fill
+      footer={false}
+      title={name}
+      header={
+        <h2 className="flex items-center gap-3 text-[22px] leading-[1.15] font-semibold max-[600px]:text-[19px]">
+          <span className="min-w-0">
+            {name}
+            <Comma />
+          </span>
+          <LeftMark left={selection.remaining} success={selection.remaining === 0} />
+        </h2>
+      }
+      initialFocus={() => panes.current?.querySelector<HTMLElement>(`[${INITIAL_FOCUS}]`) ?? null}
+    >
+      <PickerBody selection={selection} name={name} groups={groups} at={at} panes={panes} onDone={() => onOpenChange(false)} />
+    </Dialog>
+  );
+}
+
+/** The body of the popup: the panes, and the footer with Done. */
+function PickerBody({
+  selection,
+  name,
+  groups,
+  at,
+  panes,
+  onDone,
+}: {
+  selection: BuilderSelection;
+  name: string;
+  groups: SpellGroup<OptionSpell>[];
+  at: SpellRef | undefined;
+  panes: RefObject<HTMLDivElement>;
+  onDone: () => void;
+}) {
+  const lookup = useSpellLookup();
+  const done = useRef<HTMLButtonElement>(null);
+  const { select, deselect, replace, dialog } = usePick(selection);
+  const unavailable = useUnavailable(selection);
+  const mark = spellMark(selection, unavailable, { select, deselect, replace });
+  return (
+    <>
+      <SpellPanes
+        groups={groups}
+        lookup={lookup}
+        at={at}
+        panes={panes}
+        fallback={() => done.current}
+        // A change of the count goes in the live region, with the selection: "Wizard Cantrips Known: 2 left".
+        messages={[`${name}: ${markText(selection.remaining)}`]}
+        marks={mark}
+        view={(spell, { record, keep }) => {
+          const rowMark = mark(spell);
+          return (
+            <SpellView name={spell.name} spell={record}>
+              <PickLine
+                mark={rowMark}
+                onChange={(on) => {
+                  keep();
+                  rowMark.box?.onChange(on);
+                }}
+              />
+            </SpellView>
+          );
+        }}
+      />
+      <div className="flex flex-none justify-end border-t border-rule-strong px-[18px] py-2.5 max-[600px]:px-4">
+        <Button ref={done} variant="solid" icon="check" onClick={onDone}>
+          Done
+        </Button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {levels.length > 1 && (
-          <Select
-            aria-label={`Level: ${name}`}
-            value={level}
-            options={[["all", "All levels"], ...levels.map((n): [string, string] => [String(n), levelName(n)])]}
-            onValueChange={setLevel}
-          />
-        )}
-        <input
-          type="search"
-          aria-label={`Search: ${name}`}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search"
-          className="border border-ink p-1"
-        />
-      </div>
-      <OptionCards selection={selection} options={shown} />
-      {chosen
-        .filter((o) => o.selections.length > 0)
-        .map((option) => (
-          <div key={option.key} className="ml-2 space-y-4 border-l border-rule-strong pl-4">
-            <h4 className="italic">{option.name}</h4>
-            {option.selections.map((child) =>
-              child.tags.includes("spells") ? (
-                <SpellSelection key={JSON.stringify(child.actualPath)} selection={child} />
-              ) : (
-                <Selection key={JSON.stringify(child.actualPath)} selection={child} />
-              ),
-            )}
-          </div>
-        ))}
-    </section>
+      {dialog}
+    </>
+  );
+}
+
+/**
+ * The mark of each row of the popup: a box that adds the spell or removes it, or the lock and the reason for a spell
+ * that the character cannot take. At the maximum, a box of a spell that is not picked is disabled, with the reason
+ * FULL_REASON. In a selection of one pick, a box replaces the pick, and the box of the pick cannot change.
+ */
+function spellMark(
+  selection: BuilderSelection,
+  unavailable: Map<string, string>,
+  { select, deselect, replace }: Pick<ReturnType<typeof usePick>, "select" | "deselect" | "replace">,
+): (spell: OptionSpell) => RowMark {
+  const full = selection.max !== null && selection.remaining <= 0;
+  const current = selection.options.find((option) => option.selected)?.key;
+  return (spell) => {
+    const reason = unavailable.get(spell.key);
+    if (reason !== undefined) return { box: null, state: "not available", locked: reason };
+    const state = spell.selected ? "chosen" : "not chosen";
+    const name = `Chosen: ${spell.name}`;
+    if (!selection.multiselect)
+      return {
+        box: {
+          checked: spell.selected,
+          name,
+          disabled: spell.selected,
+          description: spell.selected ? ONE_PICK_REASON : undefined,
+          onChange: (on) => on && replace(current, spell.key),
+        },
+        state,
+      };
+    const disabled = full && !spell.selected;
+    return {
+      box: {
+        checked: spell.selected,
+        name,
+        disabled,
+        description: disabled ? FULL_REASON : undefined,
+        onChange: (on) => (on ? select(spell.key) : deselect(spell.key)),
+      },
+      state,
+    };
+  };
+}
+
+/**
+ * The line of the spell view under the name: the box with "Chosen" or "Not chosen", and the reason when the box is
+ * disabled; for a spell that the character cannot take, the lock and "Not available. {reason}".
+ */
+function PickLine({ mark, onChange }: { mark: RowMark; onChange: (on: boolean) => void }) {
+  const reasonId = useId();
+  if (mark.locked !== undefined || !mark.box)
+    return (
+      <p className="flex items-center gap-2.5 font-sans text-[13.5px] text-ink-muted">
+        <LockIcon />
+        {notAvailableText(mark.locked ?? "")}
+      </p>
+    );
+  const { box } = mark;
+  return (
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-sans text-[13.5px]">
+      <Checkbox
+        label={box.checked ? "Chosen" : "Not chosen"}
+        name="Chosen"
+        checked={box.checked}
+        disabled={box.disabled}
+        aria-describedby={box.description ? reasonId : undefined}
+        onCheckedChange={onChange}
+        className="gap-2.5"
+      />
+      {box.description && (
+        <span id={reasonId} className="text-ink-muted">
+          {box.description}
+        </span>
+      )}
+    </div>
   );
 }
 

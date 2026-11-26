@@ -4,7 +4,7 @@ title: Spells panel spec
 description: The settled design of the Spells panel on the character sheet - the popup with the spell list and the spell text, prepared spells, spent spell slots in the panel and on the sheet, Pact Magic slots, how a sheet change saves, the spell records, and the run order of the build tickets.
 tags: [design, sheet, spells]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-24T17:36:53Z }
+generated: { by: claude-code/agent, at: 2026-11-26T21:00:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-262/map-the-spells-panel
 sources:
   - id: orc-262
@@ -450,6 +450,19 @@ count as the panel:
 * The count has the same colors and the "Remove n spells." text.
 * A class with no known limit gets a prepare section with no limit.
 
+The "Add spells" popup of a spell selection on the Spells step uses the
+parts of the panel: the list, the spell view, the keyboard rules and the
+two views on a phone.[^orc-357] The two panes are one shared part,
+`packages/app/src/components/SpellPanes.tsx`. The box at the left of a row
+is a row mark of the list: the prepare box in prepare mode, or the box that
+adds the spell in the popup. The popup has no prepare bar, no Spell slots
+block and no Cast control. The
+[Character builder spec](character-builder.md#the-spells-and-equipment-steps)
+gives its rules.
+
+The sticky level heading of the list is above the boxes of the rows that
+scroll under it.
+
 # Spent spell slots
 
 The user marks spent spell slots in the panel and on the
@@ -773,3 +786,4 @@ the phone views adds screenshots at a phone width.
 [^orc-268]: Decide how spent spell slots work in the panel and on the sheet, <https://linear.app/orc-alchemy/issue/ORC-268/decide-how-spent-spell-slots-work-in-the-panel-and-on-the-sheet>
 [^orc-269]: Prototype the prepare control and the slot circles in the Spells panel, <https://linear.app/orc-alchemy/issue/ORC-269/prototype-the-prepare-control-and-the-slot-circles-in-the-spells-panel>
 [^orc-275]: Decide the last open details of the Spells panel, <https://linear.app/orc-alchemy/issue/ORC-275/decide-the-last-open-details-of-the-spells-panel>
+[^orc-357]: Spells step: an "Add spells" popup like the Spells panel of the sheet, <https://linear.app/orc-alchemy/issue/ORC-357>

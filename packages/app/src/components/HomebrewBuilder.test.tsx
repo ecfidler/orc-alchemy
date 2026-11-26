@@ -151,7 +151,9 @@ test("a spell authored in the form is in a wizard's spell selection, and its pac
   useCharacter.getState().load("homebrew-spell-wizard", e.setClass(e.emptyCharacter(), 0, "wizard"));
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Spells/ }));
-  expect(within(screen.getByRole("region", { name: /^Wizard Spells Known/ })).getByRole("button", { name: "1 - Fire Pop" })).toBeTruthy();
+  // The spell is an option of the "Add spells" popup of the selection (ORC-357).
+  fireEvent.click(screen.getByRole("button", { name: "Add spells: Wizard Spells Known" }));
+  expect(await within(screen.getByRole("dialog", { name: "Wizard Spells Known" })).findByRole("checkbox", { name: "Chosen: Fire Pop" })).toBeTruthy();
 
   expect(e.validateForExport(useHomebrew.getState().homebrew!).valid).toBe(true);
 });

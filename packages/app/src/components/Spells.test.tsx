@@ -1,11 +1,10 @@
-import { pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { loadSpellContent, preparedSpells } from "../engine/spells.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
-import { chosenHeight } from "./Spells.tsx";
+import { FULL_REASON, PER_LINE, pickLines, reservedPicks } from "./Spells.tsx";
 
 // The prepare boxes wait for the spell records (ORC-288), so the records load first.
 beforeAll(async () => {
@@ -34,38 +33,140 @@ function open(id: string, entity: StrictEntity) {
 }
 
 const entity = () => useCharacter.getState().entity!;
-const region = (name: string) => within(screen.getByRole("region", { name: new RegExp(`^${name}`) }));
+// With the popup open, the page behind it is hidden from a screen reader, so the step is found with its hidden parts.
+const region = (name: string) => within(screen.getByRole("region", { name: new RegExp(`^${name}`), hidden: true }));
 /** The prepare counts of the Spells step: [state, text]. */
 const counts = () => [...document.querySelectorAll("[data-prepare-count]")].map((count) => [count.getAttribute("data-prepare-count"), count.textContent]);
-const cards = (name: string) =>
-  region(name)
-    .getAllByRole("button")
+/** The "Add spells" popup of a selection, after a click on its button. */
+function openPopup(name: string) {
+  fireEvent.click(screen.getByRole("button", { name: `Add spells: ${name}` }));
+  return within(screen.getByRole("dialog", { name }));
+}
+/** The box of a spell in the open popup. */
+const box = (name: string) => within(screen.getByRole("dialog")).getByRole("checkbox", { name: `Chosen: ${name}` });
+/** The names of the picks on the step. */
+const chosen = (name: string) =>
+  within(screen.getByRole("list", { name: `Chosen: ${name}`, hidden: true }))
+    .queryAllByRole("button", { hidden: true })
     .map((b) => b.textContent);
+/** The number of known spells of the level in the built character. */
+const known = (level: number) => engine().evaluate(entity()).built["spells-known"]?.[String(level)]?.__entries.length ?? 0;
 
-test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell of 1", () => {
-  open("spells-wizard-1", caster("wizard"));
+test("the step shows the heading, the picks and the Add spells button of a selection; it has no cards, no level filter and no search", () => {
+  open("spells-wizard-1-step", caster("wizard"));
   const cantrips = region("Wizard Cantrips Known");
   // The picks to make are an inline note in the heading.
   expect(cantrips.getByRole("heading").textContent).toBe("Wizard Cantrips Known,3 left");
-  // The line of the chosen spells is there before the first pick, so the pick does not move the cards (ORC-352).
-  expect(screen.getByRole("list", { name: "Chosen: Wizard Cantrips Known" }).textContent).toBe("");
-  fireEvent.click(cantrips.getByRole("button", { name: "Acid Splash" }));
-  expect(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }).getAttribute("aria-pressed")).toBe("true");
-  expect(screen.getByRole("list", { name: "Chosen: Wizard Cantrips Known" }).textContent).toBe("Acid Splash");
-  // A second press deselects a card of a multiselect.
-  fireEvent.click(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }));
-  expect(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }).getAttribute("aria-pressed")).toBe("false");
-  // Pick it again for the steps below.
-  fireEvent.click(region("Wizard Cantrips Known").getByRole("button", { name: "Acid Splash" }));
+  // The list of the picks is there before the first pick, so the pick does not move the button (ORC-352, ORC-357).
+  expect(chosen("Wizard Cantrips Known")).toEqual([]);
+  expect(cantrips.getByRole("button", { name: "Add spells: Wizard Cantrips Known" }).textContent).toBe("Add spells");
+  expect(cantrips.queryByRole("button", { name: "Acid Splash" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: /^Level/ })).toBeNull();
+  expect(screen.queryByRole("searchbox")).toBeNull();
+});
 
-  // The search narrows the cards.
-  fireEvent.change(screen.getByLabelText("Search: Wizard Spells Known"), { target: { value: "alarm" } });
-  expect(cards("Wizard Spells Known")).toEqual(["1 - Alarm"]);
-  fireEvent.click(region("Wizard Spells Known").getByRole("button", { name: "1 - Alarm" }));
-  fireEvent.change(screen.getByLabelText("Search: Wizard Spells Known"), { target: { value: "" } });
-  fireEvent.click(region("Wizard Spells Known").getByRole("button", { name: "1 - Burning Hands" }));
-  expect(engine().evaluate(entity()).built["spells-known"]).toMatchObject({ "0": expect.anything(), "1": expect.anything() });
+test("a box in the popup adds a cantrip and removes it; the count of the popup and the mark of the step follow", () => {
+  open("spells-wizard-1-add", caster("wizard"));
+  const popup = openPopup("Wizard Cantrips Known");
+  // The title is the heading of the selection, with its count as the left mark.
+  expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Wizard Cantrips Known,3 left");
+  // The list has only the options of the selection: the cantrips, by level.
+  expect(popup.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(["Cantrips", "Acid Splash"]);
+  fireEvent.click(box("Acid Splash"));
+  expect(box("Acid Splash")).toBeChecked();
+  expect(known(0)).toBe(1);
+  expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Wizard Cantrips Known,2 left");
+  expect(region("Wizard Cantrips Known").getByRole("heading", { hidden: true }).textContent).toBe("Wizard Cantrips Known,2 left");
+  expect(chosen("Wizard Cantrips Known")).toEqual(["Acid Splash"]);
+  // A second click removes it.
+  fireEvent.click(box("Acid Splash"));
+  expect(box("Acid Splash")).not.toBeChecked();
+  expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Wizard Cantrips Known,3 left");
+  expect(chosen("Wizard Cantrips Known")).toEqual([]);
+  // Space on a row changes its box too.
+  const row = popup.getByRole("button", { name: "Fire Bolt, not chosen" });
+  fireEvent.keyDown(row, { key: " " });
+  fireEvent.keyUp(row, { key: " " });
+  expect(box("Fire Bolt")).toBeChecked();
+  expect(chosen("Wizard Cantrips Known")).toEqual(["Fire Bolt"]);
+});
 
+test("at the maximum the other boxes are disabled, with the reason; the count is a green Done; a remove enables them again", () => {
+  open("spells-wizard-1-full", caster("wizard"));
+  const popup = openPopup("Wizard Cantrips Known");
+  for (const name of ["Acid Splash", "Fire Bolt", "Light"]) fireEvent.click(box(name));
+  expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Wizard Cantrips Known,Done");
+  expect(popup.getByRole("heading", { level: 2 }).querySelector("[data-success]")).not.toBeNull();
+  const mending = box("Mending");
+  expect(mending).toHaveAttribute("aria-disabled", "true");
+  expect(document.getElementById(mending.getAttribute("aria-describedby")!)!.textContent).toBe(FULL_REASON);
+  // A click on a disabled box adds nothing.
+  fireEvent.click(mending);
+  expect(box("Mending")).not.toBeChecked();
+  // The boxes of the picks can still change.
+  expect(box("Light")).not.toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(box("Light"));
+  expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Wizard Cantrips Known,1 left");
+  expect(box("Mending")).not.toHaveAttribute("aria-disabled", "true");
+  expect(box("Mending")).not.toHaveAttribute("aria-describedby");
+  expect(chosen("Wizard Cantrips Known")).toEqual(["Acid Splash", "Fire Bolt"]);
+});
+
+test("a selection with no maximum never disables a box: a wizard 1 adds more spells than its 6 to its spellbook", () => {
+  open("spells-wizard-1-book", caster("wizard"));
+  const popup = openPopup("Wizard Spells Known");
+  // The 1st-level spells of the wizard list, A to Z by the names of the records.
+  const names = [...document.querySelectorAll("[data-spell-row]")].map((row) => row.textContent);
+  expect(names.slice(0, 3)).toEqual(["AlarmRitual", "Burning Hands", "Charm Person"]);
+  for (const name of ["Alarm", "Burning Hands", "Charm Person", "Comprehend Languages", "Detect Magic", "Disguise Self"]) fireEvent.click(box(name));
+  expect(popup.getByRole("heading", { level: 2 }).textContent).toBe("Wizard Spells Known,Done");
+  expect(box("Feather Fall")).not.toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(box("Feather Fall"));
+  expect(box("Feather Fall")).toBeChecked();
+  expect(known(1)).toBe(7);
+});
+
+test("the search narrows the list of the popup; a name on the step opens the popup at its spell; Done closes it", () => {
+  open("spells-wizard-1-search", caster("wizard"));
+  const popup = openPopup("Wizard Spells Known");
+  fireEvent.change(popup.getByRole("textbox", { name: "Search spells" }), { target: { value: "magic m" } });
+  expect(popup.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Magic Missile"]);
+  fireEvent.click(box("Magic Missile"));
+  fireEvent.click(popup.getByRole("button", { name: "Done" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(chosen("Wizard Spells Known")).toEqual(["Magic Missile"]);
+  // The name opens the popup at the spell: its row is current, and the spell view shows it.
+  fireEvent.click(within(screen.getByRole("list", { name: "Chosen: Wizard Spells Known" })).getByRole("button", { name: "Magic Missile" }));
+  const again = within(screen.getByRole("dialog", { name: "Wizard Spells Known" }));
+  expect(again.getByRole("button", { name: "Magic Missile, chosen" })).toHaveAttribute("aria-current", "true");
+  const view = within(again.getByRole("region", { name: "Magic Missile" }));
+  expect(view.getByRole("checkbox", { name: "Chosen" })).toBeChecked();
+  // The box of the spell view removes the spell too.
+  fireEvent.click(view.getByRole("checkbox", { name: "Chosen" }));
+  expect(chosen("Wizard Spells Known")).toEqual([]);
+});
+
+test("the picks of a wizard 3 show by level, with a heading for each level", () => {
+  open("spells-wizard-3", caster("wizard", 3));
+  const popup = openPopup("Wizard Spells Known");
+  expect(popup.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(["1st level", "2nd level", "Alarm"]);
+  expect(popup.getByRole("group", { name: "2nd level" })).toBeTruthy();
+  fireEvent.click(box("Blur"));
+  fireEvent.click(box("Alarm"));
+  const list = screen.getByRole("list", { name: "Chosen: Wizard Spells Known", hidden: true });
+  expect(
+    within(list)
+      .getAllByRole("listitem", { hidden: true })
+      .map((item) => item.textContent),
+  ).toEqual(["1st level", "Alarm", "2nd level", "Blur"]);
+});
+
+test("a wizard 1 adds two spells in the popup, and prepares one spell of 1 on the step", () => {
+  open("spells-wizard-1-prepare", caster("wizard"));
+  openPopup("Wizard Spells Known");
+  fireEvent.click(box("Alarm"));
+  fireEvent.click(box("Burning Hands"));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
   // Int 10: a wizard 1 prepares 1 spell.
   const prepared = region("Prepared spells: Wizard");
   expect(prepared.getByText("0 of 1 prepared")).toBeTruthy();
@@ -77,23 +178,6 @@ test("a wizard 1 picks a cantrip and spells on the cards, and prepares one spell
   expect(screen.getByRole("checkbox", { name: "Prepared: Burning Hands" })).not.toHaveAttribute("aria-disabled", "true");
   fireEvent.click(screen.getByRole("checkbox", { name: "Prepared: Alarm" }));
   expect(preparedSpells(entity())).toEqual({ Wizard: new Set() });
-  expect(screen.getByRole("checkbox", { name: "Prepared: Burning Hands" })).not.toHaveAttribute("aria-disabled", "true");
-});
-
-test("the level filter narrows a wizard 3's spell cards to one level", async () => {
-  open("spells-wizard-3", caster("wizard", 3));
-  const level = screen.getByRole("combobox", { name: "Level: Wizard Spells Known" });
-  // The cantrips are in their own selection, so this one has the 1st and 2nd levels.
-  fireEvent.click(level);
-  expect((await screen.findAllByRole("option")).map((o) => o.textContent)).toEqual(["All levels", "1st level", "2nd level"]);
-  fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
-  const all = cards("Wizard Spells Known");
-  expect(all.some((name) => name!.startsWith("1 - "))).toBe(true);
-  await pickOption(level, "2nd level");
-  const second = cards("Wizard Spells Known");
-  expect(second.length).toBeGreaterThan(0);
-  expect(second.length).toBeLessThan(all.length);
-  expect(second.every((name) => name!.startsWith("2 - "))).toBe(true);
 });
 
 test("a cleric is told it does not select known spells", () => {
@@ -149,9 +233,17 @@ test("the Spells step of a paladin 2 is not empty: it has no spell to pick, but 
   expect(screen.getByRole("region", { name: /^Prepared spells: Paladin/ })).toBeTruthy();
 });
 
-test("the chosen line keeps the lines that the most picks take: 2 names on a line of a narrow step and 4 on a wide one; 3 lines with no maximum", () => {
-  expect(chosenHeight(3)).toBe("min-h-10 @min-[560px]/spells:min-h-5");
-  expect(chosenHeight(6)).toBe("min-h-15 @min-[560px]/spells:min-h-10");
-  expect(chosenHeight(20)).toBe("min-h-25 @min-[560px]/spells:min-h-15");
-  expect(chosenHeight(null)).toBe("min-h-15 @min-[560px]/spells:min-h-15");
+test("the space of the picks keeps the lines of the most picks: a line for each 2 or 4 names, a new line at each level, and a heading line for each level", () => {
+  // Wizard cantrips: 3 names of one level, with no level heading.
+  expect([pickLines(3, 1, PER_LINE.narrow), pickLines(3, 1, PER_LINE.wide)]).toEqual([2, 1]);
+  // A wizard 1's spellbook: 6 names of one level.
+  expect([pickLines(6, 1, PER_LINE.narrow), pickLines(6, 1, PER_LINE.wide)]).toEqual([3, 2]);
+  // A wizard 3's spellbook: 8 names of two levels, each level with its heading.
+  expect([pickLines(8, 2, PER_LINE.narrow), pickLines(8, 2, PER_LINE.wide)]).toEqual([7, 5]);
+  // A selection with no pick to make keeps one line.
+  expect(pickLines(0, 1, PER_LINE.narrow)).toBe(1);
+  // The space is for the maximum, or with no maximum for the picks to make, or the picks when they are more.
+  expect(reservedPicks({ max: 3, min: 3, selected: [] })).toBe(3);
+  expect(reservedPicks({ max: null, min: 6, selected: [] })).toBe(6);
+  expect(reservedPicks({ max: null, min: 6, selected: ["a", "b", "c", "d", "e", "f", "g"] })).toBe(7);
 });

@@ -215,3 +215,18 @@ export async function setHitPointsMethod(page: Page, name: string, method: "Aver
 /** The number field of the hit points of a level of the class `name`, By level (ORC-351). */
 export const levelHitPoints = (page: Page, name: string, level: number) =>
   page.getByRole("textbox", { name: `${name} level ${level} hit points`, exact: true });
+
+/**
+ * Adds the spells `names` to the spell selection `name` of the Spells step (ORC-357): "Add spells" opens the popup of
+ * the selection, a click on the box of each spell adds it, and Done closes the popup. Its Vitest twin is the openPopup
+ * and box pair of src/components/Spells.test.tsx.
+ */
+export async function addSpells(page: Page, name: string, names: string[]) {
+  await section(page, name)
+    .getByRole("button", { name: `Add spells: ${name}`, exact: true })
+    .click();
+  const popup = page.getByRole("dialog", { name, exact: true });
+  for (const spell of names) await popup.getByRole("checkbox", { name: `Chosen: ${spell}`, exact: true }).click();
+  await popup.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(popup).toHaveCount(0);
+}
