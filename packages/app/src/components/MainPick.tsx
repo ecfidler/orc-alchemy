@@ -11,10 +11,10 @@ import type { ContentType } from "../engine/engine.ts";
 import { type OtherStepLine, otherStepLines, stepMark } from "../engine/other-steps.ts";
 import { hasSearch, notAvailableText, shownOptions } from "../engine/selection-control.ts";
 import { useOpenStep, useSectionName, useStepFrame } from "./builder-context.tsx";
-import { HEADING_CLASSES } from "./Classes.tsx";
 import { type Customizable, CustomizeButton, type GuidedEdit, useCustomize } from "./CustomizeDialog.tsx";
 import { BackgroundDetail, type DetailProps, RaceDetail, useOptionPack } from "./OptionDetail.tsx";
 import { usePick, useUnavailable } from "./SelectionControl.tsx";
+import { Comma, HEADING_CLASSES } from "./selection-heading.tsx";
 
 /** The parts of a main pick that its kind gives: the word for one option, the content type, and the detail. */
 export type MainPickParts = Pick<MainPickProps, "noun" | "contentType" | "detail">;
@@ -130,7 +130,7 @@ export function MainPick({ selection, noun, contentType, detail, customizable, g
             <h3 className={`${HEADING_CLASSES} flex-1`}>
               <span className="min-w-0">
                 {changing && picked ? `${name}: ${picked.name}` : name}
-                <span className="text-[1px] opacity-0">,</span>
+                <Comma />
               </span>
               <span className="flex-1" />
               <LeftMark left={changing ? stepMark([selection]) : selection.remaining} />
@@ -317,7 +317,7 @@ function PickBlock({ selection, option, name, noun, pack, detail, customizable, 
             <span className="min-w-0 text-[24px] leading-tight font-semibold">
               <span data-pick-name="">{option.name}</span>
               {pack && <small className="ml-2.5 font-sans text-[12px] font-medium text-ink-muted">{pack}</small>}
-              <span className="text-[1px] opacity-0">,</span>
+              <Comma />
             </span>
             <span className="flex-1" />
             <LeftMark left={stepMark([selection])} />
@@ -411,7 +411,7 @@ export function BlockSection({ title, mark, children }: { title: string; mark?: 
       >
         <span>
           {title}
-          {mark !== undefined && mark !== null && <span className="text-[1px] opacity-0">,</span>}
+          {mark !== undefined && mark !== null && <Comma />}
         </span>
         {mark !== undefined && mark !== null && <span className="tracking-normal normal-case">{<LeftMark left={mark} />}</span>}
       </h4>

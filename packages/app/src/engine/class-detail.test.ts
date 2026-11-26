@@ -1,7 +1,10 @@
 import { beforeAll, expect, test } from "vitest";
-import { armorWeaponsText, classFacts, classFeatures, knownClassFeatures } from "./class-detail.ts";
+import { armorWeaponsText, type ClassInput, classFacts, classFeatureSteps, knownClassFeatures } from "./class-detail.ts";
 import { type Content, engine, loadEngine } from "./engine.ts";
-import { CLASS_PACKS } from "./test-classes.ts";
+import { allSteps, CLASS_PACKS } from "./test-classes.ts";
+
+/** The features table of the class, all at once. */
+const classFeatures = (input: ClassInput, key: string) => allSteps(classFeatureSteps(input, key));
 
 beforeAll(() => loadEngine());
 

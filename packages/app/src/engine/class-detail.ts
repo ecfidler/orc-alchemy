@@ -9,17 +9,18 @@
 // its record; the engine has no description of an SRD class, so the app holds one sentence for each.
 
 import type { Built2014, TemplateOption, TemplateSelection } from "@pubdoor/dmv";
-import { templateShape } from "./builder.ts";
+import { levelOfKey, templateShape } from "./builder.ts";
 import type { Content, ContentType, Engine, StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { countWord, type DetailFact, type OptionDetail } from "./origin-detail.ts";
+import { listText } from "./selection-control.ts";
 import { ABILITIES, ABILITY_NAMES, abilityOfKey, keyToName, SKILLS } from "./sheet.ts";
 
 /** The content type of the classes. */
 export const CLASS_TYPE: ContentType = "orcpub.dnd.e5/classes";
 
 /** One sentence about each SRD class, for the modal: the engine has no description of an SRD class. */
-export const SRD_CLASS_DESCRIPTIONS: Record<string, string> = {
+const SRD_CLASS_DESCRIPTIONS: Record<string, string> = {
   barbarian: "A fierce warrior who can enter a battle rage.",
   bard: "A performer whose music holds magic and gives heart to allies.",
   cleric: "A priest who uses divine magic in the service of a god.",
@@ -35,7 +36,7 @@ export const SRD_CLASS_DESCRIPTIONS: Record<string, string> = {
 };
 
 /** One sentence about each SRD subclass, for the subclass dialog (ORC-350): the engine has no description of a subclass. */
-export const SRD_SUBCLASS_DESCRIPTIONS: Record<string, string> = {
+const SRD_SUBCLASS_DESCRIPTIONS: Record<string, string> = {
   "path-of-the-berserker": "A barbarian whose rage is a frenzy of violence.",
   "college-of-lore": "A bard who collects knowledge and secrets from all sources.",
   "life-domain": "A cleric of the gods of life, who heals and protects.",
@@ -66,16 +67,13 @@ export interface ClassInput {
 }
 
 /** The option of the class with the key in the template of the content, with its choices; undefined for no such class. */
-export const templateClass = (key: string, content: Content): TemplateOption | undefined =>
+const templateClass = (key: string, content: Content): TemplateOption | undefined =>
   templateShape(content)
     .find((s) => s.key === "class")
     ?.options.find((o) => o.key === key);
 
 /** The trial character: a new character with the class at level 1, with no race and no background. */
 const trial = ({ engine: e, content }: ClassInput, key: string): StrictEntity => addFirstClass(e, newCharacter(e), key, content);
-
-/** The texts joined with commas and "and": "light, medium and heavy". */
-const listText = (parts: string[]) => (parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`);
 
 const ARMOR = ["light", "medium", "heavy"];
 const WEAPON_GROUPS = ["simple", "martial"];
@@ -108,14 +106,20 @@ function skillText(option: TemplateOption | undefined): string | null {
 /** The level options of a class option: "level-1" to "level-20". */
 const levelOptions = (option: TemplateOption | undefined): TemplateOption[] => option?.selections?.find((s) => s.key === "levels")?.options ?? [];
 
-/** The subclass of a class option and the level of its choice: "Martial Archetype, at level 3". Null when it has none. */
-function subclassText(option: TemplateOption | undefined): string | null {
-  const levels = levelOptions(option);
-  for (const [i, level] of levels.entries()) {
-    const subclass = level.selections?.find((s) => (s.tags ?? []).includes("subclass"));
-    if (subclass) return `${subclass.name}, at level ${i + 1}`;
+/** The subclass selection of a class option and the level of its choice. Null when it has none. */
+function subclassOf(option: TemplateOption | undefined): { selection: TemplateSelection; level: number } | null {
+  for (const level of levelOptions(option)) {
+    const selection = level.selections?.find((s) => (s.tags ?? []).includes("subclass"));
+    const n = levelOfKey(level.key);
+    if (selection && n !== null) return { selection, level: Number(n) };
   }
   return null;
+}
+
+/** The subclass of a class option and the level of its choice: "Martial Archetype, at level 3". Null when it has none. */
+function subclassText(option: TemplateOption | undefined): string | null {
+  const subclass = subclassOf(option);
+  return subclass && `${subclass.selection.name}, at level ${subclass.level}`;
 }
 
 /**
@@ -153,8 +157,18 @@ function isFeatureChoice(selection: TemplateSelection): boolean {
   const tags = selection.tags ?? [];
   if (selection.key === "hit-points" || selection.key === "levels" || tags.includes("starting-equipment")) return false;
   if (tags.includes("profs") && !tags.includes("expertise")) return false;
-  return !/(Cantrips|Spells) Known$/.test(selection.name);
+  return !isSpellsKnown(selection.name);
 }
+
+/** True for the name of a choice of the spells known of a level, such as "Wizard Cantrips Known". */
+const isSpellsKnown = (name: string) => /(Cantrips|Spells) Known$/.test(name);
+
+/**
+ * The function that is true for a name that is part of a feature of `features`: the name of a choice that starts with
+ * the name of the feature, such as "Mystic Arcanum: Spell Level 6".
+ */
+const partOfFeature = (features: Set<string>) => (name: string) =>
+  [...features].some((feature) => name !== feature && (name.startsWith(`${feature} `) || name.startsWith(`${feature}:`)));
 
 /** The features of a built character, in the order traits, actions, bonus actions, reactions. */
 const featureNames = (built: Built2014) => [...built.traits, ...built.actions, ...built["bonus-actions"], ...built.reactions].map((f) => f.name);
@@ -203,7 +217,7 @@ export function* classFeatureSteps(input: ClassInput, key: string): Generator<vo
     rows.push({ level, choices, features });
     yield;
   }
-  const partOf = (name: string) => [...seen].some((feature) => name !== feature && (name.startsWith(`${feature} `) || name.startsWith(`${feature}:`)));
+  const partOf = partOfFeature(seen);
   const table = rows
     .map(({ level, choices, features }) => ({ level, names: [...new Set([...choices.filter((c) => !partOf(c)), ...features])] }))
     .filter((row) => row.names.length > 0);
@@ -218,26 +232,10 @@ const madeTables = new WeakMap<Content, Map<string, ClassFeatureRow[]>>();
 /** The features table of the class with the key for the content, when classFeatureSteps made it already; else undefined. */
 export const knownClassFeatures = (content: Content, key: string): ClassFeatureRow[] | undefined => madeTables.get(content)?.get(key);
 
-/** The value at the end of the steps, all at once. */
-function allSteps<T>(steps: Generator<void, T>): T {
-  for (;;) {
-    const step = steps.next();
-    if (step.done) return step.value;
-  }
-}
-
-/** The features table of the class with the key (classFeatureSteps), all at once, or the one made already. */
-export function classFeatures(input: ClassInput, key: string): ClassFeatureRow[] {
-  return knownClassFeatures(input.content, key) ?? allSteps(classFeatureSteps(input, key));
-}
-
 /** The subclass selection of the class with the key in the template: its key and its level. Null when the class has none. */
 export function subclassChoice(classKey: string, content: Content): { key: string; level: number } | null {
-  for (const [i, level] of levelOptions(templateClass(classKey, content)).entries()) {
-    const subclass = level.selections?.find((s) => (s.tags ?? []).includes("subclass"));
-    if (subclass) return { key: subclass.key, level: i + 1 };
-  }
-  return null;
+  const subclass = subclassOf(templateClass(classKey, content));
+  return subclass && { key: subclass.selection.key, level: subclass.level };
 }
 
 /** The features tables that subclassFeatureSteps made, by the content and "{class}/{subclass}". */
@@ -282,7 +280,7 @@ export function* subclassFeatureSteps(input: ClassInput, classKey: string, subcl
       const under = ["class", classKey, "levels", `level-${choice.level}`, choice.key, subclassKey].join("/");
       const choices = result.selections
         .filter((s) => s.path.join("/").startsWith(`${under}/`) && !seenChoices.has(s.path.join("/")))
-        .filter((s) => s.key !== "hit-points" && !/(Cantrips|Spells) Known$/.test(s.name));
+        .filter((s) => s.key !== "hit-points" && !isSpellsKnown(s.name));
       for (const s of choices) seenChoices.add(s.path.join("/"));
       const features = featureNames(result.built as Built2014).filter((name) => !seen.has(name) && !classNames.has(name));
       for (const name of features) seen.add(name);
@@ -290,7 +288,7 @@ export function* subclassFeatureSteps(input: ClassInput, classKey: string, subcl
       yield;
     }
   }
-  const partOf = (name: string) => [...seen].some((feature) => name !== feature && (name.startsWith(`${feature} `) || name.startsWith(`${feature}:`)));
+  const partOf = partOfFeature(seen);
   const table = rows
     .map(({ level, choices, features }) => ({ level, names: [...new Set([...choices.filter((c) => !partOf(c) && !seen.has(c)), ...features])] }))
     .filter((row) => row.names.length > 0);
@@ -298,10 +296,6 @@ export function* subclassFeatureSteps(input: ClassInput, classKey: string, subcl
   madeSubclassTables.set(content, made.set(`${classKey}/${subclassKey}`, table));
   return table;
 }
-
-/** The features table of the subclass (subclassFeatureSteps), all at once, or the one made already. */
-export const subclassFeatures = (input: ClassInput, classKey: string, subclassKey: string): ClassFeatureRow[] =>
-  allSteps(subclassFeatureSteps(input, classKey, subclassKey));
 
 /** The description of a subclass: the help of the record of a pack subclass, or else the SRD sentence, or "". */
 export const subclassDescription = (key: string, help?: string): string => (help ?? SRD_SUBCLASS_DESCRIPTIONS[key] ?? "").trim();

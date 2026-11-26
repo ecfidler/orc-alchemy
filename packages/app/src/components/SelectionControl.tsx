@@ -13,7 +13,7 @@ import { controlKind, hasSearch, shownOptions, unavailableOptions } from "../eng
 import { useOpenCharacter } from "../state/character.ts";
 import { useSectionName, useStepFrame } from "./builder-context.tsx";
 import { useChangeQuestion } from "./ChangeQuestion.tsx";
-import { useMutation } from "./Classes.tsx";
+import { useMutation } from "./use-mutation.ts";
 
 /** The reason of each option of the selection that the character cannot take, by option key. */
 export function useUnavailable(selection: BuilderSelection): Map<string, string> {

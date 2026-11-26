@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T14:28:53Z }
+generated: { by: claude-code/agent, at: 2026-11-26T15:02:45Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -499,6 +499,10 @@ Each class block has one Hit points section.
   Average when each level that can change has the average, and else By
   level. Average writes the average at each level. By level starts each
   field at the average, and the total does not change.[^orc-351]
+* While the step is open, the block keeps the By level numbers of the
+  class from before a change to Average. A change back to By level puts
+  back each rolled or typed number. A level that is new since then
+  starts at the average.[^orc-351]
 * A new class and a new level of a class with the method Average get the
   average. A new level of a class with the method By level has an empty
   field. A level with no hit points, also of an imported character,
@@ -525,7 +529,9 @@ Each class block has one Hit points section.
 Each class block has a list "Picked on other steps".
 
 * The list has one line for each kind that the class gives: Skills,
-  Expertise, Tools, Spells, Starting equipment.
+  Expertise, Tools, Cantrip, Spells, Starting equipment. A class that
+  picks cantrips, such as the Wizard, has a Cantrip line and a Spells
+  line, as a race with a cantrip has a Cantrip line.[^orc-351]
 * A line shows the kind, then the picks or the left mark, then the name
   of the step. The line is a button that opens that step.
 * The Class step shows that the class gives Expertise. The pick is on
@@ -555,11 +561,18 @@ Each class block has a list "Picked on other steps".
   names of the abilities and with no "or higher": "Needs Wis 13 and Dex
   13". The modal of the class shows "Not available. It needs Wis 13 and
   Dex 13." beside the disabled button "Add {class}".[^orc-351]
+* A class with two prerequisites joins them with "and": "Needs Str 13
+  and Dex 13". A prerequisite that does not start with "Requires" shows
+  its own text after them, on the card and in the modal.[^orc-351]
 * A new class starts at level 1, with the method Average. After "Add
   {class}", the focus goes to the Change button of its block.[^orc-351]
 * At character level 20, and when the character has each class, "Add a
-  class" is disabled. The engine adds no level above character level
-  20.[^orc-351]
+  class" is disabled. The engine checks only the level of each class,
+  not the character level. So the builder refuses a level that makes
+  the character level more than 20: at character level 20 the plus
+  button of each block is disabled, and the Up key or a typed level
+  shows "A character has 20 levels at most." in the status toast and
+  changes nothing. A lower level is always possible.[^orc-351]
 * The button that closes or opens a block shows "▴" or "▾". It has
   `aria-expanded` and the name "Close Fighter" or "Open Fighter". Each
   block keeps its state while the step is open. With one class, the
@@ -568,8 +581,9 @@ Each class block has a list "Picked on other steps".
 * Remove asks first when it removes picks. See
   [A change that removes picks](#a-change-that-removes-picks). When the
   first class goes, the engine makes the next class the first class, at
-  level 1: the question lists the picks of its levels that go. Its level
-  1 then has the maximum of the die.[^orc-351]
+  level 1: the question lists the picks of its levels that go, with the
+  name of the class before the level: "Wizard level 2". Its level 1 then
+  has the maximum of the die.[^orc-351]
 
 # The Background and Race steps
 
@@ -946,5 +960,5 @@ one depends only on parts of the frame.
 [^orc-347]: The list with a detail panel, and the Background step, <https://linear.app/orc-alchemy/issue/ORC-347/the-list-with-a-detail-panel-and-the-background-step>
 [^orc-348]: The Race step, with Custom Origin, <https://linear.app/orc-alchemy/issue/ORC-348/the-race-step-with-custom-origin>
 [^orc-349]: Class step: the class cards, the modal and the class block, <https://linear.app/orc-alchemy/issue/ORC-349/class-step-the-class-cards-the-modal-and-the-class-block>
-[^orc-350]: Class step: the choice rows, the subclass dialog and the improvement or feat row, <https://linear.app/orc-alchemy/issue/ORC-350>
-[^orc-351]: Class step: hit points, the picks on other steps and a second class, <https://linear.app/orc-alchemy/issue/ORC-351>
+[^orc-350]: Class step: the choice rows, the subclass dialog and the improvement or feat row, <https://linear.app/orc-alchemy/issue/ORC-350/class-step-the-choice-rows-the-subclass-dialog-and-the-improvement-or>
+[^orc-351]: Class step: hit points, the picks on other steps and a second class, <https://linear.app/orc-alchemy/issue/ORC-351/class-step-hit-points-the-picks-on-other-steps-and-a-second-class>

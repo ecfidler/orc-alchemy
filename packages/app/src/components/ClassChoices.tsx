@@ -4,37 +4,24 @@
 // subclass row a Choose button that opens the subclass dialog, and the row "Ability Score Improvement or Feat" its two
 // cards and a line to the Abilities step or the Feats step. The rules of the rows are in engine/class-choices.ts.
 import { Button, Dialog, LeftMark, ListPanel, type ListPanelItem, type ListPanelPlace, Token } from "@orc-alchemy/ui";
-import { type ReactNode, useId, useMemo, useReducer, useRef, useState } from "react";
+import { type ReactNode, useId, useMemo, useRef, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { type ChoiceRow, choiceLevels, improvementLine, opensAtStart, rowPicks } from "../engine/class-choices.ts";
 import { SUBCLASS_TYPE } from "../engine/class-detail.ts";
 import { hasSearch, shownOptions } from "../engine/selection-control.ts";
 import { useOpenStep, useStepFrame } from "./builder-context.tsx";
+import { SubclassDetail } from "./ClassDetail.tsx";
 import { ChooseAction } from "./MainPick.tsx";
-import { SubclassDetail, useOptionPack } from "./OptionDetail.tsx";
+import { useOptionPack } from "./OptionDetail.tsx";
 import { SelectionControl, usePick, useUnavailable } from "./SelectionControl.tsx";
-
-/** The text that a screen reader reads after the name of a row or a line, as the comma of a heading with a mark. */
-const Comma = () => <span className="text-[1px] opacity-0">,</span>;
+import { Comma } from "./selection-heading.tsx";
 
 /**
  * The choice rows of the picked class option, in groups by level with "Level 3" at the left, or the one row "No
- * choice at this level." for a class with no choice. Each row is open or closed by its own state: at its first render,
- * it is open when it has picks to make or to remove (opensAtStart), and then only a click on its head changes it.
+ * choice at this level." for a class with no choice. Each row is open or closed by its own state (ChoiceRowView).
  */
 export function ClassChoices({ option }: { option: BuilderOption }) {
   const levels = useMemo(() => choiceLevels(option), [option]);
-  // The open rows, by row id. A row that shows for the first time, also after a pick or a new level, gets its state then.
-  const opened = useRef(new Map<string, boolean>());
-  const [, rendered] = useReducer((n: number) => n + 1, 0);
-  // A row that goes, such as after a lower level, loses its state: when it shows again, it gets its state fresh.
-  const shown = new Set(levels.flatMap(({ rows }) => rows.map((row) => row.id)));
-  for (const id of opened.current.keys()) if (!shown.has(id)) opened.current.delete(id);
-  for (const { rows } of levels) for (const row of rows) if (!opened.current.has(row.id)) opened.current.set(row.id, opensAtStart(row.selection));
-  const toggle = (id: string) => {
-    opened.current.set(id, !opened.current.get(id));
-    rendered();
-  };
   return (
     <div className="@container/choices border-b border-rule-strong">
       {levels.length === 0 ? (
@@ -46,7 +33,7 @@ export function ClassChoices({ option }: { option: BuilderOption }) {
         levels.map(({ level, rows }) => (
           <LevelGroup key={level} level={level}>
             {rows.map((row) => (
-              <ChoiceRowView key={row.id} row={row} classKey={option.key} open={opened.current.get(row.id) ?? false} onToggle={() => toggle(row.id)} />
+              <ChoiceRowView key={row.id} row={row} classKey={option.key} />
             ))}
           </LevelGroup>
         ))
@@ -72,9 +59,13 @@ function LevelGroup({ level, children }: { level: number; children: ReactNode })
  * A choice row: its head, an h5 with a button that opens and closes the row (aria-expanded), with the name at the left,
  * the picks or the left mark at the right, and the open or closed mark. The focus stays on the head when it opens or
  * closes. The head keeps its height when a pick changes its value; on a narrow part the value is on a second line of
- * fixed height, with the value at the right as on a wide part. The row is a region named by its head, so a test or a screen reader finds it by the choice.
+ * fixed height, with the value at the right as on a wide part. The row is a region named by its head, so a test or a
+ * screen reader finds it by the choice. At its first render, the row is open when it has picks to make or to remove
+ * (opensAtStart), and then only a click on its head changes it. A row that goes, such as after a lower level, loses
+ * its state: when it shows again, it gets its state fresh.
  */
-function ChoiceRowView({ row, classKey, open, onToggle }: { row: ChoiceRow; classKey: string; open: boolean; onToggle: () => void }) {
+function ChoiceRowView({ row, classKey }: { row: ChoiceRow; classKey: string }) {
+  const [open, setOpen] = useState(() => opensAtStart(row.selection));
   const headId = useId();
   const bodyId = useId();
   const { selection, kind } = row;
@@ -87,7 +78,7 @@ function ChoiceRowView({ row, classKey, open, onToggle }: { row: ChoiceRow; clas
           id={headId}
           aria-expanded={open}
           aria-controls={open ? bodyId : undefined}
-          onClick={onToggle}
+          onClick={() => setOpen(!open)}
           className="grid min-h-[42px] w-full grid-cols-[minmax(0,auto)_minmax(0,1fr)_16px] items-center gap-x-2.5 py-1.5 pr-1 text-left hover:bg-panel @max-[479px]/choices:min-h-[54px] @max-[479px]/choices:grid-cols-[minmax(0,1fr)_16px]"
         >
           <span className="font-sans text-[14px] leading-5 font-semibold">

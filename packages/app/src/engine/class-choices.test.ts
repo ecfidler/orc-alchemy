@@ -4,11 +4,12 @@
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderOption, type BuilderStep, builderSteps } from "./builder.ts";
 import { asksBeforeClassPick, choiceLevels, IMPROVEMENT_OPTION, improvementLine, opensAtStart, pointsText, rowPicks } from "./class-choices.ts";
-import { subclassChoice, subclassDescription, subclassFeatures } from "./class-detail.ts";
+import { subclassChoice, subclassDescription, subclassFeatureSteps } from "./class-detail.ts";
 import { hitPointSelections } from "./classes.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { controlKind } from "./selection-control.ts";
+import { allSteps } from "./test-classes.ts";
 
 beforeAll(() => loadEngine());
 
@@ -144,10 +145,10 @@ test("the points as text, in the order of the abilities", () => {
 test("the subclass detail: its choice and level, its features by level, and its description", () => {
   expect(subclassChoice("fighter", content)).toEqual({ key: "martial-archetype", level: 3 });
   expect(subclassChoice("cleric", content)).toEqual({ key: "divine-domain", level: 1 });
-  const rows = subclassFeatures({ engine: engine(), content }, "ranger", "hunter").map(({ level, names }) => `${level}: ${names.join(", ")}`);
+  const rows = allSteps(subclassFeatureSteps({ engine: engine(), content }, "ranger", "hunter")).map(({ level, names }) => `${level}: ${names.join(", ")}`);
   expect(rows).toEqual(["3: Hunter's Prey", "7: Defensive Tactics", "11: Multiattack", "15: Superior Hunter's Defense"]);
   // The features that the class gives are not in the table of the subclass.
-  const fiend = subclassFeatures({ engine: engine(), content }, "warlock", "the-fiend");
+  const fiend = allSteps(subclassFeatureSteps({ engine: engine(), content }, "warlock", "the-fiend"));
   expect(fiend[0]).toEqual({ level: 1, names: ["Dark One's Blessing"] });
   expect(subclassDescription("champion")).toBe("Raw physical power, made deadly by training.");
   expect(subclassDescription("champion", " A pack text. ")).toBe("A pack text.");

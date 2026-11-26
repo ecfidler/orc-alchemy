@@ -5,8 +5,8 @@
 import { useId } from "react";
 import { DESCRIPTION_FIELDS, type DescriptionField, NAME_KEY, normalized, setDescription, storedValue } from "../engine/description.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { useMutation } from "./Classes.tsx";
 import { useDraft } from "./use-draft.ts";
+import { useMutation } from "./use-mutation.ts";
 
 /** The fields of the Description step: all but the name. */
 const FIELDS = DESCRIPTION_FIELDS.filter((field) => field.key !== NAME_KEY);

@@ -163,14 +163,25 @@ const write = (e: Engine, entity: StrictEntity, path: string[], method: HitPoint
 /**
  * The entity with the method of the class. Average writes the average at each level that can change. By level writes
  * the average as a typed number at each level that has the average, so that the fields show it and the total stays;
- * a number that was rolled or typed stays.
+ * a number that was rolled or typed stays. `kept` are the levels of the class from before a change to Average: By
+ * level puts back the rolled or typed number of each level in it, and a level that is new since then gets the average.
  */
-export function setHitPointsMethod(e: Engine, entity: StrictEntity, hp: ClassHitPoints, method: ClassHitPointsMethod, content?: Content): StrictEntity {
+export function setHitPointsMethod(
+  e: Engine,
+  entity: StrictEntity,
+  hp: ClassHitPoints,
+  method: ClassHitPointsMethod,
+  content?: Content,
+  kept: LevelHitPoints[] = [],
+): StrictEntity {
   const average = averageHitPoints(hp.die);
   let next = entity;
-  for (const { path, stored } of hp.levels) {
+  for (const { level, path, stored } of hp.levels) {
     if (path === null) continue;
+    const before = kept.find((l) => l.level === level);
     if (method === "average") next = write(e, next, path, "average", average, content);
+    else if (before?.value != null && (before.stored === "roll" || before.stored === "manual-entry"))
+      next = write(e, next, path, before.stored, before.value, content);
     else if (stored === "average") next = write(e, next, path, "manual-entry", average, content);
   }
   return next;

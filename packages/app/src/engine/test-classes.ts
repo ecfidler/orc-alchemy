@@ -28,3 +28,11 @@ export const CLASS_PACKS = { [CLASS_PACK]: { "~:orcpub.dnd.e5/classes": { "~:run
 
 /** RUNE_KNIGHT in its pack, as the text of an .orcbrew file. */
 export const runeKnightOrcbrew = () => toEdn({ "~:orcpub.dnd.e5/classes": { "~:rune-knight": RUNE_KNIGHT } });
+
+/** The value at the end of the steps of a features table (classFeatureSteps, subclassFeatureSteps), all at once. */
+export function allSteps<T>(steps: Generator<void, T>): T {
+  for (;;) {
+    const step = steps.next();
+    if (step.done) return step.value;
+  }
+}

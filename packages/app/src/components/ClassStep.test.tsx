@@ -359,6 +359,57 @@ test("Hit points, By level: a field for each level, a roll, Roll all and a typed
   expect(screen.queryByRole("textbox", { name: "Wizard level 2 hit points" })).toBeNull();
 });
 
+test("a change to Average and back to By level puts back the rolled and typed numbers; a new level since then has the average", async () => {
+  const e = engine();
+  open(e.addLevel(e.addLevel(addFirstClass(e, newCharacter(e), "fighter"), "fighter"), "fighter") as StrictEntity);
+  const level = (n: number) => ["class", "fighter", "levels", `level-${n}`, "hit-points"];
+  // A roll at level 2 and a typed number at level 3.
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  fireEvent.click(screen.getByRole("button", { name: "Roll Fighter level 2" }));
+  await waitFor(() => expect(stored(level(2))).toEqual({ method: "roll", value: 10 }));
+  fireEvent.change(levelHitPoints("Fighter", 3), { target: { value: "3" } });
+  await waitFor(() => expect(stored(level(3))).toEqual({ method: "manual-entry", value: 3 }));
+  fireEvent.blur(levelHitPoints("Fighter", 3));
+
+  setHitPointsMethod("Fighter", "Average");
+  await waitFor(() => expect(stored(level(2))).toEqual({ method: "average", value: 6 }));
+  // A new level with the method Average gets the average.
+  fireEvent.click(screen.getByRole("button", { name: "Add a Fighter level" }));
+  await waitFor(() => expect(stored(level(4))).toEqual({ method: "average", value: 6 }));
+
+  setHitPointsMethod("Fighter", "By level");
+  await waitFor(() => expect([2, 3, 4].map((n) => levelHitPoints("Fighter", n).value)).toEqual(["10", "3", "6"]));
+  expect([2, 3, 4].map((n) => stored(level(n)))).toEqual([
+    { method: "roll", value: 10 },
+    { method: "manual-entry", value: 3 },
+    { method: "manual-entry", value: 6 },
+  ]);
+});
+
+test("a level change that makes the character level more than 20 is refused; the plus button is disabled at character level 20", async () => {
+  const e = engine();
+  let entity = fixture("fighter-3-wizard-2");
+  for (let n = 3; n < 18; n++) entity = e.addLevel(entity, "fighter") as StrictEntity;
+  open(entity);
+  expect(levels()).toEqual({ fighter: 18, wizard: 2 });
+  // Fighter 18 and Wizard 2 are character level 20: no plus button adds a level.
+  for (const name of ["Fighter", "Wizard"]) expect(screen.getByRole("button", { name: `Add a ${name} level` }).hasAttribute("disabled")).toBe(true);
+  // The Up key and a typed level show the reason in the status toast and change nothing. The engine takes Fighter 19.
+  expect(status()).toBe("");
+  levelField("Fighter").focus();
+  fireEvent.keyDown(levelField("Fighter"), { key: "ArrowUp" });
+  await waitFor(() => expect(status()).toBe("A character has 20 levels at most."));
+  expect(levels()).toEqual({ fighter: 18, wizard: 2 });
+  typeLevel("Wizard", "3");
+  expect(levels()).toEqual({ fighter: 18, wizard: 2 });
+  await waitFor(() => expect(levelField("Wizard").value).toBe("2"));
+  // A lower level gives the plus buttons back.
+  fireEvent.click(screen.getByRole("button", { name: "Remove a Wizard level" }));
+  await answerConfirmDialog("Remove");
+  await waitFor(() => expect(levels()).toEqual({ fighter: 18, wizard: 1 }));
+  for (const name of ["Fighter", "Wizard"]) expect(screen.getByRole("button", { name: `Add a ${name} level` }).hasAttribute("disabled")).toBe(false);
+});
+
 test("a new level gets the average with the method Average, and an empty field, left, with By level", async () => {
   const e = engine();
   open(e.addLevel(addFirstClass(e, newCharacter(e), "fighter"), "fighter") as StrictEntity);

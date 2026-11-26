@@ -146,6 +146,23 @@ test("the level field takes 1 to 20, and the buttons have their names", async ({
   await expect(minus).toBeEnabled();
 });
 
+test("a level change cannot make the character level more than 20: the plus buttons are disabled, and a typed level is refused", async ({ page }) => {
+  await importOnClass(page, "fighter-3-wizard-2.strict.json");
+  const fighter = levelField(page, "Fighter");
+  await fighter.fill("18");
+  await fighter.press("Enter");
+  await expect(classLine(page)).toHaveText("Fighter 18, Wizard 2");
+  for (const name of ["Fighter", "Wizard"]) await expect(builder(page).getByRole("button", { name: `Add a ${name} level`, exact: true })).toBeDisabled();
+  await expect(builder(page).getByRole("button", { name: "Add a class" })).toBeDisabled();
+  const wizard = levelField(page, "Wizard");
+  await wizard.fill("3");
+  await wizard.press("Enter");
+  await expect(page.locator("[data-toast-status]")).toHaveText("A character has 20 levels at most.");
+  await expect(wizard).toHaveValue("2");
+  await expect(wizard).toBeFocused();
+  await expect(classLine(page)).toHaveText("Fighter 18, Wizard 2");
+});
+
 test("a change of level does not move the header of the block", async ({ page }) => {
   await newCharacter(page);
   await addFirstClass(page, "Fighter");

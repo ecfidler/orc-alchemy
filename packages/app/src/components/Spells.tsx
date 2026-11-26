@@ -12,9 +12,10 @@ import { setPrepared, spellLevelOf, useSpellContent } from "../engine/spells.ts"
 import { useOpenCharacter } from "../state/character.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
 import { Selection } from "./Builder.tsx";
-import { HEADING_CLASSES, Heading, useMutation } from "./Classes.tsx";
 import { PrepareCountText } from "./PrepareCount.tsx";
 import { OptionCards } from "./SelectionControl.tsx";
+import { HEADING_CLASSES, Heading } from "./selection-heading.tsx";
+import { useMutation } from "./use-mutation.ts";
 
 const levelName = (n: number) => (n === 0 ? "Cantrips" : `${ordinal(n)} level`);
 

@@ -10,7 +10,7 @@ import { engine } from "../engine/engine.ts";
 import { type ChangePlan, type PickChange, planChange, type RemovedRow } from "../engine/removed-picks.ts";
 import { useCharacter, useCharacterContent } from "../state/character.ts";
 import { useBuilderStatus } from "./builder-context.tsx";
-import { useMutation } from "./Classes.tsx";
+import { useMutation } from "./use-mutation.ts";
 
 /**
  * The picks that go, as the body of the question: "These picks go:", then the rows by place, the step or the level at
@@ -42,9 +42,10 @@ export function RemovedPicks({ rows }: { rows: RemovedRow[] }) {
 /**
  * The function that makes a change, and the element of its question; render the element in the component. The
  * function asks first when the change removes picks, and makes it only after the action. Cancel changes nothing. At
- * the close the focus goes to `finalFocus`, or else back to the control that had it when the question opened.
+ * the close the focus goes to `finalFocus`, or else back to the control that had it when the question opened. The
+ * function gives true when the change was made, and false after Cancel or a refusal of the engine.
  */
-export function useChangeQuestion(): [change: (change: PickChange, finalFocus?: RefObject<HTMLElement | null>) => Promise<void>, dialog: ReactNode] {
+export function useChangeQuestion(): [change: (change: PickChange, finalFocus?: RefObject<HTMLElement | null>) => Promise<boolean>, dialog: ReactNode] {
   const [confirm, dialog] = useConfirm();
   const run = useMutation();
   const content = useCharacterContent();
@@ -62,21 +63,22 @@ export function useChangeQuestion(): [change: (change: PickChange, finalFocus?: 
     }
   }
 
-  async function change(change: PickChange, finalFocus?: RefObject<HTMLElement | null>) {
+  async function change(change: PickChange, finalFocus?: RefObject<HTMLElement | null>): Promise<boolean> {
     const first = plan(change);
-    if (first === null) return;
+    if (first === null) return false;
     const { question } = first;
-    if (question !== null && !(await confirm(question.title, question.action, undefined, { body: <RemovedPicks rows={question.rows} />, finalFocus }))) return;
+    if (question !== null && !(await confirm(question.title, question.action, undefined, { body: <RemovedPicks rows={question.rows} />, finalFocus })))
+      return false;
     // The stored character can change while the question is open: then the plan is made again for it.
     let chosen = first;
     if (useCharacter.getState().entity !== first.entity) {
       const next = plan(change);
       const listed = new Set(first.removed.map((path) => path.join("/")));
       // The player did not agree to a pick that the question did not list.
-      if (next === null || next.removed.some((path) => !listed.has(path.join("/")))) return;
+      if (next === null || next.removed.some((path) => !listed.has(path.join("/")))) return false;
       chosen = next;
     }
-    run(() => chosen.apply());
+    return run(() => chosen.apply());
   }
   return [change, dialog];
 }

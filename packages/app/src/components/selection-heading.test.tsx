@@ -6,7 +6,7 @@ import type { BuilderSelection } from "../engine/builder.ts";
 import { loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
-import { Heading } from "./Classes.tsx";
+import { Heading } from "./selection-heading.tsx";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
 const fighter3Wizard2 = (): StrictEntity => JSON.parse(readFileSync(join(charactersDir, "fighter-3-wizard-2.strict.json"), "utf8"));

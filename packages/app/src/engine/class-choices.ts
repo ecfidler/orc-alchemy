@@ -33,7 +33,7 @@ export interface ChoiceLevel {
 }
 
 /** True for the subclass selection of a class, such as Martial Archetype. */
-export const isSubclass = (selection: Pick<BuilderSelection, "tags">) => selection.tags.includes("subclass");
+const isSubclass = (selection: Pick<BuilderSelection, "tags">) => selection.tags.includes("subclass");
 
 const kindOf = (selection: BuilderSelection): ChoiceKind =>
   isSubclass(selection) ? "subclass" : selection.key === IMPROVEMENT_KEY ? "improvement" : "control";

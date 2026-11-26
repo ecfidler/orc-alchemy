@@ -5,8 +5,8 @@ import { FieldLabel, TextInput } from "@orc-alchemy/ui";
 import type { KeyboardEvent } from "react";
 import { NAME_KEY, setDescription, storedValue } from "../engine/description.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { useMutation } from "./Classes.tsx";
 import { useDraft } from "./use-draft.ts";
+import { useMutation } from "./use-mutation.ts";
 
 /**
  * `autoFocus`: the field gets the focus when the step shows, for a new character. `onEnter`: Enter in the field

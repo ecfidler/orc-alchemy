@@ -3,7 +3,7 @@
 import type { PixelIconName } from "@orc-alchemy/ui";
 
 /** The pixel icon of each SRD class, by the class key. */
-export const CLASS_ICONS: Record<string, PixelIconName> = {
+const CLASS_ICONS: Record<string, PixelIconName> = {
   barbarian: "anger",
   bard: "note",
   cleric: "sun",

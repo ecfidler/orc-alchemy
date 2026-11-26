@@ -3,8 +3,8 @@
 // level with a roll button, and Roll all. Level 1 of the first class has the maximum of the die and cannot change. The
 // rules and the writes are in engine/classes.ts.
 import { Button, NumberField, PixelIcon, SegmentedToggle } from "@orc-alchemy/ui";
-import { useId } from "react";
-import { type ClassHitPoints, type ClassHitPointsMethod, changeableLevels, hitDieText } from "../engine/classes.ts";
+import { useId, useRef } from "react";
+import { type ClassHitPoints, type ClassHitPointsMethod, changeableLevels, hitDieText, type LevelHitPoints } from "../engine/classes.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
 import { BlockSection } from "./MainPick.tsx";
 
@@ -19,7 +19,11 @@ interface ClassHitPointsProps {
   hp: ClassHitPoints;
   /** The method that shows: the stored one, or the one that the player set for a class with no level that can change. */
   method: ClassHitPointsMethod;
-  onMethod: (method: ClassHitPointsMethod) => void;
+  /**
+   * Sets the method. For By level, `kept` are the levels from before the last change to Average, while the section
+   * shows: their rolled or typed numbers come back (setHitPointsMethod).
+   */
+  onMethod: (method: ClassHitPointsMethod, kept?: LevelHitPoints[]) => void;
   /** Rolls the die for the levels: one level, or each level that can change for Roll all. */
   onRoll: (levels: number[]) => void;
   /** Writes a typed number for the level at the path. */
@@ -29,14 +33,22 @@ interface ClassHitPointsProps {
 /**
  * The Hit points section. The mark at the right of its title shows the levels with no hit points; in Average it has no
  * mark when no level is left. A roll or a typed number changes only the numbers: the total keeps its place at the right.
+ * The section keeps the By level numbers from before a change to Average, so that a change back to By level puts them
+ * back.
  */
 export function ClassHitPointsSection({ name, hp, method, onMethod, onRoll, onType }: ClassHitPointsProps) {
   const totalId = useId();
   const byLevel = method === "by-level";
+  // The levels from before the last change to Average.
+  const kept = useRef<LevelHitPoints[] | undefined>(undefined);
+  const change = (to: ClassHitPointsMethod) => {
+    if (to === "average") kept.current = byLevel ? hp.levels : kept.current;
+    onMethod(to, to === "by-level" ? kept.current : undefined);
+  };
   return (
     <BlockSection title="Hit points" mark={byLevel || hp.left > 0 ? hp.left : null}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-rule-strong py-2">
-        <SegmentedToggle aria-label={`${name} hit point method`} value={method} options={METHODS} onValueChange={onMethod} />
+        <SegmentedToggle aria-label={`${name} hit point method`} value={method} options={METHODS} onValueChange={change} />
         {byLevel && (
           <Button size="small" icon="dice" disabled={changeableLevels(hp).length === 0} onClick={() => onRoll(changeableLevels(hp))}>
             Roll all

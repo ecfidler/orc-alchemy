@@ -20,7 +20,6 @@ import { useOpenCharacter } from "../state/character.ts";
 import { AbilityIncreases, AbilityScores } from "./AbilityScores.tsx";
 import { BuilderStatusToast, OpenStepProvider, SectionLevelProvider, StepFrameProvider } from "./builder-context.tsx";
 import { CharacterSheet } from "./CharacterSheet.tsx";
-import { Heading } from "./Classes.tsx";
 import { ClassStep } from "./ClassStep.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
@@ -32,6 +31,7 @@ import { ProficienciesStep } from "./ProficienciesStep.tsx";
 import { SelectionControl } from "./SelectionControl.tsx";
 import { PreparedSpells, SpellSelection } from "./Spells.tsx";
 import { SummaryCard } from "./SummaryCard.tsx";
+import { Heading } from "./selection-heading.tsx";
 
 /** The name of the builder's Spells step, for example for a link to it (`/build/{id}?step=Spells`). */
 export const SPELLS_STEP: StepName = "Spells";

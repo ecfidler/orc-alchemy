@@ -5,11 +5,24 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderOption, builderSteps } from "./builder.ts";
-import { blockMark, canAddClass, classNeeds, classStepLines, needsReason, needsText, unavailableClasses } from "./class-block.ts";
-import { classHitPoints, withAverageHitPoints } from "./classes.ts";
+import {
+  blockMark,
+  canAddClass,
+  characterLevel,
+  classLevel,
+  classNeeds,
+  classStepLines,
+  levelRefusal,
+  needsReason,
+  needsText,
+  raiseLevel,
+  unavailableClasses,
+} from "./class-block.ts";
+import { classHitPoints, storedHitPoints, withAverageHitPoints } from "./classes.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { planChange } from "./removed-picks.ts";
+import { refusalLabels } from "./selection-control.ts";
 
 beforeAll(() => loadEngine());
 
@@ -33,15 +46,15 @@ test("a second class that the character cannot take: the engine's prerequisite, 
   const { selection } = build(entity);
   const free = selection.options.filter((o) => !o.selected);
   const needs = unavailableClasses(engine(), entity, content, free);
-  expect(Object.fromEntries(needs)).toEqual({
-    bard: "Cha 13",
-    cleric: "Wis 13",
-    druid: "Wis 13",
-    monk: "Wis 13 and Dex 13",
-    paladin: "Str 13 and Cha 13",
-    ranger: "Wis 13 and Dex 13",
-    sorcerer: "Cha 13",
-    warlock: "Cha 13",
+  expect(Object.fromEntries([...needs].map(([key, need]) => [key, needsText(need)]))).toEqual({
+    bard: "Needs Cha 13",
+    cleric: "Needs Wis 13",
+    druid: "Needs Wis 13",
+    monk: "Needs Wis 13 and Dex 13",
+    paladin: "Needs Str 13 and Cha 13",
+    ranger: "Needs Wis 13 and Dex 13",
+    sorcerer: "Needs Cha 13",
+    warlock: "Needs Cha 13",
   });
   // Barbarian and Rogue are open to the character.
   expect(free.map((o) => o.key).filter((key) => !needs.has(key))).toEqual(["barbarian", "rogue"]);
@@ -49,16 +62,74 @@ test("a second class that the character cannot take: the engine's prerequisite, 
   expect(needsReason(needs.get("sorcerer")!)).toBe("It needs Cha 13.");
 });
 
-test("what a class needs, from the reason text of the engine's labels", () => {
-  expect(classNeeds("It needs Strength 13 and Charisma 13.")).toBe("Str 13 and Cha 13");
-  expect(classNeeds("It needs CHA 13 or higher.")).toBe("Cha 13");
-  expect(classNeeds("It needs INT 13 or higher.")).toBe("Int 13");
-  expect(classNeeds("It needs the feat Grappler.")).toBe("the feat Grappler");
+test("what a class needs, from the prerequisite labels of the engine", () => {
+  const texts = (labels: string[]) => [needsText(classNeeds(labels)), needsReason(classNeeds(labels))];
+  expect(texts(["Requires Strength 13 and Charisma 13"])).toEqual(["Needs Str 13 and Cha 13", "It needs Str 13 and Cha 13."]);
+  expect(texts(["Requires CHA 13 or higher"])).toEqual(["Needs Cha 13", "It needs Cha 13."]);
+  expect(texts(["Requires INT 13 or higher"])).toEqual(["Needs Int 13", "It needs Int 13."]);
+  expect(texts(["Requires the feat Grappler"])).toEqual(["Needs the feat Grappler", "It needs the feat Grappler."]);
+});
+
+test("a pack class with two prerequisites: the engine joins the labels with a comma, and the texts join their parts with and", () => {
+  // The refusal of the engine's addClass for a class with two prerequisite labels.
+  const labels = refusalLabels("Cannot add Rune Knight: it requires Requires STR 13 or higher, Requires DEX 13 or higher.");
+  expect(labels).toEqual(["Requires STR 13 or higher", "Requires DEX 13 or higher"]);
+  const needs = classNeeds(labels!);
+  expect(needsText(needs)).toBe("Needs Str 13 and Dex 13");
+  expect(needsReason(needs)).toBe("It needs Str 13 and Dex 13.");
+  expect(refusalLabels("Cannot add Rune Knight: no selections remain.")).toBeNull();
+});
+
+test("a label that does not start with Requires keeps its text, after what the class needs", () => {
+  const needs = classNeeds(["Requires Wisdom 13", "You must have a level in Druid."]);
+  expect(needs).toEqual({ needs: ["Wis 13"], others: ["You must have a level in Druid"] });
+  expect(needsText(needs)).toBe("Needs Wis 13. You must have a level in Druid");
+  expect(needsReason(needs)).toBe("It needs Wis 13. You must have a level in Druid.");
+  const only = classNeeds(["Must have the feat Grappler"]);
+  expect([needsText(only), needsReason(only)]).toEqual(["Must have the feat Grappler", "Must have the feat Grappler."]);
 });
 
 test("no class can be added at character level 20", () => {
   expect(canAddClass(19)).toBe(true);
   expect(canAddClass(20)).toBe(false);
+});
+
+test("a level change: a class level is from 1 to 20, and a higher level cannot make the character level more than 20", () => {
+  // Fighter 18 and Wizard 2: character level 20.
+  const e = engine();
+  let entity = fixture();
+  for (let n = 3; n < 18; n++) entity = e.addLevel(entity, "fighter", content) as StrictEntity;
+  const { selection } = build(entity);
+  const picked = selection.selected.map((key) => selection.options.find((o) => o.key === key)!);
+  expect(picked.map(classLevel)).toEqual([18, 2]);
+  expect(characterLevel(picked)).toBe(20);
+  // The engine checks only the level of the one class: it takes Fighter 19.
+  expect(() => e.addLevel(entity, "fighter", content)).not.toThrow();
+  expect(levelRefusal(picked, "fighter", 19)).toBe("A character has 20 levels at most.");
+  expect(levelRefusal(picked, "wizard", 3)).toBe("A character has 20 levels at most.");
+  // A lower level is always possible.
+  expect(levelRefusal(picked, "fighter", 17)).toBeNull();
+  expect(levelRefusal(picked, "wizard", 1)).toBeNull();
+  for (const level of [0, 21, 2.5]) expect(levelRefusal(picked, "wizard", level)).toBe("A class level is from 1 to 20.");
+  // At character level 19, one more level is possible.
+  const lower = build(e.removeLevel(entity, "fighter", content) as StrictEntity).selection;
+  const lowerPicked = lower.selected.map((key) => lower.options.find((o) => o.key === key)!);
+  expect(levelRefusal(lowerPicked, "wizard", 3)).toBeNull();
+  expect(levelRefusal(lowerPicked, "wizard", 4)).toBe("A character has 20 levels at most.");
+});
+
+test("a higher level: the new levels get the average with the method Average, and no hit points with By level", () => {
+  const e = engine();
+  const entity = addFirstClass(e, newCharacter(e), "fighter", content);
+  const path = (level: number) => ["class", "fighter", "levels", `level-${level}`, "hit-points"];
+  const average = raiseLevel(e, entity, "fighter", 1, 3, "average", content);
+  expect(build(average).built.levels.fighter["class-level"]).toBe(3);
+  expect([2, 3].map((level) => storedHitPoints(average, path(level)))).toEqual([
+    { method: "average", value: 6 },
+    { method: "average", value: 6 },
+  ]);
+  const byLevel = raiseLevel(e, entity, "fighter", 1, 3, "by-level", content);
+  expect([2, 3].map((level) => storedHitPoints(byLevel, path(level)))).toEqual([null, null]);
 });
 
 test("the left mark of a block counts its Choices and its hit points left", () => {
@@ -107,6 +178,8 @@ test("Remove of the first class with picks: the question lists its picks; the ne
   expect(rows).toContain("Class: Fighting Style: Defense");
   expect(rows).toContain("Level 3: Martial Archetype: Champion");
   expect(rows).toContain("Proficiencies: Skills: Athletics, Perception");
+  // A pick of a level of the next class names that class.
+  expect(rows).toContain("Wizard level 2: Arcane Tradition: School of Evocation");
   // No row is a hit point value: they are not picks.
   expect(rows.some((row) => row.includes("Hit Points"))).toBe(false);
 
