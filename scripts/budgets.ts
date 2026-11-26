@@ -22,10 +22,12 @@ export type Budgets = {
   imageFolders: string[];
 };
 
+type NumberBudget = "e2eTests" | "unitTestFiles" | "unitTestFileSeconds" | "bundleJsKB";
+
 const root = join(import.meta.dirname, "..");
 const SOURCE = /^(packages\/[^/]+\/(src|e2e|golden)|tools|scripts)\/.*\.tsx?$/;
 const UNIT_TEST = /^packages\/app\/src\/.*\.test\.tsx?$/;
-const IMAGE = /\.(png|gif|jpe?g|webp|bmp|mp4|mov)$/i;
+const IMAGE = /\.(png|gif|jpe?g|webp|avif|bmp|tiff?|mp4|mov|webm)$/i;
 
 /** The problems of the size and image rules for a list of files with their sizes in bytes. */
 export function sizeProblems(files: { path: string; bytes: number }[], budgets: Budgets): string[] {
@@ -56,12 +58,12 @@ export function lineProblems(files: { path: string; lines: number }[], budgets: 
 }
 
 /** The problem of a count or a size that is over its budget, if there is one. */
-export function overBudget(name: keyof Budgets, value: number, budgets: Budgets, unit = ""): string[] {
-  const limit = budgets[name] as number;
+export function overBudget(name: NumberBudget, value: number, budgets: Budgets, unit = ""): string[] {
+  const limit = budgets[name];
   return value > limit ? [`${name}: ${value}${unit}, and the budget is ${limit}${unit}.`] : [];
 }
 
-/** The test files of a Vitest JSON report that took longer than the budget. */
+/** The test files of a Vitest JSON report that took longer than the budget. The time is from the first test to the last, without the imports. */
 export function slowTestFiles(report: { testResults: { name: string; startTime: number; endTime: number }[] }, budgets: Budgets): string[] {
   return report.testResults
     .map((result) => ({ name: result.name, seconds: Math.round((result.endTime - result.startTime) / 1000) }))

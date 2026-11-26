@@ -16,10 +16,11 @@ test("the e2e folder has spec files", () => {
 
 // A screenshot for a PR is taken one time with a script outside the repository, and it goes to the project thread.
 test("no e2e file takes a screenshot", () => {
-  expect(filesWith(/\.screenshot\(|toHaveScreenshot\(|PR_SCREENSHOTS/)).toEqual([]);
+  expect(filesWith(/\.screenshot\(|toHaveScreenshot\(|toMatchSnapshot\(|PR_SCREENSHOTS/)).toEqual([]);
 });
 
 // A test that an environment variable turns on does not run in CI, but each run pays for its setup.
+// The pattern lets the quoted "process.env.NODE_ENV" pass: it is a key of a Bun.build define, not a read.
 test("no e2e test is skipped, focused or conditional on the environment", () => {
-  expect(filesWith(/\b(test|describe|it)\.(skip|only|fixme)\b|(?<!")process\.env\./)).toEqual([]);
+  expect(filesWith(/\b(test|describe|it)\.(skip|only|fixme)\b|(?<!")process\.env[.[]/)).toEqual([]);
 });

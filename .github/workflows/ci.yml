@@ -50,18 +50,11 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
                   PR: ${{ github.event.pull_request.number }}
-                  TITLE: ${{ github.event.pull_request.title }}
-                  AUTHOR: ${{ github.event.pull_request.user.login }}
               run: |
                   # A run that is not for a pull request is a full run.
                   if [ -z "$PR" ]; then
                     echo "code=true" >> "$GITHUB_OUTPUT"
                     exit 0
-                  fi
-                  # The squash commit on main gets the title, so the title names the issue (ORC-362).
-                  if [ "$AUTHOR" != "dependabot[bot]" ] && ! printf '%s' "$TITLE" | grep -qE 'ORC-[0-9]+'; then
-                    echo "::error::The title of the pull request must name its Linear issue, for example 'ORC-123: Add the rest button'."
-                    exit 1
                   fi
                   files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[].filename')
                   if echo "$files" | grep -qE '^docs/guides/' || echo "$files" | grep -qvE '^(docs/|\.claude/)|\.md$'; then

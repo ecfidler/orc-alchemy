@@ -41,7 +41,7 @@ not an accident.
 |---|---|
 | `e2eTests` | the number of Playwright tests |
 | `unitTestFiles` | the number of unit test files of the app |
-| `unitTestFileSeconds` | the time of one unit test file in CI |
+| `unitTestFileSeconds` | the time of the tests of one unit test file in CI, without its imports |
 | `bundleJsKB` | the JavaScript of the built app |
 | `sourceLines.max` | the lines of one TypeScript file |
 | `fileKB.max` | the size of one tracked file |

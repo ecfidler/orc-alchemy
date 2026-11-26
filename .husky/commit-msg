@@ -1,7 +1,8 @@
 # The first line of a commit message names its Linear issue (ORC-362).
 # CI makes the same check on the title of each pull request.
 
-first=$(head -n 1 "$1")
+# Git removes the comment lines and the empty lines at the top after this hook.
+first=$(grep -v '^#' "$1" | grep -m 1 -v '^[[:space:]]*$')
 
 # A commit that git writes keeps its message.
 case "$first" in
