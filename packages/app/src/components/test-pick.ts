@@ -27,12 +27,17 @@ export function pickInList(scope: HTMLElement, name: string): void {
 
 /**
  * Picks the option `name` in the selection of `scope` (its section): a click on its option card, a pick in the list
- * with a detail panel of a main pick, or a pick in the list that its Choose, Change or add button opens. Resolves once
- * a list has closed.
+ * with a detail panel of a main pick, a pick in the subclass dialog, or a pick in the list that its Choose, Change or
+ * add button opens. A closed choice row of the Class step opens first. Resolves once a list has closed.
  */
 export async function pickIn(scope: HTMLElement, name: string): Promise<void> {
   if (scope.hasAttribute("data-main-pick")) {
     pickInList(scope, name);
+    return;
+  }
+  openChoiceRow(scope);
+  if (scope.getAttribute("data-choice-row") === "subclass") {
+    await pickSubclass(scope, name);
     return;
   }
   const card = within(scope)
@@ -45,6 +50,25 @@ export async function pickIn(scope: HTMLElement, name: string): Promise<void> {
   const opener = listOpener(scope);
   if (!opener) throw new Error(`The selection has no option card ${name} and no list.`);
   await pickFromPicker(opener, name);
+}
+
+/** The head of a choice row of the Class step (ORC-350), the button that opens and closes it. */
+export const rowHead = (row: HTMLElement) => row.querySelector<HTMLElement>("h5 > [aria-expanded]")!;
+
+/** Opens the choice row `scope` of the Class step when it is closed (ORC-350): a click on its head. Else nothing. */
+export function openChoiceRow(scope: HTMLElement): void {
+  if (scope.hasAttribute("data-choice-row") && rowHead(scope).getAttribute("aria-expanded") === "false") fireEvent.click(rowHead(scope));
+}
+
+/**
+ * Picks the subclass `name` in the subclass row `scope` (ORC-350): Choose or Change opens the subclass dialog, a click
+ * on the name shows the subclass, and "Choose {name}" picks it.
+ */
+export async function pickSubclass(scope: HTMLElement, name: string): Promise<void> {
+  fireEvent.click(listOpener(scope)!);
+  const dialog = await screen.findByRole("dialog");
+  fireEvent.click(within(dialog.querySelector<HTMLElement>(".ui-list-panel")!).getByRole("button", { name }));
+  fireEvent.click(await within(dialog).findByRole("button", { name: `Choose ${name}` }));
 }
 
 /** The picks that a selection's control shows: its pressed option cards, its tokens, or the name in the block of a main pick. */
@@ -63,3 +87,62 @@ export function startCustomOrigin(race: HTMLElement): void {
   fireEvent.click(within(race).getByRole("button", { name: "Custom Origin" }));
   fireEvent.click(within(race).getByRole("button", { name: "Start a custom origin" }));
 }
+
+/** The class card `name` in `scope` (ORC-349). */
+export const classCard = (scope: HTMLElement, name: string) =>
+  within(scope)
+    .getAllByRole("button", { name })
+    .find((button) => button.hasAttribute("data-class-card"))!;
+
+/**
+ * Picks the first class `name` of a character with no class, on the Class step (ORC-349): a click on its card opens
+ * its modal, and "Choose {name}" picks it. Its Playwright twin is addFirstClass in e2e/builder-helpers.ts.
+ */
+export async function chooseFirstClass(name: string): Promise<void> {
+  fireEvent.click(classCard(section("Class"), name));
+  fireEvent.click(await screen.findByRole("button", { name: `Choose ${name}` }));
+}
+
+/**
+ * Starts the change of the class `from` to `to` (ORC-349): Change of the block opens the class cards in a dialog, a
+ * click on a card opens its modal, and "Change to {to}" makes the change, or asks first. Its Playwright twin is
+ * changeClass in e2e/builder-helpers.ts.
+ */
+export async function changeClass(from: string, to: string): Promise<void> {
+  fireEvent.click(screen.getByRole("button", { name: `Change ${from}` }));
+  fireEvent.click(classCard(await screen.findByRole("dialog", { name: `Change ${from}` }), to));
+  fireEvent.click(await screen.findByRole("button", { name: `Change to ${to}` }));
+}
+
+/**
+ * Adds the class `name` as a second class (ORC-351): "Add a class" opens the class cards in a dialog, a click on a card
+ * opens its modal, and "Add {name}" adds it. Its Playwright twin is addClass in e2e/builder-helpers.ts.
+ */
+export async function addClass(name: string): Promise<void> {
+  fireEvent.click(screen.getByRole("button", { name: "Add a class" }));
+  fireEvent.click(classCard(await screen.findByRole("dialog", { name: "Add a class" }), name));
+  fireEvent.click(await screen.findByRole("button", { name: `Add ${name}` }));
+}
+
+/**
+ * Starts Remove of the class `name` (ORC-351): the Remove button of its block, which removes the class or asks first.
+ * Its Playwright twin is removeClass in e2e/builder-helpers.ts.
+ */
+export function removeClass(name: string): void {
+  fireEvent.click(screen.getByRole("button", { name: `Remove ${name}` }));
+}
+
+/** The section Hit points of the block of the class `name` (ORC-351). */
+export const hitPointsOf = (name: string) => within(screen.getByRole("region", { name })).getByRole("region", { name: /^Hit points/ });
+
+/** The total of the section Hit points of the class `name`, as a number. */
+export const hitPointsTotal = (name: string) =>
+  Number(within(hitPointsOf(name)).getByRole("group", { name: "Total" }).querySelector("[data-hit-points-total]")?.textContent);
+
+/** Sets the method of the hit points of the class `name`: "Average" or "By level" (ORC-351). */
+export function setHitPointsMethod(name: string, method: "Average" | "By level"): void {
+  fireEvent.click(within(screen.getByRole("group", { name: `${name} hit point method` })).getByRole("button", { name: method }));
+}
+
+/** The number field of the hit points of a level of the class `name`, By level (ORC-351). */
+export const levelHitPoints = (name: string, level: number) => screen.getByRole<HTMLInputElement>("textbox", { name: `${name} level ${level} hit points` });

@@ -30,8 +30,9 @@ import type { BuilderSelection } from "../engine/builder.ts";
 import { unqualify } from "../engine/content.ts";
 import { ABILITIES, ABILITY_NAMES, type Ability, modifierText } from "../engine/sheet.ts";
 import { useOpenCharacter } from "../state/character.ts";
-import { Heading, useMutation } from "./Classes.tsx";
+import { Heading } from "./selection-heading.tsx";
 import { useChipDrag } from "./use-chip-drag.ts";
+import { useMutation } from "./use-mutation.ts";
 
 /** The two methods whose base scores are chips that swap. */
 const swaps = (method: Method | null) => method === "standard-scores" || method === "standard-roll";
@@ -379,12 +380,15 @@ export function BoundedNumberField({
   max,
   value,
   onCommit,
+  className = "w-14 text-center",
 }: {
   label: string;
   min: number;
   max?: number;
   value: number | null;
   onCommit: (value: number) => void;
+  /** The classes of the field, for its size and look. */
+  className?: string;
 }) {
   return (
     <NumberField
@@ -395,7 +399,7 @@ export function BoundedNumberField({
       onValueChange={(n) => {
         if (n !== null && n >= min && (max === undefined || n <= max) && n !== value) onCommit(n);
       }}
-      className="w-14 text-center"
+      className={className}
     />
   );
 }

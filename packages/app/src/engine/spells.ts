@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { asSet, setItems, strictValues, tag, untag } from "./content.ts";
 import type { Built2014, Engine, StrictEntity } from "./engine.ts";
 import type { SpellRecord } from "./spell-records.ts";
+import { srdList } from "./srd-lists.ts";
 
 const BY_CLASS = "~:orcpub.dnd.e5.character/prepared-spells-by-class";
 const CLASS_NAME = "~:orcpub.dnd.e5.character/class-name";
@@ -23,8 +24,8 @@ let loaded: SpellContent | undefined;
  * load that fails is not kept, so the next call tries again.
  */
 export function loadSpellContent(): Promise<SpellContent> {
-  loading ??= import("@pubdoor/dmv/content/spells.json").then(
-    (mod) => (loaded = new Map((mod.default as SpellRecord[]).map((spell) => [spell.key, spell]))),
+  loading ??= srdList("spells").then(
+    (spells) => (loaded = new Map((spells as unknown as SpellRecord[]).map((spell) => [spell.key, spell]))),
     (error) => {
       loading = undefined;
       throw error;

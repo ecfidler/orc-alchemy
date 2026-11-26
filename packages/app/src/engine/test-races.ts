@@ -5,8 +5,8 @@
 // of his Human.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { toEdn } from "../components/builders/test-review-pack.ts";
 import { type ContentType, engine, type StrictEntity } from "./engine.ts";
+import { toEdn } from "./test-edn.ts";
 import { fighter20 } from "./test-feats.ts";
 
 export const RACE_PACK = "Race Pack";

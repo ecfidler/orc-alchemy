@@ -486,12 +486,6 @@ function breathWeaponTrait(attack: AreaAttack): Record<string, unknown> {
 const KEPT_CHOICES: Record<string, string> = { languages: "language-options", "skill-proficiency": "skill-options" };
 
 /**
- * The option of the race with the key in the engine's template (templateRace), which has its choices. Without
- * homebrew, the template has the SRD races only. undefined when the template has no such race.
- */
-export const raceOption = (key: string, homebrew?: Content["homebrew"]) => templateRace(key, { homebrew });
-
-/**
  * The language choice and the skill choice of the SRD race with the key,
  * as the :profs of a pack race: {:language-options {:choose 1 :options
  * {:elvish true}}}. The template gives the number to choose and the
@@ -504,8 +498,10 @@ export const raceOption = (key: string, homebrew?: Content["homebrew"]) => templ
  * of the subrace become one choice, of the two numbers together.
  */
 function raceChoices(key: string, subrace?: string): Record<string, unknown> {
-  const own = raceOption(key)?.selections ?? [];
-  const ofSubrace = subraceOptions(raceOption(key)).find((o) => o.key === subrace)?.selections ?? [];
+  // The option of the SRD race in the template, with its choices: the template with no homebrew has the SRD races only.
+  const option = templateRace(key, { homebrew: undefined });
+  const own = option?.selections ?? [];
+  const ofSubrace = subraceOptions(option).find((o) => o.key === subrace)?.selections ?? [];
   const choices: Record<string, { choose: number; options: Record<string, true> }> = {};
   for (const s of [...own, ...ofSubrace]) {
     const field = KEPT_CHOICES[s.key];
@@ -542,7 +538,7 @@ function racePicks(entity: StrictEntity, key: string): RacePicks | undefined {
   const picks = picksUnder(entity, ["race", key]);
   if (picks.length === 0) return undefined;
   // The engine's custom subrace has picks that the probe does not read, such as a speed, so the copy does not hold it, and Save names it.
-  const srdSubraces = new Set(pickableSubraces(raceOption(key)).map((o) => o.key));
+  const srdSubraces = new Set(pickableSubraces(templateRace(key, { homebrew: undefined })).map((o) => o.key));
   const dropped = (path: string[]) => (path[2] === "subrace" ? !srdSubraces.has(path[3]) : KEPT_CHOICES[path[2]] !== undefined);
   const top = picks.filter((p) => p.length === 4 && dropped(p));
   return { entity: top.reduce((result, path) => withoutOption(result, path), entity), held: picks.filter((p) => !dropped(p)) };

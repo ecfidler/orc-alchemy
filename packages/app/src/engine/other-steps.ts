@@ -42,13 +42,23 @@ export function lineKind(selection: BuilderSelection): string {
  * open, in lines by kind. A line has the picks and the picks left of all its selections. The lines are in the order of
  * KINDS, then of the names of the other kinds. A selection that two sources share, such as the Languages of a race and
  * a background, is on the line with all its picks. Empty when the option opens nothing on another step.
+ *
+ * With `optionKey`, the lines are those of that picked option of a selection with more than one pick, such as one
+ * class of the class selection (ORC-351): the selections under the option, by their actualPath. `skip` leaves out the
+ * selections that another part shows, such as the pick of an improvement row of a class.
  */
-export function otherStepLines(selection: BuilderSelection, steps: BuilderStep[]): OtherStepLine[] {
+export function otherStepLines(
+  selection: BuilderSelection,
+  steps: BuilderStep[],
+  optionKey?: string,
+  skip: (node: BuilderSelection) => boolean = () => false,
+): OtherStepLine[] {
   const own = treeNodes([selection], { picked: true });
+  const under = optionKey === undefined ? [] : [...selection.actualPath, optionKey];
   const moved = treeNodes(
     own.flatMap((node) => node.moved),
     { picked: true },
-  );
+  ).filter((node) => under.every((key, i) => node.actualPath[i] === key) && !skip(node));
   const stepOf = new Map<BuilderSelection, StepName>();
   for (const step of steps) for (const node of treeNodes(step.selections)) if (!stepOf.has(node)) stepOf.set(node, step.name);
   const lines = new Map<string, OtherStepLine>();
@@ -57,7 +67,8 @@ export function otherStepLines(selection: BuilderSelection, steps: BuilderStep[]
     if (step === undefined || node.max === 0) continue;
     const kind = lineKind(node);
     const line = lines.get(kind) ?? { kind, step, picks: [], remaining: 0 };
-    const names = node.selected.map((key) => node.options.find((o) => o.key === key)?.name ?? key);
+    // The engine names a spell of a spell list with its level first, "1 - Alarm": the line shows the spell's name.
+    const names = node.selected.map((key) => (node.options.find((o) => o.key === key)?.name ?? key).replace(/^\d+ - /, ""));
     lines.set(kind, { ...line, picks: [...line.picks, ...names], remaining: line.remaining + node.remaining });
   }
   const order = (kind: string) => {

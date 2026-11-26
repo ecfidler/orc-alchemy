@@ -3,6 +3,7 @@
 // item type that has features, as an importable single-plugin .orcbrew file.
 // The vitest tests and the e2e specs use it. It is not under fixtures/,
 // which is a copy of the fork.
+import { toEdn } from "../../engine/test-edn.ts";
 import { SUGGESTION_PACK } from "./test-suggestion-pack.ts";
 
 /** The name of the pack when the file is imported as "Review Pack.orcbrew". */
@@ -74,19 +75,6 @@ export function reviewPlugin(pack = REVIEW_PACK): TransitMap {
       "~:traits": [trait("Tidal Surge"), trait("Song of Courage")],
     }),
   };
-}
-
-/** A Transit-encoded value as EDN text: "~:x" is the keyword :x, { "~#set": [...] } is a set. */
-export function toEdn(value: unknown): string {
-  if (typeof value === "string") return value.startsWith("~:") ? `:${value.slice(2)}` : JSON.stringify(value);
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (value === null || value === undefined) return "nil";
-  if (Array.isArray(value)) return `[${value.map(toEdn).join(" ")}]`;
-  const map = value as TransitMap;
-  if (Array.isArray(map["~#set"])) return `#{${map["~#set"].map(toEdn).join(" ")}}`;
-  return `{${Object.entries(map)
-    .map(([k, v]) => `${toEdn(k)} ${toEdn(v)}`)
-    .join("\n ")}}`;
 }
 
 /** The test pack as the text of a single-plugin .orcbrew file. */

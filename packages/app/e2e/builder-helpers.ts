@@ -1,6 +1,6 @@
 // Helpers for the e2e specs that make a new character in the builder (ORC-342): a new character has no class, and
 // it opens on the Name step.
-import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
+import { pickFromPicker } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /** A step button of the rail. Its name ends with its count of picks left, when it has some: "Class, 2 picks left". */
@@ -21,13 +21,36 @@ export async function newCharacter(page: Page) {
   await expect(page.getByRole("region", { name: "Builder" }).getByRole("heading", { level: 2 })).toHaveText("Name");
 }
 
-/** Opens the Class step of a character with no class, and adds its first class. */
+/** The class card `name` in `scope` (ORC-349). */
+export const classCard = (scope: Locator, name: string) => scope.locator("[data-class-card]").and(scope.getByRole("button", { name, exact: true }));
+
+/**
+ * Opens the Class step of a character with no class, and adds its first class (ORC-349): a click on its card opens its
+ * modal, and "Choose {name}" picks it. Its Vitest twin is chooseFirstClass in src/components/test-pick.ts.
+ */
 export async function addFirstClass(page: Page, name: string) {
   await openStep(page, "Class");
   const builder = page.getByRole("region", { name: "Builder" });
-  await pickOption(builder.getByLabel("Add a class", { exact: true }), name);
-  await builder.getByRole("button", { name: "Add class" }).click();
-  await expect(builder.getByLabel("Class 1", { exact: true })).toHaveText(name);
+  await classCard(builder, name).click();
+  await page
+    .getByRole("dialog", { name, exact: true })
+    .getByRole("button", { name: `Choose ${name}`, exact: true })
+    .click();
+  await expect(builder.getByRole("button", { name: `Change ${name}`, exact: true })).toBeVisible();
+}
+
+/**
+ * Starts the change of the class `from` to `to` on the Class step (ORC-349): Change of its block opens the class cards
+ * in a dialog, a click on a card opens its modal, and "Change to {to}" makes the change, or asks first. Its Vitest twin
+ * is changeClass in src/components/test-pick.ts.
+ */
+export async function changeClass(page: Page, from: string, to: string) {
+  await page
+    .getByRole("region", { name: "Builder" })
+    .getByRole("button", { name: `Change ${from}`, exact: true })
+    .click();
+  await classCard(page.getByRole("dialog", { name: `Change ${from}` }), to).click();
+  await page.getByRole("button", { name: `Change to ${to}`, exact: true }).click();
 }
 
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -65,15 +88,37 @@ export async function pickInList(scope: Locator, name: string) {
     .click();
 }
 
+/** The head of a choice row of the Class step (ORC-350): the button that opens and closes it. */
+export const rowHead = (row: Locator) => row.locator("h5 > [aria-expanded]");
+
+/**
+ * Picks the subclass `name` in the subclass row `scope` (ORC-350): Choose or Change opens the subclass dialog, a click
+ * on the name shows the subclass in the panel, or in a modal on a narrow page, and "Choose {name}" picks it. Its
+ * Vitest twin is pickSubclass in src/components/test-pick.ts.
+ */
+export async function pickSubclass(scope: Locator, name: string) {
+  await listOpener(scope).click();
+  const page = scope.page();
+  await page.locator(".ui-list-panel").getByRole("button", { name, exact: true }).click();
+  await page.getByRole("button", { name: `Choose ${name}`, exact: true }).click();
+}
+
 /**
  * Picks the option `name` in the selection of `scope` (its section), by its control (ORC-343): a click on its option
- * card, a pick in the list with a detail panel of a main pick (ORC-347), or a pick in the list that its Choose, Change
- * or add button opens. Its Vitest twin is pickIn in src/components/test-pick.ts.
+ * card, a pick in the list with a detail panel of a main pick (ORC-347), a pick in the subclass dialog (ORC-350), or a
+ * pick in the list that its Choose, Change or add button opens. A closed choice row of the Class step opens first. Its
+ * Vitest twin is pickIn in src/components/test-pick.ts.
  */
 export async function pickIn(scope: Locator, name: string) {
   await expect(scope.getByRole("heading").first()).toBeVisible();
   if ((await scope.getAttribute("data-main-pick")) !== null) {
     await pickInList(scope, name);
+    return;
+  }
+  const row = await scope.getAttribute("data-choice-row");
+  if (row !== null && (await rowHead(scope).getAttribute("aria-expanded")) === "false") await rowHead(scope).click();
+  if (row === "subclass") {
+    await pickSubclass(scope, name);
     return;
   }
   const card = scope.locator("[aria-pressed]").and(scope.getByRole("button", { name, exact: true }));
@@ -100,3 +145,52 @@ export async function startCustomOrigin(race: Locator) {
   await race.getByRole("button", { name: "Custom Origin", exact: true }).click();
   await race.page().getByRole("button", { name: "Start a custom origin", exact: true }).click();
 }
+
+/**
+ * Adds the class `name` as a second class on the Class step (ORC-351): "Add a class" opens the class cards in a dialog,
+ * a click on a card opens its modal, and "Add {name}" adds it. Its Vitest twin is addClass in
+ * src/components/test-pick.ts.
+ */
+export async function addClass(page: Page, name: string) {
+  const builder = page.getByRole("region", { name: "Builder" });
+  await builder.getByRole("button", { name: "Add a class", exact: true }).click();
+  await classCard(page.getByRole("dialog", { name: "Add a class" }), name).click();
+  await page
+    .getByRole("dialog", { name, exact: true })
+    .getByRole("button", { name: `Add ${name}`, exact: true })
+    .click();
+  await expect(builder.getByRole("button", { name: `Change ${name}`, exact: true })).toBeVisible();
+}
+
+/**
+ * Starts Remove of the class `name` on the Class step (ORC-351): the Remove button of its block, which removes the class
+ * or asks first. Its Vitest twin is removeClass in src/components/test-pick.ts.
+ */
+export async function removeClass(page: Page, name: string) {
+  await page
+    .getByRole("region", { name: "Builder" })
+    .getByRole("button", { name: `Remove ${name}`, exact: true })
+    .click();
+}
+
+/** The section Hit points of the block of the class `name` (ORC-351). */
+export const hitPointsOf = (page: Page, name: string) =>
+  page
+    .getByRole("region", { name: "Builder" })
+    .getByRole("region", { name, exact: true })
+    .getByRole("region", { name: /^Hit points/ });
+
+/** The total of the section Hit points of the class `name` (ORC-351), as a locator for toHaveText. */
+export const hitPointsTotal = (page: Page, name: string) => hitPointsOf(page, name).locator("[data-hit-points-total]");
+
+/** Sets the method of the hit points of the class `name`: "Average" or "By level" (ORC-351). Its Vitest twin is in test-pick.ts. */
+export async function setHitPointsMethod(page: Page, name: string, method: "Average" | "By level") {
+  await page
+    .getByRole("group", { name: `${name} hit point method` })
+    .getByRole("button", { name: method, exact: true })
+    .click();
+}
+
+/** The number field of the hit points of a level of the class `name`, By level (ORC-351). */
+export const levelHitPoints = (page: Page, name: string, level: number) =>
+  page.getByRole("textbox", { name: `${name} level ${level} hit points`, exact: true });

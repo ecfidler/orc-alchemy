@@ -1,8 +1,9 @@
 // The background fixtures of the Customize tests (ORC-135): a pack
 // background with skills, tools, a language choice, equipment and a
 // feature, and fighter-20 with it in place of the SRD background Acolyte.
-import { toEdn } from "../components/builders/test-review-pack.ts";
+
 import { engine, type StrictEntity } from "./engine.ts";
+import { toEdn } from "./test-edn.ts";
 import { fighter20 } from "./test-feats.ts";
 
 export const BACKGROUND_PACK = "Background Pack";

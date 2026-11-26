@@ -8,13 +8,13 @@ import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { BACKGROUND_TYPE } from "../engine/content.ts";
 import { RACE_TYPE } from "../engine/custom-origin.ts";
 import type { ContentType } from "../engine/engine.ts";
-import { otherStepLines, stepMark } from "../engine/other-steps.ts";
+import { type OtherStepLine, otherStepLines, stepMark } from "../engine/other-steps.ts";
 import { hasSearch, notAvailableText, shownOptions } from "../engine/selection-control.ts";
 import { useOpenStep, useSectionName, useStepFrame } from "./builder-context.tsx";
-import { HEADING_CLASSES } from "./Classes.tsx";
 import { type Customizable, CustomizeButton, type GuidedEdit, useCustomize } from "./CustomizeDialog.tsx";
 import { BackgroundDetail, type DetailProps, RaceDetail, useOptionPack } from "./OptionDetail.tsx";
 import { usePick, useUnavailable } from "./SelectionControl.tsx";
+import { Comma, HEADING_CLASSES } from "./selection-heading.tsx";
 
 /** The parts of a main pick that its kind gives: the word for one option, the content type, and the detail. */
 export type MainPickParts = Pick<MainPickProps, "noun" | "contentType" | "detail">;
@@ -130,7 +130,7 @@ export function MainPick({ selection, noun, contentType, detail, customizable, g
             <h3 className={`${HEADING_CLASSES} flex-1`}>
               <span className="min-w-0">
                 {changing && picked ? `${name}: ${picked.name}` : name}
-                <span className="text-[1px] opacity-0">,</span>
+                <Comma />
               </span>
               <span className="flex-1" />
               <LeftMark left={changing ? stepMark([selection]) : selection.remaining} />
@@ -202,38 +202,16 @@ function OptionList({ selection, options, picked, noun, packOf, detail, fixedRow
 
   function action(item: ListPanelItem<string>, place: ListPanelPlace) {
     if (fixedRow && item.value === FIXED_ROW) return fixedRow.action(place);
-    if (picked?.key === item.value)
-      return (
-        <span className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] font-semibold">
-          <PixelIcon name="check" />
-          The {noun} of this character
-        </span>
-      );
-    if (item.unavailable !== undefined) {
-      const reasonId = `${id}-${place}`;
-      return (
-        <>
-          <span id={reasonId} className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] text-ink-muted">
-            <LockIcon />
-            {notAvailableText(item.unavailable)}
-          </span>
-          <Button variant="solid" icon="check" disabled aria-describedby={reasonId}>
-            Choose {item.label}
-          </Button>
-        </>
-      );
-    }
     return (
-      <Button
-        ref={(button) => {
+      <ChooseAction
+        item={item}
+        reasonId={`${id}-${place}`}
+        pickedText={picked?.key === item.value ? `The ${noun} of this character` : null}
+        chooseRef={(button) => {
           chooseButtons.current[place] = button;
         }}
-        variant="solid"
-        icon="check"
-        onClick={() => onChoose(item.value)}
-      >
-        Choose {item.label}
-      </Button>
+        onChoose={onChoose}
+      />
     );
   }
 
@@ -253,6 +231,55 @@ function OptionList({ selection, options, picked, noun, packOf, detail, fixedRow
       action={action}
       emptyText={`Select a ${noun} to read about it.`}
     />
+  );
+}
+
+/**
+ * The action row of the panel of an option in a list with a detail panel: for the picked option the check icon and
+ * `pickedText`, for an option that the character cannot take the reason beside a disabled Choose button, and else
+ * "Choose {name}", which calls `onChoose`. The main pick and the subclass dialog (ORC-350) share it.
+ */
+export function ChooseAction({
+  item,
+  reasonId,
+  pickedText,
+  chooseRef,
+  onChoose,
+  verb = "Choose",
+}: {
+  item: ListPanelItem<string>;
+  /** A unique id for the reason, in each place. */
+  reasonId: string;
+  /** The text of the picked option, or null for an option that is not picked. */
+  pickedText: string | null;
+  chooseRef?: (button: HTMLButtonElement | null) => void;
+  onChoose: (key: string) => void;
+  /** The verb of the button: "Choose", or "Add" for the modal of "Add a class" (ORC-351). */
+  verb?: string;
+}) {
+  if (pickedText !== null)
+    return (
+      <span className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] font-semibold">
+        <PixelIcon name="check" />
+        {pickedText}
+      </span>
+    );
+  if (item.unavailable !== undefined)
+    return (
+      <>
+        <span id={reasonId} className="mr-auto inline-flex items-center gap-1.5 font-sans text-[13px] text-ink-muted">
+          <LockIcon />
+          {notAvailableText(item.unavailable)}
+        </span>
+        <Button variant="solid" icon="check" disabled aria-describedby={reasonId}>
+          {verb} {item.label}
+        </Button>
+      </>
+    );
+  return (
+    <Button ref={chooseRef} variant="solid" icon="check" onClick={() => onChoose(item.value)}>
+      {verb} {item.label}
+    </Button>
   );
 }
 
@@ -282,36 +309,67 @@ function PickBlock({ selection, option, name, noun, pack, detail, customizable, 
   const [about, setAbout] = useState(false);
   const hasChoices = children !== undefined && children !== null && children !== false;
   return (
-    <div ref={block} className="border border-rule-strong bg-paper-raised">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-rule-strong px-3 py-2.5">
-        <h3 className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
-          <span className="min-w-0 text-[24px] leading-tight font-semibold">
-            <span data-pick-name="">{option.name}</span>
-            {pack && <small className="ml-2.5 font-sans text-[12px] font-medium text-ink-muted">{pack}</small>}
-            <span className="text-[1px] opacity-0">,</span>
+    <BlockFrame
+      frameRef={block}
+      header={
+        <>
+          <h3 className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
+            <span className="min-w-0 text-[24px] leading-tight font-semibold">
+              <span data-pick-name="">{option.name}</span>
+              {pack && <small className="ml-2.5 font-sans text-[12px] font-medium text-ink-muted">{pack}</small>}
+              <Comma />
+            </span>
+            <span className="flex-1" />
+            <LeftMark left={stepMark([selection])} />
+          </h3>
+          <span className="ml-auto inline-flex flex-wrap items-center gap-1.5">
+            <Button variant="ghost" size="small" aria-label={`About ${option.name}`} onClick={() => setAbout(true)}>
+              About
+            </Button>
+            {customizable && <BlockCustomize selection={selection} option={option} customizable={customizable} guided={guided} scope={block} />}
+            <Button ref={changeButton} variant="ghost" size="small" aria-label={`Change ${name}`} onClick={onChange}>
+              Change
+            </Button>
           </span>
-          <span className="flex-1" />
-          <LeftMark left={stepMark([selection])} />
-        </h3>
-        <span className="ml-auto inline-flex flex-wrap items-center gap-1.5">
-          <Button variant="ghost" size="small" aria-label={`About ${option.name}`} onClick={() => setAbout(true)}>
-            About
-          </Button>
-          {customizable && <BlockCustomize selection={selection} option={option} customizable={customizable} guided={guided} scope={block} />}
-          <Button ref={changeButton} variant="ghost" size="small" aria-label={`Change ${name}`} onClick={onChange}>
-            Change
-          </Button>
-        </span>
-      </div>
-      <div className="space-y-3 px-3 pt-3 pb-3">
-        {hasChoices && <BlockSection title="Choices">{children}</BlockSection>}
-        <BlockSection title="Picked on other steps">
-          <OtherSteps selection={selection} noun={noun} />
-        </BlockSection>
-      </div>
+        </>
+      }
+    >
+      {hasChoices && <BlockSection title="Choices">{children}</BlockSection>}
+      <BlockSection title="Picked on other steps">
+        <OtherSteps selection={selection} noun={noun} />
+      </BlockSection>
       <Dialog open={about} onOpenChange={setAbout} title={option.name} footer={false}>
         {detail(option, pack, "modal")}
       </Dialog>
+    </BlockFrame>
+  );
+}
+
+/**
+ * The frame of a block, the look of the class block (docs/design/character-builder.md, "The class block"): a raised
+ * box with a rule around it, the header row with a rule under it, and the body, whose sections are its children. The
+ * class block and the block of a main pick share it. A closed class block (ORC-351) shows only its header: the body
+ * stays in the page, hidden, so that its parts keep their state; `bodyId` names the body for the button that opens it.
+ */
+export function BlockFrame({
+  header,
+  children,
+  frameRef,
+  closed = false,
+  bodyId,
+}: {
+  header: ReactNode;
+  children: ReactNode;
+  frameRef?: RefObject<HTMLDivElement>;
+  closed?: boolean;
+  bodyId?: string;
+}) {
+  return (
+    <div ref={frameRef} className="border border-rule-strong bg-paper-raised">
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 ${closed ? "" : "border-b border-rule-strong"}`}>{header}</div>
+      <div id={bodyId} hidden={closed} className="space-y-3 px-3 pt-3 pb-3">
+        {children}
+      </div>
     </div>
   );
 }
@@ -339,13 +397,23 @@ function BlockCustomize({
   );
 }
 
-/** A section of the block: a small title in capitals, then its content. */
-function BlockSection({ title, children }: { title: string; children: ReactNode }) {
+/**
+ * A section of the body of a block: a small title in capitals, then its content. `mark` is the left mark at the right of
+ * the title, such as the hit points left (ORC-351); null keeps its place empty, so a mark that comes moves nothing.
+ */
+export function BlockSection({ title, mark, children }: { title: string; mark?: number | null; children: ReactNode }) {
   const id = useId();
   return (
     <section aria-labelledby={id} className="space-y-1">
-      <h4 id={id} className="font-sans text-[10.5px] font-medium tracking-[0.08em] text-ink-muted uppercase">
-        {title}
+      <h4
+        id={id}
+        className={`font-sans text-[10.5px] font-medium tracking-[0.08em] text-ink-muted uppercase ${mark === undefined ? "" : "flex h-5 items-center justify-between gap-3"}`}
+      >
+        <span>
+          {title}
+          {mark !== undefined && mark !== null && <Comma />}
+        </span>
+        {mark !== undefined && mark !== null && <span className="tracking-normal normal-case">{<LeftMark left={mark} />}</span>}
       </h4>
       {children}
     </section>
@@ -355,12 +423,14 @@ function BlockSection({ title, children }: { title: string; children: ReactNode 
 /**
  * "Picked on other steps": one line for each kind of pick that the option gives on another step (otherStepLines). A
  * line shows the kind, then the picks or the left mark, then the step, and opens that step. An option that gives no
- * pick on another step has one line that says so.
+ * pick on another step has one line that says so. `lines` gives other lines, such as those of one class of the Class
+ * step (classStepLines, ORC-351).
  */
-function OtherSteps({ selection, noun }: { selection: BuilderSelection; noun: string }) {
+export function OtherSteps({ selection, noun, lines: given }: { selection: BuilderSelection; noun: string; lines?: OtherStepLine[] }) {
   const { steps } = useStepFrame();
   const open = useOpenStep();
-  const lines = useMemo(() => otherStepLines(selection, steps), [selection, steps]);
+  const own = useMemo(() => otherStepLines(selection, steps), [selection, steps]);
+  const lines = given ?? own;
   if (lines.length === 0)
     return <p className="border-y border-rule-strong py-2 font-sans text-[13.5px] text-ink-muted">This {noun} gives no pick on another step.</p>;
   return (

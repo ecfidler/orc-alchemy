@@ -50,14 +50,21 @@ export function listText(items: string[], { serialComma = false } = {}): string 
   return `${items.slice(0, -1).join(", ")}${serialComma ? "," : ""} and ${items.at(-1)}`;
 }
 
+/** A prerequisite label with no space or full stop at its end. */
+const trimmed = (label: string) => label.trim().replace(/\.+$/, "");
+
+/** What a prerequisite label of the engine requires: "Strength 13" for "Requires Strength 13"; null for another label. */
+export function requiredText(label: string): string | null {
+  return /^requires (.+)$/i.exec(trimmed(label))?.[1] ?? null;
+}
+
 /**
  * The reason text of a prerequisite label of the engine, as a sentence: "Requires Strength 13" is "It needs Strength
  * 13.", and another label, such as "You already have this skill", gets its full stop.
  */
 export function reasonText(label: string): string {
-  const text = label.trim().replace(/\.+$/, "");
-  const needs = /^requires (.+)$/i.exec(text);
-  return needs ? `It needs ${needs[1]}.` : `${text}.`;
+  const needs = requiredText(label);
+  return needs === null ? `${trimmed(label)}.` : `It needs ${needs}.`;
 }
 
 /** The reason of an option that gives only what the character already has from these sources: "From Acolyte". */
@@ -69,10 +76,22 @@ export const fromText = (sources: string[]) => `From ${listText(sources)}`;
  */
 export const notAvailableText = (reason: string) => `Not available. ${reason}`;
 
+/** The text after "it requires" of an engine refusal ("Cannot select x: it requires {labels}."); null for another refusal. */
+const requiresPart = (message: string) => /: it requires (.+)$/s.exec(message)?.[1] ?? null;
+
 /** The prerequisite of an engine refusal of a select ("…: it requires {label}"), as reasonText; null for another refusal. */
 export function refusalReason(message: string): string | null {
-  const match = /: it requires (.+)$/s.exec(message);
-  return match ? reasonText(match[1]) : null;
+  const part = requiresPart(message);
+  return part === null ? null : reasonText(part);
+}
+
+/**
+ * The prerequisite labels of an engine refusal, which the engine joins with ", ": "Cannot add X: it requires Requires
+ * Str 13, Requires Dex 13." gives ["Requires Str 13", "Requires Dex 13"]. Null for another refusal.
+ */
+export function refusalLabels(message: string): string[] | null {
+  const part = requiresPart(message);
+  return part === null ? null : trimmed(part).split(", ").map(trimmed);
 }
 
 /** A top-level option of the character that can give a language: its path in the entity and its name. */

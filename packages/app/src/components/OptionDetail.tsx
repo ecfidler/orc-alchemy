@@ -1,7 +1,7 @@
 // The detail of an option of the Background and Race steps (ORC-347, ORC-348, docs/design/character-builder.md "The
 // list and the panel"), as the detail panel, the modal of a narrow page and the About modal show it: the name, the pack, the
 // description, the facts in a definition list, and the feature. The rules of what it shows are in
-// engine/origin-detail.ts.
+// engine/origin-detail.ts. The detail of a class and of a subclass, which has the same parts, is in ClassDetail.tsx.
 import type { ListPanelPlace } from "@orc-alchemy/ui";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { templateShape } from "../engine/builder.ts";
@@ -56,7 +56,7 @@ function useSrdLists(): Lists | null {
  * The plain record of the option of the content type with the key: its item in a pack or in the character's custom
  * content, or else its record in the SRD list. Undefined for a key with no record, such as the engine's "Custom" option.
  */
-function useRecord(contentType: ContentType, key: string, srd: Record<string, unknown>[] | undefined): Record<string, unknown> | undefined {
+export function useRecord(contentType: ContentType, key: string, srd?: Record<string, unknown>[]): Record<string, unknown> | undefined {
   const homebrew = useHomebrew((state) => state.content.homebrew);
   const custom = useCharacter((state) => state.custom);
   const origin = optionOrigin(homebrew, custom, contentType, key);
@@ -92,19 +92,22 @@ export function useRaceDetail(key: string): OptionDetail | null {
 /**
  * The detail of an option: its name as a heading (in the panel only: the title of a modal names it), the pack as
  * "From {pack}", the description, the facts as a definition list, and the traits, each with its name in bold. The
- * children show after them, such as the second paragraph of the Custom Origin row.
+ * children show after them, such as the second paragraph of the Custom Origin row. `icon` shows at the left of the
+ * description, such as the icon of a class.
  */
 export function OptionDetailView({
   name,
   pack,
   detail,
   place,
+  icon,
   children,
 }: {
   name: string;
   pack?: string;
   detail: OptionDetail | null;
   place: ListPanelPlace;
+  icon?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -115,7 +118,14 @@ export function OptionDetailView({
           {pack && <p className="mt-0.5 font-sans text-[12px] text-ink-muted">From {pack}</p>}
         </div>
       )}
-      {detail?.description && <p className="text-[16px]">{detail.description}</p>}
+      {icon ? (
+        <div className="flex items-center gap-2.5">
+          {icon}
+          {detail?.description && <p className="text-[16px]">{detail.description}</p>}
+        </div>
+      ) : (
+        detail?.description && <p className="text-[16px]">{detail.description}</p>
+      )}
       {detail && detail.facts.length > 0 && (
         <dl className="grid grid-cols-[104px_minmax(0,1fr)] gap-x-2.5 gap-y-0.5 text-[15px]">
           {detail.facts.map(({ label, value }) => (

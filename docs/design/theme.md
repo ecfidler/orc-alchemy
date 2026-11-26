@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T12:38:24Z }
+generated: { by: claude-code/agent, at: 2026-11-26T14:28:58Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -434,7 +434,7 @@ The rows of each icon are in `packages/ui/src/Icon.tsx`. `Button` and
 | `minus` | A button that decreases a number. |
 | `trash` | A control that deletes a record or removes an item from a list: Delete and Remove. |
 | `import` | A control that reads a file or pasted text into the app: the Import links and buttons. |
-| `dice` | A control that makes a random result: Random character and Re-roll. |
+| `dice` | A control that makes a random result: Random character and Re-roll, and the roll buttons and "Roll all" of the hit points of a class block in the builder (ORC-351). |
 | `save` | The Save button of the action row, which writes the character and closes nothing. |
 | `lock` | A value that cannot change. `LockIcon` draws it with no space after it. |
 | `up`, `down` | No use at this time. They are for a control that moves or sorts. |

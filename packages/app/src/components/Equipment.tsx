@@ -21,7 +21,8 @@ import {
 } from "../engine/equipment.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
-import { HEADING_CLASSES, Heading, useMutation } from "./Classes.tsx";
+import { HEADING_CLASSES, Heading } from "./selection-heading.tsx";
+import { useMutation } from "./use-mutation.ts";
 
 const MAGIC_LISTS = ["magic-weapons", "magic-armor", "other-magic-items"];
 /** As the SRD: a character can attune to no more than 3 magic items at once. */

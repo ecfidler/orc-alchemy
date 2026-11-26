@@ -28,7 +28,10 @@ export type ChangeAction = "Replace" | "Remove" | "Change";
 
 /** A row of the question: the step or the level at the left, the selection and its picks that go at the right. */
 export interface RemovedRow {
-  /** The step, such as "Proficiencies", or the level of a class's level choice, such as "Level 4". */
+  /**
+   * The step, such as "Proficiencies", or the level of a class's level choice, such as "Level 4"; for a class other
+   * than the class of the change, with its name: "Wizard level 2".
+   */
   place: string;
   /**
    * The selection's name: "Skills", "Tools", "Languages" or "Expertise" for a selection of skills, tools, languages
@@ -137,11 +140,18 @@ function proficiencies(e: Engine, entity: StrictEntity, content: Content): Set<s
   ]);
 }
 
-/** The place of a pick: its level on the Class step ("Level 4"), or its step. */
-function placeOf(step: StepName, path: string[]): { place: string; rank: number } {
+/**
+ * The place of a pick: its step, or for a level choice on the Class step its level ("Level 4"). A level of a class
+ * other than `own`, the class of the change, names its class ("Wizard level 2"), such as the next class when the first
+ * goes. With no `own`, a level has no class name. `className` gives the name of a class by its key.
+ */
+function placeOf(step: StepName, path: string[], own: string | null, className: (key: string) => string): { place: string; rank: number } {
   const level = step === "Class" && path[2] === "levels" ? levelOfKey(path[3]) : null;
-  const rank = STEP_NAMES.indexOf(step) * 100;
-  return level ? { place: `Level ${level}`, rank: rank + Number(level) } : { place: step, rank };
+  const rank = STEP_NAMES.indexOf(step) * 1000;
+  if (!level) return { place: step, rank };
+  // The levels of the class of the change come first, then those of each other class.
+  if (own === null || path[1] === own) return { place: `Level ${level}`, rank: rank + Number(level) };
+  return { place: `${className(path[1])} level ${level}`, rank: rank + 100 + Number(level) };
 }
 
 /** The names, with a count for a name that repeats, such as two picks of Strength: "Strength ×2". */
@@ -165,15 +175,16 @@ function rowName(node: BuilderSelection): string {
  * The rows of the picks at the paths, named from the steps of the entity that has them. The picks of a row are in the
  * order of the selection's picks.
  */
-function rowsOf(paths: string[][], steps: BuilderStep[]): RemovedRow[] {
+function rowsOf(paths: string[][], steps: BuilderStep[], own: string | null): RemovedRow[] {
   const home = homes(steps);
   const nodes = byPath(steps);
+  const className = (key: string) => nodes.get("class")?.options.find((option) => option.key === key)?.name ?? key;
   const groups = new Map<BuilderSelection, { place: string; rank: number; order: number; keys: string[] }>();
   for (const path of paths) {
     const node = nodes.get(path.slice(0, -1).join("/"));
     const step = node && home.get(node);
     if (!node || !step) continue;
-    const group = groups.get(node) ?? { ...placeOf(step, path), order: groups.size, keys: [] };
+    const group = groups.get(node) ?? { ...placeOf(step, path, own, className), order: groups.size, keys: [] };
     group.keys.push(path.at(-1)!);
     groups.set(node, group);
   }
@@ -316,5 +327,7 @@ export function planChange(input: ChangeInput, change: PickChange): ChangePlan {
   })();
   const action: ChangeAction =
     change.kind === "lower-level" || change.kind === "remove-class" ? "Remove" : change.kind === "replace-class" || replaced ? "Replace" : "Change";
-  return { entity, question: { title, action, rows: rowsOf(removed, steps) }, removed, apply };
+  // The class of the change: its levels need no class name in the question.
+  const own = change.kind === "pick" ? (change.path[0] === "class" ? change.path[1] : null) : change.kind === "replace-class" ? change.from : change.classKey;
+  return { entity, question: { title, action, rows: rowsOf(removed, steps, own) }, removed, apply };
 }

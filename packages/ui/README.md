@@ -112,6 +112,13 @@ bun run test       # vitest
     arrow keys. It shows numbers with no grouping. Put it in a label, or
     give it an `aria-label`. With `disabled`, it takes no input and has the
     look of a disabled button: muted text and a `--rule-strong` border.
+    `onValueCommitted` gets the number when the player is done with it: at
+    the loss of the focus after a typed change, at Enter (the focus stays
+    in the field), and at each step of Up and Down. With `stepFromValue`,
+    Up and Down step from `value` and drop a typed number that is not
+    committed yet, and a step outside `min` and `max` does nothing.
+    `inputRef` is a ref to the input element, for example to move the
+    focus to it.
     Styles: `src/number-field.css`.
   - `TextInput`: Base UI Input, a boxed one-line text field. Its role is
     textbox. It is controlled by `value` and `onValueChange`, which gets

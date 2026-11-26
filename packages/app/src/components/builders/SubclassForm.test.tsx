@@ -9,6 +9,7 @@ import { useCharacter } from "../../state/character.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { Builder } from "../Builder.tsx";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
+import { pickIn } from "../test-pick.ts";
 import { addList, addModifier, choose, groups, pick, shown, tokens } from "./test-picks.ts";
 
 beforeAll(() => loadEngine());
@@ -209,12 +210,13 @@ test("a class and a subclass authored in the forms are a character's choices, an
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Class/ }));
   const carvings = screen.getByRole("region", { name: /^Rune Carvings/ });
   // The picks to make are an inline note in the heading.
-  expect(within(carvings).getByRole("heading").textContent).toBe("Rune Carvings,2 left");
+  // The selection is a choice row of the Class step (ORC-350): its head ends with the open mark.
+  expect(within(carvings).getByRole("heading").textContent).toBe("Rune Carvings,2 left▴");
   expect(within(carvings).getByRole("button", { name: "Fire Rune" })).toBeTruthy();
   // Picking the subclass opens its level-3 selection.
   expect(screen.queryByRole("region", { name: /^Frost Gifts/ })).toBeNull();
-  fireEvent.click(within(screen.getByRole("region", { name: /^Rune Path/ })).getByRole("button", { name: "Frost Path" }));
-  expect(within(screen.getByRole("region", { name: /^Frost Gifts/ })).getByRole("button", { name: "Cold Breath" })).toBeTruthy();
+  await pickIn(screen.getByRole("region", { name: /^Rune Path/ }), "Frost Path");
+  expect(within(await screen.findByRole("region", { name: /^Frost Gifts/ })).getByRole("button", { name: "Cold Breath" })).toBeTruthy();
 
   expect(e.validateForExport(useHomebrew.getState().homebrew!).valid).toBe(true);
 });

@@ -1,7 +1,7 @@
 // What the parts of the builder page share: the status toast (docs/design/character-builder.md, "No layout shift"),
 // and for the open step, the heading name of each section and where the character's picks come from (ORC-343). It
-// is a module of its own, so that Classes.tsx and the control of a selection can read it without an import cycle
-// with Builder.tsx.
+// is a module of its own, so that selection-heading.tsx and the control of a selection can read it without an import
+// cycle with Builder.tsx.
 import { Toast } from "@orc-alchemy/ui";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { type BuilderSelection, type BuilderStep, PROFICIENCIES_STEP, type StepName } from "../engine/builder.ts";
