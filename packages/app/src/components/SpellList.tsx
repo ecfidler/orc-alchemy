@@ -46,17 +46,23 @@ export interface RowBox {
   onChange: (checked: boolean) => void;
 }
 
-/** What a row shows in the column of the boxes, and what its name for a screen reader ends with. */
-export interface RowMark {
-  /** The box of the row, or null for a row with no box, which keeps the space of the box. */
-  box: RowBox | null;
+/** The words of a row mark: what the name of the row ends with, and a label at the end of the row. */
+interface MarkWords {
   /** The words that end the name of the row for a screen reader, for example "not prepared". */
   state?: string;
   /** A label in Inter caps at the end of the row, for example "Known", with the lock before it when `lock` is true. */
   label?: { text: string; lock?: boolean };
-  /** The reason that the character cannot take the spell: the row has the lock in the place of the box, and a dimmed name. */
-  locked?: string;
 }
+
+/**
+ * What a row shows in the column of the boxes, and what its name for a screen reader ends with:
+ *
+ * - `box`: the box of the row;
+ * - `none`: no box; the row keeps the space of the box;
+ * - `locked`: a spell that the character cannot take. The row has the lock in the place of the box, a dimmed name,
+ *   and `reason` as its description.
+ */
+export type RowMark = ({ kind: "box"; box: RowBox } & MarkWords) | ({ kind: "none" } & MarkWords) | { kind: "locked"; reason: string; state?: string };
 
 export interface SpellListProps<S extends ListSpell> {
   /** The groups to show: after the search, so a group with no match is not in them. */
@@ -185,8 +191,8 @@ function LevelGroup<S extends ListSpell>({
             const mark = marks ? marks(spell) : null;
             return (
               <li key={id} className={mark ? "relative" : undefined}>
-                {mark?.box && <RowCheckbox box={mark.box} onInk={id === selected} />}
-                {mark?.locked !== undefined && (
+                {mark?.kind === "box" && <RowCheckbox box={mark.box} onInk={id === selected} />}
+                {mark?.kind === "locked" && (
                   <span aria-hidden="true" className={`absolute top-[11px] left-1.5 z-[1] flex ${id === selected ? "text-paper" : "text-ink-muted"}`}>
                     <LockIcon />
                   </span>
@@ -304,13 +310,14 @@ function Row<S extends ListSpell>({
   const reasonId = useId();
   const record = lookup(spell.key)?.record;
   const concentration = record?.duration ? durationParts(record.duration).concentration : false;
-  const locked = mark?.locked;
+  const locked = mark?.kind === "locked" ? mark.reason : undefined;
+  const box = mark?.kind === "box" ? mark.box : undefined;
+  const label = mark?.kind === "locked" ? undefined : mark?.label;
   // A locked row is described by its reason, and a row whose box is disabled by the reason of the box.
-  const description = locked ?? mark?.box?.description;
+  const description = locked ?? box?.description;
   const name = [spell.name, spell.castNote, withSource && spell.source, mark?.state].filter(Boolean).join(", ");
   // Space changes the box, and does not click the row: the key down and the key up are both stopped.
   const onSpace = (event: KeyboardEvent<HTMLButtonElement>, down: boolean) => {
-    const box = mark?.box;
     if (!box || box.disabled || event.key !== " ") return;
     event.preventDefault();
     if (down && !event.repeat) box.onChange(!box.checked);
@@ -342,12 +349,12 @@ function Row<S extends ListSpell>({
           </span>
         )}
       </span>
-      {(record?.ritual || concentration || mark?.label) && (
+      {(record?.ritual || concentration || label) && (
         <span className="flex items-center gap-1">
-          {mark?.label && (
+          {label && (
             <RowLabel onInk={selected}>
-              {mark.label.lock && <LockIcon />}
-              {mark.label.text}
+              {label.lock && <LockIcon />}
+              {label.text}
             </RowLabel>
           )}
           {record?.ritual && <BoxTag onInk={selected}>Ritual</BoxTag>}

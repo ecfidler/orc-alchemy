@@ -87,6 +87,13 @@ export function StepRail({
 }
 
 /**
+ * The words of a left mark (LeftMark): "2 left" when `left` is above 0,
+ * "Remove 1" when it is below 0, and "Done" at 0. Use it where the words
+ * show without the mark, for example in a live region or a row.
+ */
+export const leftMarkText = (left: number) => (left > 0 ? `${left} left` : left < 0 ? `Remove ${-left}` : "Done");
+
+/**
  * The mark of a selection at the right of its heading: "2 left" as a yellow
  * inline note, "Remove 1" as a red one when `left` is negative, and a check
  * and "Done" at 0. The mark has a fixed place: a box of a fixed height and
@@ -95,18 +102,18 @@ export function StepRail({
  * name. Its text is a part of the heading text. End the name with a comma
  * that does not show and is in the line (not `sr-only`, which a browser
  * reads with a space before it): a screen reader then reads
- * "Languages, 2 left". With `success`, "Done" is green, for a count at its
- * maximum.
+ * "Languages, 2 left". With `success`, "Done" is green, for a selection
+ * that the user completes in a popup, with nothing left to pick.
  */
 export function LeftMark({ left, success = false }: { left: number; success?: boolean }) {
   return (
     <span className="ui-left-mark" data-left={left > 0 ? "left" : left < 0 ? "over" : "done"} data-success={success ? "" : undefined}>
-      {left > 0 && <InlineNote>{left} left</InlineNote>}
-      {left < 0 && <InlineNote tone="failed">Remove {-left}</InlineNote>}
+      {left > 0 && <InlineNote>{leftMarkText(left)}</InlineNote>}
+      {left < 0 && <InlineNote tone="failed">{leftMarkText(left)}</InlineNote>}
       {left === 0 && (
         <span className="ui-left-mark-done">
           <PixelIcon name="check" />
-          Done
+          {leftMarkText(left)}
         </span>
       )}
     </span>

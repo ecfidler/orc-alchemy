@@ -75,6 +75,25 @@ test("orc-357 a new wizard adds a cantrip and a 1st-level spell in the popups, a
   await expect(cantrips.getByRole("button", { name: "Light", exact: true })).toBeFocused();
 });
 
+/** Opens the warlock 20 of the e2e tests, which has SRD content only, on the Spells step. */
+async function openWarlock(page: Page) {
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles(join(import.meta.dirname, "warlock-20.strict.json"));
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
+  await openStep(page, "Spells");
+}
+
+test("orc-357 Eldritch Invocations of a warlock 20 has the control of its kind, and its spell selections have the popup", async ({ page }) => {
+  await openWarlock(page);
+  const invocations = section(page, "Eldritch Invocations");
+  await expect(invocations.getByRole("heading").first()).toHaveAccessibleName("Eldritch Invocations, Done");
+  // 8 picks from more than 6 options: the ui Picker, with the picks as tokens.
+  await expect(invocations.getByRole("button", { name: /^Add spells/ })).toHaveCount(0);
+  await expect(invocations.locator(".ui-add-button")).toBeVisible();
+  await expect(invocations.locator(".ui-token-label")).toHaveCount(8);
+  await expect(section(page, "Warlock Cantrips Known").getByRole("button", { name: "Add spells: Warlock Cantrips Known" })).toBeVisible();
+});
+
 test("a pick in a starting equipment selection does not move it, its cards or the selection below it", async ({ page }) => {
   await newCharacter(page);
   await addFirstClass(page, "Fighter");
@@ -274,6 +293,26 @@ test.describe("screenshots of the Add spells popup", () => {
           await ready();
           await page.screenshot({ path: path("popup-list"), animations: "disabled" });
         }
+      });
+
+      test(`orc-357 the Eldritch Invocations control of a warlock 20, ${size}, ${theme}`, async ({ page }) => {
+        mkdirSync(dir, { recursive: true });
+        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+        await page.setViewportSize({ width, height: 900 });
+        await openWarlock(page);
+        const invocations = section(page, "Eldritch Invocations");
+        await invocations.scrollIntoViewIfNeeded();
+        await page.evaluate(() => document.fonts.ready);
+        await page.mouse.move(0, 0);
+        // The clip of a full page screenshot is in page coordinates.
+        const box = (await invocations.boundingBox())!;
+        const top = box.y + (await page.evaluate(() => window.scrollY));
+        await page.screenshot({
+          path: join(dir, `orc-357-invocations-${size}-${theme}.png`),
+          animations: "disabled",
+          fullPage: true,
+          clip: { x: 0, y: Math.max(0, top - 120), width, height: box.height + 240 },
+        });
       });
     }
 });

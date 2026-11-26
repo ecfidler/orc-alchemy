@@ -924,8 +924,9 @@ spells" popup.[^orc-357]
   list by level, the spell view, the keyboard rules and the two views of a
   narrow page. The parts are shared code, not a copy.
   * The title is the heading of the selection. The count is at its right,
-    as the left mark: "2 left", "Remove 1", or a green "Done" at the
-    maximum.
+    as the left mark: "2 left", "Remove 1", or a green "Done" when
+    nothing is left to pick. A selection with no maximum shows the green
+    "Done" when it has its minimum.
   * The list has only the options of the selection, by level, A to Z in a
     level.
   * Each row has a box at its left. The box adds the spell to the
@@ -935,8 +936,9 @@ spells" popup.[^orc-357]
   * At the maximum, the box of each spell that is not picked is disabled.
     Its description is "Remove a spell first.". A selection with no
     maximum does not disable a box. In a selection of one pick that is not
-    a multiselect, a box replaces the pick, and the box of the pick cannot
-    change.
+    a multiselect, for example Mystic Arcanum, a box replaces the pick,
+    and the box of the pick cannot change. Its description is "Pick
+    another spell in its place.".
   * A spell that the character cannot take has the lock in the place of
     the box, a dimmed name, and the reason as its description. Its spell
     view says "Not available." and the reason. A refusal of the engine
@@ -951,7 +953,12 @@ spells" popup.[^orc-357]
   selection, with their own headings and marks.
 * The step has no option cards, no level filter and no search for a spell
   selection.
-* Eldritch Invocations stays on the Spells step.
+* Eldritch Invocations stays on the Spells step. Its options are not
+  spells, so it has no "Add spells" popup. It gets the control of
+  [The control for each kind of selection](#the-control-for-each-kind-of-selection),
+  as a selection on another step does. A selection is a spell selection
+  when each of its options has a spell record. The step shows its
+  selections when the spell records load.
 * A starting equipment selection gets the control of
   [The control for each kind of selection](#the-control-for-each-kind-of-selection).
 * The inventory lists, the hands and the prepared spells do not change.

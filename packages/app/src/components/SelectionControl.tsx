@@ -46,7 +46,7 @@ export function SelectionControl({ selection }: { selection: BuilderSelection })
   return <ChooseControl selection={selection} options={options} unavailable={unavailable} />;
 }
 
-type ControlProps = { selection: BuilderSelection; options: BuilderOption[]; unavailable?: Map<string, string> };
+type ControlProps = { selection: BuilderSelection; options: BuilderOption[]; unavailable: Map<string, string> };
 
 // The top-level selections whose pick asks first when it removes picks: the race and the background. The subrace
 // under a race asks too, and a choice of one pick of a class, such as the subclass (asksBeforeClassPick, ORC-350). The
@@ -101,14 +101,13 @@ export function usePick(
  * A selection's option cards: a pick selects the option, or deselects it from a multiselect. A card shows only the
  * name. A card that the character cannot take is disabled, with its name dimmed and the reason small below it. In a
  * selection with an option that has a prerequisite, each card keeps the place of the reason line, so a reason that
- * comes or goes does not move the page. The Spells step uses the cards too, with the options that pass its filter, and
- * with no reasons, as today.
+ * comes or goes does not move the page.
  */
-export function OptionCards({ selection, options, unavailable }: ControlProps) {
+function OptionCards({ selection, options, unavailable }: ControlProps) {
   const id = useId();
   const { select, deselect, dialog } = usePick(selection);
-  // A reason can come and go in this selection, so each card keeps its line. The Spells step gives no reasons.
-  const reasonLine = unavailable !== undefined && selection.options.some((option) => option.prereqs > 0);
+  // A reason can come and go in this selection, so each card keeps its line.
+  const reasonLine = selection.options.some((option) => option.prereqs > 0);
 
   function pick(option: BuilderOption) {
     if (option.selected && !selection.multiselect) return;
@@ -125,7 +124,7 @@ export function OptionCards({ selection, options, unavailable }: ControlProps) {
         className="grid grid-cols-2 gap-2 sm:grid-cols-3"
       >
         {options.map((option, i) => {
-          const reason = unavailable?.get(option.key);
+          const reason = unavailable.get(option.key);
           const reasonId = `${id}-${i}`;
           return (
             <Toggle
@@ -164,7 +163,7 @@ const listItems = (options: BuilderOption[], unavailable: Map<string, string>): 
  * that opens the list. The token line keeps the place of the lines that the most picks take, about 3 tokens on a
  * line, up to 3 lines, so the first picks do not move the add button or the page below.
  */
-function PickerControl({ selection, options, unavailable = new Map() }: ControlProps) {
+function PickerControl({ selection, options, unavailable }: ControlProps) {
   const { select, deselect, dialog } = usePick(selection);
   const name = useSectionName(selection);
   const label = ADD_LABELS.find(([tag]) => selection.tags.includes(tag))?.[1] ?? "Add a choice";
@@ -195,7 +194,7 @@ function PickerControl({ selection, options, unavailable = new Map() }: ControlP
  * After the pick, the row shows the pick as a token and a Change button. The row has one height in both states, and
  * the button is the same element, so the focus comes back to it after the pick.
  */
-function ChooseControl({ selection, options, unavailable = new Map() }: ControlProps) {
+function ChooseControl({ selection, options, unavailable }: ControlProps) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   // The list closes on the pick, so the question gives the focus to the button after it.

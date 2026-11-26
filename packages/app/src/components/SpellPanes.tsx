@@ -35,7 +35,7 @@ const subscribePhone = (change: () => void) => {
   return () => query?.removeEventListener("change", change);
 };
 /** True at 600px and less. jsdom has no matchMedia: there it is false. */
-export const usePhone = () => useSyncExternalStore(subscribePhone, () => window.matchMedia?.(PHONE).matches ?? false);
+const usePhone = () => useSyncExternalStore(subscribePhone, () => window.matchMedia?.(PHONE).matches ?? false);
 
 /** What the spell view of the owner gets with the selected spell. */
 export interface SpellViewContext {
@@ -43,14 +43,20 @@ export interface SpellViewContext {
   record: SpellRecordResult | undefined;
   /** True at 600px and less. */
   phone: boolean;
-  /** Keeps the selected spell before a change that can take it out of the list, for example the change of a box. */
-  keep: () => void;
+  /**
+   * The mark of the selected spell (`marks`), or undefined without marks. A change of its box keeps the selected
+   * spell, as a change of the box of its row does.
+   */
+  mark: RowMark | undefined;
+  /**
+   * A change that keeps the selected spell first: give it a change that can take the spell out of the list, for
+   * example the change of a box that is not the box of a mark.
+   */
+  kept: <A extends unknown[]>(change: (...args: A) => void) => (...args: A) => void;
 }
 
 /** What the block above the list gets. */
 export interface TopContext {
-  /** True on a phone while the spell view shows. */
-  spellView: boolean;
   /** Scrolls the list to the heading of the level; null while the spell view shows on a phone. */
   goTo: ((level: number) => void) | null;
   /** The levels that the list shows after the search. */
@@ -184,26 +190,17 @@ export function SpellPanes<S extends ListSpell>({
   };
 
   // A change of a box keeps the selected spell, also when it was the first spell and the change takes it out of the list.
-  const keep = () => {
-    if (picked === null && selectedId !== null) setPicked(selectedId);
-  };
+  const kept =
+    <A extends unknown[]>(change: (...args: A) => void) =>
+    (...args: A) => {
+      if (picked === null && selectedId !== null) setPicked(selectedId);
+      change(...args);
+    };
   const keptMarks =
     marks &&
     ((spell: S): RowMark => {
       const mark = marks(spell);
-      const box = mark.box;
-      return box
-        ? {
-            ...mark,
-            box: {
-              ...box,
-              onChange: (checked) => {
-                keep();
-                box.onChange(checked);
-              },
-            },
-          }
-        : mark;
+      return mark.kind === "box" ? { ...mark, box: { ...mark.box, onChange: kept(mark.box.onChange) } } : mark;
     });
 
   const select = (spell: S) => {
@@ -282,7 +279,7 @@ export function SpellPanes<S extends ListSpell>({
         className="grid min-h-0 flex-1 grid-cols-[minmax(240px,340px)_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] max-[600px]:grid-cols-[minmax(0,1fr)]"
       >
         <div className="col-start-1 row-start-1 min-w-0 border-r empty:hidden border-rule-strong pt-3 pr-4 pl-[18px] max-[600px]:border-r-0 max-[600px]:px-4 max-[600px]:pt-2.5">
-          {top?.({ spellView, goTo: spellView ? null : goTo, shownLevels })}
+          {top?.({ goTo: spellView ? null : goTo, shownLevels })}
         </div>
         <div
           ref={list}
@@ -320,7 +317,7 @@ export function SpellPanes<S extends ListSpell>({
           {!loaded ? (
             spellView && <p className="text-ink-muted">Loading spells…</p>
           ) : selected ? (
-            renderView(selected, { record: selectedRecord, phone, keep })
+            renderView(selected, { record: selectedRecord, phone, mark: keptMarks?.(selected), kept })
           ) : (
             <p className="text-ink-muted">Select a spell to read it.</p>
           )}

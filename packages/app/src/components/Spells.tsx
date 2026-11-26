@@ -6,20 +6,20 @@
 // button opens a popup with the parts of the Spells panel of the sheet (SpellPanes): the search, the list by level, a
 // box at the left of each row that adds the spell or removes it, and the spell view. A name opens the popup at its
 // spell.
-import { Button, Checkbox, Dialog, Label, LeftMark, LockIcon } from "@orc-alchemy/ui";
+import { Button, Checkbox, Dialog, Label, LeftMark, LockIcon, leftMarkText } from "@orc-alchemy/ui";
 import { type CSSProperties, Fragment, type RefObject, useId, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { listText, notAvailableText } from "../engine/selection-control.ts";
 import type { SpellRef } from "../engine/sheet.ts";
-import { levelHeading, type OptionSpell, optionSpellGroups, type SpellGroup } from "../engine/spell-list.ts";
+import { isSpellSelection, levelHeading, type OptionSpell, optionSpellGroups, type SpellGroup } from "../engine/spell-list.ts";
 import { prepareCounts, prepareSpells } from "../engine/spell-prepare.ts";
+import type { SpellLookup } from "../engine/spell-records.ts";
 import { setPrepared } from "../engine/spells.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { useSpellLookup } from "../state/spell-records.ts";
-import { Selection } from "./Builder.tsx";
 import { useSectionName } from "./builder-context.tsx";
 import { PrepareCountText } from "./PrepareCount.tsx";
-import { usePick, useUnavailable } from "./SelectionControl.tsx";
+import { SelectionControl, usePick, useUnavailable } from "./SelectionControl.tsx";
 import { INITIAL_FOCUS, type RowMark } from "./SpellList.tsx";
 import { SpellPanes } from "./SpellPanes.tsx";
 import { SpellView } from "./SpellView.tsx";
@@ -50,51 +50,82 @@ export function pickLines(count: number, levels: number, perLine: number): numbe
 export const reservedPicks = (selection: Pick<BuilderSelection, "max" | "min" | "selected">) =>
   selection.max ?? Math.max(selection.min ?? 0, selection.selected.length);
 
-/** The text of a left mark, for the live region of the popup: "2 left", "Remove 1" or "Done". */
-const markText = (left: number) => (left > 0 ? `${left} left` : left < 0 ? `Remove ${-left}` : "Done");
-
 /** The reason of a box that the count disables. */
 export const FULL_REASON = "Remove a spell first.";
-/** The reason of the box of the one pick of a selection of one pick. */
-export const ONE_PICK_REASON = "Pick another spell in its place.";
+/** The reason of the box of the one pick of a selection of one pick, for example Mystic Arcanum. */
+const ONE_PICK_REASON = "Pick another spell in its place.";
+
+/**
+ * A selection of the Spells step. A selection whose options are spells (isSpellSelection) has the "Add spells" popup.
+ * Another selection, for example Eldritch Invocations, has the control of its kind (SelectionControl). The spell
+ * records tell the two apart, so the selection shows when they load. If the load fails, each selection has the control
+ * of its kind.
+ */
+export function SpellStepSelection({ selection }: { selection: BuilderSelection }) {
+  const lookup = useSpellLookup();
+  if (lookup === null) return null;
+  return isSpellSelection(selection, lookup) ? <SpellSelection selection={selection} lookup={lookup} /> : <OtherSelection selection={selection} />;
+}
+
+/**
+ * A selection of the Spells step whose options are not spells, for example Eldritch Invocations: its heading and the
+ * control of its kind, as on another step.
+ */
+function OtherSelection({ selection }: { selection: BuilderSelection }) {
+  const id = useId();
+  return (
+    <>
+      <section aria-labelledby={id} className="space-y-2">
+        <Heading id={id} selection={selection} />
+        <SelectionControl selection={selection} />
+      </section>
+      <OpenedSelections selection={selection} />
+    </>
+  );
+}
+
+/**
+ * The selections that the picks of a selection of the Spells step open, as flat sections after it, by the rule of the
+ * step: for example the rituals of the Book of Ancient Secrets, which is an invocation, have the "Add spells" popup.
+ */
+function OpenedSelections({ selection }: { selection: BuilderSelection }) {
+  return selection.options
+    .filter((option) => option.selected)
+    .flatMap((option) => option.selections)
+    .map((child) => <SpellStepSelection key={JSON.stringify(child.actualPath)} selection={child} />);
+}
 
 /**
  * A spell selection: its heading with the left mark, the names of its picks by level, and the "Add spells" button that
  * opens the popup. The selections that a picked spell opens are flat sections after it, with their own headings.
  */
-export function SpellSelection({ selection }: { selection: BuilderSelection }) {
+function SpellSelection({ selection, lookup }: { selection: BuilderSelection; lookup: SpellLookup }) {
   const id = useId();
   const name = useSectionName(selection);
-  const lookup = useSpellLookup();
   const groups = optionSpellGroups(selection, lookup);
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState<SpellRef | undefined>(undefined);
-  const openAt = (spell?: OptionSpell) => {
+  // The control that opened the popup. When the popup closes, the focus goes back to it, or to "Add spells" when the
+  // user removed the spell of the name that opened it.
+  const trigger = useRef<HTMLElement | null>(null);
+  const add = useRef<HTMLButtonElement>(null);
+  const openAt = (from: HTMLElement, spell?: OptionSpell) => {
+    trigger.current = from;
     setAt(spell && { key: spell.key, source: spell.source });
     setOpen(true);
   };
-  const opened = selection.options.filter((option) => option.selected && option.selections.length > 0);
+  const finalFocus = () => (trigger.current?.isConnected ? trigger.current : add.current);
   return (
     <>
       <section aria-labelledby={id} className="@container/spells space-y-2">
         <Heading id={id} selection={selection} />
         <PickedNames name={name} groups={groups} reserved={reservedPicks(selection)} onOpen={openAt} />
-        <Button icon="sparkles" aria-haspopup="dialog" aria-label={`Add spells: ${name}`} onClick={() => openAt()}>
+        <Button ref={add} icon="sparkles" aria-haspopup="dialog" aria-label={`Add spells: ${name}`} onClick={(event) => openAt(event.currentTarget)}>
           Add spells
         </Button>
-        <SpellPicker open={open} onOpenChange={setOpen} selection={selection} name={name} groups={groups} at={at} />
+        <SpellPicker open={open} onOpenChange={setOpen} selection={selection} name={name} groups={groups} lookup={lookup} at={at} finalFocus={finalFocus} />
       </section>
-      {opened.map((option) => (
-        <Fragment key={option.key}>
-          {option.selections.map((child) =>
-            child.tags.includes("spells") ? (
-              <SpellSelection key={JSON.stringify(child.actualPath)} selection={child} />
-            ) : (
-              <Selection key={JSON.stringify(child.actualPath)} selection={child} />
-            ),
-          )}
-        </Fragment>
-      ))}
+      <OpenedSelections selection={selection} />
     </>
   );
 }
@@ -114,7 +145,7 @@ function PickedNames({
   name: string;
   groups: SpellGroup<OptionSpell>[];
   reserved: number;
-  onOpen: (spell: OptionSpell) => void;
+  onOpen: (from: HTMLElement, spell: OptionSpell) => void;
 }) {
   const picked = groups.map((group) => ({ ...group, spells: group.spells.filter((spell) => spell.selected) })).filter((group) => group.spells.length > 0);
   const withHeadings = groups.length > 1;
@@ -134,7 +165,7 @@ function PickedNames({
           )}
           {group.spells.map((spell) => (
             <li key={spell.key} className="min-w-0">
-              <Button variant="plain" aria-haspopup="dialog" className="max-w-full truncate text-left" onClick={() => onOpen(spell)}>
+              <Button variant="plain" aria-haspopup="dialog" className="max-w-full truncate text-left" onClick={(event) => onOpen(event.currentTarget, spell)}>
                 {spell.name}
               </Button>
             </li>
@@ -147,11 +178,11 @@ function PickedNames({
 
 /**
  * The "Add spells" popup of a spell selection: a wide Dialog with the parts of the Spells panel (SpellPanes). The
- * header has the heading of the selection and its count, as the left mark: "2 left", then a green "Done". A box adds
- * the spell, or removes it, at once; the builder saves it. At the maximum the boxes of the other spells are disabled,
- * with the reason. A selection with no maximum does not disable a box. A spell that the character cannot take has the
- * lock, a dimmed name and its reason. The footer has one "Done" button. Done, the X and Escape close the popup, and the
- * focus goes back to the control that opened it.
+ * header has the heading of the selection and its count, as the left mark: "2 left", then a green "Done" when nothing
+ * is left to pick. A box adds the spell, or removes it, at once; the builder saves it. At the maximum the boxes of the
+ * other spells are disabled, with the reason. A selection with no maximum does not disable a box. A spell that the
+ * character cannot take has the lock, a dimmed name and its reason. The footer has one "Done" button. Done, the X and
+ * Escape close the popup, and the focus goes to `finalFocus`.
  */
 function SpellPicker({
   open,
@@ -159,14 +190,18 @@ function SpellPicker({
   selection,
   name,
   groups,
+  lookup,
   at,
+  finalFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selection: BuilderSelection;
   name: string;
   groups: SpellGroup<OptionSpell>[];
+  lookup: SpellLookup;
   at: SpellRef | undefined;
+  finalFocus: () => HTMLElement | null;
 }) {
   const panes = useRef<HTMLDivElement>(null);
   return (
@@ -183,12 +218,14 @@ function SpellPicker({
             {name}
             <Comma />
           </span>
-          <LeftMark left={selection.remaining} success={selection.remaining === 0} />
+          {/* "Done" is green: nothing is left to pick. */}
+          <LeftMark left={selection.remaining} success />
         </h2>
       }
       initialFocus={() => panes.current?.querySelector<HTMLElement>(`[${INITIAL_FOCUS}]`) ?? null}
+      finalFocus={finalFocus}
     >
-      <PickerBody selection={selection} name={name} groups={groups} at={at} panes={panes} onDone={() => onOpenChange(false)} />
+      <PickerBody selection={selection} name={name} groups={groups} lookup={lookup} at={at} panes={panes} onDone={() => onOpenChange(false)} />
     </Dialog>
   );
 }
@@ -198,6 +235,7 @@ function PickerBody({
   selection,
   name,
   groups,
+  lookup,
   at,
   panes,
   onDone,
@@ -205,11 +243,11 @@ function PickerBody({
   selection: BuilderSelection;
   name: string;
   groups: SpellGroup<OptionSpell>[];
+  lookup: SpellLookup;
   at: SpellRef | undefined;
   panes: RefObject<HTMLDivElement>;
   onDone: () => void;
 }) {
-  const lookup = useSpellLookup();
   const done = useRef<HTMLButtonElement>(null);
   const { select, deselect, replace, dialog } = usePick(selection);
   const unavailable = useUnavailable(selection);
@@ -223,22 +261,13 @@ function PickerBody({
         panes={panes}
         fallback={() => done.current}
         // A change of the count goes in the live region, with the selection: "Wizard Cantrips Known: 2 left".
-        messages={[`${name}: ${markText(selection.remaining)}`]}
+        messages={[`${name}: ${leftMarkText(selection.remaining)}`]}
         marks={mark}
-        view={(spell, { record, keep }) => {
-          const rowMark = mark(spell);
-          return (
-            <SpellView name={spell.name} spell={record}>
-              <PickLine
-                mark={rowMark}
-                onChange={(on) => {
-                  keep();
-                  rowMark.box?.onChange(on);
-                }}
-              />
-            </SpellView>
-          );
-        }}
+        view={(spell, { record, mark }) => (
+          <SpellView name={spell.name} spell={record}>
+            {mark && <PickLine mark={mark} />}
+          </SpellView>
+        )}
       />
       <div className="flex flex-none justify-end border-t border-rule-strong px-[18px] py-2.5 max-[600px]:px-4">
         <Button ref={done} variant="solid" icon="check" onClick={onDone}>
@@ -264,11 +293,12 @@ function spellMark(
   const current = selection.options.find((option) => option.selected)?.key;
   return (spell) => {
     const reason = unavailable.get(spell.key);
-    if (reason !== undefined) return { box: null, state: "not available", locked: reason };
+    if (reason !== undefined) return { kind: "locked", reason, state: "not available" };
     const state = spell.selected ? "chosen" : "not chosen";
     const name = `Chosen: ${spell.name}`;
     if (!selection.multiselect)
       return {
+        kind: "box",
         box: {
           checked: spell.selected,
           name,
@@ -280,6 +310,7 @@ function spellMark(
       };
     const disabled = full && !spell.selected;
     return {
+      kind: "box",
       box: {
         checked: spell.selected,
         name,
@@ -296,13 +327,14 @@ function spellMark(
  * The line of the spell view under the name: the box with "Chosen" or "Not chosen", and the reason when the box is
  * disabled; for a spell that the character cannot take, the lock and "Not available. {reason}".
  */
-function PickLine({ mark, onChange }: { mark: RowMark; onChange: (on: boolean) => void }) {
+function PickLine({ mark }: { mark: RowMark }) {
   const reasonId = useId();
-  if (mark.locked !== undefined || !mark.box)
+  if (mark.kind === "none") return null;
+  if (mark.kind === "locked")
     return (
       <p className="flex items-center gap-2.5 font-sans text-[13.5px] text-ink-muted">
         <LockIcon />
-        {notAvailableText(mark.locked ?? "")}
+        {notAvailableText(mark.reason)}
       </p>
     );
   const { box } = mark;
@@ -314,7 +346,7 @@ function PickLine({ mark, onChange }: { mark: RowMark; onChange: (on: boolean) =
         checked={box.checked}
         disabled={box.disabled}
         aria-describedby={box.description ? reasonId : undefined}
-        onCheckedChange={onChange}
+        onCheckedChange={box.onChange}
         className="gap-2.5"
       />
       {box.description && (

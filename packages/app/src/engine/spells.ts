@@ -54,15 +54,22 @@ export function useSpellContent(): SpellContent | null {
 }
 
 /**
+ * The level and the name of a spell option of a class list: the engine
+ * names it with its level first, "1 - Alarm", which is level 1 and the name
+ * "Alarm". A name with no such prefix has the level null and stays as it is.
+ */
+export function splitLevelPrefix(optionName: string): { level: number | null; name: string } {
+  const prefix = /^(\d) - /.exec(optionName);
+  return prefix ? { level: Number(prefix[1]), name: optionName.slice(prefix[0].length) } : { level: null, name: optionName };
+}
+
+/**
  * A spell's level: from the SRD content, or else from a "N - " prefix of
  * its option name, such as "1 - Alarm". A homebrew spell can have neither;
  * its level is then null.
  */
 export function spellLevelOf(key: string, name: string, content: SpellContent | null): number | null {
-  const level = content?.get(key)?.level;
-  if (level !== undefined) return level;
-  const prefix = /^(\d) - /.exec(name);
-  return prefix ? Number(prefix[1]) : null;
+  return content?.get(key)?.level ?? splitLevelPrefix(name).level;
 }
 
 /**

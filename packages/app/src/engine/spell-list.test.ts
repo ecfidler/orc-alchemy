@@ -1,9 +1,20 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
+import { builderSteps, treeNodes } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { type KnownSpell, type Spellcasting, toSheet } from "./sheet.ts";
-import { levelHeading, optionSpellGroups, searchSpellGroups, sourceNumbers, spellClassLine, spellGroups, spellId, spellSources } from "./spell-list.ts";
+import {
+  isSpellSelection,
+  levelHeading,
+  optionSpellGroups,
+  searchSpellGroups,
+  sourceNumbers,
+  spellClassLine,
+  spellGroups,
+  spellId,
+  spellSources,
+} from "./spell-list.ts";
 import { spellLookup } from "./spell-records.ts";
 import { loadSpellContent, setPrepared } from "./spells.ts";
 
@@ -171,3 +182,19 @@ test("optionSpellGroups gives the options of a spell selection by level, A to Z 
     [2, ["Blur", "Tsunami"]],
   ]);
 });
+
+test("isSpellSelection: on the Spells step of warlock-10-drow, the spell selections are spell selections, and Eldritch Invocations is not (ORC-357)", async () => {
+  const lookup = spellLookup(await loadSpellContent(), undefined);
+  const e = engine();
+  const steps = builderSteps(e.evaluate(readJson("warlock-10-drow.strict.json"), {}).selections, e.buildTemplate().shape);
+  const selections = treeNodes(steps.find((step) => step.name === "Spells")!.selections);
+  expect(Object.fromEntries(selections.map((selection) => [selection.name, isSpellSelection(selection, lookup)]))).toEqual({
+    "Warlock Cantrips Known": true,
+    "Warlock Spells Known": true,
+    "Book of Shadows Cantrips": true,
+    "Eldritch Invocations": false,
+    "Book of Ancient Secrets Rituals": true,
+  });
+  // A selection with no options is not a spell selection.
+  expect(isSpellSelection({ options: [] }, lookup)).toBe(false);
+}, 20_000);

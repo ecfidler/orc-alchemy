@@ -11,7 +11,7 @@ import { type Ability, type KnownSpell, ordinal, type Sheet, type Spellcasting }
 import { prepareKind } from "./spell-prepare.ts";
 import { type SpellLookup, spellName } from "./spell-records.ts";
 import { slotEntries } from "./spell-slots.ts";
-import { spellLevelOf } from "./spells.ts";
+import { splitLevelPrefix } from "./spells.ts";
 
 /** A known spell as the sheet and the panel show it: `name` is the name to show, and `level` is its spell level. */
 export interface ListedSpell extends KnownSpell {
@@ -93,6 +93,16 @@ export interface OptionSpell extends ListSpell {
 }
 
 /**
+ * True when the options of a builder selection are spells (ORC-357): each
+ * option has a spell record. Such a selection on the Spells step has the
+ * "Add spells" popup. Another selection there, for example Eldritch
+ * Invocations, has the control of its kind (SelectionControl). A selection
+ * with no options is not a spell selection.
+ */
+export const isSpellSelection = (selection: Pick<BuilderSelection, "options">, lookup: SpellLookup) =>
+  selection.options.length > 0 && selection.options.every((option) => lookup(option.key) !== undefined);
+
+/**
  * The options of a spell selection of the builder (ORC-357), in one group for
  * each level, cantrips first, A to Z by name in a group. The source of each
  * spell is the selection name, so `spellId` tells the rows apart. The level
@@ -105,9 +115,12 @@ export function optionSpellGroups(selection: Pick<BuilderSelection, "name" | "op
   const byLevel = new Map<number, OptionSpell[]>();
   for (const option of selection.options) {
     const record = lookup?.(option.key)?.record;
-    const level = spellLevelOf(option.key, option.name, null) ?? record?.level ?? 0;
-    const name = record?.name ?? option.name.replace(/^\d - /, "");
-    byLevel.set(level, [...(byLevel.get(level) ?? []), { key: option.key, source: selection.name, name, castNote: null, level, selected: option.selected }]);
+    const prefix = splitLevelPrefix(option.name);
+    const level = prefix.level ?? record?.level ?? 0;
+    const spell = { key: option.key, source: selection.name, name: record?.name ?? prefix.name, castNote: null, level, selected: option.selected };
+    const spells = byLevel.get(level);
+    if (spells) spells.push(spell);
+    else byLevel.set(level, [spell]);
   }
   return [...byLevel].sort(([a], [b]) => a - b).map(([level, spells]) => ({ level, spells: spells.sort((a, b) => a.name.localeCompare(b.name)) }));
 }

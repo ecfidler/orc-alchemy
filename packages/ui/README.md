@@ -516,14 +516,18 @@ bun run test       # vitest
   - `LeftMark`: the mark of a selection at the right of its heading.
     `left` above 0 gives "2 left" as a small tilted yellow note, below 0 gives
     "Remove 1" as a red one, and 0 gives the check icon and "Done" in
-    muted text; with `success`, "Done" is green and semibold, for a count
-    that is at its maximum. Each mark is in the same box, of a fixed height and a
+    muted text; with `success`, "Done" is green and semibold, for a
+    selection that the user completes in a popup, with nothing left to
+    pick. Each mark is in the same box, of a fixed height and a
     minimum width, so the heading does not move or change its size when
     the mark changes. Put it last in a heading that is a flex row. Its
     text is a part of the heading text: end the name with a comma that does
     not show and stays in the line (not `sr-only`, which a browser reads
     with a space before it), so a screen reader reads "Languages, 2 left".
     Styles: `src/rail.css`.
+  - `leftMarkText`: the words of a `LeftMark` as a string: "2 left",
+    "Remove 1" or "Done". Use it where the words show without the mark,
+    for example in a live region.
   - `AlertNotes` and `AlertNote`: flat notes at the top of the page column.
   - `Toast`: a region fixed at the bottom centre of the screen, 16px
     above the bottom edge and the safe area, in a portal at the end of the

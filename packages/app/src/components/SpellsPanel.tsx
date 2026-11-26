@@ -270,15 +270,16 @@ function PrepareLine({
 /** The mark of a row in prepare mode: the prepare box, and the state words and the label of its prepare kind. */
 function prepareMark(spell: ListedSpell, kind: PrepareKind, withSource: boolean, onPrepare: PrepareSpell): RowMark {
   const name = `Prepared: ${spell.name}${withSource ? `, ${spell.source}` : ""}`;
-  if (kind === "cantrip") return { box: null };
-  if (kind === "known") return { box: null, state: "known", label: { text: "Known" } };
+  if (kind === "cantrip") return { kind: "none" };
+  if (kind === "known") return { kind: "none", state: "known", label: { text: "Known" } };
   if (kind === "always")
     return {
+      kind: "box",
       box: { checked: spell.prepared, name, disabled: true, onChange: () => {} },
       state: "always prepared",
       label: { text: "Always prepared", lock: true },
     };
-  return { box: { checked: spell.prepared, name, onChange: (on) => onPrepare(spell, on) }, state: spell.prepared ? "prepared" : "not prepared" };
+  return { kind: "box", box: { checked: spell.prepared, name, onChange: (on) => onPrepare(spell, on) }, state: spell.prepared ? "prepared" : "not prepared" };
 }
 
 /**
@@ -405,7 +406,7 @@ function PanelBody({
         headingSlots={(level) => <HeadingSlots spellcasting={spellcasting} level={level} onSpendSlots={onSpendSlots} copy={!folded} />}
         marks={prepareMode ? (spell) => prepareMark(spell, prepareKind(spell, spellcasting.casters), withSource, onPrepare) : undefined}
         withSource={withSource}
-        view={(selected, { record, phone, keep }) => {
+        view={(selected, { record, phone, kept }) => {
           const kind = prepareKind(selected, spellcasting.casters);
           // What the selected spell can do now. Without a cast handler, or for a spell with no control, the spell view has no control.
           const choices = onCast ? castChoices(selected, record?.record, { slots: spellcasting, concentration, uses }) : null;
@@ -440,10 +441,7 @@ function PanelBody({
                   count={counts.find((count) => count.className === selected.source)}
                   withClass={withClass}
                   prepareMode={prepareMode}
-                  onPrepare={(spell, on) => {
-                    keep();
-                    onPrepare(spell, on);
-                  }}
+                  onPrepare={kept(onPrepare)}
                 />
               )}
             </SpellView>
