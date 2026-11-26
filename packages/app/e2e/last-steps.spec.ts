@@ -94,6 +94,30 @@ test("orc-357 Eldritch Invocations of a warlock 20 has the control of its kind, 
   await expect(section(page, "Warlock Cantrips Known").getByRole("button", { name: "Add spells: Warlock Cantrips Known" })).toBeVisible();
 });
 
+for (const width of [1280, 390])
+  test(`orc-357 the picks of a selection with levels show as a comma separated list for each level, and a pick moves nothing, ${width}px`, async ({ page }) => {
+    // Twelve picks in the warlock 20 take about 30 s.
+    test.slow();
+    await page.setViewportSize({ width, height: 900 });
+    await openWarlock(page);
+    const known = section(page, "Warlock Spells Known");
+    const list = known.getByRole("list", { name: "Chosen: Warlock Spells Known" });
+    const level = (heading: string) => list.getByRole("listitem").filter({ hasText: new RegExp(`^${heading}`) });
+    // A line group for each level, with its label in front of its names. The commas are not in the accessibility tree.
+    await expect(level("3rd level")).toHaveText("3rd levelCounterspell, Fear, Gaseous Form, Hypnotic Pattern, Remove Curse, Vampiric Touch");
+    expect(await level("3rd level").ariaSnapshot()).not.toContain(",");
+    const parts = [known, known.getByRole("heading").first(), known.getByRole("button", { name: "Add spells: Warlock Spells Known" })];
+    const before = await boxes(parts);
+    // Remove all the picks of the 3rd level, then add them again: nothing moves.
+    const third = ["Counterspell", "Fear", "Gaseous Form", "Hypnotic Pattern", "Remove Curse", "Vampiric Touch"];
+    await addSpells(page, "Warlock Spells Known", third);
+    await expect(level("3rd level")).toHaveCount(0);
+    expect(await boxes(parts)).toEqual(before);
+    await addSpells(page, "Warlock Spells Known", third);
+    await expect(known.getByRole("heading").first()).toHaveAccessibleName("Warlock Spells Known, Done");
+    expect(await boxes(parts)).toEqual(before);
+  });
+
 test("a pick in a starting equipment selection does not move it, its cards or the selection below it", async ({ page }) => {
   await newCharacter(page);
   await addFirstClass(page, "Fighter");
@@ -253,66 +277,80 @@ test.describe("screenshots of the Add spells popup", () => {
   test.use({ deviceScaleFactor: 2 });
   const dir = join(import.meta.dirname, "../../../pr-screenshots");
 
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390]) {
-      const size = width === 390 ? "390" : "desktop";
-      test(`orc-357 the Spells step and the Add spells popup, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        const path = (what: string) => join(dir, `orc-357-${what}-${size}-${theme}.png`);
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        const ready = async () => {
-          await page.evaluate(() => document.fonts.ready);
-          await page.mouse.move(0, 0);
-        };
-        // A new wizard 1 with two cantrips and three 1st-level spells.
-        await newCharacter(page);
-        await addFirstClass(page, "Wizard");
-        await openStep(page, "Spells");
-        await addSpells(page, "Wizard Cantrips Known", ["Fire Bolt", "Mage Hand"]);
-        await addSpells(page, "Wizard Spells Known", ["Magic Missile", "Shield", "Mage Armor"]);
-        await ready();
-        // The step: the two spell selections, above the prepared spells.
-        const first = (await section(page, "Wizard Cantrips Known").boundingBox())!;
-        const second = (await section(page, "Wizard Spells Known").boundingBox())!;
-        await page.screenshot({
-          path: path("step"),
-          animations: "disabled",
-          fullPage: true,
-          clip: { x: 0, y: Math.max(0, first.y - 140), width, height: second.y + second.height - first.y + 170 },
-        });
-        // The popup of the spellbook, at Shield: its row has the box, and the spell view has the Chosen box.
-        await section(page, "Wizard Spells Known").getByRole("button", { name: "Shield", exact: true }).click();
-        const popup = page.getByRole("dialog", { name: "Wizard Spells Known" });
-        await expect(popup.getByRole("region", { name: "Shield" })).toBeVisible();
-        await ready();
-        await page.screenshot({ path: path("popup"), animations: "disabled" });
-        if (width === 390) {
-          // The list view of the phone.
-          await popup.getByRole("button", { name: "Back to the list" }).click();
-          await ready();
-          await page.screenshot({ path: path("popup-list"), animations: "disabled" });
-        }
-      });
+  // The project rule: desktop and light mode only.
+  const theme = "light";
+  const width = 1280;
+  const size = "desktop";
 
-      test(`orc-357 the Eldritch Invocations control of a warlock 20, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        await openWarlock(page);
-        const invocations = section(page, "Eldritch Invocations");
-        await invocations.scrollIntoViewIfNeeded();
-        await page.evaluate(() => document.fonts.ready);
-        await page.mouse.move(0, 0);
-        // The clip of a full page screenshot is in page coordinates.
-        const box = (await invocations.boundingBox())!;
-        const top = box.y + (await page.evaluate(() => window.scrollY));
-        await page.screenshot({
-          path: join(dir, `orc-357-invocations-${size}-${theme}.png`),
-          animations: "disabled",
-          fullPage: true,
-          clip: { x: 0, y: Math.max(0, top - 120), width, height: box.height + 240 },
-        });
-      });
-    }
+  test(`orc-357 the Spells step and the Add spells popup, ${size}, ${theme}`, async ({ page }) => {
+    mkdirSync(dir, { recursive: true });
+    const path = (what: string) => join(dir, `orc-357-${what}-${size}-${theme}.png`);
+    await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+    await page.setViewportSize({ width, height: 900 });
+    const ready = async () => {
+      await page.evaluate(() => document.fonts.ready);
+      await page.mouse.move(0, 0);
+    };
+    // A new wizard 1 with two cantrips and three 1st-level spells.
+    await newCharacter(page);
+    await addFirstClass(page, "Wizard");
+    await openStep(page, "Spells");
+    await addSpells(page, "Wizard Cantrips Known", ["Fire Bolt", "Mage Hand"]);
+    await addSpells(page, "Wizard Spells Known", ["Magic Missile", "Shield", "Mage Armor"]);
+    await ready();
+    // The step: the two spell selections, above the prepared spells.
+    const first = (await section(page, "Wizard Cantrips Known").boundingBox())!;
+    const second = (await section(page, "Wizard Spells Known").boundingBox())!;
+    await page.screenshot({
+      path: path("step"),
+      animations: "disabled",
+      fullPage: true,
+      clip: { x: 0, y: Math.max(0, first.y - 140), width, height: second.y + second.height - first.y + 170 },
+    });
+    // The popup of the spellbook, at Shield: its row has the box, and the spell view has the Chosen box.
+    await section(page, "Wizard Spells Known").getByRole("button", { name: "Shield", exact: true }).click();
+    const popup = page.getByRole("dialog", { name: "Wizard Spells Known" });
+    await expect(popup.getByRole("region", { name: "Shield" })).toBeVisible();
+    await ready();
+    await page.screenshot({ path: path("popup"), animations: "disabled" });
+  });
+
+  test(`orc-357 the picks of a selection with levels, a warlock 20, ${size}, ${theme}`, async ({ page }) => {
+    mkdirSync(dir, { recursive: true });
+    await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+    await page.setViewportSize({ width, height: 900 });
+    await openWarlock(page);
+    const known = section(page, "Warlock Spells Known");
+    await known.scrollIntoViewIfNeeded();
+    await page.evaluate(() => document.fonts.ready);
+    await page.mouse.move(0, 0);
+    const box = (await known.boundingBox())!;
+    const top = box.y + (await page.evaluate(() => window.scrollY));
+    await page.screenshot({
+      path: join(dir, `orc-357-step-levels-${size}-${theme}.png`),
+      animations: "disabled",
+      fullPage: true,
+      clip: { x: 0, y: Math.max(0, top - 120), width, height: box.height + 200 },
+    });
+  });
+
+  test(`orc-357 the Eldritch Invocations control of a warlock 20, ${size}, ${theme}`, async ({ page }) => {
+    mkdirSync(dir, { recursive: true });
+    await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+    await page.setViewportSize({ width, height: 900 });
+    await openWarlock(page);
+    const invocations = section(page, "Eldritch Invocations");
+    await invocations.scrollIntoViewIfNeeded();
+    await page.evaluate(() => document.fonts.ready);
+    await page.mouse.move(0, 0);
+    // The clip of a full page screenshot is in page coordinates.
+    const box = (await invocations.boundingBox())!;
+    const top = box.y + (await page.evaluate(() => window.scrollY));
+    await page.screenshot({
+      path: join(dir, `orc-357-invocations-${size}-${theme}.png`),
+      animations: "disabled",
+      fullPage: true,
+      clip: { x: 0, y: Math.max(0, top - 120), width, height: box.height + 240 },
+    });
+  });
 });

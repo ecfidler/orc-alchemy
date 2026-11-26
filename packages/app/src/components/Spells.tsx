@@ -7,7 +7,7 @@
 // box at the left of each row that adds the spell or removes it, and the spell view. A name opens the popup at its
 // spell.
 import { Button, Checkbox, Dialog, Label, LeftMark, LockIcon, leftMarkText } from "@orc-alchemy/ui";
-import { type CSSProperties, Fragment, type RefObject, useId, useRef, useState } from "react";
+import { Fragment, type RefObject, useId, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { listText, notAvailableText } from "../engine/selection-control.ts";
 import type { SpellRef } from "../engine/sheet.ts";
@@ -26,29 +26,37 @@ import { SpellView } from "./SpellView.tsx";
 import { Comma, HEADING_CLASSES, Heading } from "./selection-heading.tsx";
 import { useMutation } from "./use-mutation.ts";
 
-/** The height of a line of the picked names, in px: a line of text-sm leading-6. */
-const LINE_PX = 24;
-
-/** The names on a line of the picked names: on a step narrower than 560px, and on a step 560px wide or more. */
-export const PER_LINE = { narrow: 2, wide: 4 } as const;
-
-/**
- * The lines that the picked names of a selection can take: `count` names on lines of `perLine` names, a new line at
- * each of `levels` levels, and, with two levels or more, a line for the heading of each level. A selection whose
- * options have one level shows no level heading.
- */
-export function pickLines(count: number, levels: number, perLine: number): number {
-  const shown = Math.max(1, Math.min(levels, count));
-  const headings = levels > 1 ? shown : 0;
-  return Math.max(1, Math.ceil(count / perLine) + shown - 1 + headings);
-}
-
 /**
  * The number of names that the space of the picked names keeps: the maximum of the selection, or with no maximum the
  * picks to make, or the picks when they are more.
  */
 export const reservedPicks = (selection: Pick<BuilderSelection, "max" | "min" | "selected">) =>
   selection.max ?? Math.max(selection.min ?? 0, selection.selected.length);
+
+/** A line group of the sizer of the picked names: its level label (null with one level), its names, and more labels. */
+export interface SizerGroup {
+  label: string | null;
+  names: string[];
+  /** The labels of the other level groups, in the first group only, for the width that they take on the step. */
+  extraLabels: string[];
+}
+
+/**
+ * The text of the hidden sizer of the picked names (ORC-357): text that is at least as tall as any `reserved` picks of
+ * the options, in the same styles, so that a pick does not move the step. With one level, it is the `reserved` longest
+ * names. With levels, the picks can be in k = min(reserved, levels) groups, and each group starts a line with its label.
+ * The sizer is then k groups: the first group has all the `reserved` longest names and the width of the other k - 1
+ * labels, and each other group has its label and the longest name. A split of the names into groups adds at most one
+ * line for each group after the first, so the sizer keeps the lines of each split. This is an estimate by the count of
+ * characters, not a measure: a set of names with wide letters can be a little wider than the longest names.
+ */
+export function sizerGroups(groups: SpellGroup<OptionSpell>[], reserved: number): SizerGroup[] {
+  const longest = (texts: string[]) => [...texts].sort((a, b) => b.length - a.length);
+  const names = longest(groups.flatMap((group) => group.spells.map((spell) => spell.name))).slice(0, reserved);
+  if (groups.length <= 1) return [{ label: null, names, extraLabels: [] }];
+  const labels = longest(groups.map((group) => levelHeading(group.level))).slice(0, Math.min(Math.max(reserved, 1), groups.length));
+  return labels.map((label, i) => (i === 0 ? { label, names, extraLabels: labels.slice(1) } : { label, names: names.slice(0, 1), extraLabels: [] }));
+}
 
 /** The reason of a box that the count disables. */
 export const FULL_REASON = "Remove a spell first.";
@@ -130,11 +138,15 @@ function SpellSelection({ selection, lookup }: { selection: BuilderSelection; lo
   );
 }
 
+/** The classes of the text of the picked names and of its sizer. */
+const NAMES_CLASSES = "text-sm leading-6 [grid-area:1/1]";
+
 /**
- * The names of the picks, by level and A to Z in a level, in lines of a fixed height: PER_LINE names on a line, and a
- * new line with the level heading at each level when the options have two levels or more. The space keeps the lines
- * that `reserved` names can take (pickLines), so a pick does not move the button and the page below it. A name is a
- * button that opens the popup at its spell. A long name is cut with an ellipsis; its button has the whole name.
+ * The names of the picks, by level and A to Z in a level, as a comma separated list that wraps as text: "Mage Armor,
+ * Magic Missile, Shield". When the options have two levels or more, each level is a line group with its level label
+ * in front. A name is a button that opens the popup at its spell. The commas are hidden from the accessibility tree.
+ * With no pick, the list shows a muted "None". A hidden sizer (sizerGroups) is in the same grid cell, so the space is
+ * at least as tall as the `reserved` longest names, and a pick does not move the button and the page below it.
  */
 function PickedNames({
   name,
@@ -148,31 +160,55 @@ function PickedNames({
   onOpen: (from: HTMLElement, spell: OptionSpell) => void;
 }) {
   const picked = groups.map((group) => ({ ...group, spells: group.spells.filter((spell) => spell.selected) })).filter((group) => group.spells.length > 0);
-  const withHeadings = groups.length > 1;
-  const height = (perLine: number) => `${pickLines(reserved, groups.length, perLine) * LINE_PX}px`;
+  const names = (spells: OptionSpell[]) =>
+    spells.map((spell, i) => (
+      <li key={spell.key} className="inline">
+        <Button variant="plain" aria-haspopup="dialog" onClick={(event) => onOpen(event.currentTarget, spell)}>
+          {spell.name}
+        </Button>
+        {i < spells.length - 1 && <span aria-hidden="true">, </span>}
+      </li>
+    ));
   return (
-    <ul
-      aria-label={`Chosen: ${name}`}
-      style={{ "--narrow": height(PER_LINE.narrow), "--wide": height(PER_LINE.wide) } as CSSProperties}
-      className="grid min-h-(--narrow) auto-rows-[24px] grid-cols-2 gap-x-3 text-sm leading-6 @min-[560px]/spells:min-h-(--wide) @min-[560px]/spells:grid-cols-4"
-    >
-      {picked.map((group) => (
-        <Fragment key={group.level}>
-          {withHeadings && (
-            <li className="col-span-full">
-              <Label>{levelHeading(group.level)}</Label>
-            </li>
-          )}
-          {group.spells.map((spell) => (
-            <li key={spell.key} className="min-w-0">
-              <Button variant="plain" aria-haspopup="dialog" className="max-w-full truncate text-left" onClick={(event) => onOpen(event.currentTarget, spell)}>
-                {spell.name}
-              </Button>
-            </li>
-          ))}
-        </Fragment>
-      ))}
-    </ul>
+    <div className="grid">
+      <ul aria-label={`Chosen: ${name}`} className={NAMES_CLASSES}>
+        {picked.length === 0 && <li className="text-ink-muted">None</li>}
+        {groups.length > 1
+          ? picked.map((group) => (
+              <li key={group.level}>
+                <LevelLabel>{levelHeading(group.level)}</LevelLabel>
+                <ul className="inline">{names(group.spells)}</ul>
+              </li>
+            ))
+          : names(picked.flatMap((group) => group.spells))}
+      </ul>
+      <div aria-hidden="true" className={`invisible ${NAMES_CLASSES}`}>
+        {sizerGroups(groups, reserved).map((group) => (
+          <div key={group.label ?? ""}>
+            {group.label && <LevelLabel>{group.label}</LevelLabel>}
+            {group.extraLabels.map((label) => (
+              <LevelLabel key={label}>{label}</LevelLabel>
+            ))}
+            {/* As a name button: an inline block, then the comma and the space as inline text. Two options can have one name, so the key is the index. */}
+            {group.names.map((text, i) => (
+              <Fragment key={i}>
+                <span className="inline-block">{text}</span>
+                {i < group.names.length - 1 && ", "}
+              </Fragment>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The level label in front of the names of a level: the label style, with a space after it. */
+function LevelLabel({ children }: { children: string }) {
+  return (
+    <span className="mr-2">
+      <Label>{children}</Label>
+    </span>
   );
 }
 

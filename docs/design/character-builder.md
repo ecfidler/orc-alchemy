@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T21:00:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T21:50:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -908,15 +908,23 @@ spells" popup.[^orc-357]
   its picks, and an "Add spells" button with the `sparkles`
   icon.[^orc-357] The name of the button has the selection: "Add spells:
   Wizard Cantrips Known".
-* The names of the picks are by level, A to Z in a level. When the options
-  of the selection have two levels or more, each level has a heading line,
-  for example "1st level". The space of the names is there before the
-  first pick. It keeps the lines that the most picks take, so a pick does
-  not move the button and the page below: 2 names on a line on a step
-  narrower than 560px, and 4 names on a line on a wider step. The most
+* The names of the picks are by level, A to Z in a level, in a comma
+  separated list that wraps as text: "Mage Armor, Magic Missile,
+  Shield". The form is the same at all widths. When the options of the
+  selection have two levels or more, each level starts a line, with its
+  level label in the label style in front of its names, for example
+  "1ST LEVEL Alarm, Shield". The commas are not in the accessibility
+  tree. With no pick, the list shows a muted "None".[^orc-357]
+* The space of the names is there before the first pick, so a pick does
+  not move the button and the page below. A hidden copy of text in the
+  same place sets the space: the longest names of the options, as many
+  as the most picks. With levels, the copy also has a line for each level
+  that the picks can fill, because each level starts a line. The most
   picks are the maximum of the selection. A selection with no maximum
   keeps the space of the picks to make, and grows when the picks are
-  more. A long name is cut with an ellipsis.
+  more. The copy uses the count of characters to find the longest names,
+  so the space is an estimate, and it can be some lines taller than the
+  picks need.
 * A name is a button that opens the popup at its spell, as a spell name on
   the sheet opens the Spells panel.
 * The button opens a popup for the selection. The popup is a wide `Dialog`

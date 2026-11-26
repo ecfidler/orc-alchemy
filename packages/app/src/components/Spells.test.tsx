@@ -6,7 +6,7 @@ import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { loadSpellContent, preparedSpells } from "../engine/spells.ts";
 import { useCharacter } from "../state/character.ts";
 import { Builder } from "./Builder.tsx";
-import { FULL_REASON, PER_LINE, pickLines, reservedPicks } from "./Spells.tsx";
+import { FULL_REASON, reservedPicks, sizerGroups } from "./Spells.tsx";
 
 // The prepare boxes wait for the spell records (ORC-288), so the records load first.
 beforeAll(async () => {
@@ -164,7 +164,9 @@ test("the picks of a wizard 3 show by level, with a heading for each level", () 
     within(list)
       .getAllByRole("listitem", { hidden: true })
       .map((item) => item.textContent),
-  ).toEqual(["1st level", "Alarm", "2nd level", "Blur"]);
+  ).toEqual(["1st levelAlarm", "Alarm", "2nd levelBlur", "Blur"]);
+  // Each level is a list item with its label in front of a list of its names.
+  expect(within(list).getAllByRole("list", { hidden: true })).toHaveLength(2);
 });
 
 test("a wizard 1 adds two spells in the popup, and prepares one spell of 1 on the step", () => {
@@ -239,19 +241,45 @@ test("the Spells step of a paladin 2 is not empty: it has no spell to pick, but 
   expect(screen.getByRole("region", { name: /^Prepared spells: Paladin/ })).toBeTruthy();
 });
 
-test("the space of the picks keeps the lines of the most picks: a line for each 2 or 4 names, a new line at each level, and a heading line for each level", () => {
-  // Wizard cantrips: 3 names of one level, with no level heading.
-  expect([pickLines(3, 1, PER_LINE.narrow), pickLines(3, 1, PER_LINE.wide)]).toEqual([2, 1]);
-  // A wizard 1's spellbook: 6 names of one level.
-  expect([pickLines(6, 1, PER_LINE.narrow), pickLines(6, 1, PER_LINE.wide)]).toEqual([3, 2]);
-  // A wizard 3's spellbook: 8 names of two levels, each level with its heading.
-  expect([pickLines(8, 2, PER_LINE.narrow), pickLines(8, 2, PER_LINE.wide)]).toEqual([7, 5]);
-  // A selection with no pick to make keeps one line.
-  expect(pickLines(0, 1, PER_LINE.narrow)).toBe(1);
+test("the hidden sizer of the picks has the longest names of the most picks, and with levels a group for each level that the picks can fill", () => {
+  const spell = (name: string, level: number) => ({ key: name, source: "S", name, castNote: null, level, selected: false });
+  const group = (level: number, names: string[]) => ({ level, spells: names.map((name) => spell(name, level)) });
+  // One level: the `reserved` longest names, with no label.
+  expect(sizerGroups([group(0, ["Light", "Fire Bolt", "Mage Hand", "Prestidigitation"])], 2)).toEqual([
+    { label: null, names: ["Prestidigitation", "Fire Bolt"], extraLabels: [] },
+  ]);
+  // Two levels and 3 picks: the first group has the 3 longest names and the width of the other label; the other
+  // group has its label and the longest name.
+  expect(sizerGroups([group(1, ["Alarm", "Magic Missile"]), group(2, ["Blur", "Misty Step"])], 3)).toEqual([
+    { label: "1st level", names: ["Magic Missile", "Misty Step", "Alarm"], extraLabels: ["2nd level"] },
+    { label: "2nd level", names: ["Magic Missile"], extraLabels: [] },
+  ]);
+  // Many levels and 2 picks: the picks can fill 2 groups only.
+  const levels = [1, 2, 3, 4].map((level) => group(level, [`Spell ${level}`]));
+  expect(sizerGroups(levels, 2).map((g) => g.label)).toEqual(["1st level", "2nd level"]);
+  // No pick to make: one label, no name.
+  expect(sizerGroups(levels, 0)).toEqual([{ label: "1st level", names: [], extraLabels: [] }]);
   // The space is for the maximum, or with no maximum for the picks to make, or the picks when they are more.
   expect(reservedPicks({ max: 3, min: 3, selected: [] })).toBe(3);
   expect(reservedPicks({ max: null, min: 6, selected: [] })).toBe(6);
   expect(reservedPicks({ max: null, min: 6, selected: ["a", "b", "c", "d", "e", "f", "g"] })).toBe(7);
+});
+
+test("the picks show as a comma separated list; the commas are not in the accessibility tree; with no pick the list shows None", () => {
+  open("spells-wizard-1-commas", caster("wizard"));
+  const list = () => screen.getByRole("list", { name: "Chosen: Wizard Spells Known" });
+  expect(list().textContent).toBe("None");
+  openPopup("Wizard Spells Known");
+  for (const name of ["Shield", "Mage Armor", "Magic Missile"]) fireEvent.click(box(name));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+  expect(list().textContent).toBe("Mage Armor, Magic Missile, Shield");
+  expect(
+    within(list())
+      .getAllByRole("listitem")
+      .map((item) => item.textContent),
+  ).toEqual(["Mage Armor, ", "Magic Missile, ", "Shield"]);
+  for (const comma of list().querySelectorAll("li > span")) expect(comma).toHaveAttribute("aria-hidden", "true");
+  expect(chosen("Wizard Spells Known")).toEqual(["Mage Armor", "Magic Missile", "Shield"]);
 });
 
 test("Eldritch Invocations of warlock-10-drow has the control of its kind, not the Add spells popup (ORC-357)", () => {
