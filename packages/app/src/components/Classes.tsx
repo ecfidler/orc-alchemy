@@ -1,19 +1,18 @@
 // The Class step (ORC-58): the classes and their levels, as the old builder's
-// class rows, and the hit points and ability score improvements each level
-// asks for. Each change is an engine mutation, as in Selection. It also holds
-// useMutation and Heading, which Options in Builder.tsx uses for each selection.
+// class rows, and the hit points each level asks for. The ability score
+// improvements are on the Abilities step (AbilityScores.tsx). Each change is
+// an engine mutation, as in Selection. It also holds useMutation and Heading,
+// which Options in Builder.tsx uses for each selection.
 // A refusal of the engine shows in the status toast of the builder (ORC-343).
 import { Button, LeftMark, Select, Toggle, ToggleGroup, useConfirm } from "@orc-alchemy/ui";
 import { useId, useMemo, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { averageHitPoints, type HitPointsMethod, rollHitPoints, storedHitPoints } from "../engine/classes.ts";
-import { unqualify } from "../engine/content.ts";
 import { type Content, type Engine, engine, type StrictEntity } from "../engine/engine.ts";
 import { addAClass } from "../engine/new-character.ts";
-import { ABILITIES } from "../engine/sheet.ts";
 import { useCharacter, useCharacterContent, useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
-import { useBuilderStatus, useSectionName } from "./builder-context.tsx";
+import { useBuilderStatus, useSectionLevel, useSectionName } from "./builder-context.tsx";
 
 const MAX_LEVEL = 20;
 
@@ -130,20 +129,24 @@ export function Classes({ selection }: { selection: BuilderSelection }) {
  * left", "Remove 1" or "Done". The mark has a fixed place, so a pick does not move the heading or change its size.
  * The mark is a part of the heading text: "Languages, 2 left". `mark={false}` gives the heading with no mark, for a
  * part that is no selection with picks, such as an inventory list. When the open step has another section of the same
- * name, the name has the sources of the selection (spec, "Text").
+ * name, the name has the sources of the selection (spec, "Text"). `name` replaces the name, for a section that names
+ * its source in its own way, such as "Ability Score Improvement: Fighter 4". The heading is an h3, or an h4 under a
+ * group heading (useSectionLevel).
  */
-export function Heading({ id, selection, mark = true }: { id: string; selection: BuilderSelection; mark?: boolean }) {
+export function Heading({ id, selection, mark = true, name: own }: { id: string; selection: BuilderSelection; mark?: boolean; name?: string }) {
   // On a step with two sections of one name, the name has the source: "Skill Proficiency: Fighter".
-  const name = useSectionName(selection);
+  const sectionName = useSectionName(selection);
+  const name = own ?? sectionName;
+  const H = useSectionLevel() === 4 ? "h4" : "h3";
   return (
-    <h3 id={id} className={HEADING_CLASSES}>
+    <H id={id} className={HEADING_CLASSES}>
       <span className="min-w-0">
         {name}
         {/* A comma for a screen reader: "Languages, 2 left". It is in the line, so no space comes before it. */}
         {mark && <span className="text-[1px] opacity-0">,</span>}
       </span>
       {mark && <LeftMark left={selection.remaining} />}
-    </h3>
+    </H>
   );
 }
 
@@ -175,50 +178,6 @@ export function HitPoints({ selection }: { selection: BuilderSelection }) {
         </ToggleGroup>
         <BoundedNumberField label="Hit points" min={1} value={stored?.value ?? null} onCommit={(n) => write("manual-entry", n)} />
       </div>
-    </section>
-  );
-}
-
-/** An ability score improvement, such as at fighter level 4 or the half-elf's: picks of each ability, up and down. */
-export function Improvements({ selection }: { selection: BuilderSelection }) {
-  const id = useId();
-  const { sheet } = useOpenCharacter();
-  const run = useMutation();
-  const { actualPath, max } = selection;
-  const full = max !== null && selection.selected.length >= max;
-  return (
-    <section aria-labelledby={id} className="space-y-2">
-      <Heading id={id} selection={selection} />
-      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-        {ABILITIES.map((ability) => {
-          const abbr = ability.toUpperCase();
-          const count = selection.selected.filter((key) => unqualify(key) === ability).length;
-          const offered = selection.options.some((o) => unqualify(o.key) === ability);
-          const total = sheet?.abilities.find((a) => a.ability === ability)?.score ?? 0;
-          return (
-            <li key={ability} className="text-center">
-              <div>{abbr}</div>
-              <div className="flex items-center justify-center gap-1">
-                <Button
-                  aria-label={`Decrease ${abbr}`}
-                  disabled={count === 0}
-                  onClick={() => run((e, entity, opts) => e.decreaseAbility(entity, actualPath, ability, opts))}
-                  size="small"
-                  icon="minus"
-                />
-                <span>+{count}</span>
-                <Button
-                  aria-label={`Increase ${abbr}`}
-                  disabled={!offered || full || total >= 20}
-                  onClick={() => run((e, entity, opts) => e.increaseAbility(entity, actualPath, ability, opts))}
-                  size="small"
-                  icon="plus"
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
     </section>
   );
 }

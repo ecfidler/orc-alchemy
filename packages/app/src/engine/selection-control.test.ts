@@ -4,6 +4,7 @@ import { beforeAll, expect, test } from "vitest";
 import { setBaseScores } from "./abilities.ts";
 import { type BuilderSelection, type BuilderStep, builderSteps } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { fixedProficiencies } from "./proficiencies.ts";
 import {
   controlKind,
   fromText,
@@ -114,6 +115,22 @@ test("a skill, a language or a tool that the character has is not available, and
   // The half-elf speaks Common and Elvish.
   const languages = unavailableOptions(input, find(steps, "Proficiencies", "Languages"));
   expect(Object.fromEntries(languages)).toEqual({ common: "From Half-Elf", elvish: "From Half-Elf" });
+});
+
+test("a picked skill that a fixed source gives too is in Already has, with the fixed source; a pick alone is not", () => {
+  const e = engine();
+  let entity = e.setClass(e.emptyCharacter(), 0, "rogue") as StrictEntity;
+  entity = e.select(entity, ["class", "rogue", "skill-proficiency"], "perception") as StrictEntity;
+  // The rogue picked Perception, and has it from no other source.
+  expect(fixedProficiencies(build(entity).input)).toEqual([{ kind: "tool", key: "thieves-tools", sources: ["Rogue"] }]);
+  // Then the rogue becomes an elf, who has Perception too.
+  entity = e.select(entity, ["race"], "elf") as StrictEntity;
+  expect(fixedProficiencies(build(entity).input)).toEqual(
+    expect.arrayContaining([
+      { kind: "skill", key: "perception", sources: ["Elf"] },
+      { kind: "tool", key: "thieves-tools", sources: ["Rogue"] },
+    ]),
+  );
 });
 
 test("an option with a prerequisite that the character does not meet is not available, with the engine's label", () => {

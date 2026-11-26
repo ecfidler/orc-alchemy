@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T05:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T10:42:53Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -513,7 +513,8 @@ Choose button.
 # The Abilities step
 
 The ability score control is six boxes, one for each ability.[^orc-331]
-On a page narrower than 720px, they are three in a row.
+They are six in a row on a wide control, and three in a row on a
+narrower one. The last bullet of the list below gives the widths.
 
 * The four methods are a segmented toggle above the boxes: Standard
   Scores, Standard Roll, Point Buy, Manual Entry.
@@ -523,11 +524,24 @@ On a page narrower than 720px, they are three in a row.
 * Each box reads from the top:
   1. The ability name, 13.5px, weight 600, in the ink color.
   2. The base score.
-  3. The increases from other sources, as tokens: "+2 Race", "+1
-     Subrace", "+2 Improvement".
+  3. The increases from other sources, as source tags (see the
+     [Theme spec](theme.md)): "+2 Race", "+1 Subrace", "+2 Improvement".
   4. The total and the modifier, large, on a shaded band at the bottom.
 * The boxes do not move and do not change their size when the method or
   a score changes.
+* The tag area of a box holds two source tags. With more sources, the
+  second tag is the sum of the others, "+3 more". The full list is in
+  the box for a screen reader.[^orc-345]
+* The boxes are six in a row only when the control is 728px wide or
+  more. Then each box has space for the point-buy buttons and for a
+  "+2 Improvement" tag. So on a page narrower than about 1250px, where
+  the summary card takes space, they are three in a row too.[^orc-345]
+* The boxes are three in a row only when the control is 323px wide or
+  more, so that each box has space for the point-buy buttons. A
+  narrower control has two boxes in a row, and under 212px one box in a
+  row. The points from other sources use the same widths. On a page
+  from 720px to about 860px, the app rail and the summary card both
+  show, and the control is only 198px to 338px wide.[^orc-345]
 
 The base score for each method:
 
@@ -543,6 +557,9 @@ class level, is placed on this step. Each such choice is a section below
 the boxes, with the source in its heading and the left mark. The player
 places a point with plus and minus buttons in the section. The point
 then shows as a token in the box.
+The heading of such a section is "Ability Score Improvement: Fighter 4"
+for a class level, and "Ability Score Increase: Half-Elf" for a race, a
+subrace or a feat.[^orc-345]
 
 # The Proficiencies step
 
@@ -551,7 +568,12 @@ tool.[^orc-332] [^orc-333] The Class, Background and Race steps do not
 show these selections. They show a line in "Picked on other steps".
 
 * The step has three groups, each with a heading: Skills, Languages,
-  Tools. A group with no selection for this character does not show.
+  Tools. A fourth group, "Other proficiencies", after Tools, shows only
+  for a selection that gives no skill, language or tool, such as the
+  armor and weapon selections of the "Custom" options. A selection that
+  gives tools and languages, such as "Tool / Language Proficiencies" of
+  the "Custom" background, is in Tools. A group with no selection for
+  this character does not show.[^orc-346]
 * A group has one section for each source, with the source in the
   heading and the left mark: "Skills: Fighter", "Languages: Acolyte".
   The sections are in the order of the steps: class, background, race,
@@ -570,6 +592,19 @@ show these selections. They show a line in "Picked on other steps".
   background into one selection. The step shows one section for the
   merged selection, with each source in the heading: "Languages:
   Acolyte, Half-Elf".
+* Each section names its source, also when no other section has its
+  name. Two classes are in the order of the character, and the sections
+  of one class are in the order of the levels. An Expertise section of a
+  class level has the level: "Expertise: Rogue 6".[^orc-346]
+* The group heading is an `<h3>`, and the section headings are
+  `<h4>`.[^orc-346]
+* The tokens of "Already has" are in the order of the names. The engine
+  gives no source for a language, and for some fixed skills and tools.
+  Then the source is the race, the background or the class without
+  which the character does not have the item. A token with no source
+  found shows the name only. An item that the character picked shows
+  only when a fixed source gives it too, for example the Perception of a
+  rogue who picked it and then became an elf.[^orc-346]
 
 # The Feats step
 
@@ -720,3 +755,5 @@ one depends only on parts of the frame.
 [^orc-335]: What the new Class step does, <https://linear.app/orc-alchemy/issue/ORC-335/what-the-new-class-step-does>
 [^orc-336]: The new Class step, <https://linear.app/orc-alchemy/issue/ORC-336/the-new-class-step>
 [^orc-338]: The list with a detail panel for Race and Background, <https://linear.app/orc-alchemy/issue/ORC-338/the-list-with-a-detail-panel-for-race-and-background>
+[^orc-345]: The ability score control, <https://linear.app/orc-alchemy/issue/ORC-345/the-ability-score-control>
+[^orc-346]: The Proficiencies step, <https://linear.app/orc-alchemy/issue/ORC-346/the-proficiencies-step>

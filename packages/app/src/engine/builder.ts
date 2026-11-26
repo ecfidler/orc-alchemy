@@ -61,6 +61,21 @@ export type StepName = (typeof STEP_NAMES)[number];
 /** The step that a new character opens on, with the focus in the name field (`/build/{id}?step=Name`). */
 export const NAME_STEP: StepName = "Name";
 
+/** The step that Enter in the name field goes to. */
+export const CLASS_STEP: StepName = "Class";
+
+/** The step of the skills, the expertise, the languages and the tools (ORC-346). */
+export const PROFICIENCIES_STEP: StepName = "Proficiencies";
+
+/** The class level of a key of the path under a class's "levels", such as "6" for "level-6"; else null. */
+export const levelOfKey = (key: string | undefined): string | null => key?.match(/^level-(\d+)$/)?.[1] ?? null;
+
+/**
+ * The heading of a section that names its sources: what it gives, the sources, and a class level when it has one:
+ * "Skills: Fighter", "Expertise: Rogue 6", "Ability Score Improvement: Fighter 4".
+ */
+export const sourcedHeading = (what: string, sources: string[], level?: string | null) => `${what}: ${sources.join(", ")}${level ? ` ${level}` : ""}`;
+
 export interface BuilderStep {
   name: StepName;
   selections: BuilderSelection[];

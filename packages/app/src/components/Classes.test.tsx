@@ -68,25 +68,6 @@ test("hit points by roll or typed in", () => {
   expect(storedHitPoints(useCharacter.getState().entity!, path)).toEqual({ method: "manual-entry", value: 2 });
 });
 
-test("the half-elf's improvement takes two different abilities, and shows the engine's refusal", () => {
-  // The improvement is on the Abilities step.
-  open(engine().select(engine().emptyCharacter(), ["race"], "half-elf"), "Abilities");
-  const asi = within(region("Ability Score Improvement"));
-  // The half-elf's CHA +2 is its race's, so CHA is not offered.
-  expect(asi.getByRole("button", { name: "Increase CHA" }).hasAttribute("disabled")).toBe(true);
-  fireEvent.click(asi.getByRole("button", { name: "Increase STR" }));
-  fireEvent.click(asi.getByRole("button", { name: "Increase STR" }));
-  // The refusal shows in the status toast, a polite live region, and not in the section.
-  const toast = document.querySelector<HTMLElement>("[data-toast-status]")!;
-  expect([toast.getAttribute("role"), toast.textContent]).toEqual(["status", expect.stringMatching(/different abilities/)]);
-  expect(asi.queryByRole("alert")).toBeNull();
-  fireEvent.click(asi.getByRole("button", { name: "Increase DEX" }));
-  expect(asi.getByRole("button", { name: "Increase INT" }).hasAttribute("disabled")).toBe(true);
-  fireEvent.click(asi.getByRole("button", { name: "Decrease STR" }));
-  expect(asi.getByRole("button", { name: "Decrease STR" }).hasAttribute("disabled")).toBe(true);
-  expect(asi.getByRole("button", { name: "Increase INT" }).hasAttribute("disabled")).toBe(false);
-});
-
 // The left mark of a heading (ORC-340, docs/design/character-builder.md "Marks, not sentences"): "2 left" in yellow,
 // "Remove 1" in red, and a check with "Done", in the heading text.
 test("a selection heading: 2 left in yellow, Remove 1 in red, and Done when no pick is left", () => {

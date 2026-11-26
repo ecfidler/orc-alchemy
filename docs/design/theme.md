@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T05:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T10:42:53Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -306,6 +306,13 @@ homebrew forms. They have no game words: the app gives the lists.
   when a mouse is over the token, with no focus move, and it closes when
   the mouse leaves, unless a click opened it. Slot circles in a token are
   15px, with a 24px tap area (ORC-323).
+* **Source tag** (ORC-345): a small box that only shows where a value
+  comes from, for example "+2 Race" in an ability box of the builder. It
+  is not a Token and not a ui control: it has no X and no action. It has
+  11.5px Inter text in `--ink`, the `--paper-raised` fill and a 1px
+  `--rule-strong` border. The border is the lighter rule on purpose, as
+  in the prototype, so that it does not look like a pick with the Ink
+  border of a Token.
 * **Token for a slot** (ORC-138): the name is a button with a small muted
   "Change" after it, and opens a list for a new value. A marked token has
   a 1.5px border, a 4px `--note` bar on its left and semibold text. Its X
@@ -323,6 +330,9 @@ homebrew forms. They have no game words: the app gives the lists.
   first pick, so a pick does not move the add button (ORC-343).
 * **SegmentedToggle:** a segmented toggle for a short list of words, for
   example None / Fixed / Scaled, on ToggleGroup. The options are a prop.
+  With `fill`, the segments are the equal cells of a grid, with 1px ink
+  lines between them, for example the four methods of the ability scores
+  in two rows on a narrow page (ORC-345).
 * **NumberToggle:** a SegmentedToggle of numbers, for example
   None / 1 / 2 / 3. The numbers are a prop.
 * **Chips:** number chips with an X, and a "+ Add" Menu. `AddChip` is the same dashed "+" button alone, for an empty slot.

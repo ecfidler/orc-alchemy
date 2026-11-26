@@ -18,7 +18,7 @@ async function humanFighter(page: Page) {
 /** The box of each section of the step, of the step title and of the row of Back and Next, as [x, y, width, height]. */
 const boxes = (page: Page) =>
   page.getByRole("region", { name: "Builder" }).evaluate((builder) =>
-    [builder.querySelector("h2")!, ...builder.querySelectorAll(":scope > section"), builder.querySelector(":scope > div:last-child")!].map((e) => {
+    [builder.querySelector("h2")!, ...builder.querySelectorAll("section"), builder.querySelector(":scope > div:last-child")!].map((e) => {
       const r = e.getBoundingClientRect();
       return [r.x, r.y, r.width, r.height];
     }),
@@ -26,7 +26,7 @@ const boxes = (page: Page) =>
 
 test("a pick in a picker or in a list moves nothing above or below the selection", async ({ page }) => {
   await humanFighter(page);
-  const skills = section(page, "Skill Proficiency");
+  const skills = section(page, "Skills: Fighter");
   const languages = section(page, "Languages");
   await expect(skills.getByRole("button", { name: "Add a skill" })).toBeVisible();
   await expect(languages.getByRole("button", { name: "Choose Languages" })).toBeVisible();
@@ -107,14 +107,14 @@ test.describe("screenshots", () => {
     await openStep(page, "Background");
     await pickIn(section(page, "Background"), "Acolyte");
     await openStep(page, "Proficiencies");
-    await pickIn(section(page, "Skill Proficiency: Half-Elf"), "Perception");
+    await pickIn(section(page, "Skills: Half-Elf"), "Perception");
   }
 
   for (const theme of ["light", "dark"] as const) {
     test(`orc-343 option cards with an option that is not available, ${theme}`, async ({ page }) => {
       mkdirSync(dir, { recursive: true });
       await halfElfBarbarian(page, theme);
-      const cards = section(page, "Skill Proficiency: Barbarian");
+      const cards = section(page, "Skills: Barbarian");
       await expect(cards.getByRole("button", { name: "Perception" })).toBeDisabled();
       await ready(page);
       await cards.screenshot({ path: join(dir, `orc-343-cards-not-available-${theme}.png`) });
@@ -123,7 +123,7 @@ test.describe("screenshots", () => {
     test(`orc-343 a picker with tokens and its list with a locked row, ${theme}`, async ({ page }) => {
       mkdirSync(dir, { recursive: true });
       await halfElfBarbarian(page, theme);
-      const picker = section(page, "Skill Proficiency: Half-Elf");
+      const picker = section(page, "Skills: Half-Elf");
       await expect(picksIn(picker)).toHaveText(["Perception"]);
       await ready(page);
       await picker.screenshot({ path: join(dir, `orc-343-picker-tokens-${theme}.png`) });

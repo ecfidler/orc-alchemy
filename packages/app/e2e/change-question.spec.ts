@@ -11,7 +11,7 @@ async function clericWithInsightAndReligion(page: Page) {
   await newCharacter(page);
   await addFirstClass(page, "Cleric");
   await openStep(page, "Proficiencies");
-  const skills = section(page, "Skill Proficiency");
+  const skills = section(page, "Skills: Cleric");
   await pickIn(skills, "Insight");
   await pickIn(skills, "Religion");
   await expect(picksIn(skills)).toHaveText(["Insight", "Religion"]);
@@ -47,7 +47,7 @@ test("a Cleric with Insight and Religion takes Acolyte: the question lists the t
   // The Cleric picks its 2 skills again, and Acolyte its 2 languages, with no second skill selection.
   await expect(stepButton(page, "Proficiencies")).toHaveAccessibleName("Proficiencies, 4 picks left");
   await openStep(page, "Proficiencies");
-  const skills = section(page, "Skill Proficiency");
+  const skills = section(page, "Skills: Cleric");
   await expect(picksIn(skills)).toHaveCount(0);
   await expect(skills.getByRole("button", { name: "Insight", exact: true })).toBeDisabled();
   await pickIn(skills, "Medicine");
@@ -85,11 +85,12 @@ test.describe("screenshots", () => {
       await openStep(page, "Race");
       await pickIn(section(page, "Race"), "Half-Elf");
       await openStep(page, "Proficiencies");
-      await pickIn(section(page, "Skill Proficiency: Half-Elf"), "Perception");
-      await pickIn(section(page, "Skill Proficiency: Half-Elf"), "Stealth");
+      await pickIn(section(page, "Skills: Half-Elf"), "Perception");
+      await pickIn(section(page, "Skills: Half-Elf"), "Stealth");
       await openStep(page, "Abilities");
-      await page.getByRole("button", { name: "Increase STR" }).click();
-      await page.getByRole("button", { name: "Increase CON" }).click();
+      const increases = section(page, "Ability Score Increase: Half-Elf");
+      await increases.getByRole("button", { name: "Increase Strength" }).click();
+      await increases.getByRole("button", { name: "Increase Constitution" }).click();
       await openStep(page, "Race");
       await pickIn(section(page, "Race"), "Dwarf");
       await expect(page.getByRole("alertdialog", { name: "Replace Half-Elf with Dwarf?" })).toBeVisible();

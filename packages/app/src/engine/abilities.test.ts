@@ -2,17 +2,22 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import {
+  abilityIncreases,
   abilityRows,
+  asiSource,
   baseScores,
   canDecrease,
   canIncrease,
+  foldIncreases,
+  increaseSectionName,
   type Method,
+  nextPointCost,
   pointsLeft,
   rollScores,
   type Scores,
   STANDARD_SCORES,
   setBaseScores,
-  swapScores,
+  swapAbilities,
 } from "./abilities.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 
@@ -64,11 +69,20 @@ test("a roll is 4d6 dropping the lowest die, for each ability", () => {
   }
 });
 
-test("a swap moves a score to its neighbour, and str and cha are neighbours", () => {
-  expect(swapScores(STANDARD_SCORES, "dex", 1)).toEqual({ str: 15, dex: 13, con: 14, int: 12, wis: 10, cha: 8 });
-  expect(swapScores(STANDARD_SCORES, "dex", -1)).toEqual({ str: 14, dex: 15, con: 13, int: 12, wis: 10, cha: 8 });
-  expect(swapScores(STANDARD_SCORES, "str", -1)).toEqual({ str: 8, dex: 14, con: 13, int: 12, wis: 10, cha: 15 });
-  expect(swapScores(STANDARD_SCORES, "cha", 1)).toEqual({ str: 8, dex: 14, con: 13, int: 12, wis: 10, cha: 15 });
+test("a swap gives two abilities each other's scores", () => {
+  expect(swapAbilities(STANDARD_SCORES, "str", "dex")).toEqual({ str: 14, dex: 15, con: 13, int: 12, wis: 10, cha: 8 });
+  expect(swapAbilities(STANDARD_SCORES, "cha", "str")).toEqual({ str: 8, dex: 14, con: 13, int: 12, wis: 10, cha: 15 });
+  // Two equal scores, or an ability with itself: nothing changes.
+  expect(swapAbilities(all(10), "str", "wis")).toEqual(all(10));
+  expect(swapAbilities(STANDARD_SCORES, "con", "con")).toEqual(STANDARD_SCORES);
+});
+
+test("the cost of the next point: 1 to 13, 2 from 13 to 15, none at 15 or outside 8 to 15", () => {
+  const scores = { str: 8, dex: 12, con: 13, int: 14, wis: 15, cha: 16 };
+  expect([nextPointCost(scores, "str"), nextPointCost(scores, "dex"), nextPointCost(scores, "con"), nextPointCost(scores, "int")]).toEqual([1, 1, 2, 2]);
+  expect(nextPointCost(scores, "wis")).toBeNull();
+  expect(nextPointCost(scores, "cha")).toBeNull();
+  expect(nextPointCost({ ...all(8), str: 7 }, "str")).toBeNull();
 });
 
 test("the base scores read back as they were set, for each method", () => {
@@ -130,4 +144,80 @@ test("fighter-1's scores are reproduced by hand: a standard human with the stand
   entity = setBaseScores(entity, "standard-scores", { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 });
   expect(engine().evaluate(entity).built.abilities).toEqual(readJson("fighter-1.expected.json").abilities);
   expect(builtAbilities(entity)).toEqual({ str: 16, dex: 15, con: 14, int: 13, wis: 11, cha: 9 });
+});
+
+test("the source of a choice of increases comes from its path", () => {
+  expect(asiSource(["race", "half-elf", "asi"])).toBe("Race");
+  expect(asiSource(["race", "human", "subrace", "x", "asi"])).toBe("Subrace");
+  expect(asiSource(["class", "fighter", "levels", "level-4", "asi-or-feat", "ability-score-improvement", "asi"])).toBe("Improvement");
+  expect(asiSource(["class", "fighter", "levels", "level-4", "asi-or-feat", "feat", "feats", "resilient", "asi"])).toBe("Feat");
+  expect(asiSource(["something", "asi"])).toBe("Other");
+});
+
+test("fighter-5's increases by source: Race, Subrace and Improvement, which add up to the total", () => {
+  const entity = imported("fighter-5");
+  const { built, selections } = engine().evaluate(entity);
+  const increases = abilityIncreases(built, selections, baseScores(entity).scores);
+  expect(increases).toEqual({
+    str: [{ label: "Improvement", amount: 2 }],
+    dex: [],
+    con: [{ label: "Race", amount: 2 }],
+    int: [],
+    wis: [{ label: "Subrace", amount: 1 }],
+    cha: [],
+  });
+});
+
+test("the half-elf's two points are Race increases, with its fixed Cha +2", () => {
+  const entity = imported("fighter-3-wizard-2");
+  const { built, selections } = engine().evaluate(entity);
+  const increases = abilityIncreases(built, selections, baseScores(entity).scores);
+  expect([increases.str, increases.int, increases.cha, increases.dex]).toEqual([
+    [{ label: "Race", amount: 1 }],
+    [{ label: "Race", amount: 1 }],
+    [{ label: "Race", amount: 2 }],
+    [],
+  ]);
+});
+
+test("fighter-20's improvements add up per ability, with the human's +1, and its Amulet of Health is Other", () => {
+  const entity = imported("fighter-20");
+  const { built, selections } = engine().evaluate(entity);
+  const increases = abilityIncreases(built, selections, baseScores(entity).scores);
+  expect(increases.str).toEqual([
+    { label: "Race", amount: 1 },
+    { label: "Improvement", amount: 4 },
+  ]);
+  // Con 13 + 1 + 3 is 17, and the amulet makes it 19.
+  expect(increases.con).toEqual([
+    { label: "Race", amount: 1 },
+    { label: "Improvement", amount: 3 },
+    { label: "Other", amount: 2 },
+  ]);
+});
+
+test("a box holds two tokens; more fold into one token with the sum of the rest", () => {
+  const three = [
+    { label: "Race", amount: 2 },
+    { label: "Improvement", amount: 2 },
+    { label: "Other", amount: 1 },
+  ] as const;
+  expect(foldIncreases([...three].slice(0, 2))).toEqual(three.slice(0, 2));
+  expect(foldIncreases([...three])).toEqual([
+    { label: "Race", amount: 2 },
+    { label: "more", amount: 3 },
+  ]);
+  expect(foldIncreases([])).toEqual([]);
+});
+
+test("the heading of a choice of increases names the kind of choice and its source", () => {
+  const asi = (actualPath: string[], sources: string[]) => increaseSectionName({ name: "Ability Score Improvement", sources, actualPath });
+  expect(asi(["race", "half-elf", "asi"], ["Half-Elf"])).toBe("Ability Score Increase: Half-Elf");
+  expect(asi(["class", "fighter", "levels", "level-4", "asi-or-feat", "ability-score-improvement", "asi"], ["Fighter"])).toBe(
+    "Ability Score Improvement: Fighter 4",
+  );
+  expect(asi(["class", "fighter", "levels", "level-4", "asi-or-feat", "feat", "feats", "resilient", "asi"], ["Resilient"])).toBe(
+    "Ability Score Increase: Resilient",
+  );
+  expect(asi(["asi"], [])).toBe("Ability Score Improvement");
 });

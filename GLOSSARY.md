@@ -66,6 +66,11 @@ One pick on a form: a small box with the name and an X that removes it. A
 color or size of the theme is a "theme token", not this term.
 _Avoid_: Chip (a chip holds a level number), tag, pill
 
+**Source tag**:
+A small box that only shows where a value comes from, such as "+2 Race" in
+an ability box of the builder. It has no X, and the user cannot remove it.
+_Avoid_: Token (a token is a pick that the user can remove)
+
 **Spells panel**:
 The popup that opens from the Spellcasting section of the character sheet.
 It shows the spells of the character with their text, and the user sets

@@ -4,8 +4,9 @@
 // with Builder.tsx.
 import { Toast } from "@orc-alchemy/ui";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
-import type { BuilderSelection, BuilderStep } from "../engine/builder.ts";
-import { pickSources, sectionNames, type TopSource, topSources } from "../engine/selection-control.ts";
+import { type BuilderSelection, type BuilderStep, PROFICIENCIES_STEP } from "../engine/builder.ts";
+import { proficiencySectionNames } from "../engine/proficiencies.ts";
+import { type PickSource, pickSources, sectionNames, type TopSource, topSources } from "../engine/selection-control.ts";
 
 /**
  * Shows a text in the status toast of the builder page (spec, "No layout shift"): a text that comes and goes, for
@@ -39,8 +40,8 @@ export interface StepFrame {
   names: Map<BuilderSelection, string>;
   /** The selected race, background and classes of the whole character, on all steps (topSources). */
   tops: TopSource[];
-  /** The sources of each skill, tool and language that the character picked, on all steps (pickSources). */
-  picks: Map<string, string[]>;
+  /** Where the character picked each skill, tool and language, on all steps (pickSources). */
+  picks: Map<string, PickSource>;
 }
 
 const EMPTY_FRAME: StepFrame = { names: new Map(), tops: [], picks: new Map() };
@@ -54,7 +55,8 @@ const StepFrameContext = createContext<StepFrame>(EMPTY_FRAME);
 export function StepFrameProvider({ steps, step, children }: { steps: BuilderStep[]; step: BuilderStep | undefined; children: ReactNode }) {
   const tops = useMemo(() => topSources(steps), [steps]);
   const picks = useMemo(() => pickSources(steps), [steps]);
-  const names = useMemo(() => sectionNames(step?.selections ?? []), [step]);
+  // The sections of the Proficiencies step each name their source: "Skills: Fighter" (ORC-346).
+  const names = useMemo(() => (step?.name === PROFICIENCIES_STEP ? proficiencySectionNames(step.selections) : sectionNames(step?.selections ?? [])), [step]);
   const frame = useMemo(() => ({ names, tops, picks }), [names, tops, picks]);
   return <StepFrameContext.Provider value={frame}>{children}</StepFrameContext.Provider>;
 }
@@ -66,3 +68,14 @@ export const useStepFrame = () => useContext(StepFrameContext);
 export function useSectionName(selection: BuilderSelection): string {
   return useStepFrame().names.get(selection) ?? selection.name;
 }
+
+/** The level of the section headings: 3 by default, under the step title, and 4 under a group heading. */
+const SectionLevel = createContext<3 | 4>(3);
+
+/** The section headings in `children` are at `level`: 4 under a group heading, as on the Proficiencies step. */
+export function SectionLevelProvider({ level, children }: { level: 3 | 4; children: ReactNode }) {
+  return <SectionLevel.Provider value={level}>{children}</SectionLevel.Provider>;
+}
+
+/** The level of the section headings here: 3 under the step title, or 4 under a group heading (SectionLevelProvider). */
+export const useSectionLevel = () => useContext(SectionLevel);

@@ -355,7 +355,10 @@ bun run test       # vitest
   - `SegmentedToggle`: a segmented toggle on ToggleGroup for one of
     `options` (`[value, label]` pairs), for example None / Fixed / Scaled.
     A `value` that is no option presses no segment. `size="small"` fits in
-    a token. Name it with `aria-label` or `aria-labelledby`.
+    a token. With `fill`, the segments are the equal cells of a grid, with
+    1px ink lines between them; give the columns in `className`, for
+    example two on a narrow page and four on a wide one. Name it with
+    `aria-label` or `aria-labelledby`.
   - `NumberToggle`: a SegmentedToggle for one of `values` (numbers, and
     null for "None"). `size="small"` fits in a token. Name it with
     `aria-label` or `aria-labelledby`.

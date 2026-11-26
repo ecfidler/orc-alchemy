@@ -1,6 +1,8 @@
 // The control rule of a builder selection (ORC-343, docs/design/character-builder.md "The control for each kind of
 // selection"), and the options that the character cannot take ("A pick that the character cannot take"): which
-// options show, which control they get, and the reason of each option that is not available.
+// options show, which control they get, and the reason of each option that is not available. It also finds where
+// the character's skills, tools and languages come from, which the "Already has" line of the Proficiencies step
+// reads (fixedProficiencies in proficiencies.ts).
 
 import { type BuilderOption, type BuilderSelection, type BuilderStep, treeNodes } from "./builder.ts";
 import type { Built2014, Content, Engine, StrictEntity } from "./engine.ts";
@@ -79,6 +81,14 @@ export interface TopSource {
   name: string;
 }
 
+/** Where the character picked a skill, a tool or a language (pickSources). */
+export interface PickSource {
+  /** The sources of the selections that picked it, or their names when they have none. */
+  sources: string[];
+  /** The path of each pick in the entity: the actualPath of its selection, then its key. */
+  paths: string[][];
+}
+
 /** What unavailableOptions reads: the engine, the character and what it builds against, and where its picks are. */
 export interface AvailabilityInput {
   engine: Engine;
@@ -87,8 +97,8 @@ export interface AvailabilityInput {
   content: Content;
   /** The selected race, background and classes, for the source of a language that the character has. */
   tops: TopSource[];
-  /** The sources of each skill, tool and language that the character picked, by "{kind}:{key}" (pickSources). */
-  picks: Map<string, string[]>;
+  /** Where the character picked each skill, tool and language, by "{kind}:{key}" (pickSources). */
+  picks: Map<string, PickSource>;
 }
 
 const TOP_SOURCES = ["race", "background", "class"];
@@ -103,11 +113,12 @@ export function topSources(steps: BuilderStep[]): TopSource[] {
 }
 
 /**
- * The sources of each skill, tool and language that the character picked in a selection, by "{kind}:{key}": the
- * sources of that selection, or its name when it has none. The engine builds a picked skill with no source name.
+ * Where the character picked each skill, tool and language, by "{kind}:{key}": the sources of each selection that
+ * picked it, or its name when it has none, and the path of each pick. The engine builds a picked skill with no source
+ * name.
  */
-export function pickSources(steps: BuilderStep[]): Map<string, string[]> {
-  const picks = new Map<string, string[]>();
+export function pickSources(steps: BuilderStep[]): Map<string, PickSource> {
+  const picks = new Map<string, PickSource>();
   // Each selection of the steps, and the selections that their picks open, once.
   for (const node of treeNodes(
     steps.flatMap((step) => step.selections),
@@ -117,7 +128,11 @@ export function pickSources(steps: BuilderStep[]): Map<string, string[]> {
     if (kind === null) continue;
     for (const key of node.selected) {
       const id = `${kind}:${key}`;
-      picks.set(id, [...new Set([...(picks.get(id) ?? []), ...(node.sources.length > 0 ? node.sources : [node.name])])]);
+      const last = picks.get(id) ?? { sources: [], paths: [] };
+      picks.set(id, {
+        sources: [...new Set([...last.sources, ...(node.sources.length > 0 ? node.sources : [node.name])])],
+        paths: [...last.paths, [...node.actualPath, key]],
+      });
     }
   }
   return picks;
@@ -136,7 +151,7 @@ function cached(input: AvailabilityInput, key: string, find: () => string | null
 }
 
 /** The kind of proficiency that a selection's options give, by its tags; an expertise selection gives none. */
-export function proficiencyKind(selection: BuilderSelection): "skill" | "tool" | "language" | null {
+export function proficiencyKind(selection: Pick<BuilderSelection, "key" | "tags">): ProficiencyKind | null {
   if (selection.key.includes("expertise")) return null;
   if (selection.tags.includes("skill-profs")) return "skill";
   if (selection.tags.includes("tool-profs")) return "tool";
@@ -144,28 +159,63 @@ export function proficiencyKind(selection: BuilderSelection): "skill" | "tool" |
   return null;
 }
 
+/** The kinds of proficiency that a character has from fixed sources and from picks. */
+export type ProficiencyKind = "skill" | "tool" | "language";
+
+/** The ids ("{kind}:{key}") of each skill, tool and language that the built character has. */
+export function proficiencyIds(built: Built2014): Set<string> {
+  return new Set([
+    ...Object.keys(built["skill-profs"] ?? {}).map((key) => `skill:${key}`),
+    ...Object.keys(built["tool-profs"] ?? {}).map((key) => `tool:${key}`),
+    ...(built.languages ?? []).map((key) => `language:${key}`),
+  ]);
+}
+
+/** What givers reads: a character, what it builds to, and its top-level options. */
+export type GiversInput = Pick<AvailabilityInput, "engine" | "entity" | "built" | "content" | "tops">;
+
+// The givers of the last two entities and contents: one evaluate for each top-level option, and not one for each
+// item. Two, because the "Already has" line asks for the character and for the character without its picks.
+let giversMemo: { entity: StrictEntity; content: Content; givers: Map<string, string[]> }[] = [];
+
 /**
- * The names of the sources of a skill or a tool that the character has, from the built proficiencies, with the
- * sources of a pick in the place of the engine's "nil"; null when it does not have it.
+ * The top-level options (the race, the background, each class) without which the character does not have the skill,
+ * the tool or the language, by "{kind}:{key}". The engine gives no source name for a language, and "nil" for some
+ * fixed skills and tools, such as the Perception of an elf, so the builder finds the source in this way.
  */
-function proficiencySources(input: AvailabilityInput, kind: "skill" | "tool", key: string): string[] | null {
+export function givers({ engine, entity, built, content, tops }: GiversInput): Map<string, string[]> {
+  const hit = giversMemo.find((m) => m.entity === entity && m.content === content);
+  if (hit) return hit.givers;
+  const all = proficiencyIds(built);
+  const map = new Map<string, string[]>();
+  for (const { path, name } of tops) {
+    let without: Set<string>;
+    try {
+      without = proficiencyIds(engine.evaluate(withoutOption(entity, path), content).built);
+    } catch {
+      continue;
+    }
+    for (const id of all) if (!without.has(id)) map.set(id, [...(map.get(id) ?? []), name]);
+  }
+  giversMemo = [{ entity, content, givers: map }, ...giversMemo.slice(0, 1)];
+  return map;
+}
+
+/**
+ * The names of the sources of a skill or a tool that the character has, from the built proficiencies. In the place
+ * of the engine's "nil", the sources of a pick, or else the top-level options that give it (givers). Null when it
+ * does not have it.
+ */
+export function proficiencySources(input: AvailabilityInput, kind: "skill" | "tool", key: string): string[] | null {
   const sources = input.built[kind === "skill" ? "skill-profs" : "tool-profs"]?.[key];
   if (!sources) return null;
-  const picked = input.picks.get(`${kind}:${key}`) ?? [];
-  return [...new Set(Object.keys(sources).flatMap((name) => (name === "nil" ? picked : [name])))];
+  const nil = () => input.picks.get(`${kind}:${key}`)?.sources ?? givers(input).get(`${kind}:${key}`) ?? [];
+  return [...new Set(Object.keys(sources).flatMap((name) => (name === "nil" ? nil() : [name])))];
 }
 
 /** The top-level options without which the character does not have the language: they give it. */
-function languageSources(input: AvailabilityInput, key: string): string[] {
-  const { engine, entity, content, tops } = input;
-  return tops.flatMap(({ path, name }) => {
-    try {
-      const languages = engine.evaluate(withoutOption(entity, path), content).built.languages ?? [];
-      return languages.includes(key) ? [] : [name];
-    } catch {
-      return [];
-    }
-  });
+export function languageSources(input: GiversInput, key: string): string[] {
+  return givers(input).get(`language:${key}`) ?? [];
 }
 
 /**
@@ -220,7 +270,7 @@ export function unavailableOptions(input: AvailabilityInput, selection: BuilderS
       }
       if (kind === "language") {
         if (!(input.built.languages ?? []).includes(option.key)) return null;
-        const picked = input.picks.get(`language:${option.key}`);
+        const picked = input.picks.get(`language:${option.key}`)?.sources;
         const sources = picked ?? languageSources(input, option.key);
         return sources.length > 0 ? fromText(sources) : reasonText("You already have this language");
       }
