@@ -136,9 +136,9 @@ A cast in the Spells panel uses the same toast.
   keeps a 16px gutter on each side.
 * The toast is at least 320px wide, or the width of the screen less the
   gutters when that is less. The text starts at the left.[^orc-372]
-* The text has an X at its right end, with the name "Dismiss". The X
-  hides the text at once, and the focus goes back to where it was before
-  it went into the toast. The next action shows its text again. The X is
+* The text has an X at its right end, with the name "Dismiss the
+  message". The X hides the text at once, and the focus goes back to
+  where it was before it went into the toast. The next action shows its text again. The X is
   out of the live region, so a screen reader does not read it with the
   text. The concentration note keeps its own Dismiss button.
 * A refusal shows on the danger red, with the paper color for the text

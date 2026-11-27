@@ -32,7 +32,7 @@ export interface ToastProps {
   /** The time in ms that the status shows. */
   duration?: number;
   /**
-   * "status" (the default): what an action did, on the plain surface. "error": a refusal, for example "A class level is
+   * "status" (the default): what an action did, on the plain surface. "error": a refusal, for example "The value is
    * from 1 to 20.", on the danger red (ORC-372).
    */
   tone?: ToastTone;
@@ -44,7 +44,7 @@ type Phase = "open" | "leaving" | "closed";
  * A toast at the bottom centre of the screen, above the safe area. It takes no space in the page, so a text that
  * comes and goes moves nothing. It shows one status text, which hides after `duration`, and one note above it,
  * which stays. The status does not hide while the pointer or the focus is on the toast; the time starts again when
- * they leave. A new `statusKey` replaces the text and starts the time again. The X of the status ("Dismiss") hides
+ * they leave. A new `statusKey` replaces the text and starts the time again. The X of the status ("Dismiss the message") hides
  * it at once (ORC-372). The status and the note are polite live regions that are always in the page; the X is out of
  * the region, so a screen reader does not read it with the text. The toast is in a portal at the end of the body.
  */
@@ -140,8 +140,8 @@ export function Toast({ status, statusKey, note = null, noteName = "Note", durat
           </div>
         )}
       </div>
-      <div className="ui-toast-line" data-tone={tone === "error" ? "error" : undefined}>
-        <div role="status" aria-live="polite" data-toast-status="" className="ui-toast-region">
+      <div className="ui-toast-line">
+        <div role="status" aria-live="polite" data-toast-status="" data-tone={tone === "error" ? "error" : undefined} className="ui-toast-region">
           {phase !== "closed" && (
             // The key makes a new element for each status, so the same text shows again with its fade in.
             <p key={statusKey} className="ui-toast-status" data-leaving={phase === "leaving" ? "" : undefined}>
@@ -153,7 +153,7 @@ export function Toast({ status, statusKey, note = null, noteName = "Note", durat
           <XButton
             key={statusKey}
             size="small"
-            aria-label="Dismiss"
+            aria-label="Dismiss the message"
             className="ui-toast-x"
             onClick={() => {
               restore.current = true;

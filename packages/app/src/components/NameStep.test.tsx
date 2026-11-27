@@ -89,5 +89,5 @@ test("when the write of the name fails, Enter shows the refusal in the status to
   expect(title().textContent).toBe("Name");
   await waitFor(() => expect(document.querySelector("[data-toast-status]")?.textContent).toBe("The engine refuses the name."));
   // A refusal of the engine is an error (ORC-372).
-  expect(document.querySelector<HTMLElement>(".ui-toast-line")?.dataset.tone).toBe("error");
+  expect(document.querySelector<HTMLElement>("[data-toast-status]")?.dataset.tone).toBe("error");
 });

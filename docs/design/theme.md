@@ -237,7 +237,7 @@ The homebrew forms (ORC-195) add these parts. The
   keeps a 16px gutter, and a long text wraps. It is above a modal dialog
   and under a small popup or a menu. The text and the note are at least
   320px wide (less on a narrow screen), and the text has a small X
-  ("Dismiss") at its right end. An error (a refusal) has the `--paper`
+  ("Dismiss the message") at its right end. An error (a refusal) has the `--paper`
   color on a `--danger` fill and border, 5.6 : 1 light and 6.9 : 1 dark
   (ORC-372).
 
