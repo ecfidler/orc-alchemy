@@ -64,7 +64,9 @@ export const concentrationNote = (page: Page) => toast(page).getByRole("status",
 
 /**
  * The place and size of the vitals panel and of each part in it, but for the parts in the box, which can move
- * (ORC-322). The captions under the speed and the hit points, and the circles are parts too (ORC-323).
+ * (ORC-322). The captions under the speed and the hit points, and the circles are parts too (ORC-323). The place is
+ * in the page, not in the window, so a scroll is not a move: a click can scroll the page to get a target out from
+ * under the toast, which on a phone is 320px wide (ORC-372).
  */
 export const layout = (page: Page) =>
   vitals(page).evaluate((panel) =>
@@ -77,7 +79,7 @@ export const layout = (page: Page) =>
       .filter((element) => element === panel || element.matches("[data-conditions-box]") || !element.closest("[data-conditions-box]"))
       .map((element) => {
         const { x, y, width, height } = element.getBoundingClientRect();
-        return `${element.matches("[data-conditions-box]") ? "BOX" : element.tagName} ${[x, y, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
+        return `${element.matches("[data-conditions-box]") ? "BOX" : element.tagName} ${[x + window.scrollX, y + window.scrollY, width, height].map((n) => Math.round(n * 10) / 10).join(" ")}`;
       }),
   );
 
