@@ -8,7 +8,7 @@ import { type Method, type Scores, setBaseScores } from "./abilities.ts";
 import { DESCRIPTION_FIELDS, setDescription } from "./description.ts";
 import { type Content, engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
 import { type Hand, setAttuned, setCarried, setQuantity, storedItems, wield } from "./equipment.ts";
-import { ABILITIES } from "./sheet.ts";
+import { ABILITIES } from "./sheet-text.ts";
 import { setPrepared } from "./spells.ts";
 
 const fixturesDir = join(import.meta.dirname, "../../../../fixtures");
@@ -90,6 +90,7 @@ const optionsOf = (s: Selection | undefined) => s?.[OPTIONS] ?? (s?.[OPTION] ? [
 const plain = (x: object) => JSON.parse(JSON.stringify(x));
 
 /** Replays the golden with the builder's writes. Returns the entity, the refused picks, the removed items and the skipped values. */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
 function rebuild(golden: Entity, opts: Content) {
   const e = engine();
   let entity = plain(e.emptyCharacter()) as Entity;
@@ -98,6 +99,7 @@ function rebuild(golden: Entity, opts: Content) {
   let refused: { path: string[]; option: Option }[] = [];
   const removed: string[] = [];
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
   function replay(s: Selection, path: string[]) {
     const key = unkeyword(s[KEY]);
     const at = [...path, key];

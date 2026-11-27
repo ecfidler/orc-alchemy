@@ -15,6 +15,7 @@ import { AddButton, FieldLabel, Fieldset, type ListItem, ListModal, NumberField,
 import type { ReactNode } from "react";
 import type { Choice } from "../../engine/builder-choices.ts";
 import { packType, tag, untag } from "../../engine/content.ts";
+import { Traits } from "./feature-fields.tsx";
 import {
   ARTISANS_TOOLS,
   type BuilderType,
@@ -25,7 +26,6 @@ import {
   type FormProps,
   getIn,
   type ItemRecord,
-  MapPicker,
   MISC_TOOLS,
   MUSICAL_INSTRUMENTS,
   NumberChoice,
@@ -33,16 +33,14 @@ import {
   nameToKw,
   numberOrNull,
   type Path,
-  type PickerOptions,
-  pickedText,
   RecordTextArea,
   Section,
   SKILLS,
   TextField,
-  Traits,
   VEHICLES,
 } from "./fields.tsx";
 import { holdsValue, useAddList } from "./modifiers.tsx";
+import { MapPicker, type PickerOptions, pickedText } from "./picker-fields.tsx";
 
 // The old equipment lists (equipment.cljc), keyed as common/add-keys keys them.
 const CLOTHES = named(["Clothes, common", "Clothes, costume", "Clothes, fine", "Clothes, traveler’s"]);

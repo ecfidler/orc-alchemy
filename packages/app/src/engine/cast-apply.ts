@@ -7,7 +7,8 @@
 import { type CastAction, castSlots, castStatus } from "./cast.ts";
 import type { Engine, StrictEntity } from "./engine.ts";
 import { featureUsesSpent, rechargeGroup, setConcentration, setFeatureUsesSpent } from "./play.ts";
-import { featureUses, type Sheet } from "./sheet.ts";
+import { type Sheet } from "./sheet.ts";
+import { featureUses } from "./sheet-features.ts";
 import { type SlotGroup, setSpentSlots, spentSlotGroups } from "./spells.ts";
 
 /**

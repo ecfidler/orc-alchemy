@@ -7,20 +7,9 @@
 // map of class keyword to true or false.
 import { Checkbox, Field, FieldLabel, Fieldset, Select, TextArea, TextInput } from "@orc-alchemy/ui";
 import { packType, tag } from "../../engine/content.ts";
-import { ordinal } from "../../engine/sheet.ts";
-import {
-  type BuilderType,
-  editor,
-  FieldRow,
-  FormColumn,
-  type FormProps,
-  fieldErrors,
-  type ItemRecord,
-  MapPicker,
-  orFirst,
-  type PickItem,
-  title,
-} from "./fields.tsx";
+import { ordinal } from "../../engine/sheet-text.ts";
+import { type BuilderType, editor, FieldRow, FormColumn, type FormProps, fieldErrors, type ItemRecord, orFirst, title } from "./fields.tsx";
+import { MapPicker, type PickItem } from "./picker-fields.tsx";
 
 const SCHOOLS = ["abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 /** The old builder's spellcasting classes. */

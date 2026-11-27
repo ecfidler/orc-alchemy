@@ -6,7 +6,8 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import type { CastAction } from "../engine/cast.ts";
 import { engine, loadEngine } from "../engine/engine.ts";
-import { featureUses, type Sheet, type SpellRef, toSheet } from "../engine/sheet.ts";
+import { type Sheet, type SpellRef, toSheet } from "../engine/sheet.ts";
+import { featureUses } from "../engine/sheet-features.ts";
 import { loadSpellContent } from "../engine/spells.ts";
 import { SpellsPanel } from "./SpellsPanel.tsx";
 

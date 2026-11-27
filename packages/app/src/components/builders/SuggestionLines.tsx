@@ -4,7 +4,7 @@
 // presses "Use this". A line shows while the feature has no uses, or while
 // its type is Other.
 import { NoteLine } from "@orc-alchemy/ui";
-import { ABILITY_NAMES } from "../../engine/sheet.ts";
+import { ABILITY_NAMES } from "../../engine/sheet-text.ts";
 import type { Options } from "./fields.tsx";
 import { readFeatureText, type SuggestedUnit, type SuggestedUses, suggestedTypeOption, type TextMatch } from "./suggested-uses.ts";
 import { suggestedFrequency, usesKind } from "./uses.ts";

@@ -8,6 +8,8 @@ a test can check belongs in that check, not here.
   lives in one place. In a form, use the control from `@orc-alchemy/ui`
   (the Exports list in `packages/ui/README.md`) or the helper from
   `packages/app/src/components/builders/fields.tsx` before a local copy.
+  The pickers are in `picker-fields.tsx` and the feature list is in
+  `feature-fields.tsx`, next to it.
 - **In the app, engine code lives in `packages/app/src/engine`.** Only
   that folder of the app imports `@pubdoor/dmv`, as the header comment of
   `engine.ts` states; a test file can import a type from it. Code
@@ -59,3 +61,23 @@ not an accident.
   add a new exception: split the file.
 - **A new entry in `fileKB.exceptions` is for vendored or generated data
   only.**
+
+## Complexity and unused code
+
+Biome and Knip check these in CI (ORC-364). The limits are loose. New code
+must stay below them.
+
+- **Complexity.** A function that the complexity rule refuses is split. Do
+  not add a new `biome-ignore` for this rule. The functions that were over
+  the limit when the rule came have a `biome-ignore` comment that names
+  ORC-364. When you change such a function, split it and remove the
+  comment. An override in `biome.json` turns the rule off for
+  `SpellsPanel.tsx` until PR #169 merges. The PR after #169 removes the
+  override (ORC-363).
+- **Unused code.** `bun run knip` refuses an unused file, an unused export
+  and an unused dependency. An export that only its own file uses is
+  permitted. Delete the unused code, or remove the `export`. A file that a
+  tool loads by name, for example a page script that a spec bundles, goes
+  in `entry` in `knip.json`. A dependency that Knip cannot see, for example
+  one that only a CSS import uses, goes in `ignoreDependencies`. Give the
+  reason in the PR body.

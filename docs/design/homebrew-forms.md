@@ -523,7 +523,7 @@ most users copy content from another source.
 
 ## On the sheet
 
-* The engine puts every pack feature in `built.traits`. `engine/sheet.ts`
+* The engine puts every pack feature in `built.traits`. `engine/sheet-features.ts`
   sorts them by type: Action to Actions, Bonus Action to Bonus Actions,
   Reaction to Reactions. A feature with no type, or with Other, stays in
   "Features, Traits, and Feats".

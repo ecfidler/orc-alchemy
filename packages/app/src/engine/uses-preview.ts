@@ -5,7 +5,8 @@
 // sectionOf. The forms import this, and never the engine's built shape.
 import type { Amount, Feature } from "@pubdoor/dmv";
 import { untag } from "./content.ts";
-import { type FeatureSection, type ScaleNumbers, type SheetFeature, scaledAmount, sectionOf, toSheetFeature } from "./sheet.ts";
+import { type SheetFeature } from "./sheet.ts";
+import { type FeatureSection, type ScaleNumbers, scaledAmount, sectionOf, toSheetFeature } from "./sheet-features.ts";
 
 /** A stored map in verbose Transit-JSON, such as a feature of a pack. */
 type TransitMap = Record<string, unknown>;

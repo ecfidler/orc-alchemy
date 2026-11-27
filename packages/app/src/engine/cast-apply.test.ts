@@ -5,7 +5,8 @@ import type { CastAction } from "./cast.ts";
 import { applyCast } from "./cast-apply.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { concentration, setConcentration, setFeatureUsesSpent } from "./play.ts";
-import { featureUses, toSheet } from "./sheet.ts";
+import { toSheet } from "./sheet.ts";
+import { featureUses } from "./sheet-features.ts";
 import { setSpentSlots, slotLayout } from "./spells.ts";
 
 beforeAll(() => loadEngine());

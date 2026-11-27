@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { scaledAmount } from "./sheet.ts";
+import { scaledAmount } from "./sheet-features.ts";
 import { builtFrequency, exampleNumbers, previewFeature } from "./uses-preview.ts";
 
 const LONG = "~:orcpub.dnd.e5.units/long-rest";

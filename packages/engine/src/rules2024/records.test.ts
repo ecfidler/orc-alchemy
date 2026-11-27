@@ -13,7 +13,8 @@ import type { Effect, Pack } from "../format/schema.ts";
 import { type Built2024, m } from "./built.ts";
 import { type Content, findRecord } from "./content.ts";
 import { defineHook, registry } from "./hooks/index.ts";
-import { backgroundOption, featOption, RecordError, subclassOption } from "./records.ts";
+import { RecordError } from "./record-values.ts";
+import { backgroundOption, featOption, subclassOption } from "./records.ts";
 import { template2024 } from "./template.ts";
 import { testPackEnvelope } from "./testing.ts";
 

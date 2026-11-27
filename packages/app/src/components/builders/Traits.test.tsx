@@ -5,7 +5,8 @@ import { answerConfirmDialog, optionNames, pickOption } from "@orc-alchemy/ui/te
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
-import { editor, type FeatureList, type ItemRecord, Traits } from "./fields.tsx";
+import { type FeatureList, Traits } from "./feature-fields.tsx";
+import { editor, type ItemRecord } from "./fields.tsx";
 import { press } from "./test-picks.ts";
 
 afterEach(cleanup);

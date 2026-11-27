@@ -17,7 +17,8 @@ import { Chips, FieldErrors, Fieldset, XButton } from "@orc-alchemy/ui";
 import type { ReactNode } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { intKey, intKeyValue, packType, setItems, tag, untag } from "../../engine/content.ts";
-import { ordinal } from "../../engine/sheet.ts";
+import { ordinal } from "../../engine/sheet-text.ts";
+import { Traits } from "./feature-fields.tsx";
 import {
   ABILITIES,
   ABILITY_OPTIONS,
@@ -25,7 +26,6 @@ import {
   abilityKey,
   type BuilderType,
   Checks,
-  ChoicePicker,
   CONDITIONS,
   DAMAGE_TYPES,
   type Edit,
@@ -39,22 +39,19 @@ import {
   nameToKw,
   numbers,
   type Options,
-  type PickItem,
   type Problem,
   RecordTextArea,
   range,
   SelectField,
-  SetPicker,
   SKILLS,
   SPELL_LEVELS,
   TextField,
   TOOLS,
-  Traits,
   title,
   WithChoices,
-  withOthers,
   YES_NO,
 } from "./fields.tsx";
+import { ChoicePicker, type PickItem, SetPicker, withOthers } from "./picker-fields.tsx";
 
 /** The old app's spells-known schedules (classes.cljc), by the level at which slots start. */
 const SCHEDULES: Record<number, Record<number, number>> = {

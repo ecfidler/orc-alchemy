@@ -28,7 +28,8 @@ import {
 } from "../engine/abilities.ts";
 import type { BuilderSelection } from "../engine/builder.ts";
 import { unqualify } from "../engine/content.ts";
-import { ABILITIES, ABILITY_NAMES, type Ability, modifierText } from "../engine/sheet.ts";
+import { type Ability } from "../engine/sheet.ts";
+import { ABILITIES, ABILITY_NAMES, modifierText } from "../engine/sheet-text.ts";
 import { useOpenCharacter } from "../state/character.ts";
 import { Heading } from "./selection-heading.tsx";
 import { useChipDrag } from "./use-chip-drag.ts";

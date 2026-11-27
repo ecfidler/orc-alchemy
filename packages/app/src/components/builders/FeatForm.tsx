@@ -18,6 +18,7 @@
 import { Checkbox, Picker } from "@orc-alchemy/ui";
 import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import { asSet, packType, setItems, tag, untag } from "../../engine/content.ts";
+import { FeatureType, FeatureUses, Traits } from "./feature-fields.tsx";
 import {
   ABILITIES,
   abilityKey,
@@ -25,24 +26,19 @@ import {
   Checks,
   type Edit,
   editor,
-  FeatureType,
-  FeatureUses,
   FieldRow,
   FormColumn,
   type FormProps,
-  MapPicker,
   type Path,
-  type PickerOptions,
-  pickedText,
   RecordTextArea,
   Section,
   SKILLS,
   TextField,
-  Traits,
   WithChoices,
 } from "./fields.tsx";
 import { armorModifier, hitPointsModifier, propModifier, RESISTANCE_CHOICES, TOOL_ITEMS, valueModifier } from "./modifier-kinds.tsx";
 import { type Modifier, Modifiers } from "./modifiers.tsx";
+import { MapPicker, type PickerOptions, pickedText } from "./picker-fields.tsx";
 
 const ABILITY_CHOICES: Choice[] = ABILITIES.map(([key, name]) => ({ key: abilityKey(key), name }));
 

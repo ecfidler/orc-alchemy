@@ -6,7 +6,8 @@
 
 import { BUILT_IN, type Built2024, type Content, findRecord, isProficient, type RecordType, referenceTo, SRD_PACK } from "@orc-alchemy/engine";
 import { hitDiceLeft, hitDiceTotals } from "./hit-dice.ts";
-import { ABILITIES, byName, keyToName, type Named, type Sheet, type SheetFeature, type SheetItem, SKILLS } from "./sheet.ts";
+import { type Named, type Sheet, type SheetFeature, type SheetItem } from "./sheet.ts";
+import { ABILITIES, byName, keyToName, SKILLS } from "./sheet-text.ts";
 
 type Feature2024 = Built2024["features"][number];
 

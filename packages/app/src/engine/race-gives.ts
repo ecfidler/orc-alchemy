@@ -1,6 +1,6 @@
 // What the engine gives a race that the record of the race does not have (ORC-249, ORC-355): the proficiencies, the
 // damage resistances, the hit points, the spells, the traits and the attacks of a character with the race. The copy of
-// an SRD race holds them as values (custom.ts srdRaceCopy), and the detail panel of the Race step shows them
+// an SRD race holds them as values (custom-race.ts srdRaceCopy), and the detail panel of the Race step shows them
 // (origin-detail.ts raceDetail). The engine gives them as the modifiers of the race, so a probe character with the race
 // reads them.
 
@@ -182,7 +182,7 @@ export function breathWeaponText(attack: AreaAttack, choice = "a choice of the r
 }
 
 /**
- * How the area attack with the name is used, as the Breath Weapon's feature in a copy has it (custom.ts
+ * How the area attack with the name is used, as the Breath Weapon's feature in a copy has it (custom-race.ts
  * breathWeaponTrait): an action, with one use for each short rest. "The Breath Weapon takes an action. …"
  */
 export const breathWeaponUse = (name: string) => `The ${name} takes an action. You can use it again after a short or long rest.`;

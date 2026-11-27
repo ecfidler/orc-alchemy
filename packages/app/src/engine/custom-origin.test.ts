@@ -5,7 +5,7 @@ import { beforeAll, expect, test } from "vitest";
 import { addCharacter } from "../state/character.ts";
 import { getCharacter } from "../storage/characters.ts";
 import { CONTENT_TYPES } from "./content.ts";
-import { CUSTOM_PACK, characterContent, saveCopy, srdRaceRecord } from "./custom.ts";
+import { CUSTOM_PACK, characterContent, saveCopy } from "./custom.ts";
 import {
   baseRace,
   baseSubraces,
@@ -30,6 +30,7 @@ import {
   storedBase,
   withPick,
 } from "./custom-origin.ts";
+import { srdRaceRecord } from "./custom-race.ts";
 import { type Content, engine, loadEngine } from "./engine.ts";
 import { characterFile, readCharacterFile } from "./import.ts";
 import { remapOption, withoutOption } from "./reconcile.ts";

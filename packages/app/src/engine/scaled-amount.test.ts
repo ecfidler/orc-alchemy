@@ -7,7 +7,8 @@ import { join } from "node:path";
 import type { Built2014 } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine } from "./engine.ts";
-import { type Ability, scaledAmount } from "./sheet.ts";
+import { type Ability } from "./sheet.ts";
+import { scaledAmount } from "./sheet-features.ts";
 
 beforeAll(() => loadEngine());
 

@@ -6,7 +6,8 @@
 import { type BuilderOption, type BuilderSelection, type BuilderStep, levelOfKey, movedStep, type StepName, treeNodes } from "./builder.ts";
 import { isHitPoints } from "./classes.ts";
 import { unqualify } from "./content.ts";
-import { ABILITY_NAMES, type Ability } from "./sheet.ts";
+import { type Ability } from "./sheet.ts";
+import { ABILITY_NAMES } from "./sheet-text.ts";
 
 /** The key of the selection "Ability Score Improvement or Feat" of a class level. */
 export const IMPROVEMENT_KEY = "asi-or-feat";

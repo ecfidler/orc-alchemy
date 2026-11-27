@@ -14,7 +14,7 @@ import type { Content, ContentType, Engine, StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { countWord, type DetailFact, type OptionDetail } from "./origin-detail.ts";
 import { listText } from "./selection-control.ts";
-import { ABILITIES, ABILITY_NAMES, abilityOfKey, capitalized, keyToName, SKILLS } from "./sheet.ts";
+import { ABILITIES, ABILITY_NAMES, abilityOfKey, capitalized, keyToName, SKILLS } from "./sheet-text.ts";
 
 /** The content type of the classes. */
 export const CLASS_TYPE: ContentType = "orcpub.dnd.e5/classes";
@@ -186,6 +186,7 @@ const featureNames = (built: Built2014) => [...built.traits, ...built.actions, .
  *
  * A name is once in a level. A trial character that the engine refuses gives the rows up to that level.
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
 export function* classFeatureSteps(input: ClassInput, key: string): Generator<void, ClassFeatureRow[]> {
   const { engine: e, content } = input;
   const option = templateClass(key, content);

@@ -5,7 +5,8 @@
 
 import { shuffled } from "../core/autofill.ts";
 import { option, type Prereq, selection, type Template } from "../core/template.ts";
-import { ABILITIES, type AbilityScores, type Built2024, base, forEachAbility, m, RULES } from "./built.ts";
+import { base, RULES } from "./base-rules.ts";
+import { ABILITIES, type AbilityScores, type Built2024, forEachAbility, m } from "./built.ts";
 import { BUILT_IN } from "./built-in.ts";
 import { languageOption } from "./choices.ts";
 import { type Content, recordsOf } from "./content.ts";

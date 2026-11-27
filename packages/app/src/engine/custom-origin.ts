@@ -12,22 +12,14 @@
 
 import type { Choice } from "./builder-choices.ts";
 import { asSet, isMap, setItems, tag, untag } from "./content.ts";
-import {
-  characterContent,
-  formRecord,
-  isCustomCopy,
-  optionOrigin,
-  type RaceCopy,
-  type SavedCopy,
-  saveCopy,
-  srdRaceCopy,
-  storedCopy,
-  withPickedSubrace,
-} from "./custom.ts";
+import { characterContent, formRecord, isCustomCopy, optionOrigin, type SavedCopy, saveCopy, storedCopy } from "./custom.ts";
+import { type RaceCopy, srdRaceCopy } from "./custom-race.ts";
+import { withPickedSubrace } from "./custom-subrace.ts";
 import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { pickableSubraces, subracePick, templateRace } from "./race-step.ts";
 import { hasOption, picksUnder, withoutOption } from "./reconcile.ts";
-import { ABILITIES, ABILITY_NAMES, type Ability } from "./sheet.ts";
+import { type Ability } from "./sheet.ts";
+import { ABILITIES, ABILITY_NAMES } from "./sheet-text.ts";
 
 export const RACE_TYPE: ContentType = "orcpub.dnd.e5/races";
 

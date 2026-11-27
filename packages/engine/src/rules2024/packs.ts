@@ -13,7 +13,8 @@ import type { AnyRecord, Pack, Records, RecordType } from "../format/schema.ts";
 import type { Built2024 } from "./built.ts";
 import type { Content } from "./content.ts";
 import { HOOKS } from "./hooks/index.ts";
-import { backgroundOption, classOption, featOption, RecordError, speciesOption, subclassOption } from "./records.ts";
+import { RecordError } from "./record-values.ts";
+import { backgroundOption, classOption, featOption, speciesOption, subclassOption } from "./records.ts";
 
 export interface ContentPackOptions {
   /** The loaded packs that this pack refers to, for example the built-in pack `srd52` for a homebrew pack. */

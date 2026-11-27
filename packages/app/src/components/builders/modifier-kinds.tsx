@@ -8,24 +8,21 @@ import type { BuilderChoices, Choice } from "../../engine/builder-choices.ts";
 import {
   ARTISANS_TOOLS,
   Checks,
-  ChoicePicker,
   CONDITIONS,
   DAMAGE_TYPES,
   type Edit,
   GAMING_SETS,
-  MapPicker,
   MISC_TOOLS,
   MUSICAL_INSTRUMENTS,
   NumberChoice,
   nameToKw,
   type Path,
-  type PickerOptions,
-  type PickItem,
   Section,
   title,
   VEHICLES,
 } from "./fields.tsx";
 import type { Modifier, ModifierView } from "./modifiers.tsx";
+import { ChoicePicker, MapPicker, type PickerOptions, type PickItem } from "./picker-fields.tsx";
 
 const choices = (keys: string[], name: (key: string) => string): Choice[] => keys.map((key) => ({ key, name: name(key) }));
 
@@ -42,7 +39,6 @@ export const RESISTANCE_CHOICES = choices(["traps", ...DAMAGE_TYPES], (d) => (d 
 export const DAMAGE_CHOICES = choices(DAMAGE_TYPES, title);
 /** The conditions, keyed as common/name-to-kw keys them, such as :poisoned. */
 export const CONDITION_CHOICES = CONDITIONS.map((name) => ({ key: nameToKw(name), name }));
-export const SAVING_THROW_CHOICES = CONDITION_CHOICES;
 /** The old tools in the order of fields.tsx TOOLS, with a heading for each kind. */
 export const TOOL_ITEMS: PickItem[] = [
   ...MUSICAL_INSTRUMENTS.map((t) => ({ ...t, group: "Musical instruments" })),

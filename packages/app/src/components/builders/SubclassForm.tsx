@@ -12,8 +12,9 @@ import { AddChip, Field, Fieldset, Label, type ListItem, ListModal, Token } from
 import { useRef, useState } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { intKey, packType, tag, untag } from "../../engine/content.ts";
-import { ordinal } from "../../engine/sheet.ts";
+import { ordinal } from "../../engine/sheet-text.ts";
 import { LevelModifiers, LevelSelections } from "./ClassForm.tsx";
+import { Traits } from "./feature-fields.tsx";
 import {
   type BuilderType,
   type Edit,
@@ -27,7 +28,6 @@ import {
   SelectField,
   SKILLS,
   TextField,
-  Traits,
   WithChoices,
   YES_NO,
 } from "./fields.tsx";

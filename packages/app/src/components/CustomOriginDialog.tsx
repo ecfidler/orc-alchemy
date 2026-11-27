@@ -10,7 +10,7 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import type { BuilderChoices, Choice } from "../engine/builder-choices.ts";
 import { sameRecord } from "../engine/content.ts";
-import { isCustomCopy, type RaceCopy } from "../engine/custom.ts";
+import { isCustomCopy } from "../engine/custom.ts";
 import {
   baseRace,
   baseSubraces,
@@ -34,6 +34,7 @@ import {
   storedBase,
   withPick,
 } from "../engine/custom-origin.ts";
+import type { RaceCopy } from "../engine/custom-race.ts";
 import type { OptionDetail } from "../engine/origin-detail.ts";
 import { useCharacter } from "../state/character.ts";
 import { useHomebrew } from "../state/homebrew.ts";

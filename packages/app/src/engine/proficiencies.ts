@@ -18,7 +18,7 @@ import {
   sectionNames,
   type TopSource,
 } from "./selection-control.ts";
-import { keyToName, SKILLS } from "./sheet.ts";
+import { keyToName, SKILLS } from "./sheet-text.ts";
 
 /**
  * The groups of the step, in their order. "Other proficiencies" holds a selection that gives no skill, language or

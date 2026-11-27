@@ -32,7 +32,8 @@ import {
   tempHitPoints,
   usesSpent,
 } from "./play.ts";
-import { featureUses, toSheet } from "./sheet.ts";
+import { toSheet } from "./sheet.ts";
+import { featureUses } from "./sheet-features.ts";
 
 beforeAll(() => loadEngine());
 

@@ -20,13 +20,13 @@ import { Select, SelectBox, XButton } from "@orc-alchemy/ui";
 import { type ReactNode, useState } from "react";
 import type { BuilderChoices } from "../../engine/builder-choices.ts";
 import { asSet, packType, tag } from "../../engine/content.ts";
+import { Traits } from "./feature-fields.tsx";
 import {
   ABILITIES,
   ABILITY_OPTIONS,
   AddButton,
   abilityKey,
   type BuilderType,
-  ChoicePicker,
   type Edit,
   editor,
   FieldRow,
@@ -40,11 +40,9 @@ import {
   range,
   Section,
   SelectField,
-  SetPicker,
   SKILLS,
   SPELL_LEVELS,
   TextField,
-  Traits,
   WithChoices,
 } from "./fields.tsx";
 import {
@@ -59,6 +57,7 @@ import {
   weaponChoices,
 } from "./modifier-kinds.tsx";
 import { type Modifier, Modifiers } from "./modifiers.tsx";
+import { ChoicePicker, SetPicker } from "./picker-fields.tsx";
 
 export const SIZES = ["small", "medium", "large"];
 const bonus = (n: number) => `${n > 0 ? "+" : ""}${n}`;
