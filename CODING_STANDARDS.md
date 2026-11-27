@@ -71,9 +71,7 @@ must stay below them.
   not add a new `biome-ignore` for this rule. The functions that were over
   the limit when the rule came have a `biome-ignore` comment that names
   ORC-364. When you change such a function, split it and remove the
-  comment. An override in `biome.json` turns the rule off for
-  `SpellsPanel.tsx` until PR #169 merges. The PR after #169 removes the
-  override (ORC-363).
+  comment.
 - **Unused code.** `bun run knip` refuses an unused file, an unused export
   and an unused dependency. An export that only its own file uses is
   permitted. Delete the unused code, or remove the `export`. A file that a

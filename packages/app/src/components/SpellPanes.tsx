@@ -102,6 +102,28 @@ export interface SpellPanesProps<S extends ListSpell> {
   scrollKey?: unknown;
 }
 
+/** Whether `list` has the spell of `id`. */
+const hasId = (list: ListSpell[], id: string | null) => id !== null && list.some((spell) => spellId(spell) === id);
+
+/**
+ * The id of `at` when the list has it; the selected id: the picked spell while it can be selected, else `at`, else
+ * the first spell; and the selected spell, null when that id cannot be selected.
+ */
+function selection<S extends ListSpell>(spells: S[], selectable: S[], at: SpellRef | undefined, picked: string | null) {
+  const atId = at && hasId(spells, spellId(at)) ? spellId(at) : null;
+  const pickedId = hasId(selectable, picked) ? picked : null;
+  const selectedId = pickedId ?? atId ?? (spells[0] ? spellId(spells[0]) : null);
+  const selected = selectable.find((spell) => spellId(spell) === selectedId) ?? null;
+  return { atId, selectedId, selected };
+}
+
+/** The row that Tab goes to: the focused row while it shows, else the selected row while it shows, else the first row. */
+function tabStopOf(shown: ListSpell[], focused: string | null, selectedId: string | null): string | null {
+  if (hasId(shown, focused)) return focused;
+  if (hasId(shown, selectedId)) return selectedId;
+  return shown[0] ? spellId(shown[0]) : null;
+}
+
 /**
  * The two panes. The state is new at each mount: the Dialog mounts its body at each open. At the open, the selected
  * row has the focus: the spell of `at`, or else the first spell. On a phone, an open at a spell shows its spell view,
@@ -134,14 +156,10 @@ export function SpellPanes<S extends ListSpell>({
   // outside prepare mode, or after "Done".
   const selectable = selectableProp ?? spells;
   const [picked, setPicked] = useState<string | null>(null);
-  const atId = at && spells.some((spell) => spellId(spell) === spellId(at)) ? spellId(at) : null;
-  const pickedId = picked !== null && selectable.some((spell) => spellId(spell) === picked) ? picked : null;
-  const selectedId = pickedId ?? atId ?? (spells[0] ? spellId(spells[0]) : null);
-  const selected = selectable.find((spell) => spellId(spell) === selectedId) ?? null;
+  const { atId, selectedId, selected } = selection(spells, selectable, at, picked);
   const selectedRecord = selected && lookup ? lookup(selected.key) : undefined;
   const [focused, setFocused] = useState<string | null>(null);
-  const isShown = (id: string | null) => id !== null && shown.some((spell) => spellId(spell) === id);
-  const tabStop = isShown(focused) ? focused : isShown(selectedId) ? selectedId : shown[0] ? spellId(shown[0]) : null;
+  const tabStop = tabStopOf(shown, focused, selectedId);
   // On a phone the list and the spell view are two views. An open at a spell shows its spell view.
   const [view, setView] = useState<"list" | "spell">(phone && atId !== null ? "spell" : "list");
   const spellView = phone && view === "spell";

@@ -1,7 +1,7 @@
 // The frame of the builder (ORC-340, docs/design/character-builder.md "The step rail"): the step rail, the step
 // title, Back and Next, the empty steps and the status toast. The summary card and the full sheet panel are ORC-341
-// ("The summary card"). e2e/builder.spec.ts measures in a browser that a pick does not move a selection heading or a
-// line of the card.
+// ("The summary card"). In a browser, e2e/builder.spec.ts measures that a pick does not move a selection heading, and
+// e2e/builder-layout.spec.ts that it does not move a line of the card.
 import "fake-indexeddb/auto";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";

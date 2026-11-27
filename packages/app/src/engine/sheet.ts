@@ -28,10 +28,6 @@ import { toSpellcasting } from "./sheet-spellcasting.ts";
 import { ABILITIES, blankToNull, byName, keyToName, named, SKILLS } from "./sheet-text.ts";
 import type { SlotGroup, SpentSlotGroups } from "./spells.ts";
 
-// spell-list.ts, Spells.tsx and SpellsPanel.tsx import these from here. PR #169 changes those files, so they move to
-// sheet-text.ts after it merges (ORC-363).
-export { bonusStr, keyToName, ordinal } from "./sheet-text.ts";
-
 export type Ability = "str" | "dex" | "con" | "int" | "wis" | "cha";
 
 /** A content key with its display name. */

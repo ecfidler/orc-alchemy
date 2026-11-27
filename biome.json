@@ -65,17 +65,5 @@
         "organizeImports": "on"
       }
     }
-  },
-  "overrides": [
-    {
-      "includes": ["packages/app/src/components/SpellsPanel.tsx"],
-      "linter": {
-        "rules": {
-          "complexity": {
-            "noExcessiveCognitiveComplexity": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }

@@ -7,7 +7,8 @@
 // docs/design/character-builder.md "The Spells and Equipment steps") shows the
 // options of one spell selection in the same list: optionSpellGroups.
 import type { BuilderSelection } from "./builder.ts";
-import { type Ability, type KnownSpell, ordinal, type Sheet, type Spellcasting } from "./sheet.ts";
+import type { Ability, KnownSpell, Sheet, Spellcasting } from "./sheet.ts";
+import { ordinal } from "./sheet-text.ts";
 import { prepareKind } from "./spell-prepare.ts";
 import { type SpellLookup, spellName } from "./spell-records.ts";
 import { slotEntries } from "./spell-slots.ts";
