@@ -22,7 +22,7 @@ export function useMutation(): (mutate: Mutation) => boolean {
       useCharacter.getState().update((entity) => mutate(engine(), entity, content));
       return true;
     } catch (error) {
-      say(error instanceof Error ? error.message : String(error));
+      say(error instanceof Error ? error.message : String(error), "error");
       return false;
     }
   };

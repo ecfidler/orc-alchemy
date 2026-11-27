@@ -234,6 +234,8 @@ test("the level field takes 1 to 20: another number shows in the status toast an
   for (const typed of ["0", "21"]) {
     typeLevel("Fighter", typed);
     await waitFor(() => expect(status()).toBe("A class level is from 1 to 20."));
+    // A refusal is an error: the toast shows it on the danger red (ORC-372).
+    expect(document.querySelector<HTMLElement>("[data-toast-status]")?.dataset.tone).toBe("error");
     expect(levels()).toEqual({ fighter: 1 });
     expect(levelField("Fighter").value).toBe("1");
   }

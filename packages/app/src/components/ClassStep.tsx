@@ -119,7 +119,7 @@ export function ClassStep({ selection }: { selection: BuilderSelection }) {
    */
   function setLevel(key: string, level: number, now: number, method: ClassHitPointsMethod) {
     const refusal = levelRefusal(picked, key, level);
-    if (refusal !== null) say(refusal);
+    if (refusal !== null) say(refusal, "error");
     else if (level < now) void lower(key, level);
     else if (level > now) run((e, entity, opts) => raiseLevel(e, entity, key, now, level, method, opts));
   }

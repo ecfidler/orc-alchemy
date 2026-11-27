@@ -165,6 +165,8 @@ test("a refusal of the engine shows in the status toast, not in the page", async
     await notBusy();
   }
   expect([toast().getAttribute("role"), toast().textContent]).toEqual(["status", expect.stringMatching(/no selections remain/)]);
+  // A refused pick is an error (ORC-372).
+  expect(toast().dataset.tone).toBe("error");
   expect(screen.queryByRole("alert")).toBeNull();
 });
 

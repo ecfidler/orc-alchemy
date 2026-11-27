@@ -4,7 +4,7 @@ title: Theme spec
 description: The settled look of Alchemy 5e for M8 - tokens, type, light and dark, the shared UI package, controls, paper patterns, notes, the app shell, Home, Preferences, and the character sheet (layout F).
 tags: [design, theme]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T16:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-27T05:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-102/map-settle-the-app-theme
 sources:
   - id: orc-102
@@ -235,7 +235,11 @@ The homebrew forms (ORC-195) add these parts. The
   action button. The text hides after 6 seconds, but not while the
   pointer or the focus is on the toast; the note stays. On a phone it
   keeps a 16px gutter, and a long text wraps. It is above a modal dialog
-  and under a small popup or a menu.
+  and under a small popup or a menu. The text and the note are at least
+  320px wide (less on a narrow screen), and the text has a small X
+  ("Dismiss the message") at its right end. An error (a refusal) has the `--paper`
+  color on a `--danger` fill and border, 5.6 : 1 light and 6.9 : 1 dark
+  (ORC-372).
 
 The picker controls (ORC-196) replace the groups of checkboxes on the
 homebrew forms. They have no game words: the app gives the lists.

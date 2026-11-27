@@ -4,7 +4,7 @@ title: Sheet interactivity spec
 description: The settled design of the play controls on the character sheet - hit points, temporary hit points and death saves, hit dice, recorded feature uses, the Rest button with Short rest, Long rest and Dawn, the Cast button of the spell view, the concentration mark, conditions, exhaustion, inspiration, the AC pick and the ability highlight - with the record of the play state and the run order of the build tickets.
 tags: [design, sheet, play-state]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-25T00:31:24Z }
+generated: { by: claude-code/agent, at: 2026-11-27T05:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-295/map-sheet-interactivity
 sources:
   - id: orc-295
@@ -134,6 +134,16 @@ A cast in the Spells panel uses the same toast.
 * The text is on a plain surface: the paper, an ink border and the
   shadow of the small popup. A long text wraps. On a phone the toast
   keeps a 16px gutter on each side.
+* The toast is at least 320px wide, or the width of the screen less the
+  gutters when that is less. The text starts at the left.[^orc-372]
+* The text has an X at its right end, with the name "Dismiss the
+  message". The X hides the text at once, and the focus goes back to
+  where it was before it went into the toast. The next action shows its text again. The X is
+  out of the live region, so a screen reader does not read it with the
+  text. The concentration note keeps its own Dismiss button.
+* A refusal shows on the danger red, with the paper color for the text
+  and the X. The sheet has no refusal now: an action with nothing to do
+  says nothing. The builder uses the same toast for its refusals.
 * The text hides after 6 seconds. It does not hide while the pointer or
   the focus is on the toast. The time starts again when they leave.
 * The next action replaces the text and starts the time again. The same
@@ -992,3 +1002,4 @@ test for the rule [No layout shift](#no-layout-shift).
 [^orc-312]: Prototype the sheet layout for the new play controls, <https://linear.app/orc-alchemy/issue/ORC-312/prototype-the-sheet-layout-for-the-new-play-controls>
 [^orc-323]: Exhaustion: the token and its effects on speed, hit points and death, <https://linear.app/orc-alchemy/issue/ORC-323/exhaustion-the-token-and-its-effects-on-speed-hit-points-and-death>
 [^orc-326]: Status toast: move the status line and the concentration note out of the vitals panel, <https://linear.app/orc-alchemy/issue/ORC-326>
+[^orc-372]: Status toast: a red look for errors, a dismiss button and a minimum width, <https://linear.app/orc-alchemy/issue/ORC-372>

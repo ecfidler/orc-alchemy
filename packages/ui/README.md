@@ -561,10 +561,15 @@ bun run test       # vitest
     into the toast. The status and the note are polite live regions
     (`role="status"` with `aria-live`, so a modal dialog does not hide
     them from a screen reader) that are always in the page; `noteName`
-    names the note region. On a phone it keeps a 16px gutter and a long
-    text wraps. It is above a modal dialog and under a small popup or a
-    menu. With `prefers-reduced-motion: reduce` it does not fade or move.
-    Tests find the status by `[data-toast-status]`. Styles:
+    names the note region. The status has an X ("Dismiss the message")
+    at its right end, out of the live region: it hides the text at once,
+    and the focus goes back as after the note's action. `tone="error"`
+    (`ToastTone`) shows a refusal on the danger red. The status and the
+    note are at least 320px wide (ORC-372). On a phone it keeps a 16px
+    gutter and a long text wraps. It is above a modal dialog and under a
+    small popup or a menu. With `prefers-reduced-motion: reduce` it does
+    not fade or move. Tests find the status by `[data-toast-status]`, and
+    its tone by `data-tone="error"` on that element. Styles:
     `src/toast.css`.
   - `useThemePreference()`, `themeHeadScript` and `THEME_STORAGE_KEY`.
     The preference is a stored value (below).

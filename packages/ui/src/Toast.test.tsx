@@ -160,3 +160,44 @@ test("after the note's action, the focus goes back to where it was before it cam
   wait(200);
   expect(status().textContent).toBe("");
 });
+
+test("the X of the status hides it at once, and is out of the live region (ORC-372)", () => {
+  render(<Page />);
+  const other = screen.getByRole("button", { name: "Other" });
+  act(() => other.focus());
+  fireEvent.click(screen.getByRole("button", { name: "Act" }));
+  const x = screen.getByRole("button", { name: "Dismiss the message" });
+  // The text of the region is only the status, so a screen reader does not read the X with it.
+  expect([status().textContent, status().contains(x)]).toEqual(["5 damage.", false]);
+  act(() => x.focus());
+  fireEvent.click(x);
+  expect(status().textContent).toBe("");
+  expect(screen.queryByRole("button", { name: "Dismiss the message" })).toBeNull();
+  // The focus goes back to where it was before it came into the toast.
+  expect(document.activeElement).toBe(other);
+  // The next text shows again, with its X.
+  fireEvent.click(screen.getByRole("button", { name: "Act" }));
+  expect(status().textContent).toBe("5 damage.");
+  expect(screen.getByRole("button", { name: "Dismiss the message" })).toBeTruthy();
+});
+
+test("an error status has the error tone, and a status has none (ORC-372)", () => {
+  const { rerender } = render(<Toast status="The value is from 1 to 20." statusKey={1} tone="error" />);
+  expect(status().dataset.tone).toBe("error");
+  rerender(<Toast status="Short rest finished." statusKey={2} />);
+  expect(status().dataset.tone).toBeUndefined();
+});
+
+test("a click on the X that sends no pointerleave does not hold the next status (ORC-372)", () => {
+  render(<Page />);
+  fireEvent.click(screen.getByRole("button", { name: "Act" }));
+  const x = screen.getByRole("button", { name: "Dismiss the message" });
+  fireEvent.pointerOver(x);
+  // The click takes the X away from under the pointer, and no pointerleave comes.
+  fireEvent.click(x);
+  fireEvent.click(screen.getByRole("button", { name: "Other" }));
+  expect(status().textContent).toBe("Other text.");
+  wait(TOAST_DURATION);
+  wait(200);
+  expect(status().textContent).toBe("");
+});

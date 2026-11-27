@@ -58,7 +58,7 @@ export function useChangeQuestion(): [change: (change: PickChange, finalFocus?: 
     try {
       return planChange({ engine: engine(), entity, content }, change);
     } catch (e) {
-      say(e instanceof Error ? e.message : String(e));
+      say(e instanceof Error ? e.message : String(e), "error");
       return null;
     }
   }
