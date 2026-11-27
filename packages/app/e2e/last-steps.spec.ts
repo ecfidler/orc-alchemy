@@ -1,9 +1,10 @@
 // The Feats, Spells, Equipment and Description steps in the new frame, in a browser (ORC-352,
 // docs/design/character-builder.md "The Feats step", "The Spells and Equipment steps", "The Description step" and "No
 // layout shift"): a pick does not move a spell selection (in the "Add spells" popup, ORC-357) or a starting equipment
-// selection, the feat section names its source, and Alignment is the first field of the Description step.
+// selection, the feat section names its source, the inventory tables fit a 390px page (ORC-374), and Alignment is the
+// first field of the Description step.
 import { join } from "node:path";
-import { pickOption } from "@orc-alchemy/ui/testing/playwright";
+import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { addFirstClass, addSpells, builder, newCharacter, openFixture, openStep, section, stepButton } from "./builder-helpers.ts";
 
@@ -134,6 +135,22 @@ test("a pick in a starting equipment selection does not move it, its cards or th
   await card("Leather Armor, Longbow, 20 Arrows").click();
   await expect(card("Chain Mail")).toHaveAttribute("aria-pressed", "false");
   expect(await boxes(parts)).toEqual(before);
+});
+
+test("at 390px the inventory tables fit with no page scroll, and an item from Add items shows in its table (ORC-373, ORC-374)", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFixture(page, "fighter-20", "Equipment");
+  await pickFromPicker(builder(page).getByRole("button", { name: /^Add items/ }), ["Ring of Protection"]);
+  const magic = section(page, "Other Magic Items").getByRole("table");
+  // The name is the row header (a th), the other parts are cells.
+  const row = magic.getByRole("row").last();
+  await expect(row.getByRole("rowheader")).toHaveText("Ring of Protection");
+  await expect(row.locator("th, td")).toHaveText(["", "Ring of Protection", "", "—", "", ""]);
+  // Each column is in the table's box, and the page does not scroll to the side.
+  const table = (await magic.boundingBox())!;
+  const remove = (await magic.getByRole("button", { name: "Remove Ring of Protection" }).boundingBox())!;
+  expect(remove.x + remove.width).toBeLessThanOrEqual(table.x + table.width);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test("the feat section names its source, with its mark, and the Customize line is below its control", async ({ page }) => {

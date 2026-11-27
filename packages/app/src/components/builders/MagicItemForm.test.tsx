@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { pickOption } from "@orc-alchemy/ui/testing";
+import { pickFromPicker } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine } from "../../engine/engine.ts";
@@ -157,7 +157,7 @@ test("a magic item authored in the form is offered in the Equipment step, and at
   const entity = () => useCharacter.getState().entity!;
   const built = () => e.evaluate(entity(), useHomebrew.getState().content).built;
   const wis = built().abilities["orcpub.dnd.e5.character/wis"];
-  await pickOption(document.querySelector<HTMLElement>('[aria-label="Add an item to Other Magic Items"]')!, "Hawk Eye Circlet");
+  await pickFromPicker(screen.getByRole("button", { name: /^Add items/ }), "Hawk Eye Circlet");
   fireEvent.click(document.querySelector<HTMLInputElement>('[aria-label="Attuned: Hawk Eye Circlet"]')!);
   await waitFor(() => expect(built().abilities["orcpub.dnd.e5.character/wis"]).toBe(wis + 2));
 }, 20_000);

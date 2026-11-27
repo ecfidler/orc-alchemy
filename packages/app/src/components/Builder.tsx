@@ -4,7 +4,7 @@
 // are ORC-340 (docs/design/character-builder.md, "The step rail"). The summary
 // card beside the step and the full sheet panel are ORC-341 ("The summary card").
 import { Button, ButtonLink, SidePanel, StepRail } from "@orc-alchemy/ui";
-import { type ReactElement, useEffect, useId, useRef, useState } from "react";
+import { Fragment, type ReactElement, useEffect, useId, useRef, useState } from "react";
 import {
   type BuilderSelection,
   CLASS_STEP,
@@ -25,7 +25,7 @@ import { ClassStep } from "./ClassStep.tsx";
 import { CustomizeLines, customizableFor } from "./CustomizeDialog.tsx";
 import { useCustomOrigin } from "./CustomOriginDialog.tsx";
 import { Description } from "./Description.tsx";
-import { Hands, Inventory } from "./Equipment.tsx";
+import { AddItems, Hands, Inventory } from "./Equipment.tsx";
 import { MainPick, mainPickParts } from "./MainPick.tsx";
 import { NameStep } from "./NameStep.tsx";
 import { ProficienciesStep } from "./ProficienciesStep.tsx";
@@ -130,7 +130,14 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                         // A class and a background can have starting equipment with the same key.
                         const key = JSON.stringify(selection.actualPath);
                         if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
-                        if (isList(selection)) return <Inventory key={key} selection={selection} />;
+                        if (isList(selection))
+                          return (
+                            <Fragment key={key}>
+                              {/* One "Add items" button for all the inventory lists, above the first (ORC-373). */}
+                              {selection === step.selections.find(isList) && <AddItems lists={step.selections.filter(isList)} />}
+                              <Inventory selection={selection} />
+                            </Fragment>
+                          );
                         if (step.name === SPELLS_STEP) return <SpellStepSelection key={key} selection={selection} />;
                         if (step.name === DESCRIPTION_STEP && isAlignment(selection)) return null;
                         return <Selection key={key} selection={selection} />;

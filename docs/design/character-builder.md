@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-27T05:30:00Z }
+generated: { by: claude-code/agent, at: 2026-11-27T05:40:25Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -355,7 +355,8 @@ One rule gives the control of a selection.[^orc-332]
 | 7 options or more, more than one pick | The ui `Picker`, with the picks as tokens |
 | 7 options or more, one pick | A Choose button that opens the ui `ListModal` with the mark "Choose". After the pick, the row shows the pick and a Change button. |
 | A spell selection | Its picks by level and an "Add spells" button that opens a popup with the parts of the Spells panel. See [The Spells and Equipment steps](#the-spells-and-equipment-steps). |
-| An inventory list, the hands, the prepared spells | As today |
+| An inventory list | One "Add items" button for all the lists, and a table for each list. See [The inventory lists](#the-inventory-lists). |
+| The hands, the prepared spells | As today |
 
 * An option card shows only the name. It is a toggle, as today.
 * A picker and a list have a search field above 20 options, as in the
@@ -941,9 +942,10 @@ show these selections. They show a line in "Also choose".
 
 # The Spells and Equipment steps
 
-The inside of the Equipment step stays as today. A redesign of it is a
-later project. The spell selections of the Spells step have the "Add
-spells" popup.[^orc-357]
+The spell selections of the Spells step have the "Add spells"
+popup.[^orc-357] The inventory lists of the Equipment step have one "Add
+items" list modal, and each list is a table.[^orc-373][^orc-374] The
+hands and the prepared spells stay as today.
 
 * The steps get the step title, the marks and the rules of this
   document.
@@ -1012,7 +1014,58 @@ spells" popup.[^orc-357]
   selections when the spell records load.
 * A starting equipment selection gets the control of
   [The control for each kind of selection](#the-control-for-each-kind-of-selection).
-* The inventory lists, the hands and the prepared spells do not change.
+
+## The inventory lists
+
+The inventory lists are the list selections of the Equipment step:
+Armor, Equipment, Magic Armor, Magic Weapons, Other Magic Items,
+Treasure and Weapons, in the order of the step.
+
+* One "Add items" button adds to all the lists.[^orc-373] It is an
+  `AddButton` above the first list. The lists have no add control of
+  their own.
+* The button opens one `ListModal` with the title "Add items" and a
+  search field. The modal has a group for each list, in the order of the
+  step. A group has the items that are not in its list yet, A to Z. The
+  search filters the rows of all the groups.
+* A pick adds the item to the list of its group. The picks do not show
+  as tokens in the modal. The item shows in its own list.
+* The modal stays open after a pick, and the picked item leaves it, as
+  the [Picker](homebrew-forms.md#picker) of the homebrew forms. The
+  footer counts the picks since the modal opened: "2 added".
+* A row is busy while its pick is on its way, and the button is busy
+  until the pick shows. A second click on a busy row does nothing.
+* Each list is a `<table>` under its heading, named by the
+  heading.[^orc-374] The header row has the columns Carried, Name,
+  Attuned, Weight, Quantity and Remove. Only the magic lists (Magic
+  Armor, Magic Weapons and Other Magic Items) have the Attuned column.
+  The Remove column has no visible header text, and each row has an X
+  button "Remove Plate".
+* The Carried and Attuned cells have a box. The rule of 3 attuned items
+  stays: at 3, the Attuned box of each item that is not attuned is
+  disabled.
+* The Weight cell shows the weight of one item, for example "65 lb.".
+  The weight comes from the SRD content lists of `@pubdoor/dmv`: armor,
+  equipment and magic items. The weight of ammunition is for a bundle,
+  for example 1 lb. for 20 arrows, so one arrow shows "0.05 lb.". An
+  item with no weight shows a dash. The weapon list of the engine has
+  no weights, so a weapon shows a dash. Most magic weapons and magic
+  items have no weight in the content either, and show a dash. An item
+  of a homebrew pack also shows a dash.
+* Under the table is the line "Total weight: 66 lb.". The total adds
+  the weight × the quantity of each item with a known weight. An item
+  with a dash does not count. When no item has a known weight, the
+  total is a dash. The total has two decimals or fewer.
+* The custom items of Equipment and Treasure stay. Each custom item is a
+  row of the same table, after the other items. Its Name cell has its
+  name field, or its name when it comes from starting equipment. Its
+  Weight cell is a dash. The "Add custom item" button is under the
+  table.
+* An empty list shows one muted line in the place of the table, for
+  example "No magic armor yet.". Equipment and Treasure keep their "Add
+  custom item" button.
+* At 390px the tables fit the page with no side scroll. When a table is
+  wider than the step, it scrolls in its own box.
 
 # The Description step
 
@@ -1128,7 +1181,9 @@ one depends only on parts of the frame.
 * **The Level up wizard.** It is a project of its own, after this
   builder is done.
 * **A builder for 2024 characters.**
-* **A redesign of the inside of the Spells and Equipment steps.**
+* **A redesign of the inside of the Spells and Equipment steps**, other
+  than the "Add spells" popup, the "Add items" list modal and the
+  inventory tables.
 * **Fewer or other ability score methods.**
 * **Changes to the engine `@pubdoor/dmv`.**
 * **Changes to the Customize dialog and the Custom Origin dialog.**
@@ -1161,3 +1216,5 @@ one depends only on parts of the frame.
 [^orc-370]: Proficiencies step: show that a selection is full before the user tries another pick, <https://linear.app/orc-alchemy/issue/ORC-370>
 [^orc-371]: Proficiencies step: less space between a selection heading and its control, <https://linear.app/orc-alchemy/issue/ORC-371>
 [^orc-372]: Status toast: a red look for errors, a dismiss button and a minimum width, <https://linear.app/orc-alchemy/issue/ORC-372>
+[^orc-373]: Equipment step: add items with the Picker of the homebrew forms, <https://linear.app/orc-alchemy/issue/ORC-373>
+[^orc-374]: Equipment step: show the inventory lists as tables, <https://linear.app/orc-alchemy/issue/ORC-374>

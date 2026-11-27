@@ -1,8 +1,10 @@
 // The Equipment step (ORC-59): the inventory lists, as the old builder's
-// inventory selectors, and the worn armor, shield and weapons in hand, as
-// the old sheet's Equipped Items. Each change is an engine mutation.
-import { Button, Checkbox, Combobox, Select } from "@orc-alchemy/ui";
-import { useId, useMemo } from "react";
+// inventory selectors, the one "Add items" list modal for all of them
+// (ORC-373), and the worn armor, shield and weapons in hand, as the old
+// sheet's Equipped Items. Each list is a table (ORC-374). Each change is an
+// engine mutation.
+import { AddButton, Button, Checkbox, type ListItem, ListModal, Select, TextInput, XButton } from "@orc-alchemy/ui";
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import {
   addCustomItem,
@@ -12,6 +14,7 @@ import {
   customItems,
   type Hand,
   hand,
+  itemWeights,
   removeCustomItem,
   setAttuned,
   setCarried,
@@ -22,105 +25,259 @@ import {
 import { useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
 import { HEADING_CLASSES, Heading } from "./selection-heading.tsx";
-import { useMutation } from "./use-mutation.ts";
+import { useMutation, usePendingMutation } from "./use-mutation.ts";
 
 const MAGIC_LISTS = ["magic-weapons", "magic-armor", "other-magic-items"];
 /** As the SRD: a character can attune to no more than 3 magic items at once. */
 const MAX_ATTUNED = 3;
 
-/** An inventory list, such as Armor: an item to add, then a row per item, and for some lists, custom items. */
+/** An item to add: its inventory list, such as "armor", and its key. */
+type ItemPick = { list: string; key: string };
+const pickId = ({ list, key }: ItemPick) => `${list}/${key}`;
+
+/**
+ * The "Add items" button of the step, and its list modal (ORC-373): a group for each inventory list, in the order of
+ * `lists`, with the items that are not in the list yet, A to Z. A pick goes to its own list. The modal stays open, and
+ * the picked item leaves it. A row is busy while its pick is on its way.
+ */
+export function AddItems({ lists }: { lists: BuilderSelection[] }) {
+  const { entity } = useOpenCharacter();
+  const { pending, later } = usePendingMutation();
+  const [open, setOpen] = useState(false);
+  const [added, setAdded] = useState(0);
+  const button = useRef<HTMLButtonElement>(null);
+  const items: ListItem<ItemPick>[] = lists.flatMap((selection) => {
+    const stored = new Set(storedItems(entity!, selection.key).map((item) => item.key));
+    return selection.options
+      .filter((o) => !stored.has(o.key))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((o) => {
+        const value = { list: selection.key, key: o.key };
+        return { value, label: o.name, group: selection.name, ...(pending.has(pickId(value)) && { busy: true }) };
+      });
+  });
+  function pick(value: ItemPick) {
+    if (pending.has(pickId(value))) return;
+    setAdded((n) => n + 1);
+    later(pickId(value), (e, entity) => e.addInventoryItem(entity, value.list, value.key));
+  }
+  return (
+    <>
+      <AddButton
+        ref={button}
+        label="Add items"
+        // A pick that is on its way is busy until it shows in its list. When the modal closes first, the button shows it.
+        aria-busy={pending.size > 0 || undefined}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => {
+          setAdded(0);
+          setOpen(true);
+        }}
+      />
+      <ListModal
+        open={open}
+        onOpenChange={setOpen}
+        title="Add items"
+        items={items}
+        onPick={pick}
+        stayOpen
+        picked={added}
+        pickedText={(n) => `${n} added`}
+        search
+        finalFocus={button}
+      />
+    </>
+  );
+}
+
+const POUNDS = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+/** A weight in pounds, as the inventory tables show it: "65 lb.", "0.05 lb."; a dash for no weight. */
+const lb = (pounds: number | null) => (pounds === null ? "—" : `${POUNDS.format(pounds)} lb.`);
+
+let loadedWeights: Map<string, number> | null = null;
+const NO_WEIGHTS = new Map<string, number>();
+
+/** The weight of one of each SRD item, by key (itemWeights). Until it loads, or when it cannot load, no item has a weight. */
+function useItemWeights(): Map<string, number> {
+  const [weights, setWeights] = useState(loadedWeights);
+  useEffect(() => {
+    if (weights !== null) return;
+    let live = true;
+    itemWeights()
+      .then((map) => {
+        loadedWeights = map;
+        if (live) setWeights(map);
+      })
+      // Offline, the weights show as dashes.
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [weights]);
+  return weights ?? NO_WEIGHTS;
+}
+
+/** The attuned box of a row of a magic list. */
+type Attuned = { checked: boolean; disabled: boolean; onChange: (on: boolean) => void };
+
+/** One row of an inventory table, for an item or a custom item: Carried, Name, Attuned (magic lists), Weight, Quantity, Remove. */
+function ItemRow(props: {
+  name: string;
+  /** The Name cell: the name, or the name field of a custom item. */
+  nameCell: ReactNode;
+  carried: boolean;
+  onCarried: (carried: boolean) => void;
+  /** The Attuned box, in a magic list only. */
+  attuned?: Attuned;
+  weight: number | null;
+  quantity: number;
+  onQuantity: (quantity: number) => void;
+  onRemove: () => void;
+}) {
+  const { name, attuned } = props;
+  return (
+    <tr className="border-t border-rule">
+      <td className="py-1 pr-2 text-center">
+        <Checkbox aria-label={`Carried: ${name}`} checked={props.carried} onCheckedChange={props.onCarried} />
+      </td>
+      {/* The name is the row header, so a screen reader names the item with each cell. */}
+      <th scope="row" className="w-full py-1 pr-2 text-left font-normal">
+        {props.nameCell}
+      </th>
+      {attuned !== undefined && (
+        <td className="py-1 pr-2 text-center">
+          <Checkbox aria-label={`Attuned: ${name}`} checked={attuned.checked} disabled={attuned.disabled} onCheckedChange={attuned.onChange} />
+        </td>
+      )}
+      <td className="py-1 pr-2 text-right whitespace-nowrap tabular-nums">{lb(props.weight)}</td>
+      <td className="py-1 pr-2">
+        <BoundedNumberField label={`Quantity: ${name}`} min={1} value={props.quantity} onCommit={props.onQuantity} />
+      </td>
+      <td className="py-1">
+        <XButton aria-label={`Remove ${name}`} size="small" onClick={props.onRemove} />
+      </td>
+    </tr>
+  );
+}
+
+/** The header row of an inventory table. */
+function HeaderRow({ magic }: { magic: boolean }) {
+  const th = "pb-1 pr-2 font-bold";
+  return (
+    <tr className="font-sans text-[12.5px]">
+      <th scope="col" className={th}>
+        Carried
+      </th>
+      <th scope="col" className={th}>
+        Name
+      </th>
+      {magic && (
+        <th scope="col" className={th}>
+          Attuned
+        </th>
+      )}
+      <th scope="col" className={`${th} text-right`}>
+        Weight
+      </th>
+      <th scope="col" className={th}>
+        Quantity
+      </th>
+      <th scope="col" className="pb-1">
+        <span className="sr-only">Remove</span>
+      </th>
+    </tr>
+  );
+}
+
+/**
+ * An inventory list, such as Armor, as a table (ORC-374): a row per item, then a row per custom item, and the total
+ * weight under it. The total adds weight × quantity of each item with a known weight. An empty list shows one line.
+ */
 export function Inventory({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { entity } = useOpenCharacter();
   const run = useMutation();
+  const weights = useItemWeights();
   const list = selection.key;
   const customKey = CUSTOM_VALUES[list];
   const items = useMemo(() => storedItems(entity!, list), [entity, list]);
   const custom = useMemo(() => (customKey ? customItems(entity!, customKey) : []), [entity, customKey]);
   const attuned = useMemo(() => attunedItems(entity!), [entity]);
   const nameOf = (key: string) => selection.options.find((o) => o.key === key)?.name ?? key;
-  // As the old adder: only the items not in the list yet, by name.
-  const free = selection.options.filter((o) => !items.some((item) => item.key === o.key)).sort((a, b) => a.name.localeCompare(b.name));
   const magic = MAGIC_LISTS.includes(list);
+  const known = items.filter((item) => weights.has(item.key));
+  const total = known.length > 0 ? known.reduce((sum, item) => sum + weights.get(item.key)! * item.quantity, 0) : null;
+  const attunedBox = (key: string): Attuned => {
+    const on = attuned.includes(key);
+    return { checked: on, disabled: !on && attuned.length >= MAX_ATTUNED, onChange: (next) => run((e, entity) => setAttuned(e, entity, key, next)) };
+  };
 
   return (
     <section aria-labelledby={id} className="space-y-2">
       {/* An inventory list has no picks to make, so it has no mark. */}
       <Heading id={id} selection={selection} mark={false} />
-      <Combobox
-        aria-label={`Add an item to ${selection.name}`}
-        placeholder="Add an item…"
-        options={free.map((o) => [o.key, o.name])}
-        onPick={(key) => run((e, entity) => e.addInventoryItem(entity, list, key))}
-        className="w-64"
-      />
-      <ul className="space-y-1">
-        {items.map((item) => {
-          const name = nameOf(item.key);
-          const isAttuned = attuned.includes(item.key);
-          return (
-            <li key={item.key} className="flex flex-wrap items-center gap-2">
-              <Checkbox
-                aria-label={`Carried: ${name}`}
-                checked={item.equipped}
-                onCheckedChange={(carried) => run((e, entity, opts) => setCarried(e, entity, list, item.key, carried, opts))}
-              />
-              <span className="flex-grow">{name}</span>
-              {magic && (
-                <Checkbox
-                  label={<span aria-hidden="true">Attuned</span>}
-                  name={`Attuned: ${name}`}
-                  checked={isAttuned}
-                  disabled={!isAttuned && attuned.length >= MAX_ATTUNED}
-                  onCheckedChange={(on) => run((e, entity) => setAttuned(e, entity, item.key, on))}
-                />
-              )}
-              <BoundedNumberField
-                label={`Quantity: ${name}`}
-                min={1}
-                value={item.quantity}
-                onCommit={(n) => run((e, entity, opts) => setQuantity(e, entity, list, item.key, n, opts))}
-              />
-              <Button
-                // An item removed is no longer attuned.
-                onClick={() => run((e, entity) => setAttuned(e, e.removeInventoryItem(entity, list, item.key), item.key, false))}
-                size="small"
-                icon="trash"
-              >
-                Remove {name}
-              </Button>
-            </li>
-          );
-        })}
-        {custom.map((item, i) => (
-          <li key={`custom-${i}`} className="flex flex-wrap items-center gap-2">
-            <Checkbox
-              aria-label={`Carried: ${item.name}`}
-              checked={item.equipped}
-              onCheckedChange={(equipped) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { equipped }))}
-            />
-            {item.starting ? (
-              <span className="flex-grow">{item.name}</span>
-            ) : (
-              <input
-                aria-label={`Custom item ${i + 1} name`}
-                value={item.name}
-                onChange={(event) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { name: event.target.value }))}
-                className="flex-grow border border-ink p-1"
-              />
-            )}
-            <BoundedNumberField
-              label={`Quantity: ${item.name}`}
-              min={1}
-              value={item.quantity}
-              onCommit={(n) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { quantity: n }))}
-            />
-            <Button icon="trash" onClick={() => run((e, entity) => removeCustomItem(e, entity, customKey, item.name))} size="small">
-              Remove {item.name}
-            </Button>
-          </li>
-        ))}
-      </ul>
+      {items.length + custom.length === 0 ? (
+        <p className="font-sans text-[13.5px] text-ink-muted">No {selection.name.toLowerCase()} yet.</p>
+      ) : (
+        <>
+          {/* At a narrow width the table scrolls in its own box, not the page. */}
+          <div className="overflow-x-auto">
+            <table aria-labelledby={id} className="w-full border-collapse text-left text-[15px]">
+              <thead>
+                <HeaderRow magic={magic} />
+              </thead>
+              <tbody>
+                {items.map((item) => {
+                  const name = nameOf(item.key);
+                  return (
+                    <ItemRow
+                      key={item.key}
+                      name={name}
+                      nameCell={name}
+                      carried={item.equipped}
+                      onCarried={(carried) => run((e, entity, opts) => setCarried(e, entity, list, item.key, carried, opts))}
+                      attuned={magic ? attunedBox(item.key) : undefined}
+                      weight={weights.get(item.key) ?? null}
+                      quantity={item.quantity}
+                      onQuantity={(n) => run((e, entity, opts) => setQuantity(e, entity, list, item.key, n, opts))}
+                      // An item removed is no longer attuned.
+                      onRemove={() => run((e, entity) => setAttuned(e, e.removeInventoryItem(entity, list, item.key), item.key, false))}
+                    />
+                  );
+                })}
+                {custom.map((item, i) => (
+                  <ItemRow
+                    key={`custom-${i}`}
+                    name={item.name}
+                    nameCell={
+                      item.starting ? (
+                        item.name
+                      ) : (
+                        <TextInput
+                          aria-label={`Custom item ${i + 1} name`}
+                          width="full"
+                          value={item.name}
+                          onValueChange={(name) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { name }))}
+                        />
+                      )
+                    }
+                    carried={item.equipped}
+                    onCarried={(equipped) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { equipped }))}
+                    weight={null}
+                    quantity={item.quantity}
+                    onQuantity={(n) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { quantity: n }))}
+                    onRemove={() => run((e, entity) => removeCustomItem(e, entity, customKey, item.name))}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="font-sans text-[13.5px]">
+            Total weight: <span className="tabular-nums">{lb(total)}</span>
+          </p>
+        </>
+      )}
       {customKey && (
         <Button icon="plus" onClick={() => run((e, entity) => addCustomItem(e, entity, customKey))} size="small">
           Add custom item

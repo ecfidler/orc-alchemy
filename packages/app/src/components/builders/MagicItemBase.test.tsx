@@ -10,6 +10,16 @@ import { Builder } from "../Builder.tsx";
 import { form, group, MI, renderAt, resetHomebrew, save, stored, type, W } from "./test-magic-item.tsx";
 import { addList, choose, pick, shown, tokens, unpick } from "./test-picks.ts";
 
+/** The names of the rows of the Magic Weapons group of the "Add items" modal of the Equipment step that match the search. */
+async function magicWeapons(search: string): Promise<string[]> {
+  fireEvent.click(screen.getByRole("button", { name: /^Add items/ }));
+  const dialog = within(await screen.findByRole("dialog", { name: "Add items" }));
+  fireEvent.change(dialog.getByRole("searchbox"), { target: { value: search } });
+  return within(dialog.getByRole("list", { name: "Magic Weapons" }))
+    .getAllByRole("button")
+    .map((row) => row.getAttribute("aria-label")!);
+}
+
 beforeAll(() => loadEngine());
 
 afterEach(resetHomebrew);
@@ -44,8 +54,7 @@ test("a weapon stores its base weapons, and Any replaces the others", async () =
   useCharacter.getState().load("homebrew-magic-weapon", engine().emptyCharacter());
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Equipment/ }));
-  const add = document.querySelector<HTMLElement>('[aria-label="Add an item to Magic Weapons"]')!;
-  expect((await optionNames(add)).filter((name) => name.startsWith("Flame Blade"))).toHaveLength(2);
+  expect(await magicWeapons("Flame Blade")).toHaveLength(2);
 }, 20_000);
 
 test("the base select has Any, Specific and New weapon; the specific list has the kinds, then the weapons by name, with search", async () => {
@@ -149,7 +158,7 @@ test("a Custom base weapon stores the old details, and another base weapon remov
   useCharacter.getState().load("homebrew-custom-weapon", engine().emptyCharacter());
   render(<Builder />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", { name: /^Equipment/ }));
-  expect(await optionNames(document.querySelector<HTMLElement>('[aria-label="Add an item to Magic Weapons"]')!)).toContain("Bone Club");
+  expect(await magicWeapons("Bone Club")).toEqual(["Bone Club"]);
   cleanup();
 
   // As the old save, Versatile without its dice is not stored. All, or a base weapon, removes the details.

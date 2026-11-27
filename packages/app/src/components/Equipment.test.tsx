@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { notBusy, pickOption } from "@orc-alchemy/ui/testing";
+import { notBusy, pickFromPicker, pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
@@ -39,10 +39,13 @@ function open(entity: StrictEntity) {
 const entity = () => useCharacter.getState().entity!;
 const sheet = () => toSheet(engine().evaluate(entity()).built, entity());
 const region = (name: string) => within(screen.getByRole("region", { name: new RegExp(`^${name}`) }));
-// getByLabelText is slow on a page of four long item lists; every control here has an aria-label.
+// Each control here has an aria-label, and a direct query is faster than getByLabelText on a page of many tables.
 const labelled = (label: string) => document.querySelector<HTMLElement>(`[aria-label="${label}"]`)!;
 const type = (label: string, value: string) => fireEvent.change(labelled(label), { target: { value } });
 const choose = (label: string, name: string) => pickOption(labelled(label), name);
+const addItems = () => screen.getByRole("button", { name: /^Add items/ });
+/** Adds the items with the one "Add items" list modal of the step (ORC-373). */
+const add = (...names: string[]) => pickFromPicker(addItems(), names);
 
 test("a starting equipment selection has the control of its rule: option cards to 6 options, then a Choose button (ORC-352)", async () => {
   open(engine().emptyCharacter());
@@ -66,16 +69,7 @@ test("a starting equipment selection has the control of its rule: option cards t
 test("fighter-20 equipped through the Equipment step has its AC, hit points and attacks", async () => {
   open(unequippedFighter20());
   expect(sheet().armorClass).toBe(18);
-  await choose("Add an item to Armor", "Plate");
-  await choose("Add an item to Magic Weapons", "Longsword +1");
-  await choose("Add an item to Other Magic Items", "Amulet of Health");
-  // An item in the list is not offered again.
-  const add = labelled("Add an item to Armor");
-  add.focus();
-  fireEvent.keyDown(add, { key: "ArrowDown" });
-  fireEvent.change(add, { target: { value: "Plate" } });
-  expect((await screen.findAllByRole("option")).map((o) => o.textContent)).not.toContain("Plate");
-  fireEvent.keyDown(add, { key: "Escape" });
+  await add("Plate", "Longsword +1", "Amulet of Health");
   expect(labelled("Carried: Plate")).toBeChecked();
   await choose("Worn armor", "Plate");
   await choose("Wielded shield", "Shield");
@@ -96,9 +90,40 @@ test("fighter-20 equipped through the Equipment step has its AC, hit points and 
   // Quantity and Remove.
   type("Quantity: Plate", "2");
   expect(engine().evaluate(entity()).built.armor!.plate["orcpub.dnd.e5.character.equipment/quantity"]).toBe(2);
-  fireEvent.click(screen.getByText("Remove Plate"));
+  fireEvent.click(labelled("Remove Plate"));
   expect(engine().evaluate(entity()).built.armor!.plate).toBeUndefined();
-  // Each change renders the four long item lists again, which jsdom is slow at.
+  // Each change is an engine mutation and a render of the step, which jsdom is slow at.
+}, 20_000);
+
+test("one Add items modal has a group for each inventory list and a search; a pick goes to its own list and leaves the modal (ORC-373)", async () => {
+  open(engine().emptyCharacter());
+  // The lists have no add control of their own.
+  expect(screen.getAllByRole("button", { name: /^Add items/ })).toHaveLength(1);
+  expect(document.querySelector('[aria-label^="Add an item"]')).toBeNull();
+  fireEvent.click(addItems());
+  const dialog = within(await screen.findByRole("dialog", { name: "Add items" }));
+  const groups = () =>
+    dialog
+      .getAllByRole("list")
+      .map((list) => list.getAttribute("aria-labelledby") && document.getElementById(list.getAttribute("aria-labelledby")!)!.textContent);
+  // In the order of the lists on the step.
+  // The page is inert under the modal, so the headings are found in the DOM, not by role.
+  const lists = [...document.querySelectorAll("section h3")].map((h) => h.textContent);
+  expect(groups()).toEqual(["Armor", "Equipment", "Magic Armor", "Magic Weapons", "Other Magic Items", "Treasure", "Weapons"]);
+  expect(lists.filter((name) => groups().includes(name!))).toEqual(groups());
+  // The search filters the rows of all the groups.
+  fireEvent.change(dialog.getByRole("searchbox"), { target: { value: "Longsword" } });
+  expect(groups()).toEqual(["Magic Weapons", "Weapons"]);
+  fireEvent.click(within(dialog.getAllByRole("list")[1]).getByRole("button", { name: "Longsword" }));
+  // The row is busy while its pick is on its way, then it leaves the modal, which stays open.
+  expect(within(dialog.getAllByRole("list")[1]).getByRole("button", { name: "Longsword" })).toHaveAttribute("aria-busy", "true");
+  await notBusy();
+  // Longsword was the one row of Weapons, so the group goes too.
+  expect(groups()).toEqual(["Magic Weapons"]);
+  expect(dialog.getByRole("status").textContent).toBe("1 added");
+  fireEvent.click(dialog.getByRole("button", { name: "Done" }));
+  expect(region("Weapons").getByText("Longsword")).toBeTruthy();
+  expect(region("Magic Weapons").queryByText("Longsword")).toBeNull();
 }, 20_000);
 
 test("a custom item is added, renamed, counted and removed", () => {
@@ -109,6 +134,10 @@ test("a custom item is added, renamed, counted and removed", () => {
   fireEvent.change(treasure.getByLabelText("Quantity: Ruby"), { target: { value: "3" } });
   fireEvent.click(treasure.getByRole("checkbox", { name: "Carried: Ruby" }));
   expect(customItems(entity(), "custom-treasure")).toEqual([{ name: "Ruby", quantity: 3, equipped: false, starting: false }]);
+  // The custom item is a row of the table, with its name field in the Name cell and no weight (ORC-374).
+  const row = treasure.getAllByRole("row")[1];
+  expect([...row.children].map((cell) => cell.textContent)).toEqual(["", "", "—", "", ""]);
+  expect(within(row).getByRole("textbox", { name: "Custom item 1 name" })).toHaveValue("Ruby");
   fireEvent.click(treasure.getByRole("button", { name: "Remove Ruby" }));
   expect(customItems(entity(), "custom-treasure")).toEqual([]);
 });
@@ -116,11 +145,9 @@ test("a custom item is added, renamed, counted and removed", () => {
 test("no more than 3 magic items are attuned at once", async () => {
   open(engine().emptyCharacter());
   // Removing an item that is not attuned does not store the attuned items.
-  fireEvent.click(screen.getByText("Remove Explorer's Pack"));
+  fireEvent.click(labelled("Remove Explorer's Pack"));
   expect(JSON.stringify(entity())).not.toContain("attuned-magic-items");
-  for (const name of ["Amulet of Health", "Cloak of Protection", "Ring of Protection", "Bag of Holding"]) {
-    await choose("Add an item to Other Magic Items", name);
-  }
+  await add("Amulet of Health", "Cloak of Protection", "Ring of Protection", "Bag of Holding");
   for (const name of ["Amulet of Health", "Cloak of Protection", "Ring of Protection"]) fireEvent.click(labelled(`Attuned: ${name}`));
   const bag = labelled("Attuned: Bag of Holding");
   expect(bag).toHaveAttribute("aria-disabled", "true");
@@ -129,7 +156,7 @@ test("no more than 3 magic items are attuned at once", async () => {
   // A removed item is no longer attuned, so it frees its place.
   fireEvent.click(labelled("Attuned: Ring of Protection"));
   expect(labelled("Attuned: Bag of Holding")).toHaveAttribute("aria-disabled", "true");
-  fireEvent.click(screen.getByText("Remove Amulet of Health"));
+  fireEvent.click(labelled("Remove Amulet of Health"));
   expect(attunedItems(entity())).toEqual(["cloak-of-protection", "ring-of-protection"]);
   expect(labelled("Attuned: Bag of Holding")).not.toHaveAttribute("aria-disabled", "true");
 });
@@ -141,11 +168,11 @@ test("an imported magic item is offered, and wearing it changes the build", asyn
     open(unequippedFighter20());
     const built = () => engine().evaluate(entity(), useHomebrew.getState().content).built;
     const wis = built().abilities["orcpub.dnd.e5.character/wis"];
-    await choose("Add an item to Other Magic Items", "Circlet of the Hawk");
+    await add("Circlet of the Hawk");
     fireEvent.click(labelled("Attuned: Circlet of the Hawk"));
     expect(built().abilities["orcpub.dnd.e5.character/wis"]).toBe(wis + 2);
 
-    await choose("Add an item to Magic Armor", "Warden's Plate");
+    await add("Warden's Plate");
     await choose("Worn armor", "Warden's Plate");
     expect(built()["worn-armor"]).toBe("wardens-plate");
     // Plate is 18, and Warden's Plate adds 2.
@@ -153,4 +180,38 @@ test("an imported magic item is offered, and wearing it changes the build", asyn
   } finally {
     for (const { id } of useHomebrew.getState().magicItems) await useHomebrew.getState().removeMagicItem(id);
   }
+}, 20_000);
+
+/** The text of each cell of the inventory table of a list, row by row. */
+const cells = (name: string) =>
+  region(name)
+    .getAllByRole("row")
+    .map((row) => [...row.children].map((cell) => cell.textContent));
+
+test("each inventory list is a table with its columns and its total weight; an empty list shows one line (ORC-374)", async () => {
+  open(engine().emptyCharacter());
+  expect(region("Magic Armor").getByText("No magic armor yet.")).toBeTruthy();
+  expect(region("Magic Armor").queryByRole("table")).toBeNull();
+  await add("Plate", "Arrow", "Amulet of Health");
+  type("Quantity: Arrow", "20");
+  // The weights load as their own chunk.
+  await region("Armor").findAllByText("65 lb.");
+  expect(cells("Armor")).toEqual([
+    ["Carried", "Name", "Weight", "Quantity", "Remove"],
+    ["", "Plate", "65 lb.", "", ""],
+  ]);
+  expect(region("Armor").getByRole("table").getAttribute("aria-labelledby")).toBe(region("Armor").getByRole("heading").id);
+  // An arrow weighs 1 lb. for 20, and an item with no weight is a dash that does not count.
+  expect(cells("Equipment")).toEqual([
+    ["Carried", "Name", "Weight", "Quantity", "Remove"],
+    ["", "Explorer's Pack", "—", "", ""],
+    ["", "Arrow", "0.05 lb.", "", ""],
+  ]);
+  expect(region("Equipment").getByText(/^Total weight:/).textContent).toBe("Total weight: 1 lb.");
+  // A magic list has the Attuned column. With no known weight, the total is a dash.
+  expect(cells("Other Magic Items")).toEqual([
+    ["Carried", "Name", "Attuned", "Weight", "Quantity", "Remove"],
+    ["", "Amulet of Health", "", "—", "", ""],
+  ]);
+  expect(region("Other Magic Items").getByText(/^Total weight:/).textContent).toBe("Total weight: —");
 }, 20_000);

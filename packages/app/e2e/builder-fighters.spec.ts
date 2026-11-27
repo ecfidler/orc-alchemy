@@ -2,7 +2,7 @@
 // steps, and fighter-20 equipped on the Equipment step.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { pickOption } from "@orc-alchemy/ui/testing/playwright";
+import { pickFromPicker, pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, test } from "@playwright/test";
 import { addFirstClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
 import { openSheetPanel, summaryCard } from "./sheet-panel.ts";
@@ -65,10 +65,9 @@ test("fighter-20 without armor or magic items is equipped on the Equipment step"
   await expect(ac).toHaveText("18");
   await stepButton(page, "Equipment").click();
 
-  await pickOption(builder.getByLabel("Add an item to Armor"), "Plate");
+  // One "Add items" list modal adds to each inventory list (ORC-373).
+  await pickFromPicker(builder.getByRole("button", { name: /^Add items/ }), ["Plate", "Longsword +1", "Amulet of Health"]);
   await expect(builder.getByRole("checkbox", { name: "Carried: Plate" })).toBeChecked();
-  await pickOption(builder.getByLabel("Add an item to Magic Weapons"), "Longsword +1");
-  await pickOption(builder.getByLabel("Add an item to Other Magic Items"), "Amulet of Health");
   await pickOption(builder.getByLabel("Worn armor"), "Plate");
   await pickOption(builder.getByLabel("Wielded shield"), "Shield");
   await pickOption(builder.getByLabel("Main hand"), "Longsword +1");

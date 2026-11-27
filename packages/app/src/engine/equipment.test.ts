@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
-import { addCustomItem, changeCustomItem, customItems, setAttuned, setCarried, setQuantity, storedItems, wield } from "./equipment.ts";
+import { addCustomItem, changeCustomItem, customItems, itemWeights, setAttuned, setCarried, setQuantity, storedItems, wield } from "./equipment.ts";
 import { toSheet } from "./sheet.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -94,4 +94,16 @@ test("Dueling: the main hand set by the builder sets the off hand to none, which
   const damage = (entity: StrictEntity) => toSheet(e.evaluate(entity).built, entity).weaponAttacks.find((w) => w.key === "longsword")!.damageModifier;
   const base = damage(e.setValue(strict, "main-hand-weapon", "~:longsword"));
   expect(damage(wield(e, strict, "main-hand-weapon", "longsword"))).toBe(base + 2);
+});
+
+test("item weights read each weight text of the content as pounds (ORC-374)", async () => {
+  const weights = await itemWeights();
+  expect({
+    half: weights.get("mirror-steel"),
+    quarter: weights.get("piton"),
+    full: weights.get("waterskin"),
+    // "1½ lb." for a bundle of 20 bolts.
+    bolt: weights.get("crossbow-bolt"),
+    dash: weights.has("sprig-of-mistletoe"),
+  }).toEqual({ half: 0.5, quarter: 0.25, full: 5, bolt: 1.5 / 20, dash: false });
 });
