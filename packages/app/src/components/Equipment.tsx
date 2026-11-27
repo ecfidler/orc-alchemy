@@ -1,8 +1,9 @@
 // The Equipment step (ORC-59): the inventory lists, as the old builder's
-// inventory selectors, and the worn armor, shield and weapons in hand, as
-// the old sheet's Equipped Items. Each change is an engine mutation.
-import { Button, Checkbox, Combobox, Select } from "@orc-alchemy/ui";
-import { useId, useMemo } from "react";
+// inventory selectors, the one "Add items" list modal for all of them
+// (ORC-373), and the worn armor, shield and weapons in hand, as the old
+// sheet's Equipped Items. Each change is an engine mutation.
+import { AddButton, Button, Checkbox, type ListItem, ListModal, Select } from "@orc-alchemy/ui";
+import { useId, useMemo, useRef, useState } from "react";
 import type { BuilderSelection } from "../engine/builder.ts";
 import {
   addCustomItem,
@@ -22,13 +23,73 @@ import {
 import { useOpenCharacter } from "../state/character.ts";
 import { BoundedNumberField } from "./AbilityScores.tsx";
 import { HEADING_CLASSES, Heading } from "./selection-heading.tsx";
-import { useMutation } from "./use-mutation.ts";
+import { useMutation, usePendingMutation } from "./use-mutation.ts";
 
 const MAGIC_LISTS = ["magic-weapons", "magic-armor", "other-magic-items"];
 /** As the SRD: a character can attune to no more than 3 magic items at once. */
 const MAX_ATTUNED = 3;
 
-/** An inventory list, such as Armor: an item to add, then a row per item, and for some lists, custom items. */
+/** An item to add: its inventory list, such as "armor", and its key. */
+type ItemPick = { list: string; key: string };
+const pickId = ({ list, key }: ItemPick) => `${list}/${key}`;
+
+/**
+ * The "Add items" button of the step, and its list modal (ORC-373): a group for each inventory list, in the order of
+ * `lists`, with the items that are not in the list yet, A to Z. A pick goes to its own list. The modal stays open, and
+ * the picked item leaves it. A row is busy while its pick is on its way.
+ */
+export function AddItems({ lists }: { lists: BuilderSelection[] }) {
+  const { entity } = useOpenCharacter();
+  const { pending, later } = usePendingMutation();
+  const [open, setOpen] = useState(false);
+  const [added, setAdded] = useState(0);
+  const button = useRef<HTMLButtonElement>(null);
+  const items: ListItem<ItemPick>[] = lists.flatMap((selection) => {
+    const stored = new Set(storedItems(entity!, selection.key).map((item) => item.key));
+    return selection.options
+      .filter((o) => !stored.has(o.key))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((o) => {
+        const value = { list: selection.key, key: o.key };
+        return { value, label: o.name, group: selection.name, ...(pending.has(pickId(value)) && { busy: true }) };
+      });
+  });
+  function pick(value: ItemPick) {
+    if (pending.has(pickId(value))) return;
+    setAdded((n) => n + 1);
+    later(pickId(value), (e, entity) => e.addInventoryItem(entity, value.list, value.key));
+  }
+  return (
+    <>
+      <AddButton
+        ref={button}
+        label="Add items"
+        // A pick that is on its way is busy until it shows in its list. When the modal closes first, the button shows it.
+        aria-busy={pending.size > 0 || undefined}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => {
+          setAdded(0);
+          setOpen(true);
+        }}
+      />
+      <ListModal
+        open={open}
+        onOpenChange={setOpen}
+        title="Add items"
+        items={items}
+        onPick={pick}
+        stayOpen
+        picked={added}
+        pickedText={(n) => `${n} added`}
+        search
+        finalFocus={button}
+      />
+    </>
+  );
+}
+
+/** An inventory list, such as Armor: a row per item, and for some lists, custom items. */
 export function Inventory({ selection }: { selection: BuilderSelection }) {
   const id = useId();
   const { entity } = useOpenCharacter();
@@ -39,21 +100,12 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
   const custom = useMemo(() => (customKey ? customItems(entity!, customKey) : []), [entity, customKey]);
   const attuned = useMemo(() => attunedItems(entity!), [entity]);
   const nameOf = (key: string) => selection.options.find((o) => o.key === key)?.name ?? key;
-  // As the old adder: only the items not in the list yet, by name.
-  const free = selection.options.filter((o) => !items.some((item) => item.key === o.key)).sort((a, b) => a.name.localeCompare(b.name));
   const magic = MAGIC_LISTS.includes(list);
 
   return (
     <section aria-labelledby={id} className="space-y-2">
       {/* An inventory list has no picks to make, so it has no mark. */}
       <Heading id={id} selection={selection} mark={false} />
-      <Combobox
-        aria-label={`Add an item to ${selection.name}`}
-        placeholder="Add an item…"
-        options={free.map((o) => [o.key, o.name])}
-        onPick={(key) => run((e, entity) => e.addInventoryItem(entity, list, key))}
-        className="w-64"
-      />
       <ul className="space-y-1">
         {items.map((item) => {
           const name = nameOf(item.key);
