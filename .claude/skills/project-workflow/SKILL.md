@@ -2,7 +2,7 @@
 name: "project-workflow"
 description: "Run a Linear project to done: order its issues, build them in slices of stacked PRs, then close the project. Use when asked to work on, finish, or pick up a project or one of its milestones (e.g. Spells panel, or an older name such as M9 or E1)."
 disable-model-invocation: false
-version: "0.6.0"
+version: "0.6.1"
 ---
 
 Each issue goes through `linear-issue-workflow`. This skill owns what sits around it: the **run plan**, the **slices**, and closing the project.
@@ -43,7 +43,12 @@ The base branch is the project branch (`<kebab-name>`) when one exists, else the
 
 ### The merge
 
-The slice PRs are a stack on GitHub, and I merge the stack one time (ORC-359). When I have reviewed the slices, I squash-merge the top PR. GitHub then lands each PR below it in the same operation.
+I merge the slice PRs one time, as a GitHub stack (ORC-359, ORC-365). PRs that point at each other's branches are not a stack until I make one. A thread cannot make it: the `gh` CLI is for search only, and the GitHub tools have no stack call. So:
+
+1. In the hand-over of the last slice, ask me to select "create a stack" on the PRs in GitHub, and then "merge as a stack" from the top PR.
+2. GitHub then lands each PR of the stack on the base branch in one operation.
+
+A squash-merge of the top PR without a stack merges it only into the branch of the slice below, and the base branch does not change.
 
 - CI runs on each PR. Drive the CI of each slice green as soon as its PR is open, and again after each push. Do not wait for a merge.
 - A fix to a slice goes on the branch of that slice. Then rebase each slice above it onto the slice below it (`git rebase --onto <slice below> <old tip of the slice below>`), and push each one with `--force-with-lease`.
@@ -51,7 +56,7 @@ The slice PRs are a stack on GitHub, and I merge the stack one time (ORC-359). W
     1. Run `git fetch`.
     2. Move each local branch to its remote branch.
     3. Cherry-pick the work that you did not push.
-- If the merge from the top PR does not land the stack, stop and tell me.
+- If a merge lands only a part of the stack, ask me to make the PRs that remain a stack and merge them as a stack. Check that the base branch has the commit of each slice.
 
 ### Screenshots
 
