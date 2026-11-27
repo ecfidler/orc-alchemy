@@ -88,8 +88,19 @@ test("a selection of 7 options or more and two picks has a picker with the picks
   expect(picksIn(section("Skills: Fighter"))).toEqual(["Acrobatics", "Perception"]);
   expect(Object.keys(built()["skill-profs"] ?? {}).sort()).toEqual(["acrobatics", "perception"]);
   expect(within(section("Skills: Fighter")).getByRole("heading").textContent).toBe("Skills: Fighter,Done");
+  // At the maximum the add button is disabled but keeps the focus, with the reason (ORC-370).
+  const full = within(section("Skills: Fighter")).getByRole("button", { name: "Add a skill" });
+  expect(full.getAttribute("aria-disabled")).toBe("true");
+  expect(full.title).toBe("Remove a choice first.");
+  expect(document.getElementById(full.getAttribute("aria-describedby")!)?.textContent).toBe("Remove a choice first.");
+  // A click on it opens no list.
+  fireEvent.click(full);
+  expect(screen.queryByRole("dialog")).toBeNull();
   await removeToken(section("Skills: Fighter"), "Acrobatics");
   expect(Object.keys(built()["skill-profs"] ?? {})).toEqual(["perception"]);
+  const again = within(section("Skills: Fighter")).getByRole("button", { name: "Add a skill" });
+  expect(again.hasAttribute("aria-disabled")).toBe(false);
+  expect(document.getElementById(again.getAttribute("aria-describedby")!)?.textContent).toBe("7 more");
 });
 
 test("an option that gives what the character has is not available: a locked row in a picker, a dimmed card with the reason", async () => {

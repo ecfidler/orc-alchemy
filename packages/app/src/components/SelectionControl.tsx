@@ -168,9 +168,20 @@ const listItems = (options: BuilderOption[], unavailable: Map<string, string>, p
     return { value: option.key, label: option.name, ...(reason !== undefined && { unavailable: reason }), ...(pending.has(option.key) && { busy: true }) };
   });
 
+/** The reason of the add button and of the rows of a picker whose selection has its maximum (ORC-370). */
+const FULL_SELECTION = "Remove a choice first.";
+
+/**
+ * True when the selection has a maximum and its picks reach it. A pick that is on its way counts, so a fast second
+ * click in the open list cannot go over the maximum.
+ */
+const isFull = (selection: BuilderSelection, pending: ReadonlySet<string>) =>
+  selection.max !== null && selection.selected.length + [...pending].filter((key) => !selection.selected.includes(key)).length >= selection.max;
+
 /**
  * The ui Picker for a selection of 7 options or more and more than one pick: the picks as tokens, and the add button
- * that opens the list. The token line keeps the place of the lines that the most picks take, about 3 tokens on a
+ * that opens the list. When the selection has its maximum, the add button is disabled with the reason "Remove a
+ * choice first.", and in the list each option is locked with the same reason, as in the "Add spells" popup (ORC-370). The token line keeps the place of the lines that the most picks take, about 3 tokens on a
  * line, up to 3 lines, so the first picks do not move the add button or the page below.
  */
 function PickerControl({ selection, options, unavailable }: ControlProps) {
@@ -178,12 +189,19 @@ function PickerControl({ selection, options, unavailable }: ControlProps) {
   const name = useSectionName(selection);
   const label = ADD_LABELS.find(([tag]) => selection.tags.includes(tag))?.[1] ?? "Add a choice";
   const reserve = Math.min(3, Math.max(1, Math.ceil((selection.max ?? 3) / 3)));
+  const full = isFull(selection, pending);
+  // At the maximum, each option that is not picked and not on its way is locked; a reason that the option has stays.
+  const locked = full
+    ? new Map(
+        options.filter((option) => !option.selected && !pending.has(option.key)).map((option) => [option.key, unavailable.get(option.key) ?? FULL_SELECTION]),
+      )
+    : unavailable;
   return (
     <>
       <Picker
         label={label}
         title={name}
-        options={listItems(options, unavailable, pending)}
+        options={listItems(options, locked, pending)}
         value={selection.selected}
         onValueChange={(next) => {
           const added = next.find((key) => !selection.selected.includes(key));
@@ -193,6 +211,7 @@ function PickerControl({ selection, options, unavailable }: ControlProps) {
         }}
         search={hasSearch(options.length)}
         reserve={reserve}
+        blocked={full ? FULL_SELECTION : undefined}
       />
       {dialog}
     </>

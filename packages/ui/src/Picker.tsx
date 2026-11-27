@@ -22,6 +22,13 @@ export type AddButtonProps = {
   "aria-expanded"?: boolean;
   "aria-busy"?: boolean;
   disabled?: boolean;
+  /**
+   * Why the button takes no more picks, for example "Remove a choice first.".
+   * When set, the button is disabled but keeps the focus, the reason shows on
+   * the right in place of the count, and it describes the button and is its
+   * tooltip (ORC-370).
+   */
+  blocked?: string;
   /** Layout classes, as on Button. */
   className?: string;
 };
@@ -31,12 +38,13 @@ export type AddButtonProps = {
  * number of options that remain on the right, or `detail` after the label.
  * It gives a ref, so a ListModal can give the focus back to it.
  */
-export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function AddButton({ label, remaining, detail, className, ...props }, ref) {
+export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function AddButton({ label, remaining, detail, blocked, className, ...props }, ref) {
   const descriptionId = useId();
-  const described = detail !== undefined || remaining !== undefined;
+  const described = blocked !== undefined || detail !== undefined || remaining !== undefined;
   return (
     <BaseButton
       {...props}
+      {...(blocked !== undefined && { disabled: true, focusableWhenDisabled: true, title: blocked })}
       ref={ref}
       type="button"
       data-variant="ghost"
@@ -50,7 +58,11 @@ export const AddButton = forwardRef<HTMLButtonElement, AddButtonProps>(function 
         <PixelIcon name="plus" />
         {label}
       </span>
-      {detail !== undefined ? (
+      {blocked !== undefined ? (
+        <span id={descriptionId} aria-hidden="true" className="ui-add-count">
+          {blocked}
+        </span>
+      ) : detail !== undefined ? (
         <span id={descriptionId} aria-hidden="true" className="ui-add-detail">
           {detail}
         </span>
@@ -87,6 +99,12 @@ export type PickerProps<T> = {
    * to a new line.
    */
   reserve?: number;
+  /**
+   * Why the picker takes no more picks, for example "Remove a choice first."
+   * when it has its maximum. The add button is then disabled, with the reason
+   * (AddButton `blocked`). The tokens and their X stay (ORC-370).
+   */
+  blocked?: string;
   /** Layout classes. */
   className?: string;
 };
@@ -101,7 +119,7 @@ export type PickerProps<T> = {
  * For other uses, such as one slot that a caller fills, use ListModal and
  * Token directly.
  */
-export function Picker<T>({ label, title, options, value, onValueChange, search, pickedText, reserve, className }: PickerProps<T>) {
+export function Picker<T>({ label, title, options, value, onValueChange, search, pickedText, reserve, blocked, className }: PickerProps<T>) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const has = (v: T) => value.some((picked) => Object.is(picked, v));
@@ -124,6 +142,7 @@ export function Picker<T>({ label, title, options, value, onValueChange, search,
         ref={button}
         label={label}
         remaining={left.filter((option) => option.unavailable === undefined).length}
+        blocked={blocked}
         // A pick that is on its way is busy until it shows as a token. When the modal closes first, the add button shows it.
         aria-busy={left.some((option) => option.busy) || undefined}
         aria-haspopup="dialog"

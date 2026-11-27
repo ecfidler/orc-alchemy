@@ -110,6 +110,19 @@ test("an AddButton with no count is a wide button with no description", () => {
   expect([button.textContent, button.hasAttribute("aria-describedby")]).toEqual(["Add a row", false]);
 });
 
+test("a blocked AddButton is disabled but keeps the focus, and shows its reason in place of the count, as its description and tooltip (ORC-370)", () => {
+  render(<AddButton label="Add a row" remaining={5} blocked="Remove a choice first." />);
+  const button = screen.getByRole("button", { name: "Add a row" });
+  expect([button.getAttribute("aria-disabled"), button.title, button.textContent]).toEqual([
+    "true",
+    "Remove a choice first.",
+    "Add a rowRemove a choice first.",
+  ]);
+  expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toBe("Remove a choice first.");
+  button.focus();
+  expect(document.activeElement).toBe(button);
+});
+
 test("an AddButton with a detail shows it in place of the count, as its description", () => {
   render(<AddButton label="Add a row" remaining={5} detail="Apple, Banana and 3 more" />);
   const button = screen.getByRole("button", { name: "Add a row" });

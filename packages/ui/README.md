@@ -392,7 +392,10 @@ bun run test       # vitest
     of the add button. `reserve` is a number of token lines (28px each)
     that the token line keeps, also with no pick, so a pick does not move
     the add button or what is below it. An option with `busy` has a busy
-    row, or a busy X on its token.
+    row, or a busy X on its token. `blocked` is the reason that the picker
+    takes no more picks, for example "Remove a choice first.": the
+    AddButton is then disabled but keeps the focus, and shows the reason
+    in place of the count, as its description and tooltip (ORC-370).
   - `SegmentedToggle`: a segmented toggle on ToggleGroup for one of
     `options` (`[value, label]` pairs), for example None / Fixed / Scaled.
     A `value` that is no option presses no segment. `size="small"` fits in
