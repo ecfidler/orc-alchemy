@@ -189,7 +189,11 @@ test("each dialog and modal of the builder gets the focus at the open, and gives
   await openAndClose(page, b.getByRole("button", { name: "About Half-Elf", exact: true }), "Half-Elf");
 
   await openStep(page, "Proficiencies");
-  await openAndClose(page, section(page, "Skills: Half-Elf").locator(".ui-add-button"), /skill/i);
+  // The fixture has all its Half-Elf skills, so the add button is disabled (ORC-370): remove one pick first.
+  const skills = section(page, "Skills: Half-Elf");
+  await skills.locator(".ui-token .ui-x-button").first().click();
+  await expect(skills.locator(".ui-add-button")).not.toHaveAttribute("aria-disabled", "true");
+  await openAndClose(page, skills.locator(".ui-add-button"), /skill/i);
 
   await openAndClose(page, page.getByRole("button", { name: "Open the full sheet" }), "Sheet");
 });
