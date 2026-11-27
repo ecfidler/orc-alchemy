@@ -2,7 +2,7 @@
 // and for the open step, the heading name of each section and where the character's picks come from (ORC-343). It
 // is a module of its own, so that selection-heading.tsx and the control of a selection can read it without an import
 // cycle with Builder.tsx.
-import { Toast } from "@orc-alchemy/ui";
+import { Toast, type ToastTone } from "@orc-alchemy/ui";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { type BuilderSelection, type BuilderStep, FEATS_STEP, PROFICIENCIES_STEP, type StepName } from "../engine/builder.ts";
 import { proficiencySectionNames } from "../engine/proficiencies.ts";
@@ -11,9 +11,10 @@ import { featSectionNames, type PickSource, pickSources, sectionNames, type TopS
 /**
  * Shows a text in the status toast of the builder page (spec, "No layout shift"): a text that comes and goes, for
  * example the result of an action or a refusal of the engine. Each call shows the text again, also the same text. ""
- * hides it.
+ * hides it. A refusal has the tone "error", which shows on the danger red (ORC-372).
  */
-const BuilderStatus = createContext<(text: string) => void>(() => {});
+type Say = (text: string, tone?: ToastTone) => void;
+const BuilderStatus = createContext<Say>(() => {});
 
 /** The function that shows a text in the status toast of the builder. Outside the builder it does nothing. */
 export const useBuilderStatus = () => useContext(BuilderStatus);
@@ -24,12 +25,12 @@ export const useBuilderStatus = () => useContext(BuilderStatus);
  */
 export function BuilderStatusToast({ children }: { children: ReactNode }) {
   // Each text has a new key, so the toast shows a text that is the same as the last one again.
-  const [status, setStatus] = useState({ text: "", key: 0 });
-  const say = useCallback((text: string) => setStatus((last) => ({ text, key: last.key + 1 })), []);
+  const [status, setStatus] = useState<{ text: string; key: number; tone?: ToastTone }>({ text: "", key: 0 });
+  const say = useCallback<Say>((text, tone) => setStatus((last) => ({ text, key: last.key + 1, tone })), []);
   return (
     <BuilderStatus.Provider value={say}>
       {children}
-      <Toast status={status.text} statusKey={status.key} />
+      <Toast status={status.text} statusKey={status.key} tone={status.tone} />
     </BuilderStatus.Provider>
   );
 }

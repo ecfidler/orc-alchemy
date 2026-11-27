@@ -1,6 +1,6 @@
 import { type FocusEvent, type PointerEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Button } from "./Button.tsx";
+import { Button, XButton } from "./Button.tsx";
 
 /** The time in ms that a status text shows, when the pointer and the focus are not on the toast. */
 export const TOAST_DURATION = 6000;
@@ -17,6 +17,9 @@ export interface ToastNote {
   action: { label: string; name?: string; onClick: () => void };
 }
 
+/** The look of a status text: "status" for what an action did, "error" for a refusal (ORC-372). */
+export type ToastTone = "status" | "error";
+
 export interface ToastProps {
   /** The status text: what the last action did. "" shows no status. */
   status: string;
@@ -28,6 +31,11 @@ export interface ToastProps {
   noteName?: string;
   /** The time in ms that the status shows. */
   duration?: number;
+  /**
+   * "status" (the default): what an action did, on the plain surface. "error": a refusal, for example "A class level is
+   * from 1 to 20.", on the danger red (ORC-372).
+   */
+  tone?: ToastTone;
 }
 
 type Phase = "open" | "leaving" | "closed";
@@ -36,10 +44,11 @@ type Phase = "open" | "leaving" | "closed";
  * A toast at the bottom centre of the screen, above the safe area. It takes no space in the page, so a text that
  * comes and goes moves nothing. It shows one status text, which hides after `duration`, and one note above it,
  * which stays. The status does not hide while the pointer or the focus is on the toast; the time starts again when
- * they leave. A new `statusKey` replaces the text and starts the time again. The status and the note are polite
- * live regions that are always in the page. The toast is in a portal at the end of the body.
+ * they leave. A new `statusKey` replaces the text and starts the time again. The X of the status ("Dismiss") hides
+ * it at once (ORC-372). The status and the note are polite live regions that are always in the page; the X is out of
+ * the region, so a screen reader does not read it with the text. The toast is in a portal at the end of the body.
  */
-export function Toast({ status, statusKey, note = null, noteName = "Note", duration = TOAST_DURATION }: ToastProps) {
+export function Toast({ status, statusKey, note = null, noteName = "Note", duration = TOAST_DURATION, tone = "status" }: ToastProps) {
   const root = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
@@ -59,28 +68,29 @@ export function Toast({ status, statusKey, note = null, noteName = "Note", durat
     return () => clearTimeout(timer);
   }, [phase, statusKey]);
 
-  // The element that had the focus before it came into the toast. After the note's action takes the note away, the
-  // focus goes back to it, so it does not fall to the body.
+  // The element that had the focus before it came into the toast. After the note's action takes the note away, or the
+  // X of the status hides it, the focus goes back to it, so it does not fall to the body.
   const cameFrom = useRef<HTMLElement | null>(null);
   const restore = useRef(false);
   useLayoutEffect(() => {
-    if (note !== null || !restore.current) return;
+    if ((note !== null && phase !== "closed") || !restore.current) return;
     restore.current = false;
     const active = document.activeElement;
     if ((active === null || active === document.body) && cameFrom.current?.isConnected) cameFrom.current.focus();
     if (!root.current?.contains(document.activeElement)) setFocus(false);
-  }, [note]);
-  // A click on the note's action takes away the element under the pointer, and the browser can then send no
-  // pointerleave. When the note goes away, the toast is held only if the pointer is still on it. The test is a hit
-  // test at the last point of the pointer, because `:hover` can stay on the parent of the removed element.
+  }, [note, phase]);
+  // A click on the note's action or on the X of the status takes away the element under the pointer, and the browser
+  // can then send no pointerleave. When the note or the status goes away, the toast is held only if the pointer is
+  // still on it. The test is a hit test at the last point of the pointer, because `:hover` can stay on the parent of
+  // the removed element.
   const pointer = useRef<{ x: number; y: number } | null>(null);
   useLayoutEffect(() => {
-    if (note !== null) return;
+    if (note !== null && phase !== "closed") return;
     const at = pointer.current;
     // jsdom has no elementFromPoint.
     const under = at && document.elementFromPoint?.(at.x, at.y);
     if (!(under && root.current?.contains(under))) setHover(false);
-  }, [note]);
+  }, [note, phase]);
 
   const track = (event: PointerEvent) => {
     pointer.current = { x: event.clientX, y: event.clientY };
@@ -130,12 +140,26 @@ export function Toast({ status, statusKey, note = null, noteName = "Note", durat
           </div>
         )}
       </div>
-      <div role="status" aria-live="polite" data-toast-status="" className="ui-toast-region">
+      <div className="ui-toast-line" data-tone={tone === "error" ? "error" : undefined}>
+        <div role="status" aria-live="polite" data-toast-status="" className="ui-toast-region">
+          {phase !== "closed" && (
+            // The key makes a new element for each status, so the same text shows again with its fade in.
+            <p key={statusKey} className="ui-toast-status" data-leaving={phase === "leaving" ? "" : undefined}>
+              {status}
+            </p>
+          )}
+        </div>
         {phase !== "closed" && (
-          // The key makes a new element for each status, so the same text shows again with its fade in.
-          <p key={statusKey} className="ui-toast-status" data-leaving={phase === "leaving" ? "" : undefined}>
-            {status}
-          </p>
+          <XButton
+            key={statusKey}
+            size="small"
+            aria-label="Dismiss"
+            className="ui-toast-x"
+            onClick={() => {
+              restore.current = true;
+              setHidden({ key: statusKey, phase: "closed" });
+            }}
+          />
         )}
       </div>
     </div>,

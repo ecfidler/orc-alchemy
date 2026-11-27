@@ -29,26 +29,65 @@
     max-width: 100%;
   }
 
-  /* The status: the surface of the small popup and the menu (dialog.css). A long text wraps. */
+  /* The status line: the status text and its X, which sits on the right end of the text's surface (ORC-372). */
+  .ui-toast-line {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /*
+   * The status: the surface of the small popup and the menu (dialog.css). It
+   * is at least 320px wide, or the width of the screen less the gutters. A
+   * long text wraps. The right padding keeps the place of the X.
+   */
   .ui-toast-status {
     box-sizing: border-box;
+    min-width: min(320px, calc(100vw - 32px));
     max-width: 100%;
     margin: 0;
-    padding: 8px 14px;
+    padding: 8px 40px 8px 14px;
     color: var(--ink);
     background: var(--paper-raised);
     border: 1px solid var(--ink);
     box-shadow: 4px 4px 0 var(--note-shadow);
     font-size: 13.5px;
     line-height: 1.4;
-    text-align: center;
+    text-align: start;
     overflow-wrap: anywhere;
     pointer-events: auto;
     animation: ui-toast-in 0.16s ease-out;
   }
+  /* The X ("Dismiss") of the status, on the first line of the text. It comes and goes with the text. */
+  .ui-toast-x {
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    pointer-events: auto;
+    animation: ui-toast-in 0.16s ease-out;
+  }
   /* The time of the fade must be the same as FADE_OUT_MS in Toast.tsx. */
-  .ui-toast-status:where([data-leaving]) {
+  .ui-toast-status:where([data-leaving]),
+  .ui-toast-line:has([data-leaving]) > .ui-toast-x {
     animation: ui-toast-out 0.2s ease-in forwards;
+  }
+  /*
+   * An error (tone "error"): the paper color on the danger red, with a red
+   * border, in light and dark mode (5.6 : 1 and 6.9 : 1). The X and its
+   * focus ring take the paper color.
+   */
+  .ui-toast-line:where([data-tone="error"]) {
+    --focus-ring: var(--paper);
+  }
+  .ui-toast-line:where([data-tone="error"]) > .ui-toast-region > .ui-toast-status {
+    color: var(--paper);
+    background: var(--danger);
+    border-color: var(--danger);
+  }
+  .ui-toast-line:where([data-tone="error"]) > .ui-toast-x:where(:not(:hover)) {
+    color: var(--paper);
   }
 
   /*
@@ -58,6 +97,7 @@
    * shadow too.
    */
   .ui-toast-note {
+    min-width: min(320px, calc(100vw - 32px));
     max-width: 100%;
     margin-bottom: 8px;
     filter: drop-shadow(0 3px 3px var(--note-shadow)) drop-shadow(0 1px 0 var(--note-edge));
@@ -103,6 +143,8 @@
   @media (prefers-reduced-motion: reduce) {
     .ui-toast-status,
     .ui-toast-status:where([data-leaving]),
+    .ui-toast-x,
+    .ui-toast-line:has([data-leaving]) > .ui-toast-x,
     .ui-toast-note {
       animation: none;
     }

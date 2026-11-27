@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-27T05:10:55Z }
+generated: { by: claude-code/agent, at: 2026-11-27T05:30:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -214,7 +214,9 @@ engine gets the change.
   name is dimmed and the reason is small text at the right. In a detail
   panel, the reason is beside the disabled Choose button: "Not
   available. It needs the class Paladin."
-* A refusal of the engine that still occurs shows in the status toast.
+* A refusal of the engine that still occurs shows in the status toast,
+  as an error: on the danger red, with an X to dismiss it.[^orc-372] The
+  refusals of a class level are errors too.
 * The "Custom" option of the engine does not show. If an imported
   character has it, it shows, with its lists in pickers.
 
@@ -1158,3 +1160,4 @@ one depends only on parts of the frame.
 [^orc-368]: Replace the heading "Picked on other steps", <https://linear.app/orc-alchemy/issue/ORC-368/replace-the-heading-picked-on-other-steps>
 [^orc-370]: Proficiencies step: show that a selection is full before the user tries another pick, <https://linear.app/orc-alchemy/issue/ORC-370>
 [^orc-371]: Proficiencies step: less space between a selection heading and its control, <https://linear.app/orc-alchemy/issue/ORC-371>
+[^orc-372]: Status toast: a red look for errors, a dismiss button and a minimum width, <https://linear.app/orc-alchemy/issue/ORC-372>
