@@ -179,7 +179,9 @@ test("a spell made on My Content is a choice in a new wizard's spells", async ({
   const steps = page.getByRole("navigation", { name: "Steps" });
   await addFirstClass(page, "Wizard");
   await steps.getByRole("button", { name: /^Spells/ }).click();
-  await expect(builder.getByRole("region", { name: /^Wizard Spells Known/ }).getByRole("button", { name: "1 - Fire Pop" })).toBeVisible();
+  // The spell is an option of the "Add spells" popup of the selection (ORC-357).
+  await builder.getByRole("button", { name: "Add spells: Wizard Spells Known" }).click();
+  await expect(page.getByRole("dialog", { name: "Wizard Spells Known" }).getByRole("checkbox", { name: "Chosen: Fire Pop" })).toBeVisible();
 });
 
 test("a magic item made on My Content is listed there, and Edit opens it", async ({ page }) => {

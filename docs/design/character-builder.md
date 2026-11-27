@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T17:23:00Z }
+generated: { by: claude-code/agent, at: 2026-11-26T21:50:00Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -328,7 +328,7 @@ One rule gives the control of a selection.[^orc-332]
 | 6 options or fewer | Option cards |
 | 7 options or more, more than one pick | The ui `Picker`, with the picks as tokens |
 | 7 options or more, one pick | A Choose button that opens the ui `ListModal` with the mark "Choose". After the pick, the row shows the pick and a Change button. |
-| A spell selection | `SpellSelection`, as today |
+| A spell selection | Its picks by level and an "Add spells" button that opens a popup with the parts of the Spells panel. See [The Spells and Equipment steps](#the-spells-and-equipment-steps). |
 | An inventory list, the hands, the prepared spells | As today |
 
 * An option card shows only the name. It is a toggle, as today.
@@ -898,24 +898,78 @@ show these selections. They show a line in "Picked on other steps".
 
 # The Spells and Equipment steps
 
-The inside of these two steps stays as today. A redesign of them is a
-later project.
+The inside of the Equipment step stays as today. A redesign of it is a
+later project. The spell selections of the Spells step have the "Add
+spells" popup.[^orc-357]
 
 * The steps get the step title, the marks and the rules of this
   document.
-* A spell selection keeps `SpellSelection`. Its heading gets the left
-  mark in the fixed place.
-* Eldritch Invocations stays on the Spells step.
+* A spell selection shows its heading with the left mark, the names of
+  its picks, and an "Add spells" button with the `sparkles`
+  icon.[^orc-357] The name of the button has the selection: "Add spells:
+  Wizard Cantrips Known".
+* The names of the picks are by level, A to Z in a level, in a comma
+  separated list that wraps as text: "Mage Armor, Magic Missile,
+  Shield". The form is the same at all widths. When the options of the
+  selection have two levels or more, each level starts a line, with its
+  level label in the label style in front of its names, for example
+  "1ST LEVEL Alarm, Shield". The commas are not in the accessibility
+  tree. With no pick, the list shows a muted "None".[^orc-357]
+* The space of the names is there before the first pick, so a pick does
+  not move the button and the page below. A hidden copy of text in the
+  same place sets the space: the longest names of the options, as many
+  as the most picks. With levels, the copy also has a line for each level
+  that the picks can fill, because each level starts a line. The most
+  picks are the maximum of the selection. A selection with no maximum
+  keeps the space of the picks to make, and grows when the picks are
+  more. The copy uses the count of characters to find the longest names,
+  so the space is an estimate, and it can be some lines taller than the
+  picks need.
+* A name is a button that opens the popup at its spell, as a spell name on
+  the sheet opens the Spells panel.
+* The button opens a popup for the selection. The popup is a wide `Dialog`
+  with the parts of the [Spells panel](spells-panel.md): the search, the
+  list by level, the spell view, the keyboard rules and the two views of a
+  narrow page. The parts are shared code, not a copy.
+  * The title is the heading of the selection. The count is at its right,
+    as the left mark: "2 left", "Remove 1", or a green "Done" when
+    nothing is left to pick. A selection with no maximum shows the green
+    "Done" when it has its minimum.
+  * The list has only the options of the selection, by level, A to Z in a
+    level.
+  * Each row has a box at its left. The box adds the spell to the
+    selection or removes it, at once, with no Save button. Space on a row
+    changes its box. The name of the box is "Chosen: Fire Bolt", and the
+    name of the row ends with "chosen" or "not chosen".
+  * At the maximum, the box of each spell that is not picked is disabled.
+    Its description is "Remove a spell first.". A selection with no
+    maximum does not disable a box. In a selection of one pick that is not
+    a multiselect, for example Mystic Arcanum, a box replaces the pick,
+    and the box of the pick cannot change. Its description is "Pick
+    another spell in its place.".
+  * A spell that the character cannot take has the lock in the place of
+    the box, a dimmed name, and the reason as its description. Its spell
+    view says "Not available." and the reason. A refusal of the engine
+    shows in the status toast.
+  * The spell view has a box line under the name: "Chosen" or "Not
+    chosen".
+  * The footer has one "Done" button. Done, the X and Escape close the
+    popup, and the focus goes back to the control that opened it.
+  * A change of the count is in a polite live region: "Wizard Cantrips
+    Known: 2 left".
+* The selections that a picked spell opens are flat sections after the
+  selection, with their own headings and marks.
+* The step has no option cards, no level filter and no search for a spell
+  selection.
+* Eldritch Invocations stays on the Spells step. Its options are not
+  spells, so it has no "Add spells" popup. It gets the control of
+  [The control for each kind of selection](#the-control-for-each-kind-of-selection),
+  as a selection on another step does. A selection is a spell selection
+  when each of its options has a spell record. The step shows its
+  selections when the spell records load.
 * A starting equipment selection gets the control of
   [The control for each kind of selection](#the-control-for-each-kind-of-selection).
 * The inventory lists, the hands and the prepared spells do not change.
-* Under the heading of a spell selection, the line "Chosen" lists the
-  picked spells, also those that the filter hides. The line is there
-  before the first pick. It keeps the height of the lines that the most
-  picks take, so a pick does not move the filter and the cards: about 2
-  names on a line and up to 5 lines on a step narrower than 560px, and
-  about 4 names on a line and up to 3 lines on a wider step. A selection
-  with no maximum keeps 3 lines.[^orc-352]
 
 # The Description step
 
@@ -1057,3 +1111,4 @@ one depends only on parts of the frame.
 [^orc-353]: Builder: the end-to-end pass, the narrow page and the docs, <https://linear.app/orc-alchemy/issue/ORC-353>
 [^orc-354]: The question before a change removes picks: the picks in a top-level selection stay, <https://linear.app/orc-alchemy/issue/ORC-354/the-question-before-a-change-removes-picks-the-picks-in-a-top-level>
 [^orc-355]: The race panel shows the traits that the engine gives, <https://linear.app/orc-alchemy/issue/ORC-355>
+[^orc-357]: Spells step: an "Add spells" popup like the Spells panel of the sheet, <https://linear.app/orc-alchemy/issue/ORC-357>

@@ -1,34 +1,120 @@
 // The Feats, Spells, Equipment and Description steps in the new frame, in a browser (ORC-352,
 // docs/design/character-builder.md "The Feats step", "The Spells and Equipment steps", "The Description step" and "No
-// layout shift"): a pick does not move a spell selection or a starting equipment selection, the feat section names its
-// source, and Alignment is the first field of the Description step.
+// layout shift"): a pick does not move a spell selection (in the "Add spells" popup, ORC-357) or a starting equipment
+// selection, the feat section names its source, and Alignment is the first field of the Description step.
+import { join } from "node:path";
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { addFirstClass, builder, newCharacter, openFixture, openStep, section, stepButton } from "./builder-helpers.ts";
+import { addFirstClass, addSpells, builder, newCharacter, openFixture, openStep, section, stepButton } from "./builder-helpers.ts";
 
 /** The boxes of the locators, for a test that compares them before and after a change. */
 const boxes = (locators: Locator[]) => Promise.all(locators.map(async (locator) => (await locator.boundingBox())!));
 
-test("a pick in a spell selection does not move its heading, the chosen line, the filter or the cards", async ({ page }) => {
+/** The parts of the Spells step of a new wizard 1 that a pick must not move (ORC-357). */
+const spellParts = (page: Page) => {
+  const cantrips = section(page, "Wizard Cantrips Known");
+  const spells = section(page, "Wizard Spells Known");
+  return [
+    cantrips,
+    cantrips.getByRole("heading").first(),
+    cantrips.getByRole("button", { name: "Add spells: Wizard Cantrips Known" }),
+    spells,
+    spells.getByRole("heading").first(),
+    spells.getByRole("button", { name: "Add spells: Wizard Spells Known" }),
+  ];
+};
+
+test("orc-357 a new wizard adds a cantrip and a 1st-level spell in the popups, and nothing on the step moves", async ({ page }) => {
   await newCharacter(page);
   await addFirstClass(page, "Wizard");
   await openStep(page, "Spells");
   const cantrips = section(page, "Wizard Cantrips Known");
   const heading = cantrips.getByRole("heading").first();
-  const chosen = cantrips.getByRole("list", { name: "Chosen: Wizard Cantrips Known" });
-  const card = (name: string) => cantrips.getByRole("button", { name, exact: true });
-  const parts = [heading, cantrips.getByLabel("Search: Wizard Cantrips Known"), card("Acid Splash"), card("Fire Bolt"), section(page, "Wizard Spells Known")];
   await expect(heading).toHaveAccessibleName("Wizard Cantrips Known, 3 left");
-  const before = await boxes(parts);
-  await card("Fire Bolt").click();
+  const before = await boxes(spellParts(page));
+
+  // The popup: the heading and the count, the list, the box of a row and the spell view.
+  const add = cantrips.getByRole("button", { name: "Add spells: Wizard Cantrips Known" });
+  await add.click();
+  const popup = page.getByRole("dialog", { name: "Wizard Cantrips Known" });
+  const title = popup.getByRole("heading", { level: 2 });
+  await expect(title).toHaveAccessibleName("Wizard Cantrips Known, 3 left");
+  // The first row has the focus, and the spell view shows its spell.
+  await expect(popup.getByRole("button", { name: "Acid Splash, not chosen" })).toBeFocused();
+  await expect(popup.getByRole("region", { name: "Acid Splash" })).toBeVisible();
+  const rows = [popup.getByRole("button", { name: /^Fire Bolt/ }), popup.getByRole("button", { name: /^Light/ }), title];
+  const rowsBefore = await boxes(rows);
+  await popup.getByRole("checkbox", { name: "Chosen: Fire Bolt" }).click();
+  await expect(title).toHaveAccessibleName("Wizard Cantrips Known, 2 left");
+  // A pick moves nothing in the popup either.
+  expect(await boxes(rows)).toEqual(rowsBefore);
+  // Escape closes the popup, and the focus goes back to the button.
+  await page.keyboard.press("Escape");
+  await expect(popup).toHaveCount(0);
+  await expect(add).toBeFocused();
   await expect(heading).toHaveAccessibleName("Wizard Cantrips Known, 2 left");
-  await expect(chosen).toHaveText("Fire Bolt");
-  expect(await boxes(parts)).toEqual(before);
-  await card("Acid Splash").click();
-  await card("Light").click();
+  await expect(cantrips.getByRole("list", { name: "Chosen: Wizard Cantrips Known" })).toHaveText("Fire Bolt");
+  expect(await boxes(spellParts(page))).toEqual(before);
+
+  await addSpells(page, "Wizard Spells Known", ["Magic Missile"]);
+  await expect(section(page, "Wizard Spells Known").getByRole("list", { name: "Chosen: Wizard Spells Known" })).toHaveText("Magic Missile");
+  await expect(stepButton(page, "Spells")).toHaveAccessibleName("Spells, 7 picks left");
+  expect(await boxes(spellParts(page))).toEqual(before);
+  // At the maximum, the other boxes are disabled, with the reason.
+  await addSpells(page, "Wizard Cantrips Known", ["Acid Splash", "Light"]);
   await expect(heading).toHaveAccessibleName("Wizard Cantrips Known, Done");
-  expect(await boxes(parts)).toEqual(before);
+  expect(await boxes(spellParts(page))).toEqual(before);
+  // A name opens the popup at its spell.
+  await cantrips.getByRole("button", { name: "Light", exact: true }).click();
+  await expect(popup.getByRole("button", { name: /^Light, chosen/ })).toBeFocused();
+  await expect(popup.getByRole("checkbox", { name: "Chosen: Mending" })).toBeDisabled();
+  await expect(popup.getByRole("checkbox", { name: "Chosen: Mending" })).toHaveAccessibleDescription("Remove a spell first.");
+  await popup.getByRole("button", { name: "Done" }).click();
+  await expect(cantrips.getByRole("button", { name: "Light", exact: true })).toBeFocused();
 });
+
+/** Opens the warlock 20 of the e2e tests, which has SRD content only, on the Spells step. */
+async function openWarlock(page: Page) {
+  await page.goto("/import");
+  await page.getByLabel("Import character file").setInputFiles(join(import.meta.dirname, "warlock-20.strict.json"));
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
+  await openStep(page, "Spells");
+}
+
+test("orc-357 Eldritch Invocations of a warlock 20 has the control of its kind, and its spell selections have the popup", async ({ page }) => {
+  await openWarlock(page);
+  const invocations = section(page, "Eldritch Invocations");
+  await expect(invocations.getByRole("heading").first()).toHaveAccessibleName("Eldritch Invocations, Done");
+  // 8 picks from more than 6 options: the ui Picker, with the picks as tokens.
+  await expect(invocations.getByRole("button", { name: /^Add spells/ })).toHaveCount(0);
+  await expect(invocations.locator(".ui-add-button")).toBeVisible();
+  await expect(invocations.locator(".ui-token-label")).toHaveCount(8);
+  await expect(section(page, "Warlock Cantrips Known").getByRole("button", { name: "Add spells: Warlock Cantrips Known" })).toBeVisible();
+});
+
+for (const width of [1280, 390])
+  test(`orc-357 the picks of a selection with levels show as a comma separated list for each level, and a pick moves nothing, ${width}px`, async ({ page }) => {
+    // Twelve picks in the warlock 20 take about 30 s.
+    test.slow();
+    await page.setViewportSize({ width, height: 900 });
+    await openWarlock(page);
+    const known = section(page, "Warlock Spells Known");
+    const list = known.getByRole("list", { name: "Chosen: Warlock Spells Known" });
+    const level = (heading: string) => list.getByRole("listitem").filter({ hasText: new RegExp(`^${heading}`) });
+    // A line group for each level, with its label in front of its names. The commas are not in the accessibility tree.
+    await expect(level("3rd level")).toHaveText("3rd levelCounterspell, Fear, Gaseous Form, Hypnotic Pattern, Remove Curse, Vampiric Touch");
+    expect(await level("3rd level").ariaSnapshot()).not.toContain(",");
+    const parts = [known, known.getByRole("heading").first(), known.getByRole("button", { name: "Add spells: Warlock Spells Known" })];
+    const before = await boxes(parts);
+    // Remove all the picks of the 3rd level, then add them again: nothing moves.
+    const third = ["Counterspell", "Fear", "Gaseous Form", "Hypnotic Pattern", "Remove Curse", "Vampiric Touch"];
+    await addSpells(page, "Warlock Spells Known", third);
+    await expect(level("3rd level")).toHaveCount(0);
+    expect(await boxes(parts)).toEqual(before);
+    await addSpells(page, "Warlock Spells Known", third);
+    await expect(known.getByRole("heading").first()).toHaveAccessibleName("Warlock Spells Known, Done");
+    expect(await boxes(parts)).toEqual(before);
+  });
 
 test("a pick in a starting equipment selection does not move it, its cards or the selection below it", async ({ page }) => {
   await newCharacter(page);
@@ -75,18 +161,30 @@ test("Alignment is the first field of the Description step, a select; a pick wri
   await expect(builder(page).getByText("Alignment")).toHaveCount(0);
 });
 
-test("on a 390px page, a pick in a spell selection does not move the filter or the cards either", async ({ page }) => {
+test("orc-357 on a 390px page, the popup fills the screen with two views, and a pick moves nothing on the step", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await newCharacter(page);
   await addFirstClass(page, "Wizard");
   await openStep(page, "Spells");
-  const cantrips = section(page, "Wizard Cantrips Known");
-  const card = (name: string) => cantrips.getByRole("button", { name, exact: true });
-  const parts = [cantrips.getByLabel("Search: Wizard Cantrips Known"), card("Acid Splash"), section(page, "Wizard Spells Known")];
-  const before = await boxes(parts);
-  for (const name of ["Prestidigitation", "Acid Splash", "Fire Bolt"]) await card(name).click();
-  await expect(cantrips.getByRole("heading").first()).toHaveAccessibleName("Wizard Cantrips Known, Done");
-  expect(await boxes(parts)).toEqual(before);
+  const before = await boxes(spellParts(page));
+  await section(page, "Wizard Cantrips Known").getByRole("button", { name: "Add spells: Wizard Cantrips Known" }).click();
+  const popup = page.getByRole("dialog", { name: "Wizard Cantrips Known" });
+  // The list and the spell view are two views: a tap on a row shows the spell view, with "Back to the list".
+  await expect(popup.locator('[data-pane="spell"]')).toBeHidden();
+  await popup.getByRole("button", { name: /^Fire Bolt/ }).click();
+  await expect(popup.getByRole("button", { name: "Back to the list" })).toBeFocused();
+  await popup.getByRole("region", { name: "Fire Bolt" }).getByRole("checkbox", { name: "Chosen" }).click();
+  await expect(popup.getByRole("heading", { level: 2 })).toHaveAccessibleName("Wizard Cantrips Known, 2 left");
+  await popup.getByRole("button", { name: "Back to the list" }).click();
+  await expect(popup.getByRole("button", { name: /^Fire Bolt, chosen/ })).toBeFocused();
+  for (const name of ["Prestidigitation", "Acid Splash"]) await popup.getByRole("checkbox", { name: `Chosen: ${name}` }).click();
+  // The popup fits in the page.
+  expect((await popup.boundingBox())!.width).toBeLessThanOrEqual(390);
+  await popup.getByRole("button", { name: "Done" }).click();
+  await expect(section(page, "Wizard Cantrips Known").getByRole("heading").first()).toHaveAccessibleName("Wizard Cantrips Known, Done");
+  expect(await boxes(spellParts(page))).toEqual(before);
+  await addSpells(page, "Wizard Spells Known", ["Magic Missile", "Shield"]);
+  expect(await boxes(spellParts(page))).toEqual(before);
 });
 
 /** The one-line text fields of the Description step, in their order. */

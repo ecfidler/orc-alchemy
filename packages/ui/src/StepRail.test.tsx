@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { LeftMark, type RailStep, StepRail } from "./StepRail.tsx";
+import { LeftMark, leftMarkText, type RailStep, StepRail } from "./StepRail.tsx";
 
 afterEach(cleanup);
 
@@ -98,4 +98,13 @@ test("a left mark: n left in yellow, Remove n in red, and a check with Done, in 
   expect(heading.querySelector('svg[data-icon="check"]')).toBeTruthy();
   // The same box holds each mark, so it keeps its place.
   expect(heading.querySelector(".ui-left-mark")).toBe(box);
+});
+
+test("a left mark with success marks its box, so that Done is green", () => {
+  render(<LeftMark left={0} success />);
+  expect(document.querySelector(".ui-left-mark")!.hasAttribute("data-success")).toBe(true);
+});
+
+test("leftMarkText gives the words of a left mark", () => {
+  expect([2, -1, 0].map(leftMarkText)).toEqual(["2 left", "Remove 1", "Done"]);
 });

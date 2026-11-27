@@ -30,7 +30,7 @@ import { MainPick, mainPickParts } from "./MainPick.tsx";
 import { NameStep } from "./NameStep.tsx";
 import { ProficienciesStep } from "./ProficienciesStep.tsx";
 import { SelectionControl } from "./SelectionControl.tsx";
-import { PreparedSpells, SpellSelection } from "./Spells.tsx";
+import { PreparedSpells, SpellStepSelection } from "./Spells.tsx";
 import { SummaryCard } from "./SummaryCard.tsx";
 import { Heading } from "./selection-heading.tsx";
 
@@ -131,7 +131,7 @@ export function Builder({ step: firstStep, sheetLink }: { step?: string; sheetLi
                         const key = JSON.stringify(selection.actualPath);
                         if (selection.key === "ability-scores") return <AbilityScores key={key} selection={selection} />;
                         if (isList(selection)) return <Inventory key={key} selection={selection} />;
-                        if (step.name === SPELLS_STEP) return <SpellSelection key={key} selection={selection} />;
+                        if (step.name === SPELLS_STEP) return <SpellStepSelection key={key} selection={selection} />;
                         if (step.name === DESCRIPTION_STEP && isAlignment(selection)) return null;
                         return <Selection key={key} selection={selection} />;
                       })}

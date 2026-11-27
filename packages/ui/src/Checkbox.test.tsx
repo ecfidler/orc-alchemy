@@ -74,3 +74,15 @@ test("tabIndex -1 takes the box out of the Tab order; a click still checks it, w
   fireEvent.click(screen.getByText("Shown"));
   expect(change).toHaveBeenLastCalledWith(false);
 });
+
+test("aria-describedby describes the box, with a name or with a label", () => {
+  render(
+    <>
+      <span id="why">Remove one first.</span>
+      <Checkbox aria-label="Plums" checked={false} onCheckedChange={() => {}} disabled tabIndex={-1} aria-describedby="why" />
+      <Checkbox label="Pears" checked={false} onCheckedChange={() => {}} aria-describedby="why" />
+    </>,
+  );
+  expect(screen.getByRole("checkbox", { name: "Plums" }).getAttribute("aria-describedby")).toBe("why");
+  expect(screen.getByRole("checkbox", { name: "Pears" }).getAttribute("aria-describedby")).toBe("why");
+});

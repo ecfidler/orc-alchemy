@@ -1,9 +1,20 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, expect, test } from "vitest";
+import { builderSteps, treeNodes } from "./builder.ts";
 import { engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { type KnownSpell, type Spellcasting, toSheet } from "./sheet.ts";
-import { levelHeading, searchSpellGroups, sourceNumbers, spellClassLine, spellGroups, spellId, spellSources } from "./spell-list.ts";
+import {
+  isSpellSelection,
+  levelHeading,
+  optionSpellGroups,
+  searchSpellGroups,
+  sourceNumbers,
+  spellClassLine,
+  spellGroups,
+  spellId,
+  spellSources,
+} from "./spell-list.ts";
 import { spellLookup } from "./spell-records.ts";
 import { loadSpellContent, setPrepared } from "./spells.ts";
 
@@ -142,3 +153,48 @@ test("the search keeps the spells whose shown name has the text, in any case, an
 test("a level heading is Cantrips, or the ordinal and level", () => {
   expect([0, 1, 2, 3, 9].map(levelHeading)).toEqual(["Cantrips", "1st level", "2nd level", "3rd level", "9th level"]);
 });
+
+test("optionSpellGroups gives the options of a spell selection by level, A to Z by the record name, with the pick state (ORC-357)", async () => {
+  const lookup = spellLookup(await loadSpellContent(), undefined);
+  const option = (key: string, name: string, selected = false) => ({ key, name, selected, prereqs: 0, selections: [] });
+  const selection = {
+    name: "Wizard Spells Known",
+    options: [
+      option("sleep", "1 - Sleep"),
+      option("blur", "2 - Blur", true),
+      option("alarm", "1 - Alarm"),
+      option("light", "Light"),
+      option("tsunami", "2 - Tsunami"),
+    ],
+  };
+  const groups = optionSpellGroups(selection, lookup);
+  expect(groups.map((g) => [g.level, g.spells.map((s) => s.name)])).toEqual([
+    [0, ["Light"]],
+    [1, ["Alarm", "Sleep"]],
+    // A spell with no record keeps its option name without the prefix.
+    [2, ["Blur", "Tsunami"]],
+  ]);
+  expect(groups[2].spells[0]).toEqual({ key: "blur", source: "Wizard Spells Known", name: "Blur", castNote: null, level: 2, selected: true });
+  // Before the records load, the names and the levels come from the options.
+  expect(optionSpellGroups(selection, null).map((g) => [g.level, g.spells.map((s) => s.name)])).toEqual([
+    [0, ["Light"]],
+    [1, ["Alarm", "Sleep"]],
+    [2, ["Blur", "Tsunami"]],
+  ]);
+});
+
+test("isSpellSelection: on the Spells step of warlock-10-drow, the spell selections are spell selections, and Eldritch Invocations is not (ORC-357)", async () => {
+  const lookup = spellLookup(await loadSpellContent(), undefined);
+  const e = engine();
+  const steps = builderSteps(e.evaluate(readJson("warlock-10-drow.strict.json"), {}).selections, e.buildTemplate().shape);
+  const selections = treeNodes(steps.find((step) => step.name === "Spells")!.selections);
+  expect(Object.fromEntries(selections.map((selection) => [selection.name, isSpellSelection(selection, lookup)]))).toEqual({
+    "Warlock Cantrips Known": true,
+    "Warlock Spells Known": true,
+    "Book of Shadows Cantrips": true,
+    "Eldritch Invocations": false,
+    "Book of Ancient Secrets Rituals": true,
+  });
+  // A selection with no options is not a spell selection.
+  expect(isSpellSelection({ options: [] }, lookup)).toBe(false);
+}, 20_000);

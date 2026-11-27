@@ -2,7 +2,18 @@
 // and Race steps"): the list with a detail panel (ui ListPanel), and after the pick the block that takes its place,
 // with About, Customize and Change, the Choices of the option, and "Picked on other steps". The race has a fixed last
 // row, Custom Origin, and its guided edit.
-import { Button, Dialog, LeftMark, ListPanel, type ListPanelItem, type ListPanelPlace, LockIcon, PixelIcon, type PixelIconName } from "@orc-alchemy/ui";
+import {
+  Button,
+  Dialog,
+  LeftMark,
+  ListPanel,
+  type ListPanelItem,
+  type ListPanelPlace,
+  LockIcon,
+  leftMarkText,
+  PixelIcon,
+  type PixelIconName,
+} from "@orc-alchemy/ui";
 import { type ComponentType, type ReactNode, type RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { BuilderOption, BuilderSelection } from "../engine/builder.ts";
 import { BACKGROUND_TYPE } from "../engine/content.ts";
@@ -438,7 +449,7 @@ export function OtherSteps({ selection, noun, lines: given }: { selection: Build
     <ul aria-label="Picked on other steps" className="@container divide-y divide-rule border-y border-rule-strong">
       {lines.map((line) => {
         const picks = line.remaining === 0 && line.picks.length > 0 ? line.picks.join(", ") : null;
-        const value = picks ?? (line.remaining > 0 ? `${line.remaining} left` : line.remaining < 0 ? `remove ${-line.remaining}` : "done");
+        const value = picks ?? leftMarkText(line.remaining).toLowerCase();
         return (
           <li key={line.kind}>
             <Button

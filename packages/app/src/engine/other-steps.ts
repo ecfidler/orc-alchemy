@@ -4,6 +4,7 @@
 
 import { type BuilderSelection, type BuilderStep, type StepName, treeNodes } from "./builder.ts";
 import { groupOf, isExpertise } from "./proficiencies.ts";
+import { splitLevelPrefix } from "./spells.ts";
 
 /** One line of "Picked on other steps": the kind, the picks, the picks left, and the step that has them. */
 export interface OtherStepLine {
@@ -68,7 +69,7 @@ export function otherStepLines(
     const kind = lineKind(node);
     const line = lines.get(kind) ?? { kind, step, picks: [], remaining: 0 };
     // The engine names a spell of a spell list with its level first, "1 - Alarm": the line shows the spell's name.
-    const names = node.selected.map((key) => (node.options.find((o) => o.key === key)?.name ?? key).replace(/^\d+ - /, ""));
+    const names = node.selected.map((key) => splitLevelPrefix(node.options.find((o) => o.key === key)?.name ?? key).name);
     lines.set(kind, { ...line, picks: [...line.picks, ...names], remaining: line.remaining + node.remaining });
   }
   const order = (kind: string) => {

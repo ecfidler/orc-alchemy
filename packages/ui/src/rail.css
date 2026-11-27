@@ -84,6 +84,11 @@
     align-items: center;
     color: var(--ink-muted);
   }
+  /* With success, "Done" is green: a count at its maximum. */
+  .ui-left-mark:where([data-success]) > .ui-left-mark-done {
+    color: var(--success);
+    font-weight: 600;
+  }
   .ui-left-mark-done > .ui-icon {
     margin-inline-end: 4px;
     vertical-align: 0;

@@ -12,6 +12,8 @@ export type CheckboxProps = {
    * on a row of a list. A screen reader and a mouse still reach the box.
    */
   tabIndex?: -1;
+  /** The id of an element that describes the box, for example the reason that it is disabled. */
+  "aria-describedby"?: string;
 } & (
   | {
       /** The visible label, after the box. A click on it checks the box too. */
@@ -27,7 +29,17 @@ export type CheckboxProps = {
  * A checkbox with a square mark, with Base UI Checkbox inside. It is
  * controlled: `checked` is the state, and `onCheckedChange` gets the new one.
  */
-export function Checkbox({ checked, onCheckedChange, disabled, className, tabIndex, label, name, "aria-label": ariaLabel }: CheckboxProps) {
+export function Checkbox({
+  checked,
+  onCheckedChange,
+  disabled,
+  className,
+  tabIndex,
+  label,
+  name,
+  "aria-label": ariaLabel,
+  "aria-describedby": describedBy,
+}: CheckboxProps) {
   const id = useId();
   // Root sets its own tabIndex after the props, so render sets it on the box.
   const own = name !== undefined || tabIndex !== undefined;
@@ -37,6 +49,7 @@ export function Checkbox({ checked, onCheckedChange, disabled, className, tabInd
       onCheckedChange={(next) => onCheckedChange(next)}
       disabled={disabled}
       aria-label={name ?? ariaLabel}
+      aria-describedby={describedBy}
       // In a label, Base UI names the box by the label. A box labelled by itself takes its own aria-label instead.
       // Root's id prop goes to its hidden input, so render sets the id of the box itself.
       aria-labelledby={name === undefined ? undefined : id}
