@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-27T05:29:00Z }
+generated: { by: claude-code/agent, at: 2026-11-27T05:40:25Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -1049,8 +1049,9 @@ Treasure and Weapons, in the order of the step.
   equipment and magic items. The weight of ammunition is for a bundle,
   for example 1 lb. for 20 arrows, so one arrow shows "0.05 lb.". An
   item with no weight shows a dash. The weapon list of the engine has
-  no weights, so a weapon shows a dash. An item of a homebrew pack also
-  shows a dash.
+  no weights, so a weapon shows a dash. Most magic weapons and magic
+  items have no weight in the content either, and show a dash. An item
+  of a homebrew pack also shows a dash.
 * Under the table is the line "Total weight: 66 lb.". The total adds
   the weight × the quantity of each item with a known weight. An item
   with a dash does not count. When no item has a known weight, the

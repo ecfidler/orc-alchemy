@@ -39,7 +39,7 @@ function open(entity: StrictEntity) {
 const entity = () => useCharacter.getState().entity!;
 const sheet = () => toSheet(engine().evaluate(entity()).built, entity());
 const region = (name: string) => within(screen.getByRole("region", { name: new RegExp(`^${name}`) }));
-// getByLabelText is slow on a page of four long item lists; every control here has an aria-label.
+// Each control here has an aria-label, and a direct query is faster than getByLabelText on a page of many tables.
 const labelled = (label: string) => document.querySelector<HTMLElement>(`[aria-label="${label}"]`)!;
 const type = (label: string, value: string) => fireEvent.change(labelled(label), { target: { value } });
 const choose = (label: string, name: string) => pickOption(labelled(label), name);
@@ -92,7 +92,7 @@ test("fighter-20 equipped through the Equipment step has its AC, hit points and 
   expect(engine().evaluate(entity()).built.armor!.plate["orcpub.dnd.e5.character.equipment/quantity"]).toBe(2);
   fireEvent.click(labelled("Remove Plate"));
   expect(engine().evaluate(entity()).built.armor!.plate).toBeUndefined();
-  // Each change renders the four long item lists again, which jsdom is slow at.
+  // Each change is an engine mutation and a render of the step, which jsdom is slow at.
 }, 20_000);
 
 test("one Add items modal has a group for each inventory list and a search; a pick goes to its own list and leaves the modal (ORC-373)", async () => {

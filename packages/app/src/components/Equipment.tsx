@@ -128,8 +128,8 @@ function ItemRow(props: {
   nameCell: ReactNode;
   carried: boolean;
   onCarried: (carried: boolean) => void;
-  /** Undefined in a list that is not magic, and null for a row in a magic list that cannot be attuned. */
-  attuned?: Attuned | null;
+  /** The Attuned box, in a magic list only. */
+  attuned?: Attuned;
   weight: number | null;
   quantity: number;
   onQuantity: (quantity: number) => void;
@@ -141,10 +141,13 @@ function ItemRow(props: {
       <td className="py-1 pr-2 text-center">
         <Checkbox aria-label={`Carried: ${name}`} checked={props.carried} onCheckedChange={props.onCarried} />
       </td>
-      <td className="w-full py-1 pr-2">{props.nameCell}</td>
+      {/* The name is the row header, so a screen reader names the item with each cell. */}
+      <th scope="row" className="w-full py-1 pr-2 text-left font-normal">
+        {props.nameCell}
+      </th>
       {attuned !== undefined && (
         <td className="py-1 pr-2 text-center">
-          {attuned && <Checkbox aria-label={`Attuned: ${name}`} checked={attuned.checked} disabled={attuned.disabled} onCheckedChange={attuned.onChange} />}
+          <Checkbox aria-label={`Attuned: ${name}`} checked={attuned.checked} disabled={attuned.disabled} onCheckedChange={attuned.onChange} />
         </td>
       )}
       <td className="py-1 pr-2 text-right whitespace-nowrap tabular-nums">{lb(props.weight)}</td>
@@ -261,7 +264,6 @@ export function Inventory({ selection }: { selection: BuilderSelection }) {
                     }
                     carried={item.equipped}
                     onCarried={(equipped) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { equipped }))}
-                    attuned={magic ? null : undefined}
                     weight={null}
                     quantity={item.quantity}
                     onQuantity={(n) => run((e, entity) => changeCustomItem(e, entity, customKey, i, { quantity: n }))}
