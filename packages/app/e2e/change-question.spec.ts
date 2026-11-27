@@ -85,7 +85,7 @@ test("a Rogue with Expertise replaced with a Fighter: the question names the ski
   await pickIn(section(page, "Skills: Rogue"), "Stealth");
   await pickIn(section(page, "Skills: Rogue"), "Perception");
   await pickIn(section(page, "Expertise: Rogue"), "Two Skills");
-  const expertise = section(page, "Skill Expertise");
+  const expertise = section(page, "Skill Expertise: Rogue");
   await pickIn(expertise, "Stealth");
   await pickIn(expertise, "Perception");
   await expect(picksIn(expertise)).toHaveText(["Perception", "Stealth"]);
@@ -98,6 +98,6 @@ test("a Rogue with Expertise replaced with a Fighter: the question names the ski
   await question.getByRole("button", { name: "Replace" }).click();
   await expect(question).toBeHidden();
   await openStep(page, "Proficiencies");
-  await expect(section(page, "Skill Expertise")).toHaveCount(0);
+  await expect(section(page, "Skill Expertise: Rogue")).toHaveCount(0);
   await expect(section(page, "Expertise")).toHaveCount(0);
 });

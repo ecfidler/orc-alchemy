@@ -328,6 +328,6 @@ export function sectionNames(selections: BuilderSelection[]): Map<BuilderSelecti
  */
 export function featSectionNames(selections: BuilderSelection[]): Map<BuilderSelection, string> {
   const names = sectionNames(selections);
-  for (const selection of selections) if (selection.sources.length > 0) names.set(selection, sourcedHeading(selection.name, selection.sources));
+  for (const selection of selections) names.set(selection, sourcedHeading(selection.name, selection.sources));
   return names;
 }

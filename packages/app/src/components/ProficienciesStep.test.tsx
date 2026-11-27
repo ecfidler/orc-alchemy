@@ -63,7 +63,7 @@ test("a rogue: the skill section, then the Expertise section, in the Skills grou
   expect(outline()).toEqual(["H3 Skills", "H4 Skills: Rogue", "H4 Expertise: Rogue"]);
   await pickIn(section("Expertise: Rogue"), "Two Skills");
   // The pick opens the choice of skills after the Expertise section.
-  expect(outline()).toEqual(["H3 Skills", "H4 Skills: Rogue", "H4 Expertise: Rogue", "H4 Skill Expertise"]);
+  expect(outline()).toEqual(["H3 Skills", "H4 Skills: Rogue", "H4 Expertise: Rogue", "H4 Skill Expertise: Rogue"]);
 });
 
 test("a dwarf rogue has a Tools group with the rogue's thieves' tools", () => {
