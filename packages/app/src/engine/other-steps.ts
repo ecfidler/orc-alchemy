@@ -1,12 +1,12 @@
 // What the block of the main pick of the Background and Race steps shows (ORC-347, docs/design/character-builder.md
-// "After the pick"): the left mark of the step, and the list "Picked on other steps", one line for each kind of pick
+// "After the pick"): the left mark of the step, and the list "Also choose", one line for each kind of pick
 // that the option gives on another step, with the picks or the left mark and the step.
 
 import { type BuilderSelection, type BuilderStep, type StepName, treeNodes } from "./builder.ts";
 import { groupOf, isExpertise } from "./proficiencies.ts";
 import { splitLevelPrefix } from "./spells.ts";
 
-/** One line of "Picked on other steps": the kind, the picks, the picks left, and the step that has them. */
+/** One line of "Also choose": the kind, the picks, the picks left, and the step that has them. */
 export interface OtherStepLine {
   kind: string;
   step: StepName;
@@ -38,7 +38,7 @@ export function lineKind(selection: BuilderSelection): string {
 }
 
 /**
- * The lines of "Picked on other steps" for the main pick of `selection`, a top-level selection such as the
+ * The lines of "Also choose" for the main pick of `selection`, a top-level selection such as the
  * background: each selection that its picked option opens on another step of `steps`, and the selections that those
  * open, in lines by kind. A line has the picks and the picks left of all its selections. The lines are in the order of
  * KINDS, then of the names of the other kinds. A selection that two sources share, such as the Languages of a race and

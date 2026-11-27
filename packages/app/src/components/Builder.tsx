@@ -206,7 +206,7 @@ function Options({ selection }: { selection: BuilderSelection }) {
 
   const opened = selection.options.filter((o) => o.selected && o.selections.length > 0);
   const section = (child: BuilderSelection) => <Selection key={JSON.stringify(child.actualPath)} selection={child} />;
-  // The class blocks have Choices (ORC-350), Hit points and "Picked on other steps" (ORC-351).
+  // The class blocks have Choices (ORC-350), Hit points and "Also choose" (ORC-351).
   if (isClass) return <ClassStep selection={selection} />;
   // The background and the race are a list with a detail panel, and then a block with their choices in it (ORC-347,
   // ORC-348). The one subrace of a race is a fact of its panel, not a row of Choices (choiceSelections).

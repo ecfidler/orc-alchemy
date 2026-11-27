@@ -67,8 +67,8 @@ export function ClassCards({ options, action, needs }: ClassCardsProps) {
 }
 
 /**
- * The modal of a class: the detail of the class (ClassDetail) and, when it has one, the action at the bottom right,
- * such as "Choose Fighter". About opens it with no action.
+ * The modal of a class: the detail of the class (ClassDetail), which scrolls, and, when it has one, the action in a
+ * row at the bottom right that stays in view (ORC-367), such as "Choose Fighter". About opens it with no action.
  */
 export function ClassModal({
   option,
@@ -83,9 +83,8 @@ export function ClassModal({
 }) {
   const pack = useOptionPack(CLASS_TYPE)(option.key);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={option.name} size="narrow" footer={false}>
+    <Dialog open={open} onOpenChange={onOpenChange} title={option.name} size="narrow" footer={false} actions={action}>
       <ClassDetail optionKey={option.key} name={option.name} pack={pack} />
-      {action && <div className="mt-3 flex items-center justify-end gap-3 border-t border-rule-strong pt-3">{action}</div>}
     </Dialog>
   );
 }

@@ -84,7 +84,7 @@ test("at 390px the class cards are three in a row, and the modals and dialogs fi
   await classCard(builder(page), "Fighter").click();
   await expectInWindow(page, "Fighter");
   await page.getByRole("button", { name: "Choose Fighter", exact: true }).click();
-  // The class block: the header, the choice rows, the hit points and "Picked on other steps".
+  // The class block: the header, the choice rows, the hit points and "Also choose".
   expect(await pastTheStep(page)).toEqual([]);
   await builder(page).getByRole("button", { name: "Add a Fighter level" }).click();
   await builder(page).getByRole("button", { name: "Add a Fighter level" }).click();

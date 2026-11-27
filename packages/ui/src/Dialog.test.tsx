@@ -379,7 +379,25 @@ test("a normal dialog with no footer has an X named Close and no Cancel, and the
   await waitFor(() => expect(document.activeElement).toBe(x));
   fireEvent.click(x);
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  const close = () => {};
-  // @ts-expect-error: no footer, so no actions.
-  void (<Dialog open={false} onOpenChange={close} title="T" footer={false} actions={<button>Save</button>} children={null} />);
+  expect(dialog.querySelector(".ui-modal-foot")).toBeNull();
+});
+
+test("a normal dialog with no footer and actions has the X and a footer row with only the actions, outside the body", async () => {
+  render(
+    <Dialog open onOpenChange={() => {}} title="Read" size="narrow" footer={false} actions={<button>Choose</button>}>
+      <p>Some text</p>
+    </Dialog>,
+  );
+  const dialog = await screen.findByRole("dialog", { name: "Read" });
+  expect(within(dialog).getByRole("button", { name: "Close" })).toBeTruthy();
+  const foot = dialog.querySelector<HTMLElement>(".ui-modal-foot")!;
+  // The row is a sibling of the body, so it does not scroll with it.
+  expect(foot.previousElementSibling?.classList.contains("ui-modal-body")).toBe(true);
+  expect(
+    within(foot)
+      .getAllByRole("button")
+      .map((b) => b.textContent),
+  ).toEqual(["Choose"]);
+  // The body has no control, so the focus goes to the action, not to the X.
+  await waitFor(() => expect(document.activeElement).toBe(within(foot).getByRole("button", { name: "Choose" })));
 });

@@ -78,9 +78,9 @@ test("the rail counts these picks on the Proficiencies step only, and the Race a
   expect(rail().getByRole("button", { name: "Race" })).toBeTruthy();
   expect(rail().getByRole("button", { name: "Background" })).toBeTruthy();
   // The block of the race (ORC-348) has a line to Proficiencies in place of these sections.
-  expect(outline()).toEqual(["H3 Half-Elf", "H4 Picked on other steps"]);
+  expect(outline()).toEqual(["H3 Half-Elf", "H4 Also choose"]);
   cleanup();
   open("Background", select(["race"], "half-elf"), select(["background"], "acolyte"));
   // The block of the background (ORC-347) has a line to Proficiencies in place of these sections.
-  expect(outline()).toEqual(["H3 Acolyte", "H4 Picked on other steps"]);
+  expect(outline()).toEqual(["H3 Acolyte", "H4 Also choose"]);
 });

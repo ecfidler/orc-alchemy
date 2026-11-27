@@ -385,6 +385,9 @@ no class equipment.
   "Level" and "Features".
 * The modal has the button "Choose {class}" with the check icon. It
   makes the pick and closes the modal.
+* The content of the modal scrolls. The button is in a row at the bottom
+  of the modal that does not scroll, so it stays in view. The modals of
+  Change and "Add a class" have the same row.[^orc-367]
 * The width of the part counts, not the width of the page, as for the
   list with a detail panel. Each card has the same size, also a card with
   no icon.[^orc-349]
@@ -419,7 +422,7 @@ After the pick, each class is a **class block**.
 * The level control is a minus button, a number field and a plus
   button. The field takes 1 to 20. The buttons have an `aria-label`.
 * The body has three sections, in this order: Choices, Hit points,
-  Picked on other steps.
+  "Also choose".
 * The dialog of Change does not show the classes of the character. After
   a change, the focus goes to the Change button of the block. After
   Cancel of the question, the focus goes to the Change button of the old
@@ -556,9 +559,10 @@ Each class block has one Hit points section.
   the page below the section. A roll or a typed number moves nothing: the
   total keeps its place at the right.[^orc-351]
 
-## Picked on other steps
+## Also choose
 
-Each class block has a list "Picked on other steps".
+Each class block has a list "Also choose". Until ORC-368 its heading
+was "Picked on other steps".[^orc-368]
 
 * The list has one line for each kind that the class gives: Skills,
   Expertise, Tools, Cantrip, Spells, Starting equipment. A class that
@@ -722,11 +726,11 @@ with the look of the class block.
   The picked option has a check icon in the list and is bold. A Cancel
   button puts the block back.
 * The body has the section Choices, when the option has a choice on
-  this step, and the section "Picked on other steps".
+  this step, and the section "Also choose".
 * Choices has one part for each selection, for example Subrace or
   Draconic Ancestry, with the control of
   [The control for each kind of selection](#the-control-for-each-kind-of-selection).
-* "Picked on other steps" has one line for each kind: Ability scores to
+* "Also choose" has one line for each kind: Ability scores to
   Abilities, Skills, Languages and Tools to Proficiencies, Cantrip to
   Spells, Feat to Feats, Starting equipment to Equipment. An option that
   gives no pick on another step shows one line that says so.
@@ -741,7 +745,7 @@ with the look of the class block.
   character" in the place of the Choose button. After Cancel, the focus
   goes to the Change button.[^orc-347]
 * The name in the header of the block is an `<h3>`. The titles Choices
-  and "Picked on other steps" are `<h4>`. The modal of About has a Close
+  and "Also choose" are `<h4>`. The modal of About has a Close
   button and no Choose button.[^orc-347]
 
 ## Custom Origin
@@ -835,7 +839,7 @@ subrace or a feat.[^orc-345]
 
 The Proficiencies step holds each pick of a skill, a language or a
 tool.[^orc-332] [^orc-333] The Class, Background and Race steps do not
-show these selections. They show a line in "Picked on other steps".
+show these selections. They show a line in "Also choose".
 
 * The step has three groups, each with a heading: Skills, Languages,
   Tools. A fourth group, "Other proficiencies", after Tools, shows only
@@ -1016,7 +1020,7 @@ parts that it could not use. A 2024 builder changes these parts:
 
 * The Race step becomes Species. The species gives no ability score.
 * The background gives the ability score increases and an origin feat.
-  "Picked on other steps" of the background then has a line to Abilities
+  "Also choose" of the background then has a line to Abilities
   and a line to Feats.
 * The Proficiencies step has no change. The background gives two fixed
   skills and a tool.
@@ -1116,3 +1120,5 @@ one depends only on parts of the frame.
 [^orc-355]: The race panel shows the traits that the engine gives, <https://linear.app/orc-alchemy/issue/ORC-355>
 [^orc-357]: Spells step: an "Add spells" popup like the Spells panel of the sheet, <https://linear.app/orc-alchemy/issue/ORC-357>
 [^orc-366]: Proficiencies step: the section that an Expertise pick opens names its source, <https://linear.app/orc-alchemy/issue/ORC-366>
+[^orc-367]: Class step: the content of the class modal scrolls, and the Choose button stays in view, <https://linear.app/orc-alchemy/issue/ORC-367/class-step-the-content-of-the-class-modal-scrolls-and-the-choose>
+[^orc-368]: Replace the heading "Picked on other steps", <https://linear.app/orc-alchemy/issue/ORC-368/replace-the-heading-picked-on-other-steps>

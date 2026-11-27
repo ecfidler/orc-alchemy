@@ -91,7 +91,7 @@ test("Half-Elf: no choice on the Race step, and three lines to other steps, Abil
   ]);
 });
 
-/** The selection that the race opens on another step whose line in "Picked on other steps" has the kind. */
+/** The selection that the race opens on another step whose line in "Also choose" has the kind. */
 const movedNode = (race: BuilderSelection, kind: string) =>
   treeNodes(treeNodes([race], { picked: true }).flatMap((node) => node.moved)).find((node) => lineKind(node) === kind)!;
 
@@ -217,7 +217,7 @@ test("the other SRD races: the skills and the weapons that the engine gives are 
     { label: "Languages", value: "Common, Elvish; One of your choice" },
     { label: "Skills", value: "Perception" },
     { label: "Weapons", value: "Longbow, Longsword, Shortbow, Shortsword" },
-    // The cantrip choice of High Elf. Its line in "Picked on other steps" has the kind Cantrip too.
+    // The cantrip choice of High Elf. Its line in "Also choose" has the kind Cantrip too.
     { label: "Cantrip", value: "One of your choice" },
     { label: "Subrace", value: "High Elf: Intelligence +1" },
   ]);

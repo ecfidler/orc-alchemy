@@ -3,7 +3,7 @@
 // first (ORC-344), the level field and its buttons, the header of a block that does not move, a character with two
 // classes. ORC-350 ("Choices"): the choice rows open and closed, a pick that keeps its
 // row open and moves no row below, the subclass dialog, the row "Ability Score Improvement or Feat", and a class with
-// no choice. ORC-351 ("Hit points", "Picked on other steps", "A second class"): Average and By level, the lines to
+// no choice. ORC-351 ("Hit points", "Also choose", "A second class"): Average and By level, the lines to
 // other steps, Add a class, Remove, and a block that closes.
 import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
@@ -375,10 +375,10 @@ test("Hit points: Average, then By level with a roll, Roll all and a typed numbe
   await expect(sheetHitPoints(page)).toHaveText("40");
 });
 
-test("Picked on other steps: the lines of each class, with the picks or the mark, open their step", async ({ page }) => {
+test("Also choose: the lines of each class, with the picks or the mark, open their step", async ({ page }) => {
   await newCharacter(page);
   await addFirstClass(page, "Rogue");
-  const lines = block(page, "Rogue").getByRole("list", { name: "Picked on other steps" }).getByRole("button");
+  const lines = block(page, "Rogue").getByRole("list", { name: "Also choose" }).getByRole("button");
   await expect(lines).toHaveText([/^Skills\s*4 left\s*Proficiencies$/, /^Expertise\s*\d left\s*Proficiencies$/, /^Starting equipment\s*\d left\s*Equipment$/]);
   await lines.filter({ hasText: "Expertise" }).click();
   await expect(builder(page).getByRole("heading", { level: 2 })).toHaveText("Proficiencies");

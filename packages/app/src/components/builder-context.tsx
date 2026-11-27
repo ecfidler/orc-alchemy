@@ -36,7 +36,7 @@ export function BuilderStatusToast({ children }: { children: ReactNode }) {
 
 /** What the builder tells the sections of the open step. */
 export interface StepFrame {
-  /** All the steps of the builder, for a part that names the step of a pick, such as "Picked on other steps". */
+  /** All the steps of the builder, for a part that names the step of a pick, such as "Also choose". */
   steps: BuilderStep[];
   /** The heading name of each section of the open step (sectionNames). A selection that is not in it has its own name. */
   names: Map<BuilderSelection, string>;
@@ -71,7 +71,7 @@ export function StepFrameProvider({ steps, step, children }: { steps: BuilderSte
 /** Opens a step of the builder, as Next and Back do: the focus goes to the step title. */
 const OpenStep = createContext<(step: StepName) => void>(() => {});
 
-/** Gives `open` to the parts in `children` that open a step, such as a line of "Picked on other steps". */
+/** Gives `open` to the parts in `children` that open a step, such as a line of "Also choose". */
 export function OpenStepProvider({ open, children }: { open: (step: StepName) => void; children: ReactNode }) {
   return <OpenStep.Provider value={open}>{children}</OpenStep.Provider>;
 }

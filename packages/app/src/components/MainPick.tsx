@@ -1,6 +1,6 @@
 // The main pick of the Background and Race steps (ORC-347, ORC-348, docs/design/character-builder.md "The Background
 // and Race steps"): the list with a detail panel (ui ListPanel), and after the pick the block that takes its place,
-// with About, Customize and Change, the Choices of the option, and "Picked on other steps". The race has a fixed last
+// with About, Customize and Change, the Choices of the option, and "Also choose". The race has a fixed last
 // row, Custom Origin, and its guided edit.
 import {
   Button,
@@ -313,7 +313,7 @@ interface PickBlockProps {
 /**
  * The block of the picked option, with the look of the class block: the header has the name with the pack, the left
  * mark of the step, and the ghost buttons About, Customize and Change. The body has Choices, when the option has a
- * choice on this step, and "Picked on other steps".
+ * choice on this step, and "Also choose".
  */
 function PickBlock({ selection, option, name, noun, pack, detail, customizable, guided, changeButton, onChange, children }: PickBlockProps) {
   const block = useRef<HTMLDivElement>(null);
@@ -346,7 +346,7 @@ function PickBlock({ selection, option, name, noun, pack, detail, customizable, 
       }
     >
       {hasChoices && <BlockSection title="Choices">{children}</BlockSection>}
-      <BlockSection title="Picked on other steps">
+      <BlockSection title="Also choose">
         <OtherSteps selection={selection} noun={noun} />
       </BlockSection>
       <Dialog open={about} onOpenChange={setAbout} title={option.name} footer={false}>
@@ -432,7 +432,7 @@ export function BlockSection({ title, mark, children }: { title: string; mark?: 
 }
 
 /**
- * "Picked on other steps": one line for each kind of pick that the option gives on another step (otherStepLines). A
+ * "Also choose": one line for each kind of pick that the option gives on another step (otherStepLines). A
  * line shows the kind, then the picks or the left mark, then the step, and opens that step. An option that gives no
  * pick on another step has one line that says so. `lines` gives other lines, such as those of one class of the Class
  * step (classStepLines, ORC-351).
@@ -446,7 +446,7 @@ export function OtherSteps({ selection, noun, lines: given }: { selection: Build
     return <p className="border-y border-rule-strong py-2 font-sans text-[13.5px] text-ink-muted">This {noun} gives no pick on another step.</p>;
   return (
     // The kind column is wider on a list 400px wide or more: the width of the list counts, not that of the page.
-    <ul aria-label="Picked on other steps" className="@container divide-y divide-rule border-y border-rule-strong">
+    <ul aria-label="Also choose" className="@container divide-y divide-rule border-y border-rule-strong">
       {lines.map((line) => {
         const picks = line.remaining === 0 && line.picks.length > 0 ? line.picks.join(", ") : null;
         const value = picks ?? leftMarkText(line.remaining).toLowerCase();

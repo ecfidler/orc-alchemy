@@ -126,7 +126,7 @@ test("Half-Elf: three lines to other steps, and a line opens its step", async ({
   await expect(fact(page, "Ability scores")).toHaveText("Charisma +2; +1 to two of your choice");
   await expect(fact(page, "Languages")).toHaveText("Common, Elvish; One of your choice");
   await panel(page).getByRole("button", { name: "Choose Half-Elf" }).click();
-  const lines = race(page).getByRole("list", { name: "Picked on other steps" }).getByRole("button");
+  const lines = race(page).getByRole("list", { name: "Also choose" }).getByRole("button");
   expect(await lines.evaluateAll((buttons) => buttons.map((b) => b.getAttribute("aria-label")))).toEqual([
     "Ability scores, 2 left, Abilities",
     "Skills, 2 left, Proficiencies",

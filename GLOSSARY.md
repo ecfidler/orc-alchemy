@@ -192,8 +192,8 @@ _Avoid_: Preview pane, info box, tooltip
 **Pick block**:
 The block that takes the place of the list and the detail panel after the
 main pick of the Background or Race step. Its header has the name, the left
-mark, About, Customize and Change; its body has Choices and "Picked on other
-steps".
+mark, About, Customize and Change; its body has Choices and "Also
+choose".
 _Avoid_: Card, summary (the summary card is the column at the right of a step)
 
 **Class block**:
