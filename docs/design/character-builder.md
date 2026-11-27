@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T21:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-27T05:10:55Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -218,6 +218,30 @@ engine gets the change.
 * The "Custom" option of the engine does not show. If an imported
   character has it, it shows, with its lists in pickers.
 
+## A pick that is on its way
+
+A pick must show in less than 100 ms on a desktop (ORC-369). Some picks
+can take more time on a slow device, so the button of the pick shows
+the pick at once.
+
+* The button that the user clicked shows the pressed look and is
+  `aria-busy` at once: an option card, a row of a list or a picker, the X
+  of a token, or the Choose or Change button of a list that closes on
+  the pick. The pressed look is the solid fill and a move of 1px down. It
+  moves no other part of the page.
+* While a pick from a picker list is on its way, the add button of the
+  picker is busy too, so the busy look stays when the list closes first.
+* The builder makes the pick after the next paint. The pick and the end
+  of the busy state show in one render.
+* A second click on the same option while its pick is on its way does
+  nothing.
+* A control with no busy look picks at once: the box of a spell and the
+  Alignment select.
+* A pick that asks first when it removes picks (the race, the subrace,
+  the background, the subclass and a class choice of one pick) does not
+  wait for a paint and has no busy look. It plans the change first. A
+  busy look for these picks and for the spell boxes is ORC-376.
+
 # The page
 
 From the top, the builder page has the action row, the step rail, and
@@ -334,6 +358,16 @@ One rule gives the control of a selection.[^orc-332]
 * An option card shows only the name. It is a toggle, as today.
 * A picker and a list have a search field above 20 options, as in the
   homebrew forms.
+* In a picker, the add button is right under the heading of the
+  selection, and the tokens of the picks are under the button. The line
+  of the tokens keeps the place of the most picks, so a pick does not
+  move the page below.[^orc-371]
+* A picker whose selection has its maximum takes no more picks. Its add
+  button is disabled but keeps the focus, and it shows "Remove a choice
+  first." in place of the count, also as its description and tooltip.
+  In its list, each option that is not picked is locked with the same
+  reason, as the boxes of the "Add spells" popup. The tokens keep their
+  X, and a remove enables the button again.[^orc-370]
 * The selections that a pick opens are flat sections below the main
   pick. Each has its own heading and its own mark. Do not nest a block
   in a block, and do not use a rule at the left.
@@ -1122,3 +1156,5 @@ one depends only on parts of the frame.
 [^orc-366]: Proficiencies step: the section that an Expertise pick opens names its source, <https://linear.app/orc-alchemy/issue/ORC-366>
 [^orc-367]: Class step: the content of the class modal scrolls, and the Choose button stays in view, <https://linear.app/orc-alchemy/issue/ORC-367/class-step-the-content-of-the-class-modal-scrolls-and-the-choose>
 [^orc-368]: Replace the heading "Picked on other steps", <https://linear.app/orc-alchemy/issue/ORC-368/replace-the-heading-picked-on-other-steps>
+[^orc-370]: Proficiencies step: show that a selection is full before the user tries another pick, <https://linear.app/orc-alchemy/issue/ORC-370>
+[^orc-371]: Proficiencies step: less space between a selection heading and its control, <https://linear.app/orc-alchemy/issue/ORC-371>

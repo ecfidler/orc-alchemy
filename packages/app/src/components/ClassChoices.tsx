@@ -114,7 +114,7 @@ function ChoiceRowView({ row, classKey }: { row: ChoiceRow; classKey: string }) 
 function SubclassControl({ selection, classKey }: { selection: BuilderSelection; classKey: string }) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
-  const { replace, dialog } = usePick(selection, button);
+  const { replace, dialog } = usePick(selection, { finalFocus: button });
   const options = shownOptions(selection);
   const picked = options.filter((o) => o.selected);
   const current = picked[0];

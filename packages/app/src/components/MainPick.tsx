@@ -105,7 +105,7 @@ export function MainPick({ selection, noun, contentType, detail, customizable, g
     }),
     [],
   );
-  const { select, dialog } = usePick(selection, afterQuestion);
+  const { select, dialog } = usePick(selection, { finalFocus: afterQuestion });
 
   // A new pick while the list shows closes the list. The focus then goes to Change (spec, "Keyboard and screen reader").
   // The pick of the last render is state, so a new pick sets the state during the render, as React permits for the

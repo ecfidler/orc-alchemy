@@ -1,7 +1,7 @@
 // Helpers for the e2e specs that make a new character in the builder (ORC-342): a new character has no class, and
 // it opens on the Name step.
 import { join } from "node:path";
-import { pickFromPicker } from "@orc-alchemy/ui/testing/playwright";
+import { notBusy, pickFromPicker } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /** The ten steps of the builder, in the order of the rail. */
@@ -145,6 +145,8 @@ export async function pickIn(scope: Locator, name: string) {
   const card = scope.locator("[aria-pressed]").and(scope.getByRole("button", { name, exact: true }));
   if ((await card.count()) > 0) {
     await card.click();
+    // The pick shows after the next paint (ORC-369).
+    await notBusy(scope.page());
     return;
   }
   await pickFromPicker(listOpener(scope), name);

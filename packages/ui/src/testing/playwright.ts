@@ -1,5 +1,5 @@
 // Test helpers for apps that use this package, for Playwright.
-import type { Locator } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { type Names, nameList } from "./names.ts";
 
 /**
@@ -47,6 +47,7 @@ export async function pickFromPicker(button: Locator, names: Names): Promise<voi
     if ((await search.count()) > 0) await search.fill(typeof name === "string" ? name : "");
     await dialog.locator(".ui-list-body").getByRole("button", { name, exact: true }).click();
   }
+  await notBusy(button.page());
   // A list can close itself on a pick, for example when it is full. During its close animation it is still visible, so check Base UI's open state, not the visibility.
   const open = dialog.and(button.page().locator("[data-open]:not([data-ending-style])"));
   if (stays && (await open.count()) > 0) await done.click();
@@ -58,4 +59,10 @@ export async function removeToken(scope: Locator, name: string): Promise<void> {
   const x = scope.getByRole("button", { name: `Remove ${name}`, exact: true });
   await x.click();
   await x.waitFor({ state: "hidden" });
+  await notBusy(scope.page());
+}
+
+/** Waits until no element of the page is `aria-busy`: the pick that a click started has shown (ORC-369). */
+export async function notBusy(page: Page): Promise<void> {
+  await page.waitForFunction(() => !document.querySelector('[aria-busy="true"]'));
 }

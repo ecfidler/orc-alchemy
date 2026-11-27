@@ -1,6 +1,6 @@
 // A test helper for the builder (ORC-343): a pick in a selection, by the control that the rule gives it. Its
 // Playwright twin is pickIn in e2e/builder-helpers.ts.
-import { pickFromPicker } from "@orc-alchemy/ui/testing";
+import { notBusy, pickFromPicker } from "@orc-alchemy/ui/testing";
 import { fireEvent, screen, within } from "@testing-library/react";
 
 /** The section of the builder whose heading starts with `name`, such as "Race" or "Skill Proficiency: Fighter". */
@@ -45,6 +45,8 @@ export async function pickIn(scope: HTMLElement, name: string): Promise<void> {
     .find((button) => button.classList.contains("ui-button") && button.closest('[role="group"]') !== null);
   if (card) {
     fireEvent.click(card);
+    // The pick shows after the next paint (ORC-369).
+    await notBusy();
     return;
   }
   const opener = listOpener(scope);

@@ -46,7 +46,8 @@ export function Description({ alignment }: { alignment?: BuilderSelection }) {
  * refusal of the engine shows in the status toast.
  */
 function AlignmentField({ selection }: { selection: BuilderSelection }) {
-  const { replace, dialog } = usePick(selection);
+  // A Select has no busy look, so its pick happens at once (usePick).
+  const { replace, dialog } = usePick(selection, { defer: false });
   const current = selection.selected[0] ?? null;
   return (
     <div className="col-span-full">

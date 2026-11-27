@@ -74,8 +74,9 @@ bun run test       # vitest
     ghost button look and is solid while it is pressed. On its own it
     takes `pressed` and `onPressedChange`. It takes `className` as
     `Button` does. `variant="bare"` has no look of its own, pressed or
-    not, as a bare `Button`: its `className` draws it all. Styles:
-    `src/button.css`.
+    not, as a bare `Button`: its `className` draws it all. A Button or a
+    Toggle with `aria-busy` (its action is on its way, ORC-369) is solid
+    and 1px lower: the pressed look. Styles: `src/button.css`.
   - `ToggleGroup`: Base UI ToggleGroup, a group of toggles. Name it with
     `aria-label` or `aria-labelledby`. Its `value` lists the pressed
     toggles by each toggle's `value`; the owner changes it from each
@@ -304,7 +305,10 @@ bun run test       # vitest
     "Choose". An item with `unavailable` (a reason text) is a locked row:
     the lock icon, a dimmed name and the reason small at the right in the
     place of the mark. It is disabled but keeps the focus, the reason
-    describes its button, and a click picks nothing. The owner sets `open` and gets
+    describes its button, and a click picks nothing. An item with `busy`
+    is a pick on its way (ORC-369): its row is `aria-busy` and has the
+    pressed look, until the owner takes `busy` away in the render that
+    shows the pick. The owner sets `open` and gets
     `onOpenChange`. The X, Escape and a click outside close it. At 600px
     and less it fills the screen. By default a pick calls `onPick` and
     closes the modal. With `stayOpen`, it stays open: the caller takes the
@@ -387,7 +391,15 @@ bun run test       # vitest
     option with `unavailable` is a locked row, and it is not in the count
     of the add button. `reserve` is a number of token lines (28px each)
     that the token line keeps, also with no pick, so a pick does not move
-    the add button or what is below it.
+    what comes after the token line. An option with `busy` has a busy
+    row, or a busy X on its token, and while an option that is not picked
+    is busy, the AddButton is busy too (a modal that closed first leaves
+    the busy look on it). `blocked` is the reason that the picker
+    takes no more picks, for example "Remove a choice first.": the
+    AddButton is then disabled but keeps the focus, and shows the reason
+    in place of the count, as its description and tooltip (ORC-370).
+    `addFirst` puts the AddButton above the token line, so the button
+    stays under the heading and the reserved place is below it (ORC-371).
   - `SegmentedToggle`: a segmented toggle on ToggleGroup for one of
     `options` (`[value, label]` pairs), for example None / Fixed / Scaled.
     A `value` that is no option presses no segment. `size="small"` fits in
@@ -404,7 +416,9 @@ bun run test       # vitest
   - `AddChip`: a dashed token-size button, "+ {label}", with the look of
     the Chips add menu, for one empty slot that the caller fills, for
     example from a ListModal. The "+" is not a part of its name.
-  - `XButton` takes `size="small"` (24px), as in a token.
+  - `XButton` takes `size="small"` (24px), as in a token, and `busy`:
+    `aria-busy` and the pressed look while its action is on its way.
+    `Token` passes its `busy` to its X.
   - Styles for these: `src/picker.css`.
   - The paper patterns (`src/Paper.tsx`). They have no game meaning. A box
     that holds content is a group named by its label. In a box that shows
@@ -585,8 +599,12 @@ bun run test       # vitest
     a list that closes on a click, give one name.
   - `removeToken(scope, name)`: clicks "Remove {name}" in `scope`, and
     waits for the token to go.
+  - `notBusy()`: waits until no element of the page is `aria-busy`, so
+    the work that a click started has shown. `pickFromPicker` and
+    `removeToken` wait for it at their end.
 - `./testing/playwright`: `pickOption(control, name)`,
-  `pickFromPicker(button, names)` and `removeToken(scope, name)` for
+  `pickFromPicker(button, names)`, `removeToken(scope, name)` and
+  `notBusy(page)` for
   Playwright, as above, where `control`, `button` and `scope` are
   locators. In a text field or a search field, a RegExp name clears the
   field first. An app that uses it installs `@playwright/test` (an

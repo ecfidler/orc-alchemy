@@ -77,3 +77,15 @@ test("buildTemplate throws on each call for a content that does not build, as th
   expect(() => buildTemplate(breaks)).toThrow();
   expect(() => buildTemplate(breaks)).toThrow();
 });
+
+test("evaluate keeps its last results: a build of another entity does not push one out (ORC-369)", () => {
+  const e = engine();
+  const content = { homebrew: undefined };
+  const fighter = e.setClass(e.emptyCharacter(), 0, "fighter");
+  const rogue = e.setClass(e.emptyCharacter(), 0, "rogue");
+  const first = e.evaluate(fighter, content);
+  expect(e.evaluate(rogue, content)).not.toBe(first);
+  // The same entity, also as a new object with the same JSON text, gives the kept result.
+  expect(e.evaluate(fighter, content)).toBe(first);
+  expect(e.evaluate(structuredClone(fighter), content)).toBe(first);
+});

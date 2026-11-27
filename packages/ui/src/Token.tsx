@@ -12,6 +12,8 @@ type TokenBaseProps = {
   label: string;
   /** Gets a click on the X. Leave it out for a token with no X. */
   onRemove?: () => void;
+  /** The removal is on its way: the X is `aria-busy` and has the pressed look, as XButton `busy`. */
+  busy?: boolean;
   /** The name in the X's name "Remove {name}", when it is not `label`, for example "Row 4" for a token that shows "4". */
   name?: string;
   /** The X's whole name, when "Remove" is not the right word, for example "Put back Pears". */
@@ -83,6 +85,7 @@ export type TokenProps = TokenBaseProps & (PlainLabel | OpenLabel | PopupLabel);
 export function Token({
   label,
   onRemove,
+  busy,
   name,
   removeName,
   onOpen,
@@ -151,7 +154,7 @@ export function Token({
       )}
       {note && <span className="ui-token-note">{note}</span>}
       {children}
-      {onRemove && <XButton size="small" aria-label={removeName ?? `Remove ${name ?? label}`} onClick={onRemove} />}
+      {onRemove && <XButton size="small" aria-label={removeName ?? `Remove ${name ?? label}`} busy={busy} onClick={onRemove} />}
     </span>
   );
 }
@@ -159,7 +162,8 @@ export function Token({
 /**
  * The tokens of a group on one line that wraps. When an X removes its
  * token, the focus goes to the X of the next token, or of the last one, or
- * to the first button after the tokens when none is left. When the X goes
+ * to the first button after the tokens when none is left, or else to the
+ * button right before them (a Picker with its add button first). When the X goes
  * and its token stays, the focus goes to the token's text button. Other
  * children, for example an add menu, sit at the end of the line.
  */
@@ -177,8 +181,10 @@ export function Tokens({ children, className }: { children?: ReactNode; classNam
   });
   const refocus = useRefocus(line, x, () => {
     const own = [...(line.current?.querySelectorAll<HTMLElement>("button") ?? [])].find((b) => !b.closest(".ui-token"));
-    const after = line.current?.nextElementSibling;
-    return own ?? (after?.matches("button") ? (after as HTMLElement) : after?.querySelector<HTMLElement>("button"));
+    // A sibling that is a button, or the first button in it.
+    const button = (sibling: Element | null | undefined) =>
+      sibling?.matches("button") ? (sibling as HTMLElement) : sibling?.querySelector<HTMLElement>("button");
+    return own ?? button(line.current?.nextElementSibling) ?? button(line.current?.previousElementSibling);
   });
   return (
     <div
