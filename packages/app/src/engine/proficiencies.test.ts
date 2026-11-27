@@ -145,8 +145,11 @@ test("a section that a pick opens names its source after its own name, also when
   const { step, names } = build(entity);
   const opened = step.selections.find((s) => s.key === "tool-language-proficiencies")!.options.find((o) => o.selected)!.selections;
   expect(opened.map((s) => names.get(s))).toEqual(["Languages: Custom"]);
-  // With no source, the name alone.
-  expect([...proficiencySectionNames(opened.map((s) => ({ ...s, sources: [] }))).values()]).toEqual(["Languages"]);
+  // With no source, the name alone: a copy of the tree in which the opened section has no source.
+  const parent = step.selections.find((s) => s.key === "tool-language-proficiencies")!;
+  const bare = { ...opened[0], name: "Extra Languages", sources: [] };
+  const copy = { ...parent, options: parent.options.map((o) => (o.selected ? { ...o, selections: [bare] } : o)) };
+  expect(proficiencySectionNames([copy]).get(bare)).toBe("Extra Languages");
 });
 
 /** The selections that each step shows, also the ones that a pick opens, as their template tags. */

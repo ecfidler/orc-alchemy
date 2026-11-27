@@ -78,9 +78,10 @@ export const levelOfKey = (key: string | undefined): string | null => key?.match
 
 /**
  * The heading of a section that names its sources: what it gives, the sources, and a class level when it has one:
- * "Skills: Fighter", "Expertise: Rogue 6", "Ability Score Improvement: Fighter 4".
+ * "Skills: Fighter", "Expertise: Rogue 6", "Ability Score Improvement: Fighter 4". Without a source, the name alone.
  */
-export const sourcedHeading = (what: string, sources: string[], level?: string | null) => `${what}: ${sources.join(", ")}${level ? ` ${level}` : ""}`;
+export const sourcedHeading = (what: string, sources: string[], level?: string | null) =>
+  sources.length === 0 ? what : `${what}: ${sources.join(", ")}${level ? ` ${level}` : ""}`;
 
 export interface BuilderStep {
   name: StepName;

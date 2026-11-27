@@ -74,7 +74,6 @@ const headingLevel = (selection: BuilderSelection) => (selection.actualPath.leng
 export function proficiencySectionName(selection: BuilderSelection): string {
   const group = groupOf(selection);
   const what = isExpertise(selection) ? "Expertise" : proficiencyKind(selection) !== null ? group : selection.name;
-  if (selection.sources.length === 0) return what;
   return sourcedHeading(what, selection.sources, isExpertise(selection) ? headingLevel(selection) : null);
 }
 
@@ -86,8 +85,9 @@ export function proficiencySectionName(selection: BuilderSelection): string {
  */
 export function proficiencySectionNames(selections: BuilderSelection[]): Map<BuilderSelection, string> {
   const ofStep = new Set(selections);
-  const opened = ({ name, sources }: BuilderSelection) => (sources.length > 0 ? sourcedHeading(name, sources) : name);
-  return new Map(treeNodes(selections, { picked: true }).map((node) => [node, ofStep.has(node) ? proficiencySectionName(node) : opened(node)]));
+  return new Map(
+    treeNodes(selections, { picked: true }).map((node) => [node, ofStep.has(node) ? proficiencySectionName(node) : sourcedHeading(node.name, node.sources)]),
+  );
 }
 
 // The names of the last template shape, by "{kind}:{key}".
