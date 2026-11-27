@@ -9,11 +9,20 @@ afterEach(cleanup);
 
 const FRUIT: ListItem<string>[] = ["Apple", "Banana", "Cherry", "Damson", "Elderberry", "Fig", "Grape"].map((label) => ({ value: label.toLowerCase(), label }));
 
-function Fruit({ start = [], search, pickedText }: { start?: string[]; search?: boolean; pickedText?: (n: number) => string }) {
+function Fruit({ start = [], search, pickedText, addFirst }: { start?: string[]; search?: boolean; pickedText?: (n: number) => string; addFirst?: boolean }) {
   const [value, setValue] = useState(start);
   return (
     <>
-      <Picker label="Add a fruit" title="Add fruit" options={FRUIT} value={value} onValueChange={setValue} search={search} pickedText={pickedText} />
+      <Picker
+        label="Add a fruit"
+        title="Add fruit"
+        options={FRUIT}
+        value={value}
+        onValueChange={setValue}
+        search={search}
+        pickedText={pickedText}
+        addFirst={addFirst}
+      />
       <span>Value: {value.join(",")}</span>
     </>
   );
@@ -104,6 +113,14 @@ test("after an X removes a token, the focus goes to the next X, then to the last
   expect(document.querySelector(".ui-tokens")?.children).toHaveLength(0);
 });
 
+test("with addFirst, after an X removes the last token, the focus goes to the add button before the tokens (ORC-371)", async () => {
+  render(<Fruit start={["apple"]} addFirst />);
+  const x = screen.getByRole("button", { name: "Remove Apple" });
+  x.focus();
+  fireEvent.click(x);
+  await waitFor(() => expect(document.activeElement).toBe(addButton()));
+});
+
 test("an AddButton with no count is a wide button with no description", () => {
   render(<AddButton label="Add a row" />);
   const button = screen.getByRole("button", { name: "Add a row" });
@@ -145,6 +162,18 @@ test("a locked option is a locked row and is not in the count; reserve keeps the
   fireEvent.click(addButton());
   const dialog = await screen.findByRole("dialog");
   expect(within(dialog).getByRole("button", { name: "Quince" }).getAttribute("aria-disabled")).toBe("true");
+});
+
+test("with addFirst the add button comes before the token line (ORC-371)", () => {
+  const options: ListItem<string>[] = [{ value: "a", label: "Apple" }];
+  const { container, unmount } = render(<Picker label="Add a fruit" options={options} value={["a"]} onValueChange={() => {}} reserve={2} addFirst />);
+  const picker = container.querySelector<HTMLElement>(".ui-picker")!;
+  expect([...picker.children].map((child) => child.className.split(" ")[1] ?? child.className)).toEqual(["ui-add-button", "ui-tokens"]);
+  unmount();
+  const plain = render(<Picker label="Add a fruit" options={options} value={["a"]} onValueChange={() => {}} />).container.querySelector<HTMLElement>(
+    ".ui-picker",
+  )!;
+  expect([...plain.children].map((child) => child.className.split(" ")[1] ?? child.className)).toEqual(["ui-tokens", "ui-add-button"]);
 });
 
 test("a picker with no reserve has no reserved place", () => {

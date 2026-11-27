@@ -361,12 +361,12 @@
     margin-inline: 0 2px;
   }
 
-  /* The picker: its tokens above its add button. */
+  /* The picker: its tokens above its add button, or below it with `addFirst`. */
   .ui-picker {
     display: grid;
     gap: 8px;
   }
-  /* A picker with `reserve`: its token line keeps the height of that many lines of tokens, also with no pick, so a pick does not move the add button. */
+  /* A picker with `reserve`: its token line keeps the height of that many lines of tokens, also with no pick, so a pick does not move what comes after it. */
   .ui-picker:where([data-reserve]) > .ui-tokens {
     display: flex;
     align-content: flex-start;

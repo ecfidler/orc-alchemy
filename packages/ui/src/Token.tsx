@@ -162,7 +162,8 @@ export function Token({
 /**
  * The tokens of a group on one line that wraps. When an X removes its
  * token, the focus goes to the X of the next token, or of the last one, or
- * to the first button after the tokens when none is left. When the X goes
+ * to the first button after the tokens when none is left, or else to the
+ * button right before them (a Picker with its add button first). When the X goes
  * and its token stays, the focus goes to the token's text button. Other
  * children, for example an add menu, sit at the end of the line.
  */
@@ -180,8 +181,9 @@ export function Tokens({ children, className }: { children?: ReactNode; classNam
   });
   const refocus = useRefocus(line, x, () => {
     const own = [...(line.current?.querySelectorAll<HTMLElement>("button") ?? [])].find((b) => !b.closest(".ui-token"));
-    const after = line.current?.nextElementSibling;
-    return own ?? (after?.matches("button") ? (after as HTMLElement) : after?.querySelector<HTMLElement>("button"));
+    const button = (next: Element | null | undefined) => (next?.matches("button") ? (next as HTMLElement) : next?.querySelector<HTMLElement>("button"));
+    const before = line.current?.previousElementSibling;
+    return own ?? button(line.current?.nextElementSibling) ?? (before?.matches("button") ? (before as HTMLElement) : undefined);
   });
   return (
     <div

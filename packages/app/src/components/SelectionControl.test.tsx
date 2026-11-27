@@ -86,6 +86,9 @@ test("a selection of 7 options or more and two picks has a picker with the picks
   await pickFromPicker(add, ["Perception", "Acrobatics"]);
   // The tokens are in the order of the options.
   expect(picksIn(section("Skills: Fighter"))).toEqual(["Acrobatics", "Perception"]);
+  // The add button is right under the heading, and the tokens are under it (ORC-371).
+  const firstToken = section("Skills: Fighter").querySelector(".ui-token")!;
+  expect(add.compareDocumentPosition(firstToken) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(Object.keys(built()["skill-profs"] ?? {}).sort()).toEqual(["acrobatics", "perception"]);
   expect(within(section("Skills: Fighter")).getByRole("heading").textContent).toBe("Skills: Fighter,Done");
   // At the maximum the add button is disabled but keeps the focus, with the reason (ORC-370).

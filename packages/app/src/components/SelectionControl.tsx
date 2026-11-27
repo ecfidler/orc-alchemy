@@ -179,10 +179,11 @@ const isFull = (selection: BuilderSelection, pending: ReadonlySet<string>) =>
   selection.max !== null && selection.selected.length + [...pending].filter((key) => !selection.selected.includes(key)).length >= selection.max;
 
 /**
- * The ui Picker for a selection of 7 options or more and more than one pick: the picks as tokens, and the add button
- * that opens the list. When the selection has its maximum, the add button is disabled with the reason "Remove a
- * choice first.", and in the list each option is locked with the same reason, as in the "Add spells" popup (ORC-370). The token line keeps the place of the lines that the most picks take, about 3 tokens on a
- * line, up to 3 lines, so the first picks do not move the add button or the page below.
+ * The ui Picker for a selection of 7 options or more and more than one pick: the add button that opens the list, right
+ * under the heading, then the picks as tokens (ORC-371). The token line keeps the place of the lines that the most
+ * picks take, about 3 tokens on a line, up to 3 lines, so the first picks do not move the page below. When the
+ * selection has its maximum, the add button is disabled with the reason "Remove a choice first.", and in the list
+ * each option is locked with the same reason, as in the "Add spells" popup (ORC-370).
  */
 function PickerControl({ selection, options, unavailable }: ControlProps) {
   const { select, deselect, dialog, pending } = usePick(selection);
@@ -211,6 +212,7 @@ function PickerControl({ selection, options, unavailable }: ControlProps) {
         }}
         search={hasSearch(options.length)}
         reserve={reserve}
+        addFirst
         blocked={full ? FULL_SELECTION : undefined}
       />
       {dialog}

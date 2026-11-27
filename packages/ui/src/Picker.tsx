@@ -94,8 +94,8 @@ export type PickerProps<T> = {
   pickedText?: (picked: number) => string;
   /**
    * The number of token lines that the picker keeps a place for, also with
-   * no pick, so that a pick does not move the add button or what is below
-   * the picker. A token line is 28px high. More tokens than fit still wrap
+   * no pick, so that a pick does not move what comes after the token line:
+   * the add button, or with `addFirst` what is below the picker. A token line is 28px high. More tokens than fit still wrap
    * to a new line.
    */
   reserve?: number;
@@ -105,6 +105,13 @@ export type PickerProps<T> = {
    * (AddButton `blocked`). The tokens and their X stay (ORC-370).
    */
   blocked?: string;
+  /**
+   * True: the add button comes first and the token line under it, so the
+   * button stays right under the heading of the picker and the reserved
+   * place of the tokens is below it (ORC-371). By default the tokens come
+   * first.
+   */
+  addFirst?: boolean;
   /** Layout classes. */
   className?: string;
 };
@@ -119,7 +126,7 @@ export type PickerProps<T> = {
  * For other uses, such as one slot that a caller fills, use ListModal and
  * Token directly.
  */
-export function Picker<T>({ label, title, options, value, onValueChange, search, pickedText, reserve, blocked, className }: PickerProps<T>) {
+export function Picker<T>({ label, title, options, value, onValueChange, search, pickedText, reserve, blocked, addFirst = false, className }: PickerProps<T>) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const has = (v: T) => value.some((picked) => Object.is(picked, v));
@@ -127,28 +134,32 @@ export function Picker<T>({ label, title, options, value, onValueChange, search,
   const picked = options.map((option, at) => ({ option, at })).filter(({ option }) => has(option.value));
   const left = options.filter((option) => !has(option.value));
   const lines = reserve !== undefined && reserve > 0 ? reserve : undefined;
+  const addButton = (
+    <AddButton
+      ref={button}
+      label={label}
+      remaining={left.filter((option) => option.unavailable === undefined).length}
+      blocked={blocked}
+      // A pick that is on its way is busy until it shows as a token. When the modal closes first, the add button shows it.
+      aria-busy={left.some((option) => option.busy) || undefined}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      onClick={() => setOpen(true)}
+    />
+  );
   return (
     <div
       className={className ? `ui-picker ${className}` : "ui-picker"}
       data-reserve={lines === undefined ? undefined : ""}
       style={lines === undefined ? undefined : ({ "--token-lines": lines } as CSSProperties)}
     >
+      {addFirst && addButton}
       <Tokens>
         {picked.map(({ option, at }) => (
           <Token key={at} label={option.label} busy={option.busy} onRemove={() => onValueChange(value.filter((v) => !Object.is(v, option.value)))} />
         ))}
       </Tokens>
-      <AddButton
-        ref={button}
-        label={label}
-        remaining={left.filter((option) => option.unavailable === undefined).length}
-        blocked={blocked}
-        // A pick that is on its way is busy until it shows as a token. When the modal closes first, the add button shows it.
-        aria-busy={left.some((option) => option.busy) || undefined}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-      />
+      {!addFirst && addButton}
       <ListModal
         open={open}
         onOpenChange={setOpen}

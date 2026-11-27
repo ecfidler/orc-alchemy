@@ -356,6 +356,10 @@ One rule gives the control of a selection.[^orc-332]
 * An option card shows only the name. It is a toggle, as today.
 * A picker and a list have a search field above 20 options, as in the
   homebrew forms.
+* In a picker, the add button is right under the heading of the
+  selection, and the tokens of the picks are under the button. The line
+  of the tokens keeps the place of the most picks, so a pick does not
+  move the page below.[^orc-371]
 * A picker whose selection has its maximum takes no more picks. Its add
   button is disabled but keeps the focus, and it shows "Remove a choice
   first." in place of the count, also as its description and tooltip.
@@ -1151,3 +1155,4 @@ one depends only on parts of the frame.
 [^orc-367]: Class step: the content of the class modal scrolls, and the Choose button stays in view, <https://linear.app/orc-alchemy/issue/ORC-367/class-step-the-content-of-the-class-modal-scrolls-and-the-choose>
 [^orc-368]: Replace the heading "Picked on other steps", <https://linear.app/orc-alchemy/issue/ORC-368/replace-the-heading-picked-on-other-steps>
 [^orc-370]: Proficiencies step: show that a selection is full before the user tries another pick, <https://linear.app/orc-alchemy/issue/ORC-370>
+[^orc-371]: Proficiencies step: less space between a selection heading and its control, <https://linear.app/orc-alchemy/issue/ORC-371>
