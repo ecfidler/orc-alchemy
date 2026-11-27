@@ -306,7 +306,7 @@ export function raceDetail(record: Record<string, unknown>, option: TemplateOpti
   add("Skills", [...names("skill", gives?.skills), ...raceChoices(option, "skill-profs").map(raceChoiceText)]);
   add("Tools", [...names("tool", gives?.tools), ...raceChoices(option, "tool-profs").map(raceChoiceText)]);
   add("Weapons", names("item", gives?.weapons));
-  // A spell choice, such as the cantrip of a High Elf, by the kind of its line in "Picked on other steps" (lineKind).
+  // A spell choice, such as the cantrip of a High Elf, by the kind of its line in "Also choose" (lineKind).
   const spellChoices = raceChoices(option, "spells");
   const isCantrip = (s: TemplateSelection) => /cantrip/i.test(`${s.key} ${s.name}`);
   add("Cantrip", spellChoices.filter(isCantrip).map(raceChoiceText));

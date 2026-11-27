@@ -78,7 +78,7 @@ test("after a pick the focus goes to Change; Change opens the list on the pick, 
   await expect(background(page).locator(".ui-list-panel")).toHaveCount(0);
   // The left mark of the step, and the lines to the other steps.
   await expect(background(page).getByRole("heading", { level: 3 })).toHaveText("Acolyte,Done");
-  const lines = background(page).getByRole("list", { name: "Picked on other steps" }).getByRole("button");
+  const lines = background(page).getByRole("list", { name: "Also choose" }).getByRole("button");
   expect(await lines.evaluateAll((buttons) => buttons.map((b) => b.getAttribute("aria-label")))).toEqual([
     "Languages, 2 left, Proficiencies",
     "Starting equipment, 2 left, Equipment",
@@ -96,7 +96,7 @@ test("after a pick the focus goes to Change; Change opens the list on the pick, 
   await pickIn(background(page), "Weaver");
   await expect(background(page).getByRole("heading", { level: 3 })).toHaveText(new RegExp(`^Weaver${VALE_PACK}`));
   await expect(change).toBeFocused();
-  // A line of "Picked on other steps" opens its step.
+  // A line of "Also choose" opens its step.
   await background(page).getByRole("button", { name: "Languages, 1 left, Proficiencies" }).click();
   await expect(page.getByRole("region", { name: "Builder" }).getByRole("heading", { level: 2 })).toHaveText("Proficiencies");
 });

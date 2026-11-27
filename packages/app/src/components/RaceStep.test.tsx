@@ -72,7 +72,7 @@ test("Half-Elf: no Choices, three lines to other steps, and a line opens its ste
   open();
   await pickIn(race(), "Half-Elf");
   expect(within(race()).queryByRole("region", { name: "Choices" })).toBeNull();
-  const lines = within(within(race()).getByRole("list", { name: "Picked on other steps" })).getAllByRole("button");
+  const lines = within(within(race()).getByRole("list", { name: "Also choose" })).getAllByRole("button");
   expect(lines.map((b) => b.getAttribute("aria-label"))).toEqual([
     "Ability scores, 2 left, Abilities",
     "Skills, 2 left, Proficiencies",

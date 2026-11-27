@@ -1,6 +1,6 @@
 // The list with a detail panel and the Background step (ORC-347, docs/design/character-builder.md "The Background and
 // Race steps"): the panel shows a background and picks nothing, Choose picks it, the block takes the place of the list
-// with the focus on Change, Change and Cancel, About, "Picked on other steps", and the search of a long list.
+// with the focus on Change, Change and Cancel, About, "Also choose", and the search of a long list.
 import "fake-indexeddb/auto";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
@@ -60,9 +60,9 @@ test("Choose picks the background: the block takes the place of the list, and th
   expect(screen.queryByRole("list", { name: "Customize Background" })).toBeNull();
 });
 
-test("Picked on other steps: a line for the languages and one for the equipment, each opens its step", () => {
+test("Also choose: a line for the languages and one for the equipment, each opens its step", () => {
   open([[["background"], "acolyte"]]);
-  const lines = within(background()).getByRole("list", { name: "Picked on other steps" });
+  const lines = within(background()).getByRole("list", { name: "Also choose" });
   expect(
     within(lines)
       .getAllByRole("button")

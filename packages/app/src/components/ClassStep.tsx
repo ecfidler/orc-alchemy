@@ -2,7 +2,7 @@
 // class block" and "A second class"). A character with no class picks its first class from the class cards: a click on
 // a card opens the class in a modal, and "Choose {class}" picks it. After the pick, each class is a class block: the
 // header has the icon, the name, the level control, About and Change, and with two or more classes Remove and a button
-// that closes or opens the block. The body has Choices (ORC-350), Hit points and "Picked on other steps". Change opens
+// that closes or opens the block. The body has Choices (ORC-350), Hit points and "Also choose". Change opens
 // the cards in a dialog, and the modal of a card there has "Change to {class}". "Add a class" below the blocks opens the
 // cards of the other classes, and the modal has "Add {class}". A change of class, a lower level and Remove ask first
 // when they remove picks (useChangeQuestion, ORC-344).
@@ -266,7 +266,7 @@ function AddClassCards({ options, onAdd }: { options: BuilderOption[]; onAdd: (k
 }
 
 interface ClassBlockProps {
-  /** The class selection, for the lines of "Picked on other steps". */
+  /** The class selection, for the lines of "Also choose". */
   selection: BuilderSelection;
   option: BuilderOption;
   level: number;
@@ -288,7 +288,7 @@ interface ClassBlockProps {
 /**
  * A class block (spec, "The class block"): the header has the icon, the name (an h3), the level control, and the ghost
  * buttons About and Change; with two or more classes also Remove and a button that closes or opens the block. A closed
- * block shows its left mark after the name. The body has Choices, Hit points and "Picked on other steps". The parts of
+ * block shows its left mark after the name. The body has Choices, Hit points and "Also choose". The parts of
  * the header have fixed places, so a change of level or of class does not move it. The block keeps its closed state
  * while the step is open; with one class it is open, as it has no button to open it.
  */
@@ -348,7 +348,7 @@ function ClassBlock({ selection, option, level, canRaise, others, many, changeBu
           <ClassChoices option={option} />
         </BlockSection>
         {hitPoints}
-        <BlockSection title="Picked on other steps">
+        <BlockSection title="Also choose">
           <ClassLines selection={selection} classKey={option.key} />
         </BlockSection>
       </BlockFrame>
@@ -375,7 +375,7 @@ function ClassBlock({ selection, option, level, canRaise, others, many, changeBu
   );
 }
 
-/** "Picked on other steps" of one class (classStepLines). */
+/** "Also choose" of one class (classStepLines). */
 function ClassLines({ selection, classKey }: { selection: BuilderSelection; classKey: string }) {
   const { steps } = useStepFrame();
   const lines = useMemo(() => classStepLines(selection, steps, classKey), [selection, steps, classKey]);

@@ -1,5 +1,5 @@
 // The block of the main pick of the Background step (ORC-347, docs/design/character-builder.md "After the pick"): the
-// lines of "Picked on other steps", and the left mark of the step.
+// lines of "Also choose", and the left mark of the step.
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderSelection, builderSteps } from "./builder.ts";
 import { buildTemplate, engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";

@@ -86,7 +86,7 @@ export function blockMark(option: BuilderOption): number {
 }
 
 /**
- * The lines of "Picked on other steps" of the class `optionKey` of the class selection: the kinds that the class gives
+ * The lines of "Also choose" of the class `optionKey` of the class selection: the kinds that the class gives
  * on another step, such as Skills, Expertise, Tools, Spells and Starting equipment. The points or the feat of an "Ability
  * Score Improvement or Feat" row are not lines: the row has its own line to that step.
  */

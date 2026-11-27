@@ -252,8 +252,8 @@ test("a character with two classes has a block for each, and Remove of the first
   }
   expect(levelField("Fighter").value).toBe("3");
   expect(levelField("Wizard").value).toBe("2");
-  // The body of each block has Choices, Hit points and Picked on other steps.
-  for (const name of ["Choices", "Hit points", "Picked on other steps"])
+  // The body of each block has Choices, Hit points and Also choose.
+  for (const name of ["Choices", "Hit points", "Also choose"])
     expect(within(block("Wizard")).getByRole("region", { name: new RegExp(`^${name}`) })).toBeTruthy();
 
   // Removing the first class removes the picks of the fighter, and the engine returns the wizard to level 1.
@@ -311,7 +311,7 @@ test("after Remove of a class, the focus goes to the Change button of the block 
   await waitFor(() => expect(hitPointsTotal("Wizard")).toBe(built()["max-hit-points"]));
 });
 
-// ORC-351: the section Hit points, "Picked on other steps", "Add a class", Remove and the button that closes a block.
+// ORC-351: the section Hit points, "Also choose", "Add a class", Remove and the button that closes a block.
 
 const WIZARD_2 = ["class", "wizard", "levels", "level-2", "hit-points"];
 const stored = (path: string[]) => storedHitPoints(useCharacter.getState().entity!, path);
@@ -432,10 +432,10 @@ test("a new level gets the average with the method Average, and an empty field, 
   expect(stored(["class", "fighter", "levels", "level-4", "hit-points"])).toBeNull();
 });
 
-test("Picked on other steps: a line for each kind that the class gives, with the picks or the mark, opens its step", async () => {
+test("Also choose: a line for each kind that the class gives, with the picks or the mark, opens its step", async () => {
   open(fixture("fighter-3-wizard-2"));
   const lines = (name: string) =>
-    within(within(block(name)).getByRole("list", { name: "Picked on other steps" }))
+    within(within(block(name)).getByRole("list", { name: "Also choose" }))
       .getAllByRole("button")
       .map((line) => line.getAttribute("aria-label"));
   expect(lines("Fighter")).toEqual([

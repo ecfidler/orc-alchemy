@@ -159,7 +159,7 @@ test("the left mark of a block counts its Choices and its hit points left", () =
   expect(blockMark(build(entity).option("fighter"))).toBe(0);
 });
 
-test("the lines of Picked on other steps of each class: only the selections under that class", () => {
+test("the lines of Also choose of each class: only the selections under that class", () => {
   const { steps, selection } = build(fixture());
   const kinds = (key: string) => classStepLines(selection, steps, key).map((line) => `${line.kind}: ${line.picks.join(", ")} (${line.step})`);
   expect(kinds("fighter")).toEqual([
