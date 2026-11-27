@@ -866,6 +866,9 @@ show these selections. They show a line in "Picked on other steps".
   name. Two classes are in the order of the character, and the sections
   of one class are in the order of the levels. An Expertise section of a
   class level has the level: "Expertise: Rogue 6".[^orc-346]
+* A section that a pick opens is after the section of the pick. Its
+  heading has its own name, then the source: the "Two Skills" of
+  "Expertise: Rogue" opens "Skill Expertise: Rogue".[^orc-366]
 * The group heading is an `<h3>`, and the section headings are
   `<h4>`.[^orc-346]
 * The tokens of "Already has" are in the order of the names. The engine
@@ -1112,3 +1115,4 @@ one depends only on parts of the frame.
 [^orc-354]: The question before a change removes picks: the picks in a top-level selection stay, <https://linear.app/orc-alchemy/issue/ORC-354/the-question-before-a-change-removes-picks-the-picks-in-a-top-level>
 [^orc-355]: The race panel shows the traits that the engine gives, <https://linear.app/orc-alchemy/issue/ORC-355>
 [^orc-357]: Spells step: an "Add spells" popup like the Spells panel of the sheet, <https://linear.app/orc-alchemy/issue/ORC-357>
+[^orc-366]: Proficiencies step: the section that an Expertise pick opens names its source, <https://linear.app/orc-alchemy/issue/ORC-366>

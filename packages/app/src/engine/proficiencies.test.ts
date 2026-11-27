@@ -46,14 +46,14 @@ test("a rogue has its skills and then its Expertise in the Skills group, and no 
   expect(shown(build(rogue(6)))).toEqual([{ group: "Skills", alreadyHas: [], sections: ["Skills: Rogue", "Expertise: Rogue", "Expertise: Rogue 6"] }]);
 });
 
-test("the Expertise of a rogue opens its choice of skills as a section after it, with its own name", () => {
+test("the Expertise of a rogue opens its choice of skills as a section after it, with its own name and its source", () => {
   let entity = rogue();
   entity = select(entity, ["class", "rogue", "expertise"], "two-skills");
   const { step, names } = build(entity);
   const [skills, expertise] = proficiencyGroups(step.selections, { fixed: [], tops: [], classes: ["rogue"], names: new Map() })[0].sections;
   expect([names.get(skills), names.get(expertise)]).toEqual(["Skills: Rogue", "Expertise: Rogue"]);
   const opened = expertise.options.find((o) => o.selected)!.selections;
-  expect(opened.map((s) => names.get(s))).toEqual(["Skill Expertise"]);
+  expect(opened.map((s) => names.get(s))).toEqual(["Skill Expertise: Rogue"]);
 });
 
 test("a half-elf acolyte has one merged Languages section that names each source, and what it already has", () => {
@@ -134,6 +134,19 @@ test("a selection that gives no single kind keeps its own name before its source
   const tools = custom.step.selections.find((s) => s.key === "tool-language-proficiencies")!;
   expect(proficiencySectionName(tools)).toBe("Tool / Language Proficiencies: Custom");
   expect(shown(custom).map((g) => g.group)).toEqual(["Skills", "Tools"]);
+});
+
+test("a section that a pick opens names its source after its own name, also when no other section has its name (ORC-366)", () => {
+  const entity = select(
+    select(engine().emptyCharacter() as StrictEntity, ["background"], "custom"),
+    ["background", "custom", "tool-language-proficiencies"],
+    "two-languages",
+  );
+  const { step, names } = build(entity);
+  const opened = step.selections.find((s) => s.key === "tool-language-proficiencies")!.options.find((o) => o.selected)!.selections;
+  expect(opened.map((s) => names.get(s))).toEqual(["Languages: Custom"]);
+  // With no source, the name alone.
+  expect([...proficiencySectionNames(opened.map((s) => ({ ...s, sources: [] }))).values()]).toEqual(["Languages"]);
 });
 
 /** The selections that each step shows, also the ones that a pick opens, as their template tags. */

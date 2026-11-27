@@ -4,7 +4,7 @@
 // group, with what the character has from fixed sources.
 
 import type { TemplateSelection } from "@pubdoor/dmv";
-import { type BuilderSelection, levelOfKey, sourcedHeading } from "./builder.ts";
+import { type BuilderSelection, levelOfKey, sourcedHeading, treeNodes } from "./builder.ts";
 import type { Built2014, Content, StrictEntity } from "./engine.ts";
 import { withoutOption } from "./reconcile.ts";
 import {
@@ -15,7 +15,6 @@ import {
   proficiencyIds,
   proficiencyKind,
   proficiencySources,
-  sectionNames,
   type TopSource,
 } from "./selection-control.ts";
 import { keyToName, SKILLS } from "./sheet-text.ts";
@@ -80,13 +79,15 @@ export function proficiencySectionName(selection: BuilderSelection): string {
 }
 
 /**
- * The heading name of each section of the step: the selections of the step have proficiencySectionName, and the
- * selections that their picks open have the names of sectionNames.
+ * The heading name of each section of the step. Each section names its sources, also when no other section has its
+ * name (spec, "The Proficiencies step"). The selections of the step have proficiencySectionName. A selection that a
+ * pick opens keeps its own name before the sources, such as the "Skill Expertise: Rogue" that the "Two Skills" of
+ * "Expertise: Rogue" opens: the name of what it gives is the heading of the section that opens it.
  */
 export function proficiencySectionNames(selections: BuilderSelection[]): Map<BuilderSelection, string> {
-  const names = sectionNames(selections);
-  for (const selection of selections) names.set(selection, proficiencySectionName(selection));
-  return names;
+  const ofStep = new Set(selections);
+  const opened = ({ name, sources }: BuilderSelection) => (sources.length > 0 ? sourcedHeading(name, sources) : name);
+  return new Map(treeNodes(selections, { picked: true }).map((node) => [node, ofStep.has(node) ? proficiencySectionName(node) : opened(node)]));
 }
 
 // The names of the last template shape, by "{kind}:{key}".

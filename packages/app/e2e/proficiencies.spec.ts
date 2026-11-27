@@ -32,8 +32,8 @@ test("a rogue has its skills and then its Expertise in the Skills group", async 
   await expect(group(page, "Languages")).toHaveCount(0);
   await expect(group(page, "Tools")).toHaveCount(0);
   await pickIn(section(page, "Expertise: Rogue"), "Two Skills");
-  await expect(section(page, "Skill Expertise")).toBeVisible();
-  expect(await outline(page)).toEqual(["H3 Skills", "H4 Skills: Rogue", "H4 Expertise: Rogue", "H4 Skill Expertise"]);
+  await expect(section(page, "Skill Expertise: Rogue")).toBeVisible();
+  expect(await outline(page)).toEqual(["H3 Skills", "H4 Skills: Rogue", "H4 Expertise: Rogue", "H4 Skill Expertise: Rogue"]);
 });
 
 test("a half-elf acolyte has one Languages section that names each source, what it already has, and no Tools group", async ({ page }) => {
