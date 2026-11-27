@@ -186,6 +186,7 @@ const featureNames = (built: Built2014) => [...built.traits, ...built.actions, .
  *
  * A name is once in a level. A trial character that the engine refuses gives the rows up to that level.
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
 export function* classFeatureSteps(input: ClassInput, key: string): Generator<void, ClassFeatureRow[]> {
   const { engine: e, content } = input;
   const option = templateClass(key, content);

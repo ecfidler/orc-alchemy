@@ -16,7 +16,7 @@ import { magicInitiateHook } from "./magic-initiate.ts";
 import { savingThrowAttackHook } from "./saving-throw-attack.ts";
 import { weaponMasteryHook } from "./weapon-mastery.ts";
 
-export { defineHook, type Hook, type HookCall, type HookRegistry, registry } from "./hook.ts";
+export { defineHook, type Hook, type HookRegistry, registry } from "./hook.ts";
 
 /** The hooks of the engine. */
 export const HOOKS: HookRegistry = registry([

@@ -33,7 +33,6 @@ jobs:
         # Pull requests from forks get no secrets, so they get no preview.
         runs-on: ubuntu-latest
         timeout-minutes: 5
-        runs-on: ubuntu-latest
         outputs:
             ready: ${{ steps.secrets.outputs.ready }}
         steps:

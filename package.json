@@ -12,12 +12,14 @@
     "test:scripts": "bun test scripts/",
     "budgets": "bun scripts/budgets.ts",
     "lint": "biome ci .",
+    "knip": "knip --no-progress",
     "format": "biome check --write .",
     "prepare": "husky || true"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.7",
     "husky": "9.1.7",
+    "knip": "6.45.1",
     "typescript": "^5.0.0"
   }
 }

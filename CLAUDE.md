@@ -47,6 +47,7 @@ tsconfig.base.json       shared compiler options; each package extends it
 docs/                    OKF bundle: plan, reports, kb, conventions
 docs/plan/               the plan
 biome.json               formatter and linter config (ORC-213)
+knip.json                the check for unused files, exports and dependencies (ORC-364)
 PRODUCT.md               product record that the Impeccable skill reads (ORC-260)
 DESIGN.md                design tokens and rules for the Impeccable skill, derived from docs/design/theme.md (ORC-260)
 scripts/okf-check.ts     the docs bundle check
@@ -62,7 +63,8 @@ tools/exporter-bookmarklet/  M5
 
 Run `bun install` once from the root. Each package owns its dependencies
 and scripts. From the root, `bun run format` formats the code and sorts
-the imports, and `bun run lint` is the check that CI runs. `bun install`
+the imports, and `bun run lint` is the check that CI runs. `bun run knip`
+finds unused files, exports and dependencies. CI runs it too. `bun install`
 also installs a pre-commit hook (`.husky/pre-commit`) that runs Biome on
 the staged files and stages its fixes. The same hook applies the size and
 image rules of `budgets.json`, and the commit-msg hook (`.husky/commit-msg`)

@@ -252,6 +252,7 @@ const pathKey = (path: string[]) => path.join("/");
  * The question is null when no pick goes. `apply` removes the picks that the engine keeps from the entity of the
  * plan, and then makes the change.
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ORC-364, over the limit before the rule came. Split it when you change it.
 export function planChange(input: ChangeInput, change: PickChange): ChangePlan {
   const { engine: e, entity, content } = input;
   const steps = stepsOf(input);
