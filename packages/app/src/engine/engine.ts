@@ -37,8 +37,39 @@ let loaded: Engine | undefined;
 
 /** Loads the engine chunk once; later calls return the same promise. */
 export function loadEngine(): Promise<Engine> {
-  loading ??= import("@pubdoor/dmv").then((mod) => (loaded = mod));
+  loading ??= import("@pubdoor/dmv").then((mod) => (loaded = { ...mod, evaluate: keptEvaluate(mod.evaluate) }));
   return loading;
+}
+
+/** The evaluations kept for each content. A pick asks for about four characters, so eight are enough. */
+const EVALUATIONS_KEPT = 8;
+
+/**
+ * The engine's evaluate, with the last few results kept for each options object, by the JSON text of the entity
+ * (ORC-369). The engine keeps only its last result. A pick on the Proficiencies step builds the character, the
+ * character without its picks, and that character without each class, race and background, so each build pushed out
+ * the one before it, and the next render built it again: about 30 ms for each. The JSON text of an entity takes less
+ * than 1 ms. The result is shared, so a caller must not change it. An entity that does not build throws on each call,
+ * as the engine does.
+ */
+function keptEvaluate(evaluate: Engine["evaluate"]): Engine["evaluate"] {
+  const byOptions = new WeakMap<object, Map<string, Evaluation>>();
+  const noOptions = new Map<string, Evaluation>();
+  return (entity, options) => {
+    let kept = options === undefined ? noOptions : byOptions.get(options);
+    if (kept === undefined) {
+      kept = new Map();
+      byOptions.set(options!, kept);
+    }
+    const key = typeof entity === "string" ? entity : JSON.stringify(entity);
+    const hit = kept.get(key);
+    // To the end of the map, so the oldest result goes first.
+    kept.delete(key);
+    const result = hit ?? evaluate(entity, options);
+    kept.set(key, result);
+    if (kept.size > EVALUATIONS_KEPT) kept.delete(kept.keys().next().value as string);
+    return result;
+  };
 }
 
 /** The loaded engine. Throws before loadEngine resolves; EngineGate guarantees it below the gate. */

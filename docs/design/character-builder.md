@@ -218,6 +218,28 @@ engine gets the change.
 * The "Custom" option of the engine does not show. If an imported
   character has it, it shows, with its lists in pickers.
 
+## A pick that is on its way
+
+A pick must show in less than 100 ms on a desktop (ORC-369). Some picks
+can take more time on a slow device, so the button of the pick shows
+the pick at once.
+
+* The button that the user clicked shows the pressed look and is
+  `aria-busy` at once: an option card, a row of a list or a picker, the X
+  of a token, or the Choose or Change button of a list that closes on
+  the pick. The pressed look is the solid fill and a move of 1px down. It
+  moves no other part of the page.
+* The builder makes the pick after the next paint. The pick and the end
+  of the busy state show in one render.
+* A second click on the same option while its pick is on its way does
+  nothing.
+* A control with no busy look picks at once: the box of a spell and the
+  Alignment select.
+* A pick that asks first when it removes picks (the race, the subrace,
+  the background, the subclass and a class choice of one pick) does not
+  wait for a paint and has no busy look. It plans the change first. A
+  busy look for these picks and for the spell boxes is ORC-376.
+
 # The page
 
 From the top, the builder page has the action row, the step rail, and

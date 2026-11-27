@@ -160,6 +160,16 @@
     color: var(--paper);
     background: var(--ink);
   }
+  /* A row whose pick is on its way (aria-busy, ORC-369): the panel fill and the pressed look of the mark, until the pick shows. */
+  .ui-list-row:where([aria-busy="true"]) {
+    background: var(--panel);
+    cursor: progress;
+  }
+  .ui-list-row:where([aria-busy="true"]) .ui-list-add {
+    color: var(--paper);
+    background: var(--ink);
+    transform: translateY(1px);
+  }
   .ui-list-row:focus-visible {
     /* Inside the row: the list scrolls and clips an outline outside the row. */
     outline-offset: -3px;

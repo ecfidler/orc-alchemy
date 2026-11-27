@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pickOption } from "@orc-alchemy/ui/testing";
+import { notBusy, pickOption } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
@@ -44,13 +44,14 @@ const labelled = (label: string) => document.querySelector<HTMLElement>(`[aria-l
 const type = (label: string, value: string) => fireEvent.change(labelled(label), { target: { value } });
 const choose = (label: string, name: string) => pickOption(labelled(label), name);
 
-test("a starting equipment selection has the control of its rule: option cards to 6 options, then a Choose button (ORC-352)", () => {
+test("a starting equipment selection has the control of its rule: option cards to 6 options, then a Choose button (ORC-352)", async () => {
   open(engine().emptyCharacter());
   // The barbarian's martial weapon: 3 options, so option cards, with the source in the name and the left mark.
   const weapon = region("Starting Equipment: Martial Weapon");
   expect(weapon.getByRole("heading").textContent).toBe("Starting Equipment: Martial Weapon,1 left");
   expect(weapon.getAllByRole("button").map((b) => b.textContent)).toEqual(["<none>", "Any Martial Weapon", "Greataxe"]);
   fireEvent.click(weapon.getByRole("button", { name: "Any Martial Weapon" }));
+  await notBusy();
   // The pick opens a flat section below it: one pick of more than 6 options, a Choose button.
   const any = screen.getAllByRole("region", { name: /^Starting Equipment: Martial Weapon/ })[1];
   expect(

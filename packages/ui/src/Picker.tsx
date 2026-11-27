@@ -20,6 +20,7 @@ export type AddButtonProps = {
   /** "dialog" when the button opens a ListModal. */
   "aria-haspopup"?: "dialog";
   "aria-expanded"?: boolean;
+  "aria-busy"?: boolean;
   disabled?: boolean;
   /** Layout classes, as on Button. */
   className?: string;
@@ -116,13 +117,15 @@ export function Picker<T>({ label, title, options, value, onValueChange, search,
     >
       <Tokens>
         {picked.map(({ option, at }) => (
-          <Token key={at} label={option.label} onRemove={() => onValueChange(value.filter((v) => !Object.is(v, option.value)))} />
+          <Token key={at} label={option.label} busy={option.busy} onRemove={() => onValueChange(value.filter((v) => !Object.is(v, option.value)))} />
         ))}
       </Tokens>
       <AddButton
         ref={button}
         label={label}
         remaining={left.filter((option) => option.unavailable === undefined).length}
+        // A pick that is on its way is busy until it shows as a token. When the modal closes first, the add button shows it.
+        aria-busy={left.some((option) => option.busy) || undefined}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}

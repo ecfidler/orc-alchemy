@@ -18,6 +18,17 @@ export async function answerConfirmDialog(answer: string): Promise<string> {
   return question;
 }
 
+/**
+ * Waits until no element of the page is `aria-busy`: the work that a click
+ * started, such as a pick that the app makes after the next paint, has
+ * shown. pickFromPicker and removeToken wait for it at their end.
+ */
+export async function notBusy(): Promise<void> {
+  await waitFor(() => {
+    if (document.querySelector('[aria-busy="true"]')) throw new Error("An element is still busy.");
+  });
+}
+
 /** The option, menu item or radio item named `name` in `list`, once it shows. */
 async function findChoice(list: HTMLElement, name: string | RegExp): Promise<HTMLElement> {
   return waitFor(() => {
@@ -105,6 +116,7 @@ export async function pickFromPicker(button: HTMLElement, names: Names): Promise
   await waitFor(() => {
     if (screen.queryByRole("dialog")) throw new Error("The list modal is still open.");
   });
+  await notBusy();
 }
 
 /** Clicks the X of the token named `name` in `scope` (its button "Remove {name}"), and waits for the token to go. */
@@ -114,4 +126,5 @@ export async function removeToken(scope: HTMLElement, name: string): Promise<voi
   await waitFor(() => {
     if (within(scope).queryByRole("button", { name: `Remove ${name}` })) throw new Error(`The token ${name} is still there.`);
   });
+  await notBusy();
 }

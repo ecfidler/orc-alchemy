@@ -22,6 +22,12 @@ export type ListItem<T> = {
    * text describes its button.
    */
   unavailable?: string;
+  /**
+   * The row's pick is on its way: the app does the work after the next paint. The row is `aria-busy` and has the
+   * pressed look until the owner takes it away, in the render that shows the pick. In a Picker, a picked option's
+   * token X is busy in the same way.
+   */
+  busy?: boolean;
 };
 
 type ListModalBase<T> = {
@@ -193,6 +199,7 @@ function ListBody<T>({
                       <ListRow
                         data-example={item.example ? "" : undefined}
                         data-unavailable={locked ? "" : undefined}
+                        aria-busy={item.busy || undefined}
                         aria-label={item.label}
                         aria-describedby={described || undefined}
                         disabled={locked}

@@ -2,7 +2,7 @@
 // selection" and "A pick that the character cannot take"). e2e/builder.spec.ts measures in a browser that a pick in a
 // picker or in a list does not move the page.
 import "fake-indexeddb/auto";
-import { pickFromPicker, removeToken } from "@orc-alchemy/ui/testing";
+import { notBusy, pickFromPicker, removeToken } from "@orc-alchemy/ui/testing";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
@@ -24,7 +24,7 @@ function open(step: string, picks: [path: string[], key: string][] = []) {
 const built = () => engine().evaluate(useCharacter.getState().entity!).built;
 const toast = () => document.querySelector<HTMLElement>("[data-toast-status]")!;
 
-test("a selection of 6 options has option cards that show only the name", () => {
+test("a selection of 6 options has option cards that show only the name", async () => {
   open("Proficiencies");
   // The barbarian picks 2 of 6 skills.
   const skills = section("Skills: Barbarian");
@@ -39,6 +39,7 @@ test("a selection of 6 options has option cards that show only the name", () => 
   ]);
   expect(cards.every((card) => card.hasAttribute("aria-pressed"))).toBe(true);
   fireEvent.click(within(skills).getByRole("button", { name: "Athletics" }));
+  await notBusy();
   expect(within(section("Skills: Barbarian")).getByRole("button", { name: "Athletics" }).getAttribute("aria-pressed")).toBe("true");
   expect(Object.keys(built()["skill-profs"] ?? {})).toEqual(["athletics"]);
 });
@@ -109,6 +110,7 @@ test("an option that gives what the character has is not available: a locked row
   fireEvent.click(within(dialog).getByRole("button", { name: "Perception" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Done" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await notBusy();
   expect(picksIn(section("Skills: Half-Elf"))).toEqual(["Perception"]);
 
   // The barbarian's cards: Perception is the half-elf's now. Its card is disabled, with the reason below the name.
@@ -141,10 +143,13 @@ test("an option with a prerequisite that the character does not meet shows the r
   expect(grappler.querySelector("[data-reason]")?.textContent).toBe("It needs STR 13 or higher.");
 });
 
-test("a refusal of the engine shows in the status toast, not in the page", () => {
+test("a refusal of the engine shows in the status toast, not in the page", async () => {
   open("Proficiencies");
   const skills = section("Skills: Barbarian");
-  for (const skill of ["Athletics", "Intimidation", "Survival"]) fireEvent.click(within(skills).getByRole("button", { name: skill }));
+  for (const skill of ["Athletics", "Intimidation", "Survival"]) {
+    fireEvent.click(within(skills).getByRole("button", { name: skill }));
+    await notBusy();
+  }
   expect([toast().getAttribute("role"), toast().textContent]).toEqual(["status", expect.stringMatching(/no selections remain/)]);
   expect(screen.queryByRole("alert")).toBeNull();
 });
@@ -178,4 +183,42 @@ test("the selections that a pick opens are flat sections in Choices, each with i
   // Now the Dwarf has its one subrace: it is a fact of the panel, and the block has no Choices.
   expect(screen.queryByRole("region", { name: /^Subrace/ })).toBeNull();
   expect(within(section("Race")).getAllByRole("heading")[0].textContent).toBe("Dwarf,Done");
+});
+
+test("a pick shows that its button is busy at once, and happens after the next paint (ORC-369)", async () => {
+  open("Proficiencies", [[["race"], "half-elf"]]);
+  // An option card: busy and not yet pressed, and the engine has no pick yet.
+  const athletics = within(section("Skills: Barbarian")).getByRole("button", { name: "Athletics" });
+  fireEvent.click(athletics);
+  expect([athletics.getAttribute("aria-busy"), athletics.getAttribute("aria-pressed")]).toEqual(["true", "false"]);
+  expect(built()["skill-profs"]?.athletics).toBeUndefined();
+  // A second click while the pick is on its way picks once.
+  fireEvent.click(athletics);
+  await notBusy();
+  expect([athletics.hasAttribute("aria-busy"), athletics.getAttribute("aria-pressed")]).toEqual([false, "true"]);
+  expect(Object.keys(built()["skill-profs"] ?? {})).toEqual(["athletics"]);
+
+  // A row of a picker: busy until the pick shows, then it leaves the list.
+  fireEvent.click(within(section("Skills: Half-Elf")).getByRole("button", { name: "Add a skill" }));
+  const dialog = await screen.findByRole("dialog", { name: "Skills: Half-Elf" });
+  const arcana = within(dialog).getByRole("button", { name: "Arcana" });
+  fireEvent.click(arcana);
+  expect(arcana.getAttribute("aria-busy")).toBe("true");
+  expect(
+    within(dialog)
+      .getAllByRole("button")
+      .filter((button) => button.getAttribute("aria-busy") === "true"),
+  ).toEqual([arcana]);
+  await notBusy();
+  expect(within(dialog).queryByRole("button", { name: "Arcana" })).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(picksIn(section("Skills: Half-Elf"))).toEqual(["Arcana"]);
+
+  // The X of a token is busy until the token goes.
+  const x = within(section("Skills: Half-Elf")).getByRole("button", { name: "Remove Arcana" });
+  fireEvent.click(x);
+  expect(x.getAttribute("aria-busy")).toBe("true");
+  await notBusy();
+  expect(picksIn(section("Skills: Half-Elf"))).toEqual([]);
 });

@@ -13,7 +13,7 @@ import { controlKind, hasSearch, shownOptions, unavailableOptions } from "../eng
 import { useOpenCharacter } from "../state/character.ts";
 import { useSectionName, useStepFrame } from "./builder-context.tsx";
 import { useChangeQuestion } from "./ChangeQuestion.tsx";
-import { useMutation } from "./use-mutation.ts";
+import { usePendingMutation } from "./use-mutation.ts";
 
 /** The reason of each option of the selection that the character cannot take, by option key. */
 export function useUnavailable(selection: BuilderSelection): Map<string, string> {
@@ -66,34 +66,40 @@ function asksFirst(selection: BuilderSelection): boolean {
 /**
  * Selects the option, or deselects it from a selection that takes more than one pick. A pick of the race, a subrace or
  * the background asks first when it removes picks; `dialog` is the element of that question, for the control to render.
- * `finalFocus` gets the focus when the question closes; without it, the focus goes back to where it was.
+ * `finalFocus` gets the focus when the question closes; without it, the focus goes back to where it was. A pick
+ * happens after the next paint (usePendingMutation): until it shows, `pending` has the key of its option, so the
+ * control shows that button as busy (docs/design/character-builder.md, "A pick that is on its way"). With `defer`
+ * false, a pick happens at once, for a control with no busy look: the box of a spell and the Select of Alignment.
  */
 export function usePick(
   selection: BuilderSelection,
   finalFocus?: RefObject<HTMLElement | null>,
+  defer = true,
 ): {
   select: (key: string) => void;
   deselect: (key: string) => void;
   replace: (old: string | undefined, key: string) => void;
   dialog: ReactNode;
+  pending: ReadonlySet<string>;
 } {
-  const run = useMutation();
+  const { pending, later } = usePendingMutation(defer);
   const [change, dialog] = useChangeQuestion();
   const { actualPath } = selection;
   const asks = asksFirst(selection);
   const select = (key: string) =>
-    asks ? void change({ kind: "pick", path: actualPath, to: key }, finalFocus) : run((e, entity, opts) => e.select(entity, actualPath, key, opts));
+    asks ? void change({ kind: "pick", path: actualPath, to: key }, finalFocus) : later(key, (e, entity, opts) => e.select(entity, actualPath, key, opts));
   return {
     select,
-    deselect: (key: string) => run((e, entity, opts) => e.deselect(entity, actualPath, key, opts)),
+    deselect: (key: string) => later(key, (e, entity, opts) => e.deselect(entity, actualPath, key, opts)),
     /** The pick of a selection of one pick in the place of the old one. */
     replace: (old: string | undefined, key: string) =>
       asks
         ? select(key)
-        : run((e, entity, opts) =>
+        : later(key, (e, entity, opts) =>
             e.select(old !== undefined && selection.multiselect ? e.deselect(entity, actualPath, old, opts) : entity, actualPath, key, opts),
           ),
     dialog,
+    pending,
   };
 }
 
@@ -105,7 +111,7 @@ export function usePick(
  */
 function OptionCards({ selection, options, unavailable }: ControlProps) {
   const id = useId();
-  const { select, deselect, dialog } = usePick(selection);
+  const { select, deselect, dialog, pending } = usePick(selection);
   // A reason can come and go in this selection, so each card keeps its line.
   const reasonLine = selection.options.some((option) => option.prereqs > 0);
 
@@ -131,6 +137,7 @@ function OptionCards({ selection, options, unavailable }: ControlProps) {
               key={option.key}
               value={option.key}
               disabled={reason !== undefined}
+              aria-busy={pending.has(option.key) || undefined}
               aria-label={reasonLine ? option.name : undefined}
               aria-describedby={reason !== undefined ? reasonId : undefined}
               onPressedChange={() => pick(option)}
@@ -151,11 +158,14 @@ function OptionCards({ selection, options, unavailable }: ControlProps) {
   );
 }
 
-/** The options as the rows of a ListModal, with the reason of each one that the character cannot take. */
-const listItems = (options: BuilderOption[], unavailable: Map<string, string>): ListItem<string>[] =>
+/**
+ * The options as the rows of a ListModal, with the reason of each one that the character cannot take. The option of
+ * `pending`, whose pick is on its way, is busy.
+ */
+const listItems = (options: BuilderOption[], unavailable: Map<string, string>, pending: ReadonlySet<string> = new Set()): ListItem<string>[] =>
   options.map((option) => {
     const reason = unavailable.get(option.key);
-    return { value: option.key, label: option.name, ...(reason !== undefined && { unavailable: reason }) };
+    return { value: option.key, label: option.name, ...(reason !== undefined && { unavailable: reason }), ...(pending.has(option.key) && { busy: true }) };
   });
 
 /**
@@ -164,7 +174,7 @@ const listItems = (options: BuilderOption[], unavailable: Map<string, string>): 
  * line, up to 3 lines, so the first picks do not move the add button or the page below.
  */
 function PickerControl({ selection, options, unavailable }: ControlProps) {
-  const { select, deselect, dialog } = usePick(selection);
+  const { select, deselect, dialog, pending } = usePick(selection);
   const name = useSectionName(selection);
   const label = ADD_LABELS.find(([tag]) => selection.tags.includes(tag))?.[1] ?? "Add a choice";
   const reserve = Math.min(3, Math.max(1, Math.ceil((selection.max ?? 3) / 3)));
@@ -173,7 +183,7 @@ function PickerControl({ selection, options, unavailable }: ControlProps) {
       <Picker
         label={label}
         title={name}
-        options={listItems(options, unavailable)}
+        options={listItems(options, unavailable, pending)}
         value={selection.selected}
         onValueChange={(next) => {
           const added = next.find((key) => !selection.selected.includes(key));
@@ -198,7 +208,7 @@ function ChooseControl({ selection, options, unavailable }: ControlProps) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   // The list closes on the pick, so the question gives the focus to the button after it.
-  const { replace, dialog } = usePick(selection, button);
+  const { replace, dialog, pending } = usePick(selection, button);
   const name = useSectionName(selection);
   const current = options.find((option) => option.selected);
   // A selection of one pick that has more than one, as an imported character can, shows each.
@@ -208,7 +218,15 @@ function ChooseControl({ selection, options, unavailable }: ControlProps) {
       {picked.map((option) => (
         <Token key={option.key} label={option.name} />
       ))}
-      <Button ref={button} aria-haspopup="dialog" aria-expanded={open} aria-label={current ? `Change ${name}` : `Choose ${name}`} onClick={() => setOpen(true)}>
+      {/* The list closes on the pick, so this button is busy until the pick shows. */}
+      <Button
+        ref={button}
+        aria-busy={pending.size > 0 || undefined}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={current ? `Change ${name}` : `Choose ${name}`}
+        onClick={() => setOpen(true)}
+      >
         {current ? "Change" : "Choose"}
       </Button>
       <ListModal

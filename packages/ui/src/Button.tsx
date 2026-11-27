@@ -62,12 +62,15 @@ export function XButton({
   "aria-label": ariaLabel,
   onClick,
   disabled,
+  busy,
   size = "normal",
   className,
 }: {
   "aria-label": string;
   onClick?: () => void;
   disabled?: boolean;
+  /** Its action is on its way: the button is `aria-busy` and has the pressed look until the owner takes it away. */
+  busy?: boolean;
   /** "normal" (the default) is 30px square, "small" is 24px square, for example in a token. */
   size?: "normal" | "small";
   /** Layout classes, for example alignment in a grid. */
@@ -80,6 +83,7 @@ export function XButton({
       title={ariaLabel}
       onClick={onClick}
       disabled={disabled}
+      aria-busy={busy || undefined}
       data-size={size === "small" ? "small" : undefined}
       className={className ? `ui-x-button ${className}` : "ui-x-button"}
     />

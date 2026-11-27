@@ -138,3 +138,15 @@ test("a picker with no reserve has no reserved place", () => {
   render(<Fruit />);
   expect(document.querySelector<HTMLElement>(".ui-picker")!.hasAttribute("data-reserve")).toBe(false);
 });
+
+test("an option with busy has a busy row, and a busy X on its token (ORC-369)", async () => {
+  const options = FRUIT.map((item) => (item.value === "banana" || item.value === "cherry" ? { ...item, busy: true } : item));
+  render(<Picker label="Add a fruit" options={options} value={["cherry"]} onValueChange={() => {}} />);
+  expect(screen.getByRole("button", { name: "Remove Cherry" }).getAttribute("aria-busy")).toBe("true");
+  fireEvent.click(addButton());
+  const dialog = await screen.findByRole("dialog");
+  const busy = within(dialog)
+    .getAllByRole("button")
+    .filter((button) => button.getAttribute("aria-busy") === "true");
+  expect(busy.map((button) => button.getAttribute("aria-label"))).toEqual(["Banana"]);
+});
