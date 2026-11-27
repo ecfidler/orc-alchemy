@@ -3,6 +3,7 @@
 // and sheet make. Only this file knows the Transit keys of the items; the
 // keys of the strict entity are in strict.ts.
 import type { Content, Engine, StrictEntity } from "./engine.ts";
+import { srdList } from "./srd-lists.ts";
 import { KEY, MAP_VALUE, OPTIONS, rootOf, SELECTIONS, unkeyword, VALUES } from "./strict.ts";
 
 const QUANTITY = "~:orcpub.dnd.e5.character.equipment/quantity";
@@ -154,3 +155,44 @@ export const removeCustomItem = (e: Engine, entity: StrictEntity, valueKey: stri
     valueKey,
     customValues(entity, valueKey).filter((item) => item[NAME] !== name),
   );
+
+const FRACTIONS: Record<string, number> = { "": 0, "½": 0.5, "¼": 0.25, "/2": 0.5, "/4": 0.25 };
+
+/**
+ * The pounds of a weight in the engine's content lists: a number, such as 65 for Plate, or a text, such as "1 lb.",
+ * "1½ lb." or "1/2 lb." (ORC-374). Null for "—" and for no weight.
+ */
+function pounds(weight: unknown): number | null {
+  if (typeof weight === "number") return weight;
+  const match = typeof weight === "string" ? /^(\d+)?(½|¼|\/2|\/4)? lb\./.exec(weight) : null;
+  if (!match || (match[1] === undefined && match[2] === undefined)) return null;
+  const whole = Number(match[1] ?? 0);
+  // "1/2 lb." is a half pound, not one and a half.
+  return match[2]?.startsWith("/") ? whole * FRACTIONS[match[2]] : whole + FRACTIONS[match[2] ?? ""];
+}
+
+let weights: Promise<Map<string, number>> | undefined;
+
+/**
+ * The weight in pounds of one of each SRD item with a weight, by key: from the engine's armor, equipment and magic
+ * item lists. The weight of ammunition is for its bundle, for example 20 arrows, so one piece has a part of it. The
+ * weapon list has no weights. The map is made once; after a failed load, the next call tries again.
+ */
+export function itemWeights(): Promise<Map<string, number>> {
+  weights ??= Promise.all([srdList("armor"), srdList("equipment"), srdList("magic-items")]).then(
+    (lists) => {
+      const map = new Map<string, number>();
+      for (const item of lists.flat()) {
+        const lb = pounds(item.weight);
+        const ammunition = item["orcpub.dnd.e5.weapons/type"] === "ammunition" && typeof item["sell-qty"] === "number";
+        if (lb !== null) map.set(item.key, ammunition ? lb / (item["sell-qty"] as number) : lb);
+      }
+      return map;
+    },
+    (error) => {
+      weights = undefined;
+      throw error;
+    },
+  );
+  return weights;
+}
