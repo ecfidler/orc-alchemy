@@ -62,9 +62,13 @@ export type DialogProps = DialogBase &
             actions?: ReactNode;
           }
         | {
-            /** False: no footer, and an X named "Close" at the end of the title row closes the dialog, for content to read. */
+            /**
+             * False: no Cancel, and an X named "Close" at the end of the title row closes the dialog, for content to read.
+             * With `actions`, a footer row holds only them.
+             */
             footer: false;
-            actions?: never;
+            /** The buttons of a footer row with no Cancel, for example "Choose Fighter". The row does not scroll with the body. */
+            actions?: ReactNode;
           }
       ))
     | (WideBase & {
@@ -129,7 +133,8 @@ function useLateControlFocus(open: boolean, body: HTMLElement | null, ownFocus: 
  * to 1100px wide. The owner can then give its
  * own `header` in place of the title, and `footer={false}` removes the
  * footer and puts an X in the header row; a dialog of another size takes
- * `footer={false}` too, for content to read. The X also calls
+ * `footer={false}` too, for content to read, with `actions` in a footer row
+ * that has no Cancel. The X also calls
  * `onOpenChange(false)`. `fill` gives it the height of the window less its
  * margin, and a body with no padding and no scroll, which the owner lays out.
  *
@@ -154,14 +159,16 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
   const ownHeader = wide && header !== undefined;
   const withX = !footer;
   // Base UI gives the focus to the first control of the popup, and in a dialog with an X, that is the X. So this function gives it to the owner's
-  // element, else to the first control of the body. When neither is there, it does as Base UI does: the popup on a touch screen, else the first control.
+  // element, else to the first control of the body, else to the first action of a footer row with no Cancel. When
+  // none is there, it does as Base UI does: the popup on a touch screen, else the first control.
   const initial =
     initialFocus === undefined && !withX
       ? undefined
       : (type: string) => {
           const own = (typeof initialFocus === "function" ? initialFocus() : initialFocus?.current) ?? null;
           ownFocused.current = own !== null;
-          return own ?? popup.current?.querySelector(".ui-modal-body")?.querySelector<HTMLElement>(FOCUSABLE) ?? (type === "touch" ? popup.current : true);
+          const first = (part: string) => popup.current?.querySelector(part)?.querySelector<HTMLElement>(FOCUSABLE);
+          return own ?? first(".ui-modal-body") ?? first(".ui-modal-foot") ?? (type === "touch" ? popup.current : true);
         };
   return (
     <BaseDialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
@@ -183,11 +190,13 @@ export function Dialog({ open, onOpenChange, title, children, actions, finalFocu
           <div ref={setBody} className="ui-modal-body">
             {children}
           </div>
-          {footer && (
+          {footer ? (
             <div className="ui-modal-foot">
               <BaseDialog.Close render={<Button icon="x" />}>Cancel</BaseDialog.Close>
               {actions}
             </div>
+          ) : (
+            actions != null && actions !== false && <div className="ui-modal-foot">{actions}</div>
           )}
         </BaseDialog.Popup>
       </BaseDialog.Portal>

@@ -131,6 +131,10 @@ test("a new character picks its first class: a card opens the modal, and Choose 
   ).toEqual(["Level", "Features"]);
   expect(within(features).getAllByRole("row")[1].textContent).toBe("1Fighting Style, Second Wind");
   expect(built().classes).toEqual([]);
+  // The detail scrolls, and "Choose Fighter" is in the footer row below it, so it stays in view (ORC-367).
+  const choose = within(modal).getByRole("button", { name: "Choose Fighter" });
+  expect(modal.querySelector(".ui-modal-body")!.contains(choose)).toBe(false);
+  expect(modal.querySelector(".ui-modal-foot")!.contains(choose)).toBe(true);
 
   // Escape closes the modal, and the focus goes back to its card.
   fireEvent.keyDown(modal, { key: "Escape" });

@@ -282,9 +282,12 @@ homebrew forms. They have no game words: the app gives the lists.
   reader. The footer is optional. A wide Dialog with no footer closes
   with an X in its header, 44px at 600px and less (ORC-284). A Dialog of
   another size can have no footer too, for content to read, such as the
-  About modal of the builder (ORC-347). When it
-  opens, the focus goes to the first control of the body if there is
-  one, else to the X. The owner can also set the control that gets the
+  About modal of the builder (ORC-347). Such a Dialog can still have a
+  footer row with only the owner's actions and no Cancel, for example
+  "Choose Fighter" in the class modal. The row does not scroll with the
+  body (ORC-367). When it opens, the focus goes to the first control of
+  the body if there is one, else to the first action of that row, else
+  to the X. The owner can also set the control that gets the
   focus when it opens. With `fill`, a wide Dialog is the height of the
   window less its 16px margins, and its body has no padding and no
   scroll: the owner lays it out, for example as two panes that scroll

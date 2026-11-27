@@ -385,6 +385,9 @@ no class equipment.
   "Level" and "Features".
 * The modal has the button "Choose {class}" with the check icon. It
   makes the pick and closes the modal.
+* The content of the modal scrolls. The button is in a row at the bottom
+  of the modal that does not scroll, so it stays in view. The modals of
+  Change and "Add a class" have the same row.[^orc-367]
 * The width of the part counts, not the width of the page, as for the
   list with a detail panel. Each card has the same size, also a card with
   no icon.[^orc-349]
@@ -1116,3 +1119,4 @@ one depends only on parts of the frame.
 [^orc-355]: The race panel shows the traits that the engine gives, <https://linear.app/orc-alchemy/issue/ORC-355>
 [^orc-357]: Spells step: an "Add spells" popup like the Spells panel of the sheet, <https://linear.app/orc-alchemy/issue/ORC-357>
 [^orc-366]: Proficiencies step: the section that an Expertise pick opens names its source, <https://linear.app/orc-alchemy/issue/ORC-366>
+[^orc-367]: Class step: the content of the class modal scrolls, and the Choose button stays in view, <https://linear.app/orc-alchemy/issue/ORC-367/class-step-the-content-of-the-class-modal-scrolls-and-the-choose>
