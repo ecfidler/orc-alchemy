@@ -1,5 +1,5 @@
 import { beforeAll, expect, test } from "vitest";
-import { engine, loadEngine } from "./engine.ts";
+import { buildTemplate, loadEngine } from "./engine.ts";
 import { packSpellRecord, type SpellRecord, spellLookup } from "./spell-records.ts";
 import { loadSpellContent, type SpellContent } from "./spells.ts";
 
@@ -113,6 +113,6 @@ function engineOptionNames(homebrew: Record<string, object>, key: string): strin
     if (k === key && typeof name === "string") names.add(name);
     for (const value of Object.values(node)) walk(value);
   };
-  walk(engine().buildTemplate(homebrew).shape);
+  walk(buildTemplate(homebrew).shape);
   return [...names];
 }

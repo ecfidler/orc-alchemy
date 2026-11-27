@@ -1,7 +1,7 @@
 import { beforeAll, expect, test } from "vitest";
 import { baseScores, STANDARD_SCORES } from "./abilities.ts";
 import { builderSteps, remainingByStep } from "./builder.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { storedItems } from "./equipment.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { toSheet } from "./sheet.ts";
@@ -38,7 +38,7 @@ test("the Class step of the new character has 1 pick left, from the engine's cou
   const entity = newCharacter(e);
   const classSelection = e.evaluate(entity).selections.find((s) => s.key === "class")!;
   expect([classSelection.min, classSelection.max, classSelection.remaining]).toEqual([1, null, 1]);
-  const steps = builderSteps(e.evaluate(entity).selections, e.buildTemplate().shape);
+  const steps = builderSteps(e.evaluate(entity).selections, buildTemplate().shape);
   expect(remainingByStep(steps)[steps.findIndex((s) => s.name === "Class")].toDo).toBe(1);
 });
 

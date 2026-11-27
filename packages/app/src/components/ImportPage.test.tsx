@@ -172,7 +172,7 @@ test("a pasted character opens its sheet", async () => {
   fireEvent.change(screen.getByLabelText("Paste the character's text"), { target: { value: fighter() } });
   fireEvent.click(button);
 
-  expect(await screen.findByRole("heading", { name: "Sheet page" }, { timeout: 5000 })).toBeTruthy();
+  expect(await screen.findByRole("heading", { name: "Sheet page" })).toBeTruthy();
 });
 
 test("pasted text that is not a character says why under step 3", async () => {
@@ -219,7 +219,7 @@ test("a bundle lists its characters, and its packs' log shows under step 1", asy
   renderPage();
   choose("Import dmv-export bundle", "dmv-export.json", JSON.stringify(bundle));
 
-  const imported = await screen.findByRole("region", { name: "Imported characters" }, { timeout: 5000 });
+  const imported = await screen.findByRole("region", { name: "Imported characters" });
   expect(within(imported).getByRole("heading").textContent).toBe("Imported 1 character");
   expect(within(imported).getByText("Loaded 1 homebrew pack")).toBeTruthy();
   expect(within(screen.getByRole("region", { name: "Import log" })).getByRole("heading").textContent).toBe("Import log: dmv-export.json");
@@ -234,7 +234,7 @@ test("a bundle's magic items load before its characters, so their keys resolve; 
   renderPage();
   choose("Import dmv-export bundle", "dmv-export.json", JSON.stringify(bundle));
 
-  const imported = await screen.findByRole("region", { name: "Imported characters" }, { timeout: 5000 });
+  const imported = await screen.findByRole("region", { name: "Imported characters" });
   expect(within(imported).getByRole("heading").textContent).toBe("Imported 1 character");
   expect(within(imported).getByText("Loaded 4 magic items")).toBeTruthy();
   expect(within(imported).queryByRole("list", { name: /^Unresolved content/ })).toBeNull();
@@ -382,7 +382,7 @@ function dupB(renames: { contentType: "orcpub.dnd.e5/races" | "orcpub.dnd.e5/sub
 
 async function importR8() {
   choose("Import character file", "r8-unresolved-keys.json", r8());
-  await screen.findByRole("list", { name: "Unresolved content for Unit Seven" }, { timeout: 5000 });
+  await screen.findByRole("list", { name: "Unresolved content for Unit Seven" });
 }
 
 test("a character with unresolved keys lists them; after its pack loads, Check again clears the list", async () => {
@@ -423,7 +423,7 @@ test("Remap gives the option the chosen suggestion, saves the character, and lis
 test("character-test-2 lists its content keys and its other options", async () => {
   renderPage();
   choose("Import character file", "character-test-2.json", readFileSync(join(fixturesDir, "legacy/character-test-2.strict.json"), "utf8"));
-  await screen.findByRole("list", { name: "Unresolved content for Unnamed character" }, { timeout: 5000 });
+  await screen.findByRole("list", { name: "Unresolved content for Unnamed character" });
   expect(unresolvedKeys("Unnamed character")).toEqual([
     "Background: noble",
     "Feat: ritual-caster",

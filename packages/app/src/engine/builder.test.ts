@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { AvailableSelection, Homebrew, TemplateSelection } from "@pubdoor/dmv";
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderSelection, builderSteps, openingStep, pickName, remainingByStep, remainingOf, unfilled, withSpellsToPrepare } from "./builder.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { newCharacter } from "./new-character.ts";
 import type { Spellcaster, Spellcasting } from "./sheet.ts";
 
@@ -13,8 +13,7 @@ const readFixture = (name: string): StrictEntity => JSON.parse(readFileSync(join
 
 beforeAll(() => loadEngine());
 
-const stepsOf = (entity: StrictEntity, homebrew?: Homebrew) =>
-  builderSteps(engine().evaluate(entity, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
+const stepsOf = (entity: StrictEntity, homebrew?: Homebrew) => builderSteps(engine().evaluate(entity, { homebrew }).selections, buildTemplate(homebrew).shape);
 const step = (entity: StrictEntity, name: string) => stepsOf(entity).find((s) => s.name === name)!;
 /** The selection keyed key under the selected option keyed option. */
 const child = (selection: BuilderSelection, option: string, key: string) =>
@@ -374,7 +373,7 @@ test.each(readdirSync(charactersDir).filter((f) => f.endsWith(".strict.json")))(
     shown.add(JSON.stringify(s.actualPath));
     for (const o of s.options) o.selections.forEach(walk);
   };
-  builderSteps(selections, engine().buildTemplate().shape).forEach((step) => step.selections.forEach(walk));
+  builderSteps(selections, buildTemplate().shape).forEach((step) => step.selections.forEach(walk));
   const expected = selections.map((s) => JSON.stringify(s.actualPath));
   expect([...shown].sort()).toEqual([...new Set(expected)].sort());
 });

@@ -22,7 +22,7 @@ import {
   withItem,
   withoutItem,
 } from "./content.ts";
-import { type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, type Content, type ContentType, engine, type StrictEntity } from "./engine.ts";
 import { type AreaAttack, breathWeaponText, hasArea, raceGives } from "./race-gives.ts";
 import { pickableSubraces, subraceOptions, subracePick, templateRace } from "./race-step.ts";
 import { missingContent, picksUnder, remapOption, withoutOption } from "./reconcile.ts";
@@ -272,8 +272,7 @@ const CHOICE_PREFIX = "Starting Equipment: ";
  * "starting-equipment-" and the key of its name.
  */
 function templateChoices(key: string, listed: unknown[]): Record<string, unknown>[] {
-  const option = engine()
-    .buildTemplate()
+  const option = buildTemplate()
     .shape.find((s) => s.key === "background")
     ?.options.find((o) => o.key === key);
   const has = new Set(listed.map((c) => `starting-equipment-${nameToKw(String((c as Record<string, unknown>).name ?? ""))}`));

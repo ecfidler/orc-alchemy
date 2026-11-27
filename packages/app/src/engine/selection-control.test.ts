@@ -3,7 +3,7 @@
 import { beforeAll, expect, test } from "vitest";
 import { setBaseScores } from "./abilities.ts";
 import { type BuilderSelection, type BuilderStep, builderSteps } from "./builder.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { fixedProficiencies } from "./proficiencies.ts";
 import {
   controlKind,
@@ -101,7 +101,7 @@ test("the labels of a refusal split only before a label that starts with Require
 function build(entity: StrictEntity) {
   const e = engine();
   const { built, selections } = e.evaluate(entity);
-  const steps = builderSteps(selections, e.buildTemplate(undefined).shape);
+  const steps = builderSteps(selections, buildTemplate(undefined).shape);
   const input = { engine: e, entity, built, content: { homebrew: undefined }, tops: topSources(steps), picks: pickSources(steps) };
   return { steps, input };
 }

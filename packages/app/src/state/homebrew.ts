@@ -18,7 +18,7 @@ import {
   withoutItem,
 } from "../engine/content.ts";
 import { CUSTOM_PACK, reservedPackMessage } from "../engine/custom.ts";
-import { type Content, engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
+import { buildTemplate, type Content, engine, loadEngine, type ParsedOrcbrew } from "../engine/engine.ts";
 import { type BundleHomebrew, magicItemKey } from "../engine/import.ts";
 import { homebrewWithoutUnknownWeapons, knownWeapons, withoutUnknownWeapons } from "../engine/unknown-weapons.ts";
 import { deleteMagicItem, deletePack, listMagicItems, listPacks, type MagicItemRecord, type PackRecord, saveMagicItems, savePacks } from "../storage/packs.ts";
@@ -543,7 +543,7 @@ async function removeStoredUnknownWeapons(records: PackRecord[]) {
 
 function buildProblem(homebrew: Record<string, object>): string | null {
   try {
-    engine().buildTemplate(homebrew);
+    buildTemplate(homebrew);
     return null;
   } catch (e) {
     return e instanceof Error ? e.message : String(e);

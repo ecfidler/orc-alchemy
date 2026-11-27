@@ -121,7 +121,7 @@ const openStep = (name: string) =>
 test("New character opens the builder on Name with the focus in the field, with no class, and a pick updates the summary card", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
-  const summary = await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
+  const summary = await screen.findByRole("region", { name: "Summary" });
   expect(within(summary).getByLabelText("Class").textContent).toBe("");
   expect(screen.getByRole("link", { name: "Done" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Back to List" }).getAttribute("href")).toBe("/characters");
@@ -141,7 +141,7 @@ test("New character opens the builder on Name with the focus in the field, with 
 test("Save stores the changes now, and the status says when they are saved", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
-  await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
+  await screen.findByRole("region", { name: "Summary" });
   expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved");
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 
@@ -158,7 +158,7 @@ test("Save stores the changes now, and the status says when they are saved", asy
 test("a sheet change leaves the status at Saved with no Save button, and a failed save shows them", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
-  await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
+  await screen.findByRole("region", { name: "Summary" });
 
   act(() => useCharacter.getState().sheetChange((entity) => engine().setValue(entity, "character-name", "Pike")));
   expect(useCharacter.getState().dirty).toBe(true);
@@ -179,7 +179,7 @@ test("a sheet change leaves the status at Saved with no Save button, and a faile
 test("leaving the character after a failed save asks first", async () => {
   renderAt("/");
   fireEvent.click(screen.getByRole("button", { name: "New character" }));
-  const summary = await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
+  const summary = await screen.findByRole("region", { name: "Summary" });
   openStep("Race");
   await pickIn(section("Race"), "Elf");
   useStorage.setState({ failed: true });
@@ -197,7 +197,7 @@ test("Edit on a sheet opens the first step with a mark, or Class when no step ha
   // The engine's barbarian has its class, and no background.
   const id = await addCharacter(engine().emptyCharacter(), "2014", null);
   renderAt(`/sheet/${id}`);
-  fireEvent.click(await screen.findByRole("link", { name: "Edit" }, { timeout: 5000 }));
+  fireEvent.click(await screen.findByRole("link", { name: "Edit" }));
   expect((await screen.findByRole("heading", { level: 2 })).textContent).toBe("Background");
   // The name field does not take the focus.
   expect(document.activeElement).not.toBe(screen.queryByRole("textbox", { name: "Character name" }));
@@ -205,7 +205,7 @@ test("Edit on a sheet opens the first step with a mark, or Class when no step ha
   // A complete character.
   const done = await addCharacter(engine().autofill(engine().emptyCharacter(), { seed: 7 }), "2014", null);
   renderAt(`/sheet/${done}`);
-  fireEvent.click(await screen.findByRole("link", { name: "Edit" }, { timeout: 5000 }));
+  fireEvent.click(await screen.findByRole("link", { name: "Edit" }));
   expect((await screen.findByRole("heading", { level: 2 })).textContent).toBe("Class");
 });
 
@@ -213,7 +213,7 @@ test("opening a character with a draft recovers it and says so", async () => {
   const id = await addCharacter(engine().emptyCharacter(), "2014", null);
   await saveDraft({ id, entity: engine().select(engine().emptyCharacter(), ["race"], "gnome"), updatedAt: "2026-10-08T00:00:00.000Z" });
   renderAt(`/sheet/${id}`);
-  expect(await screen.findByText("Unsaved changes from your last visit were recovered.", {}, { timeout: 5000 })).toBeTruthy();
+  expect(await screen.findByText("Unsaved changes from your last visit were recovered.")).toBeTruthy();
   expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Unsaved changes");
   expect(screen.getByLabelText("Race").textContent).toBe("Gnome");
 });
@@ -225,7 +225,7 @@ const storedSlotsUsed = async (id: string) =>
 test("on the sheet, a click or an arrow key spends a slot and gives it back; it saves, and shows after a reload (ORC-282)", async () => {
   const id = await addCharacter(wizard5(), "2014", null);
   renderAt(`/sheet/${id}`);
-  const first = await screen.findByRole("slider", { name: "1st-level slots" }, { timeout: 5000 });
+  const first = await screen.findByRole("slider", { name: "1st-level slots" });
   expect(first.getAttribute("aria-valuetext")).toBe("0 of 4 spent");
   expect(screen.getByRole("slider", { name: "3rd-level slots" }).getAttribute("aria-valuetext")).toBe("0 of 2 spent");
   // The death saves do not change.
@@ -245,13 +245,11 @@ test("on the sheet, a click or an arrow key spends a slot and gives it back; it 
   expect(third.getAttribute("aria-valuetext")).toBe("1 of 2 spent");
   // A sheet change: the status stays Saved, and the record saves at once.
   expect(screen.getByRole("status", { name: "Save status" }).textContent).toBe("Saved");
-  await waitFor(
-    async () =>
-      expect(await storedSlotsUsed(id)).toEqual({
-        "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0] },
-        "~:orcpub.dnd.e5.spells/slots-3": { "~#set": [0] },
-      }),
-    { timeout: 3000 },
+  await waitFor(async () =>
+    expect(await storedSlotsUsed(id)).toEqual({
+      "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0] },
+      "~:orcpub.dnd.e5.spells/slots-3": { "~#set": [0] },
+    }),
   );
   await waitFor(async () => expect(await getDraft(id)).toBeUndefined());
 
@@ -259,7 +257,7 @@ test("on the sheet, a click or an arrow key spends a slot and gives it back; it 
   cleanup();
   useCharacter.setState({ id: null, entity: null, dirty: false, unsaved: false });
   renderAt(`/sheet/${id}`);
-  expect((await screen.findByRole("slider", { name: "1st-level slots" }, { timeout: 5000 })).getAttribute("aria-valuetext")).toBe("1 of 4 spent");
+  expect((await screen.findByRole("slider", { name: "1st-level slots" })).getAttribute("aria-valuetext")).toBe("1 of 4 spent");
   expect(screen.getByRole("slider", { name: "2nd-level slots" }).getAttribute("aria-valuetext")).toBe("0 of 3 spent");
   expect(screen.getByRole("slider", { name: "3rd-level slots" }).getAttribute("aria-valuetext")).toBe("1 of 2 spent");
 });
@@ -270,7 +268,7 @@ test("a spent pact slot and a spent other slot of the same level save apart, and
   const entity = warlockSorcerer();
   const id = await addCharacter(entity, "2014", null);
   renderAt(`/sheet/${id}`);
-  const pact = await screen.findByRole("slider", { name: "Pact slots, 5th level" }, { timeout: 5000 });
+  const pact = await screen.findByRole("slider", { name: "Pact slots, 5th level" });
   const fifth = screen.getByRole("slider", { name: "5th-level slots" });
   expect(fifth.getAttribute("aria-valuetext")).toBe("0 of 1 spent");
   expect(pact.getAttribute("aria-valuetext")).toBe("0 of 2 spent");
@@ -283,26 +281,26 @@ test("a spent pact slot and a spent other slot of the same level save apart, and
   // the spent slots are new.
   const expected = { ...entity, "~:orcpub.entity.strict/values": { ...entity["~:orcpub.entity.strict/values"] } };
   expected["~:orcpub.entity.strict/values"]["~:orcpub.dnd.e5.spells/slots-used"] = { "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [0, 1] } };
-  await waitFor(async () => expect(JSON.parse(JSON.stringify((await getCharacter(id))!.entity))).toEqual(expected), { timeout: 3000 });
+  await waitFor(async () => expect(JSON.parse(JSON.stringify((await getCharacter(id))!.entity))).toEqual(expected));
   await waitFor(async () => expect(await getDraft(id)).toBeUndefined());
 
   // Give the other slot back: the spent pact slot stays at position 1.
   fireEvent.keyDown(fifth, { key: "ArrowLeft" });
-  await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [1] } }), { timeout: 3000 });
+  await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [1] } }));
   await waitFor(async () => expect(await getDraft(id)).toBeUndefined());
 
   // A reload: the character opens again from the store.
   cleanup();
   useCharacter.setState({ id: null, entity: null, dirty: false, unsaved: false });
   renderAt(`/sheet/${id}`);
-  expect((await screen.findByRole("slider", { name: "Pact slots, 5th level" }, { timeout: 5000 })).getAttribute("aria-valuetext")).toBe("1 of 2 spent");
+  expect((await screen.findByRole("slider", { name: "Pact slots, 5th level" })).getAttribute("aria-valuetext")).toBe("1 of 2 spent");
   expect(screen.getByRole("slider", { name: "5th-level slots" }).getAttribute("aria-valuetext")).toBe("0 of 1 spent");
 });
 
 test("the Spells panel and the sheet change the same slots: a slot spent in the panel saves and shows on the sheet, and the reverse (ORC-286)", async () => {
   const id = await addCharacter(wizard5(), "2014", null);
   renderAt(`/sheet/${id}`);
-  const onSheet = await screen.findByRole("slider", { name: "2nd-level slots" }, { timeout: 5000 });
+  const onSheet = await screen.findByRole("slider", { name: "2nd-level slots" });
   fireEvent.click(onSheet.children[0]!);
   fireEvent.click(screen.getByRole("button", { name: "All spells" }));
   const dialog = await screen.findByRole("dialog", { name: "Spells" });
@@ -315,14 +313,14 @@ test("the Spells panel and the sheet change the same slots: a slot spent in the 
   // The level heading of the list shows it too.
   const heading = within(dialog).getByRole("heading", { level: 3, name: "2nd level" }).parentElement!;
   expect(heading.querySelectorAll("[data-marked]")).toHaveLength(2);
-  await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } }), { timeout: 3000 });
+  await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } }));
 });
 
 test("in the full sheet panel of the builder, the slot circles show the spent slots and cannot change", async () => {
   const entity = engine().setValue(wizard5(), "orcpub.dnd.e5.spells/slots-used", { "~:orcpub.dnd.e5.spells/slots-2": { "~#set": [0, 1] } });
   const id = await addCharacter(entity, "2014", null);
   renderAt(`/build/${id}`);
-  await screen.findByRole("region", { name: "Summary" }, { timeout: 5000 });
+  await screen.findByRole("region", { name: "Summary" });
   const preview = await openSheetPanel();
   const second = within(preview).getByRole("img", { name: "2nd-level slots: 2 of 3" });
   expect(second.querySelectorAll("[data-marked]")).toHaveLength(2);
@@ -338,7 +336,7 @@ const lifeCleric = () => JSON.parse(readFileSync(join(import.meta.dirname, "../.
 test("All spells and a spell name open the Spells panel over the sheet, and the close gives the focus back", async () => {
   const id = await addCharacter(lifeCleric(), "2014", null);
   renderAt(`/sheet/${id}`);
-  const all = await screen.findByRole("button", { name: "All spells" }, { timeout: 5000 });
+  const all = await screen.findByRole("button", { name: "All spells" });
   all.focus();
   fireEvent.click(all);
   let dialog = await screen.findByRole("dialog", { name: "Spells" });
@@ -363,10 +361,10 @@ test("All spells and a spell name open the Spells panel over the sheet, and the 
 test("the builder link of the Spells panel opens the builder at its Spells step", async () => {
   const id = await addCharacter(lifeCleric(), "2014", null);
   renderAt(`/sheet/${id}`);
-  fireEvent.click(await screen.findByRole("button", { name: "All spells" }, { timeout: 5000 }));
+  fireEvent.click(await screen.findByRole("button", { name: "All spells" }));
   const dialog = await screen.findByRole("dialog", { name: "Spells" });
   fireEvent.click(within(dialog).getByRole("link", { name: "Change known spells in the builder" }));
-  const steps = await screen.findByRole("navigation", { name: "Steps" }, { timeout: 5000 });
+  const steps = await screen.findByRole("navigation", { name: "Steps" });
   expect(
     within(steps)
       .getByRole("button", { name: /^Spells/ })
@@ -392,7 +390,7 @@ function failCharacterReads() {
 async function openWizardPanel() {
   const id = await addCharacter(wizard5(), "2014", null);
   renderAt(`/sheet/${id}`);
-  fireEvent.click(await screen.findByRole("button", { name: "All spells" }, { timeout: 5000 }));
+  fireEvent.click(await screen.findByRole("button", { name: "All spells" }));
   const dialog = await screen.findByRole("dialog", { name: "Spells" });
   const first = within(dialog.querySelector<HTMLElement>("[data-slots-block]")!).getByRole("slider", { name: "1st-level slots" });
   return { id, dialog, first };
@@ -403,7 +401,7 @@ test("a slot change in the Spells panel that fails to save shows the note with T
   failCharacterReads();
   first.focus();
   fireEvent.keyDown(first, { key: "ArrowRight" });
-  const note = await within(dialog).findByRole("alert", {}, { timeout: 3000 });
+  const note = await within(dialog).findByRole("alert");
   expect(note.textContent).toBe("FailedSaving to this browser failed. Recent changes may not be kept. Try again");
   expect(within(note).getByRole("button", { name: "Try again" })).toBeTruthy();
   // Under the header, above the prepare bar.
@@ -430,7 +428,7 @@ test("Try again with a save that works removes the note in the panel and on the 
   const failing = failCharacterReads();
   first.focus();
   fireEvent.keyDown(first, { key: "ArrowRight" });
-  const tryAgain = within(await within(dialog).findByRole("alert", {}, { timeout: 3000 })).getByRole("button", { name: "Try again" });
+  const tryAgain = within(await within(dialog).findByRole("alert")).getByRole("button", { name: "Try again" });
 
   // A Try again that fails again keeps the note.
   tryAgain.focus();
@@ -464,7 +462,7 @@ test("after a change from a level heading, which keeps the focus on the selected
   const heading = within(dialog).getByRole("heading", { level: 3, name: "1st level" }).parentElement!;
   fireEvent.click(heading.querySelector(".ui-slot-circle")!);
   expect(first.getAttribute("aria-valuetext")).toBe("1 of 4 spent");
-  const tryAgain = within(await within(dialog).findByRole("alert", {}, { timeout: 3000 })).getByRole("button", { name: "Try again" });
+  const tryAgain = within(await within(dialog).findByRole("alert")).getByRole("button", { name: "Try again" });
   tryAgain.focus();
   failing.mockRestore();
   fireEvent.click(tryAgain);
@@ -475,7 +473,7 @@ test("after a change from a level heading, which keeps the focus on the selected
 test("a slot change in the Spells panel that saves shows no note", async () => {
   const { id, dialog, first } = await openWizardPanel();
   fireEvent.keyDown(first, { key: "ArrowRight" });
-  await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0] } }), { timeout: 3000 });
+  await waitFor(async () => expect(await storedSlotsUsed(id)).toEqual({ "~:orcpub.dnd.e5.spells/slots-1": { "~#set": [0] } }));
   expect(within(dialog).queryByRole("alert")).toBeNull();
   expect(screen.queryAllByRole("alert", { hidden: true })).toEqual([]);
   expect(screen.getByRole("status", { name: "Save status", hidden: true }).textContent).toBe("Saved");

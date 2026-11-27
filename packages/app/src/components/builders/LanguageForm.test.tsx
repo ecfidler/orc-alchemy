@@ -6,7 +6,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { type BuilderSelection, builderSteps } from "../../engine/builder.ts";
 import { itemAt } from "../../engine/content.ts";
-import { engine, loadEngine } from "../../engine/engine.ts";
+import { buildTemplate, engine, loadEngine } from "../../engine/engine.ts";
 import { useHomebrew } from "../../state/homebrew.ts";
 import { HomebrewBuilder } from "../HomebrewBuilder.tsx";
 
@@ -84,7 +84,7 @@ test("the form recreates the Deep Stone language of the drift-04 fixture, Edit l
   // The language is one of a human's language choices.
   const { homebrew } = useHomebrew.getState().content;
   const human = engine().select(engine().emptyCharacter(), ["race"], "human");
-  const steps = builderSteps(engine().evaluate(human, { homebrew }).selections, engine().buildTemplate(homebrew).shape);
+  const steps = builderSteps(engine().evaluate(human, { homebrew }).selections, buildTemplate(homebrew).shape);
   const languages = find(
     steps.flatMap((s) => s.selections),
     "languages",

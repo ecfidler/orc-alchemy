@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { EngineGate } from "./EngineGate.tsx";
-import { engine, loadEngine } from "./engine.ts";
+import { buildTemplate, engine, type Homebrew, loadEngine } from "./engine.ts";
 
 afterEach(cleanup);
 
@@ -53,4 +53,27 @@ test(`${scaledGolden} gets a number for each scaled amount, and the feat's own u
 test("EngineGate renders its children once the engine has loaded", async () => {
   render(<EngineGate>ready</EngineGate>);
   expect(await screen.findByText("ready")).toBeTruthy();
+});
+
+/** A pack with one feat, named for n, so each n is another content. */
+const featPack = (n: number): Homebrew =>
+  ({ Pack: { "~:orcpub.dnd.e5/feats": { [`~:feat-${n}`]: { "~:name": `Feat ${n}`, "~:key": `~:feat-${n}` } } } }) as Homebrew;
+
+test("buildTemplate gives the same template for a content with the same JSON text, and builds it again after 8 other contents", () => {
+  const first = buildTemplate(featPack(0));
+  expect(first.content.feats).toContain("feat-0");
+  expect(buildTemplate(featPack(0))).toBe(first);
+  expect(buildTemplate(featPack(0), { magicItems: undefined })).toBe(first);
+  expect(buildTemplate(featPack(1))).not.toBe(first);
+  for (let n = 2; n <= 8; n++) buildTemplate(featPack(n));
+  // feat-0 was used last before feat-1 to feat-8, so it went first.
+  const again = buildTemplate(featPack(0));
+  expect(again).not.toBe(first);
+  expect(again).toEqual(first);
+});
+
+test("buildTemplate throws on each call for a content that does not build, as the engine does", () => {
+  const breaks = { Breaks: { "~:orcpub.dnd.e5/feats": { "~:x": { "~:name": 5 } } } } as Homebrew;
+  expect(() => buildTemplate(breaks)).toThrow();
+  expect(() => buildTemplate(breaks)).toThrow();
 });

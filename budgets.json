@@ -1,7 +1,7 @@
 {
   "e2eTests": 400,
   "unitTestFiles": 125,
-  "unitTestFileSeconds": 60,
+  "unitTestFileSeconds": 40,
   "bundleJsKB": 4600,
   "sourceLines": {
     "max": 600,

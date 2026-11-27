@@ -7,7 +7,7 @@ import { answerConfirmDialog } from "@orc-alchemy/ui/testing";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { CUSTOM_PACK, characterContent, srdBackgroundRecord, srdRaceRecord } from "../engine/custom.ts";
-import { engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "../engine/engine.ts";
 import { setQuantity } from "../engine/equipment.ts";
 import { missingContent, remapOption, withoutOption } from "../engine/reconcile.ts";
 import { ARTISAN, BACKGROUND_PACK, SAGE, TAGGED_BACKGROUNDS, withSage } from "../engine/test-backgrounds.ts";
@@ -119,8 +119,7 @@ test("Customize on a pack feat makes '<Name> (Custom)', selects it, and keeps th
   // The original is still in the list for this character, and the copy shows by its name only.
   expect(cards().map((card) => card.textContent)).toEqual(expect.arrayContaining(["Skill Expert", "Skill Expert (Custom)"]));
   // Another character, without this custom content, has the original and not the copy.
-  const options = engine()
-    .buildTemplate(useHomebrew.getState().content.homebrew)
+  const options = buildTemplate(useHomebrew.getState().content.homebrew)
     .shape.find((s) => s.key === "feats")!
     .options.map((o) => o.key);
   expect(options).toContain("skill-expert");
@@ -317,8 +316,7 @@ test("Customize on a pack background makes '<Name> (Custom)', selects it by the 
   });
   expect(backgroundNames()).toEqual(expect.arrayContaining(["Sage", "Sage (Custom)", "Acolyte"]));
   // Another character, without this custom content, has the original and not the copy.
-  const others = engine()
-    .buildTemplate(useHomebrew.getState().content.homebrew)
+  const others = buildTemplate(useHomebrew.getState().content.homebrew)
     .shape.find((s) => s.key === "background")!
     .options.map((o) => o.key);
   expect(others).toContain("sage");

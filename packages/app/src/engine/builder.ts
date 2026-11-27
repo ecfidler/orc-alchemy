@@ -5,7 +5,7 @@
 
 import type { AvailableSelection, TemplateSelection } from "@pubdoor/dmv";
 import { useMemo } from "react";
-import { type Content, engine } from "./engine.ts";
+import { buildTemplate, type Content } from "./engine.ts";
 import type { SheetClass, Spellcasting } from "./sheet.ts";
 import { prepareCounts } from "./spell-prepare.ts";
 
@@ -361,13 +361,14 @@ export function withSpellsToPrepare(steps: BuilderStep[], sheet: PrepareSheet | 
   return prepares ? steps.map((step) => (step.name === "Spells" && step.empty ? { ...step, empty: false } : step)) : steps;
 }
 
-// The template shape of the last content: the engine builds a template in about 100 ms, and does not keep it.
+// The template shape of the last content object, so a render does not take the JSON text of the content again.
+// buildTemplate keeps the templates of the last few contents by their text.
 let shapeMemo: { homebrew: Content["homebrew"]; magicItems: Content["magicItems"]; shape: TemplateSelection[] } | null = null;
 
 /** The template shape for the content, as builderSteps takes it. It is built again only when the content changes. */
 export function templateShape({ homebrew, magicItems }: Content): TemplateSelection[] {
   if (shapeMemo === null || shapeMemo.homebrew !== homebrew || shapeMemo.magicItems !== magicItems)
-    shapeMemo = { homebrew, magicItems, shape: engine().buildTemplate(homebrew, { magicItems }).shape };
+    shapeMemo = { homebrew, magicItems, shape: buildTemplate(homebrew, { magicItems }).shape };
   return shapeMemo.shape;
 }
 

@@ -15,7 +15,7 @@ import {
   typeHitPoints,
   withAverageHitPoints,
 } from "./classes.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 
 const charactersDir = join(import.meta.dirname, "../../../../fixtures/characters");
@@ -122,7 +122,7 @@ const content = { homebrew: undefined };
 function sections(entity: StrictEntity) {
   const e = engine();
   const { built, selections } = e.evaluate(entity, content);
-  const classSelection = builderSteps(selections, e.buildTemplate(undefined).shape)
+  const classSelection = builderSteps(selections, buildTemplate(undefined).shape)
     .find((s) => s.name === "Class")!
     .selections.find((s) => s.key === "class")!;
   const options = classSelection.selected.map((key) => classSelection.options.find((o) => o.key === key)!) as BuilderOption[];

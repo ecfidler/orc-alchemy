@@ -2,7 +2,7 @@
 // lines of "Picked on other steps", and the left mark of the step.
 import { beforeAll, expect, test } from "vitest";
 import { type BuilderSelection, builderSteps } from "./builder.ts";
-import { engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, type Homebrew, loadEngine, type StrictEntity } from "./engine.ts";
 import { lineKind, otherStepLines, stepMark } from "./other-steps.ts";
 import { ARTISAN, SAGE_PACKS } from "./test-backgrounds.ts";
 
@@ -11,7 +11,7 @@ beforeAll(() => loadEngine());
 /** The steps of the entity, and its top-level background selection. */
 function build(entity: StrictEntity, homebrew?: Homebrew) {
   const e = engine();
-  const steps = builderSteps(e.evaluate(entity, { homebrew }).selections, e.buildTemplate(homebrew).shape);
+  const steps = builderSteps(e.evaluate(entity, { homebrew }).selections, buildTemplate(homebrew).shape);
   const background = steps.find((s) => s.name === "Background")!.selections.find((s) => s.key === "background")!;
   return { steps, background };
 }

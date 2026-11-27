@@ -20,7 +20,7 @@ import {
   unavailableClasses,
 } from "./class-block.ts";
 import { classHitPoints, storedHitPoints, withAverageHitPoints } from "./classes.ts";
-import { engine, loadEngine, type StrictEntity } from "./engine.ts";
+import { buildTemplate, engine, loadEngine, type StrictEntity } from "./engine.ts";
 import { addFirstClass, newCharacter } from "./new-character.ts";
 import { planChange } from "./removed-picks.ts";
 import { refusalLabels } from "./selection-control.ts";
@@ -35,7 +35,7 @@ const fixture = (): StrictEntity =>
 function build(entity: StrictEntity) {
   const e = engine();
   const { built, selections } = e.evaluate(entity, content);
-  const steps = builderSteps(selections, e.buildTemplate(undefined).shape);
+  const steps = builderSteps(selections, buildTemplate(undefined).shape);
   const selection = steps.find((s) => s.name === "Class")!.selections.find((s) => s.key === "class")!;
   const option = (key: string) => selection.options.find((o) => o.key === key)! as BuilderOption;
   return { built, steps, selection, option };
