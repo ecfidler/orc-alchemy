@@ -5,10 +5,7 @@
   "bundleJsKB": 4600,
   "sourceLines": {
     "max": 600,
-    "exceptions": {
-      "packages/app/e2e/builder.spec.ts": 708,
-      "packages/app/src/components/SpellsPanel.tsx": 639
-    }
+    "exceptions": {}
   },
   "fileKB": {
     "max": 500,

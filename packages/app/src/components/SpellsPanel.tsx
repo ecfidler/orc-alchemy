@@ -28,7 +28,8 @@ import { Button, Checkbox, Dialog, FramedBox, Label, LockIcon, PixelIcon } from 
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { type CastAction, castChoices, type FeatureUses } from "../engine/cast.ts";
-import { bonusStr, keyToName, type PrepareSpell, type Sheet, type Spellcasting, type SpellRef, type SpendSlots } from "../engine/sheet.ts";
+import type { PrepareSpell, Sheet, Spellcasting, SpellRef, SpendSlots } from "../engine/sheet.ts";
+import { bonusStr, keyToName } from "../engine/sheet-text.ts";
 import { type ListedSpell, type SourceNumbers, sourceNumbers, spellClassLine, spellGroups, spellId, spellSources } from "../engine/spell-list.ts";
 import { hasPrepareBox, type PrepareCount, type PrepareKind, prepareCounts, prepareCountText, prepareKind } from "../engine/spell-prepare.ts";
 import { spellName } from "../engine/spell-records.ts";

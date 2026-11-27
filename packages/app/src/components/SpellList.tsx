@@ -349,22 +349,28 @@ function Row<S extends ListSpell>({
           </span>
         )}
       </span>
-      {(record?.ritual || concentration || label) && (
-        <span className="flex items-center gap-1">
-          {label && (
-            <RowLabel onInk={selected}>
-              {label.lock && <LockIcon />}
-              {label.text}
-            </RowLabel>
-          )}
-          {record?.ritual && <BoxTag onInk={selected}>Ritual</BoxTag>}
-          {concentration && (
-            <BoxTag onInk={selected} label="Concentration">
-              C
-            </BoxTag>
-          )}
-        </span>
-      )}
+      <RowTags label={label} ritual={record?.ritual ?? false} concentration={concentration} onInk={selected} />
     </ListRow>
+  );
+}
+
+/** The end of a row: the label of its mark, the Ritual tag and the boxed "C" of concentration. Nothing when it has none. */
+function RowTags({ label, ritual, concentration, onInk }: { label: MarkWords["label"]; ritual: boolean; concentration: boolean; onInk: boolean }) {
+  if (!ritual && !concentration && !label) return null;
+  return (
+    <span className="flex items-center gap-1">
+      {label && (
+        <RowLabel onInk={onInk}>
+          {label.lock && <LockIcon />}
+          {label.text}
+        </RowLabel>
+      )}
+      {ritual && <BoxTag onInk={onInk}>Ritual</BoxTag>}
+      {concentration && (
+        <BoxTag onInk={onInk} label="Concentration">
+          C
+        </BoxTag>
+      )}
+    </span>
   );
 }
