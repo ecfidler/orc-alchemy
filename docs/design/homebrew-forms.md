@@ -1162,8 +1162,10 @@ Linear disagree, Linear wins.
 Tickets 2 to 9 do not need the new engine. If the engine release is late,
 move the pin to a place before ticket 10.
 
-**Review:** each ticket that changes a page attaches Playwright screenshots
-to its PR, light first and then dark.
+**Review:** the screenshot rules are in `project-workflow`, section
+"Screenshots": light mode at desktop width, with a dark or a 390 px
+screenshot only for a ticket that changes theme colors or the phone
+layout (ORC-359).
 
 # Out of scope for M9
 

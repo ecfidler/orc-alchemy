@@ -1,8 +1,6 @@
 // The question before a change that removes picks, in a browser (ORC-344, docs/design/character-builder.md "A change
 // that removes picks", "No layout shift"): a Cleric with Insight and Religion that takes Acolyte gets out of the dead
 // end of the ORC-329 research. The question is over the page and moves nothing in it.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { addFirstClass, changeClass, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
 
@@ -102,50 +100,4 @@ test("a Rogue with Expertise replaced with a Fighter: the question names the ski
   await openStep(page, "Proficiencies");
   await expect(section(page, "Skill Expertise")).toHaveCount(0);
   await expect(section(page, "Expertise")).toHaveCount(0);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/change-question.spec.ts -g orc-344 --trace off
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const ready = async (page: Page) => {
-    await page.evaluate(() => document.fonts.ready);
-    await page.mouse.move(0, 0);
-  };
-
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-344 the question before Acolyte, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await clericWithInsightAndReligion(page);
-      await pickIn(section(page, "Background"), "Acolyte");
-      await expect(page.getByRole("alertdialog", { name: "Change to Acolyte?" })).toBeVisible();
-      await ready(page);
-      await page.screenshot({ path: join(dir, `orc-344-change-to-acolyte-${theme}.png`) });
-    });
-
-    test(`orc-344 the question before a different race, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await newCharacter(page);
-      await addFirstClass(page, "Fighter");
-      await openStep(page, "Race");
-      await pickIn(section(page, "Race"), "Half-Elf");
-      await openStep(page, "Proficiencies");
-      await pickIn(section(page, "Skills: Half-Elf"), "Perception");
-      await pickIn(section(page, "Skills: Half-Elf"), "Stealth");
-      await openStep(page, "Abilities");
-      const increases = section(page, "Ability Score Increase: Half-Elf");
-      await increases.getByRole("button", { name: "Increase Strength" }).click();
-      await increases.getByRole("button", { name: "Increase Constitution" }).click();
-      await openStep(page, "Race");
-      await pickIn(section(page, "Race"), "Dwarf");
-      await expect(page.getByRole("alertdialog", { name: "Replace Half-Elf with Dwarf?" })).toBeVisible();
-      await ready(page);
-      await page.screenshot({ path: join(dir, `orc-344-replace-half-elf-${theme}.png`) });
-    });
-  }
 });

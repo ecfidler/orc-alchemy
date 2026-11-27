@@ -3,7 +3,6 @@
 // set and remove inspiration, its stored record, and no rest changes it; the
 // skills of an ability on hover, focus and a kept click; and neither moves any
 // part of the left column.
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { layoutOf, openWithValues, storedValues } from "./play-helpers.ts";
@@ -224,39 +223,3 @@ for (const width of [1280, 390]) {
     expect(await layout(page), "with the hover").toEqual(before);
   });
 }
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- inspiration.spec.ts -g orc-324
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-324 Inspiration and the ability highlight, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-324-${what}-${theme}.png`);
-      // A clip of the whole page at the top: a screenshot of the element scrolls, and the sticky tabs of a phone cover it.
-      const columnShot = async (what: string) => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        const clip = (await leftColumn(page).boundingBox())!;
-        await page.screenshot({ path: shot(what), fullPage: true, clip });
-      };
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openSheet(page);
-        await away(page);
-        await columnShot(`${size}-inspiration-off`);
-        await inspiration(page).click();
-        await away(page);
-        await columnShot(`${size}-inspiration-on`);
-        await ability(page, "Wisdom").click();
-        await away(page);
-        await expect.poll(() => highlighted(page)).toContain("Insight");
-        await columnShot(`${size}-wisdom-kept`);
-      }
-    });
-  }
-});

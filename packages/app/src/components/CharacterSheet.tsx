@@ -446,7 +446,7 @@ function Name({ children }: { children: string }) {
   useLayoutEffect(() => {
     const box = heading.current?.parentElement;
     if (!heading.current || !nameText.current || !box) return;
-    const fit = () => {
+    const fitName = () => {
       const element = heading.current!;
       const span = nameText.current!;
       element.style.cssText = "";
@@ -466,11 +466,11 @@ function Name({ children }: { children: string }) {
         if (span.offsetWidth <= element.clientWidth && span.offsetHeight <= lines * size * leading + 1) return;
       }
     };
-    fit();
+    fitName();
     // The fallback font has other widths, so the name fits again when the fonts load.
-    document.fonts?.ready.then(fit);
-    // The box, not the name: fit sets the name's height, which would start the observer again.
-    const observer = new ResizeObserver(fit);
+    document.fonts?.ready.then(fitName);
+    // The box, not the name: fitName sets the name's height, which would start the observer again.
+    const observer = new ResizeObserver(fitName);
     observer.observe(box);
     return () => observer.disconnect();
   }, [children]);

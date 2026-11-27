@@ -1,6 +1,5 @@
 // The Death saves box: circles that change, the Stable tag and the Dead label
 // (ORC-315, docs/design/sheet-interactivity.md "Death saves").
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { statusLine, vitals } from "./play-helpers.ts";
@@ -206,37 +205,4 @@ test("each group is one Tab stop; the arrow keys change it; the focus goes with 
   await act(page, "200", "Damage");
   await expect(dead(page)).toBeVisible();
   await expect(dead(page)).not.toBeFocused();
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- death-saves.spec.ts -g orc-315
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-315 Death saves, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-315-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openFighter(page);
-        const panel = vitals(page);
-        await act(page, "40", "Damage");
-        await setGroup(page, "successes", 1);
-        await setGroup(page, "failures", 2);
-        await page.locator(":focus").blur();
-        await panel.screenshot({ path: shot(`${size}-some`) });
-        await setGroup(page, "failures", 0);
-        await setGroup(page, "successes", 3);
-        await page.locator(":focus").blur();
-        await panel.screenshot({ path: shot(`${size}-stable`) });
-        await act(page, "200", "Damage");
-        await panel.screenshot({ path: shot(`${size}-dead`) });
-      }
-    });
-  }
 });

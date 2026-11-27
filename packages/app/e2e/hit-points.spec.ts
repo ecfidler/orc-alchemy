@@ -1,6 +1,5 @@
 // The Hit points box, its two popups and the status toast (ORC-314,
 // docs/design/sheet-interactivity.md "Hit points").
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { statusLine, vitals } from "./play-helpers.ts";
@@ -193,40 +192,4 @@ test("a popup opens under the box; on a phone it has the width of the vitals pan
   const panel = (await vitals(page).boundingBox())!;
   expect(popup!.y).toBeGreaterThan(under.y + under.height);
   expect([popup!.x, popup!.width]).toEqual([panel.x, panel.width]);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- hit-points.spec.ts -g orc-314
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-314 Hit points, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-314-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openFighter(page);
-        const panel = vitals(page);
-        await act(page, "temporary", "5", "Set temp HP");
-        await act(page, "hit-points", "12", "Damage");
-        await panel.screenshot({ path: shot(`${size}-damage`) });
-        await hitPoints(page).click();
-        await page.getByRole("dialog", { name: "Hit points" }).getByRole("textbox", { name: "Amount" }).fill("8");
-        await page.screenshot({ path: shot(`${size}-popup`) });
-        await page.keyboard.press("Escape");
-        await temporary(page).click();
-        await expect(page.getByRole("dialog", { name: "Temporary hit points" })).toBeVisible();
-        await page.screenshot({ path: shot(`${size}-temporary`) });
-        await page.keyboard.press("Escape");
-        await act(page, "hit-points", "40", "Damage");
-        await act(page, "hit-points", "2", "Damage");
-        await panel.screenshot({ path: shot(`${size}-zero`) });
-      }
-    });
-  }
 });

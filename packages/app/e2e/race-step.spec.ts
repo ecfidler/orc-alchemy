@@ -1,9 +1,7 @@
 // The Race step, in a browser (ORC-348, docs/design/character-builder.md "The Background and Race steps", "Custom
 // Origin", "No layout shift"): a pick from the list with a detail panel, Draconic Ancestry in Choices, a race with one
 // subrace (a fact of the panel) and with two (a Subrace row), the lines of a Half-Elf to other steps, the Custom Origin
-// row, the Customize buttons of the block, and the screenshots of the PR.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+// row, and the Customize buttons of the block.
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { ashDwarfOrcbrew } from "../src/engine/test-races.ts";
 import { addFirstClass, newCharacter, openStep, pickIn, section, startCustomOrigin } from "./builder-helpers.ts";
@@ -194,88 +192,3 @@ async function pickOptionIn(page: Page, select: Locator, name: string) {
   await page.getByRole("option", { name, exact: true }).click();
   await expect(select).toHaveText(name);
 }
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/race-step.spec.ts -g orc-348 --trace off (or -g orc-355)
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const ready = async (page: Page) => {
-    await page.evaluate(() => document.fonts.ready);
-    await page.mouse.move(0, 0);
-  };
-  const step = (page: Page) => page.getByRole("region", { name: "Builder" });
-
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390]) {
-      const size = width === 390 ? "390" : "desktop";
-      test(`orc-348 the Race step, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        const shot = (locator: Locator, what: string) =>
-          locator.screenshot({ path: join(dir, `orc-348-${what}-${size}-${theme}.png`), animations: "disabled" });
-        const full = (what: string) => page.screenshot({ path: join(dir, `orc-348-${what}-${size}-${theme}.png`), animations: "disabled" });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        await fighterOnRace(page);
-        await ready(page);
-        if (width === 390) {
-          await shot(step(page), "list");
-          await row(page, "Dwarf").click();
-          const modal = page.getByRole("dialog", { name: "Dwarf" });
-          await expect(modal.getByRole("term").first()).toHaveText("Ability scores");
-          await ready(page);
-          await full("race-modal");
-          await modal.getByRole("button", { name: "Cancel" }).click();
-          await row(page, "Custom Origin").click();
-          const origin = page.getByRole("dialog", { name: "Custom Origin" });
-          await expect(origin).toContainText("A custom origin is not saved to your homebrew content.");
-          await ready(page);
-          await full("custom-origin");
-          await origin.getByRole("button", { name: "Cancel" }).click();
-        } else {
-          await show(page, "Dwarf");
-          await ready(page);
-          await shot(step(page), "list-panel");
-          await show(page, "Custom Origin");
-          await ready(page);
-          await shot(step(page), "custom-origin");
-        }
-        // The Half-Elf first: it has no pick on this step, so the change to Dragonborn asks nothing.
-        await pickIn(race(page), "Half-Elf");
-        await expect(heading(page)).toHaveText(/^Half-Elf/);
-        await ready(page);
-        await shot(step(page), "block-half-elf");
-        await pickIn(race(page), "Dragonborn");
-        await expect(section(page, "Draconic Ancestry")).toBeVisible();
-        await ready(page);
-        await shot(step(page), "block-dragonborn");
-      });
-    }
-  // The panel of Dragonborn and Tiefling, with the traits that the engine gives (ORC-355).
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390]) {
-      const size = width === 390 ? "390" : "desktop";
-      test(`orc-355 the race panel of Dragonborn and Tiefling, ${size}, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        await fighterOnRace(page);
-        for (const name of ["Dragonborn", "Tiefling"]) {
-          const path = join(dir, `orc-355-${name.toLowerCase()}-${size}-${theme}.png`);
-          if (width === 390) {
-            await row(page, name).click();
-            const modal = page.getByRole("dialog", { name });
-            await expect(modal.getByRole("listitem").first()).toBeVisible();
-            await ready(page);
-            await page.screenshot({ path, animations: "disabled" });
-            await modal.getByRole("button", { name: "Cancel" }).click();
-          } else {
-            await show(page, name);
-            await expect(panel(page).getByRole("listitem").first()).toBeVisible();
-            await ready(page);
-            await step(page).screenshot({ path, animations: "disabled" });
-          }
-        }
-      });
-    }
-});

@@ -1,7 +1,6 @@
 // The Rest button, the Short rest dialog with Arcane Recovery (ORC-318), and
 // the Long rest and Dawn dialogs (ORC-319, docs/design/sheet-interactivity.md
 // "Rests").
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { openWithValues, statusLine, storedValues } from "./play-helpers.ts";
@@ -55,9 +54,6 @@ async function spend(page: Page, die: string, roll: string) {
   await row(page, die).getByRole("textbox", { name: "Roll" }).fill(roll);
   await row(page, die).getByRole("button", { name: "Spend", exact: true }).click();
 }
-
-/** Takes the focus off the focused element, if one has it, so that a screenshot shows no focus ring. */
-const blur = (page: Page) => page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
 /** Opens a rest dialog from the menu. */
 async function openRest(page: Page, name: string) {
@@ -449,110 +445,4 @@ test("Dawn gives back the number in each field, and a field at 0 says that nothi
   await page.reload();
   await expect(restButton(page)).toBeVisible();
   expect(await storedValues(page)).toEqual(rest);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- rest.spec.ts -g orc-318
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-318 Rest, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-318-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openWithValues(page, MULTICLASS, PLAY);
-        // The action row with the menu open.
-        await restButton(page).click();
-        const menu = page.getByRole("menu");
-        await expect(menu).toBeVisible();
-        const row = await page.getByRole("link", { name: "Back to List" }).locator("..").boundingBox();
-        const list = await menu.boundingBox();
-        if (row && list) {
-          const bottom = Math.max(row.y + row.height, list.y + list.height) + 8;
-          await page.screenshot({ path: shot(`${size}-menu`), clip: { x: 0, y: Math.max(0, row.y - 8), width, height: bottom - Math.max(0, row.y - 8) } });
-        }
-        await page.getByRole("menuitem", { name: "Short rest" }).click();
-        await expect(dialog(page)).toBeVisible();
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-dialog-empty`) });
-        await spend(page, "d10", "7");
-        await spend(page, "d8", "3");
-        await spend(page, "d8", "6");
-        await dialog(page).getByRole("button", { name: "One more 1st-level slot" }).click();
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-dialog-picked`) });
-        if (size === "phone") {
-          await dialog(page)
-            .locator(".ui-modal-body")
-            .evaluate((body) => body.scrollTo(0, body.scrollHeight));
-          await page.screenshot({ path: shot(`${size}-dialog-picked-end`) });
-        }
-        await page.keyboard.press("Escape");
-      }
-    });
-  }
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/rest.spec.ts -g orc-319
-test.describe("screenshots of ORC-319", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-319 Long rest and Dawn, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-319-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openWithValues(page, WIZARD, TIRED);
-        // The action row with the menu of three entries.
-        await restButton(page).click();
-        const menu = page.getByRole("menu");
-        await expect(menu).toBeVisible();
-        const row = await page.getByRole("link", { name: "Back to List" }).locator("..").boundingBox();
-        const list = await menu.boundingBox();
-        if (row && list) {
-          const top = Math.max(0, row.y - 8);
-          await page.screenshot({
-            path: shot(`${size}-menu`),
-            clip: { x: 0, y: top, width, height: Math.max(row.y + row.height, list.y + list.height) + 8 - top },
-          });
-        }
-        await page.getByRole("menuitem", { name: "Long rest" }).click();
-        await expect(dialog(page, "Long rest")).toBeVisible();
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-long-rest`) });
-        if (size === "phone") {
-          await dialog(page, "Long rest")
-            .locator(".ui-modal-body")
-            .evaluate((body) => body.scrollTo(0, body.scrollHeight));
-          await page.screenshot({ path: shot(`${size}-long-rest-end`) });
-        }
-        await dialog(page, "Long rest").getByRole("checkbox", { name: "Dawn came during the rest" }).click();
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-long-rest-dawn-off`) });
-        await page.keyboard.press("Escape");
-        await openRest(page, "Dawn");
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-dawn`) });
-        await page.keyboard.press("Escape");
-        // A rested fighter: the Long rest changes nothing.
-        await openWithValues(page, FIGHTER, { "~:orcpub.dnd.e5.character/current-hit-points": null });
-        await openRest(page, "Long rest");
-        await blur(page);
-        await page.screenshot({ path: shot(`${size}-nothing`) });
-        await page.keyboard.press("Escape");
-      }
-    });
-  }
 });

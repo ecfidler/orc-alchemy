@@ -33,6 +33,10 @@
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "noUnusedFunctionParameters": "error"
+      },
+      "suspicious": {
+        "noFocusedTests": "error",
+        "noSkippedTests": "error"
       }
     }
   },

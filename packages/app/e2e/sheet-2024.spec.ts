@@ -1,6 +1,5 @@
 // The 2024 golden characters on the sheet, behind the 2024 rules preview of Preferences (ORC-238, ORC-250 to ORC-252, ORC-308).
 
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
@@ -82,66 +81,4 @@ test("shows the Monk's Martial Arts on the Shortsword and the Unarmed Strike", a
     "+13 to hit",
     "1d12+7 Bludgeoning",
   ]);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- sheet-2024.spec.ts
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-238 the 2024 Fighter at level 20, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await openFighter(page, 20);
-      await page.evaluate(() => document.fonts.ready);
-      await page.mouse.move(0, 0);
-      await page.screenshot({ path: join(dir, `orc-238-fighter-20-${theme}.png`), fullPage: true });
-    });
-  }
-});
-
-test.describe("screenshots of the classes", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const characters = [
-    ["orc-250-barbarian", "Barbarian (Goliath Soldier, Berserker)", "Kavaki"],
-    ["orc-251-monk", "Monk (Human Criminal, Open Hand)", "Mei"],
-    ["orc-252-rogue", "Rogue (Halfling Criminal, Thief)", "Pip"],
-  ] as const;
-  for (const [file, name, heading] of characters) {
-    for (const theme of ["light", "dark"] as const) {
-      test(`${file} at level 20, ${theme}`, async ({ page }) => {
-        mkdirSync(dir, { recursive: true });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width: 1280, height: 900 });
-        await openGolden(page, name, 20);
-        await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-        await page.evaluate(() => document.fonts.ready);
-        await page.mouse.move(0, 0);
-        await page.screenshot({ path: join(dir, `${file}-20-${theme}.png`), fullPage: true });
-      });
-    }
-  }
-});
-
-test.describe("screenshots of Preferences", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-308 the Experimental section, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      await page.setViewportSize({ width: 1280, height: 700 });
-      await page.goto("/preferences");
-      await page.getByRole("checkbox", { name: "2024 rules preview" }).click();
-      await expect(page.getByRole("link", { name: "Open the 2024 rules preview" })).toBeVisible();
-      await page.evaluate(() => document.fonts.ready);
-      await page.mouse.move(0, 0);
-      await page.screenshot({ path: join(dir, `orc-308-preferences-${theme}.png`) });
-    });
-  }
 });

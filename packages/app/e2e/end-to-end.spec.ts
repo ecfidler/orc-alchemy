@@ -1,9 +1,7 @@
 // The end-to-end pass of the builder (ORC-353, docs/design/character-builder.md): a new character goes through the ten
 // steps in order with Next and reaches the sheet with "Go to the sheet"; the path of the ORC-329 research, a Cleric
-// that takes Acolyte, asks the question and has no dead end; the keyboard and screen reader rules of "Keyboard and
-// screen reader"; and the screenshots of each step for the PR.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+// that takes Acolyte, asks the question and has no dead end; and the keyboard and screen reader rules of "Keyboard and
+// screen reader".
 import { pickOption } from "@orc-alchemy/ui/testing/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import {
@@ -209,44 +207,4 @@ test("the rail is a list of buttons in a nav named Steps; a mark is part of the 
   await expect(builder(page).getByRole("heading", { name: "Class, 1 left", exact: true })).toBeVisible();
   // A refusal of the engine shows in the status toast, a live region.
   await expect(page.locator("[data-toast-status]")).toHaveAttribute("role", "status");
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/end-to-end.spec.ts -g orc-353 --trace off
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390]) {
-      const size = width === 390 ? "390" : "desktop";
-      test(`orc-353 each step, ${size}, ${theme}`, async ({ page }) => {
-        test.setTimeout(120_000);
-        mkdirSync(dir, { recursive: true });
-        await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-        await page.setViewportSize({ width, height: 900 });
-        const shot = async (step: string) => {
-          await page.evaluate(() => document.fonts.ready);
-          await page.mouse.move(0, 0);
-          await page.evaluate(() => window.scrollTo(0, 0));
-          // The top of a long step, such as the spell lists: at most 2400px of the page.
-          const height = Math.min(await page.evaluate(() => document.documentElement.scrollHeight), 2400);
-          await page.screenshot({
-            path: join(dir, `orc-353-${step.toLowerCase()}-${size}-${theme}.png`),
-            fullPage: true,
-            clip: { x: 0, y: 0, width, height },
-            animations: "disabled",
-          });
-        };
-        // Feats: fighter-20 takes Grappler.
-        await openFixture(page, "fighter-20", "Feats");
-        await shot("Feats");
-        // The other steps: fighter-3-wizard-2, Corvin Half-Elven, a half-elf acolyte.
-        await openFixture(page, "fighter-3-wizard-2", "Name");
-        for (const step of STEPS.filter((s) => s !== "Feats")) {
-          await openStep(page, step);
-          await shot(step);
-        }
-      });
-    }
 });

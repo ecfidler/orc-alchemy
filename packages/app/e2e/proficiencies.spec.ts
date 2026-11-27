@@ -1,8 +1,6 @@
 // The Proficiencies step in a browser (ORC-346, docs/design/character-builder.md "The Proficiencies step", "No layout
 // shift"): the groups, the "Already has" tokens, a section for each source, the merged Languages section, the rail
 // that counts these picks there only, and a pick that moves nothing above it.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { addFirstClass, builder, newCharacter, openStep, pickIn, picksIn, section, stepButton } from "./builder-helpers.ts";
 
@@ -83,38 +81,4 @@ test("a pick moves nothing above it, and nothing below it", async ({ page }) => 
   await pickIn(languages, "Dwarvish");
   await expect(picksIn(languages)).toHaveText(["Dwarvish"]);
   expect(await boxes()).toEqual(before);
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bunx playwright test e2e/proficiencies.spec.ts -g orc-346 --trace off
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  const ready = async (page: Page) => {
-    await page.evaluate(() => document.fonts.ready);
-    await page.mouse.move(0, 0);
-  };
-  const shoot = (page: Page, name: string) => builder(page).screenshot({ path: join(dir, `orc-346-${name}.png`), animations: "disabled" });
-
-  const characters = [
-    // The merged Languages section, and the Expertise of a rogue.
-    { name: "half-elf-acolyte-rogue", klass: "Rogue", race: "Half-Elf", background: "Acolyte", pick: ["Skills: Half-Elf", "Perception"] },
-    // The three groups, with the thieves' tools of the rogue in "Already has".
-    { name: "dwarf-acolyte-rogue", klass: "Rogue", race: "Dwarf", background: "Acolyte", pick: ["Tools: Dwarf", "Smith's Tools"] },
-  ];
-  for (const theme of ["light", "dark"])
-    for (const width of [1280, 390])
-      for (const { name, pick, ...picks } of characters) {
-        const size = width === 390 ? "390" : "desktop";
-        test(`orc-346 ${name}, ${size}, ${theme}`, async ({ page }) => {
-          mkdirSync(dir, { recursive: true });
-          await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-          await page.setViewportSize({ width, height: 1000 });
-          await character(page, picks);
-          await pickIn(section(page, pick[0]), pick[1]);
-          await expect(picksIn(section(page, pick[0]))).toHaveText([pick[1]]);
-          await ready(page);
-          await shoot(page, `${name}-${size}-${theme}`);
-        });
-      }
 });

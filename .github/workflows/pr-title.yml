@@ -1,0 +1,26 @@
+# The title of each pull request names its Linear issue (ORC-362).
+# The squash commit on main gets the title, so the issue id reaches main.
+# This check is a workflow of its own, so that a change of the title runs it
+# again and does not run the CI jobs again.
+
+name: PR title
+
+on:
+    pull_request:
+        types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+    title:
+        runs-on: ubuntu-latest
+        timeout-minutes: 2
+        steps:
+            - env:
+                  TITLE: ${{ github.event.pull_request.title }}
+                  AUTHOR: ${{ github.event.pull_request.user.login }}
+              run: |
+                  if [ "$AUTHOR" != "dependabot[bot]" ] && ! printf '%s' "$TITLE" | grep -qE 'ORC-[0-9]+'; then
+                    echo "::error::The title of the pull request must name its Linear issue, for example 'ORC-123: Add the rest button'."
+                    exit 1
+                  fi

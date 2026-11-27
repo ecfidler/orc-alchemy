@@ -1,8 +1,7 @@
 // Recorded feature uses: circles, pools, turn uses and the name "Dawn" (ORC-316,
 // docs/design/sheet-interactivity.md "Feature uses").
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 /**
  * A cleric 6 / paladin 3 / rogue 1 / wizard 1: two Channel Divinity features (2 uses and 1 use, both "rest"),
@@ -175,57 +174,3 @@ for (const [width, height] of [
     await check("pool 10");
   });
 }
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- feature-uses.spec.ts -g orc-316
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-316 Feature uses, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (locator: Locator | Page, what: string) =>
-        locator.screenshot({
-          path: join(dir, `orc-316-${what}-${theme}.png`),
-          // The tab row of a narrow sheet sticks to the top; in a shot of a tall section it covers a line.
-          style: "[role=tablist] { visibility: hidden; }",
-        });
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        await openMulticlass(page);
-        await circle(page, "Divine Sense", 0).click();
-        await channel(page, 2).locator(".ui-slot-circle").first().click();
-        await bubble(page, "Lay on Hands").getByRole("button", { name: "Spend 1 Lay on Hands" }).click();
-        await poolAct(page, "6", "Spend");
-        await page.locator(":focus").blur();
-        await page.mouse.move(0, 0);
-        // The section with some circles spent, the pool with its buttons, "Once per turn" and "Dawn".
-        await shot(features(page), `${size}-features`);
-        await shot(bubble(page, "Lay on Hands"), `${size}-pool`);
-        await shot(bubble(page, "Sneak Attack"), `${size}-once-per-turn`);
-        await shot(bubble(page, "Arcane Recovery"), `${size}-dawn`);
-        // The pool popup open, with the bubble under it.
-        await poolCount(page).click();
-        const popup = page.getByRole("dialog", { name: "Lay on Hands" });
-        await popup.getByRole("textbox", { name: "Amount" }).fill("3");
-        const box = await bubble(page, "Lay on Hands").boundingBox();
-        const pop = await popup.boundingBox();
-        if (box && pop) {
-          const top = Math.min(box.y, pop.y) - 8;
-          const left = Math.max(0, Math.min(box.x, pop.x) - 8);
-          const right = Math.min(width, Math.max(box.x + box.width, pop.x + pop.width) + 8);
-          const bottom = Math.max(box.y + box.height, pop.y + pop.height) + 8;
-          await page.screenshot({
-            path: join(dir, `orc-316-${size}-pool-popup-${theme}.png`),
-            clip: { x: left, y: top, width: right - left, height: bottom - top },
-          });
-        }
-        await page.keyboard.press("Escape");
-      }
-    });
-  }
-});

@@ -55,7 +55,7 @@ Thumbs.db
 # Playwright output
 test-results/
 playwright-report/
-# The PR screenshots of the e2e specs (PR_SCREENSHOTS=1). They go to the PR, not to the repository.
+# Screenshots that a script takes for a PR. They go to the project thread, not to the repository.
 pr-screenshots/
 
 # The owner's private .orcbrew export. Never commit it (fixtures/orcbrew/private/ tests skip without it).

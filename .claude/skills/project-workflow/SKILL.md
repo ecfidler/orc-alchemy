@@ -2,7 +2,7 @@
 name: "project-workflow"
 description: "Run a Linear project to done: order its issues, build them in slices of stacked PRs, then close the project. Use when asked to work on, finish, or pick up a project or one of its milestones (e.g. Spells panel, or an older name such as M9 or E1)."
 disable-model-invocation: false
-version: "0.5.0"
+version: "0.6.0"
 ---
 
 Each issue goes through `linear-issue-workflow`. This skill owns what sits around it: the **run plan**, the **slices**, and closing the project.
@@ -33,24 +33,33 @@ The base branch is the project branch (`<kebab-name>`) when one exists, else the
 
 1. **Branch.** The first slice uses the branch the session assigns, cut from the base branch. Each later slice gets `<session-branch>-<first issue id>` (ex. `claude/project-thread-k15ffd-orc-289`), cut from the branch of the slice before.
 2. **Build.** Run `linear-issue-workflow` on each issue in order, one at a time, in its "Inside a Slice" form.
-3. **Check.** Run the full test, lint, and typecheck suite on the slice branch.
+3. **Check.** Run lint, typecheck, and the test files that the slice changes. CI runs the full suite on the PR of the slice.
 4. **Review.** Open the draft PR against the branch of the slice before (the first slice: the base branch). Name every issue ID of the slice in the title. Run one `standards-reviewer` on the diff of the slice, with the rounds of `linear-issue-workflow`, section "Review".
 5. **Hand over.** Write the PR description and mark the PR ready. Then send me one message with:
     - the PR;
     - what to know before merging: plan numbers that proved wrong, scope that moved, follow-ups filed, and each issue that waits on a question;
-    - when the slice changes the UI, its screenshots and a short list of things to try in the app.
+    - when the slice changes the UI, its screenshots (section "Screenshots") and a short list of things to try in the app.
 6. Start the next slice at once. Between PRs, progress goes only on the progress checklist of the thread, or on the to-do list of a session that has no thread.
 
-### After I merge
+### The merge
 
-I squash-merge the lowest PR. Finish the commit of the current issue first, then move the stack:
+The slice PRs are a stack on GitHub, and I merge the stack one time (ORC-359). When I have reviewed the slices, I squash-merge the top PR. GitHub then lands each PR below it in the same operation.
 
-1. Rebase the next slice onto the new base: `git rebase --onto origin/<base> <old tip of the merged branch>`.
-2. Push it with `--force-with-lease`, and point its PR at the base branch.
-3. Rebase each slice above it the same way: `git rebase --onto <slice below> <old tip of the slice below>`. Push each one.
-4. When the base is `main`, drive the CI of the lowest PR green. CI runs only on PRs into `main`, so no other PR has CI. On a project branch, the full local suite is the only gate.
+- CI runs on each PR. Drive the CI of each slice green as soon as its PR is open, and again after each push. Do not wait for a merge.
+- A fix to a slice goes on the branch of that slice. Then rebase each slice above it onto the slice below it (`git rebase --onto <slice below> <old tip of the slice below>`), and push each one with `--force-with-lease`.
+- If I merge only a part of the stack, GitHub rebases the PRs that remain and points the lowest at the base branch. Do not rebase them or change a base by hand after a merge. Do these steps:
+    1. Run `git fetch`.
+    2. Move each local branch to its remote branch.
+    3. Cherry-pick the work that you did not push.
+- If the merge from the top PR does not land the stack, stop and tell me.
 
-A fix to a slice that has slices above it goes on the branch of that slice. Then do step 3 for the slices above.
+### Screenshots
+
+- Light mode only, at desktop width only.
+- Add a shot at 390 px only for an issue that changes the phone layout. Add a dark shot only for an issue that changes theme colors.
+- One shot for each state that the issue adds or changes. No shot of a state that an earlier slice showed.
+- Take the shots at the head of the slice, after the last review fix.
+- Do not commit the test or script that takes the shots, and do not commit the images. Save the images in the project files and attach them in the thread.
 
 ### A question in the build
 
@@ -72,7 +81,7 @@ Done when every issue is Done in Linear.
 1. If the base is a project branch, open the PR of the project branch into `main` and drive its CI green.
 2. Check the proof claim by claim, naming the test that covers each. Report any claim with no test.
 3. If the finish-line issue asks for an exit report, post it there.
-4. After the merge, update project memory with the decisions and open follow-ups.
+4. After the merge, update project memory with the decisions and open follow-ups. Cut the line of the project in the memory index to one sentence with a pointer to its file.
 5. Last, close the Linear project with the steps in `docs/agents/issue-tracker.md`, section "Close a project".
 
 Done when the Linear project is Completed.

@@ -1,6 +1,5 @@
 // The Hit dice box and its popup (ORC-317, docs/design/sheet-interactivity.md
 // "Hit dice").
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { statusLine, vitals } from "./play-helpers.ts";
@@ -186,49 +185,4 @@ test("keyboard: the box opens the popup with the focus in the first field; Enter
   await expect(row(page, "d10").getByRole("textbox", { name: "Roll" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(popup(page).getByRole("status")).toHaveText("Type a roll from 1 to 10 for the d10.");
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- hit-dice.spec.ts -g orc-317
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-317 Hit dice, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-317-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      for (const [size, width, height] of [
-        ["desktop", 1280, 900],
-        ["phone", 390, 844],
-      ] as const) {
-        await page.setViewportSize({ width, height });
-        /** The vitals panel, and the panel with the popup open under the box. */
-        const shots = async (what: string) => {
-          await page.locator(":focus").blur();
-          await vitals(page).screenshot({ path: shot(`${size}-${what}`) });
-          await hitDice(page).click();
-          await row(page, "d10").getByRole("textbox", { name: "Roll" }).fill("7");
-          const panel = await vitals(page).boundingBox();
-          const pop = await popup(page).boundingBox();
-          if (panel && pop) {
-            const top = Math.max(0, Math.min(panel.y, pop.y) - 8);
-            const left = Math.max(0, Math.min(panel.x, pop.x) - 8);
-            const right = Math.min(width, Math.max(panel.x + panel.width, pop.x + pop.width) + 8);
-            const bottom = Math.max(panel.y + panel.height, pop.y + pop.height) + 8;
-            await page.screenshot({ path: shot(`${size}-${what}-popup`), clip: { x: left, y: top, width: right - left, height: bottom - top } });
-          }
-          await page.keyboard.press("Escape");
-        };
-        await open(page, FIGHTER);
-        await act(page, "d10", { roll: "7" });
-        await act(page, "d10", { roll: "4" });
-        await shots("single-class");
-        await open(page, MULTICLASS);
-        await act(page, "d8", { roll: "5" });
-        await act(page, "d6", { roll: "3" });
-        await shots("multiclass");
-      }
-    });
-  }
 });

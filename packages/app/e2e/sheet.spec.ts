@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
@@ -295,71 +295,4 @@ test("warlock-10-drow: the 5th-level row has two diamonds with 28px tap areas, a
   await expect.poll(() => storedSlotsUsed(page)).toEqual({ "~:orcpub.dnd.e5.spells/slots-5": { "~#set": [0] } });
   await page.reload();
   await expect(page.getByRole("slider", { name: "Pact slots, 5th level" })).toHaveAttribute("aria-valuetext", "1 of 2 spent");
-});
-
-// Screenshots for the PR: PR_SCREENSHOTS=1 bun run e2e -- sheet.spec.ts -g orc-203
-test.describe("screenshots", () => {
-  test.skip(!process.env.PR_SCREENSHOTS, "Set PR_SCREENSHOTS=1 to take the PR screenshots.");
-  test.use({ deviceScaleFactor: 2 });
-  const dir = join(import.meta.dirname, "../../../pr-screenshots");
-  for (const theme of ["light", "dark"] as const) {
-    test(`orc-203 scaled-uses sheet, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-203-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await importScaledUses(page);
-      await page.evaluate(() => document.fonts.ready);
-      await page.getByRole("group", { name: "Features & traits" }).screenshot({ path: shot("sheet-features") });
-
-      await page.setViewportSize({ width: 390, height: 844 });
-      await page.getByRole("tab", { name: "Features" }).click();
-      await page.getByRole("tabpanel").getByRole("heading", { level: 3, name: "Actions", exact: true }).waitFor();
-      await page.screenshot({ path: shot("phone-features"), fullPage: true });
-    });
-
-    // PR_SCREENSHOTS=1 bun run e2e -- sheet.spec.ts -g orc-283
-    test(`orc-283 Pact slots, ${theme}`, async ({ page }) => {
-      mkdirSync(dir, { recursive: true });
-      const shot = (what: string) => join(dir, `orc-283-${what}-${theme}.png`);
-      await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-      const section = () => page.getByRole("group", { name: "Spellcasting", exact: true });
-      /** Spends slots with the keys, then takes the focus off, so the picture has no focus ring and no light fill. */
-      const spend = async (name: string, times = 1) => {
-        const group = page.getByRole("slider", { name });
-        await group.focus();
-        for (let i = 0; i < times; i++) await page.keyboard.press("ArrowRight");
-        await group.blur();
-      };
-      const phone = async (what: string) => {
-        await page.setViewportSize({ width: 390, height: 844 });
-        await page.getByRole("tab", { name: "Spells" }).click();
-        await section().screenshot({ path: shot(what) });
-      };
-
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await importWarlock10(page);
-      await page.evaluate(() => document.fonts.ready);
-      await spend("Pact slots, 5th level");
-      await section().screenshot({ path: shot("warlock") });
-      await phone("warlock-phone");
-
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await page.goto("/import");
-      await page.getByLabel("Import character file").setInputFiles(join(import.meta.dirname, "warlock-10-sorcerer-9.strict.json"));
-      await expect(page).toHaveURL(/\/sheet\/[0-9a-f-]+$/);
-      await page.evaluate(() => document.fonts.ready);
-      await spend("Pact slots, 5th level");
-      await spend("5th-level slots");
-      await section().screenshot({ path: shot("multiclass") });
-      // The keyboard focus on the diamonds: Tab from the 5th-level circles.
-      await page.getByRole("slider", { name: "5th-level slots" }).focus();
-      await page.keyboard.press("Tab");
-      await expect(page.getByRole("slider", { name: "Pact slots, 5th level" })).toBeFocused();
-      await section().screenshot({ path: shot("focus") });
-      await page.keyboard.press("Tab");
-      await phone("multiclass-phone");
-    });
-  }
 });
