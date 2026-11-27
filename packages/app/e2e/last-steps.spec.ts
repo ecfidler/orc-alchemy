@@ -142,7 +142,10 @@ test("at 390px the inventory tables fit with no page scroll, and an item from Ad
   await openFixture(page, "fighter-20", "Equipment");
   await pickFromPicker(builder(page).getByRole("button", { name: /^Add items/ }), ["Ring of Protection"]);
   const magic = section(page, "Other Magic Items").getByRole("table");
-  await expect(magic.getByRole("row").last().getByRole("cell")).toHaveText(["", "Ring of Protection", "", "—", "", ""]);
+  // The name is the row header (a th), the other parts are cells.
+  const row = magic.getByRole("row").last();
+  await expect(row.getByRole("rowheader")).toHaveText("Ring of Protection");
+  await expect(row.locator("th, td")).toHaveText(["", "Ring of Protection", "", "—", "", ""]);
   // Each column is in the table's box, and the page does not scroll to the side.
   const table = (await magic.boundingBox())!;
   const remove = (await magic.getByRole("button", { name: "Remove Ring of Protection" }).boundingBox())!;
