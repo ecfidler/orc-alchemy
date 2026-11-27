@@ -392,7 +392,9 @@ bun run test       # vitest
     of the add button. `reserve` is a number of token lines (28px each)
     that the token line keeps, also with no pick, so a pick does not move
     what comes after the token line. An option with `busy` has a busy
-    row, or a busy X on its token. `blocked` is the reason that the picker
+    row, or a busy X on its token, and while an option that is not picked
+    is busy, the AddButton is busy too (a modal that closed first leaves
+    the busy look on it). `blocked` is the reason that the picker
     takes no more picks, for example "Remove a choice first.": the
     AddButton is then disabled but keeps the focus, and shows the reason
     in place of the count, as its description and tooltip (ORC-370).

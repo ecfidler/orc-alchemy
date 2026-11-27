@@ -47,7 +47,7 @@ export function Description({ alignment }: { alignment?: BuilderSelection }) {
  */
 function AlignmentField({ selection }: { selection: BuilderSelection }) {
   // A Select has no busy look, so its pick happens at once (usePick).
-  const { replace, dialog } = usePick(selection, undefined, false);
+  const { replace, dialog } = usePick(selection, { defer: false });
   const current = selection.selected[0] ?? null;
   return (
     <div className="col-span-full">

@@ -68,13 +68,12 @@ function asksFirst(selection: BuilderSelection): boolean {
  * the background asks first when it removes picks; `dialog` is the element of that question, for the control to render.
  * `finalFocus` gets the focus when the question closes; without it, the focus goes back to where it was. A pick
  * happens after the next paint (usePendingMutation): until it shows, `pending` has the key of its option, so the
- * control shows that button as busy (docs/design/character-builder.md, "A pick that is on its way"). With `defer`
- * false, a pick happens at once, for a control with no busy look: the box of a spell and the Select of Alignment.
+ * control shows that button as busy (docs/design/character-builder.md, "A pick that is on its way"). With `defer:
+ * false`, a pick happens at once, for a control with no busy look: the box of a spell and the Select of Alignment.
  */
 export function usePick(
   selection: BuilderSelection,
-  finalFocus?: RefObject<HTMLElement | null>,
-  defer = true,
+  { finalFocus, defer = true }: { finalFocus?: RefObject<HTMLElement | null>; defer?: boolean } = {},
 ): {
   select: (key: string) => void;
   deselect: (key: string) => void;
@@ -229,7 +228,7 @@ function ChooseControl({ selection, options, unavailable }: ControlProps) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   // The list closes on the pick, so the question gives the focus to the button after it.
-  const { replace, dialog, pending } = usePick(selection, button);
+  const { replace, dialog, pending } = usePick(selection, { finalFocus: button });
   const name = useSectionName(selection);
   const current = options.find((option) => option.selected);
   // A selection of one pick that has more than one, as an imported character can, shows each.

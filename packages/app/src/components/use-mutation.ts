@@ -7,7 +7,7 @@ import { type Content, type Engine, engine, type StrictEntity } from "../engine/
 import { useCharacter, useCharacterContent } from "../state/character.ts";
 import { useBuilderStatus } from "./builder-context.tsx";
 
-export type Mutation = (e: Engine, entity: StrictEntity, options: Content) => StrictEntity;
+type Mutation = (e: Engine, entity: StrictEntity, options: Content) => StrictEntity;
 
 /**
  * The function that makes an engine mutation with the loaded content. When the engine refuses it, its message shows

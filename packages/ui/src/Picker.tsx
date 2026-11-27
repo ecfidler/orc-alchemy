@@ -95,8 +95,8 @@ export type PickerProps<T> = {
   /**
    * The number of token lines that the picker keeps a place for, also with
    * no pick, so that a pick does not move what comes after the token line:
-   * the add button, or with `addFirst` what is below the picker. A token line is 28px high. More tokens than fit still wrap
-   * to a new line.
+   * the add button, or with `addFirst` what is below the picker. A token
+   * line is 28px high. More tokens than fit still wrap to a new line.
    */
   reserve?: number;
   /**

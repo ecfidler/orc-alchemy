@@ -181,9 +181,10 @@ export function Tokens({ children, className }: { children?: ReactNode; classNam
   });
   const refocus = useRefocus(line, x, () => {
     const own = [...(line.current?.querySelectorAll<HTMLElement>("button") ?? [])].find((b) => !b.closest(".ui-token"));
-    const button = (next: Element | null | undefined) => (next?.matches("button") ? (next as HTMLElement) : next?.querySelector<HTMLElement>("button"));
-    const before = line.current?.previousElementSibling;
-    return own ?? button(line.current?.nextElementSibling) ?? (before?.matches("button") ? (before as HTMLElement) : undefined);
+    // A sibling that is a button, or the first button in it.
+    const button = (sibling: Element | null | undefined) =>
+      sibling?.matches("button") ? (sibling as HTMLElement) : sibling?.querySelector<HTMLElement>("button");
+    return own ?? button(line.current?.nextElementSibling) ?? button(line.current?.previousElementSibling);
   });
   return (
     <div

@@ -4,7 +4,7 @@ title: Character builder spec
 description: The settled design of the character builder of Alchemy 5e - ten steps on a step rail, marks for the picks that are left, the summary card, the control for each kind of selection, the Name, Class, Background, Race, Abilities and Proficiencies steps, the question before a change removes picks, what a 2024 builder changes, and the run order of the build tickets.
 tags: [design, builder]
 status: stable
-generated: { by: claude-code/agent, at: 2026-11-26T21:50:00Z }
+generated: { by: claude-code/agent, at: 2026-11-27T05:10:55Z }
 resource: https://linear.app/orc-alchemy/issue/ORC-327/map-character-creation
 sources:
   - id: orc-327
@@ -229,6 +229,8 @@ the pick at once.
   of a token, or the Choose or Change button of a list that closes on
   the pick. The pressed look is the solid fill and a move of 1px down. It
   moves no other part of the page.
+* While a pick from a picker list is on its way, the add button of the
+  picker is busy too, so the busy look stays when the list closes first.
 * The builder makes the pick after the next paint. The pick and the end
   of the busy state show in one render.
 * A second click on the same option while its pick is on its way does

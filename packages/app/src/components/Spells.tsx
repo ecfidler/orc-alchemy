@@ -286,7 +286,7 @@ function PickerBody({
 }) {
   const done = useRef<HTMLButtonElement>(null);
   // A box of the list has no busy look, so its pick happens at once (usePick).
-  const { select, deselect, replace, dialog } = usePick(selection, undefined, false);
+  const { select, deselect, replace, dialog } = usePick(selection, { defer: false });
   const unavailable = useUnavailable(selection);
   const mark = spellMark(selection, unavailable, { select, deselect, replace });
   return (
